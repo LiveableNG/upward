@@ -1,0 +1,27 @@
+import 'reflect-metadata'
+import { NestFactory } from '@nestjs/core'
+import type { NestFastifyApplication } from '@nestjs/platform-fastify'
+import { FastifyAdapter } from '@nestjs/platform-fastify'
+import { AppModule } from './app.module'
+
+async function bootstrap() {
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter({ logger: true }),
+  )
+
+  app.setGlobalPrefix('api/v1')
+
+  app.enableCors({
+    origin: process.env['FRONTEND_URL'] ?? 'http://localhost:3000',
+    credentials: true,
+  })
+
+  app.enableShutdownHooks()
+
+  const port = Number(process.env['PORT'] ?? 4000)
+  await app.listen(port, '0.0.0.0')
+  console.log(`  Upward API listening on http://0.0.0.0:${port}/api/v1`)
+}
+
+bootstrap()

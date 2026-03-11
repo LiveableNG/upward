@@ -1,0 +1,19 @@
+import type { Metadata } from 'next'
+import './globals.css'
+
+export const metadata: Metadata = {
+  title: {
+    default: 'Upward by GoodTenants',
+    template: '%s | Upward',
+  },
+  description:
+    'Track rent payments, build your Rent Passport, and unlock better housing opportunities.',
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  )
+}

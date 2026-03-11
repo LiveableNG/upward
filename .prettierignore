@@ -1,0 +1,25 @@
+# Build outputs
+dist/
+.next/
+build/
+out/
+
+# Deps
+node_modules/
+
+# Turbo
+.turbo/
+
+# Generated
+apps/frontend/next-env.d.ts
+apps/frontend/ios/
+apps/frontend/android/
+
+# Prisma (generated client — not formatted)
+**/generated/
+
+# Lock file (managed by pnpm)
+pnpm-lock.yaml
+
+# Coverage
+coverage/
