@@ -1,0 +1,45 @@
+import {
+    IsEmail,
+    IsEnum,
+    IsString,
+    IsBoolean,
+    IsOptional,
+    IsArray,
+    ArrayMaxSize,
+    ArrayMinSize,
+    MinLength,
+} from 'class-validator'
+import { UserRole, WaitlistBenefit } from '@upward/shared-types'
+
+export class CreateWaitlistEntryDto {
+    @IsEmail({}, { message: 'Please provide a valid email address' })
+    email!: string
+
+    @IsOptional()
+    @IsString()
+    @MinLength(2, { message: 'Name must be at least 2 characters' })
+    name?: string
+
+    @IsOptional()
+    @IsString()
+    @MinLength(7, { message: 'Phone number is too short' })
+    phone?: string
+
+    @IsOptional()
+    @IsEnum(UserRole, { message: 'Role must be TENANT or PROPERTY_MANAGER' })
+    role?: UserRole
+
+    @IsOptional()
+    @IsArray()
+    @ArrayMinSize(1)
+    @ArrayMaxSize(2, { message: 'You can select up to 2 benefits' })
+    @IsEnum(WaitlistBenefit, { each: true })
+    benefits?: WaitlistBenefit[]
+
+    @IsBoolean({ message: 'You must accept the terms to continue' })
+    acceptTerms!: boolean
+
+    @IsOptional()
+    @IsBoolean()
+    wantsAmbassador?: boolean
+}
