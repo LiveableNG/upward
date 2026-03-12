@@ -55,19 +55,54 @@ export function Header({ onOpenSignup }: { onOpenSignup: () => void }) {
             style={{ width: '70%', height: '70%', objectFit: 'contain' }}
           />
         </div>
-        <span
+        <div
           style={{
-            fontFamily: 'var(--font-head)',
-            fontWeight: 800,
-            fontSize: '15px',
-            background: 'var(--heading-mix)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            letterSpacing: '0.05em',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            lineHeight: '1.2',
           }}
         >
-          UPWARD
-        </span>
+          <div
+            style={{
+              fontFamily: 'var(--font-head)',
+              fontWeight: 800,
+              fontSize: '15px',
+              background: 'var(--heading-mix)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              letterSpacing: '0.05em',
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: '6px',
+            }}
+          >
+            <span>UPWARD</span>
+            <span
+              className="mobile-hide"
+              style={{
+                fontSize: '12px',
+                fontWeight: 700,
+                letterSpacing: '0.02em',
+              }}
+            >
+              By GoodTenants
+            </span>
+          </div>
+          <span
+            className="mobile-only-text"
+            style={{
+              display: 'none',
+              fontFamily: 'var(--font-head)',
+              fontSize: '7px',
+              fontWeight: 600,
+              color: 'var(--muted)',
+              letterSpacing: '0.1em',
+            }}
+          >
+            By GoodTenants
+          </span>
+        </div>
       </Link>
 
       {/* Desktop Nav */}
@@ -222,6 +257,9 @@ export function Header({ onOpenSignup }: { onOpenSignup: () => void }) {
                         padding: 12px 20px !important;
                     }
                     .mobile-toggle {
+                        display: block !important;
+                    }
+                    .mobile-only-text {
                         display: block !important;
                     }
                 }
