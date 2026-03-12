@@ -8,17 +8,17 @@
 
 :root {
   --bg: #141413;
-  --surface: #1C1C1B;
+  --surface: #1c1c1b;
   --surface2: #242423;
   --border: rgba(255, 255, 255, 0.07);
-  --accent: #D97757;
-  --accent2: #FAF9F5;
-  --text: #FAF9F5;
-  --muted: #8A8A8A;
+  --accent: #d97757;
+  --accent2: #faf9f5;
+  --text: #faf9f5;
+  --muted: #8a8a8a;
   --card-bg: rgba(255, 255, 255, 0.03);
   --font-head: 'Inter', 'Syne', sans-serif;
   --font-body: 'Inter', 'DM Sans', sans-serif;
-  --heading-mix: linear-gradient(135deg, #FAF9F5 0%, #D97757 100%);
+  --heading-mix: linear-gradient(135deg, #faf9f5 0%, #d97757 100%);
 }
 
 html {
@@ -118,10 +118,43 @@ body::before {
 @media (max-width: 1100px) {
   .split-layout {
     flex-direction: column;
+    min-height: auto;
   }
 
   .split-benefits {
-    padding: 0 40px 100px;
+    padding: 40px 20px 80px;
+  }
+}
+
+@media (max-width: 768px) {
+  .section-label {
+    font-size: 10px;
+    gap: 6px;
+  }
+  .section-label::before {
+    width: 16px;
+  }
+
+  .divider {
+    max-width: 90%;
+  }
+
+  .mobile-hide {
+    display: none !important;
+  }
+
+  .container-padding {
+    padding: 40px 20px !important;
+  }
+
+  .stack-mobile {
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+
+  .grid-stack-mobile {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
   }
 }
 

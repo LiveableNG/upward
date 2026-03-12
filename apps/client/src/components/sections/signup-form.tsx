@@ -106,10 +106,10 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
 
   const tabStyle = (n: number): React.CSSProperties => ({
     flex: 1,
-    padding: '16px',
+    padding: '16px 8px',
     textAlign: 'center',
-    fontSize: '11px',
-    letterSpacing: '0.15em',
+    fontSize: '10px',
+    letterSpacing: '0.1em',
     textTransform: 'uppercase',
     cursor: 'pointer',
     borderRight: n < 4 ? '1px solid var(--border)' : 'none',
@@ -239,14 +239,20 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
           background: 'var(--surface2)',
         }}
       >
-        {['01 — Contact', '02 — Profile', '03 — Benefits', '04 — Confirm'].map((label, i) => (
+        {[
+          ['01', 'Contact'],
+          ['02', 'Profile'],
+          ['03', 'Benefits'],
+          ['04', 'Confirm'],
+        ].map(([num, text], i) => (
           <div key={i} style={tabStyle(i + 1)}>
-            {label}
+            <span>{num}</span>
+            <span className="mobile-hide"> — {text}</span>
           </div>
         ))}
       </div>
 
-      <div style={{ padding: '40px' }}>
+      <div style={{ padding: '32px 24px' }} className="form-content">
         {done ? (
           <div style={{ textAlign: 'center', padding: '20px' }}>
             <div
@@ -354,6 +360,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                     gap: '16px',
                     marginBottom: '20px',
                   }}
+                  className="grid-stack-mobile"
                 >
                   <div>
                     <label style={labelStyle}>First Name</label>
@@ -439,7 +446,10 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '32px' }}>
                   Help us personalize your Upwards experience.
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div
+                  style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}
+                  className="grid-stack-mobile"
+                >
                   {[
                     {
                       val: UserRole.TENANT,
@@ -528,7 +538,10 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '32px' }}>
                   Pick your top 2 benefits — this shapes what we build first.
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div
+                  style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}
+                  className="grid-stack-mobile"
+                >
                   {[
                     {
                       val: WaitlistBenefit.HISTORY,
@@ -815,6 +828,29 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
           </>
         )}
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .grid-stack-mobile {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+          .form-content {
+            padding: 32px 20px !important;
+          }
+          .share-with-friend-btn {
+            width: 100% !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .tab-text {
+            display: none;
+          }
+          .tab-num::after {
+            content: attr(data-step);
+          }
+        }
+      `}</style>
     </div>
   )
 }

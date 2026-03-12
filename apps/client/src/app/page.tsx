@@ -26,8 +26,34 @@ export default function HomePage() {
 
   return (
     <>
-      <div style={{ position: 'fixed', borderRadius: '50%', filter: 'blur(120px)', pointerEvents: 'none', zIndex: 0, width: '600px', height: '600px', background: 'rgba(217, 119, 87, 0.12)', top: '-200px', right: '-100px' }} />
-      <div style={{ position: 'fixed', borderRadius: '50%', filter: 'blur(120px)', pointerEvents: 'none', zIndex: 0, width: '500px', height: '500px', background: 'rgba(250, 249, 245, 0.06)', bottom: '100px', left: '-150px' }} />
+      <div
+        style={{
+          position: 'fixed',
+          borderRadius: '50%',
+          filter: 'blur(120px)',
+          pointerEvents: 'none',
+          zIndex: 0,
+          width: '600px',
+          height: '600px',
+          background: 'rgba(217, 119, 87, 0.12)',
+          top: '-200px',
+          right: '-100px',
+        }}
+      />
+      <div
+        style={{
+          position: 'fixed',
+          borderRadius: '50%',
+          filter: 'blur(120px)',
+          pointerEvents: 'none',
+          zIndex: 0,
+          width: '500px',
+          height: '500px',
+          background: 'rgba(250, 249, 245, 0.06)',
+          bottom: '100px',
+          left: '-150px',
+        }}
+      />
 
       <Header onOpenSignup={() => openSignup()} />
 
@@ -60,24 +86,49 @@ export default function HomePage() {
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setShowModal(false)}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
             </button>
             <div style={{ padding: '0px' }}>
-              <div style={{ padding: '48px 40px 24px' }}>
+              <div style={{ padding: '48px 40px 24px' }} className="modal-header-padding">
                 <div className="section-label">Priority Access</div>
-                <h2 style={{
-                  fontFamily: 'var(--font-head)', fontWeight: 800,
-                  fontSize: 'clamp(1.8rem, 4vw, 2.4rem)', letterSpacing: '-0.03em',
-                  lineHeight: 1.1, marginBottom: '12px', marginTop: '16px',
-                  background: 'var(--heading-mix)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}>
+                <h2
+                  style={{
+                    fontFamily: 'var(--font-head)',
+                    fontWeight: 800,
+                    fontSize: 'clamp(1.8rem, 4vw, 2.4rem)',
+                    letterSpacing: '-0.03em',
+                    lineHeight: 1.1,
+                    marginBottom: '12px',
+                    marginTop: '16px',
+                    background: 'var(--heading-mix)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                  }}
+                >
                   Join the movement.
                 </h2>
-                <p style={{ color: 'var(--muted)', fontSize: '15px', maxWidth: '440px', lineHeight: 1.6 }}>
+                <p
+                  style={{
+                    color: 'var(--muted)',
+                    fontSize: '15px',
+                    maxWidth: '440px',
+                    lineHeight: 1.6,
+                  }}
+                >
                   Tell us about yourself and we&apos;ll tailor your experience from day one.
                 </p>
               </div>
@@ -87,15 +138,37 @@ export default function HomePage() {
         </div>
       )}
 
-      <div id="toast" style={{
-        position: 'fixed', bottom: '32px', right: '32px',
-        background: 'var(--surface)', border: '1px solid rgba(217, 119, 87, 0.4)',
-        borderRadius: '12px', padding: '16px 24px', zIndex: 9999,
-        fontSize: '14px', color: 'var(--text)',
-        transform: 'translateY(80px)', opacity: 0, transition: 'all 0.3s cubic-bezier(0.34,1.56,0.64,1)',
-        display: 'flex', alignItems: 'center', gap: '12px',
-      }}>
-        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
+      <div
+        id="toast"
+        style={{
+          position: 'fixed',
+          bottom: '32px',
+          right: '32px',
+          background: 'var(--surface)',
+          border: '1px solid rgba(217, 119, 87, 0.4)',
+          borderRadius: '12px',
+          padding: '16px 24px',
+          zIndex: 9999,
+          fontSize: '14px',
+          color: 'var(--text)',
+          transform: 'translateY(80px)',
+          opacity: 0,
+          transition: 'all 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+        }}
+        className="toast-mobile"
+      >
+        <div
+          style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: 'var(--accent)',
+            flexShrink: 0,
+          }}
+        />
         <span id="toast-msg">Copied to clipboard!</span>
       </div>
 
@@ -103,6 +176,17 @@ export default function HomePage() {
         .toast-show {
           transform: translateY(0) !important;
           opacity: 1 !important;
+        }
+        @media (max-width: 768px) {
+          .modal-header-padding {
+            padding: 40px 24px 20px !important;
+          }
+          .toast-mobile {
+            bottom: 20px !important;
+            right: 20px !important;
+            left: 20px !important;
+            justify-content: center;
+          }
         }
       `}</style>
     </>
