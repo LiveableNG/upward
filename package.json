@@ -12,7 +12,8 @@
     "clean": "turbo run clean && rimraf node_modules",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "postinstall": "turbo run prisma:generate"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.0",

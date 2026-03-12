@@ -8,7 +8,9 @@
     "start": "node dist/main.js",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "type-check": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "prisma:generate": "prisma generate",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.11",
