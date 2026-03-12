@@ -1,45 +1,52 @@
 import {
-    IsEmail,
-    IsEnum,
-    IsString,
-    IsBoolean,
-    IsOptional,
-    IsArray,
-    ArrayMaxSize,
-    ArrayMinSize,
-    MinLength,
+  IsEmail,
+  IsEnum,
+  IsString,
+  IsBoolean,
+  IsOptional,
+  IsArray,
+  ArrayMaxSize,
+  ArrayMinSize,
+  MinLength,
 } from 'class-validator'
-import { UserRole, WaitlistBenefit } from '@upward/shared-types'
+import {
+  UserRole,
+  WaitlistBenefit,
+  type CreateWaitlistEntryDto as ICreateWaitlistEntryDto,
+} from '@upward/shared-types'
 
-export class CreateWaitlistEntryDto {
-    @IsEmail({}, { message: 'Please provide a valid email address' })
-    email!: string
+export class CreateWaitlistEntryDto implements ICreateWaitlistEntryDto {
+  @IsEmail({}, { message: 'Please provide a valid email address' })
+  email!: string
 
-    @IsOptional()
-    @IsString()
-    @MinLength(2, { message: 'Name must be at least 2 characters' })
-    name?: string
+  @IsOptional()
+  @IsString()
+  @MinLength(2, { message: 'First name must be at least 2 characters' })
+  firstName?: string
 
-    @IsOptional()
-    @IsString()
-    @MinLength(7, { message: 'Phone number is too short' })
-    phone?: string
+  @IsOptional()
+  @IsString()
+  @MinLength(2, { message: 'Last name must be at least 2 characters' })
+  lastName?: string
 
-    @IsOptional()
-    @IsEnum(UserRole, { message: 'Role must be TENANT or PROPERTY_MANAGER' })
-    role?: UserRole
+  @IsOptional()
+  @IsString()
+  @MinLength(7, { message: 'Phone number is too short' })
+  phone?: string
 
-    @IsOptional()
-    @IsArray()
-    @ArrayMinSize(1)
-    @ArrayMaxSize(2, { message: 'You can select up to 2 benefits' })
-    @IsEnum(WaitlistBenefit, { each: true })
-    benefits?: WaitlistBenefit[]
+  @IsEnum(UserRole, { message: 'Role must be TENANT or OWNER' })
+  role!: UserRole
 
-    @IsBoolean({ message: 'You must accept the terms to continue' })
-    acceptTerms!: boolean
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(2, { message: 'You can select up to 2 benefits' })
+  @IsEnum(WaitlistBenefit, { each: true })
+  benefits!: WaitlistBenefit[]
 
-    @IsOptional()
-    @IsBoolean()
-    wantsAmbassador?: boolean
+  @IsBoolean({ message: 'You must accept the terms to continue' })
+  acceptTerms!: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  wantsAmbassador?: boolean
 }

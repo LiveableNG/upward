@@ -14,7 +14,8 @@ datasource db {
 model upward_waitlist {
   id              String    @id @default(cuid())
   email           String    @unique
-  name            String?
+  firstName       String?
+  lastName        String?
   phone           String?
   role            String?
   benefits        String[]
