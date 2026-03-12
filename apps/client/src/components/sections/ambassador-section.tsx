@@ -77,7 +77,7 @@ export function AmbassadorSection() {
               marginBottom: '32px',
             }}
           >
-            Join one of our live information sessions to learn how Upwards works, ask questions, and
+            Join one of our live information sessions to learn how Upward works, ask questions, and
             explore how you can become a community ambassador and earn rewards.
           </p>
           <button

@@ -11,7 +11,7 @@ function showToast(msg: string) {
 }
 
 export function TellAFriend() {
-  const caption = `🏠 Tired of paying rent with nothing to show for it? UPWARDS by GoodTenants is changing that — turning your rental history into a passport to home ownership. Join me on the early access waitlist: https://upwards.goodtenants.com #RentPassport #GoodTenants #Upwards`
+  const caption = `🏠 Tired of paying rent with nothing to show for it? UPWARD by GoodTenants is changing that — turning your rental history into a passport to home ownership. Join me on the early access waitlist: https://upwards.goodtenants.com #RentPassport #GoodTenants #Upward`
 
   return (
     <section
@@ -59,7 +59,7 @@ export function TellAFriend() {
             lineHeight: 1.7,
           }}
         >
-          Every person you refer who joins gets priority access — and so do you. Share Upwards and
+          Every person you refer who joins gets priority access — and so do you. Share Upward and
           help your community win.
         </p>
 
@@ -220,9 +220,9 @@ export function TellAFriend() {
           <span
             style={{ display: 'block', paddingLeft: '24px', lineHeight: 1.6, fontStyle: 'italic' }}
           >
-            Tired of paying rent with nothing to show for it? UPWARDS by GoodTenants is changing
-            that — turning your rental history into a passport to home ownership. Join me on the
-            early access waitlist: [your-link] #RentPassport #GoodTenants #Upwards
+            Tired of paying rent with nothing to show for it? UPWARD by GoodTenants is changing that
+            — turning your rental history into a passport to home ownership. Join me on the early
+            access waitlist: [your-link] #RentPassport #GoodTenants #Upward
           </span>
         </div>
       </div>

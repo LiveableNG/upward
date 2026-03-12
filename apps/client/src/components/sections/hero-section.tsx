@@ -120,7 +120,7 @@ export function HeroSection({ onOpenSignup }: { onOpenSignup: (email?: string) =
           }}
           className="hero-p"
         >
-          Record your rent, build your Rent Passport, and unlock low-cost home financing. Upwards
+          Record your rent, build your Rent Passport, and unlock low-cost home financing. Upward
           turns every payment into proof of your reliability.
         </p>
 

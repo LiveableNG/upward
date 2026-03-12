@@ -56,7 +56,7 @@ export function WhyUpward() {
       }}
       className="container-padding"
     >
-      <div className="section-label">Why Upwards</div>
+      <div className="section-label">Why Upward</div>
       <h2
         style={{
           fontFamily: 'var(--font-head)',
@@ -80,7 +80,7 @@ export function WhyUpward() {
           lineHeight: 1.7,
         }}
       >
-        Millions of renters pay on time, every time — yet get zero credit for it. Upwards changes
+        Millions of renters pay on time, every time — yet get zero credit for it. Upward changes
         that.
       </p>
 

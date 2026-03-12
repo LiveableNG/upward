@@ -4,22 +4,31 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Upwards by GoodTenants — Build With Your Rent',
-    template: '%s | Upwards by GoodTenants',
+    default: 'Upward by GoodTenants — Build With Your Rent',
+    template: '%s | Upward by GoodTenants',
   },
   description:
     'Track rent payments, build your Rent Passport, and unlock low-cost home financing. The platform for responsible, hardworking African renters.',
-  keywords: ['rent passport', 'rental history', 'home financing', 'Nigeria', 'Africa', 'GoodTenants', 'upwards'],
+  keywords: [
+    'rent passport',
+    'rental history',
+    'home financing',
+    'Nigeria',
+    'Africa',
+    'GoodTenants',
+    'upwards',
+  ],
   openGraph: {
-    title: 'Upwards by GoodTenants — Build With Your Rent',
-    description: 'Unlock access to structured, low-cost home financing. Build credibility while you rent.',
-    siteName: 'Upwards by GoodTenants',
+    title: 'Upward by GoodTenants — Build With Your Rent',
+    description:
+      'Unlock access to structured, low-cost home financing. Build credibility while you rent.',
+    siteName: 'Upward by GoodTenants',
     locale: 'en_NG',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Upwards by GoodTenants',
+    title: 'Upward by GoodTenants',
     description: 'Build your Rent Passport. Unlock home financing.',
   },
   robots: { index: true, follow: true },

@@ -95,7 +95,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
       }
 
       setDone(true)
-      showToast(result.message || "You're on the list! Welcome to Upwards")
+      showToast(result.message || "You're on the list! Welcome to Upward")
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Submission failed. Please try again.'
       showToast(message)
@@ -444,7 +444,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                   I Am A...
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '32px' }}>
-                  Help us personalize your Upwards experience.
+                  Help us personalize your Upward experience.
                 </div>
                 <div
                   style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}
@@ -776,8 +776,8 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                         <>
                           <strong style={{ color: 'var(--text)' }}>Yes, keep me informed!</strong> I
                           agree to receive important updates, launch news, and exclusive
-                          early-access information from Upwards by GoodTenants. (Required to join
-                          the waitlist.)
+                          early-access information from Upward by GoodTenants. (Required to join the
+                          waitlist.)
                         </>
                       ) : (
                         <>

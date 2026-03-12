@@ -51,7 +51,7 @@ export function Header({ onOpenSignup }: { onOpenSignup: () => void }) {
         >
           <img
             src="/favicon.svg"
-            alt="Upwards Logo"
+            alt="Upward Logo"
             style={{ width: '70%', height: '70%', objectFit: 'contain' }}
           />
         </div>
@@ -66,7 +66,7 @@ export function Header({ onOpenSignup }: { onOpenSignup: () => void }) {
             letterSpacing: '0.05em',
           }}
         >
-          UPWARDS
+          UPWARD
         </span>
       </Link>
 
@@ -74,7 +74,7 @@ export function Header({ onOpenSignup }: { onOpenSignup: () => void }) {
       <ul style={{ display: 'flex', gap: '32px', listStyle: 'none' }} className="mobile-hide">
         {(
           [
-            ['#why', 'Why Upwards'],
+            ['#why', 'Why Upward'],
             ['#how', 'How it Works'],
             ['#ambassador', 'Ambassador'],
           ] as [string, string][]
@@ -172,7 +172,7 @@ export function Header({ onOpenSignup }: { onOpenSignup: () => void }) {
         >
           {(
             [
-              ['#why', 'Why Upwards'],
+              ['#why', 'Why Upward'],
               ['#how', 'How it Works'],
               ['#ambassador', 'Ambassador'],
             ] as [string, string][]

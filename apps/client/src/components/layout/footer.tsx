@@ -146,7 +146,7 @@ export function Footer() {
           }}
           className="footer-copy"
         >
-          © 2026 UPWARDS by GoodTenants. <br className="mobile-only" />
+          © 2026 UPWARD by GoodTenants. <br className="mobile-only" />
           All Rights Reserved.
         </p>
         <div style={{ display: 'flex', gap: '24px' }} className="footer-socials">
