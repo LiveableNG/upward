@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { type PrismaService } from '../prisma/prisma.service'
-import { type CreateWaitlistEntryDto } from './dto/create-waitlist-entry.dto'
+import { PrismaService } from '../prisma/prisma.service'
+import { CreateWaitlistEntryDto } from './dto/create-waitlist-entry.dto'
 import type { WaitlistEntryResponse } from '@upward/shared-types'
 
 @Injectable()

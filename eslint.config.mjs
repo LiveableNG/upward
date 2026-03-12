@@ -11,7 +11,7 @@ export default tseslint.config(
       '**/.turbo/**',
       '**/coverage/**',
       '**/build/**',
-      'apps/frontend/next-env.d.ts',
+      'apps/client/next-env.d.ts',
     ],
   },
 
@@ -41,8 +41,11 @@ export default tseslint.config(
 
   // ── Backend (NestJS) — relax rules that conflict with DI patterns ──────────
   {
-    files: ['apps/backend/**/*.ts'],
+    files: ['apps/server/**/*.ts'],
     rules: {
+      // DISABLE THE RULE THAT BREAKS NESTJS DI
+      // NestJS needs classes (values) for metadata reflection/injection
+      '@typescript-eslint/consistent-type-imports': 'off',
       // NestJS modules, guards, interceptors etc. are empty classes by design
       '@typescript-eslint/no-extraneous-class': 'off',
       // NestJS uses parameter decorators that look like "unused" params

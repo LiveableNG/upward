@@ -8,8 +8,8 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common'
-import { type WaitlistService } from './waitlist.service'
-import { type CreateWaitlistEntryDto } from './dto/create-waitlist-entry.dto'
+import { WaitlistService } from './waitlist.service'
+import { CreateWaitlistEntryDto } from './dto/create-waitlist-entry.dto'
 import type { WaitlistEntryResponse, ApiSuccess } from '@upward/shared-types'
 
 @Controller('waitlist')
