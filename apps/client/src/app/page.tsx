@@ -4,7 +4,7 @@ import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { HeroSection } from '@/components/sections/hero-section'
 import { BenefitsGrid } from '@/components/sections/benefits-grid'
-import { WhyUpward } from '@/components/sections/why-upward'
+import { WhyUpwardPage } from '@/components/sections/why-upward-page'
 import { TellAFriend } from '@/components/sections/tell-a-friend'
 import { PartnersBar } from '@/components/sections/partners-bar'
 import { SignupForm } from '@/components/sections/signup-form'
@@ -13,6 +13,7 @@ import { AmbassadorSection } from '@/components/sections/ambassador-section'
 export default function HomePage() {
   const [showModal, setShowModal] = useState(false)
   const [prefilledEmail, setPrefilledEmail] = useState('')
+  const [view, setView] = useState<'home' | 'why'>('home')
 
   const openSignup = (email?: string) => {
     if (email) setPrefilledEmail(email)
@@ -23,6 +24,11 @@ export default function HomePage() {
     if (showModal) document.body.classList.add('no-scroll')
     else document.body.classList.remove('no-scroll')
   }, [showModal])
+
+  // Scroll to top when view changes
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [view])
 
   return (
     <>
@@ -55,34 +61,65 @@ export default function HomePage() {
         }}
       />
 
-      <Header onOpenSignup={() => openSignup()} />
+      <Header onOpenSignup={() => openSignup()} onSetView={setView} currentView={view} />
 
-      <main style={{ position: 'relative', zIndex: 1 }}>
-        <div className="split-layout">
-          <div className="split-hero">
-            <HeroSection onOpenSignup={(e) => openSignup(e)} />
+      <main style={{ position: 'relative', zIndex: 1, overflowX: 'hidden' }}>
+        <div
+          style={{
+            display: 'flex',
+            width: '200%',
+            transition: 'transform 0.6s cubic-bezier(0.85, 0, 0.15, 1)',
+            transform: view === 'home' ? 'translateX(0)' : 'translateX(-50%)',
+            alignItems: 'flex-start',
+          }}
+        >
+          {/* Home View */}
+          <div
+            style={{
+              width: '50%',
+              flexShrink: 0,
+              height: view === 'home' ? 'auto' : '0',
+              overflow: 'hidden',
+              visibility: view === 'home' ? 'visible' : 'hidden',
+            }}
+          >
+            <div className="split-layout">
+              <div className="split-hero">
+                <HeroSection onOpenSignup={(e) => openSignup(e)} />
+              </div>
+              <div className="split-benefits">
+                <BenefitsGrid onOpenSignup={(e) => openSignup(e)} />
+              </div>
+            </div>
+
+            <div className="divider" />
+
+            <AmbassadorSection />
+
+            <div className="divider" />
+
+            <TellAFriend />
+
+            <PartnersBar />
           </div>
-          <div className="split-benefits">
-            <BenefitsGrid onOpenSignup={(e) => openSignup(e)} />
+
+          {/* Why Upward View */}
+          <div
+            style={{
+              width: '50%',
+              flexShrink: 0,
+              height: view === 'why' ? 'auto' : '0',
+              overflow: 'hidden',
+              visibility: view === 'why' ? 'visible' : 'hidden',
+            }}
+          >
+            <WhyUpwardPage onBack={() => setView('home')} onOpenSignup={() => openSignup()} />
           </div>
         </div>
-
-        <div className="divider" />
-
-        <WhyUpward />
-
-        <div className="divider" />
-
-        <AmbassadorSection />
-
-        <div className="divider" />
-
-        <TellAFriend />
-
-        <PartnersBar />
       </main>
 
       <Footer />
+      {/* ... rest of the modal and toast code ... */}
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>

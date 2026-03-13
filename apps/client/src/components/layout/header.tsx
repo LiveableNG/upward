@@ -2,7 +2,15 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 
-export function Header({ onOpenSignup }: { onOpenSignup: () => void }) {
+export function Header({
+  onOpenSignup,
+  onSetView,
+  currentView,
+}: {
+  onOpenSignup: () => void
+  onSetView: (view: 'home' | 'why') => void
+  currentView: 'home' | 'why'
+}) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -32,9 +40,15 @@ export function Header({ onOpenSignup }: { onOpenSignup: () => void }) {
       }}
       className="header-padding"
     >
-      <Link
-        href="/"
-        style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}
+      <div
+        onClick={() => onSetView('home')}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          textDecoration: 'none',
+          cursor: 'pointer',
+        }}
       >
         <div
           style={{
@@ -103,35 +117,52 @@ export function Header({ onOpenSignup }: { onOpenSignup: () => void }) {
             By GoodTenants
           </span>
         </div>
-      </Link>
+      </div>
 
-      {/* Desktop Nav */}
       <ul style={{ display: 'flex', gap: '32px', listStyle: 'none' }} className="mobile-hide">
         {(
           [
             ['#why', 'Why Upward'],
-            ['#how', 'How it Works'],
             ['#ambassador', 'Ambassador'],
           ] as [string, string][]
-        ).map(([href, label]) => (
-          <li key={href}>
-            <Link
-              href={href}
-              style={{
-                fontSize: '12px',
-                color: 'var(--muted)',
-                textDecoration: 'none',
-                transition: 'color 0.2s',
-                letterSpacing: '1px',
-                textTransform: 'uppercase',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--muted)')}
-            >
-              {label}
-            </Link>
-          </li>
-        ))}
+        ).map(([href, label]) => {
+          return (
+            <li key={href}>
+              <Link
+                href={href}
+                onClick={(e) => {
+                  if (label === 'Why Upward') {
+                    e.preventDefault()
+                    onSetView('why')
+                  } else {
+                    onSetView('home')
+                  }
+                }}
+                style={{
+                  fontSize: '12px',
+                  color:
+                    label === 'Why Upward' && currentView === 'why'
+                      ? 'var(--accent)'
+                      : 'var(--muted)',
+                  textDecoration: 'none',
+                  transition: 'color 0.2s',
+                  letterSpacing: '1px',
+                  textTransform: 'uppercase',
+                  fontWeight: label === 'Why Upward' && currentView === 'why' ? 700 : 400,
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text)')}
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.color =
+                    label === 'Why Upward' && currentView === 'why'
+                      ? 'var(--accent)'
+                      : 'var(--muted)')
+                }
+              >
+                {label}
+              </Link>
+            </li>
+          )
+        })}
       </ul>
 
       <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
@@ -161,12 +192,12 @@ export function Header({ onOpenSignup }: { onOpenSignup: () => void }) {
         <button
           onClick={toggleMenu}
           style={{
-            display: 'none',
             background: 'none',
             border: 'none',
             color: 'var(--text)',
             cursor: 'pointer',
             padding: '5px',
+            display: 'none',
           }}
           className="mobile-toggle"
         >
@@ -208,19 +239,27 @@ export function Header({ onOpenSignup }: { onOpenSignup: () => void }) {
           {(
             [
               ['#why', 'Why Upward'],
-              ['#how', 'How it Works'],
               ['#ambassador', 'Ambassador'],
             ] as [string, string][]
           ).map(([href, label]) => (
             <Link
               key={href}
               href={href}
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={(e) => {
+                if (label === 'Why Upward') {
+                  e.preventDefault()
+                  onSetView('why')
+                } else {
+                  onSetView('home')
+                }
+                setMobileMenuOpen(false)
+              }}
               style={{
                 fontSize: '24px',
                 fontFamily: 'var(--font-head)',
                 fontWeight: 700,
-                color: 'var(--text)',
+                color:
+                  label === 'Why Upward' && currentView === 'why' ? 'var(--accent)' : 'var(--text)',
                 textDecoration: 'none',
               }}
             >
@@ -252,6 +291,10 @@ export function Header({ onOpenSignup }: { onOpenSignup: () => void }) {
       )}
 
       <style>{`
+                @keyframes fadeIn {
+                  from { opacity: 0; transform: translateY(-10px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
                 @media (max-width: 768px) {
                     .header-padding {
                         padding: 12px 20px !important;
