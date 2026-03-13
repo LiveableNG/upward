@@ -21,6 +21,8 @@ export interface CreateWaitlistEntryDto {
   benefits?: WaitlistBenefit[]
   acceptTerms: boolean
   wantsAmbassador?: boolean
+  country?: string
+  city?: string
 }
 
 export interface WaitlistEntryResponse {
@@ -47,4 +49,9 @@ export interface ApiError {
   statusCode: number
   message: string | string[]
   error?: string
+}
+
+export interface Country {
+  id: string
+  name: string
 }

@@ -32,6 +32,8 @@ export class WaitlistService {
         benefits: dto.benefits ?? [],
         acceptTerms: dto.acceptTerms,
         wantsAmbassador: dto.wantsAmbassador ?? false,
+        country: dto.country,
+        city: dto.city,
       },
       select: { id: true, email: true, createdAt: true },
     })

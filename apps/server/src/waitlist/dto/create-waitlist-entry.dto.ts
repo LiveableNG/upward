@@ -49,4 +49,12 @@ export class CreateWaitlistEntryDto implements ICreateWaitlistEntryDto {
   @IsOptional()
   @IsBoolean()
   wantsAmbassador?: boolean
+
+  @IsOptional()
+  @IsString()
+  country?: string
+
+  @IsOptional()
+  @IsString()
+  city?: string
 }

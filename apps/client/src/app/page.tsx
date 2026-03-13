@@ -30,28 +30,28 @@ export default function HomePage() {
         style={{
           position: 'fixed',
           borderRadius: '50%',
-          filter: 'blur(120px)',
+          filter: 'blur(160px)',
           pointerEvents: 'none',
           zIndex: 0,
-          width: '600px',
-          height: '600px',
-          background: 'rgba(217, 119, 87, 0.12)',
-          top: '-200px',
-          right: '-100px',
+          width: '800px',
+          height: '800px',
+          background: 'radial-gradient(circle, rgba(217, 119, 87, 0.15) 0%, transparent 70%)',
+          top: '-300px',
+          right: '-200px',
         }}
       />
       <div
         style={{
           position: 'fixed',
           borderRadius: '50%',
-          filter: 'blur(120px)',
+          filter: 'blur(140px)',
           pointerEvents: 'none',
           zIndex: 0,
-          width: '500px',
-          height: '500px',
-          background: 'rgba(250, 249, 245, 0.06)',
-          bottom: '100px',
-          left: '-150px',
+          width: '700px',
+          height: '700px',
+          background: 'radial-gradient(circle, rgba(250, 249, 245, 0.08) 0%, transparent 70%)',
+          bottom: '-100px',
+          left: '-200px',
         }}
       />
 
@@ -63,7 +63,7 @@ export default function HomePage() {
             <HeroSection onOpenSignup={(e) => openSignup(e)} />
           </div>
           <div className="split-benefits">
-            <BenefitsGrid />
+            <BenefitsGrid onOpenSignup={(e) => openSignup(e)} />
           </div>
         </div>
 

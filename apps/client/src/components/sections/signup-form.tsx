@@ -16,6 +16,38 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
   const [benefitWarning, setBenefitWarning] = useState(false)
   const [loading, setLoading] = useState(false)
   const [alreadySignedUp, setAlreadySignedUp] = useState(false)
+  const [country, setCountry] = useState('')
+  const [city, setCity] = useState('')
+  const [countries, setCountries] = useState<{ id: string; name: string }[]>([])
+  const [cities, setCities] = useState<string[]>([])
+  const [fetchingCities, setFetchingCities] = useState(false)
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/locations/countries`)
+      .then((res) => res.json())
+      .then((json) => setCountries(json.data || []))
+      .catch((err) => console.error('Failed to fetch countries', err))
+  }, [])
+
+  useEffect(() => {
+    if (country) {
+      setFetchingCities(true)
+      // The server expects lowercase country ID/Name
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/locations/cities?country=${country.toLowerCase()}`)
+        .then((res) => res.json())
+        .then((json) => {
+          setCities(json.data || [])
+          if (json.data && !json.data.includes(city)) {
+            setCity('')
+          }
+        })
+        .catch((err) => console.error('Failed to fetch cities', err))
+        .finally(() => setFetchingCities(false))
+    } else {
+      setCities([])
+      setCity('')
+    }
+  }, [country])
 
   useEffect(() => {
     if (initialEmail) {
@@ -76,6 +108,8 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
         benefits,
         acceptTerms: checkboxes.news,
         wantsAmbassador: checkboxes.ambassador,
+        country: country || undefined,
+        city: city || undefined,
       }
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist`, {
@@ -132,6 +166,17 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
     transition: 'border-color 0.2s',
   }
 
+  const selectStyle: React.CSSProperties = {
+    ...inputStyle,
+    cursor: 'pointer',
+    appearance: 'none',
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 16px center',
+    paddingRight: '45px',
+    color: 'var(--text)',
+  }
+
   const labelStyle: React.CSSProperties = {
     fontSize: '12px',
     letterSpacing: '0.08em',
@@ -167,7 +212,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
         gap: '8px',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = '#d8ff6e'
+        e.currentTarget.style.background = '#e68a6b'
         e.currentTarget.style.transform = 'translateY(-1px)'
       }}
       onMouseLeave={(e) => {
@@ -221,6 +266,31 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
     </svg>
   )
 
+  const handleShare = async () => {
+    const shareData = {
+      title: 'Upward by GoodTenants',
+      text: 'I just joined the waitlist for Upward! Build your rental credibility and own your home.',
+      url: window.location.origin,
+    }
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData)
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Error sharing:', err)
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareData.url)
+        showToast('Link copied to clipboard!')
+      } catch {
+        showToast('Failed to copy link.')
+      }
+    }
+  }
+
   return (
     <div
       style={{
@@ -259,8 +329,8 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
               style={{
                 width: '64px',
                 height: '64px',
-                background: 'rgba(200,242,92,0.1)',
-                border: '1px solid rgba(200,242,92,0.3)',
+                background: 'rgba(217, 119, 87, 0.1)',
+                border: '1px solid rgba(217, 119, 87, 0.3)',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
@@ -315,9 +385,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                 margin: '0 auto',
                 display: 'block',
               }}
-              onClick={() =>
-                document.getElementById('share')?.scrollIntoView({ behavior: 'smooth' })
-              }
+              onClick={handleShare}
             >
               Share With a Friend →
             </button>
@@ -387,6 +455,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                     />
                   </div>
                 </div>
+
                 <div style={{ marginBottom: '20px' }}>
                   <label style={labelStyle}>Phone Number</label>
                   <input
@@ -399,6 +468,55 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                     onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
                   />
                 </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '16px',
+                    marginBottom: '20px',
+                  }}
+                  className="grid-stack-mobile"
+                >
+                  <div>
+                    <label style={labelStyle}>Country</label>
+                    <select
+                      style={selectStyle}
+                      value={country}
+                      onChange={(e) => setCountry(e.target.value)}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+                    >
+                      <option value="">Select Country</option>
+                      {countries.map((c) => (
+                        <option key={c.id} value={c.name} style={{ background: 'var(--surface2)' }}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Municipality</label>
+                    <select
+                      style={selectStyle}
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+                      disabled={!country || fetchingCities}
+                    >
+                      <option value="">
+                        {fetchingCities ? 'Loading...' : 'Select Municipality'}
+                      </option>
+                      {cities.map((c) => (
+                        <option key={c} value={c} style={{ background: 'var(--surface2)' }}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 <div
                   style={{
                     display: 'flex',
@@ -467,7 +585,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                       onClick={() => setRole(val)}
                       style={{
                         border: `1px solid ${role === val ? 'var(--accent)' : 'var(--border)'}`,
-                        background: role === val ? 'rgba(200,242,92,0.05)' : 'var(--surface2)',
+                        background: role === val ? 'rgba(217, 119, 87, 0.05)' : 'var(--surface2)',
                         borderRadius: '10px',
                         padding: '16px 20px',
                         cursor: 'pointer',
@@ -542,111 +660,115 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                   style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}
                   className="grid-stack-mobile"
                 >
-                  {[
-                    {
-                      val: WaitlistBenefit.HISTORY,
-                      label: 'Verified Rental History',
-                      icon: (
-                        <svg
-                          viewBox="0 0 24 24"
-                          width="16"
-                          height="16"
-                          fill="none"
-                          stroke="var(--accent)"
-                          strokeWidth="1.8"
-                        >
-                          <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1-1z" />
-                          <path d="m9 12 2 2 4-4" />
-                        </svg>
-                      ),
-                    },
-                    {
-                      val: WaitlistBenefit.OWNERSHIP,
-                      label: 'Path to Home Ownership',
-                      icon: (
-                        <svg
-                          viewBox="0 0 24 24"
-                          width="16"
-                          height="16"
-                          fill="none"
-                          stroke="var(--accent)"
-                          strokeWidth="1.8"
-                        >
-                          <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
-                          <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                        </svg>
-                      ),
-                    },
-                    {
-                      val: WaitlistBenefit.FINANCING,
-                      label: 'Low-Cost Financing Access',
-                      icon: (
-                        <svg
-                          viewBox="0 0 24 24"
-                          width="16"
-                          height="16"
-                          fill="none"
-                          stroke="var(--accent)"
-                          strokeWidth="1.8"
-                        >
-                          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-                          <polyline points="16 7 22 7 22 13" />
-                        </svg>
-                      ),
-                    },
-                    {
-                      val: WaitlistBenefit.PRIORITY,
-                      label: 'Priority Landlord Access',
-                      icon: (
-                        <svg
-                          viewBox="0 0 24 24"
-                          width="16"
-                          height="16"
-                          fill="none"
-                          stroke="var(--accent)"
-                          strokeWidth="1.8"
-                        >
-                          <circle cx="12" cy="12" r="10" />
-                          <path d="M12 6v6l4 2" />
-                        </svg>
-                      ),
-                    },
-                    {
-                      val: WaitlistBenefit.CREDIT,
-                      label: 'Rent Credit Reporting',
-                      icon: (
-                        <svg
-                          viewBox="0 0 24 24"
-                          width="16"
-                          height="16"
-                          fill="none"
-                          stroke="var(--accent)"
-                          strokeWidth="1.8"
-                        >
-                          <rect width="20" height="14" x="2" y="5" rx="2" />
-                          <path d="M2 10h20" />
-                        </svg>
-                      ),
-                    },
-                    {
-                      val: WaitlistBenefit.TITLE,
-                      label: 'Clean Title Property Access',
-                      icon: (
-                        <svg
-                          viewBox="0 0 24 24"
-                          width="16"
-                          height="16"
-                          fill="none"
-                          stroke="var(--accent)"
-                          strokeWidth="1.8"
-                        >
-                          <path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" />
-                          <path d="m21 2-9.6 9.6" />
-                          <circle cx="7.5" cy="15.5" r="5.5" />
-                        </svg>
-                      ),
-                    },
-                  ].map(({ val, label, icon }) => {
+                  {(role === UserRole.TENANT
+                    ? [
+                        {
+                          val: WaitlistBenefit.PRIORITY,
+                          label: 'Get prioritized by landlords when moving homes',
+                          icon: (
+                            <svg
+                              viewBox="0 0 24 24"
+                              width="16"
+                              height="16"
+                              fill="none"
+                              stroke="var(--accent)"
+                              strokeWidth="1.8"
+                            >
+                              <circle cx="12" cy="12" r="10" />
+                              <path d="M12 6v6l4 2" />
+                            </svg>
+                          ),
+                        },
+                        {
+                          val: WaitlistBenefit.FINANCING,
+                          label: 'Qualify for flexible rent payments while renting',
+                          icon: (
+                            <svg
+                              viewBox="0 0 24 24"
+                              width="16"
+                              height="16"
+                              fill="none"
+                              stroke="var(--accent)"
+                              strokeWidth="1.8"
+                            >
+                              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                              <polyline points="16 7 22 7 22 13" />
+                            </svg>
+                          ),
+                        },
+                        {
+                          val: WaitlistBenefit.OWNERSHIP,
+                          label: 'Own your own quality home with single-digit home loans',
+                          icon: (
+                            <svg
+                              viewBox="0 0 24 24"
+                              width="16"
+                              height="16"
+                              fill="none"
+                              stroke="var(--accent)"
+                              strokeWidth="1.8"
+                            >
+                              <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+                              <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                            </svg>
+                          ),
+                        },
+                      ]
+                    : [
+                        {
+                          val: WaitlistBenefit.HISTORY,
+                          label: 'Find verified tenants and enjoy peace of mind',
+                          icon: (
+                            <svg
+                              viewBox="0 0 24 24"
+                              width="16"
+                              height="16"
+                              fill="none"
+                              stroke="var(--accent)"
+                              strokeWidth="1.8"
+                            >
+                              <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+                              <path d="m9 12 2 2 4-4" />
+                            </svg>
+                          ),
+                        },
+                        {
+                          val: WaitlistBenefit.CREDIT,
+                          label: 'Say Goodbye to consistent defaults. Get paid on-time',
+                          icon: (
+                            <svg
+                              viewBox="0 0 24 24"
+                              width="16"
+                              height="16"
+                              fill="none"
+                              stroke="var(--accent)"
+                              strokeWidth="1.8"
+                            >
+                              <rect width="20" height="14" x="2" y="5" rx="2" />
+                              <path d="M2 10h20" />
+                            </svg>
+                          ),
+                        },
+                        {
+                          val: WaitlistBenefit.TITLE,
+                          label: 'Access exclusive brokerage deals',
+                          icon: (
+                            <svg
+                              viewBox="0 0 24 24"
+                              width="16"
+                              height="16"
+                              fill="none"
+                              stroke="var(--accent)"
+                              strokeWidth="1.8"
+                            >
+                              <path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" />
+                              <path d="m21 2-9.6 9.6" />
+                              <circle cx="7.5" cy="15.5" r="5.5" />
+                            </svg>
+                          ),
+                        },
+                      ]
+                  ).map(({ val, label, icon }) => {
                     const sel = benefits.includes(val)
                     return (
                       <div
@@ -654,7 +776,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                         onClick={() => toggleBenefit(val)}
                         style={{
                           border: `1px solid ${sel ? 'var(--accent)' : 'var(--border)'}`,
-                          background: sel ? 'rgba(200,242,92,0.05)' : 'var(--surface2)',
+                          background: sel ? 'rgba(217, 119, 87, 0.05)' : 'var(--surface2)',
                           borderRadius: '10px',
                           padding: '14px 16px',
                           cursor: 'pointer',
@@ -735,8 +857,8 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                       alignItems: 'flex-start',
                       gap: '14px',
                       padding: '16px',
-                      background: 'rgba(200,242,92,0.04)',
-                      border: '1px solid rgba(200,242,92,0.15)',
+                      background: 'rgba(217, 119, 87, 0.04)',
+                      border: '1px solid rgba(217, 119, 87, 0.15)',
                       borderRadius: '10px',
                       marginBottom: '16px',
                       cursor: 'pointer',
@@ -843,12 +965,9 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
           }
         }
         @media (max-width: 480px) {
-          .tab-text {
-            display: none;
-          }
-          .tab-num::after {
-            content: attr(data-step);
-          }
+           .mobile-hide {
+             display: none;
+           }
         }
       `}</style>
     </div>
