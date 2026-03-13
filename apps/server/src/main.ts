@@ -6,6 +6,7 @@ import { ValidationPipe } from '@nestjs/common'
 import { AppModule } from './app.module'
 
 let cachedApp: NestFastifyApplication
+let initializationPromise: Promise<NestFastifyApplication> | null = null
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -32,6 +33,22 @@ async function bootstrap() {
   return app
 }
 
+async function getApp() {
+  if (cachedApp) return cachedApp
+  if (initializationPromise) return initializationPromise
+
+  initializationPromise = (async () => {
+    const app = await bootstrap()
+    await app.init()
+    const instance = app.getHttpAdapter().getInstance()
+    await instance.ready()
+    cachedApp = app
+    return app
+  })()
+
+  return initializationPromise
+}
+
 if (!process.env['VERCEL']) {
   bootstrap().then(async (app) => {
     const port = Number(process.env['PORT'] ?? 4000)
@@ -44,13 +61,12 @@ export default async function handler(
   req: import('http').IncomingMessage,
   res: import('http').ServerResponse,
 ) {
-  if (!cachedApp) {
-    cachedApp = await bootstrap()
-    await cachedApp.init()
-    const instance = cachedApp.getHttpAdapter().getInstance()
-    await instance.ready()
+  const app = await getApp()
+  const instance = app.getHttpAdapter().getInstance()
+
+  if (req.url === '/' || req.url === '') {
+    req.url = '/api/v1'
   }
 
-  const instance = cachedApp.getHttpAdapter().getInstance()
   instance.server.emit('request', req, res)
 }

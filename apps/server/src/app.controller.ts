@@ -9,4 +9,9 @@ export class AppController {
   health(): { status: string; timestamp: string } {
     return this.appService.health()
   }
+
+  @Get()
+  root(): { message: string } {
+    return { message: 'Upward API is running' }
+  }
 }
