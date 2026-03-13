@@ -15,12 +15,21 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
   const [done, setDone] = useState(false)
   const [benefitWarning, setBenefitWarning] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [alreadySignedUp, setAlreadySignedUp] = useState(false)
   const [country, setCountry] = useState('')
   const [city, setCity] = useState('')
   const [countries, setCountries] = useState<{ id: string; name: string }[]>([])
   const [cities, setCities] = useState<string[]>([])
   const [fetchingCities, setFetchingCities] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [dataLoaded, setDataLoaded] = useState(false)
+  const [selectedSession, setSelectedSession] = useState('')
+
+  const SESSIONS = [
+    'Saturday (10:00 AM)',
+    'Tuesday (7:00 PM)',
+    'Thursday (7:00 PM)',
+    'Wednesday (12:00 PM)',
+  ]
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/locations/countries`)
@@ -52,6 +61,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
   useEffect(() => {
     if (initialEmail) {
       setEmail(initialEmail)
+      loadExistingData(initialEmail)
     }
   }, [initialEmail])
 
@@ -70,12 +80,19 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
       showToast('Please enter your email address.')
       return
     }
+    if (n === 3 && step === 2 && !role) {
+      showToast('Please select your role.')
+      return
+    }
     if (n === 4) {
       if (benefits.length !== 2) {
         setBenefitWarning(true)
         return
       }
       setBenefitWarning(false)
+    }
+    if (n > step) {
+      syncData()
     }
     setStep(n)
   }
@@ -89,6 +106,75 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
       setBenefits([...benefits, val])
     }
     setBenefitWarning(false)
+  }
+
+  const syncData = async (optionalPayload?: Partial<CreateWaitlistEntryDto>) => {
+    const currentEmail = optionalPayload?.email || email
+    if (!currentEmail || !currentEmail.includes('@')) return
+
+    try {
+      const payload: CreateWaitlistEntryDto = {
+        email: currentEmail,
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        phone: phone || undefined,
+        role,
+        benefits,
+        acceptTerms: checkboxes.news,
+        wantsAmbassador: checkboxes.ambassador,
+        country: country || undefined,
+        city: city || undefined,
+        selectedSession: selectedSession || undefined,
+        ...optionalPayload,
+      }
+
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+    } catch (err) {
+      console.error('Background sync failed', err)
+    }
+  }
+
+  const loadExistingData = async (emailToFetch: string) => {
+    if (!emailToFetch || !emailToFetch.includes('@') || syncing) return
+
+    setSyncing(true)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist/${emailToFetch}`)
+      if (!res.ok) {
+        syncData({ email: emailToFetch })
+        return
+      }
+
+      const { data } = await res.json()
+      if (data) {
+        if (data.firstName) setFirstName(data.firstName)
+        if (data.lastName) setLastName(data.lastName)
+        if (data.phone) setPhone(data.phone)
+        if (data.role) setRole(data.role as UserRole)
+        if (data.benefits && data.benefits.length > 0)
+          setBenefits(data.benefits as WaitlistBenefit[])
+        if (data.country) setCountry(data.country)
+        if (data.city) setCity(data.city)
+        if (data.selectedSession) setSelectedSession(data.selectedSession)
+        if (data.acceptTerms !== undefined) {
+          setCheckboxes((prev) => ({ ...prev, news: data.acceptTerms }))
+        }
+        if (data.wantsAmbassador !== undefined) {
+          setCheckboxes((prev) => ({ ...prev, ambassador: data.wantsAmbassador }))
+        }
+        if (!dataLoaded) {
+          setDataLoaded(true)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load existing data', err)
+    } finally {
+      setSyncing(false)
+    }
   }
 
   const submit = async () => {
@@ -110,6 +196,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
         wantsAmbassador: checkboxes.ambassador,
         country: country || undefined,
         city: city || undefined,
+        selectedSession: selectedSession || undefined,
       }
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist`, {
@@ -124,9 +211,6 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
       }
 
       const result = await res.json()
-      if (result.data?.alreadyExists) {
-        setAlreadySignedUp(true)
-      }
 
       setDone(true)
       showToast(result.message || "You're on the list! Welcome to Upward")
@@ -357,7 +441,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                 marginBottom: '12px',
               }}
             >
-              {alreadySignedUp ? 'Slow down, Speedster!' : "You're on the list!"}
+              You're on the list!
             </div>
             <p
               style={{
@@ -367,9 +451,8 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                 margin: '0 auto 24px',
               }}
             >
-              {alreadySignedUp
-                ? "You're already on the VIP list. We love the enthusiasm, but signing up twice won't make us build faster (we're trying!). Your spot is safe."
-                : "We'll send your invite to the email you provided. Be on the lookout — priority access drops soon."}
+              We'll send your invite to the email you provided. Be on the lookout — priority access
+              drops soon.
             </p>
             <button
               style={{
@@ -418,7 +501,11 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border)'
+                      loadExistingData(email)
+                      syncData()
+                    }}
                   />
                 </div>
                 <div
@@ -439,7 +526,10 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--border)'
+                        syncData()
+                      }}
                     />
                   </div>
                   <div>
@@ -451,7 +541,10 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--border)'
+                        syncData()
+                      }}
                     />
                   </div>
                 </div>
@@ -465,7 +558,10 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border)'
+                      syncData()
+                    }}
                   />
                 </div>
 
@@ -483,7 +579,11 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                     <select
                       style={selectStyle}
                       value={country}
-                      onChange={(e) => setCountry(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setCountry(val)
+                        syncData({ country: val || undefined })
+                      }}
                       onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
                       onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
                     >
@@ -500,7 +600,11 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                     <select
                       style={selectStyle}
                       value={city}
-                      onChange={(e) => setCity(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setCity(val)
+                        syncData({ city: val || undefined })
+                      }}
                       onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
                       onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
                       disabled={!country || fetchingCities}
@@ -905,7 +1009,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                         <>
                           I&apos;m interested in{' '}
                           <strong style={{ color: 'var(--text)' }}>
-                            learning more or becoming an ambassador
+                            learning more or joining a live session
                           </strong>
                           . Sign me up for an information session.
                         </>
@@ -913,6 +1017,91 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                     </div>
                   </div>
                 ))}
+
+                {checkboxes.ambassador && (
+                  <div style={{ marginTop: '24px', animation: 'fadeIn 0.3s ease' }}>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-head)',
+                        fontWeight: 700,
+                        fontSize: '14px',
+                        marginBottom: '12px',
+                        color: 'var(--text)',
+                      }}
+                    >
+                      Pick your preferred session time:
+                    </div>
+                    <div
+                      style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}
+                      className="grid-stack-mobile"
+                    >
+                      {[...SESSIONS, 'No, I am not interested'].map((time) => {
+                        const isNo = time.includes('No')
+                        const isSelected = isNo
+                          ? !selectedSession || selectedSession === 'NONE'
+                          : selectedSession === time
+                        return (
+                          <div
+                            key={time}
+                            onClick={() => {
+                              const val = isNo ? 'NONE' : time
+                              setSelectedSession(val)
+                              syncData({ selectedSession: val })
+                              if (isNo) {
+                                setCheckboxes((p) => ({ ...p, ambassador: false }))
+                              }
+                            }}
+                            style={{
+                              border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                              background: isSelected
+                                ? 'rgba(217, 119, 87, 0.05)'
+                                : 'var(--surface2)',
+                              borderRadius: '10px',
+                              padding: '12px 14px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: '14px',
+                                height: '14px',
+                                borderRadius: '50%',
+                                border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {isSelected && (
+                                <div
+                                  style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    borderRadius: '50%',
+                                    background: 'var(--accent)',
+                                  }}
+                                />
+                              )}
+                            </div>
+                            <span
+                              style={{
+                                fontSize: '13px',
+                                color: isSelected ? 'var(--text)' : 'var(--muted)',
+                              }}
+                            >
+                              {time}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 <div
                   style={{

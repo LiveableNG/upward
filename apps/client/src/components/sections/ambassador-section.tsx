@@ -1,32 +1,28 @@
 'use client'
 
-function showToast(msg: string) {
-  const t = document.getElementById('toast')
-  const msgEl = document.getElementById('toast-msg')
-  if (t && msgEl) {
-    msgEl.textContent = msg
-    t.classList.add('toast-show')
-    setTimeout(() => t.classList.remove('toast-show'), 3000)
-  }
-}
-
-export function AmbassadorSection() {
+export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }) {
   const sessions = [
     {
-      title: 'Intro to Rent Passport',
-      info: 'Webinar · Mar 20, 2026 · 6:00 PM WAT',
+      title: 'Learn More & Ask Questions',
+      info: 'Every Tuesday · 7:00 PM WAT',
       badge: 'Register',
       live: false,
     },
     {
-      title: 'Home Ownership Pathways',
-      info: 'Webinar · Mar 27, 2026 · 5:00 PM WAT',
+      title: 'Information Session',
+      info: 'Every Wednesday · 12:00 PM WAT',
       badge: 'Register',
       live: false,
     },
     {
-      title: 'Community Q&A — Open Office',
-      info: 'Live Now · Every Friday · 12:00 PM WAT',
+      title: 'Learn More & Ask Questions',
+      info: 'Every Thursday · 7:00 PM WAT',
+      badge: 'Register',
+      live: false,
+    },
+    {
+      title: 'Live Info Session',
+      info: 'Every Saturday · 10:00 AM WAT',
       badge: '● Live',
       live: true,
     },
@@ -81,7 +77,7 @@ export function AmbassadorSection() {
             explore how you can become a community ambassador and earn rewards.
           </p>
           <button
-            onClick={() => showToast('Ambassador registration coming soon!')}
+            onClick={() => onOpenSignup()}
             style={{
               background: 'var(--accent)',
               color: '#0A0A0F',
@@ -128,9 +124,7 @@ export function AmbassadorSection() {
           {sessions.map(({ title, info, badge, live }) => (
             <div
               key={title}
-              onClick={() =>
-                showToast(live ? 'Community Q&A is live!' : 'Registration link coming soon!')
-              }
+              onClick={() => onOpenSignup()}
               style={{
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',

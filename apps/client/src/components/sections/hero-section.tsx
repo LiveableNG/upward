@@ -7,10 +7,9 @@ export function HeroSection({
 }: {
   onOpenSignup: (email?: string) => void
 }) {
-  const launchRef = useRef<number>(
-    Date.now() + 29 * 24 * 60 * 60 * 1000 + 23 * 60 * 60 * 1000 + 56 * 60 * 1000 + 42 * 1000,
-  )
-  const [time, setTime] = useState({ d: 29, h: 23, m: 56, s: 42 })
+  const LAUNCH_DATE = '2026-04-16T00:00:00'
+  const launchRef = useRef<number>(new Date(LAUNCH_DATE).getTime())
+  const [time, setTime] = useState({ d: 0, h: 0, m: 0, s: 0 })
 
   useEffect(() => {
     const tick = () => {
@@ -112,50 +111,6 @@ export function HeroSection({
             We&apos;re helping smart, responsible and hardworking renters build credibility that
             unlocks exclusive financial benefits.
           </p>
-
-          <div
-            style={{
-              maxWidth: '560px',
-              borderLeft: '2px solid var(--accent)',
-              paddingLeft: '20px',
-              marginBottom: '24px',
-            }}
-            className="hero-p"
-          >
-            <p
-              style={{
-                fontSize: '16px',
-                color: 'var(--text)',
-                lineHeight: 1.55,
-                fontWeight: 500,
-                marginBottom: '14px',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              Build your Rent Passport — unlock exclusive financial benefits built around how you
-              actually live and earn.
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '8px' }}>
-              {['Salary earners', 'Freelancers', 'Creatives', 'Business owners'].map((tag) => (
-                <span
-                  key={tag}
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase' as const,
-                    color: 'var(--accent)',
-                    background: 'rgba(217, 119, 87, 0.08)',
-                    border: '1px solid rgba(217, 119, 87, 0.18)',
-                    borderRadius: '6px',
-                    padding: '5px 10px',
-                  }}
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
         </div>
 
         <div

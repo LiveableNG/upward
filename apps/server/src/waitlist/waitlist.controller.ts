@@ -7,6 +7,7 @@ import {
   Get,
   UsePipes,
   ValidationPipe,
+  Param,
 } from '@nestjs/common'
 import { WaitlistService } from './waitlist.service'
 import { CreateWaitlistEntryDto } from './dto/create-waitlist-entry.dto'
@@ -21,9 +22,7 @@ export class WaitlistController {
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
   async create(@Body() dto: CreateWaitlistEntryDto): Promise<ApiSuccess<WaitlistEntryResponse>> {
     const data = await this.waitlistService.create(dto)
-    const message = data.alreadyExists
-      ? "You're already ahead of the curve! You've already joined the waitlist."
-      : 'Successfully joined the waitlist'
+    const message = 'Successfully joined the waitlist'
     return { data, message }
   }
 
@@ -32,5 +31,12 @@ export class WaitlistController {
   async count(): Promise<ApiSuccess<{ total: number }>> {
     const total = await this.waitlistService.count()
     return { data: { total } }
+  }
+
+  @Get(':email')
+  @HttpCode(HttpStatus.OK)
+  async findOne(@Param('email') email: string): Promise<ApiSuccess<WaitlistEntryResponse | null>> {
+    const data = await this.waitlistService.findByEmail(email)
+    return { data: data as WaitlistEntryResponse | null }
   }
 }

@@ -94,7 +94,7 @@ export default function HomePage() {
 
             <div className="divider" />
 
-            <AmbassadorSection />
+            <AmbassadorSection onOpenSignup={() => openSignup()} />
 
             <div className="divider" />
 

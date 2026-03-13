@@ -1,5 +1,5 @@
 export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string) => void }) {
-  const handleHeroEmail = () => {
+  const handleHeroEmail = async () => {
     const emailEl = document.getElementById('hero-email-grid') as HTMLInputElement
     const email = emailEl?.value.trim() ?? ''
     if (!email || !email.includes('@')) {
@@ -12,9 +12,13 @@ export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string)
       }
       return
     }
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }).catch(() => {})
     if (onOpenSignup) onOpenSignup(email)
   }
-
   const cards = [
     {
       icon: (

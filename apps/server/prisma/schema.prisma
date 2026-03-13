@@ -23,6 +23,7 @@ model upward_waitlist {
   wantsAmbassador Boolean   @default(false)
   country         String?
   city            String?
+  selectedSession String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

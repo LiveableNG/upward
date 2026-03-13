@@ -34,17 +34,20 @@ export class CreateWaitlistEntryDto implements ICreateWaitlistEntryDto {
   @MinLength(7, { message: 'Phone number is too short' })
   phone?: string
 
+  @IsOptional()
   @IsEnum(UserRole, { message: 'Role must be TENANT or OWNER' })
-  role!: UserRole
+  role?: UserRole
 
+  @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(2, { message: 'You can select up to 2 benefits' })
   @IsEnum(WaitlistBenefit, { each: true })
-  benefits!: WaitlistBenefit[]
+  benefits?: WaitlistBenefit[]
 
+  @IsOptional()
   @IsBoolean({ message: 'You must accept the terms to continue' })
-  acceptTerms!: boolean
+  acceptTerms?: boolean
 
   @IsOptional()
   @IsBoolean()
@@ -57,4 +60,8 @@ export class CreateWaitlistEntryDto implements ICreateWaitlistEntryDto {
   @IsOptional()
   @IsString()
   city?: string
+
+  @IsOptional()
+  @IsString()
+  selectedSession?: string
 }
