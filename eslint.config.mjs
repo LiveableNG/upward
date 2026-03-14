@@ -11,7 +11,8 @@ export default tseslint.config(
       '**/.turbo/**',
       '**/coverage/**',
       '**/build/**',
-      'apps/client/next-env.d.ts',
+      'client/apps/web/next-env.d.ts',
+      'common/shared-types/dist/**',
     ],
   },
 
@@ -41,7 +42,7 @@ export default tseslint.config(
 
   // ── Backend (NestJS) — relax rules that conflict with DI patterns ──────────
   {
-    files: ['apps/server/**/*.ts'],
+    files: ['server/apps/api/**/*.ts'],
     rules: {
       // DISABLE THE RULE THAT BREAKS NESTJS DI
       // NestJS needs classes (values) for metadata reflection/injection
@@ -58,7 +59,7 @@ export default tseslint.config(
 
   // ── Packages (shared-types, utils) — no project reference needed ──────────
   {
-    files: ['packages/**/*.ts'],
+    files: ['common/**/*.ts', 'client/libs/**/*.ts', 'server/libs/**/*.ts'],
     rules: {
       // Packages export types only; empty export is OK
       '@typescript-eslint/no-empty-object-type': 'off',
