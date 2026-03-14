@@ -104,6 +104,7 @@ export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string)
 
   return (
     <section
+      id="how"
       style={{
         position: 'relative',
         zIndex: 1,

@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 
-export function Footer() {
+export function Footer({ onSetView }: { onSetView?: (view: 'home' | 'why') => void }) {
   return (
     <footer
       style={{
@@ -69,11 +69,21 @@ export function Footer() {
               ['#why', 'Our Vision'],
               ['#how', 'How it Works'],
               ['#ambassador', 'Ambassador'],
-              ['#', 'FAQ'],
+              ['#faq', 'FAQ'],
             ].map(([href, label]) => (
               <li key={label}>
                 <Link
                   href={href ?? '#'}
+                  onClick={(e) => {
+                    if (onSetView) {
+                      if (label === 'Our Vision' || label === 'FAQ') {
+                        if (label === 'Our Vision') e.preventDefault()
+                        onSetView('why')
+                      } else if (label === 'Ambassador' || label === 'How it Works') {
+                        onSetView('home')
+                      }
+                    }
+                  }}
                   style={{
                     fontSize: '13px',
                     color: 'var(--muted)',

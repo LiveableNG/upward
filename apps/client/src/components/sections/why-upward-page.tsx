@@ -315,7 +315,7 @@ export function WhyUpwardPage({
           </div>
         </div>
 
-        <div style={{ paddingTop: '20px', animation: 'fadeUp 0.8s ease 0.2s backwards' }}>
+        <div id="faq" style={{ paddingTop: '20px', animation: 'fadeUp 0.8s ease 0.2s backwards' }}>
           <div className="section-label">Common Questions</div>
           <h2
             style={{

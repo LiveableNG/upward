@@ -3,11 +3,9 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 
 export function Header({
-  onOpenSignup,
   onSetView,
   currentView,
 }: {
-  onOpenSignup: () => void
   onSetView: (view: 'home' | 'why') => void
   currentView: 'home' | 'why'
 }) {
@@ -166,27 +164,52 @@ export function Header({
       </ul>
 
       <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-        <button
-          onClick={onOpenSignup}
+        <div
           style={{
-            fontSize: '10px',
+            fontSize: '9px',
             letterSpacing: '0.2em',
             textTransform: 'uppercase',
-            color: '#000',
-            background: 'var(--accent)',
-            border: 'none',
-            padding: '10px 20px',
+            color: 'var(--accent)',
+            background: 'rgba(217, 119, 87, 0.05)',
+            border: '1px solid rgba(217, 119, 87, 0.2)',
+            padding: '10px 22px',
             borderRadius: '100px',
             fontFamily: 'var(--font-head)',
             fontWeight: 800,
-            cursor: 'pointer',
-            transition: 'all 0.2s',
+            position: 'relative',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            boxShadow: '0 0 20px rgba(0, 0, 0, 0.2)',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
         >
-          Get Started
-        </button>
+          <span
+            style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              background: 'var(--accent)',
+              boxShadow: '0 0 10px var(--accent)',
+              display: 'inline-block',
+              animation: 'pulse 2s infinite',
+            }}
+          />
+          Coming Soon
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: '-150%',
+              width: '100%',
+              height: '100%',
+              background:
+                'linear-gradient(90deg, transparent, rgba(217, 119, 87, 0.15), rgba(255, 255, 255, 0.2), rgba(217, 119, 87, 0.15), transparent)',
+              transform: 'skewX(-25deg)',
+              animation: 'beam 4s infinite ease-in-out',
+            }}
+          />
+        </div>
 
         {/* Mobile Menu Toggle */}
         <button
@@ -267,25 +290,39 @@ export function Header({
             </Link>
           ))}
           <div style={{ marginTop: 'auto', paddingBottom: '40px' }}>
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false)
-                onOpenSignup()
-              }}
+            <div
               style={{
                 width: '100%',
                 padding: '16px',
                 borderRadius: '12px',
-                background: 'var(--accent)',
-                color: '#000',
-                border: 'none',
+                background: 'rgba(217, 119, 87, 0.05)',
+                border: '1px solid rgba(217, 119, 87, 0.2)',
+                color: 'var(--accent)',
                 fontFamily: 'var(--font-head)',
                 fontWeight: 700,
-                fontSize: '16px',
+                fontSize: '14px',
+                textAlign: 'center',
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                position: 'relative',
+                overflow: 'hidden',
               }}
             >
-              Join the Waitlist
-            </button>
+              Coming Soon
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: '-150%',
+                  width: '100%',
+                  height: '100%',
+                  background:
+                    'linear-gradient(90deg, transparent, rgba(217, 119, 87, 0.15), rgba(255, 255, 255, 0.2), rgba(217, 119, 87, 0.15), transparent)',
+                  transform: 'skewX(-25deg)',
+                  animation: 'beam 4s infinite ease-in-out',
+                }}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -294,6 +331,16 @@ export function Header({
                 @keyframes fadeIn {
                   from { opacity: 0; transform: translateY(-10px); }
                   to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes beam {
+                  0% { left: -150%; }
+                  30% { left: 150%; }
+                  100% { left: 150%; }
+                }
+                @keyframes pulse {
+                  0% { transform: scale(1); opacity: 1; }
+                  50% { transform: scale(1.4); opacity: 0.6; }
+                  100% { transform: scale(1); opacity: 1; }
                 }
                 @media (max-width: 768px) {
                     .header-padding {

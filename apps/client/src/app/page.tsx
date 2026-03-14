@@ -61,7 +61,7 @@ export default function HomePage() {
         }}
       />
 
-      <Header onOpenSignup={() => openSignup()} onSetView={setView} currentView={view} />
+      <Header onSetView={setView} currentView={view} />
 
       <main style={{ position: 'relative', zIndex: 1, overflowX: 'hidden' }}>
         <div
@@ -118,8 +118,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      <Footer />
-      {/* ... rest of the modal and toast code ... */}
+      <Footer onSetView={setView} />
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>

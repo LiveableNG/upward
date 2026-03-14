@@ -92,7 +92,20 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
       setBenefitWarning(false)
     }
     if (n > step) {
-      syncData()
+      const payload: Partial<CreateWaitlistEntryDto> = {
+        email,
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        phone: phone || undefined,
+        country: country || undefined,
+        city: city || undefined,
+        role,
+        benefits: benefits.length > 0 ? benefits : undefined,
+        acceptTerms: checkboxes.news,
+        wantsAmbassador: checkboxes.ambassador,
+        selectedSession: selectedSession || undefined,
+      }
+      syncData(payload)
     }
     setStep(n)
   }
