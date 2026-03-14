@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["dom", "dom.iterable", "ES2022"],
@@ -15,7 +15,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@upward/shared-types": ["../../packages/shared-types/src/index.ts"]
+      "@upward/shared-types": ["../../../common/shared-types/src/index.ts"]
     },
     "noEmit": true,
     "isolatedModules": true

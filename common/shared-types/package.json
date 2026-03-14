@@ -1,5 +1,5 @@
 {
-  "name": "@upward/common-shared-types",
+  "name": "@upward/shared-types",
   "version": "0.0.1",
   "private": true,
   "main": "./dist/index.js",

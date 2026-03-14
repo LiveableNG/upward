@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.1",
-    "@upward/common-shared-types": "workspace:*",
+    "@upward/shared-types": "workspace:*",
     "lucide-react": "^0.577.0",
     "next": "^15.2.3",
     "postcss": "^8.5.8",
