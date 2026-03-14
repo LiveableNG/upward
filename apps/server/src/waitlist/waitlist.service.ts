@@ -3,6 +3,12 @@ import { PrismaService } from '../prisma/prisma.service'
 import { CreateWaitlistEntryDto } from './dto/create-waitlist-entry.dto'
 import { WaitlistEntryResponse, UserRole, WaitlistBenefit } from '@upward/shared-types'
 
+const maskPhone = (str: string | null | undefined) => {
+  if (!str) return undefined
+  if (str.length <= 5) return '***'
+  return `${str.slice(0, 3)}***${str.slice(-3)}`
+}
+
 @Injectable()
 export class WaitlistService {
   constructor(private readonly prisma: PrismaService) {}
@@ -10,13 +16,17 @@ export class WaitlistService {
   async create(dto: CreateWaitlistEntryDto): Promise<WaitlistEntryResponse> {
     const existing = await this.prisma.upward_waitlist.findUnique({
       where: { email: dto.email },
-      select: { id: true },
     })
 
     const updateData: Record<string, unknown> = {}
+
     if (dto.firstName !== undefined) updateData.firstName = dto.firstName
     if (dto.lastName !== undefined) updateData.lastName = dto.lastName
-    if (dto.phone !== undefined) updateData.phone = dto.phone
+
+    if (dto.phone !== undefined && !dto.phone.includes('*')) {
+      updateData.phone = dto.phone
+    }
+
     if (dto.role !== undefined) updateData.role = dto.role
     if (dto.benefits !== undefined && dto.benefits.length > 0) updateData.benefits = dto.benefits
     if (dto.acceptTerms !== undefined) updateData.acceptTerms = dto.acceptTerms
@@ -32,7 +42,7 @@ export class WaitlistService {
         email: dto.email,
         firstName: dto.firstName,
         lastName: dto.lastName,
-        phone: dto.phone,
+        phone: dto.phone && !dto.phone.includes('*') ? dto.phone : undefined,
         role: dto.role,
         benefits: dto.benefits ?? [],
         acceptTerms: dto.acceptTerms ?? false,
@@ -68,7 +78,7 @@ export class WaitlistService {
       email: entry.email,
       firstName: entry.firstName ?? undefined,
       lastName: entry.lastName ?? undefined,
-      phone: entry.phone ?? undefined,
+      phone: maskPhone(entry.phone),
       role: entry.role as UserRole | undefined,
       benefits: entry.benefits as WaitlistBenefit[],
       acceptTerms: entry.acceptTerms,
