@@ -609,9 +609,10 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                     </select>
                   </div>
                   <div>
-                    <label style={labelStyle}>Municipality</label>
-                    <select
-                      style={selectStyle}
+                    <label style={labelStyle}>Cities</label>
+                    <input
+                      list="city-options"
+                      style={inputStyle}
                       value={city}
                       onChange={(e) => {
                         const val = e.target.value
@@ -620,17 +621,14 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                       }}
                       onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
                       onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+                      placeholder={fetchingCities ? 'Loading...' : 'Type or search city...'}
                       disabled={!country || fetchingCities}
-                    >
-                      <option value="">
-                        {fetchingCities ? 'Loading...' : 'Select Municipality'}
-                      </option>
+                    />
+                    <datalist id="city-options">
                       {cities.map((c) => (
-                        <option key={c} value={c} style={{ background: 'var(--surface2)' }}>
-                          {c}
-                        </option>
+                        <option key={c} value={c} />
                       ))}
-                    </select>
+                    </datalist>
                   </div>
                 </div>
 

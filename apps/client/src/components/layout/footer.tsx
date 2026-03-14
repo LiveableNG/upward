@@ -77,10 +77,18 @@ export function Footer({ onSetView }: { onSetView?: (view: 'home' | 'why') => vo
                   onClick={(e) => {
                     if (onSetView) {
                       if (label === 'Our Vision' || label === 'FAQ') {
-                        if (label === 'Our Vision') e.preventDefault()
-                        onSetView('why')
+                        if (onSetView) onSetView('why')
+                        else {
+                          e.preventDefault()
+                        }
                       } else if (label === 'Ambassador' || label === 'How it Works') {
-                        onSetView('home')
+                        if (onSetView) onSetView('home')
+                        if (label === 'How it Works') {
+                          setTimeout(() => {
+                            const el = document.getElementById('how')
+                            if (el) el.scrollIntoView({ behavior: 'smooth' })
+                          }, 100)
+                        }
                       }
                     }
                   }}
@@ -160,10 +168,15 @@ export function Footer({ onSetView }: { onSetView?: (view: 'home' | 'why') => vo
           All Rights Reserved.
         </p>
         <div style={{ display: 'flex', gap: '24px' }} className="footer-socials">
-          {['Twitter', 'LinkedIn', 'Instagram'].map((name) => (
+          {[
+            { name: 'LinkedIn', href: 'https://www.linkedin.com/company/good-tenants/' },
+            { name: 'Instagram', href: 'https://www.instagram.com/usegoodtenants' },
+          ].map((social) => (
             <Link
-              key={name}
-              href="#"
+              key={social.name}
+              href={social.href}
+              target={social.href !== '#' ? '_blank' : undefined}
+              rel={social.href !== '#' ? 'noopener noreferrer' : undefined}
               style={{
                 fontSize: '11px',
                 color: 'var(--muted)',
@@ -176,7 +189,7 @@ export function Footer({ onSetView }: { onSetView?: (view: 'home' | 'why') => vo
               onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent)')}
               onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--muted)')}
             >
-              {name}
+              {social.name}
             </Link>
           ))}
         </div>
