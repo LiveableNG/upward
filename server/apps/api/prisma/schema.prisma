@@ -21,9 +21,57 @@ model upward_waitlist {
   city            String?
   selectedSession String?
   createdAt       DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  updatedAt       DateTime @updatedAt
   confirmationSent Boolean  @default(false)
+
+  attendances     upward_attendance[]
+  emailLogs       upward_email_log[]
 
   @@index([email])
   @@index([createdAt])
+}
+
+model upward_session {
+  id             String   @id @default(uuid())
+  name           String
+  googleMeetLink String
+  startTime      DateTime
+  endTime        DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  attendances    upward_attendance[]
+  emailLogs      upward_email_log[]
+
+  @@index([startTime])
+}
+
+model upward_attendance {
+  id        String   @id @default(uuid())
+  sessionId String
+  userId    String
+  attended  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      upward_waitlist @relation(fields: [userId], references: [id])
+  session   upward_session  @relation(fields: [sessionId], references: [id])
+
+  @@unique([sessionId, userId])
+}
+
+model upward_email_log {
+  id        String   @id @default(uuid())
+  userId    String
+  sessionId String?
+  subject   String
+  sentAt    DateTime @default(now())
+  status    String   // SENT, FAILED
+  createdAt DateTime @default(now())
+
+  user      upward_waitlist @relation(fields: [userId], references: [id])
+  session   upward_session? @relation(fields: [sessionId], references: [id])
+
+  @@index([userId])
+  @@index([sessionId])
 }
