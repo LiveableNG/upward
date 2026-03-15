@@ -145,10 +145,10 @@ export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string)
                 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(217, 119, 87, 0.3)'
+              e.currentTarget.style.borderColor = 'var(--accent-muted)'
               e.currentTarget.style.transform = 'translateY(-6px)'
-              e.currentTarget.style.background = 'rgba(217, 119, 87, 0.03)'
-              e.currentTarget.style.boxShadow = '0 20px 40px -15px rgba(0,0,0,0.4)'
+              e.currentTarget.style.background = 'var(--accent-faint)'
+              e.currentTarget.style.boxShadow = '0 20px 40px -15px var(--hover-shadow)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.borderColor = 'var(--border)'
@@ -162,7 +162,7 @@ export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string)
                 width: '56px',
                 height: '56px',
                 minHeight: '56px',
-                background: 'rgba(217, 119, 87, 0.12)',
+                background: 'var(--accent-faint)',
                 borderRadius: '14px',
                 display: 'flex',
                 alignItems: 'center',
@@ -223,7 +223,7 @@ export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string)
             style={{
               flex: 1,
               background: 'var(--accent)',
-              color: '#0A0A0F',
+              color: 'var(--btn-text)',
               fontFamily: 'var(--font-head)',
               fontWeight: 800,
               fontSize: '14px',

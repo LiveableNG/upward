@@ -7,10 +7,30 @@
 }
 
 :root {
+  /* --- Design Tokens (Swatches) --- */
+  --swatch--gray-000: #ffffff;
+  --swatch--gray-050: #f9fafb;
+  --swatch--gray-100: #f3f4f6;
+  --swatch--gray-150: #ebedef;
+  --swatch--gray-200: #e5e7eb;
+  --swatch--gray-300: #d1d5db;
+  --swatch--gray-400: #9ca3af;
+  --swatch--gray-600: #4b5563;
+  --swatch--gray-650: #3f4c5a;
+  --swatch--gray-750: #2d3643;
+  --swatch--gray-850: #1f2937;
+  --swatch--gray-950: #030712;
+  --swatch--brand-600: #d97757;
+  --swatch--clay: #d97757;
+  --swatch--clay-interactive: #c46648;
+  --swatch--oat: #f5f5f0;
+  --swatch--transparent: transparent;
+
+  /* --- Default Theme: Dark Mode (Current UI) --- */
   --bg: #141413;
   --surface: #1c1c1b;
   --surface2: #242423;
-  --border: rgba(255, 255, 255, 0.07);
+  --border: rgba(255, 255, 255, 0.08);
   --accent: #d97757;
   --accent2: #faf9f5;
   --text: #faf9f5;
@@ -19,6 +39,52 @@
   --font-head: 'Inter', 'Syne', sans-serif;
   --font-body: 'Inter', 'DM Sans', sans-serif;
   --heading-mix: linear-gradient(135deg, #faf9f5 0%, #d97757 100%);
+
+  /* Layout specific glows */
+  --glow-1: rgba(217, 119, 87, 0.15);
+  --glow-2: rgba(250, 249, 245, 0.08);
+  --modal-overlay: rgba(10, 10, 10, 0.85);
+  --nav-bg: rgba(20, 20, 19, 0.8);
+  --nav-scrolled: rgba(20, 20, 19, 0.95);
+  --accent-faint: rgba(217, 119, 87, 0.08);
+  --accent-muted: rgba(217, 119, 87, 0.15);
+  --btn-text: #0a0a0f;
+  --hover-shadow: rgba(0, 0, 0, 0.4);
+
+  /* Mapping for snippet compatibility */
+  --_theme---background-primary: var(--bg);
+  --_theme---foreground-primary: var(--text);
+  --_theme---foreground-tertiary: var(--muted);
+  --_theme---background-secondary: var(--surface);
+  --_theme---background-tertiary: var(--surface2);
+  --_theme---border-secondary: var(--border);
+  --_theme---text-accent: var(--accent);
+}
+
+/* --- Light Mode: System Detected --- */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: var(--swatch--gray-050);
+    --surface: var(--swatch--gray-100);
+    --surface2: var(--swatch--gray-150);
+    --border: var(--swatch--gray-300);
+    --accent: var(--swatch--clay);
+    --accent2: var(--swatch--gray-950);
+    --text: var(--swatch--gray-950);
+    --muted: var(--swatch--gray-600);
+    --card-bg: rgba(0, 0, 0, 0.03);
+    --heading-mix: linear-gradient(135deg, var(--swatch--gray-950) 0%, var(--swatch--clay) 100%);
+
+    --glow-1: rgba(217, 119, 87, 0.08);
+    --glow-2: rgba(0, 0, 0, 0.04);
+    --modal-overlay: rgba(0, 0, 0, 0.2);
+    --nav-bg: rgba(249, 250, 251, 0.8);
+    --nav-scrolled: rgba(249, 250, 251, 0.95);
+    --accent-faint: rgba(217, 119, 87, 0.05);
+    --accent-muted: rgba(217, 119, 87, 0.12);
+    --btn-text: #ffffff;
+    --hover-shadow: rgba(0, 0, 0, 0.1);
+  }
 }
 
 html {
@@ -163,7 +229,7 @@ body::before {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 10, 10, 0.85);
+  background: var(--modal-overlay);
   backdrop-filter: blur(8px);
   z-index: 1000;
   display: flex;

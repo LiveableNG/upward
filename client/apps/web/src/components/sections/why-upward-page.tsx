@@ -13,7 +13,7 @@ function FAQItem({ question, answer }: FAQItemProps) {
   return (
     <div
       style={{
-        borderBottom: '1px solid rgba(217, 119, 87, 0.1)',
+        borderBottom: '1px solid var(--accent-faint)',
         marginBottom: '8px',
       }}
     >
@@ -172,7 +172,7 @@ export function WhyUpwardPage({
           right: '5%',
           width: '400px',
           height: '400px',
-          background: 'radial-gradient(circle, rgba(217, 119, 87, 0.05) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, var(--accent-faint) 0%, transparent 70%)',
           filter: 'blur(80px)',
           zIndex: -1,
         }}
@@ -184,8 +184,8 @@ export function WhyUpwardPage({
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
+          background: 'var(--surface2)',
+          border: '1px solid var(--border)',
           color: 'var(--text)',
           cursor: 'pointer',
           fontFamily: 'var(--font-head)',
@@ -204,7 +204,7 @@ export function WhyUpwardPage({
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = ''
-          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
+          e.currentTarget.style.background = 'var(--surface2)'
         }}
       >
         <svg
@@ -261,8 +261,8 @@ export function WhyUpwardPage({
             <div
               style={{
                 padding: '32px',
-                background: 'rgba(217, 119, 87, 0.03)',
-                border: '1px solid rgba(217, 119, 87, 0.15)',
+                background: 'var(--accent-faint)',
+                border: '1px solid var(--accent-muted)',
                 borderLeft: '4px solid var(--accent)',
                 borderRadius: '0 20px 20px 0',
                 margin: '12px 0',
@@ -364,7 +364,7 @@ export function WhyUpwardPage({
               onClick={onOpenSignup}
               style={{
                 background: 'var(--accent)',
-                color: '#000',
+                color: 'var(--btn-text)',
                 border: 'none',
                 padding: '16px 32px',
                 borderRadius: '100px',

@@ -32,8 +32,8 @@ export function Header({
         justifyContent: 'space-between',
         alignItems: 'center',
         backdropFilter: 'blur(24px)',
-        background: scrolled ? 'rgba(20, 20, 19, 0.95)' : 'rgba(20, 20, 19, 0.8)',
-        borderBottom: scrolled ? '1px solid rgba(217, 119, 87, 0.15)' : '1px solid transparent',
+        background: scrolled ? 'var(--nav-scrolled)' : 'var(--nav-bg)',
+        borderBottom: scrolled ? '1px solid var(--accent-muted)' : '1px solid transparent',
         transition: 'all 0.3s ease',
       }}
       className="header-padding"
@@ -55,10 +55,10 @@ export function Header({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(217, 119, 87, 0.08)',
+            background: 'var(--accent-faint)',
             borderRadius: '10px',
-            border: '1px solid rgba(217, 119, 87, 0.2)',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2), 0 0 10px rgba(217, 119, 87, 0.1)',
+            border: '1px solid var(--accent-muted)',
+            boxShadow: '0 4px 20px var(--hover-shadow), 0 0 10px var(--accent-faint)',
           }}
         >
           <img
@@ -170,8 +170,8 @@ export function Header({
             letterSpacing: '0.2em',
             textTransform: 'uppercase',
             color: 'var(--accent)',
-            background: 'rgba(217, 119, 87, 0.05)',
-            border: '1px solid rgba(217, 119, 87, 0.2)',
+            background: 'var(--accent-faint)',
+            border: '1px solid var(--accent-muted)',
             padding: '10px 22px',
             borderRadius: '100px',
             fontFamily: 'var(--font-head)',
