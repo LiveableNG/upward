@@ -27,7 +27,7 @@ async function bootstrap() {
   const frontendUrl = process.env['FRONTEND_URL']
   const origins = frontendUrl
     ? frontendUrl.split(',').map((url) => url.trim())
-    : ['http://localhost:3000']
+    : ['http://localhost:3000', 'http://localhost:5173']
 
   app.enableCors({
     origin: origins,

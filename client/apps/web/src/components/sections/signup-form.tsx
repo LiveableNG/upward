@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { UserRole, WaitlistBenefit, type CreateWaitlistEntryDto } from '@upward/shared-types'
-
-type CheckboxState = { news: boolean; ambassador: boolean }
+import { SESSIONS, type CheckboxState } from '@upward/client-shared'
 
 export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
   const [step, setStep] = useState(1)
@@ -23,13 +22,6 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
   const [syncing, setSyncing] = useState(false)
   const [dataLoaded, setDataLoaded] = useState(false)
   const [selectedSession, setSelectedSession] = useState('')
-
-  const SESSIONS = [
-    'Saturday (10:00 AM)',
-    'Tuesday (7:00 PM)',
-    'Thursday (7:00 PM)',
-    'Wednesday (12:00 PM)',
-  ]
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/locations/countries`)
