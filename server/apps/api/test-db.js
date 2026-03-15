@@ -1,11 +1,32 @@
 const { PrismaClient } = require('@prisma/client')
+const fs = require('fs')
+const path = require('path')
 
 /**
  * Script to test the database connection using Prisma and the DATABASE_URL
  * from the environment variables.
  *
- * Usage: node --env-file=.env test-db.js
+ * Automatically loads .env if present.
  */
+
+// Basic .env loader if DATABASE_URL is not set
+if (!process.env.DATABASE_URL) {
+  const envPath = path.resolve(__dirname, '.env')
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8')
+    envContent.split(/\r?\n/).forEach((line) => {
+      const [key, ...valueParts] = line.split('=')
+      if (key && valueParts.length > 0) {
+        const value = valueParts
+          .join('=')
+          .trim()
+          .replace(/^["'](.*)["']$/, '$1')
+        process.env[key.trim()] = value
+      }
+    })
+  }
+}
+
 async function testConnection() {
   console.log('\n🚀 Starting Database Connection Test...')
 
@@ -13,7 +34,7 @@ async function testConnection() {
 
   if (!databaseUrl) {
     console.error('❌ Error: DATABASE_URL is not defined in the environment.')
-    console.log('Make sure you run this script with: node --env-file=.env test-db.js\n')
+    console.log('Tested .env file but found no DATABASE_URL. Ensure it is defined.\n')
     process.exit(1)
   }
 

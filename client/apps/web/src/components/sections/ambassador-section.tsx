@@ -30,6 +30,19 @@ export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }
       day: 6,
     },
   ]
+  const showToast = (msg: string) => {
+    const t = document.getElementById('toast')
+    const msgEl = document.getElementById('toast-msg')
+    if (t && msgEl) {
+      msgEl.textContent = msg
+      t.classList.add('toast-show')
+      setTimeout(() => t.classList.remove('toast-show'), 3000)
+    }
+  }
+
+  const toastAmbassador = () => {
+    showToast('Ambassador form coming soon')
+  }
 
   return (
     <section
@@ -80,7 +93,7 @@ export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }
             explore how you can become a community ambassador and earn rewards.
           </p>
           <button
-            onClick={() => onOpenSignup()}
+            onClick={() => toastAmbassador()}
             style={{
               background: 'var(--accent)',
               color: '#0A0A0F',
