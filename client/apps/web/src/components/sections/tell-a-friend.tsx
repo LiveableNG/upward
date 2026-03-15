@@ -27,9 +27,8 @@ export function TellAFriend() {
     >
       <div
         style={{
-          background:
-            'linear-gradient(135deg, rgba(217, 119, 87, 0.08) 0%, rgba(20, 20, 19, 0.05) 100%)',
-          border: '1px solid rgba(217, 119, 87, 0.15)',
+          background: 'linear-gradient(135deg, var(--accent-faint) 0%, var(--nav-bg) 100%)',
+          border: '1px solid var(--accent-muted)',
           borderRadius: '24px',
           padding: '64px 48px',
           textAlign: 'center',
@@ -172,8 +171,8 @@ export function TellAFriend() {
               }}
               className="share-btn"
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(217, 119, 87, 0.4)'
-                e.currentTarget.style.background = 'rgba(217, 119, 87, 0.05)'
+                e.currentTarget.style.borderColor = 'var(--accent-muted)'
+                e.currentTarget.style.background = 'var(--accent-faint)'
                 e.currentTarget.style.transform = 'translateY(-2px)'
               }}
               onMouseLeave={(e) => {

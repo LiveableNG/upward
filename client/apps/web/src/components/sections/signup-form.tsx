@@ -286,7 +286,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
       onClick={onClick}
       style={{
         background: 'var(--accent)',
-        color: '#0A0A0F',
+        color: 'var(--btn-text)',
         fontFamily: 'var(--font-head)',
         fontWeight: 700,
         fontSize: '13px',
@@ -418,8 +418,8 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
               style={{
                 width: '64px',
                 height: '64px',
-                background: 'rgba(217, 119, 87, 0.1)',
-                border: '1px solid rgba(217, 119, 87, 0.3)',
+                background: 'var(--accent-faint)',
+                border: '1px solid var(--accent-muted)',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
@@ -462,7 +462,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
             <button
               style={{
                 background: 'var(--accent)',
-                color: '#0A0A0F',
+                color: 'var(--btn-text)',
                 fontFamily: 'var(--font-head)',
                 fontWeight: 700,
                 fontSize: '13px',
@@ -692,7 +692,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                       onClick={() => setRole(val)}
                       style={{
                         border: `1px solid ${role === val ? 'var(--accent)' : 'var(--border)'}`,
-                        background: role === val ? 'rgba(217, 119, 87, 0.05)' : 'var(--surface2)',
+                        background: role === val ? 'var(--accent-faint)' : 'var(--surface2)',
                         borderRadius: '10px',
                         padding: '16px 20px',
                         cursor: 'pointer',
@@ -883,7 +883,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                         onClick={() => toggleBenefit(val)}
                         style={{
                           border: `1px solid ${sel ? 'var(--accent)' : 'var(--border)'}`,
-                          background: sel ? 'rgba(217, 119, 87, 0.05)' : 'var(--surface2)',
+                          background: sel ? 'var(--accent-faint)' : 'var(--surface2)',
                           borderRadius: '10px',
                           padding: '14px 16px',
                           cursor: 'pointer',
@@ -964,8 +964,8 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                       alignItems: 'flex-start',
                       gap: '14px',
                       padding: '16px',
-                      background: 'rgba(217, 119, 87, 0.04)',
-                      border: '1px solid rgba(217, 119, 87, 0.15)',
+                      background: 'var(--accent-faint)',
+                      border: '1px solid var(--accent-muted)',
                       borderRadius: '10px',
                       marginBottom: '16px',
                       cursor: 'pointer',
@@ -992,7 +992,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                           width="10"
                           height="10"
                           fill="none"
-                          stroke="#0A0A0F"
+                          stroke="var(--btn-text)"
                           strokeWidth="2"
                           strokeLinecap="round"
                         >

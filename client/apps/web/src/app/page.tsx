@@ -41,7 +41,7 @@ export default function HomePage() {
           zIndex: 0,
           width: '800px',
           height: '800px',
-          background: 'radial-gradient(circle, rgba(217, 119, 87, 0.15) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, var(--glow-1) 0%, transparent 70%)',
           top: '-300px',
           right: '-200px',
         }}
@@ -55,7 +55,7 @@ export default function HomePage() {
           zIndex: 0,
           width: '700px',
           height: '700px',
-          background: 'radial-gradient(circle, rgba(250, 249, 245, 0.08) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, var(--glow-2) 0%, transparent 70%)',
           bottom: '-100px',
           left: '-200px',
         }}
