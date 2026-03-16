@@ -127,14 +127,12 @@ export function TellAFriend() {
               onClick: () => {
                 navigator.clipboard.writeText(caption).then(() => {
                   showToast('Caption copied! Paste it in your LinkedIn post.')
-                  setTimeout(() => {
-                    window.open(
-                      'https://www.linkedin.com/sharing/share-offsite/?url=' +
-                        encodeURIComponent('https://upward.goodtenants.io'),
-                      '_blank',
-                    )
-                  }, 1500)
                 })
+                window.open(
+                  'https://www.linkedin.com/sharing/share-offsite/?url=' +
+                    encodeURIComponent('https://upward.goodtenants.io'),
+                  '_blank',
+                )
               },
             },
             {
