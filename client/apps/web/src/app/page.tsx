@@ -103,7 +103,7 @@ export default function HomePage() {
             <PartnersBar />
           </div>
 
-          {/* Why Upwards? View */}
+          {/* Why Upward? View */}
           <div
             style={{
               width: '50%',
