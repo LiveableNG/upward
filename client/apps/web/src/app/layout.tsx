@@ -24,6 +24,14 @@ export const metadata: Metadata = {
       'Unlock access to structured, low-cost home financing. Build credibility while you rent.',
     url: 'https://upward.goodtenants.io',
     siteName: 'Upward by GoodTenants',
+    images: [
+      {
+        url: 'https://upward.goodtenants.io/favicon.svg',
+        width: 800,
+        height: 800,
+        alt: 'Upward by GoodTenants — Build With Your Rent',
+      },
+    ],
     locale: 'en_NG',
     type: 'website',
   },
@@ -31,6 +39,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Upward by GoodTenants',
     description: 'Build your Rent Passport. Unlock home financing.',
+    images: ['https://upward.goodtenants.io/favicon.svg'],
   },
   robots: { index: true, follow: true },
   icons: {
