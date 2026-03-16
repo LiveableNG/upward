@@ -11,7 +11,7 @@ function showToast(msg: string) {
 }
 
 export function TellAFriend() {
-  const caption = `Tired of paying rent with nothing to show for it? UPWARDS? by GoodTenants is changing that — turning your rental history into a passport to home ownership. Join me on the early access waitlist: https://upwards.goodtenants.africa #RentPassport #GoodTenants #Upwards`
+  const caption = `Tired of paying rent with nothing to show for it? Upward? by GoodTenants is changing that — turning your rental history into a passport to home ownership. Join me on the early access waitlist: https://upward.goodtenants.io #RentPassport #GoodTenants #Upward`
 
   return (
     <section
@@ -126,7 +126,8 @@ export function TellAFriend() {
               ),
               onClick: () =>
                 window.open(
-                  'https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent('https://upwards.goodtenants.africa'),
+                  'https://www.linkedin.com/feed/?shareActive=true&text=' +
+                    encodeURIComponent(caption),
                   '_blank',
                 ),
             },
@@ -219,10 +220,9 @@ export function TellAFriend() {
           <span
             style={{ display: 'block', paddingLeft: '24px', lineHeight: 1.6, fontStyle: 'italic' }}
           >
-            Tired of paying rent with nothing to show for it? UPWARDS? by GoodTenants is
-            changing that — turning your rental history into a passport to home ownership. Join me
-            on the early access waitlist: https://upwards.goodtenants.africa #RentPassport
-            #GoodTenants #Upwards
+            Tired of paying rent with nothing to show for it? Upward? by GoodTenants is changing
+            that — turning your rental history into a passport to home ownership. Join me on the
+            early access waitlist: https://upward.goodtenants.io #RentPassport #GoodTenants #Upward
           </span>
         </div>
       </div>

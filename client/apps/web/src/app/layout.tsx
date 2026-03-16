@@ -16,12 +16,13 @@ export const metadata: Metadata = {
     'Nigeria',
     'Africa',
     'GoodTenants',
-    'upwards',
+    'upward',
   ],
   openGraph: {
     title: 'Upward by GoodTenants — Build With Your Rent',
     description:
       'Unlock access to structured, low-cost home financing. Build credibility while you rent.',
+    url: 'https://upward.goodtenants.io',
     siteName: 'Upward by GoodTenants',
     locale: 'en_NG',
     type: 'website',

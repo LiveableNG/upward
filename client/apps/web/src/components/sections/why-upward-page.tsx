@@ -240,7 +240,7 @@ export function WhyUpwardPage({
               WebkitTextFillColor: 'transparent',
             }}
           >
-            Why We Built Upwards?
+            Why We Built Upward?
           </h1>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>

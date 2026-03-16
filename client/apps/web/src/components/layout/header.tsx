@@ -130,8 +130,7 @@ export function Header({
       <ul style={{ display: 'flex', gap: '32px', listStyle: 'none' }} className="mobile-hide">
         {(
           [
-            ['#why', 'Why Upwards?'],
-            ['#ambassador', 'Join Live'],
+            ['#why', 'Why Upward?'],
             ['#faq', 'FAQ'],
           ] as [string, string][]
         ).map(([href, label]) => {
@@ -140,7 +139,7 @@ export function Header({
               <Link
                 href={href}
                 onClick={(e) => {
-                  if (label === 'Why Upwards?' || label === 'FAQ') {
+                  if (label === 'Why Upward?' || label === 'FAQ') {
                     e.preventDefault()
                     onSetView('why')
                     if (label === 'FAQ') {
@@ -148,14 +147,12 @@ export function Header({
                         const el = document.getElementById('faq')
                         if (el) {
                           const navHeight = 80
-                          const top = el.getBoundingClientRect().top + window.pageYOffset - navHeight
+                          const top =
+                            el.getBoundingClientRect().top + window.pageYOffset - navHeight
                           window.scrollTo({ top, behavior: 'smooth' })
                         }
                       }, 150)
                     }
-                  } else if (label === 'Join Live') {
-                    e.preventDefault()
-                    onOpenSignup()
                   } else {
                     onSetView('home')
                   }
@@ -163,19 +160,22 @@ export function Header({
                 style={{
                   fontSize: '12px',
                   color:
-                    (label === 'Why Upwards?' || label === 'FAQ') && currentView === 'why'
+                    (label === 'Why Upward?' || label === 'FAQ') && currentView === 'why'
                       ? 'var(--accent)'
                       : 'var(--muted)',
                   textDecoration: 'none',
                   transition: 'color 0.2s',
                   letterSpacing: '1px',
                   textTransform: 'uppercase',
-                  fontWeight: (label === 'Why Upwards?' || label === 'FAQ') && currentView === 'why' ? 700 : 400,
+                  fontWeight:
+                    (label === 'Why Upward?' || label === 'FAQ') && currentView === 'why'
+                      ? 700
+                      : 400,
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text)')}
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.color =
-                    (label === 'Why Upwards?' || label === 'FAQ') && currentView === 'why'
+                    (label === 'Why Upward?' || label === 'FAQ') && currentView === 'why'
                       ? 'var(--accent)'
                       : 'var(--muted)')
                 }
@@ -289,7 +289,7 @@ export function Header({
         >
           {(
             [
-              ['#why', 'Why Upwards?'],
+              ['#why', 'Why Upward?'],
               ['#ambassador', 'Join Live'],
               ['#faq', 'FAQ'],
             ] as [string, string][]
@@ -298,7 +298,7 @@ export function Header({
               key={href}
               href={href}
               onClick={(e) => {
-                if (label === 'Why Upwards?' || label === 'FAQ') {
+                if (label === 'Why Upward?' || label === 'FAQ') {
                   e.preventDefault()
                   onSetView('why')
                   if (label === 'FAQ') {
@@ -324,7 +324,9 @@ export function Header({
                 fontFamily: 'var(--font-head)',
                 fontWeight: 700,
                 color:
-                  (label === 'Why Upwards?' || label === 'FAQ') && currentView === 'why' ? 'var(--accent)' : 'var(--text)',
+                  (label === 'Why Upward?' || label === 'FAQ') && currentView === 'why'
+                    ? 'var(--accent)'
+                    : 'var(--text)',
                 textDecoration: 'none',
               }}
             >

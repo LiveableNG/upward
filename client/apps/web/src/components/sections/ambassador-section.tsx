@@ -11,38 +11,25 @@ export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }
   const sessions = [
     {
       title: 'Learn More & Ask Questions (Join on your way back from work)',
-      info: 'Every Tuesday · 7:00 PM WAT',
+      info: 'Tuesday · 7:00 PM WAT',
       day: 2,
     },
     {
       title: 'Information Session',
-      info: 'Every Wednesday · 12:00 PM WAT',
+      info: 'Wednesday · 12:00 PM WAT',
       day: 3,
     },
     {
       title: 'Learn More & Ask Questions (Join on your way back from work)',
-      info: 'Every Thursday · 7:00 PM WAT',
+      info: 'Thursday · 7:00 PM WAT',
       day: 4,
     },
     {
       title: 'Information Session',
-      info: 'Every Saturday · 9:00 AM WAT',
+      info: 'Saturday · 9:00 AM WAT',
       day: 6,
     },
   ]
-  const showToast = (msg: string) => {
-    const t = document.getElementById('toast')
-    const msgEl = document.getElementById('toast-msg')
-    if (t && msgEl) {
-      msgEl.textContent = msg
-      t.classList.add('toast-show')
-      setTimeout(() => t.classList.remove('toast-show'), 3000)
-    }
-  }
-
-  const toastAmbassador = () => {
-    showToast('Ambassador form coming soon')
-  }
 
   return (
     <section
