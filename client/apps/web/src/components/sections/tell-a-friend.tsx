@@ -124,12 +124,18 @@ export function TellAFriend() {
                   <circle cx="4" cy="4" r="2" />
                 </svg>
               ),
-              onClick: () =>
-                window.open(
-                  'https://www.linkedin.com/feed/?shareActive=true&text=' +
-                    encodeURIComponent(caption),
-                  '_blank',
-                ),
+              onClick: () => {
+                navigator.clipboard.writeText(caption).then(() => {
+                  showToast('Caption copied! Paste it in your LinkedIn post.')
+                  setTimeout(() => {
+                    window.open(
+                      'https://www.linkedin.com/sharing/share-offsite/?url=' +
+                        encodeURIComponent('https://upward.goodtenants.io'),
+                      '_blank',
+                    )
+                  }, 1500)
+                })
+              },
             },
             {
               label: 'Copy Link',
