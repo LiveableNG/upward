@@ -124,15 +124,25 @@ export function TellAFriend() {
                   <circle cx="4" cy="4" r="2" />
                 </svg>
               ),
-              onClick: () => {
-                navigator.clipboard.writeText(caption).then(() => {
+              onClick: async () => {
+                try {
+                  await navigator.clipboard.writeText(caption)
                   showToast('Caption copied! Paste it in your LinkedIn post.')
-                })
-                window.open(
-                  'https://www.linkedin.com/sharing/share-offsite/?url=' +
-                    encodeURIComponent('https://upward.goodtenants.io'),
-                  '_blank',
-                )
+
+                  setTimeout(() => {
+                    window.open(
+                      'https://www.linkedin.com/sharing/share-offsite/?url=' +
+                        encodeURIComponent('https://upward.goodtenants.io'),
+                      '_blank',
+                    )
+                  }, 1200) // delay so user sees the toast
+                } catch {
+                  window.open(
+                    'https://www.linkedin.com/sharing/share-offsite/?url=' +
+                      encodeURIComponent('https://upward.goodtenants.io'),
+                    '_blank',
+                  )
+                }
               },
             },
             {

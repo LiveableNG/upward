@@ -56,6 +56,9 @@ export function Header({
           gap: '10px',
           textDecoration: 'none',
           cursor: 'pointer',
+          opacity: mobileMenuOpen ? 0 : 1,
+          pointerEvents: mobileMenuOpen ? 'none' : 'auto',
+          transition: 'all 0.3s ease',
         }}
       >
         <div
@@ -287,6 +290,78 @@ export function Header({
             overflowY: 'auto',
           }}
         >
+          {/* Mobile Menu Header Logo */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '12px',
+              left: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              cursor: 'pointer',
+            }}
+            onClick={() => {
+              onSetView('home')
+              setMobileMenuOpen(false)
+            }}
+          >
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--accent-faint)',
+                borderRadius: '10px',
+                border: '1px solid var(--accent-muted)',
+                boxShadow: '0 4px 20px var(--hover-shadow), 0 0 10px var(--accent-faint)',
+              }}
+            >
+              <img
+                src="/favicon.svg"
+                alt="Upward Logo"
+                style={{ width: '70%', height: '70%', objectFit: 'contain' }}
+              />
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                lineHeight: '1.2',
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: 'var(--font-head)',
+                  fontWeight: 800,
+                  fontSize: '15px',
+                  background: 'var(--heading-mix)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  letterSpacing: '0.05em',
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: '6px',
+                }}
+              >
+                <span>UPWARD</span>
+              </div>
+              <span
+                style={{
+                  fontFamily: 'var(--font-head)',
+                  fontSize: '7px',
+                  fontWeight: 600,
+                  color: 'var(--muted)',
+                  letterSpacing: '0.1em',
+                }}
+              >
+                By GoodTenants
+              </span>
+            </div>
+          </div>
           {(
             [
               ['#why', 'Why Upward?'],
