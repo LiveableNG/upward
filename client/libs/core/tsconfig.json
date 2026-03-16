@@ -1,0 +1,10 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@upward/shared-types": ["../../../common/shared-types/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}
