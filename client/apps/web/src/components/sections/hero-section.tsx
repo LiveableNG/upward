@@ -111,6 +111,34 @@ export function HeroSection({
             We&apos;re helping smart, responsible and hardworking renters build credibility that
             unlocks exclusive financial benefits.
           </p>
+          <div
+            style={{
+              display: 'flex',
+              gap: '12px',
+              flexWrap: 'wrap',
+              marginTop: '40px',
+            }}
+            className="audience-tags"
+          >
+            {['Salary earners', 'Freelancers', 'Creatives', 'Business Owners'].map((tag) => (
+              <span
+                key={tag}
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: 'var(--text)',
+                  background: 'var(--accent-faint)',
+                  border: '1px solid var(--accent-muted)',
+                  padding: '8px 16px',
+                  borderRadius: '100px',
+                  letterSpacing: '0.02em',
+                }}
+                className="audience-tag"
+              >
+                For {tag}
+              </span>
+            ))}
+          </div>
         </div>
 
         <div

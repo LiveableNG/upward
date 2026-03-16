@@ -1,7 +1,13 @@
 'use client'
 import Link from 'next/link'
 
-export function Footer({ onSetView }: { onSetView?: (view: 'home' | 'why') => void }) {
+export function Footer({
+  onSetView,
+  onOpenSignup,
+}: {
+  onSetView?: (view: 'home' | 'why') => void
+  onOpenSignup?: () => void
+}) {
   return (
     <footer
       style={{
@@ -66,9 +72,9 @@ export function Footer({ onSetView }: { onSetView?: (view: 'home' | 'why') => vo
           </h4>
           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {[
-              ['#why', 'Our Vision'],
+              ['#why', 'Why Upwards?'],
               ['#how', 'How it Works'],
-              ['#ambassador', 'Ambassador'],
+              ['#ambassador', 'Join Live'],
               ['#faq', 'FAQ'],
             ].map(([href, label]) => (
               <li key={label}>
@@ -76,19 +82,29 @@ export function Footer({ onSetView }: { onSetView?: (view: 'home' | 'why') => vo
                   href={href ?? '#'}
                   onClick={(e) => {
                     if (onSetView) {
-                      if (label === 'Our Vision' || label === 'FAQ') {
-                        if (onSetView) onSetView('why')
-                        else {
-                          e.preventDefault()
-                        }
-                      } else if (label === 'Ambassador' || label === 'How it Works') {
-                        if (onSetView) onSetView('home')
-                        if (label === 'How it Works') {
+                      if (label === 'Why Upwards?' || label === 'FAQ') {
+                        onSetView('why')
+                        if (label === 'FAQ') {
                           setTimeout(() => {
-                            const el = document.getElementById('how')
-                            if (el) el.scrollIntoView({ behavior: 'smooth' })
-                          }, 100)
+                            const el = document.getElementById('faq')
+                            if (el) {
+                              const top = el.getBoundingClientRect().top + window.pageYOffset - 80
+                              window.scrollTo({ top, behavior: 'smooth' })
+                            }
+                          }, 150)
                         }
+                      } else if (label === 'Join Live') {
+                        e.preventDefault()
+                        if (onOpenSignup) onOpenSignup()
+                      } else if (label === 'How it Works') {
+                        onSetView('home')
+                        setTimeout(() => {
+                          const el = document.getElementById('how')
+                          if (el) {
+                            const top = el.getBoundingClientRect().top + window.pageYOffset - 80
+                            window.scrollTo({ top, behavior: 'smooth' })
+                          }
+                        }, 100)
                       }
                     }
                   }}
@@ -167,8 +183,50 @@ export function Footer({ onSetView }: { onSetView?: (view: 'home' | 'why') => vo
           © 2026 UPWARD by GoodTenants. <br className="mobile-only" />
           All Rights Reserved.
         </p>
-        <div style={{ display: 'flex', gap: '24px' }} className="footer-socials">
+        <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }} className="footer-bottom-group">
+          <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }} className="footer-contact">
+            <a
+              href="mailto:hello@goodtenants.africa"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '11px',
+                color: 'var(--muted)',
+                textDecoration: 'none',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--muted)')}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
+              </svg>
+              hello@goodtenants.africa
+            </a>
+            <a
+              href="tel:09040969943"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '11px',
+                color: 'var(--muted)',
+                textDecoration: 'none',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--muted)')}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+              </svg>
+              09040969943
+            </a>
+          </div>
+          <div style={{ display: 'flex', gap: '20px' }} className="footer-socials">
           {[
+            { name: 'Twitter', href: 'https://x.com/UseGoodTenants' },
             { name: 'LinkedIn', href: 'https://www.linkedin.com/company/good-tenants/' },
             { name: 'Instagram', href: 'https://www.instagram.com/usegoodtenants' },
           ].map((social) => (
@@ -194,8 +252,9 @@ export function Footer({ onSetView }: { onSetView?: (view: 'home' | 'why') => vo
           ))}
         </div>
       </div>
+    </div>
 
-      <style>{`
+    <style>{`
         @media (max-width: 900px) {
           .footer-grid {
             grid-template-columns: 1fr 1fr !important;
@@ -233,6 +292,15 @@ export function Footer({ onSetView }: { onSetView?: (view: 'home' | 'why') => vo
           }
           .footer-socials {
             justify-content: center;
+          }
+          .footer-contact {
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 16px !important;
+          }
+          .footer-bottom-group {
+            flex-direction: column;
+            gap: 20px !important;
           }
           .mobile-only {
             display: block;

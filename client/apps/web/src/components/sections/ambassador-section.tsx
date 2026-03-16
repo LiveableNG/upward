@@ -10,7 +10,7 @@ export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }
 
   const sessions = [
     {
-      title: 'Learn More & Ask Questions',
+      title: 'Learn More & Ask Questions (Join on your way back from work)',
       info: 'Every Tuesday · 7:00 PM WAT',
       day: 2,
     },
@@ -20,13 +20,13 @@ export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }
       day: 3,
     },
     {
-      title: 'Learn More & Ask Questions',
+      title: 'Learn More & Ask Questions (Join on your way back from work)',
       info: 'Every Thursday · 7:00 PM WAT',
       day: 4,
     },
     {
       title: 'Information Session',
-      info: 'Every Saturday · 10:00 AM WAT',
+      info: 'Every Saturday · 9:00 AM WAT',
       day: 6,
     },
   ]
@@ -93,10 +93,10 @@ export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }
             explore how you can become a community ambassador and earn rewards.
           </p>
           <button
-            onClick={() => toastAmbassador()}
+            onClick={() => onOpenSignup()}
             style={{
               background: 'var(--accent)',
-              color: '#0A0A0F',
+              color: 'var(--btn-text)',
               fontFamily: 'var(--font-head)',
               fontWeight: 800,
               fontSize: '14px',
@@ -112,7 +112,7 @@ export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }
               transition: 'all 0.2s',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#d8ff6e'
+              e.currentTarget.style.background = '#bf5f43'
               e.currentTarget.style.transform = 'translateY(-1px)'
             }}
             onMouseLeave={(e) => {
@@ -120,7 +120,7 @@ export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }
               e.currentTarget.style.transform = ''
             }}
           >
-            Become an Ambassador
+            Join live
             <svg
               width="16"
               height="16"

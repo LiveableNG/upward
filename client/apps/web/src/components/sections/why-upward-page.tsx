@@ -88,29 +88,27 @@ export function WhyUpwardPage({
     {
       question: 'What is Upward by GT?',
       answer:
-        'Upward by GT tracks your rent payments and rental behavior to create a rental score, help members save, access rent support, get loans for household needs, and work towards owning a home.',
+        'Upward by GT is a platform that tracks your rent payments and rental behavior to create your rental score and rental ID. This helps you build a verified record of your rental history and show that you are a responsible tenant.',
     },
     {
-      question: 'What is rental score?',
+      question: 'What is a rental score?',
       answer:
-        'A rental score is a number that shows how reliable and responsible you are as a tenant. It is affected by factors like paying your rent on time, saving regularly, staying in your home for a reasonable period, and keeping the property in good condition. A higher score can give you access to benefits like rent support, loans for household needs, and even a pathway to owning a home.',
+        'Your Rental score is a number that shows how reliable and responsible you are as a tenant. It is affected by factors like paying your rent on time, saving regularly, staying in your home for a reasonable period, and keeping the property in good condition.',
     },
     {
       question: "What's the benefit of being a GoodTenants community member?",
       answer: (
         <ul style={{ paddingLeft: '20px', margin: 0 }}>
-          <li>Easier, structured savings for rent.</li>
-          <li>Access to rent support loans when needed.</li>
-          <li>Loans for household essentials.</li>
-          <li>Build a pathway toward home ownership.</li>
-          <li>Show reliability as a tenant through your rental score.</li>
+          <li>Keep a clear record of your rent payments.</li>
+          <li>Build a rental score that shows you are a responsible tenant.</li>
+          <li>Get priority access to quality rental apartments based on your rental score.</li>
         </ul>
       ),
     },
     {
       question: 'Who can join Upward by GT?',
       answer:
-        'Anyone who is a tenant (Salary earners, freelancers, creatives and business owners).',
+        'Anyone who is a tenant (Salary earners, freelancers, creatives, skilled workers and business owners).',
     },
     {
       question: 'How do I join the platform?',
@@ -119,27 +117,26 @@ export function WhyUpwardPage({
     {
       question: 'Is there a sign-up fee and what does it cover?',
       answer:
-        'Yes, there’s a small sign-up fee. It gives you access to the platform and lets you start building your rental score.',
+        'No, there is no sign-up fee. A rental transaction fee of ₦1,000–₦2,500 fee is charged once per year when your annual rent payment is recorded on the platform.',
+    },
+    {
+      question: 'How are payments made?',
+      answer:
+        'All payments are processed through Paystack, a trusted and secure payment platform, to ensure transactions are safe and properly recorded.',
     },
     {
       question: 'Can I track my rental score myself?',
       answer:
-        'Yes, Your rental score is fully visible on the platform, so you can check it anytime and see how your payments and behavior affect it.',
+        'Yes, only you can track your rental score, you can check it anytime and see how your payments and behavior affect it.',
     },
     {
       question: 'Is my rent data private?',
       answer:
-        'Yes. Your rent information is private and protected on your account. Only you can access it with your login details, and it is not shared without your permission.',
+        'Your ID details are private. They are only visible to you and anyone you choose to share your rental ID with for verification.',
     },
     {
       question: 'Who sees my passport?',
-      answer:
-        'Other people cannot see it unless you choose to share your ID number with them for verification.',
-    },
-    {
-      question: "What if my landlord won't cooperate?",
-      answer:
-        'You can still use the platform. While landlord or property manager confirmation helps strengthen your rental record, you can still track your rent payments and build your rental history on your own account.',
+      answer: 'No one else can access your profile except you choose to share your rental ID.',
     },
   ]
 
@@ -243,7 +240,7 @@ export function WhyUpwardPage({
               WebkitTextFillColor: 'transparent',
             }}
           >
-            Why We Built Upward
+            Why We Built Upwards?
           </h1>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
@@ -376,8 +373,14 @@ export function WhyUpwardPage({
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#bf5f43'
+                e.currentTarget.style.transform = 'scale(1.05)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'var(--accent)'
+                e.currentTarget.style.transform = 'scale(1)'
+              }}
             >
               Get Priority Access
             </button>
