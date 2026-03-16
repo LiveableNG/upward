@@ -7,8 +7,12 @@ export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string)
       const msgEl = document.getElementById('toast-msg')
       if (t && msgEl) {
         msgEl.textContent = 'Please enter a valid email address.'
+        t.classList.add('toast-error')
         t.classList.add('toast-show')
-        setTimeout(() => t.classList.remove('toast-show'), 3000)
+        setTimeout(() => {
+          t.classList.remove('toast-show')
+          t.classList.remove('toast-error')
+        }, 3000)
       }
       return
     }
@@ -37,8 +41,8 @@ export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string)
           <polyline points="9 22 9 12 15 12 15 22" />
         </svg>
       ),
-      title: 'Your next rental at ease',
-      desc: 'Find homes with ease and get prioritized by agents and landlords.',
+      title: 'Move Homes with Ease',
+      desc: 'Still renting? Discover great homes and get prioritised by trusted owners and property managers.',
     },
     {
       icon: (
@@ -57,8 +61,8 @@ export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string)
           <line x1="2" x2="22" y1="10" y2="10" />
         </svg>
       ),
-      title: 'Exclusive financial benefits',
-      desc: 'Claim discounts, flexible payment plans from partner managers.',
+      title: 'Exclusive Financial Benefits',
+      desc: 'Unlock rent discounts, flexible payment plans, and affordable financing for household essentials.',
     },
     {
       icon: (
@@ -77,8 +81,8 @@ export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string)
           <polyline points="16 7 22 7 22 13" />
         </svg>
       ),
-      title: 'Renter to homeowner',
-      desc: 'Access high quality, titled homes with long-term equity options.',
+      title: 'From Renter to Homeowner',
+      desc: 'Graduate into the Homeowners Collective and access friendly single-digit financing for your first home.',
     },
     {
       icon: (
@@ -97,8 +101,8 @@ export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string)
           <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
         </svg>
       ),
-      title: 'Single digit home loans',
-      desc: 'Get single digit home financing to buy homes.',
+      title: 'Rent Passport',
+      desc: 'Turn your verified rental history into a trusted credit profile—use it to access financing and home access, even when moving abroad.',
     },
   ]
 
@@ -240,7 +244,7 @@ export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string)
               gap: '8px',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#e68a6b'
+              e.currentTarget.style.background = '#bf5f43'
               e.currentTarget.style.transform = 'translateY(-2px)'
               e.currentTarget.style.boxShadow = '0 12px 40px rgba(217, 119, 87, 0.25)'
             }}

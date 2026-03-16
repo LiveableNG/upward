@@ -22,6 +22,8 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
   const [syncing, setSyncing] = useState(false)
   const [dataLoaded, setDataLoaded] = useState(false)
   const [selectedSession, setSelectedSession] = useState('')
+  const [showCityDropdown, setShowCityDropdown] = useState(false)
+  const [filteredCities, setFilteredCities] = useState<string[]>([])
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/locations/countries`)
@@ -57,23 +59,39 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
     }
   }, [initialEmail])
 
-  const showToast = (msg: string) => {
+  useEffect(() => {
+    if (city && cities.length > 0) {
+      const filtered = cities.filter((c) => 
+        c.toLowerCase().includes(city.toLowerCase())
+      ).slice(0, 10)
+      setFilteredCities(filtered)
+    } else {
+      setFilteredCities(cities.slice(0, 10))
+    }
+  }, [city, cities])
+
+  const showToast = (msg: string, isError = false) => {
     const t = document.getElementById('toast')
     const msgEl = document.getElementById('toast-msg')
     if (t && msgEl) {
       msgEl.textContent = msg
+      if (isError) t.classList.add('toast-error')
+      else t.classList.remove('toast-error')
       t.classList.add('toast-show')
-      setTimeout(() => t.classList.remove('toast-show'), 3000)
+      setTimeout(() => {
+        t.classList.remove('toast-show')
+        t.classList.remove('toast-error')
+      }, 3000)
     }
   }
 
   const goTo = (n: number) => {
     if (n === 2 && !email) {
-      showToast('Please enter your email address.')
+      showToast('Please enter your email address.', true)
       return
     }
     if (n === 3 && step === 2 && !role) {
-      showToast('Please select your role.')
+      showToast('Please select your role.', true)
       return
     }
     if (n === 4) {
@@ -106,7 +124,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
     if (benefits.includes(val)) {
       setBenefits(benefits.filter((b) => b !== val))
     } else if (benefits.length >= 2) {
-      showToast('You can only pick 2 benefits.')
+      showToast('You can only pick 2 benefits.', true)
     } else {
       setBenefits([...benefits, val])
     }
@@ -184,7 +202,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
 
   const submit = async () => {
     if (!checkboxes.news) {
-      showToast('You must agree to receive updates to join the waitlist.')
+      showToast('You must agree to receive updates to join the waitlist.', true)
       return
     }
 
@@ -221,7 +239,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
       showToast(result.message || "You're on the list! Welcome to Upward")
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Submission failed. Please try again.'
-      showToast(message)
+      showToast(message, true)
     } finally {
       setLoading(false)
     }
@@ -301,7 +319,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
         gap: '8px',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = '#e68a6b'
+        e.currentTarget.style.background = '#bf5f43'
         e.currentTarget.style.transform = 'translateY(-1px)'
       }}
       onMouseLeave={(e) => {
@@ -600,27 +618,67 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                       ))}
                     </select>
                   </div>
-                  <div>
+                  <div style={{ position: 'relative' }}>
                     <label style={labelStyle}>Cities</label>
                     <input
-                      list="city-options"
                       style={inputStyle}
                       value={city}
                       onChange={(e) => {
                         const val = e.target.value
                         setCity(val)
+                        setShowCityDropdown(true)
                         syncData({ city: val || undefined })
                       }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+                      onFocus={() => {
+                        setShowCityDropdown(true)
+                      }}
+                      onBlur={() => {
+                        // Small delay to allow clicking on dropdown items
+                        setTimeout(() => setShowCityDropdown(false), 200)
+                      }}
                       placeholder={fetchingCities ? 'Loading...' : 'Type or search city...'}
                       disabled={!country || fetchingCities}
                     />
-                    <datalist id="city-options">
-                      {cities.map((c) => (
-                        <option key={c} value={c} />
-                      ))}
-                    </datalist>
+                    {showCityDropdown && filteredCities.length > 0 && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          background: 'var(--surface)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '10px',
+                          marginTop: '4px',
+                          zIndex: 100,
+                          maxHeight: '200px',
+                          overflowY: 'auto',
+                          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                        }}
+                      >
+                        {filteredCities.map((c) => (
+                          <div
+                            key={c}
+                            onClick={() => {
+                              setCity(c)
+                              setShowCityDropdown(false)
+                              syncData({ city: c })
+                            }}
+                            style={{
+                              padding: '12px 16px',
+                              fontSize: '14px',
+                              cursor: 'pointer',
+                              borderBottom: '1px solid var(--border)',
+                              transition: 'background 0.2s',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            {c}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -900,7 +958,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                   })}
                 </div>
                 {benefitWarning && (
-                  <div style={{ color: '#ff6b6b', fontSize: '12px', marginTop: '12px' }}>
+                  <div style={{ color: '#e60000', fontSize: '12px', marginTop: '12px', fontWeight: 600 }}>
                     Please select exactly 2 benefits to continue.
                   </div>
                 )}
@@ -1107,6 +1165,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                 )}
 
                 <div
+                  className="step-footer"
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -1145,17 +1204,44 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
 
       <style>{`
         @media (max-width: 768px) {
-          .grid-stack-mobile {
-            grid-template-columns: 1fr !important;
-            gap: 16px !important;
-          }
-          .form-content {
-            padding: 32px 20px !important;
-          }
-          .share-with-friend-btn {
+
+  .grid-stack-mobile {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .form-content {
+    padding: 26px 18px !important;
+  }
+
+  .step-footer {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    flex-wrap: wrap;
+  }
+
+  .step-footer span {
+    order: 3;
+    width: 100%;
+    text-align: center;
+    margin-top: 6px;
+  }
+
+  .step-footer > div {
+    flex-direction: row !important;
+    gap: 10px !important;
+  }
+
+  .step-footer button {
+    width: auto !important;
+  }
+    .share-with-friend-btn {
             width: 100% !important;
           }
-        }
+
+}
         @media (max-width: 480px) {
            .mobile-hide {
              display: none;

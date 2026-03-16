@@ -5,9 +5,11 @@ import { useState, useEffect } from 'react'
 export function Header({
   onSetView,
   currentView,
+  onOpenSignup,
 }: {
   onSetView: (view: 'home' | 'why') => void
   currentView: 'home' | 'why'
+  onOpenSignup: () => void
 }) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -17,6 +19,14 @@ export function Header({
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+  }, [mobileMenuOpen])
 
   const toggleMenu = () => setMobileMenuOpen(!mobileMenuOpen)
 
@@ -120,8 +130,9 @@ export function Header({
       <ul style={{ display: 'flex', gap: '32px', listStyle: 'none' }} className="mobile-hide">
         {(
           [
-            ['#why', 'Why Upward'],
-            ['#ambassador', 'Ambassador'],
+            ['#why', 'Why Upwards?'],
+            ['#ambassador', 'Join Live'],
+            ['#faq', 'FAQ'],
           ] as [string, string][]
         ).map(([href, label]) => {
           return (
@@ -129,9 +140,22 @@ export function Header({
               <Link
                 href={href}
                 onClick={(e) => {
-                  if (label === 'Why Upward') {
+                  if (label === 'Why Upwards?' || label === 'FAQ') {
                     e.preventDefault()
                     onSetView('why')
+                    if (label === 'FAQ') {
+                      setTimeout(() => {
+                        const el = document.getElementById('faq')
+                        if (el) {
+                          const navHeight = 80
+                          const top = el.getBoundingClientRect().top + window.pageYOffset - navHeight
+                          window.scrollTo({ top, behavior: 'smooth' })
+                        }
+                      }, 150)
+                    }
+                  } else if (label === 'Join Live') {
+                    e.preventDefault()
+                    onOpenSignup()
                   } else {
                     onSetView('home')
                   }
@@ -139,19 +163,19 @@ export function Header({
                 style={{
                   fontSize: '12px',
                   color:
-                    label === 'Why Upward' && currentView === 'why'
+                    (label === 'Why Upwards?' || label === 'FAQ') && currentView === 'why'
                       ? 'var(--accent)'
                       : 'var(--muted)',
                   textDecoration: 'none',
                   transition: 'color 0.2s',
                   letterSpacing: '1px',
                   textTransform: 'uppercase',
-                  fontWeight: label === 'Why Upward' && currentView === 'why' ? 700 : 400,
+                  fontWeight: (label === 'Why Upwards?' || label === 'FAQ') && currentView === 'why' ? 700 : 400,
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text)')}
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.color =
-                    label === 'Why Upward' && currentView === 'why'
+                    (label === 'Why Upwards?' || label === 'FAQ') && currentView === 'why'
                       ? 'var(--accent)'
                       : 'var(--muted)')
                 }
@@ -165,6 +189,7 @@ export function Header({
 
       <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
         <div
+          className="mobile-hide"
           style={{
             fontSize: '9px',
             letterSpacing: '0.2em',
@@ -221,6 +246,8 @@ export function Header({
             cursor: 'pointer',
             padding: '5px',
             display: 'none',
+            position: 'relative',
+            zIndex: 1100,
           }}
           className="mobile-toggle"
         >
@@ -246,32 +273,47 @@ export function Header({
         <div
           style={{
             position: 'fixed',
-            top: '70px',
+            top: 0,
             left: 0,
             width: '100%',
-            height: 'calc(100vh - 70px)',
+            height: '100vh',
             background: 'var(--bg)',
             zIndex: 999,
-            padding: '40px 20px',
+            padding: '80px 20px 40px',
             display: 'flex',
             flexDirection: 'column',
             gap: '30px',
             animation: 'fadeIn 0.3s ease',
+            overflowY: 'auto',
           }}
         >
           {(
             [
-              ['#why', 'Why Upward'],
-              ['#ambassador', 'Ambassador'],
+              ['#why', 'Why Upwards?'],
+              ['#ambassador', 'Join Live'],
+              ['#faq', 'FAQ'],
             ] as [string, string][]
           ).map(([href, label]) => (
             <Link
               key={href}
               href={href}
               onClick={(e) => {
-                if (label === 'Why Upward') {
+                if (label === 'Why Upwards?' || label === 'FAQ') {
                   e.preventDefault()
                   onSetView('why')
+                  if (label === 'FAQ') {
+                    setTimeout(() => {
+                      const el = document.getElementById('faq')
+                      if (el) {
+                        const navHeight = 70
+                        const top = el.getBoundingClientRect().top + window.pageYOffset - navHeight
+                        window.scrollTo({ top, behavior: 'smooth' })
+                      }
+                    }, 150)
+                  }
+                } else if (label === 'Join Live') {
+                  e.preventDefault()
+                  onOpenSignup()
                 } else {
                   onSetView('home')
                 }
@@ -282,7 +324,7 @@ export function Header({
                 fontFamily: 'var(--font-head)',
                 fontWeight: 700,
                 color:
-                  label === 'Why Upward' && currentView === 'why' ? 'var(--accent)' : 'var(--text)',
+                  (label === 'Why Upwards?' || label === 'FAQ') && currentView === 'why' ? 'var(--accent)' : 'var(--text)',
                 textDecoration: 'none',
               }}
             >

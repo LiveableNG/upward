@@ -61,7 +61,7 @@ export default function HomePage() {
         }}
       />
 
-      <Header onSetView={setView} currentView={view} />
+      <Header onSetView={setView} currentView={view} onOpenSignup={() => openSignup()} />
 
       <main style={{ position: 'relative', zIndex: 1, overflowX: 'hidden' }}>
         <div
@@ -103,7 +103,7 @@ export default function HomePage() {
             <PartnersBar />
           </div>
 
-          {/* Why Upward View */}
+          {/* Why Upwards? View */}
           <div
             style={{
               width: '50%',
@@ -118,7 +118,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      <Footer onSetView={setView} />
+      <Footer onSetView={setView} onOpenSignup={() => openSignup()} />
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
@@ -178,7 +178,7 @@ export default function HomePage() {
         id="toast"
         style={{
           position: 'fixed',
-          bottom: '32px',
+          top: '32px',
           right: '32px',
           background: 'var(--surface)',
           border: '1px solid rgba(217, 119, 87, 0.4)',
@@ -187,7 +187,7 @@ export default function HomePage() {
           zIndex: 9999,
           fontSize: '14px',
           color: 'var(--text)',
-          transform: 'translateY(80px)',
+          transform: 'translateY(-80px)',
           opacity: 0,
           transition: 'all 0.3s cubic-bezier(0.34,1.56,0.64,1)',
           display: 'flex',
@@ -213,15 +213,37 @@ export default function HomePage() {
           transform: translateY(0) !important;
           opacity: 1 !important;
         }
+        .toast-error {
+          border: 2px solid #ff4444 !important;
+          animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+          10%, 90% { transform: translate3d(-1px, 0, 0); }
+          20%, 80% { transform: translate3d(2px, 0, 0); }
+          30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+          40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        .modal-content::-webkit-scrollbar {
+          display: none;
+        }
+        .modal-content {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
         @media (max-width: 768px) {
           .modal-header-padding {
             padding: 40px 24px 20px !important;
           }
           .toast-mobile {
-            bottom: 20px !important;
+            top: 20px !important;
+            bottom: auto !important;
             right: 20px !important;
             left: 20px !important;
             justify-content: center;
+          }
+          body.no-scroll {
+            position: fixed;
+            width: 100%;
           }
         }
       `}</style>

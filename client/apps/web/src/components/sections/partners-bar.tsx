@@ -3,7 +3,8 @@
 export function PartnersBar() {
   const logos = [
     { src: '/company-logos/diya_logo.png', alt: 'Diya Fatimilehin & Co.' },
-    { src: '/company-logos/02.png', alt: 'Partner 2' },
+    { src: 'https://good-tenants-bucket.s3.amazonaws.com/uploads/production/file_20251006_151859_dfbeb3ef.png', alt: 'Megamound' },
+    { src: 'https://good-tenants-bucket.s3.amazonaws.com/uploads/production/file_20250821_100849_908b8910.jpg', alt: 'Rydal Mews' },
     { src: '/company-logos/03.png', alt: 'Partner 3' },
     { src: '/company-logos/04.png', alt: 'Partner 4' },
     { src: '/company-logos/05.png', alt: 'Partner 5' },
@@ -32,7 +33,7 @@ export function PartnersBar() {
           textAlign: 'center',
         }}
       >
-        Trusted by leading real estate companies
+        GoodTenants is trusted by leading real estate companies, including…
       </p>
 
       <div
