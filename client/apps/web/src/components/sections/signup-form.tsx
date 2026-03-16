@@ -1214,29 +1214,29 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
     padding: 26px 18px !important;
   }
 
-  .step-footer {
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 12px !important;
-    flex-wrap: wrap;
-  }
+.step-footer {
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  flex-wrap: nowrap;
+}
 
-  .step-footer span {
-    order: 3;
-    width: 100%;
-    text-align: center;
-    margin-top: 6px;
-  }
+.step-footer span {
+  display: none;
+}
 
-  .step-footer > div {
-    flex-direction: row !important;
-    gap: 10px !important;
-  }
+.step-footer > div {
+  flex-direction: row !important;
+  gap: 10px !important;
+  flex-shrink: 0;
+}
 
-  .step-footer button {
-    width: auto !important;
-  }
+.step-footer button {
+  width: auto !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
     .share-with-friend-btn {
             width: 100% !important;
           }
