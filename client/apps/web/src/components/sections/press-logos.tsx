@@ -10,7 +10,7 @@ export function PressLogos() {
     {
       src: '/featured/02.png',
       alt: 'Channels TV',
-      link: 'https://www.channelstv.com/',
+      link: 'https://www.youtube.com/watch?v=KL4pg73NOG0',
     },
     {
       src: '/featured/03.webp',

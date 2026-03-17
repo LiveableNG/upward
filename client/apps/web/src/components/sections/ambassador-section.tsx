@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { showToast } from '@upward/client-core'
+import { SESSIONS } from '@upward/client-shared'
 
 export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignup: () => void }) {
   const [currentDay, setCurrentDay] = useState<number | null>(null)
@@ -17,30 +18,68 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
 
   const sessions = [
     {
-      id: 'tue-7pm',
+      id: SESSIONS[1]!,
       title: 'Learn More & Ask Questions (Join on your way back from work)',
       info: 'Tuesday · 7:00 PM WAT',
       day: 2,
     },
     {
-      id: 'wed-12pm',
+      id: SESSIONS[3]!,
       title: 'Information Session',
       info: 'Wednesday · 12:00 PM WAT',
       day: 3,
     },
     {
-      id: 'thu-7pm',
+      id: SESSIONS[2]!,
       title: 'Learn More & Ask Questions (Join on your way back from work)',
       info: 'Thursday · 7:00 PM WAT',
       day: 4,
     },
     {
-      id: 'sat-9am',
+      id: SESSIONS[0]!,
       title: 'Information Session',
       info: 'Saturday · 9:00 AM WAT',
       day: 6,
     },
   ]
+
+  const loadExistingData = async (emailToFetch: string) => {
+    if (!emailToFetch || !emailToFetch.includes('@')) return
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist/${emailToFetch}`)
+      if (!res.ok) return
+
+      const { data } = await res.json()
+      if (data) {
+        if (data.selectedSession && data.selectedSession !== 'NONE') {
+          setSelectedSession(data.selectedSession)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load existing data', err)
+    }
+  }
+
+  const syncData = async (sessionOverride?: string) => {
+    if (!email || !email.includes('@')) return
+
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          selectedSession: sessionOverride || selectedSession || undefined,
+          wantsAmbassador: true,
+        }),
+      })
+    } catch (err) {
+      console.error('Background sync failed', err)
+    }
+  }
 
   const handleJoinLive = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -56,9 +95,6 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
       return
     }
 
-    const session = sessions.find((s) => s.id === selectedSession)
-    const sessionLabel = session ? `${session.title} (${session.info})` : selectedSession
-
     setIsLoading(true)
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist`, {
@@ -68,7 +104,7 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
         },
         body: JSON.stringify({
           email,
-          selectedSession: sessionLabel,
+          selectedSession: selectedSession,
           wantsAmbassador: true,
         }),
       })
@@ -86,7 +122,13 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
   }
 
   const handleSessionClick = (sessionId: string) => {
-    setSelectedSession((prev) => (prev === sessionId ? null : sessionId))
+    setSelectedSession((prev) => {
+      const newVal = prev === sessionId ? null : sessionId
+      if (email && email.includes('@')) {
+        syncData(newVal || undefined)
+      }
+      return newVal
+    })
     setIsInteracting(true)
     setTimeout(() => {
       emailInputRef.current?.focus()
@@ -266,6 +308,10 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onFocus={() => setIsInteracting(true)}
+                  onBlur={() => {
+                    loadExistingData(email)
+                    syncData()
+                  }}
                   style={{
                     width: '100%',
                     background: 'var(--surface2)',
