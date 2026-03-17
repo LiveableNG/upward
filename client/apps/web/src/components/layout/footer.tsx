@@ -15,6 +15,8 @@ export function Footer({
         padding: '80px 40px 40px',
         position: 'relative',
         zIndex: 1,
+        background: 'var(--bg)',
+        color: 'var(--text)',
       }}
       className="container-padding footer-section"
     >
@@ -72,16 +74,17 @@ export function Footer({
           </h4>
           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {[
-              ['#why', 'Why Upward?'],
-              ['#how', 'How it Works'],
-              ['#ambassador', 'Join Live'],
-              ['#faq', 'FAQ'],
+              ['/?view=why', 'Why Upward?'],
+              ['/?view=home#how', 'How it Works'],
+              ['/?signup=true', 'Join Live'],
+              ['/?view=why#faq', 'FAQ'],
             ].map(([href, label]) => (
               <li key={label}>
                 <Link
                   href={href ?? '#'}
                   onClick={(e) => {
                     if (onSetView) {
+                      e.preventDefault()
                       if (label === 'Why Upward?' || label === 'FAQ') {
                         onSetView('why')
                         if (label === 'FAQ') {
@@ -94,7 +97,6 @@ export function Footer({
                           }, 150)
                         }
                       } else if (label === 'Join Live') {
-                        e.preventDefault()
                         if (onOpenSignup) onOpenSignup()
                       } else if (label === 'How it Works') {
                         onSetView('home')
@@ -139,10 +141,18 @@ export function Footer({
             Legal
           </h4>
           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {[['Privacy Policy'], ['Terms of Use'], ['Cookie Policy']].map(([label]) => (
+            {(
+              [
+                ['Privacy Policy', '/legal/privacy'],
+                ['Terms of Use', '/legal/terms'],
+                ['Cookie Policy', '/legal/cookies'],
+                ['Legal Notice', '/legal/notice'],
+              ] as [string, string][]
+            ).map(([label, href]) => (
               <li key={label}>
                 <Link
-                  href="#"
+                  href={href as string}
+                  target={href !== '#' ? '_blank' : undefined}
                   style={{
                     fontSize: '13px',
                     color: 'var(--muted)',
