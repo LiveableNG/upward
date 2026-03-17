@@ -186,12 +186,12 @@ export default function PrivacyPage() {
 
           <h2 className="legal-h2">Who We Are and How to Contact Us</h2>
           <p style={{ marginBottom: '24px' }}>
-            Liveable Smartcity Technologies, with its business address at [Funsho Link Street, Iwaya
-            Yaba], is committed to protecting your privacy. This Privacy Policy is issued by
-            Liveable Smartcity Technologies in its individual capacity. If, in the future, Liveable
-            Smartcity Technologies operates through subsidiaries, affiliates, or other related
-            entities, references to “we”, “us” or “our” in this Privacy Policy will be deemed to
-            include such entities where applicable.
+            Liveable Smartcity Technologies, with its business address at [NITDA Hub, 6 Commercial
+            Rd, University Of Lagos, Lagos State], is committed to protecting your privacy. This
+            Privacy Policy is issued by Liveable Smartcity Technologies in its individual capacity.
+            If, in the future, Liveable Smartcity Technologies operates through subsidiaries,
+            affiliates, or other related entities, references to “we”, “us” or “our” in this Privacy
+            Policy will be deemed to include such entities where applicable.
           </p>
           <p style={{ marginBottom: '24px' }}>
             Liveable Smartcity Technologies is the controller and processor, and is responsible for
@@ -206,7 +206,7 @@ export default function PrivacyPage() {
           <p style={{ marginBottom: '48px' }}>
             Email address: hello@goodtenants.africa
             <br />
-            Postal address: [Funsho Link Street, Iwaya Yaba]
+            Postal address: [NITDA Hub, 6 Commercial Rd, University Of Lagos, Lagos State]
           </p>
 
           <h2 className="legal-h2">What Personal Data Do We Collect?</h2>

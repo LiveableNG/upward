@@ -170,7 +170,8 @@ export default function LegalNoticePage() {
           </p>
           <ul className="legal-list">
             <li>
-              <strong>Principal Address:</strong> Funsho Link Street, Iwaya Yaba, Lagos, Nigeria.
+              <strong>Principal Address:</strong> NITDA Hub, 6 Commercial Rd, University Of Lagos,
+              Lagos State.
             </li>
             <li>
               <strong>Contact:</strong> hello@goodtenants.africa
