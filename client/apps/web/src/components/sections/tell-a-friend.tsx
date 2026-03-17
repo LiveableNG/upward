@@ -234,7 +234,7 @@ export function TellAFriend() {
           <span
             style={{ display: 'block', paddingLeft: '24px', lineHeight: 1.6, fontStyle: 'italic' }}
           >
-            Tired of paying rent with nothing to show for it? Upward? by GoodTenants is changing
+            Tired of paying rent with nothing to show for it? Upward by GoodTenants is changing
             that — turning your rental history into a passport to home ownership. Join me on the
             early access waitlist: https://upward.goodtenants.io #RentPassport #GoodTenants #Upward
           </span>
