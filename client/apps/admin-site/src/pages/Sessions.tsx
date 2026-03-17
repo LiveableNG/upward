@@ -88,7 +88,9 @@ export default function Sessions() {
               <div
                 key={session.id}
                 className={`card ${selectedSession?.id === session.id ? 'active' : ''}`}
-                onClick={() => setSelectedSession(session)}
+                onClick={() =>
+                  setSelectedSession((prev) => (prev?.id === session.id ? null : session))
+                }
                 style={{
                   cursor: 'pointer',
                   borderColor:

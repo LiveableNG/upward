@@ -1101,8 +1101,9 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                             key={time}
                             onClick={() => {
                               const val = isNo ? 'NONE' : time
-                              setSelectedSession(val)
-                              syncData({ selectedSession: val })
+                              const newVal = selectedSession === val ? 'NONE' : val
+                              setSelectedSession(newVal)
+                              syncData({ selectedSession: newVal })
                               if (isNo) {
                                 setCheckboxes((p) => ({ ...p, ambassador: false }))
                               }
