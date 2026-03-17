@@ -341,10 +341,10 @@ export function LegalHeader() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {[
-                { label: 'Terms of Service', href: '/legal/terms' },
                 { label: 'Privacy Policy', href: '/legal/privacy' },
+                { label: 'Terms of Use', href: '/legal/terms' },
                 { label: 'Cookie Policy', href: '/legal/cookies' },
-                { label: 'Privacy Notice', href: '/legal/notice' },
+                { label: 'Legal Notice', href: '/legal/notice' },
               ].map((item) => (
                 <Link
                   key={item.href}

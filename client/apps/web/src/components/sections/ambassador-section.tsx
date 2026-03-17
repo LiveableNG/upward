@@ -86,7 +86,7 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
   }
 
   const handleSessionClick = (sessionId: string) => {
-    setSelectedSession(sessionId)
+    setSelectedSession((prev) => (prev === sessionId ? null : sessionId))
     setIsInteracting(true)
     setTimeout(() => {
       emailInputRef.current?.focus()
@@ -110,9 +110,10 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
             right: 0,
             bottom: 0,
             background: 'rgba(0,0,0,0.4)',
-            backdropFilter: 'blur(8px)',
+            backdropFilter: 'blur(4px)', // Reduced from 8px for performance
+            WebkitBackdropFilter: 'blur(4px)',
             zIndex: 900,
-            animation: 'fadeIn 0.3s ease',
+            animation: 'fadeIn 0.2s ease-out',
           }}
         />
       )}
@@ -126,18 +127,21 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
           borderRadius: '24px',
           padding: '64px',
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '64px',
-          alignItems: 'center',
+          gridTemplateAreas: isSuccess ? '"info sessions"' : '"info sessions" "form sessions"',
+          gridTemplateColumns: 'minmax(0, 1.25fr) minmax(0, 1fr)',
+          gap: '48px 64px',
+          alignItems: 'start',
           position: 'relative',
           zIndex: isInteracting ? 1000 : 1,
           transform: isInteracting ? 'scale(1.02)' : 'scale(1)',
-          transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          transition:
+            'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.4s ease, box-shadow 0.4s ease',
           boxShadow: isInteracting ? '0 40px 100px rgba(0,0,0,0.5)' : 'none',
+          willChange: 'transform, box-shadow',
         }}
         className="grid-stack-mobile ambassador-card"
       >
-        <div>
+        <div style={{ gridArea: 'info' }}>
           <div className="section-label" style={{ marginBottom: '16px' }}>
             Learn More
           </div>
@@ -172,7 +176,7 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
                 style={{
                   fontFamily: 'var(--font-head)',
                   fontWeight: 800,
-                  fontSize: 'clamp(2rem, 4vw, 3rem)',
+                  fontSize: 'clamp(2.2rem, 4vw, 3.2rem)',
                   lineHeight: 1.1,
                   letterSpacing: '-0.04em',
                   marginBottom: '16px',
@@ -186,7 +190,7 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
                   color: 'var(--muted)',
                   lineHeight: 1.7,
                   marginBottom: '32px',
-                  maxWidth: '400px',
+                  maxWidth: '430px',
                 }}
               >
                 We've added you to the {sessions.find((s) => s.id === selectedSession)?.title}{' '}
@@ -218,7 +222,7 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
                 style={{
                   fontFamily: 'var(--font-head)',
                   fontWeight: 800,
-                  fontSize: 'clamp(2rem, 4vw, 3rem)',
+                  fontSize: 'clamp(2.2rem, 4vw, 3.2rem)',
                   lineHeight: 1.1,
                   letterSpacing: '-0.04em',
                   marginBottom: '16px',
@@ -231,130 +235,147 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
                   fontSize: '16px',
                   color: 'var(--muted)',
                   lineHeight: 1.7,
-                  marginBottom: '32px',
                 }}
               >
                 Join one of our live information sessions to learn how Upward works, ask questions,
                 and explore how you can become a community ambassador and earn rewards.
               </p>
+            </>
+          )}
+        </div>
 
-              <form
-                onSubmit={handleJoinLive}
-                style={{
-                  display: 'flex',
-                  gap: '12px',
-                  maxWidth: '500px',
-                  position: 'relative',
-                  padding: isInteracting ? '12px' : '0',
-                  background: isInteracting ? 'rgba(217, 119, 87, 0.05)' : 'transparent',
-                  borderRadius: '16px',
-                  transition: 'all 0.3s',
-                }}
-                className="stack-mobile"
-              >
-                <div style={{ flex: 1.5, position: 'relative' }}>
-                  <input
-                    ref={emailInputRef}
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onFocus={() => setIsInteracting(true)}
-                    style={{
-                      width: '100%',
-                      background: 'var(--surface2)',
-                      border: `1px solid ${isInteracting && !email ? 'var(--accent)' : 'var(--border)'}`,
-                      color: 'var(--text)',
-                      fontFamily: 'var(--font-body)',
-                      fontSize: '15px',
-                      padding: '16px 20px',
-                      borderRadius: '12px',
-                      outline: 'none',
-                      transition: 'all 0.2s',
-                    }}
-                  />
-                  {isInteracting && !email && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '-25px',
-                        left: '5px',
-                        fontSize: '11px',
-                        color: 'var(--accent)',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                      }}
-                    >
-                      Enter email to join live
-                    </div>
-                  )}
-                </div>
-                <button
-                  type="submit"
-                  disabled={isLoading}
+        {!isSuccess && (
+          <div style={{ gridArea: 'form' }}>
+            <form
+              onSubmit={handleJoinLive}
+              style={{
+                display: 'flex',
+                gap: '12px',
+                maxWidth: '500px',
+                position: 'relative',
+                padding: isInteracting ? '12px' : '0',
+                background: isInteracting ? 'rgba(217, 119, 87, 0.05)' : 'transparent',
+                borderRadius: '16px',
+                transition: 'all 0.3s',
+              }}
+              className="stack-mobile"
+            >
+              <div style={{ flex: 1.5, position: 'relative' }}>
+                <input
+                  ref={emailInputRef}
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onFocus={() => setIsInteracting(true)}
                   style={{
-                    flex: 1,
-                    background: 'var(--accent)',
-                    color: 'var(--btn-text)',
-                    fontFamily: 'var(--font-head)',
-                    fontWeight: 800,
-                    fontSize: '14px',
-                    letterSpacing: '0.05em',
-                    padding: '16px 24px',
+                    width: '100%',
+                    background: 'var(--surface2)',
+                    border: `1px solid ${isInteracting && !email ? 'var(--accent)' : 'var(--border)'}`,
+                    color: 'var(--text)',
+                    fontFamily: 'var(--font-body)',
+                    fontSize: '15px',
+                    padding: '16px 20px',
                     borderRadius: '12px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
+                    outline: 'none',
                     transition: 'all 0.2s',
-                    opacity: isLoading ? 0.7 : 1,
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#bf5f43'
-                    e.currentTarget.style.transform = 'translateY(-1px)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'var(--accent)'
-                    e.currentTarget.style.transform = ''
-                  }}
-                >
-                  {isLoading ? 'Joining...' : 'Join live'}
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
+                />
+                {isInteracting && !email && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '-25px',
+                      left: '5px',
+                      fontSize: '11px',
+                      color: 'var(--accent)',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                    }}
                   >
-                    <path d="M5 12h14" />
-                    <path d="m12 5 7 7-7 7" />
-                  </svg>
-                </button>
-              </form>
+                    Enter email to join session
+                  </div>
+                )}
+              </div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                style={{
+                  flex: 1,
+                  background: 'var(--accent)',
+                  color: 'var(--btn-text)',
+                  fontFamily: 'var(--font-head)',
+                  fontWeight: 800,
+                  fontSize: '14px',
+                  letterSpacing: '0.05em',
+                  padding: '16px 24px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s',
+                  opacity: isLoading ? 0.7 : 1,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#bf5f43'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--accent)'
+                  e.currentTarget.style.transform = ''
+                }}
+              >
+                {isLoading ? 'Joining...' : 'Join Session'}
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                >
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+              </button>
+            </form>
 
+            <div style={{ minHeight: '30px', marginTop: '12px' }}>
               {isInteracting && !selectedSession && (
                 <p
                   style={{
                     fontSize: '12px',
                     color: 'var(--accent)',
-                    marginTop: '12px',
                     fontWeight: 600,
                     animation: 'pulse 2s infinite',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
                   }}
                 >
-                  ← Please select a session on the right to continue
+                  <span className="mobile-hide">←</span>
+                  Please select a session <span className="mobile-hide">on the right</span>
+                  <span className="desktop-hide">above</span> to continue
                 </p>
               )}
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div
+          style={{
+            gridArea: 'sessions',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            width: '100%',
+          }}
+        >
           {sessions.map(({ id, title, info, day }) => {
             const isLive = currentDay === day
             const isSelected = selectedSession === id
@@ -439,13 +460,21 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
             50% { opacity: 1; }
             100% { opacity: 0.6; }
           }
+          .desktop-hide { display: none; }
           @media (max-width: 768px) {
+              .desktop-hide { display: inline; }
               .ambassador-card {
                   padding: 40px 24px !important;
                   text-align: center;
+                  grid-template-areas: "info" "sessions" "form" !important;
+                  grid-template-columns: 1fr !important;
+                  gap: 32px !important;
               }
               .ambassador-card button {
                   width: 100%;
+              }
+              .stack-mobile {
+                  flex-direction: column !important;
               }
           }
       `}</style>
