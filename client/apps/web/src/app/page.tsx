@@ -30,6 +30,31 @@ export default function HomePage() {
     window.scrollTo(0, 0)
   }, [view])
 
+  // Handle deep-linking from other pages (like /legal/...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const viewParam = params.get('view')
+    if (viewParam === 'why') setView('why')
+    if (viewParam === 'home') setView('home')
+
+    // Handle signup modal deep-link
+    if (params.get('signup') === 'true') {
+      setShowModal(true)
+    }
+
+    // Handle section scrolling
+    const hash = window.location.hash
+    if (hash) {
+      setTimeout(() => {
+        const el = document.querySelector(hash)
+        if (el) {
+          const top = el.getBoundingClientRect().top + window.pageYOffset - 80
+          window.scrollTo({ top, behavior: 'smooth' })
+        }
+      }, 500)
+    }
+  }, [])
+
   return (
     <>
       <div
