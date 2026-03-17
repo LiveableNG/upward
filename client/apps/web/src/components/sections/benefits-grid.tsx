@@ -1,19 +1,11 @@
+import { showToast } from '@upward/client-core'
+
 export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string) => void }) {
   const handleHeroEmail = async () => {
     const emailEl = document.getElementById('hero-email-grid') as HTMLInputElement
     const email = emailEl?.value.trim() ?? ''
     if (!email || !email.includes('@')) {
-      const t = document.getElementById('toast')
-      const msgEl = document.getElementById('toast-msg')
-      if (t && msgEl) {
-        msgEl.textContent = 'Please enter a valid email address.'
-        t.classList.add('toast-error')
-        t.classList.add('toast-show')
-        setTimeout(() => {
-          t.classList.remove('toast-show')
-          t.classList.remove('toast-error')
-        }, 3000)
-      }
+      showToast('Please enter a valid email address.', true)
       return
     }
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist`, {

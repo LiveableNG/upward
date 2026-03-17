@@ -1,8 +1,15 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { showToast } from '@upward/client-core'
 
-export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }) {
+export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignup: () => void }) {
   const [currentDay, setCurrentDay] = useState<number | null>(null)
+  const [email, setEmail] = useState('')
+  const [selectedSession, setSelectedSession] = useState<string | null>(null)
+  const [isSuccess, setIsSuccess] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isInteracting, setIsInteracting] = useState(false)
+  const emailInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setCurrentDay(new Date().getDay())
@@ -10,38 +17,111 @@ export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }
 
   const sessions = [
     {
+      id: 'tue-7pm',
       title: 'Learn More & Ask Questions (Join on your way back from work)',
       info: 'Tuesday · 7:00 PM WAT',
       day: 2,
     },
     {
+      id: 'wed-12pm',
       title: 'Information Session',
       info: 'Wednesday · 12:00 PM WAT',
       day: 3,
     },
     {
+      id: 'thu-7pm',
       title: 'Learn More & Ask Questions (Join on your way back from work)',
       info: 'Thursday · 7:00 PM WAT',
       day: 4,
     },
     {
+      id: 'sat-9am',
       title: 'Information Session',
       info: 'Saturday · 9:00 AM WAT',
       day: 6,
     },
   ]
 
+  const handleJoinLive = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+
+    if (!email || !email.includes('@')) {
+      showToast('Please enter a valid email address.', true)
+      return
+    }
+
+    if (!selectedSession) {
+      showToast('Please select a session from the list.', true)
+      setIsInteracting(true)
+      return
+    }
+
+    const session = sessions.find((s) => s.id === selectedSession)
+    const sessionLabel = session ? `${session.title} (${session.info})` : selectedSession
+
+    setIsLoading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          selectedSession: sessionLabel,
+          wantsAmbassador: true,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to join')
+
+      setIsSuccess(true)
+      setIsInteracting(false)
+      showToast('Session booked successfully!')
+    } catch {
+      showToast('Something went wrong. Please try again.', true)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSessionClick = (sessionId: string) => {
+    setSelectedSession(sessionId)
+    setIsInteracting(true)
+    setTimeout(() => {
+      emailInputRef.current?.focus()
+    }, 100)
+  }
+
   return (
     <section
       id="ambassador"
-      style={{ padding: '80px 40px', position: 'relative', zIndex: 1 }}
+      style={{ padding: '80px 40px', position: 'relative', zIndex: 10 }}
       className="container-padding"
     >
+      {/* Interaction Overlay */}
+      {isInteracting && (
+        <div
+          onClick={() => setIsInteracting(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 900,
+            animation: 'fadeIn 0.3s ease',
+          }}
+        />
+      )}
+
       <div
         style={{
           maxWidth: '1280px',
           margin: '0 auto',
-          background: 'var(--surface)',
+          background: isInteracting ? 'var(--surface2)' : 'var(--surface)',
           border: '1px solid var(--border)',
           borderRadius: '24px',
           padding: '64px',
@@ -49,6 +129,11 @@ export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }
           gridTemplateColumns: '1fr 1fr',
           gap: '64px',
           alignItems: 'center',
+          position: 'relative',
+          zIndex: isInteracting ? 1000 : 1,
+          transform: isInteracting ? 'scale(1.02)' : 'scale(1)',
+          transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          boxShadow: isInteracting ? '0 40px 100px rgba(0,0,0,0.5)' : 'none',
         }}
         className="grid-stack-mobile ambassador-card"
       >
@@ -56,83 +141,230 @@ export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }
           <div className="section-label" style={{ marginBottom: '16px' }}>
             Learn More
           </div>
-          <h2
-            style={{
-              fontFamily: 'var(--font-head)',
-              fontWeight: 800,
-              fontSize: 'clamp(2rem, 4vw, 3rem)',
-              lineHeight: 1.1,
-              letterSpacing: '-0.04em',
-              marginBottom: '16px',
-            }}
-          >
-            Want to be part of something bigger?
-          </h2>
-          <p
-            style={{
-              fontSize: '16px',
-              color: 'var(--muted)',
-              lineHeight: 1.7,
-              marginBottom: '32px',
-            }}
-          >
-            Join one of our live information sessions to learn how Upward works, ask questions, and
-            explore how you can become a community ambassador and earn rewards.
-          </p>
-          <button
-            onClick={() => onOpenSignup()}
-            style={{
-              background: 'var(--accent)',
-              color: 'var(--btn-text)',
-              fontFamily: 'var(--font-head)',
-              fontWeight: 800,
-              fontSize: '14px',
-              letterSpacing: '0.05em',
-              padding: '16px 28px',
-              borderRadius: '12px',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#bf5f43'
-              e.currentTarget.style.transform = 'translateY(-1px)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--accent)'
-              e.currentTarget.style.transform = ''
-            }}
-          >
-            Join live
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            >
-              <path d="M5 12h14" />
-              <path d="m12 5 7 7-7 7" />
-            </svg>
-          </button>
+
+          {isSuccess ? (
+            <div style={{ animation: 'fadeUp 0.5s ease both' }}>
+              <div
+                style={{
+                  width: '56px',
+                  height: '56px',
+                  background: 'var(--accent-faint)',
+                  border: '1px solid var(--accent-muted)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '24px',
+                }}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="28"
+                  height="28"
+                  fill="none"
+                  stroke="var(--accent)"
+                  strokeWidth="3"
+                >
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+              </div>
+              <h2
+                style={{
+                  fontFamily: 'var(--font-head)',
+                  fontWeight: 800,
+                  fontSize: 'clamp(2rem, 4vw, 3rem)',
+                  lineHeight: 1.1,
+                  letterSpacing: '-0.04em',
+                  marginBottom: '16px',
+                }}
+              >
+                Session Booked!
+              </h2>
+              <p
+                style={{
+                  fontSize: '16px',
+                  color: 'var(--muted)',
+                  lineHeight: 1.7,
+                  marginBottom: '32px',
+                  maxWidth: '400px',
+                }}
+              >
+                We've added you to the {sessions.find((s) => s.id === selectedSession)?.title}{' '}
+                session. We will reach out to you with further details soon.
+              </p>
+              <button
+                onClick={() => {
+                  setIsSuccess(false)
+                  setEmail('')
+                  setSelectedSession(null)
+                }}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
+                  padding: '12px 24px',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                }}
+              >
+                Book another session
+              </button>
+            </div>
+          ) : (
+            <>
+              <h2
+                style={{
+                  fontFamily: 'var(--font-head)',
+                  fontWeight: 800,
+                  fontSize: 'clamp(2rem, 4vw, 3rem)',
+                  lineHeight: 1.1,
+                  letterSpacing: '-0.04em',
+                  marginBottom: '16px',
+                }}
+              >
+                Want to be part of something bigger?
+              </h2>
+              <p
+                style={{
+                  fontSize: '16px',
+                  color: 'var(--muted)',
+                  lineHeight: 1.7,
+                  marginBottom: '32px',
+                }}
+              >
+                Join one of our live information sessions to learn how Upward works, ask questions,
+                and explore how you can become a community ambassador and earn rewards.
+              </p>
+
+              <form
+                onSubmit={handleJoinLive}
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  maxWidth: '500px',
+                  position: 'relative',
+                  padding: isInteracting ? '12px' : '0',
+                  background: isInteracting ? 'rgba(217, 119, 87, 0.05)' : 'transparent',
+                  borderRadius: '16px',
+                  transition: 'all 0.3s',
+                }}
+                className="stack-mobile"
+              >
+                <div style={{ flex: 1.5, position: 'relative' }}>
+                  <input
+                    ref={emailInputRef}
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onFocus={() => setIsInteracting(true)}
+                    style={{
+                      width: '100%',
+                      background: 'var(--surface2)',
+                      border: `1px solid ${isInteracting && !email ? 'var(--accent)' : 'var(--border)'}`,
+                      color: 'var(--text)',
+                      fontFamily: 'var(--font-body)',
+                      fontSize: '15px',
+                      padding: '16px 20px',
+                      borderRadius: '12px',
+                      outline: 'none',
+                      transition: 'all 0.2s',
+                    }}
+                  />
+                  {isInteracting && !email && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '-25px',
+                        left: '5px',
+                        fontSize: '11px',
+                        color: 'var(--accent)',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      Enter email to join live
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  style={{
+                    flex: 1,
+                    background: 'var(--accent)',
+                    color: 'var(--btn-text)',
+                    fontFamily: 'var(--font-head)',
+                    fontWeight: 800,
+                    fontSize: '14px',
+                    letterSpacing: '0.05em',
+                    padding: '16px 24px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s',
+                    opacity: isLoading ? 0.7 : 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#bf5f43'
+                    e.currentTarget.style.transform = 'translateY(-1px)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'var(--accent)'
+                    e.currentTarget.style.transform = ''
+                  }}
+                >
+                  {isLoading ? 'Joining...' : 'Join live'}
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  >
+                    <path d="M5 12h14" />
+                    <path d="m12 5 7 7-7 7" />
+                  </svg>
+                </button>
+              </form>
+
+              {isInteracting && !selectedSession && (
+                <p
+                  style={{
+                    fontSize: '12px',
+                    color: 'var(--accent)',
+                    marginTop: '12px',
+                    fontWeight: 600,
+                    animation: 'pulse 2s infinite',
+                  }}
+                >
+                  ← Please select a session on the right to continue
+                </p>
+              )}
+            </>
+          )}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {sessions.map(({ title, info, day }) => {
+          {sessions.map(({ id, title, info, day }) => {
             const isLive = currentDay === day
+            const isSelected = selectedSession === id
             return (
               <div
-                key={`${title}-${info}`}
-                onClick={() => onOpenSignup()}
+                key={id}
+                onClick={() => handleSessionClick(id)}
                 style={{
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
+                  background: isSelected ? 'var(--accent-faint)' : 'var(--surface2)',
+                  border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
                   borderRadius: '16px',
                   padding: '24px',
                   display: 'flex',
@@ -140,14 +372,19 @@ export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }
                   alignItems: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
+                  transform: isSelected ? 'translateX(8px)' : 'none',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(217, 119, 87, 0.4)'
-                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  if (!isSelected) {
+                    e.currentTarget.style.borderColor = 'rgba(217, 119, 87, 0.4)'
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border)'
-                  e.currentTarget.style.transform = ''
+                  if (!isSelected) {
+                    e.currentTarget.style.borderColor = 'var(--border)'
+                    e.currentTarget.style.transform = ''
+                  }
                 }}
               >
                 <div style={{ paddingRight: '12px' }}>
@@ -157,6 +394,7 @@ export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }
                       fontWeight: 700,
                       fontSize: '15px',
                       marginBottom: '6px',
+                      color: isSelected ? 'var(--accent)' : 'inherit',
                     }}
                   >
                     {title}
@@ -171,15 +409,19 @@ export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }
                     padding: '6px 12px',
                     borderRadius: '100px',
                     flexShrink: 0,
-                    background: isLive ? 'rgba(123,245,196,0.1)' : 'rgba(217, 119, 87, 0.1)',
-                    color: isLive ? '#7bf5c4' : 'var(--accent)',
+                    background: isLive
+                      ? 'rgba(123,245,196,0.1)'
+                      : isSelected
+                        ? 'var(--accent)'
+                        : 'rgba(217, 119, 87, 0.1)',
+                    color: isLive ? '#7bf5c4' : isSelected ? 'var(--btn-text)' : 'var(--accent)',
                     border: `1px solid ${
                       isLive ? 'rgba(123,245,196,0.2)' : 'rgba(217, 119, 87, 0.2)'
                     }`,
                     fontWeight: 700,
                   }}
                 >
-                  {isLive ? '● Live' : 'Register'}
+                  {isLive ? '● Live' : isSelected ? 'Selected' : 'Register'}
                 </span>
               </div>
             )
@@ -188,16 +430,25 @@ export function AmbassadorSection({ onOpenSignup }: { onOpenSignup: () => void }
       </div>
 
       <style>{`
-                @media (max-width: 768px) {
-                    .ambassador-card {
-                        padding: 40px 24px !important;
-                        text-align: center;
-                    }
-                    .ambassador-card button {
-                        width: 100%;
-                    }
-                }
-            `}</style>
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+          }
+          @media (max-width: 768px) {
+              .ambassador-card {
+                  padding: 40px 24px !important;
+                  text-align: center;
+              }
+              .ambassador-card button {
+                  width: 100%;
+              }
+          }
+      `}</style>
     </section>
   )
 }

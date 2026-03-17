@@ -365,7 +365,6 @@ export function Header({
           {(
             [
               ['#why', 'Why Upward?'],
-              ['#ambassador', 'Join Live'],
               ['#faq', 'FAQ'],
             ] as [string, string][]
           ).map(([href, label]) => (

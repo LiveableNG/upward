@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { UserRole, WaitlistBenefit, type CreateWaitlistEntryDto } from '@upward/shared-types'
 import { SESSIONS, type CheckboxState } from '@upward/client-shared'
+import { showToast } from '@upward/client-core'
 
 export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
   const [step, setStep] = useState(1)
@@ -61,29 +62,14 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
 
   useEffect(() => {
     if (city && cities.length > 0) {
-      const filtered = cities.filter((c) => 
-        c.toLowerCase().includes(city.toLowerCase())
-      ).slice(0, 10)
+      const filtered = cities
+        .filter((c) => c.toLowerCase().includes(city.toLowerCase()))
+        .slice(0, 10)
       setFilteredCities(filtered)
     } else {
       setFilteredCities(cities.slice(0, 10))
     }
   }, [city, cities])
-
-  const showToast = (msg: string, isError = false) => {
-    const t = document.getElementById('toast')
-    const msgEl = document.getElementById('toast-msg')
-    if (t && msgEl) {
-      msgEl.textContent = msg
-      if (isError) t.classList.add('toast-error')
-      else t.classList.remove('toast-error')
-      t.classList.add('toast-show')
-      setTimeout(() => {
-        t.classList.remove('toast-show')
-        t.classList.remove('toast-error')
-      }, 3000)
-    }
-  }
 
   const goTo = (n: number) => {
     if (n === 2 && !email) {
@@ -671,7 +657,9 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                               borderBottom: '1px solid var(--border)',
                               transition: 'background 0.2s',
                             }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.background = 'var(--surface2)')
+                            }
                             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                           >
                             {c}
@@ -958,7 +946,14 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                   })}
                 </div>
                 {benefitWarning && (
-                  <div style={{ color: '#e60000', fontSize: '12px', marginTop: '12px', fontWeight: 600 }}>
+                  <div
+                    style={{
+                      color: '#e60000',
+                      fontSize: '12px',
+                      marginTop: '12px',
+                      fontWeight: 600,
+                    }}
+                  >
                     Please select exactly 2 benefits to continue.
                   </div>
                 )}
