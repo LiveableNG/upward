@@ -1,10 +1,9 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { showToast } from '@upward/client-core'
 import { SESSIONS } from '@upward/client-shared'
 
 export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignup: () => void }) {
-  const [currentDay, setCurrentDay] = useState<number | null>(null)
   const [email, setEmail] = useState('')
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
   const [isSuccess, setIsSuccess] = useState(false)
@@ -12,36 +11,38 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
   const [isInteracting, setIsInteracting] = useState(false)
   const emailInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    setCurrentDay(new Date().getDay())
-  }, [])
+  const sessions = SESSIONS.map((s) => {
+    const now = new Date()
+    const sDate = new Date(s.date)
+    const diff = sDate.getTime() - now.getTime()
 
-  const sessions = [
-    {
-      id: SESSIONS[1]!,
-      title: 'Learn More & Ask Questions (Join on your way back from work)',
-      info: 'Tuesday · 7:00 PM WAT',
-      day: 2,
-    },
-    {
-      id: SESSIONS[3]!,
-      title: 'Information Session',
-      info: 'Wednesday · 12:00 PM WAT',
-      day: 3,
-    },
-    {
-      id: SESSIONS[2]!,
-      title: 'Learn More & Ask Questions (Join on your way back from work)',
-      info: 'Thursday · 7:00 PM WAT',
-      day: 4,
-    },
-    {
-      id: SESSIONS[0]!,
-      title: 'Information Session',
-      info: 'Saturday · 9:00 AM WAT',
-      day: 6,
-    },
-  ]
+    let status = 'Register'
+    let isLive = false
+    let isEnded = false
+
+    if (diff < -7200000) {
+      // 2 hours past
+      status = 'Ended'
+      isEnded = true
+    } else if (diff < 3600000 && diff > -3600000) {
+      // 1 hour window
+      status = '● Live'
+      isLive = true
+    }
+
+    return {
+      id: s.label,
+      title:
+        s.id.includes('tue') || s.id.includes('thu')
+          ? 'Learn More & Ask Questions (Join on your way back from work)'
+          : 'Information Session',
+      info: `${s.display} WAT`,
+      status,
+      isLive,
+      isEnded,
+      date: sDate,
+    }
+  })
 
   const loadExistingData = async (emailToFetch: string) => {
     if (!emailToFetch || !emailToFetch.includes('@')) return
@@ -420,13 +421,12 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
             width: '100%',
           }}
         >
-          {sessions.map(({ id, title, info, day }) => {
-            const isLive = currentDay === day
+          {sessions.map(({ id, title, info, status, isLive, isEnded }) => {
             const isSelected = selectedSession === id
             return (
               <div
                 key={id}
-                onClick={() => handleSessionClick(id)}
+                onClick={() => !isEnded && handleSessionClick(id)}
                 style={{
                   background: isSelected ? 'var(--accent-faint)' : 'var(--surface2)',
                   border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
@@ -435,9 +435,10 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  cursor: 'pointer',
+                  cursor: isEnded ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s',
                   transform: isSelected ? 'translateX(8px)' : 'none',
+                  opacity: isEnded ? 0.6 : 1,
                 }}
                 onMouseEnter={(e) => {
                   if (!isSelected) {
@@ -478,15 +479,27 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
                       ? 'rgba(123,245,196,0.1)'
                       : isSelected
                         ? 'var(--accent)'
-                        : 'rgba(217, 119, 87, 0.1)',
-                    color: isLive ? '#7bf5c4' : isSelected ? 'var(--btn-text)' : 'var(--accent)',
+                        : isEnded
+                          ? 'rgba(0,0,0,0.1)'
+                          : 'rgba(217, 119, 87, 0.1)',
+                    color: isLive
+                      ? '#7bf5c4'
+                      : isSelected
+                        ? 'var(--btn-text)'
+                        : isEnded
+                          ? '#999'
+                          : 'var(--accent)',
                     border: `1px solid ${
-                      isLive ? 'rgba(123,245,196,0.2)' : 'rgba(217, 119, 87, 0.2)'
+                      isLive
+                        ? 'rgba(123,245,196,0.2)'
+                        : isEnded
+                          ? 'transparent'
+                          : 'rgba(217, 119, 87, 0.2)'
                     }`,
                     fontWeight: 700,
                   }}
                 >
-                  {isLive ? '● Live' : isSelected ? 'Selected' : 'Register'}
+                  {isLive ? '● Live' : isSelected ? 'Selected' : status}
                 </span>
               </div>
             )

@@ -13,10 +13,12 @@ import { AmbassadorSection } from '@/components/sections/ambassador-section'
 export default function HomePage() {
   const [showModal, setShowModal] = useState(false)
   const [prefilledEmail, setPrefilledEmail] = useState('')
+  const [prefilledStep, setPrefilledStep] = useState(1)
   const [view, setView] = useState<'home' | 'why'>('home')
 
-  const openSignup = (email?: string) => {
+  const openSignup = (email?: string, step: number = 1) => {
     if (email) setPrefilledEmail(email)
+    setPrefilledStep(step)
     setShowModal(true)
   }
 
@@ -110,10 +112,10 @@ export default function HomePage() {
           >
             <div className="split-layout">
               <div className="split-hero">
-                <HeroSection onOpenSignup={(e) => openSignup(e)} />
+                <HeroSection onOpenSignup={(e, s) => openSignup(e, s)} />
               </div>
               <div className="split-benefits">
-                <BenefitsGrid onOpenSignup={(e) => openSignup(e)} />
+                <BenefitsGrid onOpenSignup={(e, s) => openSignup(e, s)} />
               </div>
             </div>
 
@@ -193,7 +195,7 @@ export default function HomePage() {
                   Tell us about yourself and we&apos;ll tailor your experience from day one.
                 </p>
               </div>
-              <SignupForm initialEmail={prefilledEmail} />
+              <SignupForm initialEmail={prefilledEmail} initialStep={prefilledStep} />
             </div>
           </div>
         </div>

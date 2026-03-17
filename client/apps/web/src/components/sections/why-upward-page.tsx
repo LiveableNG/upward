@@ -86,57 +86,79 @@ export function WhyUpwardPage({
 }) {
   const faqs = [
     {
-      question: 'What is Upward by GT?',
+      question: 'What is Upward by GoodTenants?',
       answer:
-        'Upward by GT is a platform that tracks your rent payments and rental behavior to create your rental score and rental ID. This helps you build a verified record of your rental history and show that you are a responsible tenant.',
+        "Upward is a platform that turns your rent payments \u2014 money you're already spending \u2014 into something that works for you. Every time you pay rent through Upward, you build a verified rental history, earn a Rental Score, and unlock access to savings tools, household loans, and eventually a pathway to owning your own home. Think of it as making your rent count, finally.",
     },
     {
-      question: 'What is a rental score?',
+      question: 'What is a Rental Score?',
       answer:
-        'Your Rental score is a number that shows how reliable and responsible you are as a tenant. It is affected by factors like paying your rent on time, saving regularly, staying in your home for a reasonable period, and keeping the property in good condition.',
+        'Your Rental Score is a number that reflects how responsible and reliable you are as a tenant. It goes up when you pay rent on time and maintain your rental commitments. A higher score unlocks real benefits \u2014 better treatment from landlords, access to rent support, household appliance loans, and a clear path toward home ownership. It is the financial identity that responsible renters in Nigeria have always deserved but never had.',
     },
     {
-      question: "What's the benefit of being a GoodTenants community member?",
-      answer: (
-        <ul style={{ paddingLeft: '20px', margin: 0 }}>
-          <li>Keep a clear record of your rent payments.</li>
-          <li>Build a rental score that shows you are a responsible tenant.</li>
-          <li>Get priority access to quality rental apartments based on your rental score.</li>
-        </ul>
-      ),
-    },
-    {
-      question: 'Who can join Upward by GT?',
+      question: 'Why should I join Upward?',
       answer:
-        'Anyone who is a tenant (Salary earners, freelancers, creatives, skilled workers and business owners).',
+        'Because every Naira you pay in rent right now disappears with nothing to show for it. Upward changes that. As a member you get a verified rental history that makes you stand out to landlords and property managers, access to savings tools designed around how renters actually earn, loan options for household needs, and a structured pathway toward owning a home \u2014 together with a community of people building the same future. The longer you stay, the more valuable your membership becomes.',
     },
     {
-      question: 'How do I join the platform?',
-      answer: 'To join, just click the Sign Up button and follow the steps.',
-    },
-    {
-      question: 'Is there a sign-up fee and what does it cover?',
+      question: 'Who can join?',
       answer:
-        'No, there is no sign-up fee. A rental transaction fee of ₦1,000–₦2,500 fee is charged once per year when your annual rent payment is recorded on the platform.',
+        'Anyone who pays rent in Nigeria. Whether you earn a salary, run a business, freelance, or work in the creative economy \u2014 if you pay rent and want to be rewarded for doing it responsibly, Upward is built for you.',
+    },
+    {
+      question: 'Is there a sign-up fee?',
+      answer:
+        'No sign-up fee. Creating your account and starting to build your Rental Score is free. When you pay rent through the platform, a small transaction processing & verification fee of \u20A61,000\u2013\u20A62,500 applies \u2014 this is what keeps your payments verified, receipted, and permanently recorded on your rental history. Think of it as the cost of making your rent count.',
     },
     {
       question: 'How are payments made?',
       answer:
-        'All payments are processed through Paystack, a trusted and secure payment platform, to ensure transactions are safe and properly recorded.',
+        'All payments are processed securely through Paystack, one of Africa\'s most trusted payment platforms. Your rent settles directly into your landlord or property manager\'s account, fully receipted and recorded on your Upward profile. No cash. No disputes. No "I never received it."',
     },
     {
-      question: 'Can I track my rental score myself?',
+      question: 'Can I track my Rental Score?',
       answer:
-        'Yes, only you can track your rental score, you can check it anytime and see how your payments and behavior affect it.',
+        "Yes. Your Rental Score is visible on your dashboard every time you log in. You can see exactly where you stand, what's affecting your score, and what steps will help you improve it. You are always in control of your own housing reputation.",
     },
     {
       question: 'Is my rent data private?',
       answer:
-        'Your ID details are private. They are only visible to you and anyone you choose to share your rental ID with for verification.',
+        'Yes, completely. Your rental data is private and accessible only to you. You choose if and when to share it \u2014 for example, when applying for a new rental or accessing home financing through our Rent Passport share tool. Nothing leaves your account without your explicit permission.',
     },
     {
-      question: 'Who sees my passport?',
-      answer: 'No one else can access your profile except you choose to share your rental ID.',
+      question: 'How does paying rent help me move closer to owning a home?',
+      answer:
+        'Every rent payment you make through Upward is verified, receipted, and added to your Rental Score. Over time, that score becomes your financial track record \u2014 proof that you are the kind of person who honours commitments. That track record is what unlocks the next steps: structured savings toward a home deposit, access to household loans, and eventually low-cost home financing through the Upward community. Most people never own a home because the system never saw them. Upward makes sure the system sees you.',
+    },
+    {
+      question: 'Why should landlords and property managers accept Upward tenants?',
+      answer:
+        'Because an Upward tenant comes with receipts. Literally. Their payment history is verified, their rental score is documented, and their track record speaks before they even walk through the door. For landlords and property managers, that means less time chasing payments, fewer disputes, and a much lower chance of renting to someone who will cause problems. In a market where bad tenant experiences are common, an Upward-verified tenant is the safest bet in the room.',
+    },
+    {
+      question: 'What is a Rent Passport?',
+      answer:
+        'Your Rent Passport is your housing CV. It is a verified profile containing your Rental Score, your confirmed payment history, and your record as a responsible tenant \u2014 all in one secure, shareable document. When you are applying for a new rental, accessing housing finance, or even relocating, your Rent Passport does the talking. Instead of begging a landlord to trust you, you show them proof. That changes everything about how a rental conversation goes.',
+    },
+    {
+      question: 'What happens if I miss a rent payment?',
+      answer:
+        "Your Rental Score reflects your actual payment history \u2014 the good and the not-so-good. A missed payment will affect your score but one missed payment does not define you. Consistent on-time payments after that will rebuild your score over time. The system is designed to reward improvement, not punish people permanently. Upwards also has a rent support program for qualified members that ensure they don't miss a rent payment deadline.",
+    },
+    {
+      question: 'Can paying rent really help me own a home someday?',
+      answer:
+        "Yes. Rent is already the single largest financial commitment most Nigerians make every year. The problem has never been that renters can't pay \u2014 it's that those payments vanish into a system that keeps no record of them. Upward captures that record. Over time, your verified payment history becomes the foundation for group home financing, and access to titled properties at terms that are simply not available to someone walking in off the street with no history. Your rent was always powerful. Now it can prove it.",
+    },
+    {
+      question: 'Does my landlord need to be on Upward?',
+      answer:
+        "No. You can start building your Rental Score today regardless of whether your landlord or property manager is on the platform. Your payments are verified through Upward and recorded permanently on your Rent Passport. As more landlords and PMs join \u2014 and they are joining \u2014 your profile becomes even more powerful. But you don't need to wait for anyone else to start.",
+    },
+    {
+      question: 'Why should I pay rent through Upward instead of directly to my landlord?',
+      answer:
+        'Paying your landlord directly means the payment happened and then disappeared. No record, no receipt that lasts, no proof that builds toward anything. Paying through Upward means that same payment \u2014 money you were spending anyway \u2014 now counts toward your Rental Score, your Rent Passport, and your long-term path to home ownership. The cost is the same. The difference is everything you get back for it. Why would you pay rent any other way?',
     },
   ]
 

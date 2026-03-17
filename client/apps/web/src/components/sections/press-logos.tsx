@@ -25,7 +25,7 @@ export function PressLogos() {
     {
       src: '/featured/05.png',
       alt: 'Leadership',
-      link: 'https://leadership.ng/',
+      link: 'https://leadership.ng/adopting-data-tech-will-address-property-development-challenges/',
     },
     {
       src: '/featured/06.png',

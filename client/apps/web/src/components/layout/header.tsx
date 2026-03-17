@@ -191,16 +191,17 @@ export function Header({
       </ul>
 
       <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-        <div
+        <button
           className="mobile-hide"
+          onClick={onOpenSignup}
           style={{
             fontSize: '9px',
             letterSpacing: '0.2em',
             textTransform: 'uppercase',
-            color: 'var(--accent)',
-            background: 'var(--accent-faint)',
-            border: '1px solid var(--accent-muted)',
-            padding: '10px 22px',
+            color: 'var(--btn-text)',
+            background: 'var(--accent)',
+            border: 'none',
+            padding: '12px 24px',
             borderRadius: '100px',
             fontFamily: 'var(--font-head)',
             fontWeight: 800,
@@ -209,21 +210,22 @@ export function Header({
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            boxShadow: '0 0 20px rgba(0, 0, 0, 0.2)',
+            cursor: 'pointer',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: '0 8px 25px rgba(217, 119, 87, 0.25)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)'
+            e.currentTarget.style.boxShadow = '0 12px 30px rgba(217, 119, 87, 0.4)'
+            e.currentTarget.style.background = '#bf5f43'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)'
+            e.currentTarget.style.boxShadow = '0 8px 25px rgba(217, 119, 87, 0.25)'
+            e.currentTarget.style.background = 'var(--accent)'
           }}
         >
-          <span
-            style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: 'var(--accent)',
-              boxShadow: '0 0 10px var(--accent)',
-              display: 'inline-block',
-              animation: 'pulse 2s infinite',
-            }}
-          />
-          Coming Soon
+          Join Waitlist
           <div
             style={{
               position: 'absolute',
@@ -232,12 +234,12 @@ export function Header({
               width: '100%',
               height: '100%',
               background:
-                'linear-gradient(90deg, transparent, rgba(217, 119, 87, 0.15), rgba(255, 255, 255, 0.2), rgba(217, 119, 87, 0.15), transparent)',
+                'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)',
               transform: 'skewX(-25deg)',
               animation: 'beam 4s infinite ease-in-out',
             }}
           />
-        </div>
+        </button>
 
         {/* Mobile Menu Toggle */}
         <button
@@ -408,25 +410,35 @@ export function Header({
             </Link>
           ))}
           <div style={{ marginTop: 'auto', paddingBottom: '40px' }}>
-            <div
+            <button
+              onClick={() => {
+                onOpenSignup()
+                setMobileMenuOpen(false)
+              }}
               style={{
                 width: '100%',
                 padding: '16px',
-                borderRadius: '12px',
-                background: 'rgba(217, 119, 87, 0.05)',
-                border: '1px solid rgba(217, 119, 87, 0.2)',
-                color: 'var(--accent)',
+                borderRadius: '16px',
+                background: 'var(--accent)',
+                border: 'none',
+                color: 'var(--btn-text)',
                 fontFamily: 'var(--font-head)',
-                fontWeight: 700,
-                fontSize: '14px',
+                fontWeight: 800,
+                fontSize: '15px',
                 textAlign: 'center',
                 textTransform: 'uppercase',
-                letterSpacing: '0.1em',
+                letterSpacing: '0.15em',
                 position: 'relative',
                 overflow: 'hidden',
+                cursor: 'pointer',
+                boxShadow: '0 10px 30px rgba(217, 119, 87, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px',
               }}
             >
-              Coming Soon
+              Join the Waitlist
               <div
                 style={{
                   position: 'absolute',
@@ -435,12 +447,12 @@ export function Header({
                   width: '100%',
                   height: '100%',
                   background:
-                    'linear-gradient(90deg, transparent, rgba(217, 119, 87, 0.15), rgba(255, 255, 255, 0.2), rgba(217, 119, 87, 0.15), transparent)',
+                    'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)',
                   transform: 'skewX(-25deg)',
                   animation: 'beam 4s infinite ease-in-out',
                 }}
               />
-            </div>
+            </button>
           </div>
         </div>
       )}

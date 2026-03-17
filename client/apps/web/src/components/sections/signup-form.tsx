@@ -1,10 +1,17 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react'
 import { UserRole, WaitlistBenefit, type CreateWaitlistEntryDto } from '@upward/shared-types'
 import { SESSIONS, type CheckboxState } from '@upward/client-shared'
 import { showToast } from '@upward/client-core'
 
-export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
-  const [step, setStep] = useState(1)
+export function SignupForm({
+  initialEmail = '',
+  initialStep = 1,
+}: {
+  initialEmail?: string
+  initialStep?: number
+}) {
+  const [step, setStep] = useState(initialStep)
   const [email, setEmail] = useState(initialEmail)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -76,11 +83,14 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
       showToast('Please enter your email address.', true)
       return
     }
-    if (n === 3 && step === 2 && !role) {
+    if (n === 3 && step === 2 && (!firstName || !lastName)) {
+      // Small check for details if going forward
+    }
+    if (n === 4 && step === 3 && !role) {
       showToast('Please select your role.', true)
       return
     }
-    if (n === 4) {
+    if (n === 5) {
       if (benefits.length !== 2) {
         setBenefitWarning(true)
         return
@@ -102,6 +112,9 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
         selectedSession: selectedSession || undefined,
       }
       syncData(payload)
+      if (step === 1 && email) {
+        loadExistingData(email)
+      }
     }
     setStep(n)
   }
@@ -244,6 +257,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
     position: 'relative',
     color: step === n ? 'var(--accent)' : step > n ? 'var(--accent2)' : 'var(--muted)',
     borderBottom: step === n ? '2px solid var(--accent)' : '2px solid transparent',
+    flexBasis: '20%',
   })
 
   const inputStyle: React.CSSProperties = {
@@ -403,10 +417,11 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
         }}
       >
         {[
-          ['01', 'Contact'],
-          ['02', 'Profile'],
-          ['03', 'Benefits'],
-          ['04', 'Confirm'],
+          ['01', 'Join'],
+          ['02', 'Details'],
+          ['03', 'Role'],
+          ['04', 'Benefits'],
+          ['05', 'Finalize'],
         ].map(([num, text], i) => (
           <div key={i} style={tabStyle(i + 1)}>
             <span>{num}</span>
@@ -484,7 +499,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
           </div>
         ) : (
           <>
-            {/* Step 1 */}
+            {/* Step 1: Join (Email Only) */}
             {step === 1 && (
               <div>
                 <div
@@ -495,10 +510,10 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                     marginBottom: '8px',
                   }}
                 >
-                  Your Contact Info
+                  Join the Waitlist
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '32px' }}>
-                  We&apos;ll use this to send your early access invite.
+                  Enter your email to start your journey with Upward.
                 </div>
                 <div style={{ marginBottom: '20px' }}>
                   <label style={labelStyle}>Email Address *</label>
@@ -516,6 +531,54 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                       syncData()
                     }}
                   />
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center',
+                    gap: '16px',
+                    marginTop: '32px',
+                    paddingTop: '24px',
+                    borderTop: '1px solid var(--border)',
+                  }}
+                >
+                  <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+                    Step{' '}
+                    <span
+                      style={{
+                        color: 'var(--accent)',
+                        fontFamily: 'var(--font-head)',
+                        fontWeight: 700,
+                      }}
+                    >
+                      1
+                    </span>{' '}
+                    of 5
+                  </span>
+                  <PrimaryBtn onClick={() => goTo(2)}>
+                    Continue <ArrowIcon />
+                  </PrimaryBtn>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Details */}
+            {step === 2 && (
+              <div>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-head)',
+                    fontWeight: 700,
+                    fontSize: '22px',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Tell us about yourself
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '32px' }}>
+                  We&apos;ll use this to personalize your experience.
                 </div>
                 <div
                   style={{
@@ -619,7 +682,6 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                         setShowCityDropdown(true)
                       }}
                       onBlur={() => {
-                        // Small delay to allow clicking on dropdown items
                         setTimeout(() => setShowCityDropdown(false), 200)
                       }}
                       placeholder={fetchingCities ? 'Loading...' : 'Type or search city...'}
@@ -673,7 +735,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                 <div
                   style={{
                     display: 'flex',
-                    justifyContent: 'flex-end',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
                     gap: '16px',
                     marginTop: '32px',
@@ -681,28 +743,31 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                     borderTop: '1px solid var(--border)',
                   }}
                 >
-                  <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                    Step{' '}
-                    <span
-                      style={{
-                        color: 'var(--accent)',
-                        fontFamily: 'var(--font-head)',
-                        fontWeight: 700,
-                      }}
-                    >
-                      1
-                    </span>{' '}
-                    of 4
-                  </span>
-                  <PrimaryBtn onClick={() => goTo(2)}>
-                    Continue <ArrowIcon />
-                  </PrimaryBtn>
+                  <GhostBtn onClick={() => goTo(1)}>← Back</GhostBtn>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+                      Step{' '}
+                      <span
+                        style={{
+                          color: 'var(--accent)',
+                          fontFamily: 'var(--font-head)',
+                          fontWeight: 700,
+                        }}
+                      >
+                        2
+                      </span>{' '}
+                      of 5
+                    </span>
+                    <PrimaryBtn onClick={() => goTo(3)}>
+                      Continue <ArrowIcon />
+                    </PrimaryBtn>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Step 2 */}
-            {step === 2 && (
+            {/* Step 3: Profile */}
+            {step === 3 && (
               <div>
                 <div
                   style={{
@@ -770,7 +835,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                     borderTop: '1px solid var(--border)',
                   }}
                 >
-                  <GhostBtn onClick={() => goTo(1)}>← Back</GhostBtn>
+                  <GhostBtn onClick={() => goTo(2)}>← Back</GhostBtn>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
                       Step{' '}
@@ -781,11 +846,11 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                           fontWeight: 700,
                         }}
                       >
-                        2
+                        3
                       </span>{' '}
-                      of 4
+                      of 5
                     </span>
-                    <PrimaryBtn onClick={() => goTo(3)}>
+                    <PrimaryBtn onClick={() => goTo(4)}>
                       Continue <ArrowIcon />
                     </PrimaryBtn>
                   </div>
@@ -793,8 +858,8 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
               </div>
             )}
 
-            {/* Step 3 */}
-            {step === 3 && (
+            {/* Step 4: Benefits */}
+            {step === 4 && (
               <div>
                 <div
                   style={{
@@ -968,7 +1033,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                     borderTop: '1px solid var(--border)',
                   }}
                 >
-                  <GhostBtn onClick={() => goTo(2)}>← Back</GhostBtn>
+                  <GhostBtn onClick={() => goTo(3)}>← Back</GhostBtn>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
                       Step{' '}
@@ -979,11 +1044,11 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                           fontWeight: 700,
                         }}
                       >
-                        3
+                        4
                       </span>{' '}
-                      of 4
+                      of 5
                     </span>
-                    <PrimaryBtn onClick={() => goTo(4)}>
+                    <PrimaryBtn onClick={() => goTo(5)}>
                       Continue <ArrowIcon />
                     </PrimaryBtn>
                   </div>
@@ -991,8 +1056,8 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
               </div>
             )}
 
-            {/* Step 4 */}
-            {step === 4 && (
+            {/* Step 5: Finalize */}
+            {step === 5 && (
               <div>
                 <div
                   style={{
@@ -1091,16 +1156,38 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                       style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}
                       className="grid-stack-mobile"
                     >
-                      {[...SESSIONS, 'No, I am not interested'].map((time) => {
-                        const isNo = time.includes('No')
+                      {[
+                        ...SESSIONS.map((s) => ({ ...s, isSession: true })),
+                        { label: 'No, I am not interested', id: 'NONE', isSession: false },
+                      ].map((item) => {
+                        const isNo = item.id === 'NONE'
                         const isSelected = isNo
                           ? !selectedSession || selectedSession === 'NONE'
-                          : selectedSession === time
+                          : selectedSession === item.label
+
+                        let status = ''
+                        let statusColor = 'var(--muted)'
+                        if (item.isSession) {
+                          const now = new Date()
+                          const sDate = new Date((item as any).date)
+                          const diff = sDate.getTime() - now.getTime()
+
+                          if (diff < -7200000) {
+                            // 2 hours past
+                            status = 'ENDED'
+                            statusColor = '#999'
+                          } else if (diff < 3600000 && diff > -3600000) {
+                            // 1 hour window
+                            status = '● LIVE'
+                            statusColor = '#7bf5c4'
+                          }
+                        }
+
                         return (
                           <div
-                            key={time}
+                            key={item.id}
                             onClick={() => {
-                              const val = isNo ? 'NONE' : time
+                              const val = item.label
                               const newVal = selectedSession === val ? 'NONE' : val
                               setSelectedSession(newVal)
                               syncData({ selectedSession: newVal })
@@ -1113,46 +1200,125 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                               background: isSelected
                                 ? 'rgba(217, 119, 87, 0.05)'
                                 : 'var(--surface2)',
-                              borderRadius: '10px',
-                              padding: '12px 14px',
+                              borderRadius: '16px',
+                              padding: '16px',
                               cursor: 'pointer',
                               transition: 'all 0.2s',
                               display: 'flex',
-                              alignItems: 'center',
-                              gap: '10px',
+                              flexDirection: 'column',
+                              gap: '12px',
+                              position: 'relative',
+                              overflow: 'hidden',
                             }}
                           >
-                            <div
-                              style={{
-                                width: '14px',
-                                height: '14px',
-                                borderRadius: '50%',
-                                border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexShrink: 0,
-                              }}
-                            >
-                              {isSelected && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div
+                                style={{
+                                  width: '14px',
+                                  height: '14px',
+                                  borderRadius: '50%',
+                                  border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {isSelected && (
+                                  <div
+                                    style={{
+                                      width: '8px',
+                                      height: '8px',
+                                      borderRadius: '50%',
+                                      background: 'var(--accent)',
+                                    }}
+                                  />
+                                )}
+                              </div>
+                              <span
+                                style={{
+                                  fontSize: '13px',
+                                  fontWeight: 600,
+                                  color: isSelected ? 'var(--text)' : 'var(--muted)',
+                                }}
+                              >
+                                {item.label}
+                              </span>
+                            </div>
+
+                            {item.isSession && (
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'flex-end',
+                                  marginTop: '4px',
+                                }}
+                              >
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                  <span
+                                    style={{
+                                      fontSize: '11px',
+                                      color: 'var(--muted)',
+                                      letterSpacing: '0.02em',
+                                    }}
+                                  >
+                                    {(item as any).display}
+                                  </span>
+                                  {status && (
+                                    <span
+                                      style={{
+                                        fontSize: '9px',
+                                        fontWeight: 800,
+                                        color: statusColor,
+                                        marginTop: '4px',
+                                        letterSpacing: '0.1em',
+                                      }}
+                                    >
+                                      {status}
+                                    </span>
+                                  )}
+                                </div>
                                 <div
                                   style={{
-                                    width: '8px',
-                                    height: '8px',
-                                    borderRadius: '50%',
-                                    background: 'var(--accent)',
+                                    width: '32px',
+                                    height: '32px',
+                                    background: 'var(--accent-faint)',
+                                    borderRadius: '8px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    border: '1px solid var(--accent-muted)',
                                   }}
-                                />
-                              )}
-                            </div>
-                            <span
-                              style={{
-                                fontSize: '13px',
-                                color: isSelected ? 'var(--text)' : 'var(--muted)',
-                              }}
-                            >
-                              {time}
-                            </span>
+                                >
+                                  <span
+                                    style={{
+                                      fontSize: '8px',
+                                      fontWeight: 800,
+                                      color: 'var(--accent)',
+                                      lineHeight: 1,
+                                    }}
+                                  >
+                                    {item.label
+                                      .split('(')[1]
+                                      ?.split(' ')[0]
+                                      ?.substring(0, 3)
+                                      .toUpperCase()}
+                                  </span>
+                                  <span
+                                    style={{
+                                      fontSize: '12px',
+                                      fontWeight: 900,
+                                      color: 'var(--text)',
+                                      lineHeight: 1,
+                                    }}
+                                  >
+                                    {item.label.match(/\d+/)?.[0]}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )
                       })}
@@ -1172,7 +1338,7 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                     borderTop: '1px solid var(--border)',
                   }}
                 >
-                  <GhostBtn onClick={() => goTo(3)}>← Back</GhostBtn>
+                  <GhostBtn onClick={() => goTo(4)}>← Back</GhostBtn>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
                       Step{' '}
@@ -1183,9 +1349,9 @@ export function SignupForm({ initialEmail = '' }: { initialEmail?: string }) {
                           fontWeight: 700,
                         }}
                       >
-                        4
+                        5
                       </span>{' '}
-                      of 4
+                      of 5
                     </span>
                     <PrimaryBtn onClick={submit}>
                       {loading ? 'Processing...' : 'Confirm My Spot ✓'}

@@ -1,6 +1,10 @@
 import { showToast } from '@upward/client-core'
 
-export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string) => void }) {
+export function BenefitsGrid({
+  onOpenSignup,
+}: {
+  onOpenSignup?: (email?: string, step?: number) => void
+}) {
   const handleHeroEmail = async () => {
     const emailEl = document.getElementById('hero-email-grid') as HTMLInputElement
     const email = emailEl?.value.trim() ?? ''
@@ -13,7 +17,7 @@ export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string)
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     }).catch(() => {})
-    if (onOpenSignup) onOpenSignup(email)
+    if (onOpenSignup) onOpenSignup(email, 2)
   }
   const cards = [
     {
@@ -193,7 +197,10 @@ export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string)
         ))}
       </div>
 
-      <div style={{ marginTop: '24px', width: '100%', animation: 'fadeUp 0.7s 0.4s ease both' }}>
+      <div
+        className="stack-mobile desktop-only"
+        style={{ marginTop: '24px', width: '100%', animation: 'fadeUp 0.7s 0.4s ease both' }}
+      >
         <div style={{ display: 'flex', gap: '12px', maxWidth: '560px' }} className="stack-mobile">
           <input
             id="hero-email-grid"
@@ -278,6 +285,11 @@ export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string)
         @media (max-width: 1200px) {
           .benefits-grid-container {
             gap: 14px !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .desktop-only {
+            display: none !important;
           }
         }
         @media (max-width: 640px) {
