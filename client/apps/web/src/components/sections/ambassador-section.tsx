@@ -110,8 +110,6 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
             right: 0,
             bottom: 0,
             background: 'rgba(0,0,0,0.4)',
-            backdropFilter: 'blur(4px)', // Reduced from 8px for performance
-            WebkitBackdropFilter: 'blur(4px)',
             zIndex: 900,
             animation: 'fadeIn 0.2s ease-out',
           }}
