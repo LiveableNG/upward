@@ -100,61 +100,83 @@ export function LegalHeader() {
         <div
           className="mobile-hide"
           style={{
-            fontSize: '8px',
-            letterSpacing: '0.1em',
+            fontSize: '9px',
+            letterSpacing: '0.2em',
             textTransform: 'uppercase',
-            color: '#d97757',
-            background: 'rgba(217, 119, 87, 0.05)',
-            border: '1px solid rgba(217, 119, 87, 0.1)',
-            padding: '6px 12px',
+            color: 'var(--accent)',
+            background: 'var(--accent-faint)',
+            border: '1px solid var(--accent-muted)',
+            padding: '10px 22px',
             borderRadius: '100px',
             fontFamily: 'var(--font-head)',
             fontWeight: 800,
+            position: 'relative',
+            overflow: 'hidden',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '10px',
+            boxShadow: '0 0 20px rgba(0, 0, 0, 0.2)',
           }}
         >
           <span
             style={{
-              width: '4px',
-              height: '4px',
+              width: '6px',
+              height: '6px',
               borderRadius: '50%',
-              background: '#d97757',
-              boxShadow: '0 0 6px #d97757',
+              background: 'var(--accent)',
+              boxShadow: '0 0 10px var(--accent)',
               display: 'inline-block',
               animation: 'pulse 2s infinite',
             }}
           />
           Coming Soon
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: '-150%',
+              width: '100%',
+              height: '100%',
+              background:
+                'linear-gradient(90deg, transparent, rgba(217, 119, 87, 0.15), rgba(255, 255, 255, 0.2), rgba(217, 119, 87, 0.15), transparent)',
+              transform: 'skewX(-25deg)',
+              animation: 'beam 4s infinite ease-in-out',
+            }}
+          />
         </div>
 
         <Link
           href="/"
           className="mobile-hide"
           style={{
-            fontSize: '11px',
-            color: '#141413',
+            fontSize: '9px',
+            color: 'var(--text)',
             textDecoration: 'none',
-            padding: '6px 16px',
+            padding: '10px 22px',
             borderRadius: '100px',
-            border: '1px solid rgba(20, 20, 19, 0.1)',
-            fontWeight: 600,
+            border: '1px solid var(--border)',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '0.15em',
+            fontFamily: 'var(--font-head)',
             transition: 'all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1)',
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
-            background: 'white',
+            gap: '6px',
+            background: 'var(--bg)',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-1px)'
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)'
-            e.currentTarget.style.borderColor = 'rgba(20, 20, 19, 0.2)'
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'
+            e.currentTarget.style.borderColor = 'var(--accent-muted)'
+            e.currentTarget.style.color = 'var(--accent)'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)'
-            e.currentTarget.style.boxShadow = 'none'
-            e.currentTarget.style.borderColor = 'rgba(20, 20, 19, 0.1)'
+            e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.05)'
+            e.currentTarget.style.borderColor = 'var(--border)'
+            e.currentTarget.style.color = 'var(--text)'
           }}
         >
           <svg
@@ -284,21 +306,22 @@ export function LegalHeader() {
               onClick={() => setMobileMenuOpen(false)}
               style={{
                 fontSize: '14px',
-                color: '#141413',
+                color: 'var(--text)',
                 textDecoration: 'none',
-                padding: '12px 24px',
-                borderRadius: '100px',
-                border: '1px solid rgba(20, 20, 19, 0.1)',
+                padding: '16px 24px',
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
                 fontWeight: 700,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                background: 'white',
+                background: 'var(--bg)',
                 width: 'fit-content',
                 fontFamily: 'var(--font-head)',
                 textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                marginBottom: '16px',
+                letterSpacing: '0.1em',
+                marginBottom: '24px',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
               }}
             >
               <svg
@@ -343,22 +366,21 @@ export function LegalHeader() {
             </div>
           </div>
 
-          {/* Bottom badge */}
-          <div style={{ marginTop: 'auto' }}>
+          <div style={{ marginTop: 'auto', paddingBottom: '40px' }}>
             <div
               style={{
                 width: '100%',
-                padding: '20px',
-                borderRadius: '16px',
+                padding: '16px',
+                borderRadius: '12px',
                 background: 'rgba(217, 119, 87, 0.05)',
                 border: '1px solid rgba(217, 119, 87, 0.2)',
-                color: '#d97757',
+                color: 'var(--accent)',
                 fontFamily: 'var(--font-head)',
-                fontWeight: 800,
+                fontWeight: 700,
                 fontSize: '14px',
                 textAlign: 'center',
                 textTransform: 'uppercase',
-                letterSpacing: '0.15em',
+                letterSpacing: '0.1em',
                 position: 'relative',
                 overflow: 'hidden',
               }}
@@ -372,7 +394,7 @@ export function LegalHeader() {
                   width: '100%',
                   height: '100%',
                   background:
-                    'linear-gradient(90deg, transparent, rgba(217, 119, 87, 0.1), rgba(255, 255, 255, 0.2), rgba(217, 119, 87, 0.1), transparent)',
+                    'linear-gradient(90deg, transparent, rgba(217, 119, 87, 0.15), rgba(255, 255, 255, 0.2), rgba(217, 119, 87, 0.15), transparent)',
                   transform: 'skewX(-25deg)',
                   animation: 'beam 4s infinite ease-in-out',
                 }}
