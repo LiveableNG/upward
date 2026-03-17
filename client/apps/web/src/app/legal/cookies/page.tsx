@@ -165,7 +165,7 @@ export default function CookiesPage() {
         }
         @media (max-width: 768px) {
           .legal-main {
-            padding-top: 140px;
+            padding-top: 100px !important;
             padding-bottom: 80px;
           }
           .legal-h2 {
