@@ -32,9 +32,11 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
 
     return {
       id: s.label,
+      label: s.label,
+      display: s.display,
       title:
         s.id.includes('tue') || s.id.includes('thu')
-          ? 'Learn More & Ask Questions (Join on your way back from work)'
+          ? 'Learn More & Ask Questions (After Work)'
           : 'Information Session',
       info: `${s.display} WAT`,
       status,
@@ -421,7 +423,7 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
             width: '100%',
           }}
         >
-          {sessions.map(({ id, title, info, status, isLive, isEnded }) => {
+          {sessions.map(({ id, label, display, title, status, isLive, isEnded }) => {
             const isSelected = selectedSession === id
             return (
               <div
@@ -430,77 +432,173 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
                 style={{
                   background: isSelected ? 'var(--accent-faint)' : 'var(--surface2)',
                   border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
-                  borderRadius: '16px',
-                  padding: '24px',
+                  borderRadius: '20px',
+                  padding: '20px',
                   display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
+                  flexDirection: 'column',
+                  gap: '16px',
                   cursor: isEnded ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   transform: isSelected ? 'translateX(8px)' : 'none',
                   opacity: isEnded ? 0.6 : 1,
+                  boxShadow: isSelected ? '0 10px 30px rgba(217, 119, 87, 0.1)' : 'none',
                 }}
                 onMouseEnter={(e) => {
-                  if (!isSelected) {
+                  if (!isSelected && !isEnded) {
                     e.currentTarget.style.borderColor = 'rgba(217, 119, 87, 0.4)'
                     e.currentTarget.style.transform = 'translateY(-2px)'
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!isSelected) {
+                  if (!isSelected && !isEnded) {
                     e.currentTarget.style.borderColor = 'var(--border)'
                     e.currentTarget.style.transform = ''
                   }
                 }}
               >
-                <div style={{ paddingRight: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      borderRadius: '50%',
+                      border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {isSelected && (
+                      <div
+                        style={{
+                          width: '10px',
+                          height: '10px',
+                          borderRadius: '50%',
+                          background: 'var(--accent)',
+                        }}
+                      />
+                    )}
+                  </div>
                   <h5
                     style={{
                       fontFamily: 'var(--font-head)',
                       fontWeight: 700,
                       fontSize: '15px',
-                      marginBottom: '6px',
-                      color: isSelected ? 'var(--accent)' : 'inherit',
+                      color: isSelected ? 'var(--accent)' : 'var(--text)',
+                      margin: 0,
                     }}
                   >
                     {title}
                   </h5>
-                  <p style={{ fontSize: '13px', color: 'var(--muted)' }}>{info}</p>
                 </div>
-                <span
+
+                <div
                   style={{
-                    fontSize: '10px',
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase' as const,
-                    padding: '6px 12px',
-                    borderRadius: '100px',
-                    flexShrink: 0,
-                    background: isLive
-                      ? 'rgba(123,245,196,0.1)'
-                      : isSelected
-                        ? 'var(--accent)'
-                        : isEnded
-                          ? 'rgba(0,0,0,0.1)'
-                          : 'rgba(217, 119, 87, 0.1)',
-                    color: isLive
-                      ? '#7bf5c4'
-                      : isSelected
-                        ? 'var(--btn-text)'
-                        : isEnded
-                          ? '#999'
-                          : 'var(--accent)',
-                    border: `1px solid ${
-                      isLive
-                        ? 'rgba(123,245,196,0.2)'
-                        : isEnded
-                          ? 'transparent'
-                          : 'rgba(217, 119, 87, 0.2)'
-                    }`,
-                    fontWeight: 700,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-end',
                   }}
                 >
-                  {isLive ? '● Live' : isSelected ? 'Selected' : status}
-                </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div
+                      style={{
+                        fontSize: '13px',
+                        color: 'var(--muted)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                      {display}
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '9px',
+                        letterSpacing: '0.12em',
+                        textTransform: 'uppercase',
+                        padding: '4px 10px',
+                        borderRadius: '100px',
+                        width: 'fit-content',
+                        background: isLive
+                          ? 'rgba(123,245,196,0.1)'
+                          : isSelected
+                            ? 'var(--accent)'
+                            : isEnded
+                              ? 'rgba(0,0,0,0.1)'
+                              : 'var(--surface)',
+                        color: isLive
+                          ? '#7bf5c4'
+                          : isSelected
+                            ? 'var(--btn-text)'
+                            : isEnded
+                              ? '#999'
+                              : 'var(--accent)',
+                        border: `1px solid ${
+                          isLive
+                            ? 'rgba(123,245,196,0.2)'
+                            : isEnded
+                              ? 'transparent'
+                              : 'rgba(217, 119, 87, 0.2)'
+                        }`,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {isLive ? '● Live Now' : isSelected ? 'Selected' : status}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      width: '42px',
+                      height: '42px',
+                      background: isSelected ? 'var(--accent)' : 'var(--accent-faint)',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--accent-muted)'}`,
+                      transition: 'all 0.3s',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '9px',
+                        fontWeight: 800,
+                        color: isSelected ? 'var(--btn-text)' : 'var(--accent)',
+                        lineHeight: 1,
+                        marginBottom: '2px',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      {label.split('(')[1]?.split(' ')[0]?.substring(0, 3).toUpperCase() || 'UPW'}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '16px',
+                        fontWeight: 900,
+                        color: isSelected ? 'var(--btn-text)' : 'var(--text)',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {label.match(/\d+/)?.[0] || '1'}
+                    </span>
+                  </div>
+                </div>
               </div>
             )
           })}

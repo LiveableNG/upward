@@ -296,15 +296,20 @@ export function SignupForm({
   const PrimaryBtn = ({
     onClick,
     children,
+    loading = false,
+    disabled = false,
   }: {
     onClick: () => void
     children: React.ReactNode
+    loading?: boolean
+    disabled?: boolean
   }) => (
     <button
       onClick={onClick}
+      disabled={disabled || loading}
       style={{
-        background: 'var(--accent)',
-        color: 'var(--btn-text)',
+        background: disabled || loading ? 'var(--surface2)' : 'var(--accent)',
+        color: disabled || loading ? 'var(--muted)' : 'var(--btn-text)',
         fontFamily: 'var(--font-head)',
         fontWeight: 700,
         fontSize: '13px',
@@ -312,22 +317,51 @@ export function SignupForm({
         padding: '12px 20px',
         borderRadius: '10px',
         border: 'none',
-        cursor: 'pointer',
+        cursor: disabled || loading ? 'not-allowed' : 'pointer',
         transition: 'all 0.2s',
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
+        opacity: disabled || loading ? 0.7 : 1,
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = '#bf5f43'
-        e.currentTarget.style.transform = 'translateY(-1px)'
+        if (!disabled && !loading) {
+          e.currentTarget.style.background = '#bf5f43'
+          e.currentTarget.style.transform = 'translateY(-1px)'
+        }
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'var(--accent)'
-        e.currentTarget.style.transform = ''
+        if (!disabled && !loading) {
+          e.currentTarget.style.background = 'var(--accent)'
+          e.currentTarget.style.transform = ''
+        }
       }}
     >
-      {children}
+      {loading ? (
+        <>
+          <svg
+            className="animate-spin"
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            style={{ animation: 'spin 1s linear infinite' }}
+          >
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+          Joining...
+        </>
+      ) : (
+        children
+      )}
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </button>
   )
 
@@ -409,26 +443,28 @@ export function SignupForm({
       }}
     >
       {/* Tab bar */}
-      <div
-        style={{
-          display: 'flex',
-          borderBottom: '1px solid var(--border)',
-          background: 'var(--surface2)',
-        }}
-      >
-        {[
-          ['01', 'Join'],
-          ['02', 'Details'],
-          ['03', 'Role'],
-          ['04', 'Benefits'],
-          ['05', 'Finalize'],
-        ].map(([num, text], i) => (
-          <div key={i} style={tabStyle(i + 1)}>
-            <span>{num}</span>
-            <span className="mobile-hide"> — {text}</span>
-          </div>
-        ))}
-      </div>
+      {step > 1 && !done && (
+        <div
+          style={{
+            display: 'flex',
+            borderBottom: '1px solid var(--border)',
+            background: 'var(--surface2)',
+          }}
+        >
+          {[
+            ['01', 'Join'],
+            ['02', 'Details'],
+            ['03', 'Role'],
+            ['04', 'Benefits'],
+            ['05', 'Finalize'],
+          ].map(([num, text], i) => (
+            <div key={i} style={tabStyle(i + 1)}>
+              <span>{num}</span>
+              <span className="mobile-hide"> — {text}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{ padding: '32px 24px' }} className="form-content">
         {done ? (
@@ -527,8 +563,11 @@ export function SignupForm({
                     onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
                     onBlur={(e) => {
                       e.currentTarget.style.borderColor = 'var(--border)'
-                      loadExistingData(email)
-                      syncData()
+                      // Add a small delay to prevent focus-loss re-renders from killing button clicks
+                      setTimeout(() => {
+                        loadExistingData(email)
+                        syncData()
+                      }, 120)
                     }}
                   />
                 </div>
@@ -544,21 +583,8 @@ export function SignupForm({
                     borderTop: '1px solid var(--border)',
                   }}
                 >
-                  <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                    Step{' '}
-                    <span
-                      style={{
-                        color: 'var(--accent)',
-                        fontFamily: 'var(--font-head)',
-                        fontWeight: 700,
-                      }}
-                    >
-                      1
-                    </span>{' '}
-                    of 5
-                  </span>
-                  <PrimaryBtn onClick={() => goTo(2)}>
-                    Continue <ArrowIcon />
+                  <PrimaryBtn onClick={() => goTo(2)} loading={syncing}>
+                    Join Waitlist <ArrowIcon />
                   </PrimaryBtn>
                 </div>
               </div>
@@ -1353,8 +1379,8 @@ export function SignupForm({
                       </span>{' '}
                       of 5
                     </span>
-                    <PrimaryBtn onClick={submit}>
-                      {loading ? 'Processing...' : 'Confirm My Spot ✓'}
+                    <PrimaryBtn onClick={submit} loading={loading}>
+                      Confirm My Spot ✓
                     </PrimaryBtn>
                   </div>
                 </div>
