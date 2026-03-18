@@ -70,6 +70,7 @@ class ApiService {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       method: 'DELETE',
       headers: this.getHeaders(token),
+      body: JSON.stringify({}),
       credentials: 'include',
     })
     return this.handleResponse(response)
