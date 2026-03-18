@@ -24,15 +24,26 @@ export class AdminService {
     page: number
     limit: number
     search?: string
-    role?: string
-    country?: string
-    city?: string
-    selectedSession?: string
+    roles?: string[]
+    countries?: string[]
+    cities?: string[]
+    selectedSessions?: string[]
     createdFrom?: string
     createdTo?: string
+    completed?: string
   }) {
-    const { page, limit, search, role, country, city, selectedSession, createdFrom, createdTo } =
-      options
+    const {
+      page,
+      limit,
+      search,
+      roles,
+      countries,
+      cities,
+      selectedSessions,
+      createdFrom,
+      createdTo,
+      completed,
+    } = options
     const skip = (page - 1) * limit
 
     const where: Prisma.upward_waitlistWhereInput = {}
@@ -45,20 +56,26 @@ export class AdminService {
       ]
     }
 
-    if (role && role !== 'All') {
-      where.role = role
+    if (roles && roles.length > 0) {
+      where.role = { in: roles }
     }
 
-    if (country && country !== 'All') {
-      where.country = country
+    if (countries && countries.length > 0) {
+      where.country = { in: countries }
     }
 
-    if (city && city !== 'All') {
-      where.city = city
+    if (cities && cities.length > 0) {
+      where.city = { in: cities }
     }
 
-    if (selectedSession && selectedSession !== 'All') {
-      where.selectedSession = selectedSession
+    if (selectedSessions && selectedSessions.length > 0) {
+      where.selectedSession = { in: selectedSessions }
+    }
+
+    if (completed === 'true') {
+      where.acceptTerms = true
+    } else if (completed === 'false') {
+      where.acceptTerms = { not: true }
     }
 
     if (createdFrom || createdTo) {
@@ -124,14 +141,38 @@ export class AdminService {
   // --- Analytics & Drop-off ---
 
   async getAnalytics() {
+    // Current totals
     const totalWaitlist = await this.prisma.upward_waitlist.count()
-    const joinedLast24h = await this.prisma.upward_waitlist.count({
-      where: {
-        createdAt: {
-          gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
-        },
-      },
+    const totalCompleted = await this.prisma.upward_waitlist.count({ where: { acceptTerms: true } })
+    const totalIncomplete = await this.prisma.upward_waitlist.count({
+      where: { acceptTerms: { not: true } },
     })
+
+    const last24hStart = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const joinedLast24h = await this.prisma.upward_waitlist.count({
+      where: { createdAt: { gte: last24hStart } },
+    })
+
+    // Yesterday's stats (calendar day)
+    const now = new Date()
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000)
+    const yesterdayEnd = todayStart
+
+    const [completedYesterday, incompleteYesterday] = await Promise.all([
+      this.prisma.upward_waitlist.count({
+        where: {
+          acceptTerms: true,
+          createdAt: { gte: yesterdayStart, lt: yesterdayEnd },
+        },
+      }),
+      this.prisma.upward_waitlist.count({
+        where: {
+          acceptTerms: { not: true },
+          createdAt: { gte: yesterdayStart, lt: yesterdayEnd },
+        },
+      }),
+    ])
 
     // Group by day for simple interaction chart (last 30 days)
     const interactionStats: { date: Date; count: number }[] = await this.prisma.$queryRaw`
@@ -174,6 +215,10 @@ export class AdminService {
     return {
       totalWaitlist,
       joinedLast24h,
+      totalCompleted,
+      totalIncomplete,
+      completedYesterday,
+      incompleteYesterday,
       interactionStats,
       last10Users,
       distributions: {
@@ -370,7 +415,7 @@ export class AdminService {
             <p style="margin: 10px 0 0 0;"><strong>Password:</strong> ${passwordPlain}</p>
           </div>
           <p style="color: #666; font-size: 14px;">For security reasons, you will be required to change your password on your first login.</p>
-          <a href="${process.env.ADMIN_SITE_URL || 'https://admin.upward.ng'}" style="display: inline-block; padding: 12px 24px; background: #d97757; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin-top: 20px;">Log in to Dashboard</a>
+          <a href="${process.env.ADMIN_SITE_URL || 'https://upward-client.vercel.app'}" style="display: inline-block; padding: 12px 24px; background: #d97757; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin-top: 20px;">Log in to Dashboard</a>
         </div>
         `,
       )

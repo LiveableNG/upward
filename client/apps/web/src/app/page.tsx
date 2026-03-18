@@ -15,8 +15,9 @@ export default function HomePage() {
   const [prefilledEmail, setPrefilledEmail] = useState('')
   const [prefilledStep, setPrefilledStep] = useState(1)
   const [view, setView] = useState<'home' | 'why'>('home')
-  const [abVariant, setAbVariant] = useState<'A' | 'B'>('A')
+  const [abVariant, setAbVariant] = useState<'A' | 'B' | null>(null)
   const [visitorId, setVisitorId] = useState('')
+  const [mounted, setMounted] = useState(false)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const trackInteraction = async (type: string, target: string, metadata?: any) => {
@@ -31,7 +32,7 @@ export default function HomePage() {
           visitorId: vid,
           type,
           target,
-          abVariant,
+          abVariant: abVariant || 'A',
           metadata: metadata ? JSON.stringify(metadata) : undefined,
         }),
       })
@@ -89,6 +90,7 @@ export default function HomePage() {
       }
     }
     setAbVariant(variant)
+    setMounted(true)
 
     const trackInitial = async () => {
       await new Promise((r) => setTimeout(r, 100))
@@ -190,8 +192,14 @@ export default function HomePage() {
             }}
           >
             <div className="split-layout">
-              <div className="split-hero">
-                <HeroSection onOpenSignup={(e, s) => openSignup(e, s)} variant={abVariant} />
+              <div
+                className="split-hero"
+                style={{
+                  opacity: mounted && abVariant ? 1 : 0,
+                  transition: 'opacity 0.2s ease-in',
+                }}
+              >
+                <HeroSection onOpenSignup={(e, s) => openSignup(e, s)} variant={abVariant || 'A'} />
               </div>
               <div className="split-benefits">
                 <BenefitsGrid onOpenSignup={(e, s) => openSignup(e, s)} />
@@ -284,7 +292,7 @@ export default function HomePage() {
               <SignupForm
                 initialEmail={prefilledEmail}
                 initialStep={prefilledStep}
-                abVariant={abVariant}
+                abVariant={abVariant || 'A'}
               />
             </div>
           </div>
