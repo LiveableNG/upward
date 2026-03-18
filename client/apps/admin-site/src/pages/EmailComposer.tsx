@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Send, Filter, Users, Info } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -25,12 +26,14 @@ interface EmailComposerProps {
 }
 
 const EmailComposer: React.FC<EmailComposerProps> = ({ token }) => {
+  const location = useLocation()
   const [targetQuery, setTargetQuery] = useState({ stage: 'All', role: 'All', session: 'All' })
   const [users, setUsers] = useState<DropOffUser[]>([])
   const [sessions, setSessions] = useState<Session[]>([])
   const [subject, setSubject] = useState('')
   const [content, setContent] = useState('')
   const [sending, setSending] = useState(false)
+  const [externalIds, setExternalIds] = useState<string[] | null>(location.state?.userIds || null)
 
   useEffect(() => {
     fetchUsers()
@@ -55,13 +58,18 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token }) => {
     }
   }
 
-  const filteredUsers = users.filter((u) => {
-    const matchesStage = targetQuery.stage === 'All' || u.drop_off_stage === targetQuery.stage
-    const matchesRole = targetQuery.role === 'All' || u.role === targetQuery.role
-    const matchesSession =
-      targetQuery.session === 'All' || u.selectedSession === targetQuery.session
-    return matchesStage && matchesRole && matchesSession
-  })
+  const filteredUsers = useMemo(() => {
+    if (externalIds) {
+      return users.filter((u) => externalIds.includes(u.id))
+    }
+    return users.filter((u) => {
+      const matchesStage = targetQuery.stage === 'All' || u.drop_off_stage === targetQuery.stage
+      const matchesRole = targetQuery.role === 'All' || u.role === targetQuery.role
+      const matchesSession =
+        targetQuery.session === 'All' || u.selectedSession === targetQuery.session
+      return matchesStage && matchesRole && matchesSession
+    })
+  }, [users, externalIds, targetQuery])
 
   const handleSessionChange = (sessionName: string) => {
     setTargetQuery({ ...targetQuery, session: sessionName })
@@ -265,48 +273,83 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token }) => {
             </h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div className="filter-field">
-                <label>Registered Session</label>
-                <select
-                  value={targetQuery.session}
-                  onChange={(e) => handleSessionChange(e.target.value)}
+              {externalIds ? (
+                <div
+                  style={{
+                    padding: '12px',
+                    backgroundColor: 'var(--accent-faint)',
+                    borderRadius: '8px',
+                    border: '1px solid var(--accent-muted)',
+                    fontSize: '13px',
+                  }}
                 >
-                  <option value="All">All Sessions</option>
-                  {sessions.map((s) => (
-                    <option key={s.id} value={s.name}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <p style={{ fontWeight: 600, color: 'var(--accent)', marginBottom: '4px' }}>
+                    Dashboard Filter Active
+                  </p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '12px' }}>
+                    Segment filters are disabled while using target list from dashboard.
+                  </p>
+                  <button
+                    onClick={() => setExternalIds(null)}
+                    style={{
+                      width: '100%',
+                      padding: '6px',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Clear Dashboard Filter
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="filter-field">
+                    <label>Registered Session</label>
+                    <select
+                      value={targetQuery.session}
+                      onChange={(e) => handleSessionChange(e.target.value)}
+                    >
+                      <option value="All">All Sessions</option>
+                      {sessions.map((s) => (
+                        <option key={s.id} value={s.name}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="filter-field">
-                <label>Progress Stage</label>
-                <select
-                  value={targetQuery.stage}
-                  onChange={(e) => setTargetQuery({ ...targetQuery, stage: e.target.value })}
-                >
-                  {stages.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <div className="filter-field">
+                    <label>Progress Stage</label>
+                    <select
+                      value={targetQuery.stage}
+                      onChange={(e) => setTargetQuery({ ...targetQuery, stage: e.target.value })}
+                    >
+                      {stages.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="filter-field">
-                <label>User Role</label>
-                <select
-                  value={targetQuery.role}
-                  onChange={(e) => setTargetQuery({ ...targetQuery, role: e.target.value })}
-                >
-                  {roles.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <div className="filter-field">
+                    <label>User Role</label>
+                    <select
+                      value={targetQuery.role}
+                      onChange={(e) => setTargetQuery({ ...targetQuery, role: e.target.value })}
+                    >
+                      {roles.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

@@ -40,17 +40,28 @@ export class AdminController {
     @Query('selectedSession') selectedSession?: string,
     @Query('createdFrom') createdFrom?: string,
     @Query('createdTo') createdTo?: string,
+    @Query('completed') completed?: string,
   ) {
+    // Support comma-separated multi-values
+    const toArray = (val?: string) =>
+      val
+        ? val
+            .split(',')
+            .map((v) => v.trim())
+            .filter(Boolean)
+        : undefined
+
     return this.adminService.getAllUsers({
       page: page ? parseInt(page) : 1,
       limit: limit ? parseInt(limit) : 20,
       search,
-      role,
-      country,
-      city,
-      selectedSession,
+      roles: toArray(role),
+      countries: toArray(country),
+      cities: toArray(city),
+      selectedSessions: toArray(selectedSession),
       createdFrom,
       createdTo,
+      completed,
     })
   }
 

@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   Users,
-  UserPlus,
   Search,
   MapPin,
   Mail,
@@ -15,13 +14,21 @@ import {
   Square,
   AlertTriangle,
   CalendarDays,
+  Filter,
+  X,
+  CheckCircle2,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 
 interface Stats {
   totalWaitlist: number
   joinedLast24h: number
+  totalCompleted: number
+  totalIncomplete: number
+  completedYesterday: number
+  incompleteYesterday: number
   distributions?: {
     roles: { label: string; count: number }[]
     countries: { label: string; count: number }[]
@@ -80,11 +87,13 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
   const [filters, setFilters] = useState({
     search: '',
-    role: 'All',
-    country: 'All',
-    city: 'All',
-    selectedSession: 'All',
+    roles: [] as string[],
+    countries: [] as string[],
+    cities: [] as string[],
+    selectedSessions: [] as string[],
+    completed: 'all' as 'all' | 'true' | 'false',
   })
+  const navigate = useNavigate()
   const [dateRange, setDateRange] = useState<'all' | 'today' | 'yesterday' | '2days' | '1week'>(
     'all',
   )
@@ -146,10 +155,13 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
           page: currentPage.toString(),
           limit: '20',
           ...(filters.search && { search: filters.search }),
-          ...(filters.role !== 'All' && { role: filters.role }),
-          ...(filters.country !== 'All' && { country: filters.country }),
-          ...(filters.city !== 'All' && { city: filters.city }),
-          ...(filters.selectedSession !== 'All' && { selectedSession: filters.selectedSession }),
+          ...(filters.roles.length > 0 && { role: filters.roles.join(',') }),
+          ...(filters.countries.length > 0 && { country: filters.countries.join(',') }),
+          ...(filters.cities.length > 0 && { city: filters.cities.join(',') }),
+          ...(filters.selectedSessions.length > 0 && {
+            selectedSession: filters.selectedSessions.join(','),
+          }),
+          ...(filters.completed !== 'all' && { completed: filters.completed }),
           ...(dateBounds?.from && { createdFrom: dateBounds.from }),
           ...(dateBounds?.to && { createdTo: dateBounds.to }),
         })
@@ -244,6 +256,39 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     }
   }
 
+  const handleEmailFiltered = async () => {
+    if (!meta || meta.total === 0) return
+
+    setLoadingUsers(true)
+    try {
+      // Fetch ALL IDs for the current filters by setting a high limit
+      const params = new URLSearchParams({
+        page: '1',
+        limit: meta.total.toString(),
+        ...(filters.search && { search: filters.search }),
+        ...(filters.roles.length > 0 && { role: filters.roles.join(',') }),
+        ...(filters.countries.length > 0 && { country: filters.countries.join(',') }),
+        ...(filters.cities.length > 0 && { city: filters.cities.join(',') }),
+        ...(filters.selectedSessions.length > 0 && {
+          selectedSession: filters.selectedSessions.join(','),
+        }),
+        ...(filters.completed !== 'all' && { completed: filters.completed }),
+        ...(dateBounds?.from && { createdFrom: dateBounds.from }),
+        ...(dateBounds?.to && { createdTo: dateBounds.to }),
+      })
+
+      const res = await apiService.get(`/admin/users?${params.toString()}`, token)
+      const allFilteredIds = res.data.map((u: WaitlistUser) => u.id)
+
+      navigate('/emails', { state: { userIds: allFilteredIds } })
+    } catch (err) {
+      console.error('Failed to prepare filtered emails', err)
+      showToast('Failed to prepare audience list', true)
+    } finally {
+      setLoadingUsers(false)
+    }
+  }
+
   // Trigger search on filter change
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -252,32 +297,37 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     return () => clearTimeout(timeout)
   }, [
     filters.search,
-    filters.role,
-    filters.country,
-    filters.city,
-    filters.selectedSession,
+    filters.roles,
+    filters.countries,
+    filters.cities,
+    filters.selectedSessions,
+    filters.completed,
     dateRange,
     fetchUsers,
   ])
 
   const filteredCities = useMemo(() => {
     if (!filterOptions) return []
-    if (filters.country === 'All')
+    if (filters.countries.length === 0)
       return Array.from(
         new Set(filterOptions.cities.map((c: { city: string }) => c.city)),
       ).sort() as string[]
     return filterOptions.cities
-      .filter((c: { country: string }) => c.country === filters.country)
+      .filter((c: { country: string }) => filters.countries.includes(c.country))
       .map((c: { city: string }) => c.city)
       .sort()
-  }, [filterOptions, filters.country])
+  }, [filterOptions, filters.countries])
 
-  // Reset city if country changes and city is no longer valid
+  // Remove cities from filter that are no longer valid when countries change
   useEffect(() => {
-    if (filters.city !== 'All' && !filteredCities.includes(filters.city)) {
-      setFilters((prev) => ({ ...prev, city: 'All' }))
+    if (filters.cities.length > 0) {
+      const validCities = new Set(filteredCities)
+      const stillValid = filters.cities.filter((c) => validCities.has(c))
+      if (stillValid.length !== filters.cities.length) {
+        setFilters((prev) => ({ ...prev, cities: stillValid }))
+      }
     }
-  }, [filters.country, filteredCities])
+  }, [filters.countries, filteredCities])
 
   if (loading || !stats) {
     return (
@@ -289,7 +339,30 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
   const statItems = [
     { label: 'Total Waitlist', value: stats.totalWaitlist, icon: Users, color: '#d97757' },
-    { label: 'Joined 24h', value: stats.joinedLast24h, icon: UserPlus, color: '#10b981' },
+    {
+      label: 'Complete Reg.',
+      value: stats.totalCompleted,
+      icon: CheckCircle2,
+      color: '#10b981',
+    },
+    {
+      label: 'Incomplete Reg.',
+      value: stats.totalIncomplete,
+      icon: AlertTriangle,
+      color: '#f59e0b',
+    },
+    {
+      label: 'Complete (Yesterday)',
+      value: stats.completedYesterday,
+      icon: CalendarDays,
+      color: '#3b82f6',
+    },
+    {
+      label: 'Incomplete (Yesterday)',
+      value: stats.incompleteYesterday,
+      icon: Clock,
+      color: '#6366f1',
+    },
   ]
 
   const DistributionCard = ({
@@ -371,6 +444,180 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     )
   }
 
+  // ---- Multi-select dropdown component ----
+  const MultiSelect = ({
+    label,
+    options,
+    selected,
+    onChange,
+    placeholder,
+  }: {
+    label: string
+    options: { value: string; label: string }[]
+    selected: string[]
+    onChange: (vals: string[]) => void
+    placeholder?: string
+  }) => {
+    const [open, setOpen] = useState(false)
+    const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      }
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    const toggle = (val: string) => {
+      onChange(selected.includes(val) ? selected.filter((v) => v !== val) : [...selected, val])
+    }
+
+    const displayText =
+      selected.length === 0
+        ? placeholder || 'All'
+        : selected.length === 1
+          ? options.find((o) => o.value === selected[0])?.label || selected[0]
+          : `${selected.length} selected`
+
+    return (
+      <div className="filter-field" ref={ref} style={{ position: 'relative' }}>
+        <label>{label}</label>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '9px 12px',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '10px',
+            fontSize: '13px',
+            cursor: 'pointer',
+            color: selected.length === 0 ? 'var(--text-muted)' : 'var(--text)',
+            gap: '8px',
+          }}
+        >
+          <span
+            style={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              flex: 1,
+              textAlign: 'left',
+            }}
+          >
+            {displayText}
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+            {selected.length > 0 && (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onChange([])
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                }}
+              >
+                <X size={12} />
+              </span>
+            )}
+            <ChevronDown
+              size={14}
+              style={{
+                color: 'var(--text-muted)',
+                transform: open ? 'rotate(180deg)' : undefined,
+                transition: 'transform 0.2s',
+              }}
+            />
+          </div>
+        </button>
+        {open && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 4px)',
+              left: 0,
+              right: 0,
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '10px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+              zIndex: 100,
+              maxHeight: '220px',
+              overflowY: 'auto',
+              padding: '4px',
+            }}
+          >
+            {options.length === 0 ? (
+              <div
+                style={{
+                  padding: '12px',
+                  fontSize: '12px',
+                  color: 'var(--text-muted)',
+                  textAlign: 'center',
+                }}
+              >
+                No options
+              </div>
+            ) : (
+              options.map((opt) => {
+                const isSelected = selected.includes(opt.value)
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => toggle(opt.value)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 10px',
+                      background: isSelected ? 'var(--accent-faint)' : 'transparent',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      color: isSelected ? 'var(--accent)' : 'var(--text)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      fontWeight: isSelected ? 600 : 400,
+                    }}
+                  >
+                    {isSelected ? (
+                      <CheckSquare size={14} color="var(--accent)" />
+                    ) : (
+                      <Square size={14} color="var(--text-muted)" />
+                    )}
+                    <span
+                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    >
+                      {opt.label}
+                    </span>
+                  </button>
+                )
+              })
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const activeFilterCount =
+    filters.roles.length +
+    filters.countries.length +
+    filters.cities.length +
+    filters.selectedSessions.length +
+    (filters.completed !== 'all' ? 1 : 0)
+
   return (
     <div className="page-container fade-in" style={{ paddingTop: '20px' }}>
       <div style={{ marginBottom: '24px' }}>
@@ -383,7 +630,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
           className="stats-grid"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gridTemplateColumns: `repeat(${Math.ceil(statItems.length / 2)}, 1fr)`,
+            gridAutoRows: '1fr',
             gap: '20px',
             marginBottom: '24px',
           }}
@@ -482,7 +730,107 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             </div>
           </div>
 
+          {/* Completion status filter */}
+          <div style={{ marginBottom: '16px' }}>
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}
+            >
+              <CheckCircle2 size={16} style={{ color: 'var(--text-muted)' }} />
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                Completion Status
+              </span>
+            </div>
+            <div className="date-chips">
+              {[
+                { key: 'all' as const, label: 'All' },
+                { key: 'true' as const, label: '✓ Completed' },
+                { key: 'false' as const, label: '✗ Not Completed' },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  className={`date-chip${filters.completed === key ? ' active' : ''}`}
+                  onClick={() => setFilters((prev) => ({ ...prev, completed: key }))}
+                  style={{
+                    ...(filters.completed === key && key === 'true'
+                      ? { background: '#10b98120', borderColor: '#10b981', color: '#10b981' }
+                      : {}),
+                    ...(filters.completed === key && key === 'false'
+                      ? { background: '#ef444420', borderColor: '#ef4444', color: '#ef4444' }
+                      : {}),
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Field filters */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+            <Filter size={16} style={{ color: 'var(--text-muted)' }} />
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                flex: 1,
+              }}
+            >
+              Filters
+              {activeFilterCount > 0 && (
+                <span
+                  style={{
+                    marginLeft: '8px',
+                    background: 'var(--accent)',
+                    color: 'white',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    padding: '1px 6px',
+                    borderRadius: '999px',
+                  }}
+                >
+                  {activeFilterCount}
+                </span>
+              )}
+            </span>
+            {activeFilterCount > 0 && (
+              <button
+                onClick={() =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    roles: [],
+                    countries: [],
+                    cities: [],
+                    selectedSessions: [],
+                  }))
+                }
+                style={{
+                  fontSize: '12px',
+                  color: 'var(--text-muted)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                }}
+              >
+                <X size={12} /> Clear filters
+              </button>
+            )}
+          </div>
           <div className="filter-bar">
             <div className="filter-field search-field">
               <label>Search</label>
@@ -507,67 +855,43 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
               </div>
             </div>
 
-            <div className="filter-field">
-              <label>Role</label>
-              <select
-                value={filters.role}
-                onChange={(e) => setFilters((prev) => ({ ...prev, role: e.target.value }))}
-              >
-                <option value="All">All Roles</option>
-                {filterOptions?.roles.map((r: string) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <MultiSelect
+              label="Role"
+              placeholder="All Roles"
+              options={(filterOptions?.roles || []).map((r: string) => ({ value: r, label: r }))}
+              selected={filters.roles}
+              onChange={(vals) => setFilters((prev) => ({ ...prev, roles: vals }))}
+            />
 
-            <div className="filter-field">
-              <label>Country</label>
-              <select
-                value={filters.country}
-                onChange={(e) => setFilters((prev) => ({ ...prev, country: e.target.value }))}
-              >
-                <option value="All">All Countries</option>
-                {filterOptions?.countries.map((c: string) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <MultiSelect
+              label="Country"
+              placeholder="All Countries"
+              options={(filterOptions?.countries || []).map((c: string) => ({
+                value: c,
+                label: c,
+              }))}
+              selected={filters.countries}
+              onChange={(vals) => setFilters((prev) => ({ ...prev, countries: vals }))}
+            />
 
-            <div className="filter-field">
-              <label>City</label>
-              <select
-                value={filters.city}
-                onChange={(e) => setFilters((prev) => ({ ...prev, city: e.target.value }))}
-              >
-                <option value="All">All Cities</option>
-                {filteredCities.map((city: string) => (
-                  <option key={city} value={city}>
-                    {city}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <MultiSelect
+              label="City"
+              placeholder="All Cities"
+              options={filteredCities.map((city: string) => ({ value: city, label: city }))}
+              selected={filters.cities}
+              onChange={(vals) => setFilters((prev) => ({ ...prev, cities: vals }))}
+            />
 
-            <div className="filter-field">
-              <label>Session</label>
-              <select
-                value={filters.selectedSession}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, selectedSession: e.target.value }))
-                }
-              >
-                <option value="All">All Sessions</option>
-                {filterOptions?.sessions.map((s: { id: string; name: string }) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <MultiSelect
+              label="Session"
+              placeholder="All Sessions"
+              options={(filterOptions?.sessions || []).map((s: { id: string; name: string }) => ({
+                value: s.id,
+                label: s.name,
+              }))}
+              selected={filters.selectedSessions}
+              onChange={(vals) => setFilters((prev) => ({ ...prev, selectedSessions: vals }))}
+            />
           </div>
         </div>
 
@@ -609,6 +933,31 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                   }}
                 >
                   <Trash2 size={16} /> Delete Selected ({selectedIds.size})
+                </button>
+              )}
+              {meta && meta.total > 0 && (
+                <button
+                  onClick={handleEmailFiltered}
+                  disabled={loadingUsers}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 16px',
+                    backgroundColor: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: 'var(--text)',
+                    transition: 'all 0.2s',
+                    cursor: loadingUsers ? 'not-allowed' : 'pointer',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+                >
+                  <Mail size={16} style={{ color: 'var(--accent)' }} />
+                  Email Filtered ({meta.total})
                 </button>
               )}
               <button
