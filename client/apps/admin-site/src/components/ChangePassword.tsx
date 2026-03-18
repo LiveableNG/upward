@@ -35,16 +35,15 @@ const ChangePassword: React.FC<ChangePasswordProps> = ({ token, onSuccess }) => 
     setLoading(true)
     setError(null)
     try {
-      await apiService.post('/admin/change-password', { newPasswordPlain: newPassword }, token)
+      const result = await apiService.post(
+        '/admin/change-password',
+        { newPasswordPlain: newPassword },
+        token,
+      )
 
-      // Update local storage user data
-      const userStr = localStorage.getItem('admin_user')
-      if (userStr) {
-        const user = JSON.parse(userStr)
-        user.mustChangePassword = false
-        localStorage.setItem('admin_user', JSON.stringify(user))
-        onSuccess(user)
-      }
+      // Build updated user from the API result or patch mustChangePassword locally
+      const updatedUser = result?.data ? result.data : { mustChangePassword: false }
+      onSuccess({ ...updatedUser, mustChangePassword: false })
     } catch (err: unknown) {
       const error = err as { message?: string }
       setError(error.message || 'Failed to change password')

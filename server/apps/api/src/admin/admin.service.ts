@@ -28,8 +28,11 @@ export class AdminService {
     country?: string
     city?: string
     selectedSession?: string
+    createdFrom?: string
+    createdTo?: string
   }) {
-    const { page, limit, search, role, country, city, selectedSession } = options
+    const { page, limit, search, role, country, city, selectedSession, createdFrom, createdTo } =
+      options
     const skip = (page - 1) * limit
 
     const where: Prisma.upward_waitlistWhereInput = {}
@@ -56,6 +59,13 @@ export class AdminService {
 
     if (selectedSession && selectedSession !== 'All') {
       where.selectedSession = selectedSession
+    }
+
+    if (createdFrom || createdTo) {
+      where.createdAt = {
+        ...(createdFrom && { gte: new Date(createdFrom) }),
+        ...(createdTo && { lte: new Date(createdTo) }),
+      }
     }
 
     const [data, total] = await Promise.all([
@@ -481,5 +491,116 @@ export class AdminService {
       cities: cities.map((c) => ({ country: c.country, city: c.city })),
       sessions: sessions.map((s) => ({ id: s.id, name: s.name })),
     }
+  }
+
+  // --- A/B Test Statistics ---
+
+  async getAbStats() {
+    // 1. Total interactions & unique visitors per variant (from upward_interaction)
+    const variantSummary: { abvariant: string; total: number; unique_visitors: number }[] =
+      await this.prisma.$queryRaw`
+        SELECT
+          "abVariant" AS abvariant,
+          COUNT(*)::int AS total,
+          COUNT(DISTINCT "visitorId")::int AS unique_visitors
+        FROM upward_interaction
+        GROUP BY "abVariant"
+        ORDER BY "abVariant"
+      `
+
+    // 2. Click-through events per variant (type = CLICK)
+    const clickCounts: { abvariant: string; clicks: number }[] = await this.prisma.$queryRaw`
+      SELECT
+        "abVariant" AS abvariant,
+        COUNT(*)::int AS clicks
+      FROM upward_interaction
+      WHERE type = 'CLICK'
+      GROUP BY "abVariant"
+    `
+
+    // 3. Top targets per variant (top 10)
+    const topTargets: { abvariant: string; target: string; count: number }[] = await this.prisma
+      .$queryRaw`
+        SELECT
+          "abVariant" AS abvariant,
+          target,
+          COUNT(*)::int AS count
+        FROM upward_interaction
+        GROUP BY "abVariant", target
+        ORDER BY "abVariant", count DESC
+      `
+
+    // 4. Event type breakdown per variant
+    const typeBreakdown: { abvariant: string; type: string; count: number }[] = await this.prisma
+      .$queryRaw`
+        SELECT
+          "abVariant" AS abvariant,
+          type,
+          COUNT(*)::int AS count
+        FROM upward_interaction
+        GROUP BY "abVariant", type
+        ORDER BY "abVariant", type
+      `
+
+    // 5. Daily interaction trend (last 30 days) per variant
+    const dailyTrend: { abvariant: string; date: Date; count: number }[] = await this.prisma
+      .$queryRaw`
+        SELECT
+          "abVariant" AS abvariant,
+          DATE_TRUNC('day', "createdAt") AS date,
+          COUNT(*)::int AS count
+        FROM upward_interaction
+        WHERE "createdAt" >= CURRENT_DATE - INTERVAL '30 days'
+        GROUP BY "abVariant", DATE_TRUNC('day', "createdAt")
+        ORDER BY date ASC
+      `
+
+    // 6. Signups (completed waitlist entries) per abVariant from upward_waitlist
+    const signupsByVariant: { abvariant: string; signups: number; completed: number }[] = await this
+      .prisma.$queryRaw`
+        SELECT
+          COALESCE("abVariant", 'unknown') AS abvariant,
+          COUNT(*)::int AS signups,
+          COUNT(*) FILTER (WHERE "acceptTerms" = true)::int AS completed
+        FROM upward_waitlist
+        GROUP BY "abVariant"
+        ORDER BY "abVariant"
+      `
+
+    // Merge into per-variant objects
+    const variants = ['A', 'B']
+    const result = variants.map((v) => {
+      const summary = variantSummary.find((s) => s.abvariant === v)
+      const clicks = clickCounts.find((c) => c.abvariant === v)
+      const signups = signupsByVariant.find((s) => s.abvariant === v)
+      const total = summary?.total ?? 0
+      const clickTotal = clicks?.clicks ?? 0
+
+      return {
+        variant: v,
+        totalEvents: total,
+        uniqueVisitors: summary?.unique_visitors ?? 0,
+        totalClicks: clickTotal,
+        ctr: total > 0 ? Math.round((clickTotal / total) * 1000) / 10 : 0, // %
+        signups: signups?.signups ?? 0,
+        completedSignups: signups?.completed ?? 0,
+        conversionRate:
+          (summary?.unique_visitors ?? 0) > 0
+            ? Math.round(((signups?.completed ?? 0) / (summary?.unique_visitors ?? 1)) * 1000) / 10
+            : 0,
+        topTargets: topTargets
+          .filter((t) => t.abvariant === v)
+          .slice(0, 10)
+          .map((t) => ({ target: t.target, count: t.count })),
+        typeBreakdown: typeBreakdown
+          .filter((t) => t.abvariant === v)
+          .map((t) => ({ type: t.type, count: t.count })),
+        dailyTrend: dailyTrend
+          .filter((d) => d.abvariant === v)
+          .map((d) => ({ date: d.date, count: d.count })),
+      }
+    })
+
+    return result
   }
 }

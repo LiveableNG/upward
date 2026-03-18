@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Calendar, Clock, Video, CheckCircle, Edit, X } from 'lucide-react'
 import { apiService } from '../services/api.service'
+import { showToast } from '@upward/client-core'
 
 interface Attendance {
   userId: string
@@ -87,6 +88,7 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
       }
     } catch (err) {
       console.error(err)
+      showToast('Failed to update attendance', true)
     }
   }
 
@@ -101,8 +103,10 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
       fetchSessions(true)
       setShowModal(null)
       setSessionForm({ name: '', googleMeetLink: '', startTime: '', endTime: '' })
+      showToast(showModal === 'create' ? 'Session created!' : 'Session updated!')
     } catch (err) {
       console.error(err)
+      showToast('Failed to save session', true)
     }
   }
 
@@ -140,21 +144,24 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '32px',
+          marginBottom: '24px',
+          flexWrap: 'wrap',
+          gap: '12px',
         }}
+        className="page-header-row"
       >
         <div>
           <h2 className="section-title" style={{ margin: 0 }}>
             Session Tracking
           </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
             Monitor attendance and manage session schedules.
           </p>
         </div>
         <button
           onClick={openCreateModal}
           style={{
-            padding: '12px 20px',
+            padding: '10px 18px',
             backgroundColor: 'var(--accent)',
             color: 'var(--white)',
             border: 'none',
@@ -163,6 +170,8 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
+            cursor: 'pointer',
+            flexShrink: 0,
           }}
         >
           <Calendar size={18} /> Schedule Session
@@ -170,69 +179,71 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
       </div>
 
       <div
-        className="flex-mobile-column"
+        className="sessions-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '320px 1fr',
-          gap: '32px',
+          gridTemplateColumns: '300px 1fr',
+          gap: '24px',
           alignItems: 'start',
         }}
       >
         {/* Sessions List */}
-        <div className="card" style={{ padding: '0', display: 'flex', flexDirection: 'column' }}>
+        <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
           <div
             style={{
-              padding: '20px',
+              padding: '16px 20px',
               borderBottom: '1px solid var(--border)',
               backgroundColor: 'var(--surface)',
             }}
           >
             <h3
               style={{
-                fontSize: '14px',
+                fontSize: '13px',
                 fontWeight: 700,
                 color: 'var(--text-muted)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
               }}
             >
-              All Sessions
+              All Sessions ({sessions.length})
             </h3>
           </div>
-          <div style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
+          <div
+            className="sessions-list-scroll"
+            style={{ maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' }}
+          >
             <div
-              style={{
-                display: 'flex',
-                flexDirection: window.innerWidth <= 768 ? 'row' : 'column',
-                overflowX: 'auto',
-              }}
+              className="sessions-list-inner"
+              style={{ display: 'flex', flexDirection: 'column' }}
             >
               {sessions.map((s) => (
                 <button
                   key={s.id}
+                  className="session-item"
                   onClick={() => setSelectedSession(s)}
                   style={{
-                    width: window.innerWidth <= 768 ? '280px' : '100%',
-                    flexShrink: 0,
-                    padding: '20px',
+                    width: '100%',
+                    padding: '16px 20px',
                     border: 'none',
-                    borderBottom: window.innerWidth <= 768 ? 'none' : '1px solid var(--border)',
-                    borderRight: window.innerWidth <= 768 ? '1px solid var(--border)' : 'none',
+                    borderBottom: '1px solid var(--border)',
                     backgroundColor:
                       selectedSession?.id === s.id ? 'var(--accent-faint)' : 'transparent',
                     textAlign: 'left',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '8px',
-                    transition: 'var(--transition)',
+                    gap: '6px',
+                    transition: 'background 0.15s',
                     cursor: 'pointer',
                   }}
                 >
                   <span
                     style={{
                       fontWeight: 700,
-                      fontSize: '15px',
+                      fontSize: '14px',
                       color: selectedSession?.id === s.id ? 'var(--accent)' : 'var(--text)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
                     }}
                   >
                     {s.name}
@@ -241,13 +252,13 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
+                      gap: '6px',
                       fontSize: '12px',
                       color: 'var(--text-muted)',
                     }}
                   >
-                    <Clock size={14} />
-                    {new Date(s.startTime).toLocaleDateString()} at{' '}
+                    <Clock size={13} />
+                    {new Date(s.startTime).toLocaleDateString()} ·{' '}
                     {new Date(s.startTime).toLocaleTimeString([], {
                       hour: '2-digit',
                       minute: '2-digit',
@@ -276,11 +287,13 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div className="card">
               <div
+                className="session-detail-header"
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'flex-start',
-                  marginBottom: '24px',
+                  marginBottom: '20px',
+                  gap: '12px',
                 }}
               >
                 <div>

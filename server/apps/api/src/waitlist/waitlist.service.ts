@@ -60,6 +60,21 @@ export class WaitlistService {
       },
     })
 
+    // If this is a completely new signup (first time email is entered)
+    if (!existing) {
+      this.prisma.upward_admin
+        .findMany({ select: { email: true } })
+        .then((admins) => {
+          const adminEmails = admins.map((a) => a.email)
+          if (adminEmails.length > 0) {
+            this.emailService.notifyAdminsOfNewSignup(adminEmails, entry.email)
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to fetch admins for notification', err)
+        })
+    }
+
     if (entry.acceptTerms && !entry.confirmationSent) {
       this.emailService
         .sendWaitlistConfirmation(entry.email, entry.firstName ?? undefined)

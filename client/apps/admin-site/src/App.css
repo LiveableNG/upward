@@ -77,7 +77,228 @@
   transform: scale(1.05);
 }
 
-/* Animations */
+/* ─── Filter Bar ────────────────────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 160px;
+  min-width: 140px;
+}
+
+.filter-field label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.filter-field input,
+.filter-field select {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  font-size: 14px;
+  background: var(--white);
+  color: var(--text);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+  width: 100%;
+}
+
+.filter-field input:focus,
+.filter-field select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-muted);
+  outline: none;
+}
+
+.filter-field.search-field {
+  flex: 2 1 240px;
+}
+
+.filter-field.search-field input {
+  padding-left: 40px;
+}
+
+/* Date range pill chips */
+.date-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.date-chip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.date-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-faint);
+}
+
+.date-chip.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: 16px;
+  }
+
+  .filter-bar {
+    gap: 10px;
+  }
+
+  .filter-field {
+    flex: 1 1 calc(50% - 5px);
+    min-width: 0;
+  }
+
+  .filter-field.search-field {
+    flex: 1 1 100%;
+  }
+
+  .date-chips {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .date-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ── EmailComposer mobile ── */
+  .email-composer-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .email-composer-grid .email-sidebar {
+    order: -1; /* Filters appear above compose area on mobile */
+  }
+
+  .email-composer-grid .email-sidebar .audience-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .email-composer-grid .email-sidebar .audience-card .audience-number {
+    font-size: 40px !important;
+  }
+
+  /* ── Sessions mobile ── */
+  .sessions-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sessions-list-scroll {
+    max-height: 200px !important;
+    overflow-y: hidden !important;
+    overflow-x: auto !important;
+  }
+
+  .sessions-list-inner {
+    flex-direction: row !important;
+    overflow-x: auto;
+    gap: 0;
+    scrollbar-width: none;
+  }
+
+  .sessions-list-inner::-webkit-scrollbar {
+    display: none;
+  }
+
+  .session-item {
+    width: 200px !important;
+    min-width: 200px;
+    border-bottom: none !important;
+    border-right: 1px solid var(--border) !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Session header wrap on mobile */
+  .session-detail-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .session-detail-header a {
+    align-self: flex-start;
+  }
+
+  /* Page header wrap */
+  .page-header-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .page-header-row h2 {
+    font-size: 20px;
+  }
+}
+
+/* ─── Toast ─────────────────────────────────────────────────────────── */
+#toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: #1a1a1a;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 40px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-sans, system-ui);
+  z-index: 9999;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transition:
+    transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.2s;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#toast.toast-show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+#toast.toast-error {
+  background: #dc2626;
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────── */
 @keyframes fadeIn {
   from {
     opacity: 0;

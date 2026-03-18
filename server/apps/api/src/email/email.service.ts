@@ -175,4 +175,33 @@ export class EmailService {
       throw error
     }
   }
+
+  async notifyAdminsOfNewSignup(adminEmails: string[], userEmail: string) {
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward Alerts <alerts@${domain}>`
+
+    try {
+      await this.mg.messages.create(domain, {
+        from,
+        to: adminEmails,
+        subject: '🚀 New Waitlist Signup',
+        html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 12px; background: #fff;">
+          <h2 style="color: #d97757; margin-top: 0;">New Waitlist Signup</h2>
+          <p style="font-size: 16px; color: #333;">A new user has just joined the Upward waitlist.</p>
+          <div style="background: #fdf2f0; padding: 20px; border-radius: 10px; border-left: 4px solid #d97757; margin: 24px 0;">
+            <p style="margin: 0; font-size: 14px; color: #666; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">User Email</p>
+            <p style="margin: 4px 0 0 0; font-size: 18px; color: #1a1a1a; font-weight: 600;">${userEmail}</p>
+          </div>
+          <p style="font-size: 14px; color: #666;">You can view more details in the <a href="${process.env.ADMIN_SITE_URL || 'https://admin.upward.ng'}" style="color: #d97757; text-decoration: none; font-weight: 600;">Admin Dashboard</a>.</p>
+          <hr style="border: 0; border-top: 1px solid #eee; margin: 24px 0;" />
+          <p style="font-size: 12px; color: #999; margin-bottom: 0;">Upward System Alert — ${new Date().toLocaleString()}</p>
+        </div>
+        `,
+      })
+      this.logger.log(`Admin notification sent for signup: ${userEmail}`)
+    } catch (error) {
+      this.logger.error(`Failed to notify admins of new signup: ${userEmail}`, error)
+    }
+  }
 }

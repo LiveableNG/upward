@@ -38,6 +38,8 @@ export class AdminController {
     @Query('country') country?: string,
     @Query('city') city?: string,
     @Query('selectedSession') selectedSession?: string,
+    @Query('createdFrom') createdFrom?: string,
+    @Query('createdTo') createdTo?: string,
   ) {
     return this.adminService.getAllUsers({
       page: page ? parseInt(page) : 1,
@@ -47,6 +49,8 @@ export class AdminController {
       country,
       city,
       selectedSession,
+      createdFrom,
+      createdTo,
     })
   }
 
@@ -152,5 +156,10 @@ export class AdminController {
     @Req() req: AuthenticatedRequest,
   ) {
     return { data: await this.adminService.changePassword(req.user.id, body.newPasswordPlain) }
+  }
+
+  @Get('ab-stats')
+  async getAbStats() {
+    return { data: await this.adminService.getAbStats() }
   }
 }
