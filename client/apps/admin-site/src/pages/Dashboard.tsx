@@ -701,9 +701,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token }) => {
                               {b}
                             </span>
                           ))}
-                          {user.benefits?.length > 2 && (
+                          {(user.benefits?.length ?? 0) > 2 && (
                             <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                              +{user.benefits.length - 2} more
+                              +{(user.benefits?.length ?? 0) - 2} more
                             </span>
                           )}
                         </div>
@@ -769,7 +769,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token }) => {
             </table>
           </div>
 
-          {meta?.page < meta?.totalPages && (
+          {meta && meta.page < meta.totalPages && (
             <div
               style={{ padding: '24px', textAlign: 'center', borderTop: '1px solid var(--border)' }}
             >
