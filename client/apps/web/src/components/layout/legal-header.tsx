@@ -5,9 +5,33 @@ import { useState, useEffect } from 'react'
 export function LegalHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const trackInteraction = async (type: string, target: string, metadata?: any) => {
+    try {
+      const vid = localStorage.getItem('upward_visitor_id')
+      const variant = localStorage.getItem('upward_ab_hero') || 'A'
+      if (!vid) return
+
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist/interactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          visitorId: vid,
+          type,
+          target,
+          abVariant: variant,
+          metadata: metadata ? JSON.stringify(metadata) : undefined,
+        }),
+      })
+    } catch (err) {
+      console.error('Failed to track interaction', err)
+    }
+  }
+
   useEffect(() => {
     if (mobileMenuOpen) {
       document.body.style.overflow = 'hidden'
+      trackInteraction('VIEW', 'MOBILE_MENU_LEGAL')
     } else {
       document.body.style.overflow = ''
     }
@@ -41,7 +65,10 @@ export function LegalHeader() {
           opacity: mobileMenuOpen ? 0 : 1,
           transition: 'opacity 0.3s ease',
         }}
-        onClick={() => setMobileMenuOpen(false)}
+        onClick={() => {
+          trackInteraction('CLICK', 'LEGAL_HEADER_LOGO')
+          setMobileMenuOpen(false)
+        }}
       >
         <div
           style={{
@@ -99,6 +126,10 @@ export function LegalHeader() {
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
         <Link
           href="/?signup=true"
+          onClick={() => {
+            trackInteraction('CLICK', 'LEGAL_HEADER_SIGNUP')
+            setMobileMenuOpen(false)
+          }}
           className="mobile-hide"
           style={{
             fontSize: '10px',
@@ -381,7 +412,10 @@ export function LegalHeader() {
           <div style={{ marginTop: 'auto', paddingBottom: '40px' }}>
             <Link
               href="/?signup=true"
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={() => {
+                trackInteraction('CLICK', 'MOBILE_LEGAL_HEADER_SIGNUP')
+                setMobileMenuOpen(false)
+              }}
               style={{
                 width: '100%',
                 padding: '16px',

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateWaitlistEntryDto } from './dto/create-waitlist-entry.dto'
+import { TrackInteractionDto } from './dto/track-interaction.dto'
 import { WaitlistEntryResponse, UserRole, WaitlistBenefit } from '@upward/shared-types'
 import { EmailService } from '../email/email.service'
 
@@ -38,6 +39,7 @@ export class WaitlistService {
     if (dto.country !== undefined) updateData.country = dto.country
     if (dto.city !== undefined) updateData.city = dto.city
     if (dto.selectedSession !== undefined) updateData.selectedSession = dto.selectedSession
+    if (dto.abVariant !== undefined) updateData.abVariant = dto.abVariant
 
     const entry = await this.prisma.upward_waitlist.upsert({
       where: { email: dto.email },
@@ -54,6 +56,7 @@ export class WaitlistService {
         country: dto.country,
         city: dto.city,
         selectedSession: dto.selectedSession,
+        abVariant: dto.abVariant,
       },
     })
 
@@ -102,8 +105,22 @@ export class WaitlistService {
       country: entry.country ?? undefined,
       city: entry.city ?? undefined,
       selectedSession: entry.selectedSession ?? undefined,
+      abVariant: entry.abVariant ?? undefined,
       createdAt: entry.createdAt.toISOString(),
       updatedAt: entry.updatedAt.toISOString(),
     } as WaitlistEntryResponse
+  }
+
+  async trackInteraction(dto: TrackInteractionDto, ip?: string, ua?: string): Promise<void> {
+    await this.prisma.upward_interaction.create({
+      data: {
+        visitorId: dto.visitorId,
+        type: dto.type,
+        target: dto.target,
+        abVariant: dto.abVariant,
+        ipAddress: ip,
+        userAgent: ua,
+      },
+    })
   }
 }

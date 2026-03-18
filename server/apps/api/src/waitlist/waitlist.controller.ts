@@ -8,9 +8,12 @@ import {
   UsePipes,
   ValidationPipe,
   Param,
+  Req,
 } from '@nestjs/common'
+import { IncomingMessage } from 'node:http'
 import { WaitlistService } from './waitlist.service'
 import { CreateWaitlistEntryDto } from './dto/create-waitlist-entry.dto'
+import { TrackInteractionDto } from './dto/track-interaction.dto'
 import type { WaitlistEntryResponse, ApiSuccess } from '@upward/shared-types'
 
 @Controller('waitlist')
@@ -38,5 +41,17 @@ export class WaitlistController {
   async findOne(@Param('email') email: string): Promise<ApiSuccess<WaitlistEntryResponse | null>> {
     const data = await this.waitlistService.findByEmail(email)
     return { data: data as WaitlistEntryResponse | null }
+  }
+
+  @Post('interactions')
+  @HttpCode(HttpStatus.OK)
+  async track(
+    @Body() dto: TrackInteractionDto,
+    @Req() req: IncomingMessage,
+  ): Promise<ApiSuccess<{ success: boolean }>> {
+    const ip = (req.headers['x-forwarded-for'] as string | undefined) ?? req.socket?.remoteAddress
+    const ua = req.headers['user-agent']
+    await this.waitlistService.trackInteraction(dto, ip, ua)
+    return { data: { success: true } }
   }
 }

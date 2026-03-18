@@ -4,8 +4,10 @@ import { PressLogos } from './press-logos'
 
 export function HeroSection({
   onOpenSignup,
+  variant = 'A',
 }: {
   onOpenSignup: (email?: string, step?: number) => void
+  variant?: 'A' | 'B'
 }) {
   const LAUNCH_DATE = '2026-04-16T00:00:00'
   const launchRef = useRef<number>(new Date(LAUNCH_DATE).getTime())
@@ -28,6 +30,19 @@ export function HeroSection({
   }, [])
 
   const pad = (n: number) => String(n).padStart(2, '0')
+
+  const content = {
+    A: {
+      titleLine1: 'Paid millions in rent?',
+      titleLine2: 'What do you have to show for it?',
+      sub: 'Upward records every payment, builds your housing reputation, unlocks benefits and opens the door to home ownership.',
+    },
+    B: {
+      titleLine1: "Don't Just Pay Rent.",
+      titleLine2: 'Build With It.',
+      sub: 'Turn every rent payment into proof of financial responsibility—unlock rewards, credit opportunities, and pathways to owning your home.',
+    },
+  }[variant]
 
   return (
     <section style={{ position: 'relative', zIndex: 1 }}>
@@ -75,7 +90,7 @@ export function HeroSection({
             lineHeight: 1.05,
             letterSpacing: '-0.04em',
             marginBottom: '32px',
-            maxWidth: '700px',
+            maxWidth: '850px',
             animation: 'fadeUp 0.7s 0.1s ease both',
           }}
         >
@@ -87,9 +102,9 @@ export function HeroSection({
               WebkitTextFillColor: 'transparent',
             }}
           >
-            Pay. Record. Own.
+            {content.titleLine1}
           </span>
-          <span style={{ display: 'block' }}>Your Rent Is Your Credit.</span>
+          <span style={{ display: 'block' }}>{content.titleLine2}</span>
         </h1>
 
         <div
@@ -100,16 +115,15 @@ export function HeroSection({
         >
           <p
             style={{
-              fontSize: '18px',
+              fontSize: '20px',
               color: 'var(--muted)',
-              maxWidth: '560px',
+              maxWidth: '650px',
               lineHeight: 1.6,
               marginBottom: '28px',
             }}
             className="hero-p"
           >
-            We&apos;re helping smart, responsible and hardworking renters build credibility that
-            unlocks exclusive financial benefits.
+            {content.sub}
           </p>
 
           <div

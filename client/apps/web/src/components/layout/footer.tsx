@@ -4,9 +4,12 @@ import Link from 'next/link'
 export function Footer({
   onSetView,
   onOpenSignup,
+  trackInteraction,
 }: {
   onSetView?: (view: 'home' | 'why') => void
   onOpenSignup?: () => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  trackInteraction?: (type: string, target: string, metadata?: any) => void
 }) {
   return (
     <footer
@@ -83,6 +86,11 @@ export function Footer({
                 <Link
                   href={href ?? '#'}
                   onClick={(e) => {
+                    if (trackInteraction)
+                      trackInteraction(
+                        'CLICK',
+                        `FOOTER_LINK_${label?.toUpperCase().replace(/\s+/g, '_')}`,
+                      )
                     if (onSetView) {
                       e.preventDefault()
                       if (label === 'Why Upward?' || label === 'FAQ') {
@@ -152,6 +160,13 @@ export function Footer({
               <li key={label}>
                 <Link
                   href={href as string}
+                  onClick={() => {
+                    if (trackInteraction)
+                      trackInteraction(
+                        'CLICK',
+                        `LEGAL_LINK_${label.toUpperCase().replace(/\s+/g, '_')}`,
+                      )
+                  }}
                   target={href !== '#' ? '_blank' : undefined}
                   style={{
                     fontSize: '13px',
@@ -203,6 +218,9 @@ export function Footer({
           >
             <a
               href="mailto:hello@goodtenants.africa"
+              onClick={() => {
+                if (trackInteraction) trackInteraction('CLICK', 'CONTACT_EMAIL')
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -232,6 +250,9 @@ export function Footer({
             </a>
             <a
               href="tel:09040969943"
+              onClick={() => {
+                if (trackInteraction) trackInteraction('CLICK', 'CONTACT_PHONE')
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -268,6 +289,10 @@ export function Footer({
               <Link
                 key={social.name}
                 href={social.href}
+                onClick={() => {
+                  if (trackInteraction)
+                    trackInteraction('CLICK', `SOCIAL_LINK_${social.name.toUpperCase()}`)
+                }}
                 target={social.href !== '#' ? '_blank' : undefined}
                 rel={social.href !== '#' ? 'noopener noreferrer' : undefined}
                 style={{

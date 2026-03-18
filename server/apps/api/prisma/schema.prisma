@@ -23,6 +23,7 @@ model upward_waitlist {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   confirmationSent Boolean  @default(false)
+  abVariant        String?
 
   attendances     upward_attendance[]
   emailLogs       upward_email_log[]
@@ -85,4 +86,19 @@ model upward_admin {
   updatedAt          DateTime @updatedAt
 
   @@index([email])
+}
+
+model upward_interaction {
+  id               String   @id @default(uuid())
+  visitorId        String   // Anonymous ID from localStorage
+  type             String   // CLICK, VIEW, SCROLL
+  target           String   // e.g. "HERO_CTA", "BENEFITS_SECTION"
+  abVariant        String   // A or B
+  ipAddress        String?
+  userAgent        String?
+  createdAt        DateTime @default(now())
+
+  @@index([visitorId])
+  @@index([type])
+  @@index([createdAt])
 }
