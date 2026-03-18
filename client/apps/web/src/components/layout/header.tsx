@@ -6,10 +6,13 @@ export function Header({
   onSetView,
   currentView,
   onOpenSignup,
+  trackInteraction,
 }: {
   onSetView: (view: 'home' | 'why') => void
   currentView: 'home' | 'why'
   onOpenSignup: () => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  trackInteraction?: (type: string, target: string, metadata?: any) => void
 }) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -49,7 +52,10 @@ export function Header({
       className="header-padding"
     >
       <div
-        onClick={() => onSetView('home')}
+        onClick={() => {
+          if (trackInteraction) trackInteraction('CLICK', 'BRAND_LOGO')
+          onSetView('home')
+        }}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -142,6 +148,11 @@ export function Header({
               <Link
                 href={href}
                 onClick={(e) => {
+                  if (trackInteraction)
+                    trackInteraction(
+                      'CLICK',
+                      `NAV_LINK_${label.toUpperCase().replace(/\s+/g, '_')}`,
+                    )
                   if (label === 'Why Upward?' || label === 'FAQ') {
                     e.preventDefault()
                     onSetView('why')
@@ -193,7 +204,10 @@ export function Header({
       <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
         <button
           className="mobile-hide"
-          onClick={onOpenSignup}
+          onClick={() => {
+            if (trackInteraction) trackInteraction('CLICK', 'HEADER_SIGNUP_BTNA')
+            onOpenSignup()
+          }}
           style={{
             fontSize: '9px',
             letterSpacing: '0.2em',
@@ -374,6 +388,11 @@ export function Header({
               key={href}
               href={href}
               onClick={(e) => {
+                if (trackInteraction)
+                  trackInteraction(
+                    'CLICK',
+                    `MOBILE_NAV_LINK_${label.toUpperCase().replace(/\s+/g, '_')}`,
+                  )
                 if (label === 'Why Upward?' || label === 'FAQ') {
                   e.preventDefault()
                   onSetView('why')
@@ -412,6 +431,7 @@ export function Header({
           <div style={{ marginTop: 'auto', paddingBottom: '40px' }}>
             <button
               onClick={() => {
+                if (trackInteraction) trackInteraction('CLICK', 'MOBILE_SIGNUP_BTN')
                 onOpenSignup()
                 setMobileMenuOpen(false)
               }}

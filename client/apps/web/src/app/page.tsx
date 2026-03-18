@@ -15,11 +15,36 @@ export default function HomePage() {
   const [prefilledEmail, setPrefilledEmail] = useState('')
   const [prefilledStep, setPrefilledStep] = useState(1)
   const [view, setView] = useState<'home' | 'why'>('home')
+  const [abVariant, setAbVariant] = useState<'A' | 'B'>('A')
+  const [visitorId, setVisitorId] = useState('')
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const trackInteraction = async (type: string, target: string, metadata?: any) => {
+    try {
+      const vid = localStorage.getItem('upward_visitor_id') || visitorId
+      if (!vid) return
+
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist/interactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          visitorId: vid,
+          type,
+          target,
+          abVariant,
+          metadata: metadata ? JSON.stringify(metadata) : undefined,
+        }),
+      })
+    } catch (err) {
+      console.error('Failed to track interaction', err)
+    }
+  }
 
   const openSignup = (email?: string, step: number = 1) => {
     if (email) setPrefilledEmail(email)
     setPrefilledStep(step)
     setShowModal(true)
+    trackInteraction('CLICK', 'OPEN_SIGNUP_MODAL')
   }
 
   useEffect(() => {
@@ -30,7 +55,56 @@ export default function HomePage() {
   // Scroll to top when view changes
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [view])
+    if (visitorId) {
+      trackInteraction('VIEW', `PAGE_${view.toUpperCase()}`)
+    }
+  }, [view, visitorId])
+
+  // Handle A/B variant assignment and Visitor ID
+  useEffect(() => {
+    // 1. Visitor ID
+    let vid = localStorage.getItem('upward_visitor_id')
+    if (!vid) {
+      vid =
+        Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+      localStorage.setItem('upward_visitor_id', vid)
+    }
+    setVisitorId(vid)
+
+    // 2. A/B Variant
+    const params = new URLSearchParams(window.location.search)
+    const forced = params.get('variant')?.toUpperCase()
+
+    let variant: 'A' | 'B'
+    if (forced === 'A' || forced === 'B') {
+      variant = forced as 'A' | 'B'
+      localStorage.setItem('upward_ab_hero', forced)
+    } else {
+      const saved = localStorage.getItem('upward_ab_hero')
+      if (saved === 'A' || saved === 'B') {
+        variant = saved as 'A' | 'B'
+      } else {
+        variant = Math.random() < 0.5 ? 'A' : 'B'
+        localStorage.setItem('upward_ab_hero', variant)
+      }
+    }
+    setAbVariant(variant)
+
+    const trackInitial = async () => {
+      await new Promise((r) => setTimeout(r, 100))
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist/interactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          visitorId: vid,
+          type: 'VIEW',
+          target: 'LANDING_PAGE',
+          abVariant: variant,
+        }),
+      }).catch(() => {})
+    }
+    trackInitial()
+  }, [])
 
   // Handle deep-linking from other pages (like /legal/...)
   useEffect(() => {
@@ -88,7 +162,12 @@ export default function HomePage() {
         }}
       />
 
-      <Header onSetView={setView} currentView={view} onOpenSignup={() => openSignup()} />
+      <Header
+        onSetView={setView}
+        currentView={view}
+        onOpenSignup={() => openSignup()}
+        trackInteraction={trackInteraction}
+      />
 
       <main style={{ position: 'relative', zIndex: 1, overflowX: 'hidden' }}>
         <div
@@ -112,7 +191,7 @@ export default function HomePage() {
           >
             <div className="split-layout">
               <div className="split-hero">
-                <HeroSection onOpenSignup={(e, s) => openSignup(e, s)} />
+                <HeroSection onOpenSignup={(e, s) => openSignup(e, s)} variant={abVariant} />
               </div>
               <div className="split-benefits">
                 <BenefitsGrid onOpenSignup={(e, s) => openSignup(e, s)} />
@@ -121,7 +200,10 @@ export default function HomePage() {
 
             <div className="divider" />
 
-            <AmbassadorSection onOpenSignup={() => openSignup()} />
+            <AmbassadorSection
+              onOpenSignup={() => openSignup()}
+              trackInteraction={trackInteraction}
+            />
 
             <div className="divider" />
 
@@ -145,7 +227,11 @@ export default function HomePage() {
         </div>
       </main>
 
-      <Footer onSetView={setView} onOpenSignup={() => openSignup()} />
+      <Footer
+        onSetView={setView}
+        onOpenSignup={() => openSignup()}
+        trackInteraction={trackInteraction}
+      />
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
@@ -195,7 +281,11 @@ export default function HomePage() {
                   Tell us about yourself and we&apos;ll tailor your experience from day one.
                 </p>
               </div>
-              <SignupForm initialEmail={prefilledEmail} initialStep={prefilledStep} />
+              <SignupForm
+                initialEmail={prefilledEmail}
+                initialStep={prefilledStep}
+                abVariant={abVariant}
+              />
             </div>
           </div>
         </div>

@@ -3,7 +3,14 @@ import { useState, useRef } from 'react'
 import { showToast } from '@upward/client-core'
 import { SESSIONS } from '@upward/client-shared'
 
-export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignup: () => void }) {
+export function AmbassadorSection({
+  onOpenSignup: _onOpenSignup,
+  trackInteraction,
+}: {
+  onOpenSignup: () => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  trackInteraction?: (type: string, target: string, metadata?: any) => void
+}) {
   const [email, setEmail] = useState('')
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
   const [isSuccess, setIsSuccess] = useState(false)
@@ -94,10 +101,13 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
 
     if (!selectedSession) {
       showToast('Please select a session from the list.', true)
+      if (trackInteraction) trackInteraction('CLICK_FAILURE', 'AMBASSADOR_JOIN_NO_SESSION')
       setIsInteracting(true)
       return
     }
 
+    if (trackInteraction)
+      trackInteraction('CLICK', 'AMBASSADOR_JOIN_SESSION', { session: selectedSession })
     setIsLoading(true)
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist`, {
@@ -125,6 +135,7 @@ export function AmbassadorSection({ onOpenSignup: _onOpenSignup }: { onOpenSignu
   }
 
   const handleSessionClick = (sessionId: string) => {
+    if (trackInteraction) trackInteraction('CLICK', 'AMBASSADOR_SESSION_CARD', { sessionId })
     setSelectedSession((prev) => {
       const newVal = prev === sessionId ? null : sessionId
       if (email && email.includes('@')) {

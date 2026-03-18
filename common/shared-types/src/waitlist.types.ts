@@ -21,6 +21,7 @@ export interface CreateWaitlistEntryDto {
   country?: string
   city?: string
   selectedSession?: string
+  abVariant?: string
 }
 
 export interface WaitlistEntryResponse {
@@ -38,5 +39,6 @@ export interface WaitlistEntryResponse {
   country?: string
   city?: string
   selectedSession?: string
+  abVariant?: string
   alreadyExists?: boolean
 }

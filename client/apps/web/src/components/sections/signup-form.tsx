@@ -7,9 +7,11 @@ import { showToast } from '@upward/client-core'
 export function SignupForm({
   initialEmail = '',
   initialStep = 1,
+  abVariant = 'A',
 }: {
   initialEmail?: string
   initialStep?: number
+  abVariant?: 'A' | 'B'
 }) {
   const [step, setStep] = useState(initialStep)
   const [email, setEmail] = useState(initialEmail)
@@ -110,6 +112,7 @@ export function SignupForm({
         acceptTerms: checkboxes.news,
         wantsAmbassador: checkboxes.ambassador,
         selectedSession: selectedSession || undefined,
+        abVariant,
       }
       syncData(payload)
       if (step === 1 && email) {
@@ -147,6 +150,7 @@ export function SignupForm({
         country: country || undefined,
         city: city || undefined,
         selectedSession: selectedSession || undefined,
+        abVariant,
         ...optionalPayload,
       }
 
@@ -216,9 +220,9 @@ export function SignupForm({
         benefits,
         acceptTerms: checkboxes.news,
         wantsAmbassador: checkboxes.ambassador,
-        country: country || undefined,
         city: city || undefined,
         selectedSession: selectedSession || undefined,
+        abVariant,
       }
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist`, {

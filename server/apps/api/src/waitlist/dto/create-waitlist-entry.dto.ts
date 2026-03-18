@@ -64,4 +64,8 @@ export class CreateWaitlistEntryDto implements ICreateWaitlistEntryDto {
   @IsOptional()
   @IsString()
   selectedSession?: string
+
+  @IsOptional()
+  @IsString()
+  abVariant?: string
 }
