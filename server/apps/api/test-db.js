@@ -96,7 +96,7 @@ async function testConnection() {
 
     console.log('\n🔍 Fetching data from "upward_waitlist" table...')
     try {
-      const waitlistData = await prisma.$queryRaw`SELECT * FROM "upward_waitlist" LIMIT 5`
+      const waitlistData = await prisma.$queryRaw`SELECT * FROM "upward_waitlist" LIMIT 25`
       console.log(`✅ Successfully fetched ${waitlistData.length} records.`)
       if (waitlistData.length > 0) {
         console.table(waitlistData)

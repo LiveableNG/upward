@@ -6,6 +6,7 @@ import { WaitlistModule } from './waitlist/waitlist.module'
 import { LocationsModule } from './locations/locations.module'
 import { EmailModule } from './email/email.module'
 import { AdminModule } from './admin/admin.module'
+import { AuthModule } from './auth/auth.module'
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { AdminModule } from './admin/admin.module'
     LocationsModule,
     EmailModule,
     AdminModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

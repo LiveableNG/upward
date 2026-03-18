@@ -1,290 +1,373 @@
-import { useState, useEffect } from 'react'
-import { Send, Filter, CheckCircle } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Send, Filter, Users, Info, CheckCircle2, AlertCircle } from 'lucide-react'
+import { apiService } from '../services/api.service'
 
-interface User {
+interface DropOffUser {
   id: string
   email: string
   firstName?: string
   lastName?: string
-  phone?: string
-  benefits?: string[]
-  confirmationSent?: boolean
+  role?: string
+  drop_off_stage: string
   selectedSession?: string
 }
 
 interface Session {
   id: string
   name: string
+  startTime: string
+  googleMeetLink: string
 }
 
-export default function EmailComposer() {
-  const [target, setTarget] = useState('selected') // all, selected, incomplete, conf-pending, session
-  const [selectedSession, setSelectedSession] = useState('')
+interface EmailComposerProps {
+  token: string
+}
+
+const EmailComposer: React.FC<EmailComposerProps> = ({ token }) => {
+  const [targetQuery, setTargetQuery] = useState({ stage: 'All', role: 'All', session: 'All' })
+  const [users, setUsers] = useState<DropOffUser[]>([])
+  const [sessions, setSessions] = useState<Session[]>([])
   const [subject, setSubject] = useState('')
   const [content, setContent] = useState('')
   const [sending, setSending] = useState(false)
-  const [users, setUsers] = useState<User[]>([])
-  const [sessions, setSessions] = useState<Session[]>([])
+  const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    fetchUsers()
+    fetchSessions()
+  }, [token])
 
-  const fetchData = async () => {
+  const fetchUsers = async () => {
     try {
-      const [uRes, sRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/admin/users`),
-        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/admin/sessions`),
-      ])
-      const uData = await uRes.json()
-      const sData = await sRes.json()
-      setUsers(uData.data || [])
-      setSessions(sData.data || [])
+      const result = await apiService.get('/admin/drop-off', token)
+      setUsers(result.data)
     } catch (err) {
-      console.error('Failed to fetch data', err)
+      console.error(err)
     }
   }
 
-  const filteredUsers = users.filter((user) => {
-    if (target === 'all') return true
-    if (target === 'incomplete') {
-      return !(
-        user.firstName &&
-        user.lastName &&
-        user.phone &&
-        user.benefits &&
-        user.benefits.length > 0
-      )
+  const fetchSessions = async () => {
+    try {
+      const result = await apiService.get('/admin/sessions', token)
+      setSessions(result.data)
+    } catch (err) {
+      console.error(err)
     }
-    if (target === 'conf-pending') return !user.confirmationSent
-    if (target === 'session') return user.selectedSession === selectedSession
-    return false
+  }
+
+  const filteredUsers = users.filter((u) => {
+    const matchesStage = targetQuery.stage === 'All' || u.drop_off_stage === targetQuery.stage
+    const matchesRole = targetQuery.role === 'All' || u.role === targetQuery.role
+    const matchesSession =
+      targetQuery.session === 'All' || u.selectedSession === targetQuery.session
+    return matchesStage && matchesRole && matchesSession
   })
 
+  const handleSessionChange = (sessionName: string) => {
+    setTargetQuery({ ...targetQuery, session: sessionName })
+    if (sessionName !== 'All') {
+      const selected = sessions.find((s) => s.name === sessionName)
+      if (selected) {
+        setSubject(`Reminder: ${selected.name}`)
+        setContent(
+          `Hi {{firstName}},\n\nThis is a reminder for our upcoming session: **${selected.name}**.\n\n📅 **Date:** ${new Date(selected.startTime).toLocaleDateString()}\n🕒 **Time:** ${new Date(selected.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}\n📹 **Meeting Link:** ${selected.googleMeetLink}\n\nWe look forward to seeing you there!\n\nBest regards,\nUpward Team`,
+        )
+      }
+    }
+  }
+
   const handleSend = async () => {
-    if (!subject || !content || filteredUsers.length === 0) return
+    if (!subject || !content || filteredUsers.length === 0) {
+      setStatus({ type: 'error', message: 'Please fill all fields and select recipients' })
+      return
+    }
 
     setSending(true)
+    setStatus(null)
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/admin/email/bulk`,
+      await apiService.post(
+        '/admin/email/bulk',
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userIds: filteredUsers.map((u) => u.id),
-            subject,
-            content,
-            sessionId:
-              target === 'session'
-                ? sessions.find((s) => s.name === selectedSession)?.id
-                : undefined,
-          }),
+          userIds: filteredUsers.map((u) => u.id),
+          subject,
+          content,
         },
+        token,
       )
-      if (res.ok) {
-        alert('Emails sent successfully!')
-        setSubject('')
-        setContent('')
-      }
-    } catch (err) {
-      console.error('Failed to send bulk email', err)
+
+      setStatus({ type: 'success', message: `Successfully sent to ${filteredUsers.length} users!` })
+      setSubject('')
+      setContent('')
+    } catch (err: unknown) {
+      const error = err as { message?: string }
+      setStatus({ type: 'error', message: error.message || 'Failed to send emails' })
     } finally {
       setSending(false)
     }
   }
 
+  const insertVariable = (variable: string) => {
+    setContent((prev) => prev + ` {{${variable}}}`)
+  }
+
+  const stages = ['All', ...Array.from(new Set(users.map((u) => u.drop_off_stage)))]
+  const roles = ['All', ...Array.from(new Set(users.filter((u) => u.role).map((u) => u.role!)))]
+
   return (
-    <div style={{ maxWidth: '900px' }}>
+    <div className="page-container fade-in">
       <div style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '28px', marginBottom: '4px' }}>Email Composer</h2>
-        <p style={{ color: 'var(--muted)' }}>Send high-reach emails to your waitlist</p>
+        <h2 className="section-title">Email Composer</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+          Draft and send personalized emails to filtered user segments.
+        </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
-        <div className="card">
-          <div style={{ marginBottom: '20px' }}>
-            <label
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 340px',
+          gap: '32px',
+          alignItems: 'start',
+        }}
+      >
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {status && (
+            <div
               style={{
-                display: 'block',
-                fontSize: '12px',
-                color: 'var(--muted)',
-                marginBottom: '8px',
-                textTransform: 'uppercase',
+                padding: '16px',
+                borderRadius: '12px',
+                backgroundColor: status.type === 'success' ? '#dcfce7' : '#fee2e2',
+                color: status.type === 'success' ? '#166534' : '#b91c1c',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
               }}
             >
-              Subject
-            </label>
+              {status.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+              <span style={{ fontSize: '14px', fontWeight: 600 }}>{status.message}</span>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ fontSize: '14px', fontWeight: 600 }}>Subject Line</label>
             <input
               type="text"
-              placeholder="e.g. Welcome to Upward!"
-              style={{ width: '100%' }}
+              placeholder="Enter email subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
+              style={{
+                padding: '12px 16px',
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
+                fontSize: '15px',
+                outline: 'none',
+              }}
             />
           </div>
 
-          <div style={{ marginBottom: '24px' }}>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '12px',
-                color: 'var(--muted)',
-                marginBottom: '8px',
-                textTransform: 'uppercase',
-              }}
-            >
-              Email Content (HTML Supported)
-            </label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={{ fontSize: '14px', fontWeight: 600 }}>Email Body</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => insertVariable('firstName')}
+                  style={{
+                    fontSize: '11px',
+                    padding: '4px 8px',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    background: 'var(--surface)',
+                  }}
+                >
+                  + First Name
+                </button>
+                <button
+                  onClick={() => insertVariable('email')}
+                  style={{
+                    fontSize: '11px',
+                    padding: '4px 8px',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    background: 'var(--surface)',
+                  }}
+                >
+                  + Email
+                </button>
+              </div>
+            </div>
             <textarea
               rows={12}
-              placeholder="Hello there..."
-              style={{
-                width: '100%',
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                color: 'var(--text)',
-                padding: '12px',
-                fontFamily: 'inherit',
-                outline: 'none',
-              }}
+              placeholder="Write your email here... (HTML tags supported)"
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              style={{
+                padding: '16px',
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
+                fontSize: '15px',
+                lineHeight: '1.6',
+                outline: 'none',
+                resize: 'vertical',
+              }}
             />
+          </div>
+
+          <div
+            style={{
+              padding: '16px',
+              backgroundColor: 'var(--surface)',
+              borderRadius: '12px',
+              border: '1px dashed var(--border)',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px',
+            }}
+          >
+            <Info size={18} color="var(--accent)" style={{ marginTop: '2px' }} />
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              <strong>Tip:</strong> You can use standard HTML tags like{' '}
+              <code>&lt;a href="..."&gt;</code> for links. All links will be automatically tracked
+              for engagement.
+            </div>
           </div>
 
           <button
-            className="btn-primary"
+            onClick={handleSend}
+            disabled={sending || filteredUsers.length === 0}
             style={{
-              width: '100%',
+              padding: '14px',
+              backgroundColor: 'var(--accent)',
+              color: 'var(--white)',
+              border: 'none',
+              borderRadius: '12px',
+              fontWeight: 600,
+              fontSize: '16px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
+              gap: '12px',
+              marginTop: '12px',
+              transition: 'var(--transition)',
+              opacity: sending || filteredUsers.length === 0 ? 0.6 : 1,
             }}
-            disabled={sending || filteredUsers.length === 0}
-            onClick={handleSend}
           >
-            <Send size={18} /> {sending ? 'Sending...' : `Send to ${filteredUsers.length} Users`}
+            {sending ? (
+              'Sending...'
+            ) : (
+              <>
+                Send to {filteredUsers.length} Recipients
+                <Send size={18} />
+              </>
+            )}
           </button>
         </div>
 
-        <div>
-          <div className="card" style={{ marginBottom: '24px' }}>
-            <h3
-              style={{
-                fontSize: '16px',
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
-              <Filter size={18} /> Recipients
-            </h3>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                }}
-              >
-                <input
-                  type="radio"
-                  name="target"
-                  checked={target === 'all'}
-                  onChange={() => setTarget('all')}
-                />{' '}
-                All Users
-              </label>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                }}
-              >
-                <input
-                  type="radio"
-                  name="target"
-                  checked={target === 'incomplete'}
-                  onChange={() => setTarget('incomplete')}
-                />{' '}
-                Incomplete waitlist
-              </label>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                }}
-              >
-                <input
-                  type="radio"
-                  name="target"
-                  checked={target === 'conf-pending'}
-                  onChange={() => setTarget('conf-pending')}
-                />{' '}
-                Conf. Not Sent
-              </label>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                }}
-              >
-                <input
-                  type="radio"
-                  name="target"
-                  checked={target === 'session'}
-                  onChange={() => setTarget('session')}
-                />{' '}
-                By Session
-              </label>
-            </div>
-
-            {target === 'session' && (
-              <select
-                style={{ width: '100%', marginTop: '16px' }}
-                value={selectedSession}
-                onChange={(e) => setSelectedSession(e.target.value)}
-              >
-                <option value="">Select Session</option>
-                {sessions.map((s) => (
-                  <option key={s.id} value={s.name}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div className="card">
             <h3
               style={{
                 fontSize: '16px',
-                marginBottom: '16px',
+                fontWeight: 700,
+                marginBottom: '20px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '10px',
               }}
             >
-              <CheckCircle size={18} /> Tips
+              <Filter size={18} color="var(--accent)" /> Target Segment
             </h3>
-            <p style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: '1.6' }}>
-              Use HTML for rich formatting. Inline styles are recommended for email clients.
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                  Registered Session
+                </label>
+                <select
+                  value={targetQuery.session}
+                  onChange={(e) => handleSessionChange(e.target.value)}
+                  style={{
+                    padding: '10px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border)',
+                    fontSize: '14px',
+                  }}
+                >
+                  <option value="All">All Sessions</option>
+                  {sessions.map((s) => (
+                    <option key={s.id} value={s.name}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                  Progress Stage
+                </label>
+                <select
+                  value={targetQuery.stage}
+                  onChange={(e) => setTargetQuery({ ...targetQuery, stage: e.target.value })}
+                  style={{
+                    padding: '10px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border)',
+                    fontSize: '14px',
+                  }}
+                >
+                  {stages.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                  User Role
+                </label>
+                <select
+                  value={targetQuery.role}
+                  onChange={(e) => setTargetQuery({ ...targetQuery, role: e.target.value })}
+                  style={{
+                    padding: '10px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border)',
+                    fontSize: '14px',
+                  }}
+                >
+                  {roles.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="card"
+            style={{ backgroundColor: 'var(--accent-faint)', borderColor: 'var(--accent-muted)' }}
+          >
+            <h3
+              style={{
+                fontSize: '16px',
+                fontWeight: 700,
+                marginBottom: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}
+            >
+              <Users size={18} color="var(--accent)" /> Audience Size
+            </h3>
+            <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--accent)' }}>
+              {filteredUsers.length}
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
+              Based on your current filter criteria.
             </p>
           </div>
         </div>
@@ -292,3 +375,5 @@ export default function EmailComposer() {
     </div>
   )
 }
+
+export default EmailComposer
