@@ -39,6 +39,7 @@
     "@nestjs/core": "^11.0.11",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
+    "@fastify/cookie": "^11.0.2",
     "@nestjs/platform-fastify": "^11.0.11",
     "@prisma/client": "6.19.0",
     "@upward/shared-types": "workspace:*",

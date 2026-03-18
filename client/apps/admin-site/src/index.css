@@ -159,13 +159,13 @@ select {
 /* Responsive Utilities */
 @media (max-width: 768px) {
   :root {
-    --sidebar-width: 100%;
+    --sidebar-width: 280px;
     --sidebar-collapsed-width: 0px;
     --header-height: 64px;
   }
 
   .page-container {
-    padding: 20px;
+    padding: 16px;
   }
 
   .desktop-only {
@@ -178,6 +178,36 @@ select {
 
   .flex-mobile-column {
     flex-direction: column !important;
+  }
+
+  .grid-mobile-1 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Table responsiveness */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -16px;
+    padding: 0 16px;
+  }
+
+  table {
+    min-width: 600px; /* Force scroll if screen is too narrow */
+  }
+
+  /* Card adjustments */
+  .card {
+    padding: 16px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .section-title {
+    font-size: 20px;
   }
 }
 
@@ -211,4 +241,22 @@ select {
   width: 24px;
   height: 24px;
   animation: spin 1s linear infinite;
+}
+
+/* Custom Table Container for Shadow/Radius */
+.table-wrapper {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.scroll-x {
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+}
+
+.scroll-x::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Send, Filter, Users, Info, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Send, Filter, Users, Info } from 'lucide-react'
 import { apiService } from '../services/api.service'
+import { showToast } from '@upward/client-core'
 
 interface DropOffUser {
   id: string
@@ -30,7 +31,6 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token }) => {
   const [subject, setSubject] = useState('')
   const [content, setContent] = useState('')
   const [sending, setSending] = useState(false)
-  const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   useEffect(() => {
     fetchUsers()
@@ -78,12 +78,11 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token }) => {
 
   const handleSend = async () => {
     if (!subject || !content || filteredUsers.length === 0) {
-      setStatus({ type: 'error', message: 'Please fill all fields and select recipients' })
+      showToast('Please fill all fields and select recipients', true)
       return
     }
 
     setSending(true)
-    setStatus(null)
     try {
       await apiService.post(
         '/admin/email/bulk',
@@ -94,13 +93,14 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token }) => {
         },
         token,
       )
-
-      setStatus({ type: 'success', message: `Successfully sent to ${filteredUsers.length} users!` })
+      showToast(
+        `Email sent to ${filteredUsers.length} recipient${filteredUsers.length === 1 ? '' : 's'}! ✓`,
+      )
       setSubject('')
       setContent('')
     } catch (err: unknown) {
       const error = err as { message?: string }
-      setStatus({ type: 'error', message: error.message || 'Failed to send emails' })
+      showToast(error.message || 'Failed to send emails', true)
     } finally {
       setSending(false)
     }
@@ -123,31 +123,15 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token }) => {
       </div>
 
       <div
+        className="email-composer-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 340px',
-          gap: '32px',
+          gridTemplateColumns: 'minmax(0, 1fr) 300px',
+          gap: '24px',
           alignItems: 'start',
         }}
       >
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {status && (
-            <div
-              style={{
-                padding: '16px',
-                borderRadius: '12px',
-                backgroundColor: status.type === 'success' ? '#dcfce7' : '#fee2e2',
-                color: status.type === 'success' ? '#166534' : '#b91c1c',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-              }}
-            >
-              {status.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
-              <span style={{ fontSize: '14px', fontWeight: 600 }}>{status.message}</span>
-            </div>
-          )}
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <label style={{ fontSize: '14px', fontWeight: 600 }}>Subject Line</label>
             <input
@@ -196,7 +180,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token }) => {
               </div>
             </div>
             <textarea
-              rows={12}
+              rows={8}
               placeholder="Write your email here... (HTML tags supported)"
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -262,7 +246,10 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token }) => {
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div
+          className="email-sidebar"
+          style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+        >
           <div className="card">
             <h3
               style={{
@@ -277,20 +264,12 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token }) => {
               <Filter size={18} color="var(--accent)" /> Target Segment
             </h3>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                  Registered Session
-                </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="filter-field">
+                <label>Registered Session</label>
                 <select
                   value={targetQuery.session}
                   onChange={(e) => handleSessionChange(e.target.value)}
-                  style={{
-                    padding: '10px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border)',
-                    fontSize: '14px',
-                  }}
                 >
                   <option value="All">All Sessions</option>
                   {sessions.map((s) => (
@@ -301,19 +280,11 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token }) => {
                 </select>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                  Progress Stage
-                </label>
+              <div className="filter-field">
+                <label>Progress Stage</label>
                 <select
                   value={targetQuery.stage}
                   onChange={(e) => setTargetQuery({ ...targetQuery, stage: e.target.value })}
-                  style={{
-                    padding: '10px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border)',
-                    fontSize: '14px',
-                  }}
                 >
                   {stages.map((s) => (
                     <option key={s} value={s}>
@@ -323,19 +294,11 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token }) => {
                 </select>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                  User Role
-                </label>
+              <div className="filter-field">
+                <label>User Role</label>
                 <select
                   value={targetQuery.role}
                   onChange={(e) => setTargetQuery({ ...targetQuery, role: e.target.value })}
-                  style={{
-                    padding: '10px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border)',
-                    fontSize: '14px',
-                  }}
                 >
                   {roles.map((r) => (
                     <option key={r} value={r}>
@@ -348,26 +311,29 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token }) => {
           </div>
 
           <div
-            className="card"
+            className="card audience-card"
             style={{ backgroundColor: 'var(--accent-faint)', borderColor: 'var(--accent-muted)' }}
           >
             <h3
               style={{
-                fontSize: '16px',
+                fontSize: '14px',
                 fontWeight: 700,
-                marginBottom: '12px',
+                marginBottom: '8px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
               }}
             >
-              <Users size={18} color="var(--accent)" /> Audience Size
+              <Users size={18} color="var(--accent)" /> Audience
             </h3>
-            <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--accent)' }}>
+            <div
+              className="audience-number"
+              style={{ fontSize: '36px', fontWeight: 800, color: 'var(--accent)' }}
+            >
               {filteredUsers.length}
             </div>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
-              Based on your current filter criteria.
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+              recipient{filteredUsers.length === 1 ? '' : 's'} match your filters.
             </p>
           </div>
         </div>

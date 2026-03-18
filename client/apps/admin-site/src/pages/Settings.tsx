@@ -1,6 +1,18 @@
-import React, { useState, useEffect } from 'react'
-import { Shield, UserPlus, Trash2, ArrowUpCircle, Mail, Clock, AlertCircle } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import {
+  Shield,
+  UserPlus,
+  Trash2,
+  ArrowUpCircle,
+  Mail,
+  Clock,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  RefreshCw,
+} from 'lucide-react'
 import { apiService } from '../services/api.service'
+import { showToast } from '@upward/client-core'
 
 interface AdminUser {
   id: string
@@ -14,18 +26,65 @@ interface SettingsProps {
   currentAdminId: string
 }
 
+// Generates a random password: mix of letters, digits, symbols
+function generatePassword(length = 12): string {
+  const lower = 'abcdefghijkmnopqrstuvwxyz'
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+  const digits = '23456789'
+  const symbols = '!@#$%^&*'
+  const all = lower + upper + digits + symbols
+  let pw = ''
+  // guarantee one of each category
+  pw += lower[Math.floor(Math.random() * lower.length)]
+  pw += upper[Math.floor(Math.random() * upper.length)]
+  pw += digits[Math.floor(Math.random() * digits.length)]
+  pw += symbols[Math.floor(Math.random() * symbols.length)]
+  for (let i = pw.length; i < length; i++) {
+    pw += all[Math.floor(Math.random() * all.length)]
+  }
+  // shuffle
+  return pw
+    .split('')
+    .sort(() => Math.random() - 0.5)
+    .join('')
+}
+
 const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
   const [admins, setAdmins] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [newAdmin, setNewAdmin] = useState({ email: '', passwordPlain: '', role: 'ADMIN' })
+  const [showPassword, setShowPassword] = useState(false)
+  const [newAdmin, setNewAdmin] = useState({
+    email: '',
+    passwordPlain: generatePassword(),
+    role: 'ADMIN',
+  })
   const [error, setError] = useState('')
+
+  // ── Confirm modal ─────────────────────────────────────────────────────────
+  // We store the callback in a ref so stale-closure bugs are impossible
+  const confirmCallbackRef = useRef<(() => void) | null>(null)
   const [confirmModal, setConfirmModal] = useState<{
     show: boolean
     title: string
     message: string
-    onConfirm: () => void
-  }>({ show: false, title: '', message: '', onConfirm: () => {} })
+    danger?: boolean
+  }>({ show: false, title: '', message: '', danger: false })
+
+  const openConfirm = (title: string, message: string, onConfirm: () => void, danger = false) => {
+    confirmCallbackRef.current = onConfirm
+    setConfirmModal({ show: true, title, message, danger })
+  }
+
+  const closeConfirm = () => setConfirmModal((p) => ({ ...p, show: false }))
+
+  const handleConfirm = async () => {
+    if (confirmCallbackRef.current) {
+      await confirmCallbackRef.current()
+    }
+    closeConfirm()
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     fetchAdmins()
@@ -49,45 +108,38 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
       await apiService.post('/admin/admins', newAdmin, token)
       fetchAdmins()
       setShowAddModal(false)
-      setNewAdmin({ email: '', passwordPlain: '', role: 'ADMIN' })
+      setNewAdmin({ email: '', passwordPlain: generatePassword(), role: 'ADMIN' })
+      showToast('Admin added successfully!')
     } catch (err: unknown) {
       const error = err as { message?: string }
       setError(error.message || 'Failed to create admin')
+      showToast(error.message || 'Failed to create admin', true)
     }
   }
 
   const handleDeleteAdmin = (id: string) => {
-    setConfirmModal({
-      show: true,
-      title: 'Remove Administrator',
-      message: 'Are you sure you want to remove this admin? They will lose all access immediately.',
-      onConfirm: async () => {
-        try {
-          await apiService.delete(`/admin/admins/${id}`, token)
-          fetchAdmins()
-          setConfirmModal((prev) => ({ ...prev, show: false }))
-        } catch (err) {
-          console.error(err)
-        }
+    openConfirm(
+      'Remove Administrator',
+      'Are you sure you want to remove this admin? They will lose all access immediately.',
+      async () => {
+        await apiService.delete(`/admin/admins/${id}`, token)
+        fetchAdmins()
+        showToast('Admin removed')
       },
-    })
+      true,
+    )
   }
 
   const handlePromoteAdmin = (id: string) => {
-    setConfirmModal({
-      show: true,
-      title: 'Promote to Superadmin',
-      message: 'Promote this admin to Superadmin? This gives them full access to all settings.',
-      onConfirm: async () => {
-        try {
-          await apiService.patch(`/admin/admins/${id}/promote`, {}, token)
-          fetchAdmins()
-          setConfirmModal((prev) => ({ ...prev, show: false }))
-        } catch (err) {
-          console.error(err)
-        }
+    openConfirm(
+      'Promote to Superadmin',
+      'Promote this admin to Superadmin? This gives them full access to all settings.',
+      async () => {
+        await apiService.patch(`/admin/admins/${id}/promote`, {}, token)
+        fetchAdmins()
+        showToast('Admin promoted to Superadmin!')
       },
-    })
+    )
   }
 
   return (
@@ -98,18 +150,24 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
           justifyContent: 'space-between',
           alignItems: 'center',
           marginBottom: '32px',
+          flexWrap: 'wrap',
+          gap: '16px',
         }}
       >
         <div>
           <h2 className="section-title" style={{ margin: 0 }}>
             Portal Settings
           </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
             Manage administrative access and roles.
           </p>
         </div>
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={() => {
+            setError('')
+            setNewAdmin({ email: '', passwordPlain: generatePassword(), role: 'ADMIN' })
+            setShowAddModal(true)
+          }}
           style={{
             padding: '12px 20px',
             backgroundColor: 'var(--accent)',
@@ -145,22 +203,24 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                 <div
                   key={admin.id}
                   style={{
-                    padding: '24px',
+                    padding: '20px 24px',
                     borderBottom: '1px solid var(--border)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    gap: '16px',
                     transition: 'var(--transition)',
                     backgroundColor:
                       admin.role === 'SUPERADMIN' ? 'var(--accent-faint)' : 'transparent',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>
                     <div
                       style={{
                         width: '40px',
                         height: '40px',
                         borderRadius: '10px',
+                        flexShrink: 0,
                         backgroundColor:
                           admin.role === 'SUPERADMIN' ? 'var(--accent)' : 'var(--surface-hover)',
                         display: 'flex',
@@ -171,9 +231,41 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                     >
                       <Shield size={20} />
                     </div>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontWeight: 600, fontSize: '15px' }}>{admin.email}</span>
+                    <div style={{ minWidth: 0 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontWeight: 600,
+                            fontSize: '15px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {admin.email}
+                        </span>
+                        {admin.id === currentAdminId && (
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              backgroundColor: '#e0f2fe',
+                              color: '#0369a1',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            You
+                          </span>
+                        )}
                         <span
                           style={{
                             fontSize: '10px',
@@ -193,33 +285,47 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '12px',
+                          gap: '4px',
                           marginTop: '4px',
                           fontSize: '12px',
                           color: 'var(--text-muted)',
                         }}
                       >
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Clock size={12} /> Joined{' '}
-                          {new Date(admin.createdAt).toLocaleDateString()}
-                        </span>
+                        <Clock size={12} /> Joined {new Date(admin.createdAt).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                     {admin.role === 'ADMIN' && (
                       <button
                         onClick={() => handlePromoteAdmin(admin.id)}
                         title="Promote to Superadmin"
                         style={{
                           background: 'none',
-                          border: 'none',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          padding: '6px 10px',
                           color: 'var(--text-muted)',
                           cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          transition: 'var(--transition)',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--accent)'
+                          e.currentTarget.style.color = 'var(--accent)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--border)'
+                          e.currentTarget.style.color = 'var(--text-muted)'
                         }}
                       >
-                        <ArrowUpCircle size={20} />
+                        <ArrowUpCircle size={16} />
+                        <span className="desktop-only">Promote</span>
                       </button>
                     )}
                     {admin.role !== 'SUPERADMIN' && admin.id !== currentAdminId && (
@@ -228,12 +334,29 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                         title="Remove Admin"
                         style={{
                           background: 'none',
-                          border: 'none',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          padding: '6px 10px',
                           color: 'var(--text-muted)',
                           cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          transition: 'var(--transition)',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = '#dc2626'
+                          e.currentTarget.style.color = '#dc2626'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--border)'
+                          e.currentTarget.style.color = 'var(--text-muted)'
                         }}
                       >
-                        <Trash2 size={20} />
+                        <Trash2 size={16} />
+                        <span className="desktop-only">Remove</span>
                       </button>
                     )}
                   </div>
@@ -244,20 +367,51 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
         </div>
       </div>
 
+      {/* ── Add Admin Modal ── */}
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-overlay"
+          style={{ alignItems: 'flex-start', paddingTop: '80px' }}
+          onClick={() => setShowAddModal(false)}
+        >
+          <div
+            className="modal-content"
+            style={{ maxWidth: '480px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div style={{ padding: '32px' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px' }}>
-                Add Administrative User
-              </h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px' }}>
-                New admins will receive access to the portal immediately.
-              </p>
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}
+              >
+                <div
+                  style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '12px',
+                    background: 'var(--accent-faint)',
+                    border: '1px solid var(--accent-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--accent)',
+                    flexShrink: 0,
+                  }}
+                >
+                  <UserPlus size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>
+                    Add Administrative User
+                  </h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '2px' }}>
+                    They'll receive login credentials via email.
+                  </p>
+                </div>
+              </div>
 
               <form
                 onSubmit={handleCreateAdmin}
-                style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
+                style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}
               >
                 {error && (
                   <div
@@ -269,17 +423,29 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                       fontSize: '13px',
                       display: 'flex',
                       gap: '8px',
+                      alignItems: 'center',
                     }}
                   >
                     <AlertCircle size={16} /> {error}
                   </div>
                 )}
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '14px', fontWeight: 600 }}>Email Address</label>
+                {/* Email */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Email Address
+                  </label>
                   <div style={{ position: 'relative' }}>
                     <Mail
-                      size={18}
+                      size={16}
                       style={{
                         position: 'absolute',
                         left: '12px',
@@ -296,42 +462,123 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                       placeholder="admin@example.com"
                       style={{
                         width: '100%',
-                        padding: '12px 12px 12px 40px',
+                        padding: '11px 12px 11px 38px',
                         borderRadius: '10px',
                         border: '1px solid var(--border)',
                         background: 'var(--surface)',
+                        fontSize: '14px',
                       }}
                     />
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '14px', fontWeight: 600 }}>Temporary Password</label>
-                  <input
-                    required
-                    type="password"
-                    value={newAdmin.passwordPlain}
-                    onChange={(e) => setNewAdmin({ ...newAdmin, passwordPlain: e.target.value })}
-                    placeholder="••••••••"
+                {/* Temp Password */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div
                     style={{
-                      padding: '12px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border)',
-                      background: 'var(--surface)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
                     }}
-                  />
+                  >
+                    <label
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        color: 'var(--text-muted)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      Temporary Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setNewAdmin((p) => ({ ...p, passwordPlain: generatePassword() }))
+                      }
+                      title="Generate new password"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--accent)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        padding: 0,
+                      }}
+                    >
+                      <RefreshCw size={13} /> Regenerate
+                    </button>
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      required
+                      type={showPassword ? 'text' : 'password'}
+                      value={newAdmin.passwordPlain}
+                      onChange={(e) => setNewAdmin({ ...newAdmin, passwordPlain: e.target.value })}
+                      placeholder="••••••••"
+                      style={{
+                        width: '100%',
+                        padding: '11px 42px 11px 12px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--border)',
+                        background: 'var(--surface)',
+                        fontSize: '14px',
+                        fontFamily: showPassword ? 'inherit' : 'monospace',
+                        letterSpacing: showPassword ? 'normal' : '0.15em',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((p) => !p)}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Auto-generated. Admin must change this on first login.
+                  </p>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '14px', fontWeight: 600 }}>Initial Role</label>
+                {/* Role */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Initial Role
+                  </label>
                   <select
                     value={newAdmin.role}
                     onChange={(e) => setNewAdmin({ ...newAdmin, role: e.target.value })}
                     style={{
-                      padding: '12px',
+                      padding: '11px 12px',
                       borderRadius: '10px',
                       border: '1px solid var(--border)',
                       background: 'var(--surface)',
+                      fontSize: '14px',
                     }}
                   >
                     <option value="ADMIN">Administrator</option>
@@ -339,7 +586,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                   </select>
                 </div>
 
-                <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
@@ -350,6 +597,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                       background: 'var(--white)',
                       borderRadius: '12px',
                       fontWeight: 600,
+                      fontSize: '14px',
                     }}
                   >
                     Cancel
@@ -364,6 +612,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                       color: 'var(--white)',
                       borderRadius: '12px',
                       fontWeight: 600,
+                      fontSize: '14px',
                     }}
                   >
                     Create Account
@@ -375,11 +624,9 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
         </div>
       )}
 
+      {/* ── Confirm Modal ── */}
       {confirmModal.show && (
-        <div
-          className="modal-overlay"
-          onClick={() => setConfirmModal((prev) => ({ ...prev, show: false }))}
-        >
+        <div className="modal-overlay" style={{ alignItems: 'center' }} onClick={closeConfirm}>
           <div
             className="modal-content"
             style={{ maxWidth: '400px' }}
@@ -391,8 +638,8 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                   width: '64px',
                   height: '64px',
                   borderRadius: '50%',
-                  background: 'var(--accent-faint)',
-                  color: 'var(--accent)',
+                  background: confirmModal.danger ? '#fee2e2' : 'var(--accent-faint)',
+                  color: confirmModal.danger ? '#dc2626' : 'var(--accent)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -404,12 +651,19 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
               <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px' }}>
                 {confirmModal.title}
               </h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '32px' }}>
+              <p
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '14px',
+                  marginBottom: '28px',
+                  lineHeight: 1.6,
+                }}
+              >
                 {confirmModal.message}
               </p>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button
-                  onClick={() => setConfirmModal((prev) => ({ ...prev, show: false }))}
+                  onClick={closeConfirm}
                   style={{
                     flex: 1,
                     padding: '12px',
@@ -417,19 +671,22 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                     border: '1px solid var(--border)',
                     background: 'var(--white)',
                     fontWeight: 600,
+                    fontSize: '14px',
                   }}
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={confirmModal.onConfirm}
+                  onClick={handleConfirm}
                   style={{
                     flex: 1,
                     padding: '12px',
                     borderRadius: '12px',
-                    background: 'var(--accent)',
+                    border: 'none',
+                    background: confirmModal.danger ? '#dc2626' : 'var(--accent)',
                     color: 'white',
                     fontWeight: 600,
+                    fontSize: '14px',
                   }}
                 >
                   Confirm

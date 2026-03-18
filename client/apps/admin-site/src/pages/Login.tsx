@@ -1,19 +1,9 @@
 import React, { useState } from 'react'
 import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react'
-import { apiService } from '../services/api.service'
+import { useAuth } from '../contexts/AuthContext'
 
-interface User {
-  id: string
-  email: string
-  role: string
-  mustChangePassword: boolean
-}
-
-interface LoginProps {
-  onLogin: (token: string, user: User) => void
-}
-
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC = () => {
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -25,8 +15,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('')
 
     try {
-      const result = await apiService.post('/auth/login', { email, password })
-      onLogin(result.accessToken, result.user)
+      await login(email, password)
     } catch (err: unknown) {
       const error = err as { message?: string }
       setError(error.message || 'Failed to sign in')
@@ -220,7 +209,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         <div style={{ marginTop: '32px', textAlign: 'center' }}>
           <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            Upward Admin Security Layer v1.2
+            Upward Admin Security Layer v2.0
           </span>
         </div>
       </div>

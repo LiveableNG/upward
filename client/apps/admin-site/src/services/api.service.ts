@@ -1,17 +1,20 @@
+/**
+ * Centralised API service.
+ *
+ * The token is NEVER read from localStorage here. It must be passed in
+ * explicitly from the in-memory AuthContext. This prevents any accidental
+ * persistence of admin tokens in browser storage.
+ */
+
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1'
 
 class ApiService {
-  private getHeaders(token?: string) {
+  private getHeaders(token?: string): HeadersInit {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     }
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
-    } else {
-      const storedToken = localStorage.getItem('admin_token')
-      if (storedToken) {
-        headers['Authorization'] = `Bearer ${storedToken}`
-      }
     }
     return headers
   }
@@ -28,6 +31,7 @@ class ApiService {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       method: 'GET',
       headers: this.getHeaders(token),
+      credentials: 'include',
     })
     return this.handleResponse(response)
   }
@@ -37,6 +41,7 @@ class ApiService {
       method: 'POST',
       headers: this.getHeaders(token),
       body: JSON.stringify(body),
+      credentials: 'include',
     })
     return this.handleResponse(response)
   }
@@ -46,6 +51,7 @@ class ApiService {
       method: 'PUT',
       headers: this.getHeaders(token),
       body: JSON.stringify(body),
+      credentials: 'include',
     })
     return this.handleResponse(response)
   }
@@ -55,6 +61,7 @@ class ApiService {
       method: 'PATCH',
       headers: this.getHeaders(token),
       body: JSON.stringify(body),
+      credentials: 'include',
     })
     return this.handleResponse(response)
   }
@@ -63,6 +70,7 @@ class ApiService {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       method: 'DELETE',
       headers: this.getHeaders(token),
+      credentials: 'include',
     })
     return this.handleResponse(response)
   }

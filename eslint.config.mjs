@@ -1,5 +1,6 @@
 // @ts-check
 import tseslint from 'typescript-eslint'
+import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default tseslint.config(
   // ── Global ignores ─────────────────────────────────────────────────────────
@@ -63,6 +64,17 @@ export default tseslint.config(
     rules: {
       // Packages export types only; empty export is OK
       '@typescript-eslint/no-empty-object-type': 'off',
+    },
+  },
+
+  // ── Admin-site (Vite/React) — react-refresh plugin ────────────────────────
+  // lint-staged runs eslint from the repo root so only this config is loaded;
+  // we must register the plugin here so its rules are recognised.
+  {
+    files: ['client/apps/admin-site/**/*.{ts,tsx}'],
+    plugins: { 'react-refresh': reactRefresh },
+    rules: {
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
 )

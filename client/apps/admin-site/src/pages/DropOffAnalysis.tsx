@@ -426,7 +426,11 @@ const DropOffAnalysis: React.FC<DropOffAnalysisProps> = ({ token }) => {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal.show && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal({ show: false, ids: [] })}>
+        <div
+          className="modal-overlay"
+          style={{ alignItems: 'flex-start', paddingTop: '80px' }}
+          onClick={() => setShowDeleteModal({ show: false, ids: [] })}
+        >
           <div
             className="modal-content"
             style={{ maxWidth: '400px' }}

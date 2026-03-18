@@ -15,6 +15,7 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { FastifyAdapter } from '@nestjs/platform-fastify'
 import { ValidationPipe } from '@nestjs/common'
 import { AppModule } from './app.module'
+import fastifyCookie from '@fastify/cookie'
 
 let cachedApp: NestFastifyApplication
 let initializationPromise: Promise<NestFastifyApplication> | null = null
@@ -24,6 +25,8 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter({ logger: true }),
   )
+
+  await app.register(fastifyCookie as Parameters<typeof app.register>[0])
 
   app.setGlobalPrefix('api/v1')
 
@@ -43,6 +46,7 @@ async function bootstrap() {
   app.enableCors({
     origin: origins,
     credentials: true,
+    exposedHeaders: ['Set-Cookie'],
   })
 
   app.enableShutdownHooks()
