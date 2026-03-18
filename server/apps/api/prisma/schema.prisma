@@ -75,3 +75,14 @@ model upward_email_log {
   @@index([userId])
   @@index([sessionId])
 }
+model upward_admin {
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  passwordHash       String
+  role               String   @default("ADMIN") // ADMIN, SUPERADMIN
+  mustChangePassword Boolean  @default(true) 
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([email])
+}

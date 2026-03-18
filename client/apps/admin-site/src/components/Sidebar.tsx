@@ -1,83 +1,81 @@
+import React, { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Mail, Calendar, LogOut, LayoutDashboard } from 'lucide-react'
+import { LayoutDashboard, Mail, Calendar, Settings, BarChart3 } from 'lucide-react'
 
 interface SidebarProps {
-  onLogout: () => void
+  isSuperadmin: boolean
 }
 
-export default function Sidebar({ onLogout }: SidebarProps) {
+const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin }) => {
+  const [isHovered, setIsHovered] = useState(false)
+
   const navItems = [
-    { to: '/', icon: LayoutDashboard, label: 'Waitlist' },
-    { to: '/emails', icon: Mail, label: 'Emails' },
-    { to: '/sessions', icon: Calendar, label: 'Sessions' },
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { name: 'Drop-off Analysis', path: '/drop-off', icon: BarChart3 },
+    { name: 'Emailing', path: '/emails', icon: Mail },
+    { name: 'Sessions', path: '/sessions', icon: Calendar },
   ]
+
+  if (isSuperadmin) {
+    navItems.push({ name: 'Settings', path: '/settings', icon: Settings })
+  }
+
+  const isExpanded = isHovered
 
   return (
     <aside
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       style={{
-        width: '260px',
-        background: 'var(--surface)',
+        width: isExpanded ? 'var(--sidebar-width)' : 'var(--sidebar-collapsed-width)',
+        height: 'calc(100vh - var(--header-height))',
+        backgroundColor: 'var(--white)',
         borderRight: '1px solid var(--border)',
         display: 'flex',
         flexDirection: 'column',
-        padding: '32px 20px',
+        transition: 'var(--transition)',
+        position: 'sticky',
+        top: 'var(--header-height)',
+        left: 0,
+        zIndex: 101,
+        overflow: 'hidden',
       }}
     >
-      <div style={{ marginBottom: '48px' }}>
-        <h1 style={{ fontSize: '20px', color: 'var(--accent)', letterSpacing: '0.1em' }}>
-          UPWARD ADMIN
-        </h1>
-      </div>
-
-      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <nav
+        style={{
+          flex: 1,
+          padding: '24px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+        }}
+      >
         {navItems.map((item) => (
           <NavLink
-            key={item.to}
-            to={item.to}
+            key={item.path}
+            to={item.path}
+            className={({ isActive }) => (isActive ? 'nav-active' : 'nav-inactive')}
             style={({ isActive }) => ({
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
-              padding: '12px 16px',
+              justifyContent: isExpanded ? 'flex-start' : 'center',
+              gap: isExpanded ? '12px' : '0',
+              padding: '12px',
               borderRadius: '12px',
-              fontSize: '14px',
-              fontWeight: 500,
-              background: isActive ? 'rgba(217, 119, 87, 0.1)' : 'transparent',
-              color: isActive ? 'var(--accent)' : 'var(--muted)',
-              transition: 'all 0.2s',
+              color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+              backgroundColor: isActive ? 'var(--accent-faint)' : 'transparent',
+              transition: 'var(--transition)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
             })}
           >
-            <item.icon size={20} />
-            {item.label}
+            <item.icon size={22} style={{ flexShrink: 0 }} />
+            {isExpanded && <span style={{ fontWeight: 600, fontSize: '14px' }}>{item.name}</span>}
           </NavLink>
         ))}
       </nav>
-
-      <button
-        onClick={onLogout}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          padding: '12px 16px',
-          color: 'var(--muted)',
-          fontSize: '14px',
-          marginTop: 'auto',
-          borderRadius: '12px',
-          transition: 'all 0.2s',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.color = '#ef4444'
-          e.currentTarget.style.background = 'rgba(239, 68, 68, 0.05)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.color = 'var(--muted)'
-          e.currentTarget.style.background = 'transparent'
-        }}
-      >
-        <LogOut size={20} />
-        Log Out
-      </button>
     </aside>
   )
 }
+
+export default Sidebar

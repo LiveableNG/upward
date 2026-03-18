@@ -1,4 +1,15 @@
 import 'reflect-metadata'
+
+// Handle BigInt serialization for JSON.stringify
+declare global {
+  interface BigInt {
+    toJSON(): string
+  }
+}
+BigInt.prototype.toJSON = function () {
+  return this.toString()
+}
+
 import { NestFactory } from '@nestjs/core'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { FastifyAdapter } from '@nestjs/platform-fastify'
