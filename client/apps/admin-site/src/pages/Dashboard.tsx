@@ -9,6 +9,7 @@ import {
   Globe,
   Clock,
   ChevronDown,
+  Download,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 
@@ -33,6 +34,7 @@ interface WaitlistUser {
   city?: string
   benefits?: string[]
   selectedSession?: string
+  selectedsession?: string
   wantsAmbassador?: boolean
   updatedAt: string
 }
@@ -125,6 +127,49 @@ const Dashboard: React.FC<DashboardProps> = ({ token }) => {
     },
     [token, filters, page],
   )
+
+  const handleExportCSV = () => {
+    if (allUsers.length === 0) return
+
+    const headers = [
+      'First Name',
+      'Last Name',
+      'Email',
+      'Phone',
+      'Role',
+      'Country',
+      'City',
+      'Session',
+      'Ambassador',
+      'Updated At',
+    ].join(',')
+
+    const rows = allUsers.map((user) => {
+      return [
+        `"${(user.firstName || '').replace(/"/g, '""')}"`,
+        `"${(user.lastName || '').replace(/"/g, '""')}"`,
+        `"${(user.email || '').replace(/"/g, '""')}"`,
+        `"${(user.phone || '').replace(/"/g, '""')}"`,
+        `"${(user.role || '').replace(/"/g, '""')}"`,
+        `"${(user.country || '').replace(/"/g, '""')}"`,
+        `"${(user.city || '').replace(/"/g, '""')}"`,
+        `"${(user.selectedSession || user.selectedsession || '').replace(/"/g, '""')}"`,
+        user.wantsAmbassador ? 'Yes' : 'No',
+        new Date(user.updatedAt).toLocaleString(),
+      ].join(',')
+    })
+
+    const csvContent = [headers, ...rows].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `upward_waitlist_${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
   // Trigger search on filter change
   useEffect(() => {
@@ -263,7 +308,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token }) => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
             gap: '20px',
             marginBottom: '24px',
           }}
@@ -310,7 +355,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token }) => {
 
         {/* Filters Section */}
         <div className="card" style={{ marginBottom: '16px', padding: '20px' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end' }}>
+          <div
+            className="flex-mobile-column"
+            style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end' }}
+          >
             <div style={{ flex: '1 1 300px' }}>
               <label
                 style={{
@@ -346,6 +394,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token }) => {
                     borderRadius: '12px',
                     border: '1px solid var(--border)',
                     fontSize: '14px',
+                    background: 'var(--surface)',
                   }}
                 />
               </div>
@@ -481,7 +530,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token }) => {
                   border: '1px solid var(--border)',
                   fontSize: '14px',
                   appearance: 'none',
-                  background: 'var(--white)',
+                  background: 'var(--surface)',
                 }}
               >
                 <option value="All">All Sessions</option>
@@ -502,14 +551,37 @@ const Dashboard: React.FC<DashboardProps> = ({ token }) => {
               padding: '24px',
               borderBottom: '1px solid var(--border)',
               display: 'flex',
+              flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
               justifyContent: 'space-between',
-              alignItems: 'center',
+              alignItems: window.innerWidth <= 768 ? 'flex-start' : 'center',
+              gap: '16px',
             }}
           >
-            <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Waitlist Members</h3>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              Showing {allUsers.length} of {meta?.total || 0} members
+            <div>
+              <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Waitlist Members</h3>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                Showing {allUsers.length} of {meta?.total || 0} members
+              </div>
             </div>
+            <button
+              onClick={handleExportCSV}
+              disabled={allUsers.length === 0}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 16px',
+                backgroundColor: 'var(--white)',
+                border: '1px solid var(--border)',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: 600,
+                opacity: allUsers.length === 0 ? 0.5 : 1,
+                cursor: allUsers.length === 0 ? 'not-allowed' : 'pointer',
+              }}
+            >
+              <Download size={16} /> Export CSV
+            </button>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
@@ -585,7 +657,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token }) => {
                       textTransform: 'uppercase',
                     }}
                   >
-                    Last Active
+                    Last Edited
                   </th>
                 </tr>
               </thead>
@@ -625,9 +697,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token }) => {
                           <div>
                             <div style={{ fontWeight: 600, fontSize: '14px' }}>
                               {user.firstName} {user.lastName}
-                            </div>
-                            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                              {user.id.split('-')[0]}
                             </div>
                           </div>
                         </div>
@@ -710,9 +779,13 @@ const Dashboard: React.FC<DashboardProps> = ({ token }) => {
                       </td>
                       <td style={{ padding: '16px' }}>
                         <div style={{ fontSize: '13px' }}>
-                          {filterOptions?.sessions.find(
-                            (s: { id: string; name: string }) => s.id === user.selectedSession,
-                          )?.name || 'Not Selected'}
+                          {(() => {
+                            const sessionValue = user.selectedSession || user.selectedsession
+                            const foundSession = filterOptions?.sessions.find(
+                              (s) => s.id === sessionValue || s.name === sessionValue,
+                            )
+                            return foundSession?.name || sessionValue || 'Not Selected'
+                          })()}
                         </div>
                         {user.wantsAmbassador && (
                           <div style={{ marginTop: '4px' }}>

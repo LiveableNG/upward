@@ -84,6 +84,41 @@ const DropOffAnalysis: React.FC<DropOffAnalysisProps> = ({ token }) => {
     }
   }
 
+  const handleExportCSV = () => {
+    if (filteredUsers.length === 0) return
+
+    const headers = [
+      'Full Name',
+      'Email',
+      'Stage',
+      'Role',
+      'Last Activity',
+      'Selected Session',
+    ].join(',')
+
+    const rows = filteredUsers.map((u) => {
+      return [
+        `"${(u.full_name || 'Anonymous').replace(/"/g, '""')}"`,
+        `"${u.email.replace(/"/g, '""')}"`,
+        `"${u.drop_off_stage.replace(/"/g, '""')}"`,
+        `"${(u.role || '').replace(/"/g, '""')}"`,
+        new Date(u.last_activity).toLocaleString(),
+        `"${(u.selectedSession || '').replace(/"/g, '""')}"`,
+      ].join(',')
+    })
+
+    const csvContent = [headers, ...rows].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `drop_off_analysis_${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   const stages = ['All', ...Array.from(new Set(users.map((u) => u.drop_off_stage)))]
   const roles = ['All', ...Array.from(new Set(users.filter((u) => u.role).map((u) => u.role!)))]
 
@@ -121,6 +156,8 @@ const DropOffAnalysis: React.FC<DropOffAnalysisProps> = ({ token }) => {
             </button>
           )}
           <button
+            onClick={handleExportCSV}
+            disabled={filteredUsers.length === 0}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -130,6 +167,9 @@ const DropOffAnalysis: React.FC<DropOffAnalysisProps> = ({ token }) => {
               border: '1px solid var(--border)',
               borderRadius: '12px',
               fontSize: '14px',
+              fontWeight: 600,
+              opacity: filteredUsers.length === 0 ? 0.5 : 1,
+              cursor: filteredUsers.length === 0 ? 'not-allowed' : 'pointer',
             }}
           >
             <Download size={16} /> Export CSV
@@ -140,11 +180,12 @@ const DropOffAnalysis: React.FC<DropOffAnalysisProps> = ({ token }) => {
       <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
         {/* Filters Bar */}
         <div
+          className="flex-mobile-column"
           style={{
             padding: '16px 24px',
             borderBottom: '1px solid var(--border)',
             display: 'flex',
-            gap: '24px',
+            gap: '16px',
             alignItems: 'center',
             backgroundColor: 'var(--surface)',
           }}
@@ -385,61 +426,64 @@ const DropOffAnalysis: React.FC<DropOffAnalysisProps> = ({ token }) => {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal.show && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" onClick={() => setShowDeleteModal({ show: false, ids: [] })}>
           <div
-            className="card fade-in"
-            style={{ width: '100%', maxWidth: '400px', padding: '32px', textAlign: 'center' }}
+            className="modal-content"
+            style={{ maxWidth: '400px' }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                backgroundColor: '#fee2e2',
-                color: '#dc2626',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 24px',
-              }}
-            >
-              <AlertTriangle size={32} />
-            </div>
-            <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px' }}>
-              Are you sure?
-            </h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '32px' }}>
-              You are about to delete {showDeleteModal.ids.length} user(s). This action cannot be
-              undone and will require re-authentication for security.
-            </p>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                onClick={() => setShowDeleteModal({ show: false, ids: [] })}
+            <div style={{ padding: '32px', textAlign: 'center' }}>
+              <div
                 style={{
-                  flex: 1,
-                  padding: '12px',
-                  border: '1px solid var(--border)',
-                  background: 'var(--white)',
-                  borderRadius: '12px',
-                  fontWeight: 600,
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  backgroundColor: '#fee2e2',
+                  color: '#dc2626',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 24px',
                 }}
               >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(showDeleteModal.ids)}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  border: 'none',
-                  background: '#dc2626',
-                  color: 'var(--white)',
-                  borderRadius: '12px',
-                  fontWeight: 600,
-                }}
-              >
-                Delete
-              </button>
+                <AlertTriangle size={32} />
+              </div>
+              <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px' }}>
+                Are you sure?
+              </h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '32px' }}>
+                You are about to delete {showDeleteModal.ids.length} user(s). This action cannot be
+                undone.
+              </p>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  onClick={() => setShowDeleteModal({ show: false, ids: [] })}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--white)',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDelete(showDeleteModal.ids)}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    border: 'none',
+                    background: '#dc2626',
+                    color: 'var(--white)',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         </div>
