@@ -12,9 +12,7 @@ import {
 } from '@nestjs/common'
 import { AdminService } from './admin.service'
 import { CreateWaitlistEntryDto, AdminRole } from '@upward/shared-types'
-import { Request } from 'express'
-
-interface AuthenticatedRequest extends Request {
+interface AuthenticatedRequest {
   user: {
     id: string
     email: string
