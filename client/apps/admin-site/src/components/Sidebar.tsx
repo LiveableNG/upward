@@ -4,9 +4,11 @@ import { LayoutDashboard, Mail, Calendar, Settings, BarChart3 } from 'lucide-rea
 
 interface SidebarProps {
   isSuperadmin: boolean
+  isMobileOpen: boolean
+  onClose: () => void
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }) => {
   const [isHovered, setIsHovered] = useState(false)
 
   const navItems = [
@@ -20,7 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin }) => {
     navItems.push({ name: 'Settings', path: '/settings', icon: Settings })
   }
 
-  const isExpanded = isHovered
+  const isExpanded = isHovered || isMobileOpen
 
   return (
     <aside
@@ -34,12 +36,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin }) => {
         display: 'flex',
         flexDirection: 'column',
         transition: 'var(--transition)',
-        position: 'sticky',
+        position: 'fixed',
         top: 'var(--header-height)',
         left: 0,
-        zIndex: 101,
+        zIndex: 1001,
         overflow: 'hidden',
+        transform: isMobileOpen
+          ? 'translateX(0)'
+          : window.innerWidth <= 768
+            ? 'translateX(-100%)'
+            : 'translateX(0)',
       }}
+      className="sidebar-responsive"
     >
       <nav
         style={{
@@ -54,6 +62,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin }) => {
           <NavLink
             key={item.path}
             to={item.path}
+            onClick={() => {
+              if (window.innerWidth <= 768) onClose()
+            }}
             className={({ isActive }) => (isActive ? 'nav-active' : 'nav-inactive')}
             style={({ isActive }) => ({
               display: 'flex',
@@ -74,6 +85,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin }) => {
           </NavLink>
         ))}
       </nav>
+
+      <style>{`
+        @media (min-width: 769px) {
+          .sidebar-responsive {
+            position: sticky !important;
+            transform: none !important;
+          }
+        }
+      `}</style>
     </aside>
   )
 }

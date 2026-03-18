@@ -170,9 +170,10 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
       </div>
 
       <div
+        className="flex-mobile-column"
         style={{
           display: 'grid',
-          gridTemplateColumns: '320px 1fr',
+          gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '320px 1fr',
           gap: '32px',
           alignItems: 'start',
         }}
@@ -199,52 +200,62 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
             </h3>
           </div>
           <div style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
-            {sessions.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setSelectedSession(s)}
-                style={{
-                  width: '100%',
-                  padding: '20px',
-                  border: 'none',
-                  borderBottom: '1px solid var(--border)',
-                  backgroundColor:
-                    selectedSession?.id === s.id ? 'var(--accent-faint)' : 'transparent',
-                  textAlign: 'left',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  transition: 'var(--transition)',
-                  cursor: 'pointer',
-                }}
-              >
-                <span
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: window.innerWidth <= 768 ? 'row' : 'column',
+                overflowX: 'auto',
+              }}
+            >
+              {sessions.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setSelectedSession(s)}
                   style={{
-                    fontWeight: 700,
-                    fontSize: '15px',
-                    color: selectedSession?.id === s.id ? 'var(--accent)' : 'var(--text)',
-                  }}
-                >
-                  {s.name}
-                </span>
-                <div
-                  style={{
+                    width: window.innerWidth <= 768 ? '280px' : '100%',
+                    flexShrink: 0,
+                    padding: '20px',
+                    border: 'none',
+                    borderBottom: window.innerWidth <= 768 ? 'none' : '1px solid var(--border)',
+                    borderRight: window.innerWidth <= 768 ? '1px solid var(--border)' : 'none',
+                    backgroundColor:
+                      selectedSession?.id === s.id ? 'var(--accent-faint)' : 'transparent',
+                    textAlign: 'left',
                     display: 'flex',
-                    alignItems: 'center',
+                    flexDirection: 'column',
                     gap: '8px',
-                    fontSize: '12px',
-                    color: 'var(--text-muted)',
+                    transition: 'var(--transition)',
+                    cursor: 'pointer',
                   }}
                 >
-                  <Clock size={14} />
-                  {new Date(s.startTime).toLocaleDateString()} at{' '}
-                  {new Date(s.startTime).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </div>
-              </button>
-            ))}
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      fontSize: '15px',
+                      color: selectedSession?.id === s.id ? 'var(--accent)' : 'var(--text)',
+                    }}
+                  >
+                    {s.name}
+                  </span>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '12px',
+                      color: 'var(--text-muted)',
+                    }}
+                  >
+                    <Clock size={14} />
+                    {new Date(s.startTime).toLocaleDateString()} at{' '}
+                    {new Date(s.startTime).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </div>
+                </button>
+              ))}
+            </div>
             {sessions.length === 0 && !loading && (
               <div
                 style={{
@@ -501,136 +512,144 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
 
       {/* Create/Edit Session Modal */}
       {showModal && (
-        <div className="modal-overlay">
-          <div
-            className="card fade-in"
-            style={{ width: '100%', maxWidth: '500px', padding: '32px' }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '24px',
-              }}
-            >
-              <h3 style={{ fontSize: '20px', fontWeight: 800 }}>
-                {showModal === 'create' ? 'Schedule New Session' : 'Edit Session Details'}
-              </h3>
-              <button
-                onClick={() => setShowModal(null)}
+        <div className="modal-overlay" onClick={() => setShowModal(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div style={{ padding: '32px' }}>
+              <div
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '24px',
                 }}
               >
-                <X size={20} />
-              </button>
-            </div>
-            <form
-              onSubmit={handleSaveSession}
-              style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '14px', fontWeight: 600 }}>
-                  Session Name (Identifier)
-                </label>
-                <input
-                  required
-                  type="text"
-                  value={sessionForm.name}
-                  onChange={(e) => setSessionForm({ ...sessionForm, name: e.target.value })}
-                  placeholder="e.g. Information Session #12"
-                  style={{
-                    padding: '12px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border)',
-                  }}
-                />
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  Matches 'selectedSession' in waitlist table.
-                </p>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '14px', fontWeight: 600 }}>Google Meet Link</label>
-                <input
-                  required
-                  type="url"
-                  value={sessionForm.googleMeetLink}
-                  onChange={(e) =>
-                    setSessionForm({ ...sessionForm, googleMeetLink: e.target.value })
-                  }
-                  placeholder="https://meet.google.com/..."
-                  style={{
-                    padding: '12px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border)',
-                  }}
-                />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '14px', fontWeight: 600 }}>Start Time</label>
-                  <input
-                    required
-                    type="datetime-local"
-                    value={sessionForm.startTime}
-                    onChange={(e) => setSessionForm({ ...sessionForm, startTime: e.target.value })}
-                    style={{
-                      padding: '12px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border)',
-                    }}
-                  />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '14px', fontWeight: 600 }}>End Time</label>
-                  <input
-                    required
-                    type="datetime-local"
-                    value={sessionForm.endTime}
-                    onChange={(e) => setSessionForm({ ...sessionForm, endTime: e.target.value })}
-                    style={{
-                      padding: '12px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border)',
-                    }}
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: 800 }}>
+                  {showModal === 'create' ? 'Schedule New Session' : 'Edit Session Details'}
+                </h3>
                 <button
-                  type="button"
                   onClick={() => setShowModal(null)}
                   style={{
-                    flex: 1,
-                    padding: '12px',
-                    border: '1px solid var(--border)',
-                    background: 'var(--white)',
-                    borderRadius: '12px',
-                    fontWeight: 600,
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    flex: 1,
-                    padding: '12px',
+                    background: 'none',
                     border: 'none',
-                    background: 'var(--accent)',
-                    color: 'var(--white)',
-                    borderRadius: '12px',
-                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
                   }}
                 >
-                  {showModal === 'create' ? 'Create Session' : 'Save Changes'}
+                  <X size={20} />
                 </button>
               </div>
-            </form>
+              <form
+                onSubmit={handleSaveSession}
+                style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: 600 }}>
+                    Session Name (Identifier)
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    value={sessionForm.name}
+                    onChange={(e) => setSessionForm({ ...sessionForm, name: e.target.value })}
+                    placeholder="e.g. Information Session #12"
+                    style={{
+                      padding: '12px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border)',
+                      background: 'var(--surface)',
+                    }}
+                  />
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    Matches 'selectedSession' in waitlist table.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: 600 }}>Google Meet Link</label>
+                  <input
+                    required
+                    type="url"
+                    value={sessionForm.googleMeetLink}
+                    onChange={(e) =>
+                      setSessionForm({ ...sessionForm, googleMeetLink: e.target.value })
+                    }
+                    placeholder="https://meet.google.com/..."
+                    style={{
+                      padding: '12px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border)',
+                      background: 'var(--surface)',
+                    }}
+                  />
+                </div>
+                <div
+                  className="flex-mobile-column"
+                  style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '14px', fontWeight: 600 }}>Start Time</label>
+                    <input
+                      required
+                      type="datetime-local"
+                      value={sessionForm.startTime}
+                      onChange={(e) =>
+                        setSessionForm({ ...sessionForm, startTime: e.target.value })
+                      }
+                      style={{
+                        padding: '12px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--border)',
+                        background: 'var(--surface)',
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '14px', fontWeight: 600 }}>End Time</label>
+                    <input
+                      required
+                      type="datetime-local"
+                      value={sessionForm.endTime}
+                      onChange={(e) => setSessionForm({ ...sessionForm, endTime: e.target.value })}
+                      style={{
+                        padding: '12px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--border)',
+                        background: 'var(--surface)',
+                      }}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(null)}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      border: '1px solid var(--border)',
+                      background: 'var(--white)',
+                      borderRadius: '12px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      border: 'none',
+                      background: 'var(--accent)',
+                      color: 'var(--white)',
+                      borderRadius: '12px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {showModal === 'create' ? 'Create Session' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
