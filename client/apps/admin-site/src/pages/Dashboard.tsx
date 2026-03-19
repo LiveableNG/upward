@@ -49,6 +49,8 @@ interface WaitlistUser {
   selectedSession?: string
   selectedsession?: string
   wantsAmbassador?: boolean
+  confirmationSent: boolean
+  acceptTerms: boolean
   confirmationEmailStatus?: string
   confirmationEmailError?: string
   confirmationEmailRetries?: number
@@ -1196,32 +1198,43 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                             <div style={{ fontWeight: 600, fontSize: '14px' }}>
                               {user.firstName} {user.lastName}
                             </div>
-                            {user.confirmationEmailStatus && (
-                              <div
-                                style={{
-                                  fontSize: '10px',
-                                  marginTop: '2px',
-                                  display: 'inline-block',
-                                  padding: '1px 6px',
-                                  borderRadius: '4px',
-                                  fontWeight: 700,
-                                  backgroundColor:
-                                    user.confirmationEmailStatus === 'SENT'
-                                      ? '#dcfce7'
-                                      : user.confirmationEmailStatus === 'FAILED'
-                                        ? '#fee2e2'
-                                        : '#fef9c3',
-                                  color:
-                                    user.confirmationEmailStatus === 'SENT'
-                                      ? '#166534'
-                                      : user.confirmationEmailStatus === 'FAILED'
-                                        ? '#991b1b'
-                                        : '#854d0e',
-                                }}
-                              >
-                                Email: {user.confirmationEmailStatus}
-                              </div>
-                            )}
+                            {/* Email Status Badge */}
+                            {(() => {
+                              const status = user.confirmationEmailStatus
+                              const legacySent = !status && user.confirmationSent
+                              const legacyPending =
+                                !status && !user.confirmationSent && user.acceptTerms
+
+                              if (!status && !legacySent && !legacyPending) return null
+
+                              return (
+                                <div
+                                  style={{
+                                    fontSize: '10px',
+                                    marginTop: '2px',
+                                    display: 'inline-block',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    fontWeight: 700,
+                                    backgroundColor:
+                                      status === 'SENT' || legacySent
+                                        ? '#dcfce7'
+                                        : status === 'FAILED' || legacyPending
+                                          ? '#fee2e2'
+                                          : '#fef9c3',
+                                    color:
+                                      status === 'SENT' || legacySent
+                                        ? '#166534'
+                                        : status === 'FAILED' || legacyPending
+                                          ? '#991b1b'
+                                          : '#854d0e',
+                                  }}
+                                >
+                                  Email:{' '}
+                                  {status || (legacySent ? 'SENT (Legacy)' : 'FAILED/PENDING')}
+                                </div>
+                              )
+                            })()}
                           </div>
                         </div>
                       </td>
@@ -1346,29 +1359,39 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                       {isSuperadmin && (
                         <td style={{ padding: '16px', verticalAlign: 'middle' }}>
                           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            {user.confirmationEmailStatus === 'FAILED' && (
-                              <button
-                                onClick={() => handleResendEmail(user.id)}
-                                title="Resend Confirmation Email"
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: '#d97757',
-                                  cursor: 'pointer',
-                                  padding: '4px',
-                                  borderRadius: '6px',
-                                  transition: 'background-color 0.2s',
-                                }}
-                                onMouseEnter={(e) =>
-                                  (e.currentTarget.style.backgroundColor = 'var(--surface-hover)')
-                                }
-                                onMouseLeave={(e) =>
-                                  (e.currentTarget.style.backgroundColor = 'transparent')
-                                }
-                              >
-                                <Mail size={16} />
-                              </button>
-                            )}
+                            {(() => {
+                              const showResend =
+                                user.confirmationEmailStatus === 'FAILED' ||
+                                (!user.confirmationEmailStatus &&
+                                  !user.confirmationSent &&
+                                  user.acceptTerms)
+
+                              if (!showResend) return null
+
+                              return (
+                                <button
+                                  onClick={() => handleResendEmail(user.id)}
+                                  title="Resend Confirmation Email"
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#d97757',
+                                    cursor: 'pointer',
+                                    padding: '4px',
+                                    borderRadius: '6px',
+                                    transition: 'background-color 0.2s',
+                                  }}
+                                  onMouseEnter={(e) =>
+                                    (e.currentTarget.style.backgroundColor = 'var(--surface-hover)')
+                                  }
+                                  onMouseLeave={(e) =>
+                                    (e.currentTarget.style.backgroundColor = 'transparent')
+                                  }
+                                >
+                                  <Mail size={16} />
+                                </button>
+                              )
+                            })()}
                             <button
                               onClick={() => setDeleteModal({ show: true, ids: [user.id] })}
                               title="Delete member"

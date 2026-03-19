@@ -35,18 +35,7 @@ export class EmailService {
 
     const emailData = {
       subject: 'Welcome to the Upward Waitlist — You’re In',
-      text: `Hello ${name},
-
-      You're officially on the waitlist for Upward by GoodTenants.
-
-      Upward is designed to make finding and securing your next home significantly easier. As a waitlist member, you'll receive early access when we begin onboarding users.
-
-      We will notify you as soon as your access becomes available.
-
-      Thank you for joining us early.
-
-      — Upward by GoodTenants
-      hello@goodtenants.africa`,
+      text: `Hello ${name},\n\nYou're officially on the waitlist for Upward by GoodTenants.\n\nUpward is designed to make finding and securing your next home significantly easier. As a waitlist member, you'll receive early access when we begin onboarding users.\n\nWe will notify you as soon as your access becomes available.\n\nThank you for joining us early.\n\n— Upward by GoodTenants\nhello@goodtenants.africa`,
       html: `<!DOCTYPE html>
       <html>
       <head>
@@ -54,112 +43,63 @@ export class EmailService {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Upward Waitlist</title>
       <style>
-        @media (prefers-color-scheme: dark) {
-          body, .container-table, .outer-table { background-color: #f9fafb !important; }
-          .main-card { background-color: #ffffff !important; border-color: #e5e7eb !important; }
-          .title, .greeting, .body-text, .footer-text { color: #111827 !important; }
-          .sub-text { color: #4b5563 !important; }
-          .info-box { background-color: #fff7ed !important; border-color: #ffedd5 !important; }
-          .info-box-title { color: #9a3412 !important; }
-          .info-box-text { color: #431407 !important; }
-          .brand-name { color: #d97757 !important; }
-          .brand-sub { color: #6b7280 !important; }
-          .supporting-text { color: #9ca3af !important; }
-          .support-link { color: #6b7280 !important; }
-        }
+      @media (prefers-color-scheme: dark) {
+      body, .container-table, .outer-table { background-color: #f9fafb !important; }
+      .main-card { background-color: #ffffff !important; border-color: #e5e7eb !important; }
+      .title, .greeting, .body-text, .footer-text { color: #111827 !important; }
+      .sub-text { color: #4b5563 !important; }
+      .info-box { background-color: #fff7ed !important; border-color: #ffedd5 !important; }
+      .info-box-title { color: #9a3412 !important; }
+      .info-box-text { color: #431407 !important; }
+      .brand-name { color: #d97757 !important; }
+      .brand-sub { color: #6b7280 !important; }
+      .supporting-text { color: #9ca3af !important; }
+      .support-link { color: #6b7280 !important; }
+      }
       </style>
       </head>
-
       <body style="margin:0;padding:0;background-color:#F9FAFB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#111827;">
-
       <table class="outer-table" width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;background-color:#F9FAFB;">
       <tr>
       <td align="center">
-
       <table class="main-card" width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;background-color:#ffffff;border-radius:16px;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);overflow:hidden;border:1px solid #E5E7EB;">
-
       <tr>
       <td style="height:4px;background-color:#d97757;"></td>
       </tr>
-
       <tr>
       <td style="padding:40px;">
-
       <div style="margin-bottom:32px;">
-      <span class="brand-name" style="color:#d97757;font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">
-      Upward
-      </span>
-      <div class="brand-sub" style="color:#6B7280;font-size:12px;margin-top:4px;">
-      by GoodTenants
+      <span class="brand-name" style="color:#d97757;font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Upward</span>
+      <div class="brand-sub" style="color:#6B7280;font-size:12px;margin-top:4px;">by GoodTenants</div>
       </div>
-      </div>
-
-      <h1 class="greeting" style="color:#111827;font-size:24px;font-weight:700;margin:0 0 20px 0;line-height:1.2;">
-      Hello${displayName},
-      </h1>
-
-      <p class="body-text" style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 16px 0;">
-      You are now officially on the waitlist for <strong>Upward by GoodTenants</strong>.
-      </p>
-
-      <p class="sub-text" style="color:#4B5563;font-size:16px;line-height:1.6;margin:0 0 24px 0;">
-      We're building upward for you to help create a pathway to better rental terms, discounts, financial services, and eventually to owning a home — with a community of people who are building the same future.
-      </p>
-
+      <h1 class="greeting" style="color:#111827;font-size:24px;font-weight:700;margin:0 0 20px 0;line-height:1.2;">Hello${displayName},</h1>
+      <p class="body-text" style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 16px 0;">You are now officially on the waitlist for <strong>Upward by GoodTenants</strong>.</p>
+      <p class="sub-text" style="color:#4B5563;font-size:16px;line-height:1.6;margin:0 0 24px 0;">We're building upward for you to help create a pathway to better rental terms, discounts, financial services, and eventually to owning a home — with a community of people who are building the same future.</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
       <tr>
       <td class="info-box" style="background-color:#FFF7ED;border:1px solid #FFEDD5;border-radius:12px;padding:24px;">
-      <div class="info-box-title" style="color:#9A3412;font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;">
-      What happens next
-      </div>
-
-      <p class="info-box-text" style="color:#431407;font-size:15px;margin:0;line-height:1.5;">
-      We will notify you as soon as early access becomes available. You may also receive occasional updates as we prepare for launch.
-      </p>
+      <div class="info-box-title" style="color:#9A3412;font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;">What happens next</div>
+      <p class="info-box-text" style="color:#431407;font-size:15px;margin:0;line-height:1.5;">We will notify you as soon as early access becomes available. You may also receive occasional updates as we prepare for launch.</p>
       </td>
       </tr>
       </table>
-
-      <p class="footer-text" style="color:#6B7280;font-size:15px;margin:0;">
-      Thank you for joining early.
-      </p>
-
-      <p class="brand-name" style="color:#d97757;font-size:16px;margin-top:12px;font-weight:600;">
-      The Upward Team
-      </p>
-
+      <p class="footer-text" style="color:#6B7280;font-size:15px;margin:0;">Thank you for joining early.</p>
+      <p class="brand-name" style="color:#d97757;font-size:16px;margin-top:12px;font-weight:600;">The Upward Team</p>
       </td>
       </tr>
-
       </table>
-
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;margin-top:24px;">
       <tr>
       <td align="center" style="padding: 0 20px;">
-
-      <p class="supporting-text" style="color:#9CA3AF;font-size:12px;margin:0 0 8px 0;text-align:center;">
-      You received this email because you joined the waitlist at upward.ng
-      </p>
-
-      <p class="supporting-text" style="color:#9CA3AF;font-size:12px;margin:0;text-align:center;">
-      Questions? 
-      <a class="support-link" href="mailto:hello@goodtenants.africa" style="color:#6B7280;text-decoration:underline;">
-      Contact Support
-      </a>
-      </p>
-
-      <p style="color:#D1D5DB;font-size:11px;margin-top:20px;text-align:center;">
-      Upward by GoodTenants
-      </p>
-
+      <p class="supporting-text" style="color:#9CA3AF;font-size:12px;margin:0 0 8px 0;text-align:center;">You received this email because you joined the waitlist at https://upward.goodtenants.io</p>
+      <p class="supporting-text" style="color:#9CA3AF;font-size:12px;margin:0;text-align:center;">Questions? <a class="support-link" href="mailto:hello@goodtenants.africa" style="color:#6B7280;text-decoration:underline;">Contact Support</a></p>
+      <p style="color:#D1D5DB;font-size:11px;margin-top:20px;text-align:center;">Upward by GoodTenants</p>
       </td>
       </tr>
       </table>
-
       </td>
       </tr>
       </table>
-
       </body>
       </html>`,
     }
