@@ -781,4 +781,52 @@ export class AdminService {
 
     return result
   }
+
+  async sendDailyReport() {
+    const now = new Date()
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000)
+
+    const [completedToday, incompleteToday] = await Promise.all([
+      this.prisma.upward_waitlist.count({
+        where: {
+          acceptTerms: true,
+          createdAt: { gte: todayStart, lt: tomorrowStart },
+        },
+      }),
+      this.prisma.upward_waitlist.count({
+        where: {
+          acceptTerms: false,
+          createdAt: { gte: todayStart, lt: tomorrowStart },
+        },
+      }),
+    ])
+
+    const totalToday = completedToday + incompleteToday
+
+    // Get Superadmins to notify
+    const superadmins = await this.prisma.upward_admin.findMany({
+      where: { role: AdminRole.SUPERADMIN },
+      select: { email: true },
+    })
+
+    const emails = superadmins.map((s) => s.email)
+
+    // Fallback if no superadmins
+    if (emails.length === 0) {
+      emails.push('hello@goodtenants.africa')
+    }
+
+    const stats = {
+      completed: completedToday,
+      incomplete: incompleteToday,
+      total: totalToday,
+    }
+
+    for (const email of emails) {
+      await this.emailService.sendDailyAnalyticsEmail(email, stats)
+    }
+
+    return { success: true, stats, notified: emails }
+  }
 }
