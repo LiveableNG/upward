@@ -72,12 +72,12 @@ export class AdminController {
 
   @Delete('users/:id')
   async deleteUser(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    return { data: await this.adminService.deleteUser(id, req.user.role) }
+    return { data: await this.adminService.deleteUser(id, req.user.role, req.user.id) }
   }
 
   @Post('users/batch-delete')
   async batchDeleteUsers(@Body() body: { ids: string[] }, @Req() req: AuthenticatedRequest) {
-    return { data: await this.adminService.bulkDeleteUsers(body.ids, req.user.role) }
+    return { data: await this.adminService.bulkDeleteUsers(body.ids, req.user.role, req.user.id) }
   }
 
   @Get('analytics')
@@ -110,13 +110,11 @@ export class AdminController {
     return { data: await this.adminService.updateSession(id, data) }
   }
 
-  @Post('sessions/:sessionId/attendance/:userId')
-  async markAttendance(
-    @Param('sessionId') sessionId: string,
-    @Param('userId') userId: string,
-    @Body('attended') attended: boolean,
-  ) {
-    return { data: await this.adminService.markAttendance(sessionId, userId, attended) }
+  @Post('attendance')
+  async markAttendance(@Body() data: { sessionId: string; userId: string; attended: boolean }) {
+    return {
+      data: await this.adminService.markAttendance(data.sessionId, data.userId, data.attended),
+    }
   }
 
   @Patch('users/:userId/session')
@@ -134,8 +132,18 @@ export class AdminController {
 
   @Post('admins')
   @Roles(AdminRole.SUPERADMIN)
-  async createAdmin(@Body() body: { email: string; passwordPlain: string; role?: AdminRole }) {
-    return { data: await this.adminService.createAdmin(body.email, body.passwordPlain, body.role) }
+  async createAdmin(
+    @Body() body: { email: string; passwordPlain: string; role?: AdminRole },
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return {
+      data: await this.adminService.createAdmin(
+        body.email,
+        body.passwordPlain,
+        body.role,
+        req.user.id,
+      ),
+    }
   }
 
   @Delete('admins/:id')
@@ -146,15 +154,27 @@ export class AdminController {
 
   @Patch('admins/:id/promote')
   @Roles(AdminRole.SUPERADMIN)
-  async promoteAdmin(@Param('id') id: string) {
-    return { data: await this.adminService.promoteAdmin(id) }
+  async promoteAdmin(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return { data: await this.adminService.promoteAdmin(id, req.user.id) }
+  }
+
+  @Patch('admins/:id/demote')
+  @Roles(AdminRole.SUPERADMIN)
+  async demoteAdmin(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return { data: await this.adminService.demoteAdmin(id, req.user.id) }
   }
 
   @Post('email/bulk')
   async sendBulkEmail(
     @Body() payload: { userIds: string[]; subject: string; content: string; sessionId?: string },
+    @Req() req: AuthenticatedRequest,
   ) {
-    return { data: await this.adminService.sendBulkEmail(payload) }
+    return {
+      data: await this.adminService.sendBulkEmail({
+        ...payload,
+        requesterId: req.user.id,
+      }),
+    }
   }
 
   @Get('filters')

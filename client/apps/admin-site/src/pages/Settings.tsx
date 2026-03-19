@@ -4,6 +4,7 @@ import {
   UserPlus,
   Trash2,
   ArrowUpCircle,
+  ArrowDownCircle,
   Mail,
   Clock,
   AlertCircle,
@@ -115,6 +116,18 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
       setError(error.message || 'Failed to create admin')
       showToast(error.message || 'Failed to create admin', true)
     }
+  }
+
+  const handleDemoteAdmin = (id: string) => {
+    openConfirm(
+      'Demote to Administrator',
+      'Are you sure you want to demote this Superadmin? They will lose access to administrative settings.',
+      async () => {
+        await apiService.patch(`/admin/admins/${id}/demote`, {}, token)
+        fetchAdmins()
+        showToast('Admin demoted to Administrator')
+      },
+    )
   }
 
   const handleDeleteAdmin = (id: string) => {
@@ -328,7 +341,38 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                         <span className="desktop-only">Promote</span>
                       </button>
                     )}
-                    {admin.role !== 'SUPERADMIN' && admin.id !== currentAdminId && (
+                    {admin.role === 'SUPERADMIN' && admin.id !== currentAdminId && (
+                      <button
+                        onClick={() => handleDemoteAdmin(admin.id)}
+                        title="Demote to Admin"
+                        style={{
+                          background: 'none',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          padding: '6px 10px',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          transition: 'var(--transition)',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--accent)'
+                          e.currentTarget.style.color = 'var(--accent)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--border)'
+                          e.currentTarget.style.color = 'var(--text-muted)'
+                        }}
+                      >
+                        <ArrowDownCircle size={16} />
+                        <span className="desktop-only">Demote</span>
+                      </button>
+                    )}
+                    {admin.id !== currentAdminId && (
                       <button
                         onClick={() => handleDeleteAdmin(admin.id)}
                         title="Remove Admin"

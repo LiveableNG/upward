@@ -58,6 +58,19 @@ const VARIANT_COLORS: Record<string, string> = {
   B: '#6366f1', // indigo
 }
 
+const VARIANT_CONTENT: Record<string, { title: string; subtitle: string }> = {
+  A: {
+    title: 'Paid millions in rent? What do you have to show for it?',
+    subtitle:
+      'Upward records every payment, builds your housing reputation, unlocks benefits and opens the door to home ownership.',
+  },
+  B: {
+    title: "Don't Just Pay Rent. Build With It.",
+    subtitle:
+      'Turn every rent payment into proof of financial responsibility—unlock rewards, credit opportunities, and pathways to owning your home.',
+  },
+}
+
 const VARIANT_BG: Record<string, string> = {
   A: 'rgba(217, 119, 87, 0.08)',
   B: 'rgba(99, 102, 241, 0.08)',
@@ -537,6 +550,73 @@ const ABTestStats: React.FC<ABTestStatsProps> = ({ token }) => {
             />
             <span style={{ fontWeight: 700, fontSize: '14px' }}>Variant {v.variant}</span>
             <Sparkline data={v.dailyTrend} color={VARIANT_COLORS[v.variant]} height={32} />
+          </div>
+        ))}
+      </div>
+
+      {/* Content Comparison Section */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '16px',
+          marginBottom: '32px',
+        }}
+      >
+        {['A', 'B'].map((v) => (
+          <div
+            key={v}
+            className="card"
+            style={{
+              flex: '1 1 300px',
+              borderLeft: `4px solid ${VARIANT_COLORS[v]}`,
+              padding: '24px',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '10px',
+                fontWeight: 700,
+                color: VARIANT_COLORS[v],
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                marginBottom: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <div
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  background: VARIANT_BG[v],
+                }}
+              >
+                VARIANT {v} CONTENT
+              </div>
+            </div>
+            <h4
+              style={{
+                fontSize: '18px',
+                fontWeight: 800,
+                marginBottom: '12px',
+                color: 'var(--text)',
+                lineHeight: 1.3,
+              }}
+            >
+              {VARIANT_CONTENT[v].title}
+            </h4>
+            <p
+              style={{
+                fontSize: '14px',
+                color: 'var(--text-muted)',
+                lineHeight: 1.6,
+                margin: 0,
+              }}
+            >
+              {VARIANT_CONTENT[v].subtitle}
+            </p>
           </div>
         ))}
       </div>

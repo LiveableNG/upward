@@ -1,6 +1,14 @@
 import React, { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Mail, Calendar, Settings, BarChart3, FlaskConical } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Mail,
+  Calendar,
+  Settings,
+  BarChart3,
+  FlaskConical,
+  FileText,
+} from 'lucide-react'
 
 interface SidebarProps {
   isSuperadmin: boolean
@@ -20,6 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
   ]
 
   if (isSuperadmin) {
+    navItems.push({ name: 'System Logs', path: '/logs', icon: FileText })
     navItems.push({ name: 'Settings', path: '/settings', icon: Settings })
   }
 
