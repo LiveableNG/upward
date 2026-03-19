@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { AdminService } from './admin.service'
 import { PrismaService } from '../prisma/prisma.service'
 import { EmailService } from '../email/email.service'
+import { AdminLogService } from '../admin-log/admin-log.service'
 
 describe('AdminService', () => {
   let service: AdminService
@@ -25,16 +26,32 @@ describe('AdminService', () => {
             },
             upward_attendance: {
               upsert: jest.fn(),
+              deleteMany: jest.fn(),
             },
             upward_email_log: {
               create: jest.fn(),
+              deleteMany: jest.fn(),
             },
+            upward_admin: {
+              findMany: jest.fn(),
+              create: jest.fn(),
+              delete: jest.fn(),
+              update: jest.fn(),
+              findUnique: jest.fn(),
+            },
+            $transaction: jest.fn((cb) => cb(this)),
           },
         },
         {
           provide: EmailService,
           useValue: {
             sendGenericEmail: jest.fn(),
+          },
+        },
+        {
+          provide: AdminLogService,
+          useValue: {
+            logAction: jest.fn(),
           },
         },
       ],
