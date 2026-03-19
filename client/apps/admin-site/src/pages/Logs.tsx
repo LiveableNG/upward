@@ -43,10 +43,10 @@ const Logs: React.FC<LogsProps> = ({ token }) => {
     setLoading(true)
     try {
       const response = await apiService.get(`/admin/logs?page=${pageNum}&limit=50`, token)
-      if (response.data) {
-        setLogs(response.data.data)
-        setTotalPages(response.data.meta.totalPages)
-        setTotal(response.data.meta.total)
+      if (response && response.data) {
+        setLogs(response.data)
+        setTotalPages(response.meta.totalPages)
+        setTotal(response.meta.total)
       }
     } catch (error) {
       console.error('Failed to fetch logs:', error)
