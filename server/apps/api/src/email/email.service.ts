@@ -2,14 +2,19 @@ import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import Mailgun from 'mailgun.js'
 import FormData from 'form-data'
+import { PrismaService } from '../prisma/prisma.service'
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mg: any
+  private readonly MAX_RETRIES = 3
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private prisma: PrismaService,
+  ) {
     const mailgun = new Mailgun(FormData)
     const apiKey = this.configService.get<string>('MAILGUN_API_KEY')
     const domain = this.configService.get<string>('MAILGUN_DOMAIN')
@@ -24,20 +29,13 @@ export class EmailService {
     })
   }
 
-  async sendWaitlistConfirmation(email: string, firstName?: string) {
-    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
-    const from =
-      this.configService.get<string>('EMAIL_FROM') || `Upward by GoodTenants <hello@${domain}>`
-
+  async sendWaitlistConfirmation(userId: string, email: string, firstName?: string) {
     const name = firstName ? firstName : 'there'
     const displayName = firstName ? `, ${firstName}` : ''
 
-    try {
-      await this.mg.messages.create(domain, {
-        from,
-        to: [email],
-        subject: 'Welcome to the Upward Waitlist — You’re In',
-        text: `Hello ${name},
+    const emailData = {
+      subject: 'Welcome to the Upward Waitlist — You’re In',
+      text: `Hello ${name},
 
       You're officially on the waitlist for Upward by GoodTenants.
 
@@ -49,8 +47,7 @@ export class EmailService {
 
       — Upward by GoodTenants
       hello@goodtenants.africa`,
-
-        html: `<!DOCTYPE html>
+      html: `<!DOCTYPE html>
       <html>
       <head>
       <meta charset="UTF-8">
@@ -165,12 +162,103 @@ export class EmailService {
 
       </body>
       </html>`,
-      })
-
-      this.logger.log(`Confirmation email sent to ${email}`)
-    } catch (error) {
-      this.logger.error(`Failed to send email to ${email}`, error)
     }
+
+    return await this.sendEmailWithRetry({
+      userId,
+      email,
+      ...emailData,
+      type: 'CONFIRMATION',
+    })
+  }
+
+  async sendEmailWithRetry(params: {
+    userId: string
+    email: string
+    subject: string
+    text?: string
+    html: string
+    type: string
+    sessionId?: string
+  }) {
+    const { userId, email, subject, text, html, type, sessionId } = params
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
+    if (!domain) {
+      this.logger.error('MAILGUN_DOMAIN not configured')
+      return { success: false, error: 'MAILGUN_DOMAIN not configured' }
+    }
+
+    const from =
+      this.configService.get<string>('EMAIL_FROM') || `Upward by GoodTenants <hello@${domain}>`
+
+    let retries = 0
+    let success = false
+    let lastError = ''
+    let mailgunId = ''
+
+    // Create initial log entry
+    const log = await this.prisma.upward_email_log.create({
+      data: {
+        userId,
+        email,
+        subject,
+        type,
+        status: 'PENDING',
+        sessionId,
+      },
+    })
+
+    while (retries < this.MAX_RETRIES && !success) {
+      try {
+        const response = await this.mg.messages.create(domain, {
+          from,
+          to: [email],
+          subject,
+          text,
+          html,
+        })
+        success = true
+        mailgunId = response.id
+        this.logger.log(`Email ${type} sent to ${email} (Attempt ${retries + 1})`)
+      } catch (error: unknown) {
+        retries++
+        lastError = error instanceof Error ? error.message : 'Unknown error'
+        this.logger.warn(
+          `Failed to send email to ${email} (Attempt ${retries}/${this.MAX_RETRIES}): ${lastError}`,
+        )
+        if (retries < this.MAX_RETRIES) {
+          // Exponential backoff: 2s, 4s, 8s...
+          await new Promise((resolve) => setTimeout(resolve, Math.pow(2, retries) * 1000))
+        }
+      }
+    }
+
+    // Update log entry
+    await this.prisma.upward_email_log.update({
+      where: { id: log.id },
+      data: {
+        status: success ? 'SENT' : 'FAILED',
+        mailgunId,
+        lastError: success ? null : lastError,
+        retries: retries - 1 >= 0 ? retries - 1 : 0,
+        sentAt: success ? new Date() : null,
+      },
+    })
+
+    // If it's a confirmation email, also update the user record
+    if (type === 'CONFIRMATION') {
+      await this.prisma.upward_waitlist.update({
+        where: { id: userId },
+        data: {
+          confirmationSent: success,
+          confirmationEmailStatus: success ? 'SENT' : 'FAILED',
+          confirmationEmailError: success ? null : lastError,
+          confirmationEmailRetries: retries > 0 ? retries - 1 : 0,
+        },
+      })
+    }
+
+    return { success, mailgunId, error: lastError }
   }
 
   async sendGenericEmail(email: string, subject: string, content: string) {

@@ -49,6 +49,9 @@ interface WaitlistUser {
   selectedSession?: string
   selectedsession?: string
   wantsAmbassador?: boolean
+  confirmationEmailStatus?: string
+  confirmationEmailError?: string
+  confirmationEmailRetries?: number
   updatedAt: string
 }
 
@@ -301,6 +304,27 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       showToast('Failed to prepare audience list', true)
     } finally {
       setLoadingUsers(false)
+    }
+  }
+
+  const handleResendEmail = async (userId: string) => {
+    try {
+      showToast('Resending confirmation email...')
+      const res = await apiService.post(`/admin/email/resend-confirmation/${userId}`, {}, token)
+      if (res.data.success) {
+        showToast('Confirmation email sent successfully')
+        setAllUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, confirmationEmailStatus: 'SENT' } : u)),
+        )
+      } else {
+        showToast(`Failed to send: ${res.data.error || 'Unknown error'}`, true)
+        setAllUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, confirmationEmailStatus: 'FAILED' } : u)),
+        )
+      }
+    } catch (err) {
+      console.error('Resend error:', err)
+      showToast('Failed to resend confirmation email', true)
     }
   }
 
@@ -640,7 +664,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
           Admin Dashboard
         </h2>
 
-        {/* Stats Column Grid */}
         <div
           className="stats-grid"
           style={{
@@ -686,7 +709,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
           ))}
         </div>
 
-        {/* Distributions Grid */}
         <div
           style={{
             display: 'grid',
@@ -704,9 +726,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
           <DistributionCard title="Top Cities" data={stats.distributions?.cities || []} />
         </div>
 
-        {/* Filters Section */}
         <div className="card" style={{ marginBottom: '16px', padding: '20px' }}>
-          {/* Date range quick-filters */}
           <div style={{ marginBottom: '16px' }}>
             <div
               style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}
@@ -745,7 +765,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             </div>
           </div>
 
-          {/* Completion status filter */}
           <div style={{ marginBottom: '16px' }}>
             <div
               style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}
@@ -788,7 +807,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             </div>
           </div>
 
-          {/* Field filters */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
             <Filter size={16} style={{ color: 'var(--text-muted)' }} />
             <span
@@ -916,7 +934,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
           </div>
         </div>
 
-        {/* Waitlist Table */}
         <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
           <div
             style={{
@@ -1179,6 +1196,32 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                             <div style={{ fontWeight: 600, fontSize: '14px' }}>
                               {user.firstName} {user.lastName}
                             </div>
+                            {user.confirmationEmailStatus && (
+                              <div
+                                style={{
+                                  fontSize: '10px',
+                                  marginTop: '2px',
+                                  display: 'inline-block',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  fontWeight: 700,
+                                  backgroundColor:
+                                    user.confirmationEmailStatus === 'SENT'
+                                      ? '#dcfce7'
+                                      : user.confirmationEmailStatus === 'FAILED'
+                                        ? '#fee2e2'
+                                        : '#fef9c3',
+                                  color:
+                                    user.confirmationEmailStatus === 'SENT'
+                                      ? '#166534'
+                                      : user.confirmationEmailStatus === 'FAILED'
+                                        ? '#991b1b'
+                                        : '#854d0e',
+                                }}
+                              >
+                                Email: {user.confirmationEmailStatus}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -1302,25 +1345,50 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                       </td>
                       {isSuperadmin && (
                         <td style={{ padding: '16px', verticalAlign: 'middle' }}>
-                          <button
-                            onClick={() => setDeleteModal({ show: true, ids: [user.id] })}
-                            title="Delete member"
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--text-muted)',
-                              cursor: 'pointer',
-                              padding: '4px',
-                              borderRadius: '6px',
-                              transition: 'color 0.2s',
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.color = '#dc2626')}
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.color = 'var(--text-muted)')
-                            }
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            {user.confirmationEmailStatus === 'FAILED' && (
+                              <button
+                                onClick={() => handleResendEmail(user.id)}
+                                title="Resend Confirmation Email"
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#d97757',
+                                  cursor: 'pointer',
+                                  padding: '4px',
+                                  borderRadius: '6px',
+                                  transition: 'background-color 0.2s',
+                                }}
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.backgroundColor = 'var(--surface-hover)')
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.backgroundColor = 'transparent')
+                                }
+                              >
+                                <Mail size={16} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setDeleteModal({ show: true, ids: [user.id] })}
+                              title="Delete member"
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                borderRadius: '6px',
+                                transition: 'color 0.2s',
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.color = '#dc2626')}
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.color = 'var(--text-muted)')
+                              }
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -1379,7 +1447,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
       {deleteModal.show && (
         <div
           className="modal-overlay"

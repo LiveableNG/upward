@@ -641,6 +641,34 @@ export class AdminService {
     return results
   }
 
+  async resendConfirmationEmail(userId: string, requesterId: string) {
+    const user = await this.prisma.upward_waitlist.findUnique({
+      where: { id: userId },
+    })
+
+    if (!user) {
+      throw new NotFoundException('User not found')
+    }
+
+    if (!user.acceptTerms) {
+      throw new ForbiddenException('User has not accepted terms yet')
+    }
+
+    const result = await this.emailService.sendWaitlistConfirmation(
+      user.id,
+      user.email,
+      user.firstName ?? undefined,
+    )
+
+    await this.adminLogService.logAction(
+      requesterId,
+      'RESEND_EMAIL',
+      `Manually resent confirmation email to: ${user.email}. Result: ${result.success ? 'Success' : 'Failed'}`,
+    )
+
+    return result
+  }
+
   async getFilterOptions() {
     const [roles, countries, cities, sessions] = await Promise.all([
       this.prisma.upward_waitlist.findMany({
