@@ -12,10 +12,6 @@ import {
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 interface TargetStat {
   target: string
   count: number
@@ -48,10 +44,6 @@ interface VariantStats {
 interface ABTestStatsProps {
   token: string
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 const VARIANT_COLORS: Record<string, string> = {
   A: '#d97757', // brand accent
@@ -88,7 +80,6 @@ function delta(a: number, b: number): { pct: number; dir: 'up' | 'down' | 'flat'
   return { pct: Math.abs(pct), dir: pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat' }
 }
 
-// Tiny SVG sparkline — renders a polyline from daily trend data
 function Sparkline({
   data,
   color,
@@ -123,10 +114,6 @@ function Sparkline({
     </svg>
   )
 }
-
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
 
 function StatCard({
   label,
@@ -194,10 +181,8 @@ function StatCard({
           </div>
         </div>
 
-        {/* Divider */}
         <div style={{ width: '1px', backgroundColor: 'var(--border)', alignSelf: 'stretch' }} />
 
-        {/* Variant B */}
         <div style={{ flex: 1 }}>
           <div
             style={{
@@ -411,10 +396,6 @@ function TrendChart({ variantA, variantB }: { variantA: DayTrend[]; variantB: Da
   )
 }
 
-// ---------------------------------------------------------------------------
-// Main Page
-// ---------------------------------------------------------------------------
-
 const ABTestStats: React.FC<ABTestStatsProps> = ({ token }) => {
   const [data, setData] = useState<VariantStats[]>([])
   const [loading, setLoading] = useState(true)
@@ -482,7 +463,6 @@ const ABTestStats: React.FC<ABTestStatsProps> = ({ token }) => {
     )
   }
 
-  // All targets combined for max calculation in bar charts
   const allTargetMax = Math.max(
     ...varA.topTargets.map((t) => t.count),
     ...varB.topTargets.map((t) => t.count),
@@ -491,7 +471,6 @@ const ABTestStats: React.FC<ABTestStatsProps> = ({ token }) => {
 
   return (
     <div className="page-container fade-in" style={{ paddingTop: '20px' }}>
-      {/* Header */}
       <div
         style={{
           display: 'flex',
@@ -554,7 +533,6 @@ const ABTestStats: React.FC<ABTestStatsProps> = ({ token }) => {
         ))}
       </div>
 
-      {/* Content Comparison Section */}
       <div
         style={{
           display: 'flex',
@@ -621,7 +599,6 @@ const ABTestStats: React.FC<ABTestStatsProps> = ({ token }) => {
         ))}
       </div>
 
-      {/* Key Metric Cards */}
       <div
         style={{
           display: 'flex',
@@ -692,7 +669,6 @@ const ABTestStats: React.FC<ABTestStatsProps> = ({ token }) => {
         />
       </div>
 
-      {/* Daily Trend Chart */}
       <div className="card" style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
           <h3
@@ -734,9 +710,7 @@ const ABTestStats: React.FC<ABTestStatsProps> = ({ token }) => {
         <TrendChart variantA={varA.dailyTrend} variantB={varB.dailyTrend} />
       </div>
 
-      {/* Two column: Top Targets + Type Breakdown */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', marginBottom: '24px' }}>
-        {/* Top Targets: side-by-side per variant */}
         {[varA, varB].map((v) => (
           <div key={v.variant} className="card" style={{ flex: '1 1 300px' }}>
             <div
@@ -784,7 +758,6 @@ const ABTestStats: React.FC<ABTestStatsProps> = ({ token }) => {
         ))}
       </div>
 
-      {/* Event Type Breakdown */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', marginBottom: '24px' }}>
         {[varA, varB].map((v) => {
           const total = v.typeBreakdown.reduce((s, t) => s + t.count, 0)
@@ -882,7 +855,6 @@ const ABTestStats: React.FC<ABTestStatsProps> = ({ token }) => {
         })}
       </div>
 
-      {/* Conversion Summary Table */}
       <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
         <div
           style={{

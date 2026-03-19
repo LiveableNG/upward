@@ -23,6 +23,9 @@ model upward_waitlist {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   confirmationSent Boolean  @default(false)
+  confirmationEmailStatus String?  // PENDING, SENT, FAILED
+  confirmationEmailError  String?
+  confirmationEmailRetries Int     @default(0)
   abVariant        String?
 
   attendances     upward_attendance[]
@@ -30,6 +33,7 @@ model upward_waitlist {
 
   @@index([email])
   @@index([createdAt])
+  @@index([confirmationEmailStatus])
 }
 
 model upward_session {
@@ -64,17 +68,25 @@ model upward_attendance {
 model upward_email_log {
   id        String   @id @default(uuid())
   userId    String
+  email     String?
   sessionId String?
   subject   String
-  sentAt    DateTime @default(now())
+  type      String   @default("GENERIC") // CONFIRMATION, BULK, SESSION_INVITE, etc.
   status    String   // SENT, FAILED
+  mailgunId String?
+  lastError String?
+  retries   Int      @default(0)
+  sentAt    DateTime?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user      upward_waitlist @relation(fields: [userId], references: [id], onDelete: Cascade)
   session   upward_session? @relation(fields: [sessionId], references: [id])
 
   @@index([userId])
   @@index([sessionId])
+  @@index([status])
+  @@index([type])
 }
 model upward_admin {
   id                 String   @id @default(uuid())

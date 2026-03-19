@@ -177,6 +177,13 @@ export class AdminController {
     }
   }
 
+  @Post('email/resend-confirmation/:userId')
+  async resendConfirmationEmail(@Param('userId') userId: string, @Req() req: AuthenticatedRequest) {
+    return {
+      data: await this.adminService.resendConfirmationEmail(userId, req.user.id),
+    }
+  }
+
   @Get('filters')
   async getFilterOptions() {
     return this.adminService.getFilterOptions()
