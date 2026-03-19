@@ -71,20 +71,35 @@ export class AdminService {
     }
 
     if (selectedSessions && selectedSessions.length > 0) {
-      const sessionFilters = selectedSessions.map((s) => ({
-        selectedSession: { contains: s, mode: 'insensitive' as const },
-      }))
+      // Find sessions whose names match the selected days (e.g. "Saturday")
+      const matchingSessions = await this.prisma.upward_session.findMany({
+        where: {
+          OR: selectedSessions.map((s) => ({
+            name: { contains: s, mode: 'insensitive' },
+          })),
+        },
+        select: { id: true, name: true },
+      })
+
+      const sessionIds = matchingSessions.map((s) => s.id)
+      const sessionNames = matchingSessions.map((s) => s.name)
+
+      // Combine conditions: either contains the day string OR matches a known session ID
+      const sessionFilters: Prisma.upward_waitlistWhereInput[] = [
+        ...selectedSessions.map((s) => ({
+          selectedSession: { contains: s, mode: 'insensitive' as const },
+        })),
+        { selectedSession: { in: sessionIds } },
+        { selectedSession: { in: sessionNames } },
+      ]
 
       if (where.OR) {
-        // If we already have search filters, we need (Search OR ...) AND (Session OR ...)
+        // If we already have search filters, we need (Search OR ...) AND (Session Condition)
         const existingOR = where.OR as Prisma.upward_waitlistWhereInput[]
         delete where.OR
-        where.AND = [
-          { OR: existingOR },
-          { OR: sessionFilters as Prisma.upward_waitlistWhereInput[] },
-        ]
+        where.AND = [{ OR: existingOR }, { OR: sessionFilters }]
       } else {
-        where.OR = sessionFilters as Prisma.upward_waitlistWhereInput[]
+        where.OR = sessionFilters
       }
     }
 
