@@ -10,6 +10,7 @@ import { EmailService } from '../email/email.service'
 import { CreateWaitlistEntryDto, AdminRole } from '@upward/shared-types'
 import * as bcrypt from 'bcrypt'
 import { Prisma } from '@prisma/client'
+import { AdminLogService } from '../admin-log/admin-log.service'
 
 @Injectable()
 export class AdminService {
@@ -18,6 +19,7 @@ export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly adminLogService: AdminLogService,
   ) {}
 
   async getAllUsers(options: {
@@ -69,7 +71,21 @@ export class AdminService {
     }
 
     if (selectedSessions && selectedSessions.length > 0) {
-      where.selectedSession = { in: selectedSessions }
+      const sessionFilters = selectedSessions.map((s) => ({
+        selectedSession: { contains: s, mode: 'insensitive' as const },
+      }))
+
+      if (where.OR) {
+        // If we already have search filters, we need (Search OR ...) AND (Session OR ...)
+        const existingOR = where.OR as Prisma.upward_waitlistWhereInput[]
+        delete where.OR
+        where.AND = [
+          { OR: existingOR },
+          { OR: sessionFilters as Prisma.upward_waitlistWhereInput[] },
+        ]
+      } else {
+        where.OR = sessionFilters as Prisma.upward_waitlistWhereInput[]
+      }
     }
 
     if (completed === 'true') {
@@ -120,21 +136,67 @@ export class AdminService {
     })
   }
 
-  async deleteUser(id: string, requesterRole: AdminRole) {
+  async deleteUser(id: string, requesterRole: AdminRole, requesterId: string) {
     if (requesterRole !== AdminRole.SUPERADMIN) {
       throw new ForbiddenException('Only superadmins can delete users')
     }
-    return this.prisma.upward_waitlist.delete({
-      where: { id },
+
+    return this.prisma.$transaction(async (tx) => {
+      const user = await tx.upward_waitlist.findUnique({
+        where: { id },
+        select: { email: true },
+      })
+
+      // Delete related records first to avoid foreign key constraint violations
+      await tx.upward_email_log.deleteMany({
+        where: { userId: id },
+      })
+      await tx.upward_attendance.deleteMany({
+        where: { userId: id },
+      })
+
+      const deleted = await tx.upward_waitlist.delete({
+        where: { id },
+      })
+
+      if (user) {
+        await this.adminLogService.logAction(
+          requesterId,
+          'DELETE_USER',
+          `Deleted user: ${user.email}`,
+        )
+      }
+
+      return deleted
     })
   }
 
-  async bulkDeleteUsers(ids: string[], requesterRole: AdminRole) {
+  async bulkDeleteUsers(ids: string[], requesterRole: AdminRole, requesterId: string) {
     if (requesterRole !== AdminRole.SUPERADMIN) {
       throw new ForbiddenException('Only superadmins can delete users')
     }
-    return this.prisma.upward_waitlist.deleteMany({
-      where: { id: { in: ids } },
+
+    return this.prisma.$transaction(async (tx) => {
+      const count = ids.length
+      // Delete related records first to avoid foreign key constraint violations
+      await tx.upward_email_log.deleteMany({
+        where: { userId: { in: ids } },
+      })
+      await tx.upward_attendance.deleteMany({
+        where: { userId: { in: ids } },
+      })
+
+      const result = await tx.upward_waitlist.deleteMany({
+        where: { id: { in: ids } },
+      })
+
+      await this.adminLogService.logAction(
+        requesterId,
+        'DELETE_USER',
+        `Bulk deleted ${count} users`,
+      )
+
+      return result
     })
   }
 
@@ -386,7 +448,12 @@ export class AdminService {
     })
   }
 
-  async createAdmin(email: string, passwordPlain: string, role: AdminRole = AdminRole.ADMIN) {
+  async createAdmin(
+    email: string,
+    passwordPlain: string,
+    role: AdminRole = AdminRole.ADMIN,
+    requesterId?: string,
+  ) {
     const existing = await this.prisma.upward_admin.findUnique({ where: { email } })
     if (existing) throw new ConflictException('Admin already exists')
 
@@ -400,7 +467,6 @@ export class AdminService {
       },
     })
 
-    // Send email to the new admin
     try {
       await this.emailService.sendGenericEmail(
         email,
@@ -415,12 +481,21 @@ export class AdminService {
             <p style="margin: 10px 0 0 0;"><strong>Password:</strong> ${passwordPlain}</p>
           </div>
           <p style="color: #666; font-size: 14px;">For security reasons, you will be required to change your password on your first login.</p>
-          <a href="${process.env.ADMIN_SITE_URL || 'https://upward-client.vercel.app'}" style="display: inline-block; padding: 12px 24px; background: #d97757; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin-top: 20px;">Log in to Dashboard</a>
+          <a href="${process.env.ADMIN_SITE_URL || 'https://upward-admin-site.vercel.app'}" style="display: inline-block; padding: 12px 24px; background: #d97757; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin-top: 20px;">Log in to Dashboard</a>
         </div>
         `,
       )
     } catch (err) {
       this.logger.error(`Failed to send welcome email to ${email}`, err)
+    }
+
+    // Log this action
+    if (requesterId) {
+      await this.adminLogService.logAction(
+        requesterId,
+        'ADD_ADMIN',
+        `Added new admin: ${email} (${role})`,
+      )
     }
 
     return admin
@@ -430,15 +505,38 @@ export class AdminService {
     const adminToDelete = await this.prisma.upward_admin.findUnique({ where: { id } })
     if (!adminToDelete) throw new NotFoundException('Admin not found')
 
-    if (adminToDelete.role === AdminRole.SUPERADMIN) {
-      throw new ForbiddenException('Superadmins cannot be deleted')
-    }
-
     if (id === requesterId) {
       throw new ForbiddenException('You cannot delete yourself')
     }
+    return this.prisma.$transaction(async (tx) => {
+      const deleted = await tx.upward_admin.delete({
+        where: { id },
+      })
+      await this.adminLogService.logAction(
+        requesterId,
+        'DELETE_ADMIN',
+        `Deleted admin: ${deleted.email}`,
+      )
+      return deleted
+    })
+  }
 
-    return this.prisma.upward_admin.delete({ where: { id } })
+  async demoteAdmin(id: string, requesterId: string) {
+    if (id === requesterId) {
+      throw new ForbiddenException('You cannot demote yourself')
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.upward_admin.update({
+        where: { id },
+        data: { role: AdminRole.ADMIN },
+      })
+      await this.adminLogService.logAction(
+        requesterId,
+        'DEMOTE_ADMIN',
+        `Demoted admin to ADMIN: ${updated.email}`,
+      )
+      return updated
+    })
   }
 
   async changePassword(adminId: string, newPasswordPlain: string) {
@@ -452,10 +550,18 @@ export class AdminService {
     })
   }
 
-  async promoteAdmin(id: string) {
-    return this.prisma.upward_admin.update({
-      where: { id },
-      data: { role: AdminRole.SUPERADMIN },
+  async promoteAdmin(id: string, requesterId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.upward_admin.update({
+        where: { id },
+        data: { role: AdminRole.SUPERADMIN },
+      })
+      await this.adminLogService.logAction(
+        requesterId,
+        'PROMOTE_ADMIN',
+        `Promoted admin to SUPERADMIN: ${updated.email}`,
+      )
+      return updated
     })
   }
 
@@ -466,12 +572,14 @@ export class AdminService {
     subject: string
     content: string
     sessionId?: string
+    requesterId?: string
   }) {
     const users = await this.prisma.upward_waitlist.findMany({
       where: { id: { in: payload.userIds } },
     })
 
     const results = []
+
     for (const user of users) {
       try {
         // Variables replacement
@@ -490,7 +598,7 @@ export class AdminService {
             status: 'SENT',
           },
         })
-        results.push({ email: user.email, status: 'SUCCESS' })
+        results.push({ email: user.email, status: 'SENT' })
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         this.logger.error(`Failed to send email to ${user.email}`, error)
@@ -505,6 +613,16 @@ export class AdminService {
         results.push({ email: user.email, status: 'FAILED', error: errorMessage })
       }
     }
+
+    // Log the batch email action
+    if (payload.requesterId) {
+      await this.adminLogService.logAction(
+        payload.requesterId,
+        'SEND_EMAIL',
+        `Batch emailed ${users.length} users. Subject: ${payload.subject}`,
+      )
+    }
+
     return results
   }
 

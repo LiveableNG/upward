@@ -8,8 +8,12 @@ import {
   Res,
   Req,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common'
 import { AuthService } from './auth.service'
+import { AdminLogService } from '../admin-log/admin-log.service'
+import { JwtAuthGuard } from './guards/jwt-auth.guard'
+import { AdminRole } from '@upward/shared-types'
 
 // Fastify request/reply types (lightweight inline)
 interface FastifyReply {
@@ -21,6 +25,16 @@ interface FastifyReply {
 
 interface FastifyRequest {
   cookies?: Record<string, string>
+}
+
+interface AuthenticatedRequest {
+  user: {
+    id: string
+    email: string
+    role: AdminRole
+  }
+  headers: Record<string, string>
+  ip: string
 }
 
 const COOKIE_NAME = 'admin_refresh'
@@ -37,15 +51,29 @@ function setRefreshCookie(reply: FastifyReply, token: string) {
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly adminLogService: AdminLogService,
+  ) {}
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() body: { email: string; password: string },
     @Res({ passthrough: false }) reply: FastifyReply,
+    @Req() req: AuthenticatedRequest,
   ) {
     const { refreshToken, ...rest } = await this.authService.login(body.email, body.password)
+
+    // Log login
+    await this.adminLogService.logAction(
+      rest.user.id,
+      'LOGIN',
+      `Admin logged in: ${rest.user.email}`,
+      req.ip,
+      req.headers['user-agent'],
+    )
+
     setRefreshCookie(reply, refreshToken)
     reply.status(200).send(rest) // only send accessToken + user — never expose refresh token to JS
   }
@@ -63,8 +91,18 @@ export class AuthController {
   }
 
   @Post('logout')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async logout(@Res({ passthrough: false }) reply: FastifyReply) {
+  async logout(@Req() req: AuthenticatedRequest, @Res({ passthrough: false }) reply: FastifyReply) {
+    // Log logout
+    await this.adminLogService.logAction(
+      req.user.id,
+      'LOGOUT',
+      `Admin logged out: ${req.user.email}`,
+      req.ip,
+      req.headers['user-agent'],
+    )
+
     reply.clearCookie(COOKIE_NAME, { path: '/' })
     reply.status(200).send({ message: 'Logged out' })
   }

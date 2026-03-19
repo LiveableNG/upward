@@ -55,7 +55,7 @@ model upward_attendance {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      upward_waitlist @relation(fields: [userId], references: [id])
+  user      upward_waitlist @relation(fields: [userId], references: [id], onDelete: Cascade)
   session   upward_session  @relation(fields: [sessionId], references: [id])
 
   @@unique([sessionId, userId])
@@ -70,7 +70,7 @@ model upward_email_log {
   status    String   // SENT, FAILED
   createdAt DateTime @default(now())
 
-  user      upward_waitlist @relation(fields: [userId], references: [id])
+  user      upward_waitlist @relation(fields: [userId], references: [id], onDelete: Cascade)
   session   upward_session? @relation(fields: [sessionId], references: [id])
 
   @@index([userId])
@@ -86,6 +86,23 @@ model upward_admin {
   updatedAt          DateTime @updatedAt
 
   @@index([email])
+  logs               upward_admin_log[]
+}
+
+model upward_admin_log {
+  id        String   @id @default(uuid())
+  adminId   String
+  action    String   // LOGIN, LOGOUT, EXPORT_CSV, SEND_EMAIL, ADD_ADMIN, DELETE_ADMIN, DEMOTE_ADMIN, DELETE_USER, etc.
+  details   String?  // Summary or JSON string: "Deleted 3 users", "Subject: Welcome Email"
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  admin     upward_admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 model upward_interaction {

@@ -7,6 +7,7 @@ import Sessions from './pages/Sessions'
 import DropOffAnalysis from './pages/DropOffAnalysis'
 import Settings from './pages/Settings'
 import ABTestStats from './pages/ABTestStats'
+import Logs from './pages/Logs'
 import Layout from './components/Layout'
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -36,10 +37,13 @@ function AppRoutes() {
           <Route path="/drop-off" element={<DropOffAnalysis token={auth.token} />} />
           <Route path="/ab-stats" element={<ABTestStats token={auth.token} />} />
           {auth.user.role === 'SUPERADMIN' && (
-            <Route
-              path="/settings"
-              element={<Settings token={auth.token} currentAdminId={auth.user.id} />}
-            />
+            <>
+              <Route
+                path="/settings"
+                element={<Settings token={auth.token} currentAdminId={auth.user.id} />}
+              />
+              <Route path="/logs" element={<Logs token={auth.token} />} />
+            </>
           )}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

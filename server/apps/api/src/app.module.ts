@@ -7,6 +7,7 @@ import { LocationsModule } from './locations/locations.module'
 import { EmailModule } from './email/email.module'
 import { AdminModule } from './admin/admin.module'
 import { AuthModule } from './auth/auth.module'
+import { AdminLogModule } from './admin-log/admin-log.module'
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AuthModule } from './auth/auth.module'
     EmailModule,
     AdminModule,
     AuthModule,
+    AdminLogModule,
   ],
   controllers: [AppController],
   providers: [AppService],

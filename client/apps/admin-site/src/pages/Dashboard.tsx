@@ -185,7 +185,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     [token, filters, page, dateBounds],
   )
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     if (allUsers.length === 0) return
 
     const headers = [
@@ -217,6 +217,21 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     })
 
     const csvContent = [headers, ...rows].join('\n')
+
+    // Log export event
+    try {
+      await apiService.post(
+        '/admin/logs/event',
+        {
+          action: 'EXPORT_CSV',
+          details: `Exported ${allUsers.length} members to CSV`,
+        },
+        token,
+      )
+    } catch (err) {
+      console.error('Failed to log export event:', err)
+    }
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
@@ -885,10 +900,16 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             <MultiSelect
               label="Session"
               placeholder="All Sessions"
-              options={(filterOptions?.sessions || []).map((s: { id: string; name: string }) => ({
-                value: s.id,
-                label: s.name,
-              }))}
+              options={(() => {
+                const days = new Set<string>()
+                filterOptions?.sessions.forEach((s) => {
+                  const day = s.name.split(/[(\s]/)[0]
+                  if (day) days.add(day)
+                })
+                return Array.from(days)
+                  .sort()
+                  .map((day) => ({ value: day, label: day }))
+              })()}
               selected={filters.selectedSessions}
               onChange={(vals) => setFilters((prev) => ({ ...prev, selectedSessions: vals }))}
             />
@@ -1096,7 +1117,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 {allUsers.length === 0 && !loadingUsers ? (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={isSuperadmin ? 8 : 6}
                       style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}
                     >
                       No members found matching your criteria.
@@ -1241,10 +1262,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                         <div style={{ fontSize: '13px' }}>
                           {(() => {
                             const sessionValue = user.selectedSession || user.selectedsession
+                            if (!sessionValue) return 'Not Selected'
                             const foundSession = filterOptions?.sessions.find(
                               (s) => s.id === sessionValue || s.name === sessionValue,
                             )
-                            return foundSession?.name || sessionValue || 'Not Selected'
+                            const fullName = foundSession?.name || sessionValue
+                            return fullName.split(/[(\s]/)[0]
                           })()}
                         </div>
                         {user.wantsAmbassador && (
@@ -1305,7 +1328,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 )}
                 {loadingUsers && (
                   <tr>
-                    <td colSpan={6} style={{ padding: '24px', textAlign: 'center' }}>
+                    <td
+                      colSpan={isSuperadmin ? 8 : 6}
+                      style={{ padding: '24px', textAlign: 'center' }}
+                    >
                       <div
                         className="loader"
                         style={{
