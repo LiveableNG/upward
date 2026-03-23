@@ -32,7 +32,7 @@ export default function HomePage() {
           visitorId: vid,
           type,
           target,
-          abVariant: abVariant || 'A',
+          abVariant: metadata?.abVariant || abVariant || 'A',
           metadata: metadata ? JSON.stringify(metadata) : undefined,
         }),
       })
@@ -53,14 +53,6 @@ export default function HomePage() {
     else document.body.classList.remove('no-scroll')
   }, [showModal])
 
-  // Scroll to top when view changes
-  useEffect(() => {
-    window.scrollTo(0, 0)
-    if (visitorId) {
-      trackInteraction('VIEW', `PAGE_${view.toUpperCase()}`)
-    }
-  }, [view, visitorId])
-
   // Handle A/B variant assignment and Visitor ID
   useEffect(() => {
     // 1. Visitor ID
@@ -71,42 +63,28 @@ export default function HomePage() {
       localStorage.setItem('upward_visitor_id', vid)
     }
     setVisitorId(vid)
+    setMounted(true)
+  }, [])
 
-    // 2. A/B Variant
+  // Handle A/B variant randomization and View tracking
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    if (!visitorId) return
+
+    // Pick a new random variant unless forced by URL
     const params = new URLSearchParams(window.location.search)
     const forced = params.get('variant')?.toUpperCase()
 
-    let variant: 'A' | 'B'
+    let nextVariant: 'A' | 'B'
     if (forced === 'A' || forced === 'B') {
-      variant = forced as 'A' | 'B'
-      localStorage.setItem('upward_ab_hero', forced)
+      nextVariant = forced as 'A' | 'B'
     } else {
-      const saved = localStorage.getItem('upward_ab_hero')
-      if (saved === 'A' || saved === 'B') {
-        variant = saved as 'A' | 'B'
-      } else {
-        variant = Math.random() < 0.5 ? 'A' : 'B'
-        localStorage.setItem('upward_ab_hero', variant)
-      }
+      nextVariant = Math.random() < 0.5 ? 'A' : 'B'
     }
-    setAbVariant(variant)
-    setMounted(true)
 
-    const trackInitial = async () => {
-      await new Promise((r) => setTimeout(r, 100))
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist/interactions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          visitorId: vid,
-          type: 'VIEW',
-          target: 'LANDING_PAGE',
-          abVariant: variant,
-        }),
-      }).catch(() => {})
-    }
-    trackInitial()
-  }, [])
+    setAbVariant(nextVariant)
+    trackInteraction('VIEW', `PAGE_${view.toUpperCase()}`, { abVariant: nextVariant })
+  }, [view, visitorId])
 
   // Handle deep-linking from other pages (like /legal/...)
   useEffect(() => {
