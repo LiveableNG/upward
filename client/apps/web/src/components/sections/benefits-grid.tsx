@@ -37,7 +37,7 @@ export function BenefitsGrid({
           <polyline points="9 22 9 12 15 12 15 22" />
         </svg>
       ),
-      title: 'Move Homes with Ease',
+      title: 'Rent Your Next Home with Ease',
       desc: 'Still renting? Discover great homes and get prioritised by trusted owners and property managers.',
     },
     {
