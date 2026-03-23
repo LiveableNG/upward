@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Upward Pay</string>
+    <string name="title_activity_main">Upward Pay</string>
+    <string name="package_name">com.upward.pay</string>
+    <string name="custom_url_scheme">com.upward.pay</string>
+</resources>
