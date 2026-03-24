@@ -169,7 +169,7 @@ export function FairHousingPage({ onBack }: { onBack: () => void }) {
               alignItems: 'center',
               gap: '12px',
               background: 'var(--accent)',
-              color: 'white',
+              color: 'black',
               padding: '20px 40px',
               borderRadius: '100px',
               textDecoration: 'none',
