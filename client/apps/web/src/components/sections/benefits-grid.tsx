@@ -198,14 +198,25 @@ export function BenefitsGrid({
       </div>
 
       <div
-        className="stack-mobile desktop-only"
-        style={{ marginTop: '24px', width: '100%', animation: 'fadeUp 0.7s 0.4s ease both' }}
+        className="stack-mobile"
+        style={{
+          marginTop: '32px',
+          width: '100%',
+          animation: 'fadeUp 0.7s 0.4s ease both',
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
       >
-        <div style={{ display: 'flex', gap: '12px', maxWidth: '560px' }} className="stack-mobile">
+        <div
+          style={{ display: 'flex', gap: '12px', maxWidth: '560px', width: '100%' }}
+          className="stack-mobile"
+        >
           <input
             id="hero-email-grid"
             type="email"
-            placeholder="Enter your email address"
+            placeholder="Enter your email to start"
             style={{
               flex: 1.5,
               background: 'var(--surface2)',
@@ -213,10 +224,12 @@ export function BenefitsGrid({
               color: 'var(--text)',
               fontFamily: 'var(--font-body)',
               fontSize: '15px',
-              padding: '16px 24px',
+              padding: '18px 24px',
               borderRadius: '12px',
               outline: 'none',
-              transition: 'border-color 0.2s',
+              transition: 'all 0.2s',
+              width: '100%',
+              textAlign: 'center',
             }}
             onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
             onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
@@ -231,7 +244,7 @@ export function BenefitsGrid({
               fontWeight: 800,
               fontSize: '14px',
               letterSpacing: '0.05em',
-              padding: '16px 28px',
+              padding: '18px 28px',
               borderRadius: '12px',
               border: 'none',
               cursor: 'pointer',
@@ -241,6 +254,7 @@ export function BenefitsGrid({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
+              width: '100%',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = '#bf5f43'
@@ -253,7 +267,7 @@ export function BenefitsGrid({
               e.currentTarget.style.boxShadow = ''
             }}
           >
-            Get Priority Access
+            Join Now
             <svg
               width="18"
               height="18"
@@ -270,14 +284,17 @@ export function BenefitsGrid({
         </div>
         <p
           style={{
-            fontSize: '12px',
+            fontSize: '13px',
             color: 'var(--muted)',
-            marginTop: '16px',
-            opacity: 0.6,
-            fontStyle: 'italic',
+            marginTop: '20px',
+            opacity: 0.8,
+            maxWidth: '400px',
+            lineHeight: 1.5,
           }}
         >
-          * Be the first to build a verified rental history and unlock rewards.
+          Join hundreds of smart renters already on the waitlist.
+          <br className="mobile-hide" />
+          We&apos;ll notify you when it&apos;s your turn to join.
         </p>
       </div>
 

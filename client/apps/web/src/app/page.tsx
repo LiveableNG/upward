@@ -9,12 +9,13 @@ import { TellAFriend } from '@/components/sections/tell-a-friend'
 import { PartnersBar } from '@/components/sections/partners-bar'
 import { SignupForm } from '@/components/sections/signup-form'
 import { AmbassadorSection } from '@/components/sections/ambassador-section'
+import { FairHousingPage } from '@/components/sections/fair-housing-page'
 
 export default function HomePage() {
   const [showModal, setShowModal] = useState(false)
   const [prefilledEmail, setPrefilledEmail] = useState('')
   const [prefilledStep, setPrefilledStep] = useState(1)
-  const [view, setView] = useState<'home' | 'why'>('home')
+  const [view, setView] = useState<'home' | 'why' | 'fairness'>('home')
   const [abVariant, setAbVariant] = useState<'A' | 'B' | null>(null)
   const [visitorId, setVisitorId] = useState('')
   const [mounted, setMounted] = useState(false)
@@ -153,16 +154,21 @@ export default function HomePage() {
         <div
           style={{
             display: 'flex',
-            width: '200%',
+            width: '300%',
             transition: 'transform 0.6s cubic-bezier(0.85, 0, 0.15, 1)',
-            transform: view === 'home' ? 'translateX(0)' : 'translateX(-50%)',
+            transform:
+              view === 'home'
+                ? 'translateX(0)'
+                : view === 'why'
+                  ? 'translateX(-33.33%)'
+                  : 'translateX(-66.66%)',
             alignItems: 'flex-start',
           }}
         >
           {/* Home View */}
           <div
             style={{
-              width: '50%',
+              width: '33.33%',
               flexShrink: 0,
               height: view === 'home' ? 'auto' : '0',
               overflow: 'hidden',
@@ -198,10 +204,9 @@ export default function HomePage() {
             <PartnersBar />
           </div>
 
-          {/* Why Upward? View */}
           <div
             style={{
-              width: '50%',
+              width: '33.33%',
               flexShrink: 0,
               height: view === 'why' ? 'auto' : '0',
               overflow: 'hidden',
@@ -209,6 +214,19 @@ export default function HomePage() {
             }}
           >
             <WhyUpwardPage onBack={() => setView('home')} onOpenSignup={() => openSignup()} />
+          </div>
+
+          {/* Fairness View */}
+          <div
+            style={{
+              width: '33.33%',
+              flexShrink: 0,
+              height: view === 'fairness' ? 'auto' : '0',
+              overflow: 'hidden',
+              visibility: view === 'fairness' ? 'visible' : 'hidden',
+            }}
+          >
+            <FairHousingPage onBack={() => setView('home')} />
           </div>
         </div>
       </main>

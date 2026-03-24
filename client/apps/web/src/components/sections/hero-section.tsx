@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { showToast } from '@upward/client-core'
 import { PressLogos } from './press-logos'
 
 export function HeroSection({
@@ -10,8 +11,26 @@ export function HeroSection({
   variant?: 'A' | 'B'
 }) {
   const LAUNCH_DATE = '2026-04-16T00:00:00'
+  const [email, setEmail] = useState('')
   const launchRef = useRef<number>(new Date(LAUNCH_DATE).getTime())
   const [time, setTime] = useState({ d: 0, h: 0, m: 0, s: 0 })
+
+  const handleJoin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email || !email.includes('@')) {
+      showToast('Please enter a valid email address.', true)
+      return
+    }
+
+    // Background submit
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }).catch(() => {})
+
+    onOpenSignup(email, 2)
+  }
 
   useEffect(() => {
     const tick = () => {
@@ -128,46 +147,107 @@ export function HeroSection({
 
           <div
             style={{
-              display: 'flex',
-              gap: '16px',
-              alignItems: 'center',
               marginTop: '32px',
+              width: '100%',
+              maxWidth: '520px',
+              animation: 'fadeUp 0.7s 0.25s ease both',
             }}
-            className="hero-cta-container mobile-only"
           >
+            {/* Desktop: Inline Form */}
+            <form
+              onSubmit={handleJoin}
+              style={{
+                display: 'flex',
+                gap: '12px',
+                width: '100%',
+              }}
+              className="desktop-only"
+            >
+              <div style={{ position: 'relative', flex: 1 }}>
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)',
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: 500,
+                    fontSize: '15px',
+                    padding: '18px 24px',
+                    borderRadius: '100px',
+                    outline: 'none',
+                    transition: 'all 0.3s',
+                    width: '100%',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--accent)'
+                    e.currentTarget.style.boxShadow = '0 8px 30px rgba(217, 119, 87, 0.15)'
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border)'
+                    e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)'
+                  }}
+                />
+              </div>
+              <button
+                type="submit"
+                style={{
+                  background: 'var(--accent)',
+                  color: 'white',
+                  fontFamily: 'var(--font-head)',
+                  fontWeight: 800,
+                  fontSize: '14px',
+                  letterSpacing: '0.05em',
+                  padding: '18px 32px',
+                  borderRadius: '100px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 10px 25px rgba(217, 119, 87, 0.2)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.background = '#bf5f43'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = ''
+                  e.currentTarget.style.background = 'var(--accent)'
+                }}
+              >
+                Join Now
+              </button>
+            </form>
+
+            {/* Mobile: Simple Button */}
             <button
               onClick={() => onOpenSignup()}
+              className="mobile-only"
               style={{
                 background: 'var(--accent)',
-                color: 'var(--btn-text)',
+                color: 'white',
                 fontFamily: 'var(--font-head)',
                 fontWeight: 800,
-                fontSize: '14px',
-                letterSpacing: '0.1em',
-                padding: '18px 36px',
+                fontSize: '15px',
+                letterSpacing: '0.05em',
+                padding: '20px 48px',
                 borderRadius: '100px',
                 border: 'none',
                 cursor: 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                transition: 'all 0.3s ease',
+                width: '100%',
+                boxShadow: '0 10px 30px rgba(217, 119, 87, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '12px',
-                boxShadow: '0 10px 40px rgba(217, 119, 87, 0.3)',
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-3px)'
-                e.currentTarget.style.boxShadow = '0 15px 45px rgba(217, 119, 87, 0.45)'
-                e.currentTarget.style.background = '#bf5f43'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '0 10px 40px rgba(217, 119, 87, 0.3)'
-                e.currentTarget.style.background = 'var(--accent)'
               }}
             >
-              Join the Waitlist
+              Join Now
               <svg
                 width="18"
                 height="18"
@@ -181,19 +261,6 @@ export function HeroSection({
                 <line x1="5" y1="12" x2="19" y2="12"></line>
                 <polyline points="12 5 19 12 12 19"></polyline>
               </svg>
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: '-150%',
-                  width: '100%',
-                  height: '100%',
-                  background:
-                    'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)',
-                  transform: 'skewX(-25deg)',
-                  animation: 'beam 4s infinite ease-in-out',
-                }}
-              />
             </button>
           </div>
 
@@ -296,6 +363,9 @@ export function HeroSection({
             to { opacity: 1; transform: translateY(0); }
           }
           @media (max-width: 768px) {
+            .desktop-only {
+                display: none !important;
+            }
             .hero-container {
               padding: 100px 20px 60px !important;
               text-align: center;
