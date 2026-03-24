@@ -550,10 +550,10 @@ export function SignupForm({
                     marginBottom: '8px',
                   }}
                 >
-                  Join the Waitlist
+                  Join Now
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '32px' }}>
-                  Enter your email to start your journey with Upward.
+                  Enter your email to join the movement and start your journey with Upward.
                 </div>
                 <div style={{ marginBottom: '20px' }}>
                   <label style={labelStyle}>Email Address *</label>
@@ -588,7 +588,7 @@ export function SignupForm({
                   }}
                 >
                   <PrimaryBtn onClick={() => goTo(2)} loading={syncing}>
-                    Join Waitlist <ArrowIcon />
+                    Get Started <ArrowIcon />
                   </PrimaryBtn>
                 </div>
               </div>

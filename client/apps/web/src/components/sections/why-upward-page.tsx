@@ -377,7 +377,7 @@ export function WhyUpwardPage({
               Ready to build your reputation?
             </h3>
             <p style={{ color: 'var(--muted)', marginBottom: '24px', fontSize: '15px' }}>
-              Join the waitlist today and get early access to the Upward platform.
+              Register today to join the movement and start your home-ownership journey with Upward.
             </p>
             <button
               onClick={onOpenSignup}
@@ -404,7 +404,7 @@ export function WhyUpwardPage({
                 e.currentTarget.style.transform = 'scale(1)'
               }}
             >
-              Get Priority Access
+              Join Now
             </button>
           </div>
         </div>

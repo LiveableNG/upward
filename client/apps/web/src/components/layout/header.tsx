@@ -8,8 +8,8 @@ export function Header({
   onOpenSignup,
   trackInteraction,
 }: {
-  onSetView: (view: 'home' | 'why') => void
-  currentView: 'home' | 'why'
+  onSetView: (view: 'home' | 'why' | 'fairness') => void
+  currentView: 'home' | 'why' | 'fairness'
   onOpenSignup: () => void
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   trackInteraction?: (type: string, target: string, metadata?: any) => void
@@ -141,6 +141,7 @@ export function Header({
           [
             ['#why', 'Why Upward?'],
             ['#faq', 'FAQ'],
+            ['#fairness', 'End Housing Bias'],
           ] as [string, string][]
         ).map(([href, label]) => {
           return (
@@ -167,6 +168,9 @@ export function Header({
                         }
                       }, 150)
                     }
+                  } else if (label === 'End Housing Bias') {
+                    e.preventDefault()
+                    onSetView('fairness')
                   } else {
                     onSetView('home')
                   }
@@ -176,13 +180,16 @@ export function Header({
                   color:
                     (label === 'Why Upward?' || label === 'FAQ') && currentView === 'why'
                       ? 'var(--accent)'
-                      : 'var(--muted)',
+                      : label === 'End Housing Bias' && currentView === 'fairness'
+                        ? 'var(--accent)'
+                        : 'var(--muted)',
                   textDecoration: 'none',
                   transition: 'color 0.2s',
                   letterSpacing: '1px',
                   textTransform: 'uppercase',
                   fontWeight:
-                    (label === 'Why Upward?' || label === 'FAQ') && currentView === 'why'
+                    ((label === 'Why Upward?' || label === 'FAQ') && currentView === 'why') ||
+                    (label === 'End Housing Bias' && currentView === 'fairness')
                       ? 700
                       : 400,
                 }}
@@ -239,7 +246,7 @@ export function Header({
             e.currentTarget.style.background = 'var(--accent)'
           }}
         >
-          Join Waitlist
+          Get Early Access
           <div
             style={{
               position: 'absolute',
@@ -382,6 +389,7 @@ export function Header({
             [
               ['#why', 'Why Upward?'],
               ['#faq', 'FAQ'],
+              ['#fairness', 'End Housing Bias'],
             ] as [string, string][]
           ).map(([href, label]) => (
             <Link
@@ -406,6 +414,9 @@ export function Header({
                       }
                     }, 150)
                   }
+                } else if (label === 'End Housing Bias') {
+                  e.preventDefault()
+                  onSetView('fairness')
                 } else if (label === 'Join Live') {
                   e.preventDefault()
                   onOpenSignup()
@@ -419,7 +430,8 @@ export function Header({
                 fontFamily: 'var(--font-head)',
                 fontWeight: 700,
                 color:
-                  (label === 'Why Upward?' || label === 'FAQ') && currentView === 'why'
+                  ((label === 'Why Upward?' || label === 'FAQ') && currentView === 'why') ||
+                  (label === 'End Housing Bias' && currentView === 'fairness')
                     ? 'var(--accent)'
                     : 'var(--text)',
                 textDecoration: 'none',
@@ -458,7 +470,7 @@ export function Header({
                 gap: '12px',
               }}
             >
-              Join the Waitlist
+              Get Early Access
               <div
                 style={{
                   position: 'absolute',
