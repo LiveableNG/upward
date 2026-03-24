@@ -15,7 +15,7 @@ export interface CreateWaitlistEntryDto {
   lastName?: string
   phone?: string
   role?: UserRole
-  benefits?: WaitlistBenefit[]
+  benefits?: string[]
   acceptTerms?: boolean
   wantsAmbassador?: boolean
   country?: string
@@ -33,7 +33,7 @@ export interface WaitlistEntryResponse {
   lastName?: string
   phone?: string
   role?: UserRole
-  benefits?: WaitlistBenefit[]
+  benefits?: string[]
   acceptTerms?: boolean
   wantsAmbassador?: boolean
   country?: string
