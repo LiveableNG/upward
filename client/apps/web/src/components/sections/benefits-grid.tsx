@@ -198,21 +198,10 @@ export function BenefitsGrid({
       </div>
 
       <div
-        className="stack-mobile"
-        style={{
-          marginTop: '32px',
-          width: '100%',
-          animation: 'fadeUp 0.7s 0.4s ease both',
-          textAlign: 'center',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
+        className="stack-mobile desktop-only"
+        style={{ marginTop: '24px', width: '100%', animation: 'fadeUp 0.7s 0.4s ease both' }}
       >
-        <div
-          style={{ display: 'flex', gap: '12px', maxWidth: '560px', width: '100%' }}
-          className="stack-mobile"
-        >
+        <div style={{ display: 'flex', gap: '12px', maxWidth: '560px' }} className="stack-mobile">
           <input
             id="hero-email-grid"
             type="email"
@@ -224,12 +213,10 @@ export function BenefitsGrid({
               color: 'var(--text)',
               fontFamily: 'var(--font-body)',
               fontSize: '15px',
-              padding: '18px 24px',
+              padding: '16px 24px',
               borderRadius: '12px',
               outline: 'none',
               transition: 'all 0.2s',
-              width: '100%',
-              textAlign: 'center',
             }}
             onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
             onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
@@ -290,11 +277,10 @@ export function BenefitsGrid({
             opacity: 0.8,
             maxWidth: '400px',
             lineHeight: 1.5,
+            fontStyle: 'italic',
           }}
         >
           Join hundreds of smart renters already on the waitlist.
-          <br className="mobile-hide" />
-          We&apos;ll notify you when it&apos;s your turn to join.
         </p>
       </div>
 

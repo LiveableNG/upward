@@ -162,8 +162,6 @@ export function FairHousingPage({ onBack }: { onBack: () => void }) {
 
           <a
             href={FORM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

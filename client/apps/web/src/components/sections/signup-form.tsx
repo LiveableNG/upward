@@ -19,7 +19,8 @@ export function SignupForm({
   const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
   const [role, setRole] = useState<UserRole>(UserRole.TENANT)
-  const [benefits, setBenefits] = useState<WaitlistBenefit[]>([])
+  const [benefits, setBenefits] = useState<string[]>([])
+  const [customBenefit, setCustomBenefit] = useState('')
   const [checkboxes, setCheckboxes] = useState<CheckboxState>({ news: false, ambassador: false })
   const [done, setDone] = useState(false)
   const [benefitWarning, setBenefitWarning] = useState(false)
@@ -122,7 +123,7 @@ export function SignupForm({
     setStep(n)
   }
 
-  const toggleBenefit = (val: WaitlistBenefit) => {
+  const toggleBenefit = (val: string) => {
     if (benefits.includes(val)) {
       setBenefits(benefits.filter((b) => b !== val))
     } else if (benefits.length >= 2) {
@@ -181,8 +182,14 @@ export function SignupForm({
         if (data.lastName) setLastName(data.lastName)
         if (data.phone) setPhone(data.phone)
         if (data.role) setRole(data.role as UserRole)
-        if (data.benefits && data.benefits.length > 0)
-          setBenefits(data.benefits as WaitlistBenefit[])
+        if (data.benefits && data.benefits.length > 0) {
+          const loadedBenefits = data.benefits as string[]
+          setBenefits(loadedBenefits)
+          const firstCustom = loadedBenefits.find(
+            (b) => !Object.values(WaitlistBenefit).includes(b as any),
+          )
+          if (firstCustom) setCustomBenefit(firstCustom)
+        }
         if (data.country) setCountry(data.country)
         if (data.city) setCity(data.city)
         if (data.selectedSession) setSelectedSession(data.selectedSession)
@@ -561,7 +568,7 @@ export function SignupForm({
                     id="s1-email"
                     type="email"
                     placeholder="you@example.com"
-                    style={inputStyle}
+                    style={{ ...inputStyle, textAlign: 'center' }}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
@@ -1039,6 +1046,125 @@ export function SignupForm({
                       </div>
                     )
                   })}
+
+                  {/* Render Custom-Typed Benefits as Cards */}
+                  {benefits
+                    .filter((b) => {
+                      const predefined =
+                        role === UserRole.TENANT
+                          ? [
+                              WaitlistBenefit.PRIORITY,
+                              WaitlistBenefit.FINANCING,
+                              WaitlistBenefit.OWNERSHIP,
+                            ]
+                          : [WaitlistBenefit.HISTORY, WaitlistBenefit.CREDIT, WaitlistBenefit.TITLE]
+                      return !predefined.includes(b as WaitlistBenefit)
+                    })
+                    .map((customVal) => (
+                      <div
+                        key={customVal}
+                        onClick={() => toggleBenefit(customVal)}
+                        style={{
+                          border: '1px solid var(--accent)',
+                          background: 'var(--accent-faint)',
+                          borderRadius: '10px',
+                          padding: '14px 16px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          fontSize: '13px',
+                        }}
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          width="16"
+                          height="16"
+                          fill="none"
+                          stroke="var(--accent)"
+                          strokeWidth="2"
+                        >
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                        <span style={{ flex: 1 }}>{customVal}</span>
+                        <span style={{ fontSize: '10px', opacity: 0.6 }}>✕</span>
+                      </div>
+                    ))}
+
+                  {/* Custom Benefit Input (Only if space available) */}
+                  {benefits.length < 2 && (
+                    <div
+                      style={{
+                        border: '1px solid var(--border)',
+                        background: 'var(--surface2)',
+                        borderRadius: '10px',
+                        padding: '14px 16px',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          marginBottom: '8px',
+                        }}
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          width="16"
+                          height="16"
+                          fill="none"
+                          stroke="var(--accent)"
+                          strokeWidth="1.8"
+                        >
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                        <span style={{ fontSize: '13px', fontWeight: 600 }}>Something else?</span>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Type and press Enter..."
+                        value={customBenefit}
+                        onChange={(e) => setCustomBenefit(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            const val = customBenefit.trim()
+                            if (val) {
+                              if (benefits.includes(val)) {
+                                showToast('Already added.')
+                              } else {
+                                setBenefits([...benefits, val])
+                                setCustomBenefit('')
+                              }
+                            }
+                          }
+                        }}
+                        onBlur={() => {
+                          const val = customBenefit.trim()
+                          if (val) {
+                            if (!benefits.includes(val)) {
+                              setBenefits([...benefits, val])
+                            }
+                            setCustomBenefit('')
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          background: 'transparent',
+                          border: 'none',
+                          borderBottom: '1px solid var(--border)',
+                          color: 'var(--text)',
+                          fontSize: '12px',
+                          padding: '4px 0',
+                          outline: 'none',
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
                 {benefitWarning && (
                   <div
