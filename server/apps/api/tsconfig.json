@@ -9,7 +9,7 @@
     "experimentalDecorators": true,
     "paths": {
       "@upward/shared-types": ["../../../common/shared-types/dist/index.d.ts"],
-      "@upward/common-utils": ["../../../common/utils/src/index.ts"]
+      "@upward/common-utils": ["../../../common/utils/dist/index.d.ts"]
     }
   },
   "include": ["src/**/*"],
