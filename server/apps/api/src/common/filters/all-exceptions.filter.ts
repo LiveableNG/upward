@@ -19,7 +19,13 @@ function shouldExcludeFromBugsnag(
 ): boolean {
   const msg = typeof exception?.message === 'string' ? exception.message : ''
 
-  if (status === 401 && msg.includes('No refresh token')) return true
+  if (status === 401) {
+    if (msg.includes('No refresh token')) return true
+    if (msg.includes('No authorization token provided')) return true
+    if (msg.includes('Authorization token has expired')) return true
+    if (msg.includes('Invalid authorization token')) return true
+    if (msg === 'Unauthorized') return true
+  }
 
   if (status === 404 && request.url?.includes('favicon.ico')) return true
 
