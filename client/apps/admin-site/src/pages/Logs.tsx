@@ -9,6 +9,7 @@ import {
   ArrowRight,
   Filter,
   RefreshCcw,
+  ChevronDown,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 
@@ -92,44 +93,82 @@ const Logs: React.FC<LogsProps> = ({ token }) => {
 
   return (
     <div className="page-container">
-      <div className="page-header" style={{ marginBottom: '24px' }}>
+      <div
+        className="page-header flex-mobile-column"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: '24px',
+          gap: '16px',
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div
             className="icon-container"
-            style={{ background: 'var(--accent-faint)', color: 'var(--accent)' }}
+            style={{
+              background: 'var(--accent-faint)',
+              color: 'var(--accent)',
+              width: '48px',
+              height: '48px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
           >
             <FileText size={24} />
           </div>
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0 }}>System Logs</h1>
-            <p style={{ color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
-              Monitor all administrative activities across the platform
+            <h1 className="section-title" style={{ margin: 0 }}>
+              System Logs
+            </h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
+              Monitor administrative activities across the platform.
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button
-            onClick={() => fetchLogs()}
-            className="btn btn-outline"
-            disabled={loading}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-          >
-            <RefreshCcw size={16} className={loading ? 'spin' : ''} />
-            Refresh
-          </button>
-        </div>
+        <button
+          onClick={() => fetchLogs()}
+          className="btn btn-outline"
+          disabled={loading}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 18px',
+            backgroundColor: 'var(--white)',
+            border: '1px solid var(--border)',
+            borderRadius: '12px',
+            fontSize: '14px',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          <RefreshCcw size={16} className={loading ? 'spin' : ''} />
+          Refresh
+        </button>
       </div>
 
       {/* Filters/Search Bar */}
       <div className="card" style={{ marginBottom: '24px', padding: '16px' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center' }}>
-          <div style={{ flex: 1, position: 'relative', minWidth: '240px' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: '12px',
+            alignItems: 'center',
+          }}
+        >
+          <div style={{ flex: '1 1 300px', position: 'relative' }}>
             <Search
               size={18}
               style={{
                 position: 'absolute',
-                left: '12px',
+                left: '14px',
                 top: '50%',
                 transform: 'translateY(-50%)',
                 color: 'var(--text-muted)',
@@ -142,38 +181,74 @@ const Logs: React.FC<LogsProps> = ({ token }) => {
               onChange={(e) => setSearch(e.target.value)}
               style={{
                 width: '100%',
-                padding: '10px 12px 10px 40px',
-                borderRadius: '10px',
+                padding: '12px 12px 12px 42px',
+                borderRadius: '12px',
                 border: '1px solid var(--border)',
                 background: 'var(--surface)',
                 fontSize: '14px',
+                transition: 'border-color 0.2s',
               }}
+              onFocus={(e) => (e.target.style.borderColor = 'var(--accent)')}
+              onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Filter size={18} color="var(--text-muted)" />
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              style={{
-                padding: '10px 12px',
-                borderRadius: '10px',
-                border: '1px solid var(--border)',
-                background: 'var(--surface)',
-                fontSize: '14px',
-                minWidth: '160px',
-              }}
-            >
-              <option value="ALL">All Actions</option>
-              <option value="LOGIN">Logins</option>
-              <option value="LOGOUT">Logouts</option>
-              <option value="EXPORT_CSV">Exports</option>
-              <option value="SEND_EMAIL">Emails</option>
-              <option value="ADD_ADMIN">Admin Added</option>
-              <option value="DELETE_ADMIN">Admin Deleted</option>
-              <option value="DELETE_USER">User Deleted</option>
-            </select>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              flex: '0 1 auto',
+              minWidth: '200px',
+            }}
+          >
+            <div style={{ position: 'relative', width: '100%' }}>
+              <Filter
+                size={16}
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)',
+                  pointerEvents: 'none',
+                }}
+              />
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '11px 12px 11px 36px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface)',
+                  fontSize: '14px',
+                  appearance: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="ALL">All Actions</option>
+                <option value="LOGIN">Logins</option>
+                <option value="LOGOUT">Logouts</option>
+                <option value="EXPORT_CSV">Exports</option>
+                <option value="SEND_EMAIL">Emails</option>
+                <option value="ADD_ADMIN">Admin Added</option>
+                <option value="DELETE_ADMIN">Admin Deleted</option>
+                <option value="DELETE_USER">User Deleted</option>
+              </select>
+              <ChevronDown
+                size={14}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)',
+                  pointerEvents: 'none',
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -342,84 +417,95 @@ const Logs: React.FC<LogsProps> = ({ token }) => {
           </table>
         </div>
 
-        {/* Mobile View Cards */}
-        <div className="show-mobile" style={{ padding: '16px' }}>
+        <div className="show-mobile" style={{ padding: '0' }}>
           {loading ? (
-            <div style={{ padding: '24px', textAlign: 'center' }}>
+            <div style={{ padding: '48px', textAlign: 'center' }}>
               <div className="loader" style={{ margin: '0 auto' }}></div>
             </div>
           ) : filteredLogs.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
               No logs found.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
               {filteredLogs.map((log) => (
                 <div
                   key={log.id}
                   style={{
-                    padding: '16px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border)',
-                    background: 'var(--surface)',
+                    padding: '20px 16px',
+                    borderBottom: '1px solid var(--border)',
+                    background: 'var(--white)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
                   }}
                 >
                   <div
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
-                      marginBottom: '8px',
+                      alignItems: 'center',
                     }}
                   >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          background: 'var(--surface-hover)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifySelf: 'center',
+                          justifyContent: 'center',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          color: 'var(--accent)',
+                        }}
+                      >
+                        {log.admin.email[0].toUpperCase()}
+                      </div>
+                      <div style={{ fontSize: '14px', fontWeight: 600 }}>{log.admin.email}</div>
+                    </div>
                     <span
                       style={{
                         fontSize: '10px',
                         fontWeight: 700,
                         padding: '2px 8px',
-                        borderRadius: '10px',
+                        borderRadius: '6px',
                         background: `${getActionColor(log.action)}15`,
                         color: getActionColor(log.action),
+                        textTransform: 'uppercase',
                       }}
                     >
                       {log.action}
                     </span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      {new Date(log.createdAt).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
                   </div>
-                  <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
-                    {log.admin.email}
+
+                  <div style={{ fontSize: '13px', color: 'var(--text)', lineHeight: 1.5 }}>
+                    {log.details || 'No details provided'}
                   </div>
-                  <div style={{ fontSize: '13px', marginBottom: '8px', color: 'var(--text)' }}>
-                    {log.details || '—'}
-                  </div>
+
                   <div
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      borderTop: '1px solid var(--border)',
-                      paddingTop: '8px',
-                      marginTop: '4px',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
                     }}
                   >
-                    <div
-                      style={{
-                        fontSize: '11px',
-                        color: 'var(--text-muted)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                      }}
-                    >
-                      <Clock size={12} /> {new Date(log.createdAt).toLocaleDateString()}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={12} />
+                      {new Date(log.createdAt).toLocaleDateString()} ·{' '}
+                      {new Date(log.createdAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </div>
                     {log.ipAddress && (
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        {log.ipAddress}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Globe size={11} /> {log.ipAddress}
                       </div>
                     )}
                   </div>
@@ -433,43 +519,84 @@ const Logs: React.FC<LogsProps> = ({ token }) => {
         {totalPages > 1 && (
           <div
             style={{
-              padding: '16px 24px',
+              padding: '16px',
               borderTop: '1px solid var(--border)',
               display: 'flex',
-              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
               alignItems: 'center',
+              gap: '16px',
+              backgroundColor: 'var(--surface)',
             }}
           >
-            <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-              Showing {logs.length} of {total} events
+            <div
+              style={{
+                fontSize: '13px',
+                color: 'var(--text-muted)',
+                flex: '1 0 100%',
+                textAlign: 'center',
+                marginBottom: '-8px',
+                display: 'block',
+                order: -1,
+              }}
+              className="mobile-only"
+            >
+              Page {page} of {totalPages} ({total} events)
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
+
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                width: '100%',
+                justifyContent: 'space-between',
+              }}
+            >
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="btn btn-outline"
-                style={{ padding: '8px 12px' }}
-              >
-                <ArrowLeft size={16} />
-              </button>
-              <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  padding: '0 12px',
-                  fontWeight: 600,
+                  gap: '6px',
+                  padding: '8px 16px',
+                  backgroundColor: 'var(--white)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '10px',
                   fontSize: '14px',
+                  fontWeight: 600,
+                  opacity: page === 1 ? 0.5 : 1,
+                  cursor: page === 1 ? 'default' : 'pointer',
                 }}
+              >
+                <ArrowLeft size={16} /> Previous
+              </button>
+
+              <div
+                style={{ display: 'flex', alignItems: 'center', fontWeight: 600, fontSize: '14px' }}
+                className="desktop-only"
               >
                 Page {page} of {totalPages}
               </div>
+
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="btn btn-outline"
-                style={{ padding: '8px 12px' }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  backgroundColor: 'var(--white)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  opacity: page === totalPages ? 0.5 : 1,
+                  cursor: page === totalPages ? 'default' : 'pointer',
+                }}
               >
-                <ArrowRight size={16} />
+                Next <ArrowRight size={16} />
               </button>
             </div>
           </div>

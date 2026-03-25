@@ -30,7 +30,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const message = isHttp ? exception.getResponse() : exception.message || 'Internal server error'
 
     // To prevent infinite loops or spamming for 404/401/etc.
-    const isCritical = status >= 500
+    // const isCritical = status >= 500
 
     // 1. Log to Bugsnag
     if (status >= 400) {
@@ -69,9 +69,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     // 3. Email Admin on Critical Errors (500s)
-    if (isCritical) {
-      this.notifyAdmins(exception, request)
-    }
+    // if (isCritical) {
+    //   this.notifyAdmins(exception, request)
+    // }
 
     const payload = isHttp
       ? typeof message === 'object'

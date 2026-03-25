@@ -98,8 +98,10 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
     e.preventDefault()
     try {
       // Ensure we send ISO strings to fix timezone calibration issues (e.g. 7PM showing as 8PM)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { duration, ...formData } = sessionForm
       const payload = {
-        ...sessionForm,
+        ...formData,
         startTime: sessionForm.startTime ? new Date(sessionForm.startTime).toISOString() : '',
         endTime: sessionForm.endTime ? new Date(sessionForm.endTime).toISOString() : '',
       }
