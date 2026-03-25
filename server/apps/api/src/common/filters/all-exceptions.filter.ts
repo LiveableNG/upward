@@ -12,6 +12,22 @@ import { PrismaService } from '../../prisma/prisma.service'
 import Bugsnag from '@bugsnag/js'
 import { EmailService } from '../../email/email.service'
 
+function shouldExcludeFromBugsnag(
+  exception: any,
+  status: number,
+  request: FastifyRequest,
+): boolean {
+  const msg = typeof exception?.message === 'string' ? exception.message : ''
+
+  if (status === 401 && msg.includes('No refresh token')) return true
+
+  if (status === 404 && request.url?.includes('favicon.ico')) return true
+
+  if (status === 400 && exception?.name === 'BadRequestException') return true
+
+  return false
+}
+
 @Catch()
 @Injectable()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -29,11 +45,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const status = isHttp ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR
     const message = isHttp ? exception.getResponse() : exception.message || 'Internal server error'
 
-    // To prevent infinite loops or spamming for 404/401/etc.
-    // const isCritical = status >= 500
-
-    // 1. Log to Bugsnag
-    if (status >= 400) {
+    // 1. Log to Bugsnag — skip noisy/expected errors
+    if (status >= 400 && !shouldExcludeFromBugsnag(exception, status, request)) {
       Bugsnag.notify(exception as any, (event) => {
         event.addMetadata('request', {
           url: request.url,
