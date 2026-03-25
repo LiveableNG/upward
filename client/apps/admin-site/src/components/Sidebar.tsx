@@ -8,6 +8,7 @@ import {
   BarChart3,
   FlaskConical,
   FileText,
+  AlertTriangle,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -29,6 +30,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
 
   if (isSuperadmin) {
     navItems.push({ name: 'System Logs', path: '/logs', icon: FileText })
+    navItems.push({ name: 'Error Logs', path: '/error-logs', icon: AlertTriangle })
     navItems.push({ name: 'Settings', path: '/settings', icon: Settings })
   }
 

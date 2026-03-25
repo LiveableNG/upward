@@ -856,4 +856,24 @@ export class AdminService {
 
     return { success: true, stats, notified: emails }
   }
+
+  async getErrorLogs() {
+    return this.prisma.upward_error_log.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    })
+  }
+
+  async resolveError(id: string) {
+    return this.prisma.upward_error_log.update({
+      where: { id },
+      data: { resolved: true },
+    })
+  }
+
+  async clearErrorLogs() {
+    return this.prisma.upward_error_log.deleteMany({
+      where: { resolved: true },
+    })
+  }
 }

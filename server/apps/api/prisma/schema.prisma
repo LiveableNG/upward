@@ -131,3 +131,18 @@ model upward_interaction {
   @@index([type])
   @@index([createdAt])
 }
+
+model upward_error_log {
+  id        String   @id @default(uuid())
+  message   String
+  stack     String?
+  context   String?  // JSON string of request context (URL, Body, Params, etc.)
+  severity  String   @default("ERROR") // ERROR, WARNING, INFO
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([severity])
+  @@index([resolved])
+}
