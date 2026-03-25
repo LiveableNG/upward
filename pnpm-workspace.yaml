@@ -1,14 +1,13 @@
 packages:
-  - client/apps/*
-  - client/libs/*
-  - server/apps/*
-  - server/libs/*
-  - common/*
+  - 'client/apps/*'
+  - 'client/libs/*'
+  - 'server/apps/*'
+  - 'server/libs/*'
+  - 'common/*'
 
 onlyBuiltDependencies:
   - '@nestjs/core'
   - '@prisma/engines'
-  - better-sqlite3
   - prisma
   - sharp
   - unrs-resolver
