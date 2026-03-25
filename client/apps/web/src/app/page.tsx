@@ -305,7 +305,7 @@ export default function HomePage() {
           border: '1px solid rgba(217, 119, 87, 0.4)',
           borderRadius: '12px',
           padding: '16px 24px',
-          zIndex: 9999,
+          zIndex: 100000,
           fontSize: '14px',
           color: 'var(--text)',
           transform: 'translateY(-80px)',
@@ -314,6 +314,7 @@ export default function HomePage() {
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
         }}
         className="toast-mobile"
       >
@@ -336,6 +337,7 @@ export default function HomePage() {
         }
         .toast-error {
           border: 2px solid #ff4444 !important;
+          background: var(--surface) !important;
           animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
         }
         @keyframes shake {
@@ -353,13 +355,13 @@ export default function HomePage() {
         }
         @media (max-width: 768px) {
           .modal-header-padding {
-            padding: 40px 24px 20px !important;
+            padding: 32px 18px 16px !important;
           }
           .toast-mobile {
-            top: 20px !important;
+            top: 10px !important;
             bottom: auto !important;
-            right: 20px !important;
-            left: 20px !important;
+            right: 16px !important;
+            left: 16px !important;
             justify-content: center;
           }
           body.no-scroll {
