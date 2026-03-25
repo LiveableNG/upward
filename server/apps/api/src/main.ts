@@ -90,6 +90,13 @@ export default async function handler(
   req: import('http').IncomingMessage,
   res: import('http').ServerResponse,
 ) {
+  // Browsers auto-request /favicon.ico — return 204 to avoid NotFoundException noise
+  if (req.url === '/favicon.ico') {
+    res.statusCode = 204
+    res.end()
+    return
+  }
+
   const app = await getApp()
   const instance = app.getHttpAdapter().getInstance()
 

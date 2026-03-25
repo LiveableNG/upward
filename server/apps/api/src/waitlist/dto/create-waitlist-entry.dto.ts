@@ -6,7 +6,6 @@ import {
   IsOptional,
   IsArray,
   ArrayMaxSize,
-  ArrayMinSize,
   MinLength,
 } from 'class-validator'
 import {
@@ -39,7 +38,6 @@ export class CreateWaitlistEntryDto implements ICreateWaitlistEntryDto {
 
   @IsOptional()
   @IsArray()
-  @ArrayMinSize(1)
   @ArrayMaxSize(2, { message: 'You can select up to 2 benefits' })
   @IsString({ each: true })
   benefits?: string[]
