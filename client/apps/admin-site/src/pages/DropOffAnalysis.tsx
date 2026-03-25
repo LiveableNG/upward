@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Search, Trash2, CheckSquare, Square, Download, AlertTriangle } from 'lucide-react'
 import { apiService } from '../services/api.service'
+import { formatName } from '@upward/common-utils'
 
 interface UserData {
   id: string
@@ -98,7 +99,7 @@ const DropOffAnalysis: React.FC<DropOffAnalysisProps> = ({ token }) => {
 
     const rows = filteredUsers.map((u) => {
       return [
-        `"${(u.full_name || 'Anonymous').replace(/"/g, '""')}"`,
+        `"${formatName(u.full_name || 'Anonymous').replace(/"/g, '""')}"`,
         `"${u.email.replace(/"/g, '""')}"`,
         `"${u.drop_off_stage.replace(/"/g, '""')}"`,
         `"${(u.role || '').replace(/"/g, '""')}"`,
@@ -381,7 +382,7 @@ const DropOffAnalysis: React.FC<DropOffAnalysisProps> = ({ token }) => {
                     <td style={{ padding: '16px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <span style={{ fontWeight: 600, fontSize: '14px' }}>
-                          {user.full_name || 'Anonymous'}
+                          {formatName(user.full_name || 'Anonymous')}
                         </span>
                         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                           {user.email}

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config'
 import Mailgun from 'mailgun.js'
 import FormData from 'form-data'
 import { PrismaService } from '../prisma/prisma.service'
+import { formatName } from '@upward/common-utils'
 
 @Injectable()
 export class EmailService {
@@ -30,12 +31,12 @@ export class EmailService {
   }
 
   async sendWaitlistConfirmation(userId: string, email: string, firstName?: string) {
-    const name = firstName ? firstName : 'there'
-    const displayName = firstName ? `, ${firstName}` : ''
+    const formattedName = firstName ? formatName(firstName) : 'there'
+    const displayName = firstName ? `, ${formattedName}` : ''
 
     const emailData = {
       subject: 'Welcome to the Upward Waitlist — You’re In',
-      text: `Hello ${name},\n\nYou're officially on the waitlist for Upward by GoodTenants.\n\nUpward is designed to make finding and securing your next home significantly easier. As a waitlist member, you'll receive early access when we begin onboarding users.\n\nWe will notify you as soon as your access becomes available.\n\nThank you for joining us early.\n\n— Upward by GoodTenants\nhello@goodtenants.africa`,
+      text: `Hello ${formattedName},\n\nYou're officially on the waitlist for Upward by GoodTenants.\n\nUpward is designed to make finding and securing your next home significantly easier. As a waitlist member, you'll receive early access when we begin onboarding users.\n\nWe will notify you as soon as your access becomes available.\n\nThank you for joining us early.\n\n— Upward by GoodTenants\nhello@goodtenants.africa`,
       html: `<!DOCTYPE html>
       <html>
       <head>
