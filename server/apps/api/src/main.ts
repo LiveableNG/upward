@@ -26,7 +26,8 @@ async function bootstrap() {
     new FastifyAdapter({ logger: true }),
   )
 
-  await app.register(fastifyCookie as Parameters<typeof app.register>[0])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await app.register(fastifyCookie as any)
 
   app.setGlobalPrefix('api/v1')
 

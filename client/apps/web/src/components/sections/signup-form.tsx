@@ -43,16 +43,34 @@ export function SignupForm({
       .catch((err) => console.error('Failed to fetch countries', err))
   }, [])
 
+  // Handle case-insensitive country matching (good for autofill)
+  useEffect(() => {
+    if (countries.length > 0 && country) {
+      const match = countries.find((c) => c.name.toLowerCase() === country.toLowerCase())
+      if (match && match.name !== country) {
+        setCountry(match.name)
+      }
+    }
+  }, [countries, country])
+
   useEffect(() => {
     if (country) {
       setFetchingCities(true)
-      // The server expects lowercase country ID/Name
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/locations/cities?country=${country.toLowerCase()}`)
         .then((res) => res.json())
         .then((json) => {
-          setCities(json.data || [])
-          if (json.data && !json.data.includes(city)) {
-            setCity('')
+          const list = json.data || []
+          setCities(list)
+
+          // If current city is a case-insensitive match for something in the list, normalize it
+          if (city && list.length > 0) {
+            const match = list.find((c: string) => c.toLowerCase() === city.toLowerCase())
+            if (match) {
+              setCity(match)
+            } else if (!fetchingCities && !showCityDropdown) {
+              // Only clear if we are sure it's invalid and user isn't actively selecting
+              // setCity('') // Removed to be less aggressive
+            }
           }
         })
         .catch((err) => console.error('Failed to fetch cities', err))
@@ -734,6 +752,10 @@ export function SignupForm({
                         setShowCityDropdown(true)
                       }}
                       onBlur={() => {
+                        // On blur, if we have a direct match in wrong case, fix it
+                        const match = cities.find((c) => c.toLowerCase() === city.toLowerCase())
+                        if (match) setCity(match)
+
                         setTimeout(() => setShowCityDropdown(false), 200)
                       }}
                       placeholder={fetchingCities ? 'Loading...' : 'Type or search city...'}
@@ -759,7 +781,8 @@ export function SignupForm({
                         {filteredCities.map((c) => (
                           <div
                             key={c}
-                            onClick={() => {
+                            onMouseDown={(e) => {
+                              e.preventDefault() // Important: prevents blur from firing before selection
                               setCity(c)
                               setShowCityDropdown(false)
                               syncData({ city: c })
@@ -770,6 +793,7 @@ export function SignupForm({
                               cursor: 'pointer',
                               borderBottom: '1px solid var(--border)',
                               transition: 'background 0.2s',
+                              color: 'var(--text)',
                             }}
                             onMouseEnter={(e) =>
                               (e.currentTarget.style.background = 'var(--surface2)')
@@ -779,6 +803,18 @@ export function SignupForm({
                             {c}
                           </div>
                         ))}
+                        {city && filteredCities.length === 0 && (
+                          <div
+                            style={{
+                              padding: '16px',
+                              fontSize: '13px',
+                              color: 'var(--muted)',
+                              textAlign: 'center',
+                            }}
+                          >
+                            No matches found. You can keep typing...
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
