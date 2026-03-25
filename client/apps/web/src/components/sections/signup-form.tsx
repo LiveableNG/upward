@@ -87,7 +87,8 @@ export function SignupForm({
       return
     }
     if (n === 3 && step === 2 && (!firstName || !lastName)) {
-      // Small check for details if going forward
+      showToast('Please enter your full name.', true)
+      return
     }
     if (n === 4 && step === 3 && !role) {
       showToast('Please select your role.', true)
@@ -627,7 +628,7 @@ export function SignupForm({
                   className="grid-stack-mobile"
                 >
                   <div>
-                    <label style={labelStyle}>First Name</label>
+                    <label style={labelStyle}>First Name *</label>
                     <input
                       type="text"
                       placeholder="First name"
@@ -642,7 +643,7 @@ export function SignupForm({
                     />
                   </div>
                   <div>
-                    <label style={labelStyle}>Last Name</label>
+                    <label style={labelStyle}>Last Name *</label>
                     <input
                       type="text"
                       placeholder="Last name"
