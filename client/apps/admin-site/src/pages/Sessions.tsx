@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Calendar, Clock, Video, CheckCircle, Edit, X } from 'lucide-react'
+import { Calendar, Clock, Video, CheckCircle, Edit, Trash2, X } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 
@@ -110,6 +110,23 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
     }
   }
 
+  const handleDeleteSession = async () => {
+    if (!selectedSession) return
+    if (!window.confirm(`Are you sure you want to delete session "${selectedSession.name}"?`)) {
+      return
+    }
+
+    try {
+      await apiService.delete(`/admin/sessions/${selectedSession.id}`, token)
+      showToast('Session deleted.')
+      fetchSessions()
+      setSelectedSession(null)
+    } catch (err) {
+      console.error(err)
+      showToast('Failed to delete session', true)
+    }
+  }
+
   const openEditModal = () => {
     if (!selectedSession) return
     // Format dates for datetime-local input
@@ -178,15 +195,7 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
         </button>
       </div>
 
-      <div
-        className="sessions-grid"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '300px 1fr',
-          gap: '24px',
-          alignItems: 'start',
-        }}
-      >
+      <div className="sessions-grid">
         {/* Sessions List */}
         <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
           <div
@@ -319,6 +328,20 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
                       title="Edit Session Details"
                     >
                       <Edit size={16} />
+                    </button>
+                    <button
+                      onClick={handleDeleteSession}
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '6px',
+                        cursor: 'pointer',
+                        color: '#ef4444',
+                      }}
+                      title="Delete Session"
+                    >
+                      <Trash2 size={16} />
                     </button>
                   </div>
                   <div
@@ -666,22 +689,6 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
           </div>
         </div>
       )}
-
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        .modal-overlay {
-          position: fixed;
-          top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(0,0,0,0.4);
-          backdrop-filter: blur(4px);
-          display: flex; alignItems: center; justifyContent: center;
-          z-index: 1000;
-          padding: 24px;
-        }
-      `,
-        }}
-      />
     </div>
   )
 }
