@@ -1,8 +1,9 @@
-/**
- * @upward/utils
- *
- * Pure utility functions shared across the platform.
- * No framework dependencies. No side-effects.
- */
-
-export {}
+export const formatName = (name?: string): string => {
+  if (!name || typeof name !== 'string') return ''
+  return name
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}

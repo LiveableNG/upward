@@ -11,6 +11,7 @@ import { CreateWaitlistEntryDto, AdminRole } from '@upward/shared-types'
 import * as bcrypt from 'bcrypt'
 import { Prisma } from '@prisma/client'
 import { AdminLogService } from '../admin-log/admin-log.service'
+import { formatName } from '@upward/common-utils'
 
 @Injectable()
 export class AdminService {
@@ -598,8 +599,8 @@ export class AdminService {
       try {
         // Variables replacement
         const customizedContent = payload.content
-          .replace(/{{firstName}}/g, user.firstName || '')
-          .replace(/{{lastName}}/g, user.lastName || '')
+          .replace(/{{firstName}}/g, formatName(user.firstName || ''))
+          .replace(/{{lastName}}/g, formatName(user.lastName || ''))
           .replace(/{{email}}/g, user.email)
 
         await this.emailService.sendGenericEmail(user.email, payload.subject, customizedContent)

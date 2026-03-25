@@ -21,6 +21,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
+import { formatName } from '@upward/common-utils'
 
 interface Stats {
   totalWaitlist: number
@@ -206,8 +207,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
     const rows = allUsers.map((user) => {
       return [
-        `"${(user.firstName || '').replace(/"/g, '""')}"`,
-        `"${(user.lastName || '').replace(/"/g, '""')}"`,
+        `"${formatName(user.firstName).replace(/"/g, '""')}"`,
+        `"${formatName(user.lastName).replace(/"/g, '""')}"`,
         `"${(user.email || '').replace(/"/g, '""')}"`,
         `"${(user.phone || '').replace(/"/g, '""')}"`,
         `"${(user.role || '').replace(/"/g, '""')}"`,
@@ -1190,11 +1191,13 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                               flexShrink: 0,
                             }}
                           >
-                            {user.firstName ? user.firstName[0] : user.email[0].toUpperCase()}
+                            {user.firstName
+                              ? formatName(user.firstName)[0]
+                              : user.email[0].toUpperCase()}
                           </div>
                           <div>
                             <div style={{ fontWeight: 600, fontSize: '14px' }}>
-                              {user.firstName} {user.lastName}
+                              {formatName(user.firstName)} {formatName(user.lastName)}
                             </div>
                             {/* Email Status Badge */}
                             {(() => {

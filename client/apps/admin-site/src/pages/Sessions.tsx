@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Calendar, Clock, Video, CheckCircle, Edit, Trash2, X } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
+import { formatName } from '@upward/common-utils'
 
 interface Attendance {
   userId: string
@@ -532,7 +533,7 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
                         <td style={{ padding: '16px 24px' }}>
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <span style={{ fontWeight: 600, fontSize: '14px' }}>
-                              {att.user.firstName} {att.user.lastName}
+                              {formatName(att.user.firstName)} {formatName(att.user.lastName)}
                             </span>
                             <span
                               style={{
