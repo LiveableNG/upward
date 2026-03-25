@@ -20,6 +20,7 @@ interface Session {
   startTime: string
   endTime: string
   attendances: Attendance[]
+  isVirtual?: boolean
 }
 
 interface SessionsProps {
@@ -267,11 +268,17 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
                     }}
                   >
                     <Clock size={13} />
-                    {new Date(s.startTime).toLocaleDateString()} ·{' '}
-                    {new Date(s.startTime).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {s.isVirtual ? (
+                      'Not Scheduled'
+                    ) : (
+                      <>
+                        {new Date(s.startTime).toLocaleDateString()} ·{' '}
+                        {new Date(s.startTime).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </>
+                    )}
                   </div>
                 </button>
               ))}
@@ -315,34 +322,38 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
                     }}
                   >
                     <h3 style={{ fontSize: '24px', fontWeight: 800 }}>{selectedSession.name}</h3>
-                    <button
-                      onClick={openEditModal}
-                      style={{
-                        background: 'var(--surface-hover)',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '6px',
-                        cursor: 'pointer',
-                        color: 'var(--text-muted)',
-                      }}
-                      title="Edit Session Details"
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      onClick={handleDeleteSession}
-                      style={{
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '6px',
-                        cursor: 'pointer',
-                        color: '#ef4444',
-                      }}
-                      title="Delete Session"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {!selectedSession.isVirtual && (
+                      <>
+                        <button
+                          onClick={openEditModal}
+                          style={{
+                            background: 'var(--surface-hover)',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '6px',
+                            cursor: 'pointer',
+                            color: 'var(--text-muted)',
+                          }}
+                          title="Edit Session Details"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={handleDeleteSession}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '6px',
+                            cursor: 'pointer',
+                            color: '#ef4444',
+                          }}
+                          title="Delete Session"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    )}
                   </div>
                   <div
                     style={{
@@ -352,47 +363,58 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
                       color: 'var(--text-muted)',
                     }}
                   >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Calendar size={16} />{' '}
-                      {new Date(selectedSession.startTime).toLocaleDateString()}
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Clock size={16} />{' '}
-                      {new Date(selectedSession.startTime).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}{' '}
-                      -{' '}
-                      {new Date(selectedSession.endTime).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
+                    {selectedSession.isVirtual ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Clock size={16} /> Time and Meet link not yet assigned
+                      </span>
+                    ) : (
+                      <>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Calendar size={16} />{' '}
+                          {new Date(selectedSession.startTime).toLocaleDateString()}
+                        </span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Clock size={16} />{' '}
+                          {new Date(selectedSession.startTime).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}{' '}
+                          -{' '}
+                          {new Date(selectedSession.endTime).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
-                <a
-                  href={selectedSession.googleMeetLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    padding: '10px 16px',
-                    backgroundColor: '#dcfce7',
-                    color: '#166534',
-                    borderRadius: '10px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                >
-                  <Video size={16} /> Join Meeting
-                </a>
+                {selectedSession.googleMeetLink && (
+                  <a
+                    href={selectedSession.googleMeetLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: '10px 16px',
+                      backgroundColor: '#dcfce7',
+                      color: '#166534',
+                      borderRadius: '10px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <Video size={16} /> Join Meeting
+                  </a>
+                )}
               </div>
 
               <div
                 style={{
                   display: 'flex',
+                  flexWrap: 'wrap',
                   gap: '12px',
                   padding: '16px',
                   backgroundColor: 'var(--surface)',
@@ -446,7 +468,9 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
               >
                 <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Attendee List</h3>
                 <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                  Mark attendance manually
+                  {selectedSession.isVirtual
+                    ? 'Users who have not selected a session'
+                    : 'Mark attendance manually'}
                 </div>
               </div>
               <div style={{ overflowX: 'auto' }}>
@@ -489,19 +513,28 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
                             <span style={{ fontWeight: 600, fontSize: '14px' }}>
                               {att.user.firstName} {att.user.lastName}
                             </span>
-                            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                            <span
+                              style={{
+                                fontSize: '12px',
+                                color: 'var(--text-muted)',
+                                wordBreak: 'break-all',
+                                maxWidth: '200px',
+                              }}
+                            >
                               {att.user.email}
                             </span>
                           </div>
                         </td>
                         <td style={{ padding: '16px 20px', textAlign: 'center' }}>
                           <button
+                            disabled={selectedSession.isVirtual}
                             onClick={() => handleToggleAttendance(att.userId, !att.attended)}
                             style={{
                               background: 'none',
                               border: 'none',
-                              cursor: 'pointer',
+                              cursor: selectedSession.isVirtual ? 'default' : 'pointer',
                               color: att.attended ? '#10b981' : 'var(--text-muted)',
+                              opacity: selectedSession.isVirtual ? 0.5 : 1,
                             }}
                           >
                             {att.attended ? <CheckCircle size={24} /> : <CircleIcon size={24} />}
