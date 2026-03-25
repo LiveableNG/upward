@@ -60,26 +60,26 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     // 2. Log to Database if it is an actual error (>= 400)
-    if (status >= 400) {
-      try {
-        await this.prisma.upward_error_log.create({
-          data: {
-            message: message instanceof Object ? JSON.stringify(message) : String(message),
-            stack: (exception as any).stack,
-            severity: status >= 500 ? 'ERROR' : 'WARNING',
-            context: JSON.stringify({
-              url: request.url,
-              method: request.method,
-              query: request.query,
-              params: request.params,
-              ip: request.ip,
-            }),
-          },
-        })
-      } catch (logErr) {
-        console.error('Failed to log error to database', logErr)
-      }
-    }
+    // if (status >= 400) {
+    //   try {
+    //     await this.prisma.upward_error_log.create({
+    //       data: {
+    //         message: message instanceof Object ? JSON.stringify(message) : String(message),
+    //         stack: (exception as any).stack,
+    //         severity: status >= 500 ? 'ERROR' : 'WARNING',
+    //         context: JSON.stringify({
+    //           url: request.url,
+    //           method: request.method,
+    //           query: request.query,
+    //           params: request.params,
+    //           ip: request.ip,
+    //         }),
+    //       },
+    //     })
+    //   } catch (logErr) {
+    //     console.error('Failed to log error to database', logErr)
+    //   }
+    // }
 
     // 3. Email Admin on Critical Errors (500s)
     // if (isCritical) {
