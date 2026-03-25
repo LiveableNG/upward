@@ -25,7 +25,6 @@ interface FastifyReply {
 
 interface FastifyRequest {
   cookies?: Record<string, string>
-  headers: Record<string, string | string[] | undefined>
 }
 
 interface AuthenticatedRequest {
@@ -40,19 +39,12 @@ interface AuthenticatedRequest {
 
 const COOKIE_NAME = 'admin_refresh'
 
-function getCookieOptions() {
-  const isProd = process.env['NODE_ENV'] === 'production'
-  return {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? ('none' as const) : ('lax' as const),
-    path: '/',
-  }
-}
-
 function setRefreshCookie(reply: FastifyReply, token: string) {
   reply.setCookie(COOKIE_NAME, token, {
-    ...getCookieOptions(),
+    httpOnly: true,
+    secure: process.env['NODE_ENV'] === 'production',
+    sameSite: 'strict',
+    path: '/',
     maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
   })
 }
@@ -89,16 +81,8 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(@Req() req: FastifyRequest, @Res({ passthrough: false }) reply: FastifyReply) {
-    let token = req.cookies?.[COOKIE_NAME]
-
-    // Fallback: Check raw cookie header if req.cookies is missing (common in some serverless/fastify setups)
-    if (!token && typeof req.headers['cookie'] === 'string') {
-      const match = req.headers['cookie'].match(new RegExp(`(^|;)\\s*${COOKIE_NAME}=([^;]+)`))
-      token = match ? match[2] : undefined
-    }
-
+    const token = req.cookies?.[COOKIE_NAME]
     if (!token) {
-      console.warn('[refresh] No refresh token found. Cookie Header:', req.headers['cookie'])
       throw new UnauthorizedException('No refresh token')
     }
     const { refreshToken, ...rest } = await this.authService.refreshAccessToken(token)
@@ -119,7 +103,7 @@ export class AuthController {
       req.headers['user-agent'],
     )
 
-    reply.clearCookie(COOKIE_NAME, getCookieOptions())
+    reply.clearCookie(COOKIE_NAME, { path: '/' })
     reply.status(200).send({ message: 'Logged out' })
   }
 

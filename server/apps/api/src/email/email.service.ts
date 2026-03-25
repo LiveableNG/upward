@@ -4,6 +4,7 @@ import Mailgun from 'mailgun.js'
 import FormData from 'form-data'
 import { PrismaService } from '../prisma/prisma.service'
 import { formatName } from '@upward/common-utils'
+import { BugsnagService } from '../common/bugsnag/bugsnag.service'
 
 @Injectable()
 export class EmailService {
@@ -15,6 +16,7 @@ export class EmailService {
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService,
+    private bugsnag: BugsnagService,
   ) {
     const mailgun = new Mailgun(FormData)
     const apiKey = this.configService.get<string>('MAILGUN_API_KEY')
@@ -186,6 +188,16 @@ export class EmailService {
       },
     })
 
+    if (!success) {
+      this.bugsnag.notify(new Error(`Failed to send ${type} email to ${email}: ${lastError}`), {
+        userId,
+        email,
+        subject,
+        type,
+        retries,
+      })
+    }
+
     // If it's a confirmation email, also update the user record
     if (type === 'CONFIRMATION') {
       await this.prisma.upward_waitlist.update({
@@ -216,6 +228,7 @@ export class EmailService {
       this.logger.log(`Generic email "${subject}" sent to ${email}`)
     } catch (error) {
       this.logger.error(`Failed to send generic email to ${email}`, error)
+      this.bugsnag.notify(error, { email, subject, type: 'GENERIC' })
       throw error
     }
   }
@@ -273,6 +286,7 @@ export class EmailService {
       this.logger.log(`Daily analytics email sent to ${recipientEmail}`)
     } catch (error) {
       this.logger.error(`Failed to send daily analytics email to ${recipientEmail}`, error)
+      this.bugsnag.notify(error, { email: recipientEmail, type: 'DAILY_ANALYTICS' })
     }
   }
 }

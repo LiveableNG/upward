@@ -10,7 +10,7 @@ import { AdminModule } from './admin/admin.module'
 import { AuthModule } from './auth/auth.module'
 import { AdminLogModule } from './admin-log/admin-log.module'
 import { PrismaModule } from './prisma/prisma.module'
-import { BugsnagService } from './common/bugsnag/bugsnag.service'
+import { BugsnagModule } from './common/bugsnag/bugsnag.module'
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter'
 
 @Module({
@@ -23,11 +23,11 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter'
     AdminModule,
     AuthModule,
     AdminLogModule,
+    BugsnagModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    BugsnagService,
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,

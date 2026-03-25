@@ -27,8 +27,7 @@ async function bootstrap() {
   )
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fastifyCookiePlugin = (fastifyCookie as any).default ?? fastifyCookie
-  await app.register(fastifyCookiePlugin)
+  await app.register(fastifyCookie as any)
 
   app.setGlobalPrefix('api/v1')
 
@@ -43,12 +42,7 @@ async function bootstrap() {
   const frontendUrl = process.env['FRONTEND_URL']
   const origins = frontendUrl
     ? frontendUrl.split(',').map((url) => url.trim())
-    : [
-        'http://localhost:3000',
-        'http://localhost:5173',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:5173',
-      ]
+    : ['http://localhost:3000', 'http://localhost:5173']
 
   app.enableCors({
     origin: origins,
@@ -90,13 +84,6 @@ export default async function handler(
   req: import('http').IncomingMessage,
   res: import('http').ServerResponse,
 ) {
-  // Browsers auto-request /favicon.ico — return 204 to avoid NotFoundException noise
-  if (req.url === '/favicon.ico') {
-    res.statusCode = 204
-    res.end()
-    return
-  }
-
   const app = await getApp()
   const instance = app.getHttpAdapter().getInstance()
 
