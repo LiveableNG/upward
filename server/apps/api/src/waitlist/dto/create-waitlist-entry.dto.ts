@@ -11,6 +11,7 @@ import {
 } from 'class-validator'
 import {
   UserRole,
+  WaitlistBenefit,
   type CreateWaitlistEntryDto as ICreateWaitlistEntryDto,
 } from '@upward/shared-types'
 
@@ -42,7 +43,7 @@ export class CreateWaitlistEntryDto implements ICreateWaitlistEntryDto {
   @ArrayMinSize(1)
   @ArrayMaxSize(2, { message: 'You can select up to 2 benefits' })
   @IsString({ each: true })
-  benefits?: string[]
+  benefits?: WaitlistBenefit[]
 
   @IsOptional()
   @IsBoolean({ message: 'You must accept the terms to continue' })

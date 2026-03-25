@@ -8,6 +8,7 @@ import { EmailModule } from './email/email.module'
 import { AdminModule } from './admin/admin.module'
 import { AuthModule } from './auth/auth.module'
 import { AdminLogModule } from './admin-log/admin-log.module'
+import { UpwardPayModule } from './upward-pay/upward-pay.module'
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AdminLogModule } from './admin-log/admin-log.module'
     AdminModule,
     AuthModule,
     AdminLogModule,
+    UpwardPayModule,
   ],
   controllers: [AppController],
   providers: [AppService],

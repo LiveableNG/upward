@@ -4,16 +4,16 @@
 
 ## 1. Tech Stack
 
-| Layer | Choice | Reason |
-|---|---|---|
-| Frontend (App) | Next.js (PWA) + Capacitor | Single codebase ships to iOS, Android, and Web |
-| Backend | Node.js + Express (existing landlord-api pattern) | Consistent with current infra |
-| Database | PostgreSQL | JSONB support, indexing, existing pattern |
-| Payments | Paystack | Existing integration, virtual accounts, split settlement |
-| Email | Existing provider (Resend/Sendgrid) | Outbox pattern layered on top |
-| Push Notifications | Firebase Cloud Messaging (FCM) | iOS + Android coverage |
-| File Storage | S3-compatible (existing) | Receipts, contracts |
-| Job Scheduling | Node-cron (in-process) | No new infra for retries and reminders |
+| Layer              | Choice                                            | Reason                                                   |
+| ------------------ | ------------------------------------------------- | -------------------------------------------------------- |
+| Frontend (App)     | Next.js (PWA) + Capacitor                         | Single codebase ships to iOS, Android, and Web           |
+| Backend            | Node.js + Express (existing landlord-api pattern) | Consistent with current infra                            |
+| Database           | PostgreSQL                                        | JSONB support, indexing, existing pattern                |
+| Payments           | Paystack                                          | Existing integration, virtual accounts, split settlement |
+| Email              | Existing provider (Resend/Sendgrid)               | Outbox pattern layered on top                            |
+| Push Notifications | Firebase Cloud Messaging (FCM)                    | iOS + Android coverage                                   |
+| File Storage       | S3-compatible (existing)                          | Receipts, contracts                                      |
+| Job Scheduling     | Node-cron (in-process)                            | No new infra for retries and reminders                   |
 
 ---
 
@@ -48,13 +48,28 @@ Login/search flow: hash the incoming value in Node.js → `WHERE email_hash = $1
 
 Every transaction-level table carries redundant IDs even when they could be derived via join. This is deliberate: future analytics queries become single-table `WHERE` filters.
 
+## 3. Database Strategy & Liveable Integration
+
+We are adopting a "migration-first" approach where Upward Pay enhances the existing `liveable-landlord-api` database rather than creating a disconnected island of data.
+
+| Upward Table           | Liveable Counterpart     | Integration Strategy                                                                                                                                           |
+| ---------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tenants`              | `tenants` / `users`      | **Extend existing `tenants` table**. Add `uuid`, `email_hash`, `fcm_token`, and `signup_status` columns. Separate from `users` (which remains for PMs/Admins). |
+| `companies`            | `gt_companies`           | **Consolidate**. Move `gt_companies` logic into `companies`. Add `paystack_subaccount_code` for split settlements.                                             |
+| `properties`           | `properties`             | **Extend**. Add `uuid` and `address_hash` to the existing table.                                                                                               |
+| `documents`            | `gt_document` / `files`  | **Consolidate**. Use `documents` as the clean audit trail for all receipts/contracts, referencing S3 URLs.                                                     |
+| `payment_requests`     | `upcoming_rent_requests` | **Replace/Bridge**. `payment_requests` is the primary record for Upward. Can sync to `upcoming_rent_requests` for legacy dashboard compatibility.              |
+| `payment_transactions` | `rent_payments`          | **Replace/Bridge**. `payment_transactions` becomes the source of truth for all money movement.                                                                 |
+| `notifications`        | `notification_queues`    | **Clean Slate**. Use the new `email_logs` (outbox pattern) and `notifications` (FCM) for reliable delivery.                                                    |
+
 ---
 
-## 3. Database Tables
+## 4. Database Tables
 
 ### `tenants`
 
-The core user record for every tenant in the system, whether they signed up or not.
+**Similar to:** Liveable `tenants` and `users`.
+**Discrepancy solved:** Instead of separate tables for "tenant profile" and "app user", we consolidate app-specific behavior (push tokens, signup state) into this table. PII is encrypted here to satisfy the security spec.
 
 ```sql
 id                  BIGSERIAL PRIMARY KEY
@@ -113,6 +128,7 @@ created_at          TIMESTAMPTZ DEFAULT NOW()
 ```
 
 **Auth flow:**
+
 1. Tenant logs in → Node.js issues JWT (short-lived, 15m) + opaque refresh token (7d).
 2. Refresh token is hashed and stored here. The raw token goes to the client only.
 3. On each refresh: hash incoming token → `WHERE refresh_token_hash = $1 AND is_revoked = FALSE AND expires_at > NOW()`.
@@ -136,7 +152,8 @@ created_at          TIMESTAMPTZ DEFAULT NOW()
 
 ### `companies`
 
-Property management companies. Maps to existing landlord-api company records.
+**Similar to:** Liveable `gt_companies`.
+**Discrepancy solved:** Replaces the basic `gt_companies` with a structure that supports Paystack split settlements (essential for separate accounts/diaspora upgrades).
 
 ```sql
 id                  BIGSERIAL PRIMARY KEY
@@ -158,6 +175,9 @@ updated_at          TIMESTAMPTZ DEFAULT NOW()
 
 ### `properties`
 
+**Similar to:** Liveable `properties`.
+**Discrepancy solved:** Extends the existing table with `uuid` (for public links) and `address_hash` (for fast lookup without decrypting the encrypted `address`).
+
 ```sql
 id                  BIGSERIAL PRIMARY KEY
 uuid                UUID DEFAULT gen_random_uuid() UNIQUE NOT NULL
@@ -174,7 +194,8 @@ updated_at          TIMESTAMPTZ DEFAULT NOW()
 
 ### `tenant_property_links`
 
-Maps tenants to properties. A tenant may rent across multiple companies.
+**Similar to:** Liveable `gt_tenant_properties`.
+**Discrepancy solved:** Better models the history of a tenant. Includes `rent_anniversary_day` (collected during profile setup/pm invite) to drive reminders.
 
 ```sql
 id                  BIGSERIAL PRIMARY KEY
@@ -251,7 +272,8 @@ created_at          TIMESTAMPTZ DEFAULT NOW()
 
 ### `payment_transactions`
 
-The actual money movement record. One `payment_request` can have multiple transactions (partial payments, retries).
+**Similar to:** Liveable `rent_payments`.
+**Discrepancy solved:** Replaces simple payment tracking with a full transaction log (including channel, reference, and disputed status).
 
 ```sql
 id                  BIGSERIAL PRIMARY KEY
@@ -349,9 +371,27 @@ updated_at          TIMESTAMPTZ DEFAULT NOW()
 
 ---
 
+### `link_interactions` (New)
+
+Tracks every click on a public link to measure conversion and capture tenant context before they sign up.
+
+```sql
+id                  BIGSERIAL PRIMARY KEY
+uuid                UUID DEFAULT gen_random_uuid() UNIQUE NOT NULL
+link_type           TEXT NOT NULL -- ENUM: 'payment' | 'invitation'
+link_id             BIGINT NOT NULL -- references payment_requests(id) or invitations(id)
+ip_address          TEXT
+user_agent          TEXT
+platform            TEXT -- 'web' | 'mobile' (detected)
+clicked_at          TIMESTAMPTZ DEFAULT NOW()
+```
+
+---
+
 ### `documents`
 
-Contracts and receipts attached to payment requests or transactions.
+**Similar to:** Liveable `gt_document` and `files`.
+**Discrepancy solved:** Consolidates all generated receipts, uploaded contracts, and invoices into one searchable vault. Supports the "receipt in company name" requirement.
 
 ```sql
 id                  BIGSERIAL PRIMARY KEY
@@ -552,11 +592,11 @@ Each of the 3 emails has a different `template_key` with different benefit messa
 
 ## 7. Notification Strategy by Tenant State
 
-| Tenant State | Channel Used | Fallback |
-|---|---|---|
-| `not_signed_up` | Email only | None |
-| `web_only` | Email + in-app on next login | None |
-| `app_installed` | Push (FCM) + Email | Email if FCM fails |
+| Tenant State    | Channel Used                 | Fallback           |
+| --------------- | ---------------------------- | ------------------ |
+| `not_signed_up` | Email only                   | None               |
+| `web_only`      | Email + in-app on next login | None               |
+| `app_installed` | Push (FCM) + Email           | Email if FCM fails |
 
 Push failure detection: if FCM returns a `UNREGISTERED` error, set `tenants.fcm_token = NULL` and fall back to email. Log the failed push in `notifications`.
 
@@ -583,6 +623,7 @@ On payment_transaction.status → 'success':
 ```
 
 Receipts are always tied to both `payment_request_id` and `payment_transaction_id` in the documents table, so the tenant's document history view is a simple:
+
 ```sql
 SELECT * FROM documents WHERE tenant_id = $1 ORDER BY created_at DESC
 ```
@@ -602,29 +643,78 @@ SELECT * FROM documents WHERE tenant_id = $1 ORDER BY created_at DESC
 **Listing view:** Apartment data lives in `properties`. A public-facing index query with limited fields (`name`, `address`, basic metadata) can be served from the same table with a strict column whitelist. No schema change needed.
 
 **Analytics dashboards:** Because `company_id`, `tenant_id`, `property_id`, and `payment_request_id` are all carried on `payment_transactions`, "total revenue for company X in March" is:
+
 ```sql
 SELECT SUM(amount) FROM payment_transactions
 WHERE company_id = X AND paid_at BETWEEN '2025-03-01' AND '2025-03-31'
   AND status = 'success'
 ```
+
 No joins.
 
 ---
 
 ## 10. Deep Link & PWA / Capacitor Routing
 
-The payment link URL format:
-```
-https://pay.upward.ng/pay/:payment_link_token
-```
+The public links are **Deep Links / Universal Links**. They are NOT "callback URLs". Instead, the link directs the user to the frontend app, which then makes an unauthenticated API call using the token to resolve the data.
 
-On mobile with the app installed, Capacitor's Universal Links (iOS) / App Links (Android) intercepts this URL and routes it to the in-app payment screen. If the app is not installed, the web fallback handles the guest flow normally.
+### Link 1: The Payment / Invoice Link
 
-The `platform` column in `tenant_auth_sessions` tells the backend which device is active, so it can decide whether to show the "download the app" prompt on the web session.
+**Purpose:** Direct payment for a specific bill (Rent, Caution, etc.).
+**Format:** `https://pay.upward.ng/pay/:payment_link_token`
+
+- **Resolution:** Calling `GET /public/payment-request/:token`
+- **Payload:** Returns company logo, name, invoice line items, total, and tenant's pre-filled name.
+- **Behavior:** Renders the "Powered by Upward" invoice UI. Allows payment as guest or login.
+
+### Link 2: The Join / Onboarding Link
+
+**Purpose:** Invitation for a tenant to join the platform for future payments (the "Moving Forward" notice).
+**Format:** `https://pay.upward.ng/join/:invitation_token`
+
+- **Resolution:** Calling `GET /public/invitation/:token`
+- **Payload:** Returns the inviting Company name/logo and the invitation status.
+- **Behavior:** Renders a "Welcome to Upward" screen. Explains the benefits (Rent split, credit building). Prompts for onboarding.
+
+On mobile with the app installed, Capacitor's Universal Links (iOS) / App Links (Android) intercepts these URLs and routes them to the in-app screen. If the app is not installed, the web fallback handles the flow normally.
 
 ---
 
-## 11. Key Indexes
+## 11. Solving Product Spec Gaps & Discrepancies
+
+### 11A. Partial & Excess Payments
+
+- **Problem:** Spec asks how to handle partial payments and if a fresh request is needed.
+- **Solution:** The architecture uses `payment_request` as the header and `payment_transactions` as child records.
+- **Logic:**
+  - If a tenant pays less than `total_amount`, the `payment_request.status` moves to `partially_paid`.
+  - No fresh request is needed; the same `payment_link_token` remains active but reflects the "Balance Due".
+  - Once `SUM(transactions.amount) >= payment_request.total_amount`, the request is marked `paid`.
+  - Excess payments trigger a flag in `metadata` for manual refund or credit to the next month.
+
+### 11B. Data Privacy & T&C
+
+- **Problem:** Consent/T&C step for tenants.
+- **Solution:** Added `consent_accepted_at` and `consent_ip` to the `tenants` table. The signup flow (magic link or app onboarding) requires checking a box, which writes these fields. This satisfies the "YES" requirement in the spec.
+
+### 11C. Dispute Handling (Future Upgrade)
+
+- **Problem:** Spec mentions disputes as an upgrade.
+- **Solution:** `payment_transactions.status` already includes `'disputed'`. A future `disputes` table will reference the transaction ID, allowing tenants to flag a payment request as wrong directly from the App UI.
+
+### 11D. Savings & AI Planner (Future)
+
+- **Problem:** Goal selection (current home vs next home) and AI price prediction.
+- **Solution:** `tenants.preferences` (JSONB) is the initial bucket for "Normal Saver", "Aggressive Saver" modes and goal data. Our Node.js backend will run the prediction logic using linear regression or an external LLM call, updating the `preferences` with the "Result" (how long to get there).
+
+### 11E. Legacy logic in liveable-landlord-api
+
+- **Problem:** Discrepancy with `RentPaymentController.php`.
+- **Solution:** Upward Pay will bypass the legacy `payRent` endpoint. We will create a new `UpwardPayController` in Node.js that implements the dual-ID, PII-encrypted flow. For legacy compatibility, we will asynchronously sync successful Upward transactions back to the `rent_payments` table in Laravel to ensure landlord dashboards remain updated.
+
+---
+
+## 12. Key Indexes
 
 ```sql
 CREATE UNIQUE INDEX ON tenants (email_hash);
@@ -641,3 +731,406 @@ CREATE INDEX ON email_logs (status) WHERE status = 'failed';
 CREATE INDEX ON invitations (tenant_email_hash);
 CREATE INDEX ON invitations (status, reminder_count, last_reminder_at);
 ```
+
+---
+
+## 13. API Endpoints — Request & Response Reference
+
+This section documents every public and authenticated endpoint used by the Upward Pay frontend (Next.js / Capacitor). In the mock implementation, SQLite replaces PostgreSQL and Paystack is simulated, but the API shapes match the production design.
+
+---
+
+### 13A. Payment Link Flow
+
+```
+PM sends link → Tenant opens link → Frontend calls API → Renders invoice → Tenant pays → Paystack checkout → Verify → Receipt
+```
+
+**Step 1: Resolve Payment Link**
+
+```
+GET /api/public/payment-request/:payment_link_token
+```
+
+The `payment_link_token` is an opaque, unguessable string embedded in the URL the PM sends to the tenant (e.g. `https://pay.upward.ng/pay/pay-token-001`). The frontend extracts it from the route param and calls this endpoint to get everything needed to render the invoice.
+
+**Response (200):**
+
+```json
+{
+  "paymentRequest": {
+    "uuid": "pr-uuid-001",
+    "totalAmount": 285000000, // kobo (₦2,850,000)
+    "currency": "NGN",
+    "status": "pending", // "pending" | "partially_paid" | "paid" | "expired"
+    "invoiceNumber": "INV-2025-001",
+    "notes": "Annual rent and service charges for 2025",
+    "createdAt": "2025-01-15T10:00:00.000Z"
+  },
+  "company": {
+    "uuid": "comp-uuid-001",
+    "name": "Primrose Properties Ltd",
+    "logoUrl": "https://ui-avatars.com/api/?name=PP&background=d97757&color=fff",
+    "email": "info@primrose.ng"
+  },
+  "property": {
+    // null if not linked to a specific property
+    "uuid": "prop-uuid-001",
+    "name": "Lekki Phase 1 Apartment",
+    "address": "14B Admiralty Way, Lekki Phase 1, Lagos"
+  },
+  "tenant": {
+    // null if tenant not yet in the system
+    "uuid": "tenant-uuid-001",
+    "fullName": "Sarah Johnson",
+    "email": "sarah.johnson@email.com",
+    "signupStatus": "web_only" // "not_signed_up" | "web_only" | "app_installed"
+  },
+  "lineItems": [
+    { "uuid": "li-001", "label": "Annual Rent", "category": "rent", "amount": 250000000 },
+    { "uuid": "li-002", "label": "Service Charge", "category": "management", "amount": 25000000 },
+    { "uuid": "li-003", "label": "Legal Fee", "category": "legal", "amount": 10000000 }
+  ]
+}
+```
+
+**Key fields the frontend uses:**
+
+- `tenant.signupStatus` — decides whether to show "Hey Sarah, log in" hint or plain guest checkout
+- `tenant.email` — used as the `email` param sent to Paystack (no need to ask the user)
+- `company.name` + `company.logoUrl` — branded header
+- `lineItems` — invoice breakdown card
+- `paymentRequest.totalAmount` — the big "Amount Due" display and Paystack charge amount
+
+---
+
+**Step 2: Initialize Payment**
+
+After the tenant clicks "Pay", the frontend initializes the payment on the backend. This creates a pending `payment_transaction` record and returns a Paystack reference.
+
+```
+POST /api/pay/initialize
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "paymentToken": "pay-token-001", // the same payment_link_token from the URL
+  "email": "sarah.johnson@email.com" // from the resolved tenant data (Step 1)
+}
+```
+
+**Response (200):**
+
+```json
+{
+  "status": true,
+  "message": "Payment initialized",
+  "data": {
+    "reference": "MOCK_PSK_A1B2C3D4E5F6G7H8", // unique Paystack reference
+    "amount": 285000000, // kobo
+    "currency": "NGN",
+    "authorization_url": "https://checkout.paystack.com/mock/MOCK_PSK_...",
+    "access_code": "MOCK_AC_MOCK_PSK_..." // Paystack access code
+  }
+}
+```
+
+**What gets passed to Paystack Inline Checkout:**
+
+In production, the frontend calls `PaystackPop.setup()` with these values:
+
+```javascript
+PaystackPop.setup({
+  key: PAYSTACK_PUBLIC_KEY, // from environment config
+  email: 'sarah.johnson@email.com', // from Step 1 tenant data
+  amount: 285000000, // from Step 2 response (kobo)
+  currency: 'NGN', // from Step 2 response
+  ref: 'MOCK_PSK_A1B2C3D4E5F6G7H8', // from Step 2 response
+  subaccount: 'ACCT_xxx', // optional, for split settlement
+  metadata: {
+    payment_request_uuid: 'pr-uuid-001',
+    company_name: 'Primrose Properties Ltd',
+    invoice_number: 'INV-2025-001',
+  },
+  callback: function (response) {
+    // response.reference → send to Step 3 for verification
+  },
+  onClose: function () {
+    // user closed checkout without completing
+  },
+})
+```
+
+In the mock, a `MockPaystackCheckout` component simulates the card → OTP → verify flow.
+
+---
+
+**Step 3: Verify Payment**
+
+After Paystack confirms the payment (callback fires), the frontend verifies with the backend.
+
+```
+POST /api/pay/verify/:reference
+```
+
+**Response (200):**
+
+```json
+{
+  "status": true,
+  "message": "Payment verified successfully",
+  "data": {
+    "reference": "MOCK_PSK_A1B2C3D4E5F6G7H8",
+    "transactionUuid": "tx-uuid-001",
+    "status": "success",
+    "amount": 285000000,
+    "paidAt": "2025-03-25T02:30:00.000Z",
+    "receipt": {
+      "invoiceNumber": "RCP-1711329000000",
+      "message": "Receipt generated"
+    }
+  }
+}
+```
+
+**Backend side-effects on success:**
+
+1. `payment_transactions.status` → `'success'`, `channel` → `'card'`, `paid_at` → now
+2. `payment_requests.status` → `'paid'` (if total paid ≥ total_amount) or `'partially_paid'`
+3. Receipt document record created in `documents` table
+4. Email receipt sent (in production, via `email_logs` outbox)
+
+---
+
+### 13B. Invitation Link Flow
+
+```
+PM sends invite → Tenant opens link → Frontend checks signup status → Login or Signup
+```
+
+**Resolve Invitation**
+
+```
+GET /api/public/invitation/:invitation_token
+```
+
+**Response (200):**
+
+```json
+{
+  "invitation": {
+    "uuid": "inv-uuid-001",
+    "tenantName": "David Okafor",
+    "tenantEmail": "david.okafor@email.com",
+    "status": "sent",
+    "createdAt": "2025-01-10T14:00:00.000Z"
+  },
+  "company": {
+    "uuid": "comp-uuid-001",
+    "name": "Primrose Properties Ltd",
+    "logoUrl": "https://ui-avatars.com/api/?name=PP&background=d97757&color=fff"
+  },
+  "property": {
+    "uuid": "prop-uuid-001",
+    "name": "Lekki Phase 1 Apartment",
+    "address": "14B Admiralty Way, Lekki Phase 1, Lagos"
+  },
+  "tenantSignupStatus": "not_found" // "app_installed" | "web_only" | "not_signed_up" | "not_found"
+}
+```
+
+**Frontend routing logic based on `tenantSignupStatus`:**
+
+| Status                        | Behavior                                                                 |
+| ----------------------------- | ------------------------------------------------------------------------ |
+| `app_installed` or `web_only` | Tenant has an account → redirect to `/login?email=<prefilled>`           |
+| `not_signed_up`               | Tenant record exists (PM pre-created) but no password → show signup page |
+| `not_found`                   | No record at all → show welcome page with "Create Account" CTA           |
+
+---
+
+### 13C. Auth Endpoints
+
+**Sign Up**
+
+```
+POST /api/tenant-auth/signup
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "david.okafor@email.com",
+  "password": "secure123",
+  "fullName": "David Okafor",
+  "phone": "+2348012345678" // optional
+}
+```
+
+**Response (201):**
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+  "tenant": {
+    "uuid": "tenant-uuid-002",
+    "email": "david.okafor@email.com",
+    "fullName": "David Okafor",
+    "phone": "+2348012345678",
+    "signupStatus": "web_only",
+    "createdAt": "2025-03-25T03:00:00.000Z"
+  }
+}
+```
+
+**Login**
+
+```
+POST /api/tenant-auth/login
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "sarah.johnson@email.com",
+  "password": "password123"
+}
+```
+
+**Response (200):** Same shape as signup response.
+
+---
+
+### 13D. Authenticated Endpoints (require `Authorization: Bearer <token>`)
+
+**Get Profile + Pending Payments**
+
+```
+GET /api/tenant-auth/me
+Authorization: Bearer <JWT>
+```
+
+**Response (200):**
+
+```json
+{
+  "tenant": {
+    "uuid": "tenant-uuid-001",
+    "email": "sarah.johnson@email.com",
+    "fullName": "Sarah Johnson",
+    "phone": "+2348098765432",
+    "signupStatus": "web_only",
+    "createdAt": "2025-01-15T08:00:00.000Z"
+  },
+  "pendingPayments": [
+    {
+      "uuid": "pr-uuid-001",
+      "total_amount": 285000000,
+      "currency": "NGN",
+      "status": "pending",
+      "payment_link_token": "pay-token-001",
+      "invoice_number": "INV-2025-001",
+      "notes": "Annual rent and service charges for 2025",
+      "company_name": "Primrose Properties Ltd",
+      "company_logo": "https://ui-avatars.com/..."
+    }
+  ],
+  "completedPayments": [
+    {
+      "uuid": "tx-uuid-hist-001",
+      "amount": 285000000,
+      "currency": "NGN",
+      "status": "success",
+      "channel": "card",
+      "paid_at": "2024-01-20T10:30:00.000Z",
+      "paystack_reference": "PSK_REF_2024_JAN",
+      "company_name": "Primrose Properties Ltd"
+    }
+  ]
+}
+```
+
+**Get Documents (Receipts, Contracts, Rent Credit)**
+
+```
+GET /api/documents/mine
+Authorization: Bearer <JWT>
+```
+
+**Response (200):**
+
+```json
+{
+  "receipts": [
+    {
+      "uuid": "doc-uuid-001",
+      "type": "receipt",
+      "createdAt": "2024-01-20",
+      "companyName": "Primrose Properties Ltd",
+      "companyLogo": "https://...",
+      "amount": 285000000,
+      "currency": "NGN",
+      "invoiceNumber": "RCP-2024-001",
+      "channel": "card",
+      "reference": "PSK_REF_2024_JAN",
+      "paidAt": "2024-01-20T10:30:00Z",
+      "propertyName": "Lekki Phase 1 Apartment",
+      "propertyAddress": "14B Admiralty Way, Lekki Phase 1",
+      "tenantName": "Sarah Johnson",
+      "lineItems": [
+        { "label": "Annual Rent", "category": "rent", "amount": 250000000 },
+        { "label": "Service Charge", "category": "management", "amount": 25000000 },
+        { "label": "Legal Fee", "category": "legal", "amount": 10000000 }
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "uuid": "doc-uuid-c01",
+      "type": "contract",
+      "title": "Tenancy Agreement 2025",
+      "companyName": "Primrose Properties Ltd",
+      "companyLogo": "https://...",
+      "propertyName": "Lekki Phase 1 Apartment",
+      "leaseStart": "2025-01-01",
+      "leaseEnd": "2025-12-31",
+      "status": "active",
+      "fileName": "tenancy_agreement_2025.pdf"
+    }
+  ],
+  "rentCredit": {
+    "score": 660,
+    "maxScore": 850,
+    "grade": "Good",
+    "totalPayments": 3,
+    "streak": 3,
+    "monthsTracked": 14,
+    "onTimeRate": 100,
+    "totalAmountPaid": 855000000
+  }
+}
+```
+
+---
+
+### 13E. Mock Test Links
+
+The home page (`/`) provides a "Deep Link Simulator" with 4 test links:
+
+| Link                         | Token             | Scenario                                                    |
+| ---------------------------- | ----------------- | ----------------------------------------------------------- |
+| Payment — Sarah (registered) | `pay-token-001`   | Known tenant with account → shows login hint                |
+| Payment — David (guest)      | `pay-token-002`   | Unknown tenant → guest checkout, no login hint              |
+| Invite — David (new user)    | `inv-token-001`   | Not registered → shows welcome + signup CTA                 |
+| Invite — Sarah (registered)  | `inv-token-sarah` | Has account → auto-redirects to login with email pre-filled |
+
+**Mock Paystack Test Card:**
+
+- Card: `5078 5078 5078 5078`
+- Expiry: `09/30`
+- CVV: any 3 digits
+- PIN: any 4 digits
+- OTP: any 4+ digits
