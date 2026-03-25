@@ -110,6 +110,11 @@ export class AdminController {
     return { data: await this.adminService.updateSession(id, data) }
   }
 
+  @Delete('sessions/:id')
+  async deleteSession(@Param('id') id: string) {
+    return { data: await this.adminService.deleteSession(id) }
+  }
+
   @Post('attendance')
   async markAttendance(@Body() data: { sessionId: string; userId: string; attended: boolean }) {
     return {

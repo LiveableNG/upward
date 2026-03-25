@@ -163,6 +163,13 @@
   border-color: var(--accent);
 }
 
+.sessions-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
 @media (max-width: 768px) {
   .page-container {
     padding: 16px;

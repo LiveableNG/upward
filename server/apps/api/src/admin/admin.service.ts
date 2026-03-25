@@ -335,47 +335,12 @@ export class AdminService {
   // --- Session Management ---
 
   async getSessions() {
-    // 1. Get unique session names from upward_waitlist
-    const uniqueWaitlistSessions = await this.prisma.upward_waitlist.findMany({
-      where: { selectedSession: { not: null } },
-      distinct: ['selectedSession'],
-      select: { selectedSession: true },
-    })
-
-    const sessionNames = uniqueWaitlistSessions
-      .map((s) => s.selectedSession)
-      .filter((s): s is string => !!s)
-
-    // 2. Fetch existing session data
-    const sessions = await this.prisma.upward_session.findMany({
-      where: { name: { in: sessionNames } },
-      orderBy: { startTime: 'asc' },
-    })
-
-    // 3. Identify missing sessions and create them (defaults)
-    const existingNames = sessions.map((s) => s.name)
-    const missingNames = sessionNames.filter((name) => !existingNames.includes(name))
-
-    if (missingNames.length > 0) {
-      await Promise.all(
-        missingNames.map((name) =>
-          this.prisma.upward_session.create({
-            data: {
-              name,
-              googleMeetLink: 'https://meet.google.com/',
-              startTime: new Date(),
-              endTime: new Date(Date.now() + 60 * 60 * 1000),
-            },
-          }),
-        ),
-      )
-    }
-
-    // 4. Fetch all sessions with their attendees from waitlist
+    // 1. Fetch all existing sessions
     const allSessions = await this.prisma.upward_session.findMany({
       orderBy: { startTime: 'asc' },
     })
 
+    // 2. Map and include attendees for each session
     const result = await Promise.all(
       allSessions.map(async (session) => {
         const attendees = await this.prisma.upward_waitlist.findMany({
@@ -428,6 +393,19 @@ export class AdminService {
         startTime: new Date(data.startTime),
         endTime: new Date(data.endTime),
       },
+    })
+  }
+
+  async deleteSession(id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      // Delete attendances first
+      await tx.upward_attendance.deleteMany({
+        where: { sessionId: id },
+      })
+      // Delete the session
+      return tx.upward_session.delete({
+        where: { id },
+      })
     })
   }
 
