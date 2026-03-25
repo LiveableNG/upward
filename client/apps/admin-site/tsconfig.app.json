@@ -19,7 +19,8 @@
     /* Path aliases */
     "baseUrl": ".",
     "paths": {
-      "@upward/client-core": ["../../libs/core/src/index.ts"]
+      "@upward/client-core": ["../../libs/core/src/index.ts"],
+      "@upward/common-utils": ["../../../common/utils/src/index.ts"]
     },
 
     /* Linting */
