@@ -86,8 +86,23 @@ export function SignupForm({
       showToast('Please enter your email address.', true)
       return
     }
-    if (n === 3 && step === 2 && (!firstName || !lastName)) {
-      // Small check for details if going forward
+    if (n === 3 && step === 2) {
+      if (!firstName) {
+        showToast('Please enter your first name.', true)
+        return
+      }
+      if (!lastName) {
+        showToast('Please enter your last name.', true)
+        return
+      }
+      if (!country) {
+        showToast('Please select your country.', true)
+        return
+      }
+      if (!city) {
+        showToast('Please enter or search for your city.', true)
+        return
+      }
     }
     if (n === 4 && step === 3 && !role) {
       showToast('Please select your role.', true)
@@ -627,7 +642,7 @@ export function SignupForm({
                   className="grid-stack-mobile"
                 >
                   <div>
-                    <label style={labelStyle}>First Name</label>
+                    <label style={labelStyle}>First Name *</label>
                     <input
                       type="text"
                       placeholder="First name"
@@ -642,7 +657,7 @@ export function SignupForm({
                     />
                   </div>
                   <div>
-                    <label style={labelStyle}>Last Name</label>
+                    <label style={labelStyle}>Last Name *</label>
                     <input
                       type="text"
                       placeholder="Last name"
@@ -684,7 +699,7 @@ export function SignupForm({
                   className="grid-stack-mobile"
                 >
                   <div>
-                    <label style={labelStyle}>Country</label>
+                    <label style={labelStyle}>Country *</label>
                     <select
                       style={selectStyle}
                       value={country}
@@ -705,7 +720,7 @@ export function SignupForm({
                     </select>
                   </div>
                   <div style={{ position: 'relative' }}>
-                    <label style={labelStyle}>Cities</label>
+                    <label style={labelStyle}>City *</label>
                     <input
                       style={inputStyle}
                       value={city}
@@ -814,7 +829,7 @@ export function SignupForm({
                     marginBottom: '8px',
                   }}
                 >
-                  I Am A...
+                  I Am A... *
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '32px' }}>
                   Help us personalize your Upward experience.
@@ -906,7 +921,7 @@ export function SignupForm({
                     marginBottom: '8px',
                   }}
                 >
-                  What Matters Most?
+                  What Matters Most? *
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '32px' }}>
                   Pick your top 2 benefits — this shapes what we build first.

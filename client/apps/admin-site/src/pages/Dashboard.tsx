@@ -152,12 +152,11 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
   // Fetch Users based on filters and page
   const fetchUsers = useCallback(
-    async (isLoadMore = false) => {
+    async (pageToFetch: number, isLoadMore = false) => {
       setLoadingUsers(true)
       try {
-        const currentPage = isLoadMore ? page + 1 : 1
         const params = new URLSearchParams({
-          page: currentPage.toString(),
+          page: pageToFetch.toString(),
           limit: '20',
           ...(filters.search && { search: filters.search }),
           ...(filters.roles.length > 0 && { role: filters.roles.join(',') }),
@@ -175,11 +174,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
         if (isLoadMore) {
           setAllUsers((prev) => [...prev, ...res.data])
-          setPage(currentPage)
         } else {
           setAllUsers(res.data)
-          setPage(1)
         }
+        setPage(pageToFetch)
         setMeta(res.meta)
       } catch (err) {
         console.error('Failed to fetch users', err)
@@ -187,7 +185,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         setLoadingUsers(false)
       }
     },
-    [token, filters, page, dateBounds],
+    [token, filters, dateBounds],
   )
 
   const handleExportCSV = async () => {
@@ -333,7 +331,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   // Trigger search on filter change
   useEffect(() => {
     const timeout = setTimeout(() => {
-      fetchUsers()
+      fetchUsers(1, false)
     }, 300)
     return () => clearTimeout(timeout)
   }, [
@@ -1447,7 +1445,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
               style={{ padding: '24px', textAlign: 'center', borderTop: '1px solid var(--border)' }}
             >
               <button
-                onClick={() => fetchUsers(true)}
+                onClick={() => fetchUsers(page + 1, true)}
                 disabled={loadingUsers}
                 style={{
                   padding: '12px 32px',

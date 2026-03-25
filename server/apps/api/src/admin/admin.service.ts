@@ -341,7 +341,7 @@ export class AdminService {
     })
 
     // 2. Map and include attendees for each session
-    const result = await Promise.all(
+    const regularResults = await Promise.all(
       allSessions.map(async (session) => {
         const attendees = await this.prisma.upward_waitlist.findMany({
           where: { selectedSession: session.name },
@@ -363,7 +363,28 @@ export class AdminService {
       }),
     )
 
-    return result
+    // 3. Synthesize the "None" session
+    const noneAttendees = await this.prisma.upward_waitlist.findMany({
+      where: {
+        OR: [{ selectedSession: null }, { selectedSession: '' }, { selectedSession: 'NONE' }],
+      },
+    })
+
+    const noneSession = {
+      id: 'none',
+      name: 'None (Unscheduled)',
+      googleMeetLink: '',
+      startTime: new Date(0).toISOString(),
+      endTime: new Date(0).toISOString(),
+      isVirtual: true,
+      attendances: noneAttendees.map((user) => ({
+        userId: user.id,
+        user,
+        attended: false, // Attendance doesn't apply to "None"
+      })),
+    }
+
+    return [noneSession, ...regularResults]
   }
 
   async updateSession(
