@@ -61,11 +61,25 @@ export class WaitlistService {
     })
 
     if (entry.acceptTerms && !entry.confirmationSent) {
-      this.emailService
-        .sendWaitlistConfirmation(entry.id, entry.email, entry.firstName ?? undefined)
-        .catch((err) => {
-          console.error('Failed to send confirmation email', err)
-        })
+      const { count } = await this.prisma.upward_waitlist.updateMany({
+        where: {
+          id: entry.id,
+          acceptTerms: true,
+          confirmationSent: false,
+        },
+        data: {
+          confirmationSent: true,
+          confirmationEmailStatus: 'PENDING',
+        },
+      })
+
+      if (count > 0) {
+        this.emailService
+          .sendWaitlistConfirmation(entry.id, entry.email, entry.firstName ?? undefined)
+          .catch((err) => {
+            console.error('Failed to send confirmation email', err)
+          })
+      }
     }
 
     return {
