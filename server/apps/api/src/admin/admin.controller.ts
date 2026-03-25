@@ -205,4 +205,19 @@ export class AdminController {
   async getAbStats() {
     return { data: await this.adminService.getAbStats() }
   }
+
+  @Get('error-logs')
+  async getErrorLogs() {
+    return { data: await this.adminService.getErrorLogs() }
+  }
+
+  @Patch('error-logs/:id/resolve')
+  async resolveError(@Param('id') id: string) {
+    return { data: await this.adminService.resolveError(id) }
+  }
+
+  @Delete('error-logs/clear')
+  async clearErrorLogs() {
+    return { data: await this.adminService.clearErrorLogs() }
+  }
 }

@@ -8,6 +8,7 @@ import DropOffAnalysis from './pages/DropOffAnalysis'
 import Settings from './pages/Settings'
 import ABTestStats from './pages/ABTestStats'
 import Logs from './pages/Logs'
+import ErrorLogs from './pages/ErrorLogs'
 import Layout from './components/Layout'
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -43,6 +44,7 @@ function AppRoutes() {
                 element={<Settings token={auth.token} currentAdminId={auth.user.id} />}
               />
               <Route path="/logs" element={<Logs token={auth.token} />} />
+              <Route path="/error-logs" element={<ErrorLogs token={auth.token} />} />
             </>
           )}
           <Route path="*" element={<Navigate to="/" replace />} />
