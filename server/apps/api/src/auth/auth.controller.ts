@@ -25,6 +25,7 @@ interface FastifyReply {
 
 interface FastifyRequest {
   cookies?: Record<string, string>
+  headers: Record<string, string | string[] | undefined>
 }
 
 interface AuthenticatedRequest {
@@ -43,7 +44,7 @@ function setRefreshCookie(reply: FastifyReply, token: string) {
   reply.setCookie(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env['NODE_ENV'] === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax',
     path: '/',
     maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
   })
@@ -83,6 +84,7 @@ export class AuthController {
   async refresh(@Req() req: FastifyRequest, @Res({ passthrough: false }) reply: FastifyReply) {
     const token = req.cookies?.[COOKIE_NAME]
     if (!token) {
+      console.warn('[refresh] No refresh token found in cookies. Headers:', req.headers['cookie'])
       throw new UnauthorizedException('No refresh token')
     }
     const { refreshToken, ...rest } = await this.authService.refreshAccessToken(token)

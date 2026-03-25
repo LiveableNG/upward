@@ -37,6 +37,7 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
     googleMeetLink: '',
     startTime: '',
     endTime: '',
+    duration: 2,
   })
 
   useEffect(() => {
@@ -96,14 +97,21 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
   const handleSaveSession = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      // Ensure we send ISO strings to fix timezone calibration issues (e.g. 7PM showing as 8PM)
+      const payload = {
+        ...sessionForm,
+        startTime: sessionForm.startTime ? new Date(sessionForm.startTime).toISOString() : '',
+        endTime: sessionForm.endTime ? new Date(sessionForm.endTime).toISOString() : '',
+      }
+
       if (showModal === 'create') {
-        await apiService.post('/admin/sessions', sessionForm, token)
+        await apiService.post('/admin/sessions', payload, token)
       } else if (showModal === 'edit' && selectedSession) {
-        await apiService.patch(`/admin/sessions/${selectedSession.id}`, sessionForm, token)
+        await apiService.patch(`/admin/sessions/${selectedSession.id}`, payload, token)
       }
       fetchSessions(true)
       setShowModal(null)
-      setSessionForm({ name: '', googleMeetLink: '', startTime: '', endTime: '' })
+      setSessionForm({ name: '', googleMeetLink: '', startTime: '', endTime: '', duration: 2 })
       showToast(showModal === 'create' ? 'Session created!' : 'Session updated!')
     } catch (err) {
       console.error(err)
@@ -136,11 +144,16 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
       return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
     }
 
+    const start = new Date(selectedSession.startTime)
+    const end = new Date(selectedSession.endTime)
+    const durationHours = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60))
+
     setSessionForm({
       name: selectedSession.name,
       googleMeetLink: selectedSession.googleMeetLink,
       startTime: formatForInput(selectedSession.startTime),
       endTime: formatForInput(selectedSession.endTime),
+      duration: durationHours || 2,
     })
     setShowModal('edit')
   }
@@ -151,6 +164,7 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
       googleMeetLink: 'https://meet.google.com/',
       startTime: '',
       endTime: '',
+      duration: 2,
     })
     setShowModal('create')
   }
@@ -274,6 +288,11 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
                       <>
                         {new Date(s.startTime).toLocaleDateString()} ·{' '}
                         {new Date(s.startTime).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}{' '}
+                        -{' '}
+                        {new Date(s.endTime).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
@@ -660,9 +679,24 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
                       required
                       type="datetime-local"
                       value={sessionForm.startTime}
-                      onChange={(e) =>
-                        setSessionForm({ ...sessionForm, startTime: e.target.value })
-                      }
+                      onChange={(e) => {
+                        const val = e.target.value
+                        if (!val) {
+                          setSessionForm({ ...sessionForm, startTime: val })
+                          return
+                        }
+                        const d = new Date(val)
+                        const end = new Date(d.getTime() + sessionForm.duration * 60 * 60 * 1000)
+                        const endVal = new Date(end.getTime() - end.getTimezoneOffset() * 60000)
+                          .toISOString()
+                          .slice(0, 16)
+
+                        setSessionForm({
+                          ...sessionForm,
+                          startTime: val,
+                          endTime: endVal,
+                        })
+                      }}
                       style={{
                         padding: '12px',
                         borderRadius: '10px',
@@ -672,19 +706,34 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '14px', fontWeight: 600 }}>End Time</label>
-                    <input
-                      required
-                      type="datetime-local"
-                      value={sessionForm.endTime}
-                      onChange={(e) => setSessionForm({ ...sessionForm, endTime: e.target.value })}
+                    <label style={{ fontSize: '14px', fontWeight: 600 }}>Duration</label>
+                    <select
+                      value={sessionForm.duration}
+                      onChange={(e) => {
+                        const dur = parseInt(e.target.value)
+                        let endVal = sessionForm.endTime
+                        if (sessionForm.startTime) {
+                          const d = new Date(sessionForm.startTime)
+                          const end = new Date(d.getTime() + dur * 60 * 60 * 1000)
+                          endVal = new Date(end.getTime() - end.getTimezoneOffset() * 60000)
+                            .toISOString()
+                            .slice(0, 16)
+                        }
+                        setSessionForm({ ...sessionForm, duration: dur, endTime: endVal })
+                      }}
                       style={{
                         padding: '12px',
                         borderRadius: '10px',
                         border: '1px solid var(--border)',
                         background: 'var(--surface)',
                       }}
-                    />
+                    >
+                      {[1, 2, 3, 4].map((h) => (
+                        <option key={h} value={h}>
+                          {h} {h === 1 ? 'hour' : 'hours'}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
