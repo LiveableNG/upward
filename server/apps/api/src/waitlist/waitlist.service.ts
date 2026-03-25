@@ -74,11 +74,15 @@ export class WaitlistService {
       })
 
       if (count > 0) {
-        this.emailService
-          .sendWaitlistConfirmation(entry.id, entry.email, entry.firstName ?? undefined)
-          .catch((err) => {
-            console.error('Failed to send confirmation email', err)
-          })
+        try {
+          await this.emailService.sendWaitlistConfirmation(
+            entry.id,
+            entry.email,
+            entry.firstName ?? undefined,
+          )
+        } catch (err) {
+          console.error('Failed to send confirmation email', err)
+        }
       }
     }
 
