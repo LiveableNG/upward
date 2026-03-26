@@ -16,6 +16,7 @@ import { FastifyAdapter } from '@nestjs/platform-fastify'
 import { ValidationPipe } from '@nestjs/common'
 import { AppModule } from './app.module'
 import fastifyCookie from '@fastify/cookie'
+import fastifyMultipart from '@fastify/multipart'
 
 let cachedApp: NestFastifyApplication
 let initializationPromise: Promise<NestFastifyApplication> | null = null
@@ -31,6 +32,12 @@ async function bootstrap() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await app.register(fastifyCookie as any)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await app.register(fastifyMultipart as any, {
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB per file
+    },
+  })
 
   app.setGlobalPrefix('api/v1')
 

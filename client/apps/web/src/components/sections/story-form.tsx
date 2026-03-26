@@ -28,15 +28,6 @@ export function StoryForm() {
     }))
   }
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.readAsDataURL(file)
-      reader.onload = () => resolve(reader.result as string)
-      reader.onerror = (error) => reject(error)
-    })
-  }
-
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const incomingFiles = Array.from(e.target.files)
@@ -73,8 +64,8 @@ export function StoryForm() {
       const totalSize =
         upcomingDocs.reduce((acc, f) => acc + f.size, 0) + (upcomingAudio?.size || 0)
 
-      if (totalSize > 10 * 1024 * 1024) {
-        showToast('Total size of all attachments must not exceed 10MB.', true)
+      if (totalSize > 5 * 1024 * 1024) {
+        showToast('Total size of all attachments must not exceed 5MB.', true)
         return
       }
 
@@ -109,36 +100,37 @@ export function StoryForm() {
     }
 
     setIsSubmitting(true)
-
     const API_URL = process.env['NEXT_PUBLIC_API_URL'] || ''
 
     try {
-      // Convert files to Base64
-      let audioBase64: string | null = null
+      const formDataToSend = new FormData()
+      formDataToSend.append('name', formData.name)
+      formDataToSend.append('story', formData.story)
+
+      const processedCategories = formData.categories.includes('Other')
+        ? [...formData.categories.filter((c) => c !== 'Other'), formData.otherCategory].filter(
+            Boolean,
+          )
+        : formData.categories
+
+      formDataToSend.append('categories', JSON.stringify(processedCategories))
+
       if (audioFile) {
-        audioBase64 = await fileToBase64(audioFile)
+        formDataToSend.append('audio', audioFile)
       }
 
-      const fileBase64s = await Promise.all(files.map((f) => fileToBase64(f)))
+      files.forEach((f) => {
+        formDataToSend.append('files', f)
+      })
 
       const response = await fetch(`${API_URL}/fairness-story`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          categories: formData.categories.includes('Other')
-            ? [...formData.categories.filter((c) => c !== 'Other'), formData.otherCategory]
-            : formData.categories,
-          story: formData.story,
-          audioUrl: audioBase64,
-          fileUrls: fileBase64s,
-        }),
+        body: formDataToSend,
       })
 
       if (!response.ok) {
-        throw new Error('Failed to submit story')
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.message || 'Failed to submit story')
       }
 
       setSubmitted(true)
@@ -463,7 +455,7 @@ export function StoryForm() {
                 }}
               >
                 Images, PDFs, Docs, or Voice Records.
-                <br /> Max 10MB total (1 Audio + 4 Docs allowed).
+                <br /> Max 5MB total (1 Audio + 4 Docs allowed).
               </div>
             </div>
           </div>
@@ -475,8 +467,8 @@ export function StoryForm() {
               {audioFile && (
                 <div
                   style={{
-                    background: 'var(--accent-faint)',
-                    border: '1px solid var(--accent-muted)',
+                    background: 'rgba(20, 184, 166, 0.05)', // Soothing Teal
+                    border: '1px solid rgba(20, 184, 166, 0.15)',
                     borderRadius: '12px',
                     padding: '12px 16px',
                     fontSize: '14px',
@@ -500,7 +492,7 @@ export function StoryForm() {
                       <div
                         style={{
                           fontWeight: 700,
-                          color: 'var(--accent)',
+                          color: '#0d9488', // Deep Teal
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
@@ -508,7 +500,7 @@ export function StoryForm() {
                       >
                         {audioFile.name}
                       </div>
-                      <div style={{ fontSize: '11px', opacity: 0.7 }}>
+                      <div style={{ fontSize: '11px', color: '#0d9488', opacity: 0.8 }}>
                         Audio Recording • {(audioFile.size / (1024 * 1024)).toFixed(2)} MB
                       </div>
                     </div>
@@ -519,7 +511,7 @@ export function StoryForm() {
                     style={{
                       background: 'none',
                       border: 'none',
-                      color: 'var(--accent)',
+                      color: '#0d9488',
                       cursor: 'pointer',
                       fontSize: '20px',
                     }}
@@ -532,7 +524,7 @@ export function StoryForm() {
                 <div
                   key={index}
                   style={{
-                    background: 'var(--surface)',
+                    background: 'rgba(71, 85, 105, 0.04)', // Soothing Slate
                     border: '1px solid var(--border)',
                     borderRadius: '12px',
                     padding: '12px 16px',
