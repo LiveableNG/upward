@@ -23,7 +23,10 @@ let initializationPromise: Promise<NestFastifyApplication> | null = null
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ logger: true }),
+    new FastifyAdapter({
+      logger: true,
+      bodyLimit: 1048576 * 100, // 100MB limit for base64 file uploads
+    }),
   )
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -146,3 +146,16 @@ model upward_error_log {
   @@index([severity])
   @@index([resolved])
 }
+
+model upward_fairness_story {
+  id              String   @id @default(uuid())
+  name            String?
+  categories      String[]
+  story           String   @db.Text
+  audioUrl        String?
+  fileUrls        String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([createdAt])
+}

@@ -111,6 +111,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Script>
           </>
         )}
+        <div id="toast">
+          <span id="toast-msg"></span>
+        </div>
       </body>
     </html>
   )

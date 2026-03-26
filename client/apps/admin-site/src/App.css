@@ -315,3 +315,30 @@
 .fade-in {
   animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
+
+/* ─── Grid Utilities ────────────────────────────────────────────────── */
+.grid-mobile-1 {
+  display: grid;
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .grid-mobile-1 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

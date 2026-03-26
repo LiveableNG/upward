@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   Injectable,
   Logger,
@@ -263,7 +264,7 @@ export class AdminService {
       ORDER BY 1 ASC
     `
 
-    const [roleDist, countryDist, cityDist] = await Promise.all([
+    const [roleDist, countryDist, cityDist, allWaitlistBenefits] = await Promise.all([
       this.prisma.upward_waitlist.groupBy({
         by: ['role'],
         _count: { _all: true },
@@ -283,7 +284,29 @@ export class AdminService {
         orderBy: { _count: { city: 'desc' } },
         take: 10,
       }),
+      this.prisma.upward_waitlist.findMany({
+        select: { benefits: true },
+        where: { benefits: { isEmpty: false } },
+      }),
     ])
+
+    // Process benefits
+    const defaultBenefits = ['HISTORY', 'OWNERSHIP', 'FINANCING', 'PRIORITY', 'CREDIT', 'TITLE']
+    const benefitStats: Record<string, number> = {}
+    defaultBenefits.forEach((b) => (benefitStats[b] = 0))
+    let customCount = 0
+    const customBenefits: string[] = []
+
+    allWaitlistBenefits.forEach((entry) => {
+      entry.benefits.forEach((b) => {
+        if (defaultBenefits.includes(b)) {
+          benefitStats[b]!++
+        } else {
+          customCount++
+          customBenefits.push(b)
+        }
+      })
+    })
 
     const last10Users = await this.prisma.upward_waitlist.findMany({
       take: 10,
@@ -300,9 +323,23 @@ export class AdminService {
       interactionStats,
       last10Users,
       distributions: {
-        roles: roleDist.map((r) => ({ label: r.role, count: r._count._all })),
-        countries: countryDist.map((c) => ({ label: c.country, count: c._count._all })),
-        cities: cityDist.map((c) => ({ label: c.city, count: c._count._all })),
+        roles: roleDist.map((r) => ({
+          label: (r.role as string) || 'Unknown',
+          count: (r._count as any)._all || 0,
+        })),
+        countries: countryDist.map((c) => ({
+          label: (c.country as string) || 'Unknown',
+          count: (c._count as any)._all || 0,
+        })),
+        cities: cityDist.map((c) => ({
+          label: (c.city as string) || 'Unknown',
+          count: (c._count as any)._all || 0,
+        })),
+        benefits: defaultBenefits.map((b) => ({ label: b, count: benefitStats[b] })),
+        customBenefits: {
+          count: customCount,
+          items: customBenefits,
+        },
       },
     }
   }

@@ -1,9 +1,15 @@
 'use client'
+
 import React from 'react'
+import { StoryForm } from './story-form'
 
 export function FairHousingPage({ onBack }: { onBack: () => void }) {
-  const FORM_URL =
-    'https://docs.google.com/forms/d/e/1FAIpQLSfvHAHS28BFJb-Pcuo_ljDZqi7CNFx2uA6k-Ofjz9Unz2QR-A/viewform?usp=sharing&ouid=116656168944473829146'
+  const scrollToForm = () => {
+    const element = document.getElementById('story-form')
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
 
   return (
     <div
@@ -160,8 +166,8 @@ export function FairHousingPage({ onBack }: { onBack: () => void }) {
             for everyone.
           </p>
 
-          <a
-            href={FORM_URL}
+          <button
+            onClick={scrollToForm}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -170,7 +176,8 @@ export function FairHousingPage({ onBack }: { onBack: () => void }) {
               color: 'var(--btn-text)',
               padding: '20px 40px',
               borderRadius: '100px',
-              textDecoration: 'none',
+              border: 'none',
+              cursor: 'pointer',
               fontFamily: 'var(--font-head)',
               fontWeight: 800,
               fontSize: '15px',
@@ -198,11 +205,10 @@ export function FairHousingPage({ onBack }: { onBack: () => void }) {
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <polyline points="15 3 21 3 21 9" />
-              <line x1="10" y1="14" x2="21" y2="3" />
+              <polyline points="7 13 12 18 17 13"></polyline>
+              <polyline points="7 6 12 11 17 6"></polyline>
             </svg>
-          </a>
+          </button>
         </div>
 
         <div className="fair-image-container">
@@ -236,6 +242,8 @@ export function FairHousingPage({ onBack }: { onBack: () => void }) {
           </div>
         </div>
       </div>
+
+      <StoryForm />
 
       <div
         style={{
@@ -279,12 +287,12 @@ export function FairHousingPage({ onBack }: { onBack: () => void }) {
           >
             <div
               style={{
+                fontFamily: 'var(--font-head)',
                 fontWeight: 800,
-                fontSize: '13px',
-                color: 'var(--accent)',
+                fontSize: '18px',
+                color: 'var(--text)',
                 marginBottom: '12px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
+                letterSpacing: '-0.01em',
               }}
             >
               {item.title}

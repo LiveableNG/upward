@@ -8,7 +8,7 @@ import DropOffAnalysis from './pages/DropOffAnalysis'
 import Settings from './pages/Settings'
 import ABTestStats from './pages/ABTestStats'
 import Logs from './pages/Logs'
-import ErrorLogs from './pages/ErrorLogs'
+import FairnessStories from './pages/FairnessStories'
 import Layout from './components/Layout'
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -37,6 +37,7 @@ function AppRoutes() {
           <Route path="/sessions" element={<Sessions token={auth.token} />} />
           <Route path="/drop-off" element={<DropOffAnalysis token={auth.token} />} />
           <Route path="/ab-stats" element={<ABTestStats token={auth.token} />} />
+          <Route path="/stories" element={<FairnessStories token={auth.token} />} />
           {auth.user.role === 'SUPERADMIN' && (
             <>
               <Route
@@ -44,7 +45,6 @@ function AppRoutes() {
                 element={<Settings token={auth.token} currentAdminId={auth.user.id} />}
               />
               <Route path="/logs" element={<Logs token={auth.token} />} />
-              <Route path="/error-logs" element={<ErrorLogs token={auth.token} />} />
             </>
           )}
           <Route path="*" element={<Navigate to="/" replace />} />
