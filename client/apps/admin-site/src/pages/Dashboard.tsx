@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Users,
   Search,
@@ -17,11 +18,22 @@ import {
   Filter,
   X,
   CheckCircle2,
+  XCircle,
+  Gem,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 import { formatName } from '@upward/common-utils'
+
+const BENEFIT_DESCRIPTIONS: Record<string, string> = {
+  HISTORY: 'Find verified tenants and enjoy peace of mind',
+  OWNERSHIP: 'Own your own quality home with single-digit home loans',
+  FINANCING: 'Qualify for flexible rent payments while renting',
+  PRIORITY: 'Get prioritized by landlords when moving homes',
+  CREDIT: 'Say Goodbye to consistent defaults. Get paid on-time',
+  TITLE: 'Access exclusive brokerage deals',
+}
 
 interface Stats {
   totalWaitlist: number
@@ -34,6 +46,11 @@ interface Stats {
     roles: { label: string; count: number }[]
     countries: { label: string; count: number }[]
     cities: { label: string; count: number }[]
+    benefits: { label: string; count: number }[]
+    customBenefits: {
+      count: number
+      items: string[]
+    }
   }
 }
 
@@ -90,6 +107,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     show: false,
     ids: [],
   })
+  const [showCustomBenefits, setShowCustomBenefits] = useState(false)
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
+  const viewAllRef = useRef<HTMLButtonElement>(null)
 
   const [filters, setFilters] = useState({
     search: '',
@@ -711,13 +731,11 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         </div>
 
         <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '20px',
-            marginBottom: '24px',
-          }}
           className="grid-mobile-1"
+          style={{
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            marginBottom: '32px',
+          }}
         >
           <DistributionCard title="Role Distribution" data={stats.distributions?.roles || []} />
           <DistributionCard
@@ -725,6 +743,151 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             data={stats.distributions?.countries || []}
           />
           <DistributionCard title="Top Cities" data={stats.distributions?.cities || []} />
+          <div className="card" style={{ gridColumn: '1 / -1', padding: '32px' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '32px',
+                flexWrap: 'wrap',
+                gap: '16px',
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  margin: 0,
+                }}
+              >
+                <Gem size={16} /> Benefit Interest Analytics
+              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
+                  }}
+                >
+                  <div style={{ fontSize: '13px', fontWeight: 700 }}>
+                    {stats.distributions?.customBenefits.count || 0} Custom Suggestions
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    User submitted benefits
+                  </div>
+                </div>
+                {stats.distributions?.customBenefits.items.length ? (
+                  <button
+                    ref={viewAllRef}
+                    onClick={() => {
+                      const rect = viewAllRef.current?.getBoundingClientRect()
+                      setAnchorRect(rect || null)
+                      setShowCustomBenefits(true)
+                    }}
+                    style={{
+                      padding: '8px 16px',
+                      background: 'var(--accent-faint)',
+                      color: 'var(--accent)',
+                      border: '1px solid rgba(217, 119, 87, 0.2)',
+                      borderRadius: '10px',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'var(--accent)'
+                      e.currentTarget.style.color = 'white'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'var(--accent-faint)'
+                      e.currentTarget.style.color = 'var(--accent)'
+                    }}
+                  >
+                    View All
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                gap: '24px 80px',
+              }}
+            >
+              {(stats.distributions?.benefits || []).map((item, i) => {
+                const percentage =
+                  stats.totalWaitlist > 0 ? Math.round((item.count / stats.totalWaitlist) * 100) : 0
+                return (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                      }}
+                    >
+                      <div style={{ flex: 1, paddingRight: '16px' }}>
+                        <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text)' }}>
+                          {item.label}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '12px',
+                            color: 'var(--text-muted)',
+                            lineHeight: 1.4,
+                            marginTop: '4px',
+                          }}
+                        >
+                          {BENEFIT_DESCRIPTIONS[item.label] || 'Waitlist benefit selection.'}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--accent)' }}>
+                          {percentage}%
+                        </div>
+                        <div
+                          style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}
+                        >
+                          {item.count} entries
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        height: '10px',
+                        background: 'var(--surface-hover)',
+                        borderRadius: '6px',
+                        overflow: 'hidden',
+                        position: 'relative',
+                        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${percentage}%`,
+                          height: '100%',
+                          background: 'linear-gradient(90deg, var(--accent) 0%, #ff9a7b 100%)',
+                          borderRadius: '6px',
+                          transition: 'width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </div>
 
         <div className="card" style={{ marginBottom: '16px', padding: '20px' }}>
@@ -785,15 +948,30 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             </div>
             <div className="date-chips">
               {[
-                { key: 'all' as const, label: 'All' },
-                { key: 'true' as const, label: '✓ Completed' },
-                { key: 'false' as const, label: '✗ Not Completed' },
-              ].map(({ key, label }) => (
+                {
+                  key: 'all' as const,
+                  label: 'All',
+                  icon: Filter,
+                },
+                {
+                  key: 'true' as const,
+                  label: 'Completed',
+                  icon: CheckCircle2,
+                },
+                {
+                  key: 'false' as const,
+                  label: 'Not Completed',
+                  icon: XCircle,
+                },
+              ].map(({ key, label, icon: Icon }) => (
                 <button
                   key={key}
                   className={`date-chip${filters.completed === key ? ' active' : ''}`}
                   onClick={() => setFilters((prev) => ({ ...prev, completed: key }))}
                   style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
                     ...(filters.completed === key && key === 'true'
                       ? { background: '#10b98120', borderColor: '#10b981', color: '#10b981' }
                       : {}),
@@ -802,7 +980,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                       : {}),
                   }}
                 >
-                  {label}
+                  <Icon size={14} /> {label}
                 </button>
               ))}
             </div>
@@ -1548,6 +1726,105 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
           </div>
         </div>
       )}
+
+      {showCustomBenefits &&
+        createPortal(
+          <div
+            className="modal-overlay"
+            style={{
+              background: 'transparent',
+              backdropFilter: 'none',
+              display: 'block',
+              zIndex: 3000,
+              cursor: 'default',
+            }}
+            onClick={() => setShowCustomBenefits(false)}
+          >
+            <div
+              className="popover slide-up"
+              style={{
+                position: 'fixed',
+                top: anchorRect ? anchorRect.bottom + 12 : '50%',
+                left: anchorRect
+                  ? Math.min(window.innerWidth - 340, Math.max(20, anchorRect.right - 320))
+                  : '50%',
+                width: '320px',
+                maxHeight: '400px',
+                background: 'white',
+                borderRadius: '20px',
+                boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                border: '1px solid var(--border)',
+                zIndex: 3001,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                transformOrigin: 'top right',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                style={{
+                  padding: '20px',
+                  borderBottom: '1px solid var(--border)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <span style={{ fontWeight: 800, fontSize: '15px' }}>Custom Suggestions</span>
+                <button
+                  onClick={() => setShowCustomBenefits(false)}
+                  style={{
+                    background: 'var(--surface-hover)',
+                    borderRadius: '50%',
+                    width: '24px',
+                    height: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div
+                style={{
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  padding: '12px',
+                }}
+              >
+                {stats.distributions?.customBenefits.items.map((item, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      padding: '12px 14px',
+                      background: 'var(--surface)',
+                      borderRadius: '12px',
+                      marginBottom: '8px',
+                      fontSize: '13px',
+                      lineHeight: 1.4,
+                      color: 'var(--text)',
+                      border: '1px solid transparent',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.borderColor = 'var(--accent-muted)')
+                    }
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
+                  >
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
 
       <style>{`
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }

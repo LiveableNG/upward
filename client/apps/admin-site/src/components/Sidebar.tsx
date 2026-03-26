@@ -8,7 +8,7 @@ import {
   BarChart3,
   FlaskConical,
   FileText,
-  AlertTriangle,
+  ShieldCheck,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -26,11 +26,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     { name: 'A/B Test Stats', path: '/ab-stats', icon: FlaskConical },
     { name: 'Emailing', path: '/emails', icon: Mail },
     { name: 'Sessions', path: '/sessions', icon: Calendar },
+    { name: 'Fairness Stories', path: '/stories', icon: ShieldCheck },
   ]
 
   if (isSuperadmin) {
     navItems.push({ name: 'System Logs', path: '/logs', icon: FileText })
-    navItems.push({ name: 'Error Logs', path: '/error-logs', icon: AlertTriangle })
     navItems.push({ name: 'Settings', path: '/settings', icon: Settings })
   }
 

@@ -13,6 +13,8 @@ import { PrismaModule } from './prisma/prisma.module'
 import { BugsnagModule } from './common/bugsnag/bugsnag.module'
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter'
 
+import { FairnessStoryModule } from './fairness-story/fairness-story.module'
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -24,6 +26,7 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter'
     AuthModule,
     AdminLogModule,
     BugsnagModule,
+    FairnessStoryModule,
   ],
   controllers: [AppController],
   providers: [
