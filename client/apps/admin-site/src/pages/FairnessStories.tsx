@@ -9,15 +9,19 @@ import {
   Paperclip,
   ChevronRight,
   Download,
+  Trash2,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import type { FairnessStory } from '@upward/shared-types'
+import { showToast } from '@upward/client-core'
 
 interface FairnessStoriesProps {
   token: string
+  adminRole?: string
 }
 
-const FairnessStories: React.FC<FairnessStoriesProps> = ({ token }) => {
+const FairnessStories: React.FC<FairnessStoriesProps> = ({ token, adminRole }) => {
+  const isSuperadmin = adminRole === 'SUPERADMIN'
   const [stories, setStories] = useState<FairnessStory[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -43,6 +47,20 @@ const FairnessStories: React.FC<FairnessStoriesProps> = ({ token }) => {
       s.story.toLowerCase().includes(search.toLowerCase()) ||
       s.categories.some((c: string) => c.toLowerCase().includes(search.toLowerCase())),
   )
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this story?')) return
+
+    try {
+      await apiService.delete(`/fairness-story/${id}`, token)
+      setStories((prev) => prev.filter((s) => s.id !== id))
+      if (selectedStory?.id === id) setSelectedStory(null)
+      showToast('Story deleted successfully')
+    } catch (err) {
+      console.error('Failed to delete story', err)
+      showToast('Failed to delete story', true)
+    }
+  }
 
   return (
     <div className="page-container fade-in">
@@ -82,6 +100,7 @@ const FairnessStories: React.FC<FairnessStoriesProps> = ({ token }) => {
       </div>
 
       <div
+        className="stories-grid"
         style={{
           display: 'grid',
           gridTemplateColumns: selectedStory ? '1fr 1fr' : '1fr',
@@ -130,7 +149,10 @@ const FairnessStories: React.FC<FairnessStoriesProps> = ({ token }) => {
               <p style={{ color: 'var(--text-muted)' }}>No stories found matching your criteria.</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div
+              className={`stories-list ${selectedStory ? 'has-selection' : ''}`}
+              style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+            >
               {filteredStories.map((story) => (
                 <div
                   key={story.id}
@@ -164,13 +186,44 @@ const FairnessStories: React.FC<FairnessStoriesProps> = ({ token }) => {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px',
-                        color: 'var(--text-muted)',
-                        fontSize: '12px',
+                        gap: '12px',
                       }}
                     >
-                      <Clock size={14} />
-                      {new Date(story.createdAt).toLocaleDateString()}
+                      {isSuperadmin && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDelete(story.id)
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '6px',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          color: 'var(--text-muted)',
+                          fontSize: '12px',
+                        }}
+                      >
+                        <Clock size={14} />
+                        {new Date(story.createdAt).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
 
@@ -561,6 +614,28 @@ const FairnessStories: React.FC<FairnessStoriesProps> = ({ token }) => {
           animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+          .stories-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .stories-list.has-selection {
+            display: none !important;
+          }
+          .detail-card {
+            position: fixed !important;
+            top: var(--header-height) !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            height: auto !important;
+            z-index: 1002 !important;
+            padding: 20px !important;
+            border-radius: 0 !important;
+          }
+          .section-title {
+            font-size: 24px !important;
+          }
+        }
       `}</style>
     </div>
   )

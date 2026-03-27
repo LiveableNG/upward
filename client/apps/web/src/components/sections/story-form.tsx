@@ -135,6 +135,8 @@ export function StoryForm() {
       let s3AudioUrl: string | undefined = undefined
       const s3FileUrls: string[] = []
 
+      let uploadUrls: S3UploadUrl[] = []
+
       if (fileRequestData.length > 0) {
         const urlResp = await fetch(`${API_URL}/fairness-story/upload-urls`, {
           method: 'POST',
@@ -144,29 +146,14 @@ export function StoryForm() {
 
         if (!urlResp.ok) throw new Error('Failed to get upload permissions')
         const { urls } = (await urlResp.json()) as { urls: S3UploadUrl[] }
-
-        // Upload in parallel
-        await Promise.all(
-          urls.map(async (u: S3UploadUrl) => {
-            const fileToUpload = u.isAudio ? audioFile : files.find((f) => f.name === u.filename)
-
-            if (!fileToUpload) return
-
-            const uploadRes = await fetch(u.uploadUrl, {
-              method: 'PUT',
-              body: fileToUpload,
-              headers: { 'Content-Type': fileToUpload.type },
-            })
-
-            if (!uploadRes.ok) throw new Error(`Upload failed for ${u.filename}`)
-
-            if (u.isAudio) s3AudioUrl = u.key
-            else s3FileUrls.push(u.key)
-          }),
-        )
+        uploadUrls = urls
+        urls.forEach((u) => {
+          if (u.isAudio) s3AudioUrl = u.key
+          else s3FileUrls.push(u.key)
+        })
       }
 
-      // 3. Send final metadata to our API
+      // 2. Start uploads AND metadata submission
       const processedCategories = formData.categories.includes('Other')
         ? [...formData.categories.filter((c) => c !== 'Other'), formData.otherCategory].filter(
             Boolean,
@@ -181,18 +168,44 @@ export function StoryForm() {
         fileUrls: s3FileUrls,
       }
 
-      const response = await fetch(`${API_URL}/fairness-story`, {
+      // We trigger both but we only NEED to wait for the metadata to show success
+      // However, we should still try to start uploads first so they have more time
+      const uploadPromise = Promise.all(
+        uploadUrls.map(async (u: S3UploadUrl) => {
+          const fileToUpload = u.isAudio ? audioFile : files.find((f) => f.name === u.filename)
+          if (!fileToUpload) return
+
+          const uploadRes = await fetch(u.uploadUrl, {
+            method: 'PUT',
+            body: fileToUpload,
+            headers: { 'Content-Type': fileToUpload.type },
+          })
+          if (!uploadRes.ok) throw new Error(`Upload failed for ${u.filename}`)
+        }),
+      )
+
+      // Submit metadata
+      const metadataPromise = fetch(`${API_URL}/fairness-story`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(finalPayload),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ message: 'Failed to submit' }))
+          throw new Error(err.message || 'Failed to submit story')
+        }
+        return res
       })
 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}))
-        throw new Error(err.message || 'Failed to submit story')
-      }
-
+      // Wait for metadata to be saved, then show success
+      await metadataPromise
       setSubmitted(true)
+
+      // Optionally wait for uploads to finish in background if we want to log errors
+      uploadPromise.catch((err) => {
+        console.error('Background upload failed:', err)
+        // We don't show a toast here because the user already sees "Success"
+      })
     } catch (error) {
       console.error('Submission failed:', error)
       showToast('Failed to submit. Check your connection or file sizes.', true)

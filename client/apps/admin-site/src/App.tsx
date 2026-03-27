@@ -37,7 +37,10 @@ function AppRoutes() {
           <Route path="/sessions" element={<Sessions token={auth.token} />} />
           <Route path="/drop-off" element={<DropOffAnalysis token={auth.token} />} />
           <Route path="/ab-stats" element={<ABTestStats token={auth.token} />} />
-          <Route path="/stories" element={<FairnessStories token={auth.token} />} />
+          <Route
+            path="/stories"
+            element={<FairnessStories token={auth.token} adminRole={auth.user.role} />}
+          />
           {auth.user.role === 'SUPERADMIN' && (
             <>
               <Route

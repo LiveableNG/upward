@@ -45,4 +45,10 @@ export class FairnessStoryService {
       }),
     )
   }
+
+  async remove(id: string) {
+    return this.prisma.upward_fairness_story.delete({
+      where: { id },
+    })
+  }
 }
