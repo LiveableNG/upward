@@ -1,57 +1,46 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Controller, Post, Get, Req, BadRequestException } from '@nestjs/common'
+import { Controller, Post, Get, Body, BadRequestException } from '@nestjs/common'
 import { FairnessStoryService } from './fairness-story.service'
-import type { FastifyRequest } from 'fastify'
+import { CreateStoryDto } from './dto/create-story.dto'
+import { S3Service } from '../common/s3/s3.service'
+import { randomUUID } from 'crypto'
 
 @Controller('fairness-story')
 export class FairnessStoryController {
-  constructor(private readonly fairnessStoryService: FairnessStoryService) {}
+  constructor(
+    private readonly fairnessStoryService: FairnessStoryService,
+    private readonly s3Service: S3Service,
+  ) {}
+
+  @Post('upload-urls')
+  async getUploadUrls(
+    @Body() body: { files: { filename: string; contentType: string; isAudio?: boolean }[] },
+  ) {
+    if (!body.files || !Array.isArray(body.files)) {
+      throw new BadRequestException('files array is required')
+    }
+
+    const tasks = body.files.map(async (file) => {
+      const ext = file.filename.split('.').pop()
+      const folder = file.isAudio ? 'audio' : 'documents'
+      const key = `fairness-stories/${folder}/${randomUUID()}.${ext}`
+
+      const uploadUrl = await this.s3Service.getUploadUrl(key, file.contentType)
+
+      return {
+        filename: file.filename,
+        key, // The unique path in S3
+        uploadUrl, // The temporary PUT link
+        isAudio: file.isAudio,
+      }
+    })
+
+    const results = await Promise.all(tasks)
+    return { urls: results }
+  }
 
   @Post()
-  async create(@Req() req: FastifyRequest) {
-    const fastifyReq = req as any
-    if (!fastifyReq.isMultipart()) {
-      throw new BadRequestException('Request must be multipart/form-data')
-    }
-
-    const data: any = {
-      categories: [],
-      fileUrls: [],
-    }
-
-    const parts = fastifyReq.parts()
-    for await (const part of parts) {
-      if (part.type === 'file') {
-        const buffer = await part.toBuffer()
-        const base64 = `data:${part.mimetype};base64,${buffer.toString('base64')}`
-
-        if (part.fieldname === 'audio') {
-          data.audioUrl = base64
-        } else if (part.fieldname === 'files') {
-          data.fileUrls.push(base64)
-        }
-      } else {
-        // part.type === 'field'
-        const value = part.value as string
-        if (part.fieldname === 'categories') {
-          try {
-            data.categories = JSON.parse(value)
-          } catch {
-            data.categories.push(value)
-          }
-        } else {
-          data[part.fieldname] = value
-        }
-      }
-    }
-
-    return this.fairnessStoryService.create({
-      name: data.name,
-      categories: Array.isArray(data.categories) ? data.categories : [data.categories],
-      story: data.story || '',
-      audioUrl: data.audioUrl,
-      fileUrls: data.fileUrls,
-    })
+  async create(@Body() createStoryDto: CreateStoryDto) {
+    return this.fairnessStoryService.create(createStoryDto)
   }
 
   @Get()
