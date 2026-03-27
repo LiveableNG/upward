@@ -50,14 +50,16 @@ const BenefitSection = ({
 }) => {
   if (benefits.length === 0) return null
 
+  const totalSelectionsInRole = benefits.reduce((acc, b) => acc + b.count, 0)
+
   return (
-    <div>
+    <div style={{ padding: '0 4px' }}>
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
-          marginBottom: '24px',
+          marginBottom: '26px',
         }}
       >
         <div
@@ -74,17 +76,21 @@ const BenefitSection = ({
         >
           {role}
         </div>
-        <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
+        <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>
           {title}
         </h4>
         <div
           style={{
-            fontSize: '12px',
+            fontSize: '11px',
             color: 'var(--text-muted)',
             marginLeft: 'auto',
+            background: 'var(--surface-hover)',
+            padding: '2px 8px',
+            borderRadius: '6px',
+            fontWeight: 600,
           }}
         >
-          Relative to {totalInRole} {role.toLowerCase()}s who chose benefits
+          {totalInRole} users • {totalSelectionsInRole} total selections
         </div>
       </div>
 
@@ -92,11 +98,12 @@ const BenefitSection = ({
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '24px 80px',
+          gap: '32px 60px',
         }}
       >
         {benefits.map((item, i) => {
-          const percentage = totalInRole > 0 ? Math.round((item.count / totalInRole) * 100) : 0
+          const percentage =
+            totalSelectionsInRole > 0 ? Math.round((item.count / totalSelectionsInRole) * 100) : 0
           return (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div
@@ -107,8 +114,16 @@ const BenefitSection = ({
                 }}
               >
                 <div style={{ flex: 1, paddingRight: '16px' }}>
-                  <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>
-                    {item.label}
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      color: 'var(--text)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    {item.label.replace(/_/g, ' ')}
                   </div>
                   <div
                     style={{
@@ -1915,18 +1930,31 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                     onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
                   >
                     <span style={{ flex: 1, paddingRight: '12px' }}>{item.label}</span>
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        color: 'var(--accent)',
-                        fontWeight: 700,
-                        background: 'var(--accent-faint)',
-                        padding: '2px 8px',
-                        borderRadius: '100px',
-                      }}
-                    >
-                      {item.count}
-                    </span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {(item as any).roles?.map((role: string, idx: number) => (
+                        <span
+                          key={idx}
+                          title={role === 'TENANT' ? 'Tenant' : 'Owner'}
+                          style={{
+                            fontSize: '10px',
+                            color: role === 'TENANT' ? '#3b82f6' : '#10b981',
+                            fontWeight: 900,
+                            background: role === 'TENANT' ? '#3b82f615' : '#10b98115',
+                            width: '22px',
+                            height: '22px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '50%',
+                            border: `1px solid ${role === 'TENANT' ? '#3b82f620' : '#10b98120'}`,
+                            cursor: 'help',
+                          }}
+                        >
+                          {role === 'TENANT' ? 'T' : role === 'OWNER' ? 'O' : '?'}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
