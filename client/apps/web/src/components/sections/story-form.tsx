@@ -3,6 +3,19 @@
 import React, { useState, useRef } from 'react'
 import { showToast } from '@upward/client-core'
 
+interface FileRequestData {
+  filename: string
+  contentType: string
+  isAudio: boolean
+}
+
+interface S3UploadUrl {
+  filename: string
+  key: string
+  uploadUrl: string
+  isAudio: boolean
+}
+
 export function StoryForm() {
   const [formData, setFormData] = useState({
     name: '',
@@ -103,29 +116,75 @@ export function StoryForm() {
     const API_URL = process.env['NEXT_PUBLIC_API_URL'] || ''
 
     try {
-      const formDataToSend = new FormData()
-      formDataToSend.append('name', formData.name)
-      formDataToSend.append('story', formData.story)
+      const fileRequestData: FileRequestData[] = []
+      if (audioFile) {
+        fileRequestData.push({
+          filename: audioFile.name,
+          contentType: audioFile.type,
+          isAudio: true,
+        })
+      }
+      files.forEach((f) => {
+        fileRequestData.push({
+          filename: f.name,
+          contentType: f.type,
+          isAudio: false,
+        })
+      })
 
+      let s3AudioUrl: string | undefined = undefined
+      const s3FileUrls: string[] = []
+
+      if (fileRequestData.length > 0) {
+        const urlResp = await fetch(`${API_URL}/fairness-story/upload-urls`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ files: fileRequestData }),
+        })
+
+        if (!urlResp.ok) throw new Error('Failed to get upload permissions')
+        const { urls } = (await urlResp.json()) as { urls: S3UploadUrl[] }
+
+        // Upload in parallel
+        await Promise.all(
+          urls.map(async (u: S3UploadUrl) => {
+            const fileToUpload = u.isAudio ? audioFile : files.find((f) => f.name === u.filename)
+
+            if (!fileToUpload) return
+
+            const uploadRes = await fetch(u.uploadUrl, {
+              method: 'PUT',
+              body: fileToUpload,
+              headers: { 'Content-Type': fileToUpload.type },
+            })
+
+            if (!uploadRes.ok) throw new Error(`Upload failed for ${u.filename}`)
+
+            if (u.isAudio) s3AudioUrl = u.key
+            else s3FileUrls.push(u.key)
+          }),
+        )
+      }
+
+      // 3. Send final metadata to our API
       const processedCategories = formData.categories.includes('Other')
         ? [...formData.categories.filter((c) => c !== 'Other'), formData.otherCategory].filter(
             Boolean,
           )
         : formData.categories
 
-      formDataToSend.append('categories', JSON.stringify(processedCategories))
-
-      if (audioFile) {
-        formDataToSend.append('audio', audioFile)
+      const finalPayload = {
+        name: formData.name,
+        story: formData.story,
+        categories: processedCategories,
+        audioUrl: s3AudioUrl,
+        fileUrls: s3FileUrls,
       }
-
-      files.forEach((f) => {
-        formDataToSend.append('files', f)
-      })
 
       const response = await fetch(`${API_URL}/fairness-story`, {
         method: 'POST',
-        body: formDataToSend,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(finalPayload),
       })
 
       if (!response.ok) {
@@ -136,7 +195,7 @@ export function StoryForm() {
       setSubmitted(true)
     } catch (error) {
       console.error('Submission failed:', error)
-      showToast('Something went wrong. Please try again.', true)
+      showToast('Failed to submit. Check your connection or file sizes.', true)
     } finally {
       setIsSubmitting(false)
     }

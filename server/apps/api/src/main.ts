@@ -35,7 +35,7 @@ async function bootstrap() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await app.register(fastifyMultipart as any, {
     limits: {
-      fileSize: 5 * 1024 * 1024, // 5MB per file
+      fileSize: 20 * 1024 * 1024, // 20MB per file
     },
   })
 
