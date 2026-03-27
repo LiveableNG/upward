@@ -24,9 +24,7 @@ export class AdminService {
     private readonly adminLogService: AdminLogService,
   ) {}
 
-  async getAllUsers(options: {
-    page: number
-    limit: number
+  private buildWaitlistWhereClause(options: {
     search?: string
     roles?: string[]
     countries?: string[]
@@ -37,8 +35,6 @@ export class AdminService {
     completed?: string
   }) {
     const {
-      page,
-      limit,
       search,
       roles,
       countries,
@@ -48,8 +44,6 @@ export class AdminService {
       createdTo,
       completed,
     } = options
-    const skip = (page - 1) * limit
-
     const where: Prisma.upward_waitlistWhereInput = {}
 
     if (search) {
@@ -73,30 +67,18 @@ export class AdminService {
     }
 
     if (selectedSessions && selectedSessions.length > 0) {
-      // Find sessions whose names match the selected days (e.g. "Saturday")
-      const matchingSessions = await this.prisma.upward_session.findMany({
-        where: {
-          OR: selectedSessions.map((s) => ({
-            name: { contains: s, mode: 'insensitive' },
-          })),
-        },
-        select: { id: true, name: true },
-      })
-
-      const sessionIds = matchingSessions.map((s) => s.id)
-      const sessionNames = matchingSessions.map((s) => s.name)
-
-      // Combine conditions: either contains the day string OR matches a known session ID
+      // We'll handle this purely in our where clause builder
       const sessionFilters: Prisma.upward_waitlistWhereInput[] = [
         ...selectedSessions.map((s) => ({
           selectedSession: { contains: s, mode: 'insensitive' as const },
         })),
-        { selectedSession: { in: sessionIds } },
-        { selectedSession: { in: sessionNames } },
+        // Note: we don't fetch session IDs here to keep it synchronous/pure,
+        // but we can include the names since selectedSession is a string in waitlist.
+        // If users passed IDs, they won't match 'contains' but we include direct 'in' too.
+        { selectedSession: { in: selectedSessions } },
       ]
 
       if (where.OR) {
-        // If we already have search filters, we need (Search OR ...) AND (Session Condition)
         const existingOR = where.OR as Prisma.upward_waitlistWhereInput[]
         delete where.OR
         where.AND = [{ OR: existingOR }, { OR: sessionFilters }]
@@ -117,6 +99,25 @@ export class AdminService {
         ...(createdTo && { lte: new Date(createdTo) }),
       }
     }
+
+    return where
+  }
+
+  async getAllUsers(options: {
+    page: number
+    limit: number
+    search?: string
+    roles?: string[]
+    countries?: string[]
+    cities?: string[]
+    selectedSessions?: string[]
+    createdFrom?: string
+    createdTo?: string
+    completed?: string
+  }) {
+    const { page, limit } = options
+    const skip = (page - 1) * limit
+    const where = this.buildWaitlistWhereClause(options)
 
     const [data, total] = await Promise.all([
       this.prisma.upward_waitlist.findMany({
@@ -219,8 +220,21 @@ export class AdminService {
 
   // --- Analytics & Drop-off ---
 
-  async getAnalytics() {
-    // Current totals
+  async getAnalytics(
+    options: {
+      roles?: string[]
+      countries?: string[]
+      cities?: string[]
+      selectedSessions?: string[]
+      createdFrom?: string
+      createdTo?: string
+      completed?: string
+      search?: string
+    } = {},
+  ) {
+    const where = this.buildWaitlistWhereClause(options)
+
+    // Current totals (Global)
     const totalWaitlist = await this.prisma.upward_waitlist.count()
     const totalCompleted = await this.prisma.upward_waitlist.count({ where: { acceptTerms: true } })
     const totalIncomplete = await this.prisma.upward_waitlist.count({
@@ -264,29 +278,30 @@ export class AdminService {
       ORDER BY 1 ASC
     `
 
-    const [roleDist, countryDist, cityDist, allWaitlistBenefits] = await Promise.all([
+    // Filtered Distributions
+    const [roleDist, countryDist, cityDist, filteredWaitlistData] = await Promise.all([
       this.prisma.upward_waitlist.groupBy({
         by: ['role'],
         _count: { _all: true },
-        where: { role: { not: null } },
+        where: { ...where, role: { not: null } },
         orderBy: { _count: { role: 'desc' } },
       }),
       this.prisma.upward_waitlist.groupBy({
         by: ['country'],
         _count: { _all: true },
-        where: { country: { not: null } },
+        where: { ...where, country: { not: null } },
         orderBy: { _count: { country: 'desc' } },
       }),
       this.prisma.upward_waitlist.groupBy({
         by: ['city'],
         _count: { _all: true },
-        where: { city: { not: null } },
+        where: { ...where, city: { not: null } },
         orderBy: { _count: { city: 'desc' } },
         take: 10,
       }),
       this.prisma.upward_waitlist.findMany({
         select: { role: true, benefits: true },
-        where: { benefits: { isEmpty: false } },
+        where, // Use entire filtered set to correctly count "No Selection" users
       }),
     ])
 
@@ -298,36 +313,44 @@ export class AdminService {
     const benefitStats: Record<string, number> = {}
     defaultBenefits.forEach((b) => (benefitStats[b] = 0))
 
+    const roleTotals: Record<string, number> = {}
     const roleTotalWithBenefits: Record<string, number> = {}
     const roleBenefitStats: Record<string, Record<string, number>> = {}
     const customBenefitMap: Record<string, { count: number; roles: string[] }> = {}
     let customCount = 0
 
-    allWaitlistBenefits.forEach((entry) => {
+    filteredWaitlistData.forEach((entry) => {
       const role = entry.role || 'Unknown'
-      roleTotalWithBenefits[role] = (roleTotalWithBenefits[role] || 0) + 1
+      roleTotals[role] = (roleTotals[role] || 0) + 1
 
-      if (!roleBenefitStats[role]) {
-        const initialStats: Record<string, number> = {}
-        defaultBenefits.forEach((b) => (initialStats[b] = 0))
-        roleBenefitStats[role] = initialStats
-      }
+      const hasBenefits = entry.benefits && entry.benefits.length > 0
+      if (hasBenefits) {
+        roleTotalWithBenefits[role] = (roleTotalWithBenefits[role] || 0) + 1
 
-      const stats = roleBenefitStats[role] || {}
-      entry.benefits.forEach((b) => {
-        if (defaultBenefits.includes(b)) {
-          benefitStats[b] = (benefitStats[b] || 0) + 1
-          stats[b] = (stats[b] || 0) + 1
-        } else {
-          customCount++
-          const normalized = b.trim()
-          if (!customBenefitMap[normalized]) {
-            customBenefitMap[normalized] = { count: 0, roles: [] }
-          }
-          customBenefitMap[normalized].count++
-          customBenefitMap[normalized].roles.push(role)
+        if (!roleBenefitStats[role]) {
+          const initialStats: Record<string, number> = {}
+          defaultBenefits.forEach((b) => (initialStats[b] = 0))
+          roleBenefitStats[role] = initialStats
         }
-      })
+
+        const stats = roleBenefitStats[role] || {}
+        entry.benefits.forEach((b) => {
+          if (defaultBenefits.includes(b)) {
+            benefitStats[b] = (benefitStats[b] || 0) + 1
+            stats[b] = (stats[b] || 0) + 1
+          } else {
+            const normalized = b.trim()
+            if (normalized) {
+              customCount++
+              if (!customBenefitMap[normalized]) {
+                customBenefitMap[normalized] = { count: 0, roles: [] }
+              }
+              customBenefitMap[normalized].count++
+              customBenefitMap[normalized].roles.push(role)
+            }
+          }
+        })
+      }
     })
 
     const last10Users = await this.prisma.upward_waitlist.findMany({
@@ -336,10 +359,10 @@ export class AdminService {
     })
 
     const customBenefitsList = Object.entries(customBenefitMap)
-      .map(([label, data]) => ({ 
-          label, 
-          count: data.count, 
-          roles: data.roles 
+      .map(([label, data]) => ({
+        label,
+        count: data.count,
+        roles: data.roles,
       }))
       .sort((a, b) => b.count - a.count)
 
@@ -369,7 +392,6 @@ export class AdminService {
         roleBenefits: Object.keys(roleBenefitStats).reduce(
           (acc, role) => {
             const relevantBenefits = role === 'TENANT' ? tenantBenefits : ownerBenefits
-            // If it's a known role, only show relevant benefits. Otherwise show all.
             const benefitsToDisplay =
               role === 'TENANT' || role === 'OWNER' ? relevantBenefits : defaultBenefits
             const stats = roleBenefitStats[role] || {}
@@ -381,6 +403,7 @@ export class AdminService {
           },
           {} as Record<string, { label: string; count: number }[]>,
         ),
+        roleTotals,
         roleTotalWithBenefits,
         customBenefits: {
           count: customCount,
