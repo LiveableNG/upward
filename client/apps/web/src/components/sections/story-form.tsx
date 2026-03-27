@@ -197,14 +197,12 @@ export function StoryForm() {
         return res
       })
 
-      // Wait for metadata to be saved, then show success
       await metadataPromise
+      showToast('Thank you for sharing your story!')
       setSubmitted(true)
 
-      // Optionally wait for uploads to finish in background if we want to log errors
       uploadPromise.catch((err) => {
         console.error('Background upload failed:', err)
-        // We don't show a toast here because the user already sees "Success"
       })
     } catch (error) {
       console.error('Submission failed:', error)

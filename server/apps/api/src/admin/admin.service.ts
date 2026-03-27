@@ -300,7 +300,7 @@ export class AdminService {
 
     const roleTotalWithBenefits: Record<string, number> = {}
     const roleBenefitStats: Record<string, Record<string, number>> = {}
-    const customBenefitCounts: Record<string, number> = {}
+    const customBenefitMap: Record<string, { count: number; roles: string[] }> = {}
     let customCount = 0
 
     allWaitlistBenefits.forEach((entry) => {
@@ -321,7 +321,11 @@ export class AdminService {
         } else {
           customCount++
           const normalized = b.trim()
-          customBenefitCounts[normalized] = (customBenefitCounts[normalized] || 0) + 1
+          if (!customBenefitMap[normalized]) {
+            customBenefitMap[normalized] = { count: 0, roles: [] }
+          }
+          customBenefitMap[normalized].count++
+          customBenefitMap[normalized].roles.push(role)
         }
       })
     })
@@ -331,8 +335,12 @@ export class AdminService {
       orderBy: { createdAt: 'desc' },
     })
 
-    const customBenefitsList = Object.entries(customBenefitCounts)
-      .map(([label, count]) => ({ label, count }))
+    const customBenefitsList = Object.entries(customBenefitMap)
+      .map(([label, data]) => ({ 
+          label, 
+          count: data.count, 
+          roles: data.roles 
+      }))
       .sort((a, b) => b.count - a.count)
 
     return {
