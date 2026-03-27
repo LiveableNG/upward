@@ -42,13 +42,15 @@ const BenefitSection = ({
   role,
   benefits,
   totalInRole,
+  totalWithBenefits,
 }: {
   title: string
   role: string
   benefits: { label: string; count: number }[]
   totalInRole: number
+  totalWithBenefits: number
 }) => {
-  if (benefits.length === 0) return null
+  if (benefits.length === 0 && totalWithBenefits === 0) return null
 
   const totalSelectionsInRole = benefits.reduce((acc, b) => acc + b.count, 0)
 
@@ -85,12 +87,21 @@ const BenefitSection = ({
             color: 'var(--text-muted)',
             marginLeft: 'auto',
             background: 'var(--surface-hover)',
-            padding: '2px 8px',
-            borderRadius: '6px',
+            padding: '4px 10px',
+            borderRadius: '8px',
             fontWeight: 600,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            gap: '2px',
           }}
         >
-          {totalInRole} users • {totalSelectionsInRole} total selections
+          <div style={{ color: 'var(--text)', fontWeight: 700 }}>
+            {totalWithBenefits} of {totalInRole} users expressed interest
+          </div>
+          <div style={{ opacity: 0.8, fontSize: '10px' }}>
+            {totalSelectionsInRole} total benefit selections
+          </div>
         </div>
       </div>
 
@@ -103,7 +114,7 @@ const BenefitSection = ({
       >
         {benefits.map((item, i) => {
           const percentage =
-            totalSelectionsInRole > 0 ? Math.round((item.count / totalSelectionsInRole) * 100) : 0
+            totalWithBenefits > 0 ? Math.round((item.count / totalWithBenefits) * 100) : 0
           return (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div
@@ -147,7 +158,7 @@ const BenefitSection = ({
                     {percentage}%
                   </div>
                   <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                    {item.count} selections
+                    {item.count} users
                   </div>
                 </div>
               </div>
@@ -194,6 +205,7 @@ interface Stats {
     cities: { label: string; count: number }[]
     benefits: { label: string; count: number }[]
     roleBenefits?: Record<string, { label: string; count: number }[]>
+    roleTotals?: Record<string, number>
     roleTotalWithBenefits?: Record<string, number>
     customBenefits: {
       count: number
@@ -300,24 +312,48 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     return null
   }, [dateRange])
 
-  // Fetch Stats & Filter Options once
+  // Fetch Stats & Filter Options
+  const fetchAnalytics = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({
+        ...(filters.search && { search: filters.search }),
+        ...(filters.roles.length > 0 && { role: filters.roles.join(',') }),
+        ...(filters.countries.length > 0 && { country: filters.countries.join(',') }),
+        ...(filters.cities.length > 0 && { city: filters.cities.join(',') }),
+        ...(filters.selectedSessions.length > 0 && {
+          selectedSession: filters.selectedSessions.join(','),
+        }),
+        ...(filters.completed !== 'all' && { completed: filters.completed }),
+        ...(dateBounds?.from && { createdFrom: dateBounds.from }),
+        ...(dateBounds?.to && { createdTo: dateBounds.to }),
+      })
+      const statsRes = await apiService.get(`/admin/analytics?${params.toString()}`, token)
+      setStats(statsRes.data)
+    } catch (err) {
+      console.error('Failed to fetch analytics', err)
+    }
+  }, [token, filters, dateBounds])
+
   useEffect(() => {
-    const init = async () => {
+    const initFilters = async () => {
       try {
-        const [statsRes, filtersRes] = await Promise.all([
-          apiService.get('/admin/analytics', token),
-          apiService.get('/admin/filters', token),
-        ])
-        setStats(statsRes.data)
-        setFilterOptions(filtersRes) // Corrected: filtersRes is already the data
+        const filtersRes = await apiService.get('/admin/filters', token)
+        setFilterOptions(filtersRes)
       } catch (err) {
-        console.error('Failed to initialize dashboard', err)
+        console.error('Failed to fetch filter options', err)
       } finally {
         setLoading(false)
       }
     }
-    init()
+    initFilters()
   }, [token])
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      fetchAnalytics()
+    }, 500)
+    return () => clearTimeout(timeout)
+  }, [fetchAnalytics])
 
   // Fetch Users based on filters and page
   const fetchUsers = useCallback(
@@ -977,7 +1013,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 title="Tenant Experience Interest"
                 role="TENANT"
                 benefits={stats.distributions?.roleBenefits?.['TENANT'] || []}
-                totalInRole={stats.distributions?.roleTotalWithBenefits?.['TENANT'] || 0}
+                totalInRole={stats.distributions?.roleTotals?.['TENANT'] || 0}
+                totalWithBenefits={stats.distributions?.roleTotalWithBenefits?.['TENANT'] || 0}
               />
 
               <div
@@ -993,7 +1030,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 title="Owner / Landlord Interest"
                 role="OWNER"
                 benefits={stats.distributions?.roleBenefits?.['OWNER'] || []}
-                totalInRole={stats.distributions?.roleTotalWithBenefits?.['OWNER'] || 0}
+                totalInRole={stats.distributions?.roleTotals?.['OWNER'] || 0}
+                totalWithBenefits={stats.distributions?.roleTotalWithBenefits?.['OWNER'] || 0}
               />
             </div>
           </div>

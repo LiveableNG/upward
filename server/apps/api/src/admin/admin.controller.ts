@@ -81,8 +81,36 @@ export class AdminController {
   }
 
   @Get('analytics')
-  async getAnalytics() {
-    return { data: await this.adminService.getAnalytics() }
+  async getAnalytics(
+    @Query('search') search?: string,
+    @Query('role') role?: string,
+    @Query('country') country?: string,
+    @Query('city') city?: string,
+    @Query('selectedSession') selectedSession?: string,
+    @Query('createdFrom') createdFrom?: string,
+    @Query('createdTo') createdTo?: string,
+    @Query('completed') completed?: string,
+  ) {
+    const toArray = (val?: string) =>
+      val
+        ? val
+            .split(',')
+            .map((v) => v.trim())
+            .filter(Boolean)
+        : undefined
+
+    return {
+      data: await this.adminService.getAnalytics({
+        search,
+        roles: toArray(role),
+        countries: toArray(country),
+        cities: toArray(city),
+        selectedSessions: toArray(selectedSession),
+        createdFrom,
+        createdTo,
+        completed,
+      }),
+    }
   }
 
   @Get('drop-off')
