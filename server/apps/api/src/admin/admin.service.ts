@@ -291,31 +291,37 @@ export class AdminService {
     ])
 
     // Process benefits
-    const defaultBenefits = ['HISTORY', 'OWNERSHIP', 'FINANCING', 'PRIORITY', 'CREDIT', 'TITLE']
+    const tenantBenefits = ['PRIORITY', 'FINANCING', 'OWNERSHIP']
+    const ownerBenefits = ['HISTORY', 'CREDIT', 'TITLE']
+    const defaultBenefits = [...tenantBenefits, ...ownerBenefits]
+
     const benefitStats: Record<string, number> = {}
     defaultBenefits.forEach((b) => (benefitStats[b] = 0))
-    let customCount = 0
-    const customBenefits: string[] = []
 
-    // Stats grouped by role
+    const roleTotalWithBenefits: Record<string, number> = {}
     const roleBenefitStats: Record<string, Record<string, number>> = {}
+    const customBenefitCounts: Record<string, number> = {}
+    let customCount = 0
 
     allWaitlistBenefits.forEach((entry) => {
       const role = entry.role || 'Unknown'
+      roleTotalWithBenefits[role] = (roleTotalWithBenefits[role] || 0) + 1
+
       if (!roleBenefitStats[role]) {
         const initialStats: Record<string, number> = {}
         defaultBenefits.forEach((b) => (initialStats[b] = 0))
         roleBenefitStats[role] = initialStats
       }
 
-      const stats = roleBenefitStats[role]!
+      const stats = roleBenefitStats[role] || {}
       entry.benefits.forEach((b) => {
         if (defaultBenefits.includes(b)) {
           benefitStats[b] = (benefitStats[b] || 0) + 1
           stats[b] = (stats[b] || 0) + 1
         } else {
           customCount++
-          customBenefits.push(b)
+          const normalized = b.trim()
+          customBenefitCounts[normalized] = (customBenefitCounts[normalized] || 0) + 1
         }
       })
     })
@@ -324,6 +330,10 @@ export class AdminService {
       take: 10,
       orderBy: { createdAt: 'desc' },
     })
+
+    const customBenefitsList = Object.entries(customBenefitCounts)
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count)
 
     return {
       totalWaitlist,
@@ -350,17 +360,23 @@ export class AdminService {
         benefits: defaultBenefits.map((b) => ({ label: b, count: benefitStats[b] || 0 })),
         roleBenefits: Object.keys(roleBenefitStats).reduce(
           (acc, role) => {
-            acc[role] = defaultBenefits.map((b) => ({
+            const relevantBenefits = role === 'TENANT' ? tenantBenefits : ownerBenefits
+            // If it's a known role, only show relevant benefits. Otherwise show all.
+            const benefitsToDisplay =
+              role === 'TENANT' || role === 'OWNER' ? relevantBenefits : defaultBenefits
+            const stats = roleBenefitStats[role] || {}
+            acc[role] = benefitsToDisplay.map((b) => ({
               label: b,
-              count: roleBenefitStats[role]![b] || 0,
+              count: (stats[b] as number) || 0,
             }))
             return acc
           },
           {} as Record<string, { label: string; count: number }[]>,
         ),
+        roleTotalWithBenefits,
         customBenefits: {
           count: customCount,
-          items: customBenefits,
+          items: customBenefitsList,
         },
       },
     }
