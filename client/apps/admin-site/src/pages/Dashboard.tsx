@@ -27,10 +27,12 @@ import { showToast } from '@upward/client-core'
 import { formatName } from '@upward/common-utils'
 
 const BENEFIT_DESCRIPTIONS: Record<string, string> = {
-  HISTORY: 'Find verified tenants and enjoy peace of mind',
-  OWNERSHIP: 'Own your own quality home with single-digit home loans',
-  FINANCING: 'Qualify for flexible rent payments while renting',
+  // Tenant
   PRIORITY: 'Get prioritized by landlords when moving homes',
+  FINANCING: 'Qualify for flexible rent payments while renting',
+  OWNERSHIP: 'Own your own quality home with single-digit home loans',
+  // Owner
+  HISTORY: 'Find verified tenants and enjoy peace of mind',
   CREDIT: 'Say Goodbye to consistent defaults. Get paid on-time',
   TITLE: 'Access exclusive brokerage deals',
 }
@@ -82,7 +84,7 @@ const BenefitSection = ({
             marginLeft: 'auto',
           }}
         >
-          Relative to {totalInRole} total {role.toLowerCase()}s
+          Relative to {totalInRole} {role.toLowerCase()}s who chose benefits
         </div>
       </div>
 
@@ -177,9 +179,10 @@ interface Stats {
     cities: { label: string; count: number }[]
     benefits: { label: string; count: number }[]
     roleBenefits?: Record<string, { label: string; count: number }[]>
+    roleTotalWithBenefits?: Record<string, number>
     customBenefits: {
       count: number
-      items: string[]
+      items: { label: string; count: number }[]
     }
   }
 }
@@ -959,9 +962,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 title="Tenant Experience Interest"
                 role="TENANT"
                 benefits={stats.distributions?.roleBenefits?.['TENANT'] || []}
-                totalInRole={
-                  stats.distributions?.roles.find((r) => r.label === 'TENANT')?.count || 0
-                }
+                totalInRole={stats.distributions?.roleTotalWithBenefits?.['TENANT'] || 0}
               />
 
               <div
@@ -977,9 +978,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 title="Owner / Landlord Interest"
                 role="OWNER"
                 benefits={stats.distributions?.roleBenefits?.['OWNER'] || []}
-                totalInRole={
-                  stats.distributions?.roles.find((r) => r.label === 'OWNER')?.count || 0
-                }
+                totalInRole={stats.distributions?.roleTotalWithBenefits?.['OWNER'] || 0}
               />
             </div>
           </div>
@@ -1906,13 +1905,28 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                       color: 'var(--text)',
                       border: '1px solid transparent',
                       transition: 'all 0.2s',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
                     }}
                     onMouseEnter={(e) =>
                       (e.currentTarget.style.borderColor = 'var(--accent-muted)')
                     }
                     onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
                   >
-                    {item}
+                    <span style={{ flex: 1, paddingRight: '12px' }}>{item.label}</span>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        color: 'var(--accent)',
+                        fontWeight: 700,
+                        background: 'var(--accent-faint)',
+                        padding: '2px 8px',
+                        borderRadius: '100px',
+                      }}
+                    >
+                      {item.count}
+                    </span>
                   </div>
                 ))}
               </div>
