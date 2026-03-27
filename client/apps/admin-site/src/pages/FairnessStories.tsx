@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Download,
   Trash2,
+  AlertTriangle,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import type { FairnessStory } from '@upward/shared-types'
@@ -26,6 +27,10 @@ const FairnessStories: React.FC<FairnessStoriesProps> = ({ token, adminRole }) =
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedStory, setSelectedStory] = useState<FairnessStory | null>(null)
+  const [deleteModal, setDeleteModal] = useState<{ show: boolean; id: string | null }>({
+    show: false,
+    id: null,
+  })
 
   useEffect(() => {
     const fetchStories = async () => {
@@ -48,8 +53,13 @@ const FairnessStories: React.FC<FairnessStoriesProps> = ({ token, adminRole }) =
       s.categories.some((c: string) => c.toLowerCase().includes(search.toLowerCase())),
   )
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this story?')) return
+  const handleDeleteClick = (id: string) => {
+    setDeleteModal({ show: true, id })
+  }
+
+  const confirmDelete = async () => {
+    const id = deleteModal.id
+    if (!id) return
 
     try {
       await apiService.delete(`/fairness-story/${id}`, token)
@@ -59,6 +69,8 @@ const FairnessStories: React.FC<FairnessStoriesProps> = ({ token, adminRole }) =
     } catch (err) {
       console.error('Failed to delete story', err)
       showToast('Failed to delete story', true)
+    } finally {
+      setDeleteModal({ show: false, id: null })
     }
   }
 
@@ -193,7 +205,7 @@ const FairnessStories: React.FC<FairnessStoriesProps> = ({ token, adminRole }) =
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleDelete(story.id)
+                            handleDeleteClick(story.id)
                           }}
                           style={{
                             background: 'none',
@@ -416,7 +428,7 @@ const FairnessStories: React.FC<FairnessStoriesProps> = ({ token, adminRole }) =
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(selectedStory.story)
-                    alert('Story copied to clipboard!')
+                    showToast('Story copied to clipboard!')
                   }}
                   style={{
                     background: 'none',
@@ -582,6 +594,83 @@ const FairnessStories: React.FC<FairnessStoriesProps> = ({ token, adminRole }) =
           </div>
         )}
       </div>
+
+      {deleteModal.show && (
+        <div
+          className="modal-overlay"
+          style={{ alignItems: 'center' }}
+          onClick={() => setDeleteModal({ show: false, id: null })}
+        >
+          <div
+            className="modal-content"
+            style={{ maxWidth: '400px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: '32px', textAlign: 'center' }}>
+              <div
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  backgroundColor: '#fee2e2',
+                  color: '#dc2626',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 24px',
+                }}
+              >
+                <AlertTriangle size={32} />
+              </div>
+              <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px' }}>
+                Delete this story?
+              </h3>
+              <p
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '14px',
+                  marginBottom: '32px',
+                  lineHeight: 1.6,
+                }}
+              >
+                This action cannot be undone. This story and all associated data will be permanently
+                removed.
+              </p>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  onClick={() => setDeleteModal({ show: false, id: null })}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--white)',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    border: 'none',
+                    background: '#dc2626',
+                    color: 'white',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .story-item:hover {
