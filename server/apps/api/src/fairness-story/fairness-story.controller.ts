@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, BadRequestException } from '@nestjs/common'
+import { Controller, Post, Get, Body, BadRequestException, Delete, Param } from '@nestjs/common'
 import { FairnessStoryService } from './fairness-story.service'
 import { CreateStoryDto } from './dto/create-story.dto'
 import { S3Service } from '../common/s3/s3.service'
@@ -46,5 +46,10 @@ export class FairnessStoryController {
   @Get()
   async findAll() {
     return this.fairnessStoryService.findAll()
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    return this.fairnessStoryService.remove(id)
   }
 }

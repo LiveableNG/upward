@@ -35,6 +35,135 @@ const BENEFIT_DESCRIPTIONS: Record<string, string> = {
   TITLE: 'Access exclusive brokerage deals',
 }
 
+const BenefitSection = ({
+  title,
+  role,
+  benefits,
+  totalInRole,
+}: {
+  title: string
+  role: string
+  benefits: { label: string; count: number }[]
+  totalInRole: number
+}) => {
+  if (benefits.length === 0) return null
+
+  return (
+    <div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '24px',
+        }}
+      >
+        <div
+          style={{
+            padding: '4px 12px',
+            borderRadius: '20px',
+            background: role === 'TENANT' ? '#3b82f615' : '#10b98115',
+            color: role === 'TENANT' ? '#3b82f6' : '#10b981',
+            fontSize: '11px',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+          }}
+        >
+          {role}
+        </div>
+        <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
+          {title}
+        </h4>
+        <div
+          style={{
+            fontSize: '12px',
+            color: 'var(--text-muted)',
+            marginLeft: 'auto',
+          }}
+        >
+          Relative to {totalInRole} total {role.toLowerCase()}s
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: '24px 80px',
+        }}
+      >
+        {benefits.map((item, i) => {
+          const percentage = totalInRole > 0 ? Math.round((item.count / totalInRole) * 100) : 0
+          return (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                }}
+              >
+                <div style={{ flex: 1, paddingRight: '16px' }}>
+                  <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>
+                    {item.label}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      lineHeight: 1.4,
+                      marginTop: '4px',
+                    }}
+                  >
+                    {BENEFIT_DESCRIPTIONS[item.label] || 'Waitlist benefit selection.'}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div
+                    style={{
+                      fontSize: '18px',
+                      fontWeight: 800,
+                      color: role === 'TENANT' ? '#3b82f6' : '#10b981',
+                    }}
+                  >
+                    {percentage}%
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    {item.count} selections
+                  </div>
+                </div>
+              </div>
+              <div
+                style={{
+                  height: '8px',
+                  background: 'var(--surface-hover)',
+                  borderRadius: '6px',
+                  overflow: 'hidden',
+                  position: 'relative',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${percentage}%`,
+                    height: '100%',
+                    background:
+                      role === 'TENANT'
+                        ? 'linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)'
+                        : 'linear-gradient(90deg, #10b981 0%, #34d399 100%)',
+                    borderRadius: '6px',
+                    transition: 'width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  }}
+                />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 interface Stats {
   totalWaitlist: number
   joinedLast24h: number
@@ -47,6 +176,7 @@ interface Stats {
     countries: { label: string; count: number }[]
     cities: { label: string; count: number }[]
     benefits: { label: string; count: number }[]
+    roleBenefits?: Record<string, { label: string; count: number }[]>
     customBenefits: {
       count: number
       items: string[]
@@ -820,72 +950,37 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
             <div
               style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-                gap: '24px 80px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '40px',
               }}
             >
-              {(stats.distributions?.benefits || []).map((item, i) => {
-                const percentage =
-                  stats.totalWaitlist > 0 ? Math.round((item.count / stats.totalWaitlist) * 100) : 0
-                return (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                      }}
-                    >
-                      <div style={{ flex: 1, paddingRight: '16px' }}>
-                        <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text)' }}>
-                          {item.label}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: '12px',
-                            color: 'var(--text-muted)',
-                            lineHeight: 1.4,
-                            marginTop: '4px',
-                          }}
-                        >
-                          {BENEFIT_DESCRIPTIONS[item.label] || 'Waitlist benefit selection.'}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--accent)' }}>
-                          {percentage}%
-                        </div>
-                        <div
-                          style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}
-                        >
-                          {item.count} entries
-                        </div>
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        height: '10px',
-                        background: 'var(--surface-hover)',
-                        borderRadius: '6px',
-                        overflow: 'hidden',
-                        position: 'relative',
-                        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: `${percentage}%`,
-                          height: '100%',
-                          background: 'linear-gradient(90deg, var(--accent) 0%, #ff9a7b 100%)',
-                          borderRadius: '6px',
-                          transition: 'width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                        }}
-                      />
-                    </div>
-                  </div>
-                )
-              })}
+              <BenefitSection
+                title="Tenant Experience Interest"
+                role="TENANT"
+                benefits={stats.distributions?.roleBenefits?.['TENANT'] || []}
+                totalInRole={
+                  stats.distributions?.roles.find((r) => r.label === 'TENANT')?.count || 0
+                }
+              />
+
+              <div
+                style={{
+                  height: '1px',
+                  background: 'var(--border)',
+                  opacity: 0.5,
+                  margin: '8px 0',
+                }}
+              />
+
+              <BenefitSection
+                title="Owner / Landlord Interest"
+                role="OWNER"
+                benefits={stats.distributions?.roleBenefits?.['OWNER'] || []}
+                totalInRole={
+                  stats.distributions?.roles.find((r) => r.label === 'OWNER')?.count || 0
+                }
+              />
             </div>
           </div>
         </div>

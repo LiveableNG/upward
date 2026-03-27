@@ -285,7 +285,7 @@ export class AdminService {
         take: 10,
       }),
       this.prisma.upward_waitlist.findMany({
-        select: { benefits: true },
+        select: { role: true, benefits: true },
         where: { benefits: { isEmpty: false } },
       }),
     ])
@@ -297,10 +297,22 @@ export class AdminService {
     let customCount = 0
     const customBenefits: string[] = []
 
+    // Stats grouped by role
+    const roleBenefitStats: Record<string, Record<string, number>> = {}
+
     allWaitlistBenefits.forEach((entry) => {
+      const role = entry.role || 'Unknown'
+      if (!roleBenefitStats[role]) {
+        const initialStats: Record<string, number> = {}
+        defaultBenefits.forEach((b) => (initialStats[b] = 0))
+        roleBenefitStats[role] = initialStats
+      }
+
+      const stats = roleBenefitStats[role]!
       entry.benefits.forEach((b) => {
         if (defaultBenefits.includes(b)) {
-          benefitStats[b]!++
+          benefitStats[b] = (benefitStats[b] || 0) + 1
+          stats[b] = (stats[b] || 0) + 1
         } else {
           customCount++
           customBenefits.push(b)
@@ -335,7 +347,17 @@ export class AdminService {
           label: (c.city as string) || 'Unknown',
           count: (c._count as any)._all || 0,
         })),
-        benefits: defaultBenefits.map((b) => ({ label: b, count: benefitStats[b] })),
+        benefits: defaultBenefits.map((b) => ({ label: b, count: benefitStats[b] || 0 })),
+        roleBenefits: Object.keys(roleBenefitStats).reduce(
+          (acc, role) => {
+            acc[role] = defaultBenefits.map((b) => ({
+              label: b,
+              count: roleBenefitStats[role]![b] || 0,
+            }))
+            return acc
+          },
+          {} as Record<string, { label: string; count: number }[]>,
+        ),
         customBenefits: {
           count: customCount,
           items: customBenefits,
