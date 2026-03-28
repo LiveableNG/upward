@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { api } from '@/lib/api'
-import { setToken, setTenant, isLoggedIn } from '@/lib/auth'
+import { setToken, setTenant } from '@/lib/auth'
 import PoweredByUpward, { UpwardLogo } from '@/components/payment/PoweredByUpward'
 
 function SignupForm() {
@@ -15,14 +15,9 @@ function SignupForm() {
 
   const [email, setEmail] = useState(prefillEmail)
   const [fullName, setFullName] = useState(prefillName)
-  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    if (isLoggedIn()) router.push('/dashboard')
-  }, [router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -32,9 +27,12 @@ function SignupForm() {
     setError('')
 
     try {
-      const result = await api.signup({ email, password, fullName, phone: phone || undefined })
+      const result = await api.signup({ email, password, fullName })
       setToken(result.accessToken)
       setTenant(result.tenant)
+      
+      // If they came from a payment link, they might want to go back there
+      // But usually we just go to dashboard after signup
       router.push('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed')
@@ -51,13 +49,11 @@ function SignupForm() {
 
       <div className="auth-page__content">
         <div className="auth-page__hero">
-          <h1 className="auth-page__title">Create your account</h1>
+          <h1 className="auth-page__title">Create Account</h1>
           <p className="auth-page__subtitle">
-            {from === 'payment'
-              ? 'Save your receipt and track all future payments'
-              : from === 'invite'
-                ? 'Accept your invitation and start managing payments'
-                : 'Join thousands of tenants using Upward'}
+            {from === 'payment' 
+              ? 'Sign up to complete your payment and save your receipt.'
+              : 'Join Upward to manage your rent and build credibility.'}
           </p>
         </div>
 
@@ -65,7 +61,7 @@ function SignupForm() {
           {error && <div className="auth-form__error">{error}</div>}
 
           <div className="auth-form__field">
-            <label htmlFor="fullName">Full Name *</label>
+            <label htmlFor="fullName">Full Name</label>
             <input
               id="fullName"
               type="text"
@@ -77,7 +73,7 @@ function SignupForm() {
           </div>
 
           <div className="auth-form__field">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">Email Address</label>
             <input
               id="email"
               type="email"
@@ -89,28 +85,14 @@ function SignupForm() {
           </div>
 
           <div className="auth-form__field">
-            <label htmlFor="phone">
-              Phone <span className="auth-form__optional">(optional)</span>
-            </label>
-            <input
-              id="phone"
-              type="tel"
-              placeholder="+234 801 234 5678"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-          </div>
-
-          <div className="auth-form__field">
             <label htmlFor="password">Password</label>
             <input
               id="password"
               type="password"
-              placeholder="Min. 6 characters"
+              placeholder="Create a strong password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={6}
             />
           </div>
 
@@ -120,7 +102,8 @@ function SignupForm() {
         </form>
 
         <div className="auth-page__alt">
-          Already have an account? <button onClick={() => router.push('/login')}>Log in</button>
+          Already have an account?{' '}
+          <button onClick={() => router.push('/login')}>Sign in</button>
         </div>
       </div>
 

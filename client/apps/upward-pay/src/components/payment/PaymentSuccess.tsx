@@ -1,5 +1,6 @@
 'use client'
 
+import { Check, Download, ReceiptText } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
 export default function PaymentSuccess({
@@ -8,7 +9,7 @@ export default function PaymentSuccess({
   invoiceNumber,
   companyName,
   isLoggedIn,
-  onSignUp,
+  onLogin,
   onGoToDashboard,
 }: {
   amount: number
@@ -16,7 +17,7 @@ export default function PaymentSuccess({
   invoiceNumber: string
   companyName: string
   isLoggedIn: boolean
-  onSignUp: () => void
+  onLogin: () => void
   onGoToDashboard: () => void
 }) {
   return (
@@ -40,9 +41,7 @@ export default function PaymentSuccess({
 
       <div className="payment-success__badge">
         <div className="payment-success__check">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <Check size={24} strokeWidth={3} />
         </div>
       </div>
 
@@ -64,7 +63,9 @@ export default function PaymentSuccess({
         </div>
         <div className="payment-success__receipt-row">
           <span>Status</span>
-          <span className="payment-success__receipt-status">Confirmed ✓</span>
+          <span className="payment-success__receipt-status">
+            Confirmed <Check size={14} style={{ display: 'inline', marginLeft: 4 }} />
+          </span>
         </div>
       </div>
 
@@ -74,20 +75,20 @@ export default function PaymentSuccess({
         onClick={() => window.print()}
         style={{ marginTop: 12 }}
       >
-        📥 Download Receipt as PDF
+        <Download size={14} style={{ marginRight: 8 }} /> Download Receipt as PDF
       </button>
 
       {!isLoggedIn ? (
         <div className="payment-success__cta-section">
-          <h3 className="payment-success__cta-title">Don&apos;t lose your receipt</h3>
+          <h3 className="payment-success__cta-title">Access your receipt anytime</h3>
           <p className="payment-success__cta-subtitle">
-            Create an account to save your payment history, build rent credit, and never miss a
-            payment.
+            Log in to your account to save your payment history, build rent credit, and manage
+            your tenancy documents in one place.
           </p>
-          <button className="btn btn--primary btn--full" onClick={onSignUp}>
-            Create Your Account
+          <button className="btn btn--primary btn--full" onClick={onLogin}>
+            Log In to Your Account
           </button>
-          <p className="payment-success__cta-note">Takes less than 30 seconds</p>
+          <p className="payment-success__cta-note">Securely view your payment history</p>
         </div>
       ) : (
         <div className="payment-success__cta-section">
@@ -99,7 +100,7 @@ export default function PaymentSuccess({
             onClick={onGoToDashboard}
             style={{ marginTop: 8 }}
           >
-            🧾 View All Receipts
+            <ReceiptText size={14} style={{ marginRight: 8 }} /> View All Receipts
           </button>
         </div>
       )}

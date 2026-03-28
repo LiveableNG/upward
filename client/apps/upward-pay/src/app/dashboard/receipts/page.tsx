@@ -7,6 +7,7 @@ import { isLoggedIn } from '@/lib/auth'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import PoweredByUpward, { UpwardLogo } from '@/components/payment/PoweredByUpward'
 import ReceiptTemplate from '@/components/payment/ReceiptTemplate'
+import { Receipt, ArrowLeft, ChevronRight } from 'lucide-react'
 
 export default function ReceiptsPage() {
   const router = useRouter()
@@ -41,16 +42,7 @@ export default function ReceiptsPage() {
     <div className="subpage">
       <header className="subpage__header">
         <button className="subpage__back" onClick={() => router.push('/dashboard')}>
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <ArrowLeft size={20} />
         </button>
         <h1 className="subpage__title">Receipts</h1>
         <div style={{ width: 36 }} />
@@ -64,7 +56,7 @@ export default function ReceiptsPage() {
         </div>
       ) : receipts.length === 0 ? (
         <div className="dashboard__empty">
-          <span className="dashboard__empty-icon">🧾</span>
+          <span className="dashboard__empty-icon"><Receipt size={32} /></span>
           <p>No receipts yet. They&apos;ll appear here after each payment.</p>
         </div>
       ) : (
@@ -76,7 +68,7 @@ export default function ReceiptsPage() {
               onClick={() => setSelectedReceipt(r)}
             >
               <div className="receipt-list-card__left">
-                <div className="receipt-list-card__icon">🧾</div>
+                <div className="receipt-list-card__icon"><Receipt size={20} /></div>
                 <div>
                   <span className="receipt-list-card__title">{r.title}</span>
                   <span className="receipt-list-card__meta">
@@ -88,7 +80,7 @@ export default function ReceiptsPage() {
                 <span className="receipt-list-card__amount">
                   {formatCurrency(r.amount, r.currency)}
                 </span>
-                <span className="receipt-list-card__arrow">→</span>
+                <span className="receipt-list-card__arrow"><ChevronRight size={16} /></span>
               </div>
             </button>
           ))}

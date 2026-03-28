@@ -6,6 +6,7 @@ import { api, type ContractData } from '@/lib/api'
 import { isLoggedIn } from '@/lib/auth'
 import { formatDate } from '@/lib/utils'
 import PoweredByUpward, { UpwardLogo } from '@/components/payment/PoweredByUpward'
+import { FileText, ArrowLeft, MapPin, Mail, Calendar, ClipboardList, FolderOpen, Download } from 'lucide-react'
 
 export default function ContractsPage() {
   const router = useRouter()
@@ -41,16 +42,7 @@ export default function ContractsPage() {
     <div className="subpage">
       <header className="subpage__header">
         <button className="subpage__back" onClick={() => router.push('/dashboard')}>
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <ArrowLeft size={20} />
         </button>
         <h1 className="subpage__title">Contracts</h1>
         <div style={{ width: 36 }} />
@@ -64,7 +56,7 @@ export default function ContractsPage() {
         </div>
       ) : contracts.length === 0 ? (
         <div className="dashboard__empty">
-          <span className="dashboard__empty-icon">📄</span>
+          <span className="dashboard__empty-icon"><FileText size={32} /></span>
           <p>No contracts yet. Your tenancy agreements will appear here.</p>
         </div>
       ) : (
@@ -77,7 +69,7 @@ export default function ContractsPage() {
             >
               <div className="contract-card__top">
                 <div className="contract-card__left">
-                  <div className="contract-card__icon">📄</div>
+                  <div className="contract-card__icon"><FileText size={20} /></div>
                   <div>
                     <span className="contract-card__title">{c.title}</span>
                     <span className="contract-card__company">
@@ -102,34 +94,34 @@ export default function ContractsPage() {
               {selectedContract?.uuid === c.uuid && (
                 <div className="contract-card__details">
                   <div className="contract-card__detail-row">
-                    <span>📍 Property</span>
+                    <span><MapPin size={12} style={{ display: 'inline', marginRight: 4 }} /> Property</span>
                     <span>{c.propertyName}</span>
                   </div>
                   <div className="contract-card__detail-row">
-                    <span>📮 Address</span>
+                    <span><Mail size={12} style={{ display: 'inline', marginRight: 4 }} /> Address</span>
                     <span>{c.propertyAddress}</span>
                   </div>
                   <div className="contract-card__detail-row">
-                    <span>📅 Lease Start</span>
+                    <span><Calendar size={12} style={{ display: 'inline', marginRight: 4 }} /> Lease Start</span>
                     <span>{formatDate(c.leaseStart)}</span>
                   </div>
                   <div className="contract-card__detail-row">
-                    <span>📅 Lease End</span>
+                    <span><Calendar size={12} style={{ display: 'inline', marginRight: 4 }} /> Lease End</span>
                     <span>{formatDate(c.leaseEnd)}</span>
                   </div>
                   <div className="contract-card__detail-row">
-                    <span>📋 Type</span>
+                    <span><ClipboardList size={12} style={{ display: 'inline', marginRight: 4 }} /> Type</span>
                     <span className="contract-card__type">Tenancy Agreement</span>
                   </div>
                   <div className="contract-card__detail-row">
-                    <span>📁 File</span>
+                    <span><FolderOpen size={12} style={{ display: 'inline', marginRight: 4 }} /> File</span>
                     <span className="contract-card__file">{c.fileName}</span>
                   </div>
                   <button
                     className="btn btn--secondary btn--sm btn--full"
                     style={{ marginTop: 12 }}
                   >
-                    📥 Download Contract
+                    <Download size={14} style={{ marginRight: 8 }} /> Download Contract
                   </button>
                 </div>
               )}

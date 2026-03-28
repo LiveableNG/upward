@@ -1,6 +1,19 @@
-'use client'
+import { formatCurrency, getCategoryIconName } from '@/lib/utils'
+import { Home, Lock, Users, Scale, Settings, Wrench, Package, Check } from 'lucide-react'
 
-import { formatCurrency, getCategoryIcon } from '@/lib/utils'
+const CategoryIcon = ({ name, size = 18 }: { name: string; size?: number }) => {
+  const icons: Record<string, any> = {
+    Home,
+    Lock,
+    Users,
+    Scale,
+    Settings,
+    Wrench,
+    Package,
+  }
+  const Icon = icons[name] || Package
+  return <Icon size={size} />
+}
 
 interface LineItem {
   uuid: string
@@ -37,7 +50,9 @@ export default function InvoiceCard({
         {lineItems.map((item) => (
           <div key={item.uuid} className="invoice-card__item">
             <div className="invoice-card__item-left">
-              <span className="invoice-card__item-icon">{getCategoryIcon(item.category)}</span>
+              <span className="invoice-card__item-icon">
+                <CategoryIcon name={getCategoryIconName(item.category)} />
+              </span>
               <div>
                 <span className="invoice-card__item-label">{item.label}</span>
                 <span className="invoice-card__item-category">{item.category}</span>
@@ -59,7 +74,7 @@ export default function InvoiceCard({
 
       {status === 'paid' && (
         <div className="invoice-card__paid-badge">
-          <span>✓</span> Paid
+          <Check size={14} style={{ marginRight: 4 }} /> Paid
         </div>
       )}
     </div>

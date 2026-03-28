@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import AppDeepLinkHandler from '@/components/AppDeepLinkHandler'
 
 const inter = Inter({
   variable: '--font-inter',
@@ -30,7 +31,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable}`}>
       <head></head>
-      <body>{children}</body>
+      <body>
+        <AppDeepLinkHandler />
+        {children}
+      </body>
     </html>
   )
 }

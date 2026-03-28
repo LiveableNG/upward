@@ -1,17 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { api, type DashboardData } from '@/lib/api'
 import { isLoggedIn, logout } from '@/lib/auth'
 import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils'
+import { LogOut, FileStack, Receipt, FileText, BarChart3, Settings, Smartphone, X, AlertTriangle } from 'lucide-react'
 import PoweredByUpward, { UpwardLogo } from '@/components/payment/PoweredByUpward'
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [isNative, setIsNative] = useState(false)
 
   useEffect(() => {
     if (!isLoggedIn()) {
@@ -19,12 +22,27 @@ export default function DashboardPage() {
       return
     }
     loadDashboard()
+
+    // Check if running in a native app (Capacitor)
+    const checkPlatform = async () => {
+      const { Capacitor } = await import('@capacitor/core')
+      setIsNative(Capacitor.isNativePlatform())
+    }
+    checkPlatform()
   }, [router])
 
   async function loadDashboard() {
     try {
       const result = await api.getMe()
       setData(result)
+
+      // Auto-redirect to pending payment if it exists and noRedirect is not set
+      const noRedirect = searchParams.get('noRedirect')
+      if (result.pendingPayments.length > 0 && !noRedirect) {
+        const p = result.pendingPayments[0]
+        router.push(`/pay?token=${p.payment_link_token}`)
+        return
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard')
     } finally {
@@ -49,7 +67,7 @@ export default function DashboardPage() {
     return (
       <div className="dashboard">
         <div className="pay-page__error">
-          <div className="pay-page__error-icon">⚠️</div>
+          <div className="pay-page__error-icon"><AlertTriangle size={32} /></div>
           <h2>Error loading dashboard</h2>
           <p>{error}</p>
           <button className="btn btn--secondary" onClick={loadDashboard}>
@@ -70,27 +88,38 @@ export default function DashboardPage() {
         <div className="dashboard__header-left">
           <div className="dashboard__avatar">{firstName[0]?.toUpperCase()}</div>
           <div>
-            <h2 className="dashboard__greeting">Hey, {firstName} 👋</h2>
+            <h2 className="dashboard__greeting">Hey, {firstName}</h2>
             <span className="dashboard__email">{tenant.email}</span>
           </div>
         </div>
-        <button className="dashboard__logout" onClick={logout} title="Logout">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path
-              d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
+
+        <div className="dashboard__header-right">
+          {!isNative && (
+            <button
+              className="btn btn--primary btn--sm"
+              onClick={() => window.open('https://upward.ng/download', '_blank')}
+              style={{ padding: '8px 12px', marginRight: '12px', fontSize: '12px' }}
+            >
+              Get App
+            </button>
+          )}
+          <button className="dashboard__logout" onClick={logout} title="Logout">
+            <LogOut size={20} />
+          </button>
+        </div>
       </header>
+
+      {/* Web Promo Banner */}
+      {!isNative && (
+        <div className="pay-page__web-promo" style={{ margin: '0 16px 20px 16px' }}>
+          <span className="pay-page__web-promo-icon"><Smartphone size={20} /></span>
+          <div className="pay-page__web-promo-content">
+            <p className="pay-page__web-promo-title">Enjoy Upward on the Go</p>
+            <p className="pay-page__web-promo-text">Download the app to manage rent, track your streak, and build credit.</p>
+          </div>
+          <button className="pay-page__web-promo-close" onClick={() => setIsNative(true)}><X size={14} /></button>
+        </div>
+      )}
 
       {/* Pending Payments */}
       {data.pendingPayments.length > 0 && (
@@ -122,7 +151,7 @@ export default function DashboardPage() {
               {p.notes && <p className="dashboard__payment-card-notes">{p.notes}</p>}
               <button
                 className="btn btn--primary btn--full btn--sm"
-                onClick={() => router.push(`/pay/${p.payment_link_token}`)}
+                onClick={() => router.push(`/pay?token=${p.payment_link_token}`)}
               >
                 Pay Now
               </button>
@@ -139,7 +168,7 @@ export default function DashboardPage() {
         </h3>
         {data.completedPayments.length === 0 ? (
           <div className="dashboard__empty">
-            <span className="dashboard__empty-icon">📋</span>
+            <span className="dashboard__empty-icon"><FileStack size={32} /></span>
             <p>No payments yet. Your payment history will appear here.</p>
           </div>
         ) : (
@@ -181,25 +210,25 @@ export default function DashboardPage() {
             className="dashboard__action-card"
             onClick={() => router.push('/dashboard/receipts')}
           >
-            <span className="dashboard__action-icon">🧾</span>
+            <span className="dashboard__action-icon"><Receipt size={24} /></span>
             <span className="dashboard__action-label">Receipts</span>
           </div>
           <div
             className="dashboard__action-card"
             onClick={() => router.push('/dashboard/contracts')}
           >
-            <span className="dashboard__action-icon">📄</span>
+            <span className="dashboard__action-icon"><FileText size={24} /></span>
             <span className="dashboard__action-label">Contracts</span>
           </div>
           <div
             className="dashboard__action-card"
             onClick={() => router.push('/dashboard/rent-credit')}
           >
-            <span className="dashboard__action-icon">📊</span>
+            <span className="dashboard__action-icon"><BarChart3 size={24} /></span>
             <span className="dashboard__action-label">Rent Credit</span>
           </div>
           <div className="dashboard__action-card">
-            <span className="dashboard__action-icon">⚙️</span>
+            <span className="dashboard__action-icon"><Settings size={24} /></span>
             <span className="dashboard__action-label">Settings</span>
           </div>
         </div>
@@ -207,5 +236,24 @@ export default function DashboardPage() {
 
       <PoweredByUpward className="pay-page__footer-badge" />
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="dashboard">
+          <div className="pay-page__splash">
+            <div className="pay-page__logo-pulse">
+              <UpwardLogo size={28} color="#fff" />
+            </div>
+            <p className="pay-page__splash-text">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
   )
 }

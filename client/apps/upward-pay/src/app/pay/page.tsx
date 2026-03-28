@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { api, type PaymentRequestData } from '@/lib/api'
 import { isLoggedIn } from '@/lib/auth'
 import { formatCurrency } from '@/lib/utils'
+import { AlertTriangle, Smartphone, MapPin, CreditCard, X, ShieldCheck } from 'lucide-react'
 import PoweredByUpward, { UpwardLogo } from '@/components/payment/PoweredByUpward'
 import CompanyHeader from '@/components/payment/CompanyHeader'
 import InvoiceCard from '@/components/payment/InvoiceCard'
@@ -24,6 +25,16 @@ function PaymentContent() {
   const [error, setError] = useState('')
   const [receiptNumber, setReceiptNumber] = useState('')
   const userLoggedIn = isLoggedIn()
+  const [isNative, setIsNative] = useState(false)
+
+  useEffect(() => {
+    // Check if running in a native app (Capacitor)
+    const checkPlatform = async () => {
+      const { Capacitor } = await import('@capacitor/core')
+      setIsNative(Capacitor.isNativePlatform())
+    }
+    checkPlatform()
+  }, [])
 
   useEffect(() => {
     if (token) {
@@ -61,6 +72,12 @@ function PaymentContent() {
 
   async function handlePay() {
     if (!data || !token) return
+
+    // Mandatory login check
+    if (!userLoggedIn) {
+      router.push(`/login?redirect=${encodeURIComponent(`/pay?token=${token}`)}`)
+      return
+    }
 
     const email = data.tenant?.email || ''
 
@@ -137,7 +154,7 @@ function PaymentContent() {
     return (
       <div className="pay-page">
         <div className="pay-page__error">
-          <div className="pay-page__error-icon">⚠️</div>
+          <div className="pay-page__error-icon"><AlertTriangle size={32} /></div>
           <h2>Something went wrong</h2>
           <p>{error}</p>
           <button
@@ -167,9 +184,9 @@ function PaymentContent() {
           invoiceNumber={receiptNumber || data.paymentRequest.invoiceNumber}
           companyName={data.company.name}
           isLoggedIn={userLoggedIn}
-          onSignUp={() =>
+          onLogin={() =>
             router.push(
-              `/signup?email=${encodeURIComponent(data.tenant?.email || '')}&from=payment`,
+              `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`,
             )
           }
           onGoToDashboard={() => router.push('/dashboard')}
@@ -191,27 +208,54 @@ function PaymentContent() {
       </div>
     )
   }
-
   /* ─── Invoice Review ─── */
   return (
     <div className="pay-page">
       {/* Top Bar */}
       <header className="pay-page__header">
-        {userLoggedIn ? (
-          <span className="pay-page__greeting">
-            Welcome back, {data.tenant?.fullName?.split(' ')[0]}
-          </span>
-        ) : (
+        <div className="pay-page__header-left">
           <PoweredByUpward />
-        )}
+        </div>
+        <div className="pay-page__header-right">
+          {userLoggedIn && (
+            <button
+              className="btn btn--secondary btn--sm"
+              onClick={() => router.push('/dashboard?noRedirect=true')}
+              style={{ padding: '8px 12px' }}
+            >
+              Dashboard
+            </button>
+          )}
+          {!isNative && (
+            <button
+              className="btn btn--primary btn--sm"
+              onClick={() => window.open('https://upward.ng/download', '_blank')}
+              style={{ padding: '8px 12px' }}
+            >
+              Get App
+            </button>
+          )}
+        </div>
       </header>
+
+      {/* Web Promo Banner */}
+      {!isNative && (
+        <div className="pay-page__web-promo">
+          <span className="pay-page__web-promo-icon"><Smartphone size={20} /></span>
+          <div className="pay-page__web-promo-content">
+            <p className="pay-page__web-promo-title">Experience Upward on Mobile</p>
+            <p className="pay-page__web-promo-text">Get the app to build your rent credibility and enjoy more benefits.</p>
+          </div>
+          <button className="pay-page__web-promo-close" onClick={() => setIsNative(true)}><X size={14} /></button>
+        </div>
+      )}
 
       {/* Company + Property */}
       <div className="pay-page__company-section">
         <CompanyHeader name={data.company.name} logoUrl={data.company.logoUrl} />
         {data.property && (
           <div className="pay-page__property">
-            <span className="pay-page__property-icon">📍</span>
+            <span className="pay-page__property-icon"><MapPin size={14} /></span>
             <span>
               {data.property.name} — {data.property.address}
             </span>
@@ -227,9 +271,6 @@ function PaymentContent() {
         </span>
       </div>
 
-      {/* Benefits (guest only) */}
-      {!userLoggedIn && <BenefitChips variant="scroll" />}
-
       {/* Invoice Details */}
       <InvoiceCard
         invoiceNumber={data.paymentRequest.invoiceNumber}
@@ -242,40 +283,9 @@ function PaymentContent() {
 
       {/* Payment Tray */}
       <div className="pay-page__tray">
-        {!userLoggedIn && (
-          <>
-            {/* If tenant is known & signed up, suggest login */}
-            {data.tenant &&
-              (data.tenant.signupStatus === 'app_installed' ||
-                data.tenant.signupStatus === 'web_only') && (
-                <div className="pay-page__login-hint">
-                  <span className="pay-page__login-hint-icon">👋</span>
-                  <div>
-                    <span className="pay-page__login-hint-text">
-                      Hey {data.tenant.fullName.split(' ')[0]},{' '}
-                      <button
-                        onClick={() =>
-                          router.push(
-                            `/login?redirect=${encodeURIComponent(`/pay?token=${token}`)}`,
-                          )
-                        }
-                      >
-                        log in
-                      </button>{' '}
-                      for faster checkout
-                    </span>
-                    <span className="pay-page__login-hint-sub">
-                      or just pay below — we&apos;ll save your record
-                    </span>
-                  </div>
-                </div>
-              )}
-          </>
-        )}
-
         {userLoggedIn && data.tenant && (
           <div className="pay-page__saved-method">
-            <div className="pay-page__saved-icon">💳</div>
+            <div className="pay-page__saved-icon"><CreditCard size={20} /></div>
             <div>
               <span className="pay-page__saved-label">Quick pay as</span>
               <span className="pay-page__saved-name">{data.tenant.fullName}</span>
@@ -286,31 +296,14 @@ function PaymentContent() {
         <button className="btn btn--primary btn--full btn--pay" onClick={handlePay}>
           {userLoggedIn
             ? 'Confirm & Pay'
-            : `Pay ${formatCurrency(data.paymentRequest.totalAmount, data.paymentRequest.currency)}`}
+            : `Login to Pay ${formatCurrency(data.paymentRequest.totalAmount, data.paymentRequest.currency)}`}
         </button>
 
         <p className="pay-page__secure-note">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z" />
-          </svg>
+          <ShieldCheck size={12} style={{ marginRight: 4 }} />
           Secured by Paystack · 256-bit encryption
         </p>
       </div>
-
-      {!userLoggedIn &&
-        !data.tenant?.signupStatus?.includes('app_installed') &&
-        !data.tenant?.signupStatus?.includes('web_only') && (
-          <div className="pay-page__login-link">
-            Have an account?{' '}
-            <button
-              onClick={() =>
-                router.push(`/login?redirect=${encodeURIComponent(`/pay?token=${token}`)}`)
-              }
-            >
-              Log in
-            </button>
-          </div>
-        )}
 
       <PoweredByUpward className="pay-page__footer-badge" />
     </div>

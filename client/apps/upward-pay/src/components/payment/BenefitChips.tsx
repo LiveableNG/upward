@@ -1,12 +1,14 @@
 'use client'
 
+import { BarChart3, Trophy, Bell, FileText, Zap, ShieldCheck } from 'lucide-react'
+
 const benefits = [
-  { icon: '📊', label: 'Track all receipts' },
-  { icon: '🏆', label: 'Build rent credit' },
-  { icon: '🔔', label: 'Payment reminders' },
-  { icon: '📄', label: 'Contracts saved' },
-  { icon: '⚡', label: 'One-tap payments' },
-  { icon: '🛡️', label: 'Verified history' },
+  { icon: <BarChart3 size={14} />, label: 'Track all receipts' },
+  { icon: <Trophy size={14} />, label: 'Build rent credit' },
+  { icon: <Bell size={14} />, label: 'Payment reminders' },
+  { icon: <FileText size={14} />, label: 'Contracts saved' },
+  { icon: <Zap size={14} />, label: 'One-tap payments' },
+  { icon: <ShieldCheck size={14} />, label: 'Verified history' },
 ]
 
 export default function BenefitChips({ variant = 'scroll' }: { variant?: 'scroll' | 'grid' }) {

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, NotFoundException, GoneException } from '@nestjs/common'
+import { Controller, Get, Param, NotFoundException, GoneException, Post, Body } from '@nestjs/common'
 import * as crypto from 'crypto'
 import { SqliteService } from './sqlite.service'
 
@@ -189,5 +189,25 @@ export class PublicController {
         : null,
       tenantSignupStatus: existingTenant?.signup_status || 'not_found',
     }
+  }
+
+  /**
+   * POST /public/test/toggle-payment/:token
+   * Dev-only: Toggles payment status between 'pending' and 'paid'
+   */
+  @Post('test/toggle-payment/:token')
+  togglePaymentStatus(@Param('token') token: string, @Body() body: { status: string }) {
+    const db = this.sqlite.getDb()
+    const status = body.status === 'paid' ? 'paid' : 'pending'
+
+    const result = db
+      .prepare('UPDATE payment_requests SET status = ? WHERE payment_link_token = ?')
+      .run(status, token)
+
+    if (result.changes === 0) {
+      throw new NotFoundException('Payment link not found')
+    }
+
+    return { success: true, status }
   }
 }

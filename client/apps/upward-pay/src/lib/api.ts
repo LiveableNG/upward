@@ -225,4 +225,10 @@ export const api = {
   getMyDocuments: () => request<DocumentsData>('/documents/mine'),
 
   getReceipt: (uuid: string) => request<ReceiptData>(`/documents/receipt/${uuid}`),
+
+  togglePaymentStatus: (token: string, status: string) =>
+    request<{ success: boolean; status: string }>(`/public/test/toggle-payment/${token}`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    }),
 }

@@ -1,8 +1,23 @@
 'use client'
 
-import { formatCurrency, formatDate, getCategoryIcon } from '@/lib/utils'
+import { formatCurrency, formatDate, getCategoryIconName } from '@/lib/utils'
 import { UpwardLogo } from '@/components/payment/PoweredByUpward'
 import type { ReceiptData } from '@/lib/api'
+import { Download, MapPin, Home, Lock, Users, Scale, Settings, Wrench, Package, ArrowLeft, Check } from 'lucide-react'
+
+const CategoryIcon = ({ name, size = 16 }: { name: string; size?: number }) => {
+  const icons: Record<string, any> = {
+    Home,
+    Lock,
+    Users,
+    Scale,
+    Settings,
+    Wrench,
+    Package,
+  }
+  const Icon = icons[name] || Package
+  return <Icon size={size} />
+}
 
 export default function ReceiptTemplate({
   receipt,
@@ -21,10 +36,10 @@ export default function ReceiptTemplate({
         {/* Action bar (hidden in print) */}
         <div className="receipt-actions no-print">
           <button className="btn btn--secondary btn--sm" onClick={onClose}>
-            ← Back
+            <ArrowLeft size={14} style={{ marginRight: 4 }} /> Back
           </button>
           <button className="btn btn--primary btn--sm" onClick={handlePrint}>
-            📥 Download PDF
+            <Download size={14} style={{ marginRight: 4 }} /> Download PDF
           </button>
         </div>
 
@@ -44,7 +59,7 @@ export default function ReceiptTemplate({
               </div>
             </div>
             <div className="receipt__badge">
-              <span className="receipt__badge-check">✓</span>
+              <span className="receipt__badge-check"><Check size={12} /></span>
               PAID
             </div>
           </div>
@@ -73,7 +88,7 @@ export default function ReceiptTemplate({
 
           {/* Property */}
           <div className="receipt__property">
-            <span className="receipt__property-icon">📍</span>
+            <span className="receipt__property-icon"><MapPin size={14} /></span>
             <div>
               <span className="receipt__property-name">{receipt.propertyName}</span>
               <span className="receipt__property-address">{receipt.propertyAddress}</span>
@@ -91,7 +106,9 @@ export default function ReceiptTemplate({
             {receipt.lineItems.map((item, i) => (
               <div key={i} className="receipt__item">
                 <div className="receipt__item-left">
-                  <span className="receipt__item-icon">{getCategoryIcon(item.category)}</span>
+                  <span className="receipt__item-icon">
+                    <CategoryIcon name={getCategoryIconName(item.category)} />
+                  </span>
                   <span>{item.label}</span>
                 </div>
                 <span className="receipt__item-amount">

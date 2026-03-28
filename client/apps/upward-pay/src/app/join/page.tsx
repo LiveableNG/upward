@@ -4,10 +4,10 @@ import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { api, type InvitationData } from '@/lib/api'
 import { isLoggedIn } from '@/lib/auth'
-import { UpwardLogo } from '@/components/payment/PoweredByUpward'
-import PoweredByUpward from '@/components/payment/PoweredByUpward'
+import { AlertTriangle, BarChart3, Zap, Receipt } from 'lucide-react'
 import CompanyHeader from '@/components/payment/CompanyHeader'
 import BenefitChips from '@/components/payment/BenefitChips'
+import PoweredByUpward, { UpwardLogo } from '@/components/payment/PoweredByUpward'
 
 function JoinContent() {
   const searchParams = useSearchParams()
@@ -43,8 +43,6 @@ function JoinContent() {
           )
           return
         }
-
-        // Otherwise show the welcome/signup page (not_signed_up or not_found)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load invitation')
       } finally {
@@ -71,7 +69,7 @@ function JoinContent() {
     return (
       <div className="join-page">
         <div className="pay-page__error">
-          <div className="pay-page__error-icon">⚠️</div>
+          <div className="pay-page__error-icon"><AlertTriangle size={32} /></div>
           <h2>Invalid Invitation</h2>
           <p>{error || 'This invitation link is no longer valid.'}</p>
         </div>
@@ -98,7 +96,7 @@ function JoinContent() {
 
           {data.invitation.tenantName && (
             <div className="join-page__tenant-name">
-              <span>👋</span> Hi {data.invitation.tenantName.split(' ')[0]},
+              Hi {data.invitation.tenantName.split(' ')[0]},
             </div>
           )}
         </div>
@@ -110,33 +108,24 @@ function JoinContent() {
 
         <div className="join-page__benefit-list">
           <div className="join-page__benefit-item">
-            <div className="join-page__benefit-icon">📊</div>
+            <div className="join-page__benefit-icon"><BarChart3 size={20} /></div>
             <div>
               <strong>Payment History</strong>
               <p>Every payment recorded. Build your rent credibility for future apartments.</p>
             </div>
           </div>
           <div className="join-page__benefit-item">
-            <div className="join-page__benefit-icon">⚡</div>
+            <div className="join-page__benefit-icon"><Zap size={20} /></div>
             <div>
               <strong>Hassle-Free Payments</strong>
               <p>Pay rent in one tap. No bank queues, no stress, no missed deadlines.</p>
             </div>
           </div>
           <div className="join-page__benefit-item">
-            <div className="join-page__benefit-icon">🧾</div>
+            <div className="join-page__benefit-icon"><Receipt size={20} /></div>
             <div>
               <strong>Digital Receipts</strong>
-              <p>
-                Verified proof of every payment — receipts in your property manager&apos;s name.
-              </p>
-            </div>
-          </div>
-          <div className="join-page__benefit-item">
-            <div className="join-page__benefit-icon">📄</div>
-            <div>
-              <strong>Contracts & Documents</strong>
-              <p>Your lease agreements and contracts saved securely, always accessible.</p>
+              <p>Verified proof of every payment — receipts in your property manager&apos;s name.</p>
             </div>
           </div>
         </div>
@@ -157,6 +146,7 @@ function JoinContent() {
           Create Your Account
         </button>
         <p className="join-page__cta-note">Free. Takes 30 seconds.</p>
+        
         <div className="join-page__login-link">
           Already have an account?{' '}
           <button
@@ -170,15 +160,6 @@ function JoinContent() {
           </button>
         </div>
       </div>
-
-      {data.property && (
-        <div className="join-page__property-info">
-          <span>📍</span>
-          <span>
-            {data.property.name} — {data.property.address}
-          </span>
-        </div>
-      )}
 
       <PoweredByUpward className="pay-page__footer-badge" />
     </div>
@@ -194,7 +175,6 @@ export default function JoinPage() {
             <div className="pay-page__logo-pulse">
               <UpwardLogo size={28} color="#fff" />
             </div>
-            <p className="pay-page__splash-text">Loading...</p>
           </div>
         </div>
       }

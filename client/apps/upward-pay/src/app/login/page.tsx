@@ -48,8 +48,10 @@ function LoginForm() {
 
       <div className="auth-page__content">
         <div className="auth-page__hero">
-          <h1 className="auth-page__title">Welcome back</h1>
-          <p className="auth-page__subtitle">Sign in to manage your payments</p>
+          <h1 className="auth-page__title">Sign In</h1>
+          <p className="auth-page__subtitle">
+            If you have GoodTenants credentials, use them to sign in. No separate account is required for Upward Pay.
+          </p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>

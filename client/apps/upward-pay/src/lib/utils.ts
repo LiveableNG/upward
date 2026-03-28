@@ -18,18 +18,18 @@ export function formatDate(dateStr: string): string {
   })
 }
 
-/** Get category icon emoji */
-export function getCategoryIcon(category: string): string {
+/** Get category icon name for Lucide */
+export function getCategoryIconName(category: string): string {
   const icons: Record<string, string> = {
-    rent: '🏠',
-    caution: '🔒',
-    agency: '🤝',
-    legal: '📋',
-    management: '⚙️',
-    repair: '🔧',
-    other: '📦',
+    rent: 'Home',
+    caution: 'Lock',
+    agency: 'Users',
+    legal: 'Scale',
+    management: 'Settings',
+    repair: 'Wrench',
+    other: 'Package',
   }
-  return icons[category] || '📦'
+  return icons[category] || 'Package'
 }
 
 /** Get status color */
