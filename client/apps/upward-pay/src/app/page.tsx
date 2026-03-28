@@ -121,7 +121,7 @@ export default function HomePage() {
 
             {showCredentials && (
               <div className="home-page__mock-disclosure-content">
-                <div className="home-page__credential-item" onClick={() => copyToClipboard('sarah@email.com', 'Email')}>
+                <div className="home-page__credential-item" onClick={() => copyToClipboard('sarah.johnson@email.com', 'Email')}>
                   <span>Email:</span> <strong>sarah.johnson@email.com</strong> <Clipboard size={12} />
                 </div>
                 <div className="home-page__credential-item" onClick={() => copyToClipboard('password123', 'Password')}>
