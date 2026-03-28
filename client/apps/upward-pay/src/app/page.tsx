@@ -122,7 +122,7 @@ export default function HomePage() {
             {showCredentials && (
               <div className="home-page__mock-disclosure-content">
                 <div className="home-page__credential-item" onClick={() => copyToClipboard('sarah@email.com', 'Email')}>
-                  <span>Email:</span> <strong>sarah@email.com</strong> <Clipboard size={12} />
+                  <span>Email:</span> <strong>sarah.johnson@email.com</strong> <Clipboard size={12} />
                 </div>
                 <div className="home-page__credential-item" onClick={() => copyToClipboard('password123', 'Password')}>
                   <span>Pass:</span> <strong>password123</strong> <Clipboard size={12} />
@@ -136,7 +136,7 @@ export default function HomePage() {
           <p>Want to enjoy all benefits on the go?</p>
           <button 
             className="btn btn--secondary btn--sm"
-            onClick={() => window.open('https://upward.ng/download', '_blank')}
+            onClick={() => window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank')}
           >
             <Download size={14} style={{ marginRight: '6px' }} /> Download the Upward App
           </button>
