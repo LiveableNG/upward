@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { App } from '@capacitor/app'
+import { isLoggedIn } from '@/lib/auth'
 
 export default function AppDeepLinkHandler() {
   const router = useRouter()
@@ -21,14 +22,12 @@ export default function AppDeepLinkHandler() {
 
     function handleUrl(url: string) {
       try {
-        const parsedUrl = new URL(url)
-        const path = parsedUrl.pathname
-        const token = parsedUrl.searchParams.get('token')
-
-        if (path === '/pay' && token) {
-          router.push(`/pay?token=${token}`)
-        } else if (path === '/dashboard') {
+        console.log('App URL opened:', url)
+        // Skip current simulation/page from link, go to login/dashboard
+        if (isLoggedIn()) {
           router.push('/dashboard')
+        } else {
+          router.push('/login')
         }
       } catch (err) {
         console.error('Deep link error:', err)

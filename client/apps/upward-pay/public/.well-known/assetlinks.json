@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.upward.pay",
+      "sha256_cert_fingerprints": [
+        "14:6D:E2:40:51:4E:EF:CE:03:32:02:14:45:C3:7E:6D:4E:9F:80:EF:E0:43:40:A1:0C:6D:E2:40:51:4E:EF:CE"
+      ]
+    }
+  }
+]

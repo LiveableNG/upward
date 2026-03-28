@@ -1,0 +1,3 @@
+PS C:\Users\owner\Desktop\2025\Good Tenant\upward\client\apps\upward-pay\android> .\gradlew installDebug
+PS C:\Users\owner\AppData\Local\Android\Sdk\platform-tools> .\adb.exe connect 172.20.10.3:35027
+PS C:\Users\owner\AppData\Local\Android\Sdk\platform-tools> .\adb.exe pair 172.20.10.3:46131

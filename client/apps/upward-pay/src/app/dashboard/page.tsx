@@ -36,12 +36,11 @@ function DashboardContent() {
       const result = await api.getMe()
       setData(result)
 
-      // Auto-redirect to pending payment if it exists and noRedirect is not set
+      // No longer auto-redirecting to pending payment to avoid the "simulation flow" in-app.
+      // Users can manually click "Pay Now" if they wish.
       const noRedirect = searchParams.get('noRedirect')
-      if (result.pendingPayments.length > 0 && !noRedirect) {
-        const p = result.pendingPayments[0]
-        router.push(`/pay?token=${p.payment_link_token}`)
-        return
+      if (noRedirect) {
+        // Just keeping it here for consistency if needed later
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard')
