@@ -7,14 +7,29 @@ import * as crypto from 'crypto'
 export class SqliteService implements OnModuleInit, OnModuleDestroy {
   private db!: Database.Database
 
+  // Replacement in onModuleInit
   onModuleInit() {
-    const dbPath = path.join(process.cwd(), 'upward-pay-mock.db')
-    this.db = new Database(dbPath)
+    // Use /tmp on Vercel as it's the only writable directory
+    let dbPath = path.join(process.cwd(), 'upward-pay-mock.db')
+    if (process.env.VERCEL) {
+      dbPath = '/tmp/upward-pay-mock.db'
+    }
+
+    try {
+      this.db = new Database(dbPath)
+    } catch (err) {
+      // If we still can't open it (e.g. read-only filesystem issues), fallback to in-memory for the demo
+      console.warn('Could not open local/temp SQLite file, falling back to In-Memory DB:', err)
+      this.db = new Database(':memory:')
+    }
+    
+    // Apply pragmas and seed as usual
     this.db.pragma('journal_mode = WAL')
     this.db.pragma('foreign_keys = ON')
     this.createTables()
     this.seedIfEmpty()
   }
+
 
   onModuleDestroy() {
     this.db?.close()
