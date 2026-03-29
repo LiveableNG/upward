@@ -92,7 +92,7 @@ function DashboardContent() {
 
   const tenant = data.tenant
   const firstName = tenant.fullName?.split(' ')[0] || 'Tenant'
-  const totalPaid = data.completedPayments.reduce((sum, p) => sum + p.amount, 0)
+  const totalPaid = data.completedPayments.reduce((sum: number, p) => sum + p.amount, 0)
   const currency = data.completedPayments[0]?.currency || 'NGN'
 
   return (

@@ -51,7 +51,7 @@ export default function AIPlannerPage() {
     const basePrices: Record<string, number> = { 'Yaba': 1200000, 'Victoria Island': 4500000, 'Lekki': 3500000, 'Own Home': 45000000 }
     
     const futurePrices = nextHomes.map((h, i) => {
-      const yearOffset = nextHomes.slice(0, i + 1).reduce((acc, curr) => acc + curr.duration, 0)
+      const yearOffset = nextHomes.slice(0, i + 1).reduce((acc: number, curr) => acc + curr.duration, 0)
       return {
         ...h,
         predictedPrice: basePrices[h.location] ? basePrices[h.location] * Math.pow(1 + inflation, yearOffset) : 1500000 * Math.pow(1 + inflation, yearOffset)
@@ -295,7 +295,7 @@ export default function AIPlannerPage() {
                   <div key={i} className="journey-node journey-node--future">
                     <div className="node-marker" />
                     <div className="node-content">
-                       <div className="node-date">Year {p.duration + result.futurePrices.slice(0, i).reduce((acc, curr) => acc + curr.duration, 0)}</div>
+                       <div className="node-date">Year {p.duration + result.futurePrices.slice(0, i).reduce((acc: number, curr: any) => acc + curr.duration, 0)}</div>
                        <div className="node-title">{p.type} in {p.location}</div>
                        <div className="node-meta">Predicted Price: {formatCurrency(p.predictedPrice, 'NGN')}</div>
                     </div>
