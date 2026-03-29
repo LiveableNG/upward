@@ -46,8 +46,8 @@ export default function MockPaystackCheckout({
         {/* Header */}
         <div className="psk-header">
           <div className="psk-header__left">
-            <ShieldCheck size={18} color="#09a5db" />
-            <span>paystack</span>
+            <ShieldCheck size={18} color="var(--clay)" />
+            <span>Upward Pay</span>
           </div>
           <button className="psk-close" onClick={onClose} disabled={step === 'verifying'}>
             <X size={18} />
@@ -105,8 +105,8 @@ export default function MockPaystackCheckout({
             </div>
 
             <p className="psk-footer-text">
-              <ShieldCheck size={10} style={{ marginRight: 4 }} />
-              Secured by Paystack
+              <ShieldCheck size={10} style={{ marginRight: 4 }} color="var(--clay)" />
+              Secured by Upward
             </p>
           </div>
         )}

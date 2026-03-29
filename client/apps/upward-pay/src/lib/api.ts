@@ -1,4 +1,4 @@
-const API_BASE = 'https://upward-api-pnqn.vercel.app/api/v1'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://upward-api-pnqn.vercel.app/api/v1'
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('upward_token') : null
@@ -89,6 +89,15 @@ export interface TenantProfile {
   fullName: string
   phone: string
   signupStatus: string
+  dateOfBirth?: string
+  gender?: string
+  occupation?: string
+  maritalStatus?: string
+  emergencyContactName?: string
+  emergencyContactPhone?: string
+  address?: string
+  membershipLevel: string
+  totalInvites: number
   createdAt: string
 }
 
@@ -225,6 +234,12 @@ export const api = {
   getMyDocuments: () => request<DocumentsData>('/documents/mine'),
 
   getReceipt: (uuid: string) => request<ReceiptData>(`/documents/receipt/${uuid}`),
+
+  updateProfile: (data: Partial<TenantProfile>) =>
+    request<{ success: boolean; tenant: TenantProfile }>('/tenant-auth/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
 
   togglePaymentStatus: (token: string, status: string) =>
     request<{ success: boolean; status: string }>(`/public/test/toggle-payment/${token}`, {

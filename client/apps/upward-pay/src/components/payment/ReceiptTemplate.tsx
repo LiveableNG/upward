@@ -27,7 +27,73 @@ export default function ReceiptTemplate({
   onClose?: () => void
 }) {
   function handlePrint() {
-    window.print()
+    const printContent = document.getElementById('receipt-printable')
+    if (!printContent) return
+
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Receipt ${receipt.receiptNumber}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+            body { font-family: 'Inter', system-ui, sans-serif; color: #1a1a1a; padding: 40px; margin: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .receipt { max-width: 600px; border: 1px solid #eaeaea; border-radius: 12px; padding: 40px; margin: 0 auto; }
+            .receipt__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+            .receipt__company-row { display: flex; align-items: center; gap: 16px; }
+            .receipt__company-logo { width: 56px; height: 56px; border-radius: 8px; object-fit: contain; border: 1px solid #eaeaea; }
+            .receipt__company-name { font-size: 20px; font-weight: 700; margin: 0 0 4px; color: #111; }
+            .receipt__label { font-size: 13px; color: #666; font-weight: 500; }
+            .receipt__badge { background: #dcfce7; color: #16a34a; padding: 6px 12px; border-radius: 100px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+            .receipt__badge svg { color: #16a34a; }
+            .receipt__divider { height: 1px; background: #eaeaea; margin: 24px 0; }
+            .receipt__divider--bold { height: 2px; background: #d4d4d4; }
+            .receipt__info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            .receipt__info-item { display: flex; flex-direction: column; gap: 4px; }
+            .receipt__info-label { font-size: 12px; color: #666; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+            .receipt__info-value { font-size: 15px; font-weight: 600; color: #111; }
+            .receipt__channel { display: inline-block; background: #f3f4f6; padding: 4px 10px; border-radius: 6px; font-size: 13px; }
+            .receipt__property { display: flex; align-items: center; gap: 12px; background: #fafafa; padding: 16px; border-radius: 8px; border: 1px solid #f0f0f0; margin-top: 24px; }
+            .receipt__property-icon { background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #eaeaea; color: #d97757; }
+            .receipt__property-name { font-size: 15px; font-weight: 600; display: block; margin-bottom: 2px; }
+            .receipt__property-address { font-size: 13px; color: #666; }
+            .receipt__items { margin-top: 24px; }
+            .receipt__items-header { display: flex; justify-content: space-between; font-size: 12px; color: #666; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; border-bottom: 1px solid #eaeaea; padding-bottom: 8px; }
+            .receipt__item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; }
+            .receipt__item-left { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 500; }
+            .receipt__item-icon { color: #888; display: flex; }
+            .receipt__item-amount { font-size: 15px; font-weight: 600; }
+            .receipt__total { display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 700; color: #111; }
+            .receipt__reference { margin-top: 24px; display: inline-block; background: #fafafa; padding: 10px 16px; border-radius: 6px; border: 1px solid #f0f0f0; }
+            .receipt__ref-code { font-family: monospace; font-size: 14px; font-weight: 600; margin-left: 8px; color: #111; }
+            .receipt__footer { margin-top: 40px; text-align: center; color: #888; }
+            .receipt__footer-brand { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 600; color: #111; margin-bottom: 8px; }
+            .receipt__footer-note { font-size: 12px; }
+            @media print {
+               body { padding: 0; }
+               .receipt { border: none; padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt">
+            ${printContent.innerHTML}
+          </div>
+          <script>
+            setTimeout(() => {
+              window.print();
+              window.close();
+            }, 250);
+          </script>
+        </body>
+      </html>
+    `
+    printWindow.document.open()
+    printWindow.document.write(html)
+    printWindow.document.close()
   }
 
   return (

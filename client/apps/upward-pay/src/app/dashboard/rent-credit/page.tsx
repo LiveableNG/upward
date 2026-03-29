@@ -6,8 +6,18 @@ import { api, type RentCreditData } from '@/lib/api'
 import { isLoggedIn } from '@/lib/auth'
 import { formatCurrency } from '@/lib/utils'
 import PoweredByUpward, { UpwardLogo } from '@/components/payment/PoweredByUpward'
+import { ArrowLeft, Share2, Calendar, CheckCircle, TrendingUp, ShieldCheck } from 'lucide-react'
 
-export default function RentCreditPage() {
+const mockMonthlyData = [
+  { month: 'Oct', amount: 50 },
+  { month: 'Nov', amount: 60 },
+  { month: 'Dec', amount: 60 },
+  { month: 'Jan', amount: 80 },
+  { month: 'Feb', amount: 100 },
+  { month: 'Mar', amount: 100 },
+]
+
+export default function AnalyticsPage() {
   const router = useRouter()
   const [credit, setCredit] = useState<RentCreditData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -38,13 +48,6 @@ export default function RentCreditPage() {
     return '#ef4444'
   }
 
-  function getGradeEmoji(grade: string): string {
-    if (grade === 'Excellent') return '🏆'
-    if (grade === 'Good') return '⭐'
-    if (grade === 'Fair') return '📈'
-    return '🌱'
-  }
-
   if (loading) {
     return (
       <div className="subpage">
@@ -57,142 +60,115 @@ export default function RentCreditPage() {
     )
   }
 
-  if (!credit) {
-    return (
-      <div className="subpage">
-        <div className="dashboard__empty">
-          <span className="dashboard__empty-icon">📊</span>
-          <p>Unable to load rent credit data.</p>
-        </div>
-      </div>
-    )
-  }
+  if (!credit) return null
 
   const scorePercent = (credit.score / credit.maxScore) * 100
   const circumference = 2 * Math.PI * 90
   const offset = circumference - (scorePercent / 100) * circumference
 
   return (
-    <div className="subpage">
-      <header className="subpage__header">
-        <button className="subpage__back" onClick={() => router.push('/dashboard')}>
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-        <h1 className="subpage__title">Rent Credit</h1>
-        <div style={{ width: 36 }} />
+    <div className="dashboard dashboard--nav-offset" style={{ position: 'relative' }}>
+      <header className="dashboard__header">
+        <div className="dashboard__header-left">
+           <button className="dashboard__back" onClick={() => router.push('/dashboard')}>
+             <ArrowLeft size={20} />
+           </button>
+           <h2 className="dashboard__title">Analytics & Profile</h2>
+        </div>
       </header>
 
-      {/* Score Ring */}
-      <div className="credit-score">
-        <div className="credit-score__ring">
-          <svg viewBox="0 0 200 200" className="credit-score__svg">
-            <circle
-              cx="100"
-              cy="100"
-              r="90"
-              fill="none"
-              stroke="var(--border-solid)"
-              strokeWidth="8"
-            />
-            <circle
-              cx="100"
-              cy="100"
-              r="90"
-              fill="none"
-              stroke={getScoreColor(credit.score)}
-              strokeWidth="8"
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={offset}
-              transform="rotate(-90 100 100)"
-              style={{ transition: 'stroke-dashoffset 1.5s ease-out' }}
-            />
-          </svg>
-          <div className="credit-score__inner">
-            <span className="credit-score__number">{credit.score}</span>
-            <span className="credit-score__max">/ {credit.maxScore}</span>
-          </div>
-        </div>
-
-        <div className="credit-score__grade" style={{ color: getScoreColor(credit.score) }}>
-          {getGradeEmoji(credit.grade)} {credit.grade}
-        </div>
-        <p className="credit-score__desc">
-          Your rent credit score reflects your payment reliability. A higher score helps you secure
-          better apartments.
-        </p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="credit-stats">
-        <div className="credit-stat">
-          <span className="credit-stat__icon">📊</span>
-          <span className="credit-stat__value">{credit.totalPayments}</span>
-          <span className="credit-stat__label">Payments Made</span>
-        </div>
-        <div className="credit-stat">
-          <span className="credit-stat__icon">🔥</span>
-          <span className="credit-stat__value">{credit.streak}</span>
-          <span className="credit-stat__label">On-time Streak</span>
-        </div>
-        <div className="credit-stat">
-          <span className="credit-stat__icon">⏱️</span>
-          <span className="credit-stat__value">{credit.monthsTracked}mo</span>
-          <span className="credit-stat__label">Tracked</span>
-        </div>
-        <div className="credit-stat">
-          <span className="credit-stat__icon">✅</span>
-          <span className="credit-stat__value">{credit.onTimeRate}%</span>
-          <span className="credit-stat__label">On-time Rate</span>
-        </div>
-      </div>
-
-      {/* Total Paid */}
-      <div className="credit-total">
-        <span className="credit-total__label">Total Verified Rent Paid</span>
-        <span className="credit-total__amount">
-          {formatCurrency(credit.totalAmountPaid, 'NGN')}
-        </span>
-      </div>
-
-      {/* How it works */}
-      <div className="credit-info">
-        <h3 className="credit-info__title">How Rent Credit Works</h3>
-        <div className="credit-info__list">
-          <div className="credit-info__item">
-            <span className="credit-info__step">1</span>
-            <div>
-              <strong>Pay on time</strong>
-              <p>Each verified on-time payment increases your score</p>
+      <div style={{ padding: '20px' }}>
+        {/* Score Ring */}
+        <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-lg)', padding: '24px', textAlign: 'center', marginBottom: '24px' }}>
+          <div className="credit-score__ring" style={{ width: '160px', height: '160px', margin: '0 auto 16px' }}>
+            <svg viewBox="0 0 200 200" className="credit-score__svg">
+              <circle cx="100" cy="100" r="90" fill="none" stroke="var(--border-solid)" strokeWidth="8" />
+              <circle
+                cx="100" cy="100" r="90" fill="none"
+                stroke={getScoreColor(credit.score)}
+                strokeWidth="8" strokeLinecap="round"
+                strokeDasharray={circumference} strokeDashoffset={offset}
+                transform="rotate(-90 100 100)"
+                style={{ transition: 'stroke-dashoffset 1.5s ease-out' }}
+              />
+            </svg>
+            <div className="credit-score__inner">
+              <span className="credit-score__number" style={{ fontSize: '32px' }}>{credit.score}</span>
             </div>
           </div>
-          <div className="credit-info__item">
-            <span className="credit-info__step">2</span>
-            <div>
-              <strong>Build history</strong>
-              <p>Longer track records strengthen your profile</p>
-            </div>
+          
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <ShieldCheck size={20} color={getScoreColor(credit.score)} />
+            <h3 style={{ fontSize: '18px', fontWeight: 600, color: getScoreColor(credit.score) }}>
+              {credit.grade} Tenant
+            </h3>
           </div>
-          <div className="credit-info__item">
-            <span className="credit-info__step">3</span>
-            <div>
-              <strong>Unlock benefits</strong>
-              <p>High scores help you secure apartments faster</p>
-            </div>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+            Your renting credibility is stronger than 85% of users.
+          </p>
+        </div>
+
+        {/* Stats Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+          <div style={{ background: 'var(--surface)', padding: '16px', borderRadius: 'var(--radius-md)' }}>
+            <Calendar size={20} color="var(--clay)" style={{ marginBottom: '8px' }} />
+            <div style={{ fontSize: '20px', fontWeight: 700 }}>{credit.monthsTracked} mo</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Tracked History</div>
           </div>
+          <div style={{ background: 'var(--surface)', padding: '16px', borderRadius: 'var(--radius-md)' }}>
+            <TrendingUp size={20} color="var(--success)" style={{ marginBottom: '8px' }} />
+            <div style={{ fontSize: '20px', fontWeight: 700 }}>{credit.streak}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>On-time Streak</div>
+          </div>
+          <div style={{ background: 'var(--surface)', padding: '16px', borderRadius: 'var(--radius-md)', gridColumn: 'span 2' }}>
+            <CheckCircle size={20} color="var(--clay)" style={{ marginBottom: '8px' }} />
+            <div style={{ fontSize: '20px', fontWeight: 700 }}>{credit.onTimeRate}%</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Historical On-time Accuracy</div>
+          </div>
+        </div>
+
+        {/* CSS Chart */}
+        <div style={{ background: 'var(--surface)', padding: '20px', borderRadius: 'var(--radius-md)', marginBottom: '32px' }}>
+          <h4 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '24px' }}>Recent Payments</h4>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '140px', paddingBottom: '10px', borderBottom: '1px solid var(--border-solid)' }}>
+            {mockMonthlyData.map((d, i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '12%' }}>
+                <div 
+                  style={{ 
+                    width: '100%', 
+                    height: `${d.amount}%`, 
+                    background: 'linear-gradient(180deg, var(--clay) 0%, rgba(217, 119, 87, 0.4) 100%)', 
+                    borderRadius: '4px 4px 0 0',
+                    minHeight: '4px',
+                    transition: 'height 1s ease'
+                  }} 
+                />
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px' }}>
+            {mockMonthlyData.map((d, i) => (
+              <span key={i} style={{ fontSize: '11px', color: 'var(--text-muted)', width: '12%', textAlign: 'center' }}>{d.month}</span>
+            ))}
+          </div>
+        </div>
+
+        <div className="credit-total" style={{ padding: '20px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>
+          <span className="credit-total__label" style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Total Verified Rent Paid</span>
+          <span className="credit-total__amount" style={{ fontSize: '24px', fontWeight: 700 }}>{formatCurrency(credit.totalAmountPaid, 'NGN')}</span>
         </div>
       </div>
 
-      <PoweredByUpward className="pay-page__footer-badge" />
+      <div style={{ position: 'fixed', bottom: '90px', right: '20px', left: '20px', zIndex: 40 }}>
+        <button 
+          className="btn btn--primary btn--full" 
+          style={{ padding: '16px', display: 'flex', gap: '8px', fontSize: '16px', boxShadow: '0 8px 30px rgba(0,0,0,0.15)' }}
+          onClick={() => router.push(`/share/profile?user=${encodeURIComponent('tenant-123')}`)}
+        >
+          <Share2 size={20} /> Share Tenant Profile
+        </button>
+      </div>
+
     </div>
   )
 }

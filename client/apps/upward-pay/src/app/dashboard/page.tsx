@@ -5,7 +5,24 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { api, type DashboardData } from '@/lib/api'
 import { isLoggedIn, logout } from '@/lib/auth'
 import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils'
-import { LogOut, FileStack, Receipt, FileText, BarChart3, Settings, Smartphone, X, AlertTriangle } from 'lucide-react'
+import {
+  FileStack,
+  Receipt,
+  FileText,
+  BarChart3,
+  Settings,
+  Smartphone,
+  X,
+  AlertTriangle,
+  HelpCircle,
+  Bell,
+  Check,
+  ChevronRight,
+  TrendingUp,
+  Clock,
+  ArrowUpRight,
+  Sparkles
+} from 'lucide-react'
 import PoweredByUpward, { UpwardLogo } from '@/components/payment/PoweredByUpward'
 
 function DashboardContent() {
@@ -15,6 +32,7 @@ function DashboardContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [isNative, setIsNative] = useState(false)
+  const [dismissedAppBanner, setDismissedAppBanner] = useState(false)
 
   useEffect(() => {
     if (!isLoggedIn()) {
@@ -23,7 +41,6 @@ function DashboardContent() {
     }
     loadDashboard()
 
-    // Check if running in a native app (Capacitor)
     const checkPlatform = async () => {
       const { Capacitor } = await import('@capacitor/core')
       setIsNative(Capacitor.isNativePlatform())
@@ -36,12 +53,8 @@ function DashboardContent() {
       const result = await api.getMe()
       setData(result)
 
-      // No longer auto-redirecting to pending payment to avoid the "simulation flow" in-app.
-      // Users can manually click "Pay Now" if they wish.
       const noRedirect = searchParams.get('noRedirect')
-      if (noRedirect) {
-        // Just keeping it here for consistency if needed later
-      }
+      if (noRedirect) { }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard')
     } finally {
@@ -79,161 +92,241 @@ function DashboardContent() {
 
   const tenant = data.tenant
   const firstName = tenant.fullName?.split(' ')[0] || 'Tenant'
+  const totalPaid = data.completedPayments.reduce((sum, p) => sum + p.amount, 0)
+  const currency = data.completedPayments[0]?.currency || 'NGN'
 
   return (
-    <div className="dashboard">
-      {/* Header */}
-      <header className="dashboard__header">
+    <div className="dashboard dashboard--nav-offset">
+
+      {/* ── MOBILE HEADER (hidden on desktop) ── */}
+      <header className="dashboard__header dashboard__header--mobile">
         <div className="dashboard__header-left">
           <div className="dashboard__avatar">{firstName[0]?.toUpperCase()}</div>
-          <div>
-            <h2 className="dashboard__greeting">Hey, {firstName}</h2>
-            <span className="dashboard__email">{tenant.email}</span>
-          </div>
+          <h2 className="dashboard__greeting">Hey, {firstName}</h2>
         </div>
-
         <div className="dashboard__header-right">
-          {!isNative && (
-            <button
-              className="btn btn--primary btn--sm"
-              onClick={() => window.open('https://upward.ng/download', '_blank')}
-              style={{ padding: '8px 12px', marginRight: '12px', fontSize: '12px' }}
-            >
-              Get App
-            </button>
-          )}
-          <button className="dashboard__logout" onClick={logout} title="Logout">
-            <LogOut size={20} />
+          <button className="dashboard__icon-btn" title="Help" onClick={() => router.push('/dashboard/help')}>
+            <HelpCircle size={20} />
+          </button>
+          <button className="dashboard__icon-btn" title="Notifications" onClick={() => router.push('/dashboard/notifications')}>
+            <Bell size={20} />
           </button>
         </div>
       </header>
 
-      {/* Web Promo Banner */}
-      {!isNative && (
-        <div className="pay-page__web-promo" style={{ margin: '0 16px 20px 16px' }}>
-          <span className="pay-page__web-promo-icon"><Smartphone size={20} /></span>
-          <div className="pay-page__web-promo-content">
-            <p className="pay-page__web-promo-title">Enjoy Upward on the Go</p>
-            <p className="pay-page__web-promo-text">Download the app to manage rent, track your streak, and build credit.</p>
-          </div>
-          <button className="pay-page__web-promo-close" onClick={() => setIsNative(true)}><X size={14} /></button>
+      {/* ── DESKTOP HEADER (hidden on mobile) ── */}
+      <header className="dashboard__header--desktop">
+        <div className="dashboard__desktop-header-left">
+          <h1 className="dashboard__desktop-title">Overview</h1>
+          <p className="dashboard__desktop-subtitle">Welcome back, {firstName}</p>
         </div>
-      )}
+        <div className="dashboard__desktop-header-right">
+          <button className="dashboard__icon-btn" title="Notifications" onClick={() => router.push('/dashboard/notifications')}>
+            <Bell size={20} />
+          </button>
+          <button className="dashboard__icon-btn" title="Help" onClick={() => router.push('/dashboard/help')}>
+            <HelpCircle size={20} />
+          </button>
+          <div className="dashboard__desktop-profile" onClick={() => router.push('/dashboard/settings')}>
+            <div className="dashboard__avatar dashboard__avatar--sm">{firstName[0]?.toUpperCase()}</div>
+            <span className="dashboard__desktop-profile-name">{tenant.fullName}</span>
+          </div>
+        </div>
+      </header>
 
-      {/* Pending Payments */}
-      {data.pendingPayments.length > 0 && (
-        <section className="dashboard__section">
-          <h3 className="dashboard__section-title">
-            <span className="dashboard__section-dot dashboard__section-dot--pending" />
-            Pending Payments
-          </h3>
-          {data.pendingPayments.map((p) => (
-            <div key={p.uuid} className="dashboard__payment-card dashboard__payment-card--pending">
-              <div className="dashboard__payment-card-top">
-                <div className="dashboard__payment-card-company">
-                  <img
-                    src={p.company_logo}
-                    alt=""
-                    width={32}
-                    height={32}
-                    className="dashboard__payment-card-logo"
-                  />
-                  <div>
-                    <span className="dashboard__payment-card-name">{p.company_name}</span>
-                    <span className="dashboard__payment-card-invoice">{p.invoice_number}</span>
-                  </div>
-                </div>
-                <span className="dashboard__payment-card-amount">
-                  {formatCurrency(p.total_amount, p.currency)}
-                </span>
+      {/* ── APP BANNER (mobile only) ── */}
+      {!isNative && !dismissedAppBanner && (
+        <section className="dashboard__section dashboard__section--mobile-only">
+          <div className="dashboard__app-banner">
+            <div className="dashboard__app-banner-info">
+              <div className="dashboard__app-banner-icon"><Smartphone size={24} /></div>
+              <div>
+                <p>Get the Upward App</p>
+                <span>Track payments on the go.</span>
               </div>
-              {p.notes && <p className="dashboard__payment-card-notes">{p.notes}</p>}
-              <button
-                className="btn btn--primary btn--full btn--sm"
-                onClick={() => router.push(`/pay?token=${p.payment_link_token}`)}
-              >
-                Pay Now
-              </button>
             </div>
-          ))}
+            <div className="dashboard__app-banner-actions">
+              <button className="btn btn--primary btn--sm">Download</button>
+              <button className="dashboard__app-banner-close" onClick={() => setDismissedAppBanner(true)}><X size={16} /></button>
+            </div>
+          </div>
         </section>
       )}
 
-      {/* Payment History */}
-      <section className="dashboard__section">
-        <h3 className="dashboard__section-title">
-          <span className="dashboard__section-dot dashboard__section-dot--history" />
-          Payment History
-        </h3>
-        {data.completedPayments.length === 0 ? (
-          <div className="dashboard__empty">
-            <span className="dashboard__empty-icon"><FileStack size={32} /></span>
-            <p>No payments yet. Your payment history will appear here.</p>
+      {/* ── DESKTOP STAT STRIP ── */}
+      <div className="dashboard__stat-strip">
+        <div className="dashboard__stat-card">
+          <div className="dashboard__stat-icon dashboard__stat-icon--green">
+            <Check size={16} />
           </div>
-        ) : (
-          <div className="dashboard__history-list">
-            {data.completedPayments.map((tx) => (
-              <div key={tx.uuid} className="dashboard__history-item">
-                <div className="dashboard__history-left">
-                  <div
-                    className="dashboard__history-dot"
-                    style={{ backgroundColor: getStatusColor(tx.status) }}
-                  />
-                  <div>
-                    <span className="dashboard__history-company">{tx.company_name}</span>
-                    <span className="dashboard__history-date">
-                      {tx.paid_at ? formatDate(tx.paid_at) : '—'}
-                    </span>
-                  </div>
-                </div>
-                <div className="dashboard__history-right">
-                  <span className="dashboard__history-amount">
-                    {formatCurrency(tx.amount, tx.currency)}
-                  </span>
-                  <span className="dashboard__history-channel">{tx.channel || '—'}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Quick Actions Placeholder */}
-      <section className="dashboard__section">
-        <h3 className="dashboard__section-title">
-          <span className="dashboard__section-dot dashboard__section-dot--actions" />
-          Quick Actions
-        </h3>
-        <div className="dashboard__actions-grid">
-          <div
-            className="dashboard__action-card"
-            onClick={() => router.push('/dashboard/receipts')}
-          >
-            <span className="dashboard__action-icon"><Receipt size={24} /></span>
-            <span className="dashboard__action-label">Receipts</span>
-          </div>
-          <div
-            className="dashboard__action-card"
-            onClick={() => router.push('/dashboard/contracts')}
-          >
-            <span className="dashboard__action-icon"><FileText size={24} /></span>
-            <span className="dashboard__action-label">Contracts</span>
-          </div>
-          <div
-            className="dashboard__action-card"
-            onClick={() => router.push('/dashboard/rent-credit')}
-          >
-            <span className="dashboard__action-icon"><BarChart3 size={24} /></span>
-            <span className="dashboard__action-label">Rent Credit</span>
-          </div>
-          <div className="dashboard__action-card">
-            <span className="dashboard__action-icon"><Settings size={24} /></span>
-            <span className="dashboard__action-label">Settings</span>
+          <div>
+            <p className="dashboard__stat-value">{data.completedPayments.length}</p>
+            <p className="dashboard__stat-label">Payments Made</p>
           </div>
         </div>
-      </section>
+        <div className="dashboard__stat-card">
+          <div className="dashboard__stat-icon dashboard__stat-icon--clay">
+            <TrendingUp size={16} />
+          </div>
+          <div>
+            <p className="dashboard__stat-value">{formatCurrency(totalPaid, currency)}</p>
+            <p className="dashboard__stat-label">Total Paid</p>
+          </div>
+        </div>
+        <div className="dashboard__stat-card">
+          <div className="dashboard__stat-icon dashboard__stat-icon--blue">
+            <Clock size={16} />
+          </div>
+          <div>
+            <p className="dashboard__stat-value">{data.pendingPayments.length}</p>
+            <p className="dashboard__stat-label">Pending</p>
+          </div>
+        </div>
+        <div className="dashboard__stat-card dashboard__stat-card--action" onClick={() => router.push('/dashboard/rent-credit')}>
+          <div className="dashboard__stat-icon dashboard__stat-icon--purple">
+            <BarChart3 size={16} />
+          </div>
+          <div>
+            <p className="dashboard__stat-value">View</p>
+            <p className="dashboard__stat-label">Rent Credit</p>
+          </div>
+          <ArrowUpRight size={14} className="dashboard__stat-arrow" />
+        </div>
+      </div>
 
-      <PoweredByUpward className="pay-page__footer-badge" />
+      {/* ── MAIN CONTENT GRID ── */}
+      <div className="dashboard__main-grid">
+
+        {/* LEFT COLUMN */}
+        <div className="dashboard__col dashboard__col--left">
+
+          {/* Pending / Success card */}
+          {data.pendingPayments.length > 0 ? (
+            <section className="dashboard__section dashboard__section--pending">
+              <div className="dashboard__section-header">
+                <h3 className="dashboard__section-title">Pending Payments</h3>
+              </div>
+              <div style={{ padding: '0 20px' }}>
+                {data.pendingPayments.map((p) => (
+                  <div key={p.uuid} className="dashboard__payment-card dashboard__payment-card--pending" style={{ animation: 'fadeInUp 0.5s ease-out backwards' }}>
+                    <div className="dashboard__payment-card-top">
+                      <div className="dashboard__payment-card-company">
+                        <img src={p.company_logo} alt="" width={32} height={32} className="dashboard__payment-card-logo" />
+                        <div>
+                          <span className="dashboard__payment-card-name">{p.company_name}</span>
+                          <span className="dashboard__payment-card-invoice" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                            <span className="status-beep"></span>
+                            Pending • {p.invoice_number}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="dashboard__payment-card-amount">{formatCurrency(p.total_amount, p.currency)}</span>
+                    </div>
+                    {p.notes && <p className="dashboard__payment-card-notes">{p.notes}</p>}
+                    <button className="btn btn--primary btn--full btn--sm" onClick={() => router.push(`/pay?token=${p.payment_link_token}`)}>
+                      Pay Now
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : data.completedPayments.length > 0 ? (
+            <div className="dashboard__success-card dashboard__section--success" style={{ animation: 'fadeInUp 0.5s ease-out backwards' }}>
+              <div className="dashboard__success-card-content">
+                <div className="dashboard__success-icon"><Check size={24} /></div>
+                <h3 className="dashboard__success-title">Rent Paid Successfully!</h3>
+                <p className="dashboard__success-text">Your last payment was successful. Keep building your credit score.</p>
+                <div className="dashboard__success-details" onClick={() => router.push(`/dashboard/receipts?id=${data.completedPayments[0].uuid}`)}>
+                  <div>
+                    <div className="dashboard__success-amount">{formatCurrency(data.completedPayments[0].amount, data.completedPayments[0].currency)}</div>
+                    <div className="dashboard__success-date">Paid on {formatDate(data.completedPayments[0].paid_at)}</div>
+                  </div>
+                  <ChevronRight size={18} />
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Recent Transactions */}
+          <section className="dashboard__section dashboard__section--transactions">
+            <div className="dashboard__section-header">
+              <h3 className="dashboard__section-title">Recent Transactions</h3>
+              <span className="dashboard__view-all" onClick={() => router.push('/dashboard/transactions')}>View All</span>
+            </div>
+            {data.completedPayments.length === 0 ? (
+              <div className="dashboard__empty">
+                <span className="dashboard__empty-icon"><FileStack size={32} /></span>
+                <p>No transactions yet.</p>
+              </div>
+            ) : (
+              <div className="dashboard__transactions-list">
+                {data.completedPayments.slice(0, 5).map((tx, idx) => (
+                  <div
+                    key={tx.uuid}
+                    className="dashboard__transaction-item"
+                    style={{ animation: `fadeInUp 0.4s ease-out ${idx * 0.1}s backwards` }}
+                    onClick={() => router.push(`/dashboard/receipts?id=${tx.uuid}`)}
+                  >
+                    <div className="dashboard__transaction-left">
+                      <div className="dashboard__transaction-status-dot" style={{ backgroundColor: getStatusColor(tx.status) }} />
+                      <div className="dashboard__transaction-info">
+                        <span className="dashboard__transaction-company">{tx.company_name}</span>
+                        <span className="dashboard__transaction-channel">{tx.channel || 'Card Payment'}</span>
+                      </div>
+                    </div>
+                    <div className="dashboard__transaction-right">
+                      <span className="dashboard__transaction-amount">{formatCurrency(tx.amount, tx.currency)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* RIGHT COLUMN */}
+        <div className="dashboard__col dashboard__col--right">
+
+          {/* Quick Access */}
+          <section className="dashboard__quick-access" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+            <div className="dashboard__quick-item" onClick={() => router.push('/dashboard/receipts')}>
+              <div className="dashboard__quick-icon"><Receipt size={22} /></div>
+              <span className="dashboard__quick-label">Receipts</span>
+            </div>
+            <div className="dashboard__quick-item" onClick={() => router.push('/dashboard/contracts')}>
+              <div className="dashboard__quick-icon"><FileText size={22} /></div>
+              <span className="dashboard__quick-label">Contracts</span>
+            </div>
+            <div className="dashboard__quick-item" onClick={() => router.push('/dashboard/rent-credit')}>
+              <div className="dashboard__quick-icon"><BarChart3 size={22} /></div>
+              <span className="dashboard__quick-label">Analytics</span>
+            </div>
+            <div className="dashboard__quick-item" onClick={() => router.push('/dashboard/ai-planner')}>
+              <div className="dashboard__quick-icon" style={{ background: 'var(--clay-faint)' }}><Sparkles size={22} color="var(--clay)" /></div>
+              <span className="dashboard__quick-label">AI Planner</span>
+            </div>
+          </section>
+
+          {/* Adverts */}
+          <section className="dashboard__section dashboard__section--adverts">
+            <div className="dashboard__adverts">
+              <div className="dashboard__ad-card dashboard__ad-card--primary" onClick={() => router.push('/dashboard/properties')}>
+                <div className="dashboard__ad-badge">New</div>
+                <h4 className="dashboard__ad-title">See Property Details</h4>
+                <p className="dashboard__ad-desc">Track your lease history and see all property-related information.</p>
+                <div className="dashboard__ad-icon"><Smartphone size={40} /></div>
+              </div>
+              <div className="dashboard__ad-card dashboard__ad-card--secondary" onClick={() => router.push('/dashboard/articles')}>
+                <div className="dashboard__ad-badge dashboard__ad-badge--blue">Insight</div>
+                <h4 className="dashboard__ad-title">The Africa Housing Market</h4>
+                <p className="dashboard__ad-desc">Read about how we are tackling the housing crisis across Africa.</p>
+                <div className="dashboard__ad-link">Read full article <ChevronRight size={14} /></div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
     </div>
   )
 }

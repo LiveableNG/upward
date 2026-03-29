@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { api, type PaymentRequestData } from '@/lib/api'
 import { isLoggedIn } from '@/lib/auth'
 import { formatCurrency } from '@/lib/utils'
-import { AlertTriangle, Smartphone, MapPin, CreditCard, X, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, Smartphone, MapPin, CreditCard, X, ShieldCheck, ArrowLeft } from 'lucide-react'
 import PoweredByUpward, { UpwardLogo } from '@/components/payment/PoweredByUpward'
 import CompanyHeader from '@/components/payment/CompanyHeader'
 import InvoiceCard from '@/components/payment/InvoiceCard'
@@ -214,7 +214,22 @@ function PaymentContent() {
       {/* Top Bar */}
       <header className="pay-page__header">
         <div className="pay-page__header-left">
-          <PoweredByUpward />
+          {userLoggedIn ? (
+            <button
+              className="dashboard__icon-btn"
+              onClick={() => router.push('/dashboard')}
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+            >
+              <ArrowLeft size={20} color="var(--text)" />
+            </button>
+          ) : (
+            <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '28px', height: '28px', background: 'var(--clay)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <UpwardLogo size={16} color="#fff" />
+              </div>
+              Upward
+            </div>
+          )}
         </div>
         <div className="pay-page__header-right">
           {userLoggedIn && (
@@ -263,46 +278,61 @@ function PaymentContent() {
         )}
       </div>
 
-      {/* Big Amount */}
-      <div className="pay-page__amount-hero">
-        <span className="pay-page__amount-label">Amount Due</span>
-        <span className="pay-page__amount-value">
-          {formatCurrency(data.paymentRequest.totalAmount, data.paymentRequest.currency)}
-        </span>
-      </div>
-
-      {/* Invoice Details */}
-      <InvoiceCard
-        invoiceNumber={data.paymentRequest.invoiceNumber}
-        notes={data.paymentRequest.notes}
-        lineItems={data.lineItems}
-        totalAmount={data.paymentRequest.totalAmount}
-        currency={data.paymentRequest.currency}
-        status={data.paymentRequest.status}
-      />
-
-      {/* Payment Tray */}
-      <div className="pay-page__tray">
-        {userLoggedIn && data.tenant && (
-          <div className="pay-page__saved-method">
-            <div className="pay-page__saved-icon"><CreditCard size={20} /></div>
-            <div>
-              <span className="pay-page__saved-label">Quick pay as</span>
-              <span className="pay-page__saved-name">{data.tenant.fullName}</span>
-            </div>
+      <div className="dashboard__main-grid" style={{ maxWidth: 1000, margin: '0 auto', padding: '0 20px' }}>
+        <div className="dashboard__col--left">
+          {/* Big Amount */}
+          <div className="pay-page__amount-hero">
+            <span className="pay-page__amount-label">Amount Due</span>
+            <span className="pay-page__amount-value">
+              {formatCurrency(data.paymentRequest.totalAmount, data.paymentRequest.currency)}
+            </span>
           </div>
-        )}
 
-        <button className="btn btn--primary btn--full btn--pay" onClick={handlePay}>
-          {userLoggedIn
-            ? 'Confirm & Pay'
-            : `Login to Pay ${formatCurrency(data.paymentRequest.totalAmount, data.paymentRequest.currency)}`}
-        </button>
+          {/* Invoice Details */}
+          <InvoiceCard
+            invoiceNumber={data.paymentRequest.invoiceNumber}
+            notes={data.paymentRequest.notes}
+            lineItems={data.lineItems}
+            totalAmount={data.paymentRequest.totalAmount}
+            currency={data.paymentRequest.currency}
+            status={data.paymentRequest.status}
+          />
 
-        <p className="pay-page__secure-note">
-          <ShieldCheck size={12} style={{ marginRight: 4 }} />
-          Secured by Paystack · 256-bit encryption
-        </p>
+          {/* Payment Tray */}
+          <div className="pay-page__tray">
+            {userLoggedIn && data.tenant && (
+              <div className="pay-page__saved-method">
+                <div className="pay-page__saved-icon"><CreditCard size={20} /></div>
+                <div>
+                  <span className="pay-page__saved-label">Quick pay as</span>
+                  <span className="pay-page__saved-name">{data.tenant.fullName}</span>
+                </div>
+              </div>
+            )}
+
+            <button className="btn btn--primary btn--full btn--pay" onClick={handlePay}>
+              {userLoggedIn
+                ? 'Confirm & Pay'
+                : `Login to Pay ${formatCurrency(data.paymentRequest.totalAmount, data.paymentRequest.currency)}`}
+            </button>
+
+            <p className="pay-page__secure-note" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <ShieldCheck size={14} color="var(--clay)" />
+              Encrypyted and Secure
+            </p>
+          </div>
+        </div>
+
+        <div className="dashboard__col--right" style={{ paddingTop: '80px' }}>
+          <div className="dashboard__adverts">
+             <div className="dashboard__ad-card dashboard__ad-card--primary" style={{ cursor: 'default' }}>
+                <div className="dashboard__ad-badge">Info</div>
+                <h4 className="dashboard__ad-title">Pay Anywhere</h4>
+                <p className="dashboard__ad-desc">Upward Pay is universally supported across desktop, tablet, and mobile platforms securely.</p>
+                <div className="dashboard__ad-icon"><Smartphone size={40} /></div>
+             </div>
+          </div>
+        </div>
       </div>
 
       <PoweredByUpward className="pay-page__footer-badge" />

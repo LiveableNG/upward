@@ -34,19 +34,53 @@ export default function ReceiptsPage() {
     }
   }
 
+  useEffect(() => {
+    if (receipts.length > 0) {
+      const searchParams = new URLSearchParams(window.location.search)
+      const id = searchParams.get('id')
+      if (id) {
+        const found = receipts.find((r) => r.uuid === id)
+        if (found) setSelectedReceipt(found)
+      }
+    }
+  }, [receipts])
+
   if (selectedReceipt) {
-    return <ReceiptTemplate receipt={selectedReceipt} onClose={() => setSelectedReceipt(null)} />
+    return (
+      <ReceiptTemplate 
+        receipt={selectedReceipt} 
+        onClose={() => {
+          setSelectedReceipt(null)
+          // Also clear the URL param
+          const url = new URL(window.location.href)
+          url.searchParams.delete('id')
+          window.history.replaceState({}, '', url)
+        }} 
+      />
+    )
   }
 
   return (
-    <div className="subpage">
-      <header className="subpage__header">
-        <button className="subpage__back" onClick={() => router.push('/dashboard')}>
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="subpage__title">Receipts</h1>
-        <div style={{ width: 36 }} />
+    <div className="dashboard dashboard--nav-offset">
+      <header className="dashboard__header dashboard__header--mobile">
+        <div className="dashboard__header-left">
+           <button className="dashboard__back" onClick={() => router.push('/dashboard')}>
+             <ArrowLeft size={20} />
+           </button>
+           <h2 className="dashboard__title">Receipts</h2>
+        </div>
       </header>
+
+      {/* ── DESKTOP HEADER ── */}
+      <header className="dashboard__header--desktop">
+        <div className="dashboard__desktop-header-left">
+          <h1 className="dashboard__desktop-title">Receipts</h1>
+          <p className="dashboard__desktop-subtitle">View and download your payment history</p>
+        </div>
+      </header>
+
+      <div className="dashboard__main-grid">
+        <div className="dashboard__col--left">
 
       {loading ? (
         <div className="pay-page__splash">
@@ -86,8 +120,21 @@ export default function ReceiptsPage() {
           ))}
         </div>
       )}
-
-      <PoweredByUpward className="pay-page__footer-badge" />
+      </div>
+        
+      <div className="dashboard__col--right">
+           <section className="dashboard__section">
+            <div className="dashboard__adverts">
+               <div className="dashboard__ad-card dashboard__ad-card--primary" style={{ cursor: 'default' }}>
+                  <div className="dashboard__ad-badge">Tip</div>
+                  <h4 className="dashboard__ad-title">Expense Tracking</h4>
+                  <p className="dashboard__ad-desc">Print any receipt for your employer or business accounting.</p>
+                  <div className="dashboard__ad-icon"><Receipt size={40} /></div>
+               </div>
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
   )
 }

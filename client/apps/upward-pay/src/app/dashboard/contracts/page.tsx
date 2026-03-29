@@ -39,14 +39,26 @@ export default function ContractsPage() {
   }
 
   return (
-    <div className="subpage">
-      <header className="subpage__header">
-        <button className="subpage__back" onClick={() => router.push('/dashboard')}>
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="subpage__title">Contracts</h1>
-        <div style={{ width: 36 }} />
+    <div className="dashboard dashboard--nav-offset">
+      <header className="dashboard__header dashboard__header--mobile">
+        <div className="dashboard__header-left">
+           <button className="dashboard__back" onClick={() => router.push('/dashboard')}>
+             <ArrowLeft size={20} />
+           </button>
+           <h2 className="dashboard__title">Contracts</h2>
+        </div>
       </header>
+
+      {/* ── DESKTOP HEADER ── */}
+      <header className="dashboard__header--desktop">
+        <div className="dashboard__desktop-header-left">
+          <h1 className="dashboard__desktop-title">Contracts</h1>
+          <p className="dashboard__desktop-subtitle">View your active and previous lease contracts</p>
+        </div>
+      </header>
+
+      <div className="dashboard__main-grid">
+        <div className="dashboard__col--left">
 
       {loading ? (
         <div className="pay-page__splash">
@@ -129,8 +141,21 @@ export default function ContractsPage() {
           ))}
         </div>
       )}
-
-      <PoweredByUpward className="pay-page__footer-badge" />
+          </div>
+        
+        <div className="dashboard__col--right">
+           <section className="dashboard__section">
+            <div className="dashboard__adverts">
+               <div className="dashboard__ad-card dashboard__ad-card--primary" style={{ cursor: 'default' }}>
+                  <div className="dashboard__ad-badge">Info</div>
+                  <h4 className="dashboard__ad-title">Digitized Documents</h4>
+                  <p className="dashboard__ad-desc">All your paperwork is stored securely and permanently accessible from any device.</p>
+                  <div className="dashboard__ad-icon"><FolderOpen size={40} /></div>
+               </div>
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
   )
 }

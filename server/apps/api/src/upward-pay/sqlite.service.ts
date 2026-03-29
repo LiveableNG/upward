@@ -84,6 +84,15 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
         password_hash   TEXT,
         fcm_token       TEXT,
         invited_by_company_id INTEGER REFERENCES companies(id),
+        date_of_birth   TEXT,
+        gender          TEXT,
+        occupation      TEXT,
+        marital_status  TEXT,
+        emergency_contact_name  TEXT,
+        emergency_contact_phone TEXT,
+        address         TEXT,
+        membership_level TEXT DEFAULT 'Window Shopper',
+        total_invites   INTEGER DEFAULT 0,
         preferences     TEXT DEFAULT '{}',
         metadata        TEXT DEFAULT '{}',
         created_at      TEXT DEFAULT (datetime('now')),
@@ -224,8 +233,8 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
 
     // ── Tenants — one signed up, one not
     const insertTenant = this.db.prepare(
-      `INSERT INTO tenants (uuid, email, email_hash, phone, full_name, signup_status, password_hash, invited_by_company_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO tenants (uuid, email, email_hash, phone, full_name, signup_status, password_hash, invited_by_company_id, date_of_birth, gender, occupation, marital_status, emergency_contact_name, emergency_contact_phone, address, membership_level, total_invites)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
 
     // Tenant 1: Signed up (app_installed)
@@ -238,6 +247,15 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
       'app_installed',
       this.hashPassword('password123'),
       1,
+      '1992-05-15',
+      'female',
+      'Software Engineer',
+      'single',
+      'John Johnson',
+      '+2348012345678',
+      '14 Palm Avenue, Lekki Phase 1, Lagos',
+      'Club Member',
+      5,
     )
 
     // Tenant 2: Not signed up
@@ -250,6 +268,15 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
       'not_signed_up',
       null,
       2,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      'Window Shopper',
+      0,
     )
 
     // Tenant 3: Another signed-up user
@@ -262,6 +289,15 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
       'web_only',
       this.hashPassword('password123'),
       1,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      'Window Shopper',
+      0,
     )
 
     // Tenant 4: Another not-signed-up user
@@ -274,6 +310,15 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
       'not_signed_up',
       null,
       2,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      'Window Shopper',
+      0,
     )
 
     // ── Payment Requests

@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Patch,
   Get,
   Body,
   Req,
@@ -23,7 +24,28 @@ interface TenantRow {
   signup_status: string
   password_hash: string | null
   phone: string
+  date_of_birth: string | null
+  gender: string | null
+  occupation: string | null
+  marital_status: string | null
+  emergency_contact_name: string | null
+  emergency_contact_phone: string | null
+  address: string | null
+  membership_level: string
+  total_invites: number
   created_at: string
+}
+
+interface TenantProfileDto {
+  fullName?: string
+  phone?: string
+  dateOfBirth?: string
+  gender?: string
+  occupation?: string
+  maritalStatus?: string
+  emergencyContactName?: string
+  emergencyContactPhone?: string
+  address?: string
 }
 
 // Lightweight guard — reuses the existing JWT infra but typed for tenants
@@ -168,7 +190,62 @@ export class TenantAuthController {
     }
   }
 
-  /* ─── helpers ─── */
+  @Patch('profile')
+  @UseGuards(TenantJwtGuard)
+  updateProfile(
+    @Req() req: { tenantPayload: { sub: number } },
+    @Body() body: Partial<TenantProfileDto>,
+  ) {
+    const db = this.sqlite.getDb()
+    const id = req.tenantPayload.sub
+
+    // Map camelCase to snake_case
+    const mapping: Record<string, string> = {
+      fullName: 'full_name',
+      phone: 'phone',
+      dateOfBirth: 'date_of_birth',
+      gender: 'gender',
+      occupation: 'occupation',
+      maritalStatus: 'marital_status',
+      emergencyContactName: 'emergency_contact_name',
+      emergencyContactPhone: 'emergency_contact_phone',
+      address: 'address',
+    }
+
+    const updates: string[] = []
+    const params: any[] = []
+
+    for (const [key, value] of Object.entries(body)) {
+      if (mapping[key]) {
+        updates.push(`${mapping[key]} = ?`)
+        params.push(value)
+      }
+    }
+
+    if (updates.length > 0) {
+      db.prepare(
+        `UPDATE tenants SET ${updates.join(', ')}, updated_at = datetime('now') WHERE id = ?`,
+      ).run(...params, id)
+    }
+
+    // Check if profile is complete to upgrade to General Member
+    const updated = db.prepare('SELECT * FROM tenants WHERE id = ?').get(id) as TenantRow
+    
+    if (updated.membership_level === 'Window Shopper') {
+       const isComplete = updated.full_name && updated.phone && updated.date_of_birth && 
+                          updated.gender && updated.occupation && updated.marital_status && 
+                          updated.address && updated.emergency_contact_name && updated.emergency_contact_phone
+       
+       if (isComplete) {
+          db.prepare(`UPDATE tenants SET membership_level = 'General Member' WHERE id = ?`).run(id)
+          updated.membership_level = 'General Member'
+       }
+    }
+
+    return { success: true, tenant: this.formatTenant(updated) }
+  }
+
+/* ─── helpers ─── */
   private hashEmail(email: string): string {
     return crypto.createHash('sha256').update(email.toLowerCase().trim()).digest('hex')
   }
@@ -193,6 +270,15 @@ export class TenantAuthController {
       fullName: t.full_name,
       phone: t.phone,
       signupStatus: t.signup_status,
+      dateOfBirth: t.date_of_birth,
+      gender: t.gender,
+      occupation: t.occupation,
+      maritalStatus: t.marital_status,
+      emergencyContactName: t.emergency_contact_name,
+      emergencyContactPhone: t.emergency_contact_phone,
+      address: t.address,
+      membershipLevel: t.membership_level,
+      totalInvites: t.total_invites,
       createdAt: t.created_at,
     }
   }

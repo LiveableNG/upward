@@ -7,7 +7,6 @@
 }
 
 :root {
-  /* --- Design Tokens (Swatches) --- */
   --swatch--gray-000: #ffffff;
   --swatch--gray-050: #f9fafb;
   --swatch--gray-100: #f3f4f6;
@@ -26,7 +25,6 @@
   --swatch--oat: #f5f5f0;
   --swatch--transparent: transparent;
 
-  /* --- Default Theme: Light Mode (Updated) --- */
   --bg: #ffffff;
   --surface: #f7f7f7;
   --surface2: #efefef;
