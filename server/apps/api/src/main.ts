@@ -44,6 +44,10 @@ async function bootstrap() {
     ? frontendUrl.split(',').map((url) => url.trim())
     : ['http://localhost:3000', 'http://localhost:5173']
 
+  // Allow Capacitor origins for mobile app
+  origins.push('capacitor://localhost')
+  origins.push('http://localhost')
+
   app.enableCors({
     origin: origins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

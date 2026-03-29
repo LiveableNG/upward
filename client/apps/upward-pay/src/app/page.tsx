@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { isLoggedIn } from '@/lib/auth'
 import { Check, Clipboard, ShieldCheck, Key, CreditCard, Download, ChevronDown, ChevronUp, Beaker, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react'
 import PoweredByUpward, { UpwardLogo } from '@/components/payment/PoweredByUpward'
 import { api } from '@/lib/api'
+import { Capacitor } from '@capacitor/core'
 
 export default function HomePage() {
   const router = useRouter()
@@ -14,6 +15,28 @@ export default function HomePage() {
   const [showCredentials, setShowCredentials] = useState(false)
   const [isSarahPaid, setIsSarahPaid] = useState(false)
   const [isToggling, setIsToggling] = useState(false)
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    if (isLoggedIn()) {
+      router.push('/dashboard')
+    } else {
+      router.push('/login')
+    }
+  }, [router])
+
+  if (Capacitor.isNativePlatform()) {
+    return (
+      <div className="home-page">
+        <div className="pay-page__splash">
+          <div className="pay-page__logo-pulse">
+            <UpwardLogo size={28} color="#fff" />
+          </div>
+          <p className="pay-page__splash-text">Upward Pay</p>
+        </div>
+      </div>
+    )
+  }
 
   function copyToClipboard(text: string, label: string) {
     navigator.clipboard.writeText(text).then(() => {
