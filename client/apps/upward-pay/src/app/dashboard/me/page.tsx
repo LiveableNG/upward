@@ -235,13 +235,12 @@ export default function MePage() {
              </div>
 
              <h2 style={{ marginBottom: 4, fontSize: 20 }}>{tenant.fullName}</h2>
-             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>{tenant.email}</p>
-             
-             {tenant.totalInvites > 0 && (
-               <div style={{ marginTop: 12, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'rgba(255,255,255,0.05)', borderRadius: 20, color: 'rgba(255,255,255,0.6)' }}>
-                  <Users size={12} /> {tenant.totalInvites} People Invited
-               </div>
-             )}
+             <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>{tenant.email}</p>
+                {tenant.totalInvites > 0 && (
+                  <div style={{ marginTop: 12, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'var(--surface2)', border: '1px solid var(--border-solid)', borderRadius: 20, color: 'var(--text-secondary)' }}>
+                    <Users size={12} /> {tenant.totalInvites} People Invited
+                  </div>
+                )}
           </div>
       
           <div className="dashboard__transaction-items" style={{ marginTop: 20 }}>

@@ -32,7 +32,7 @@ export default function RewardsPage() {
 
   const level = tenant.membershipLevel || 'Window Shopper'
   const currentIdx = Math.max(0, tiers.findIndex(t => t.title === level))
-  const score = (tenant.totalInvites * 200) + 100 // Mock score
+  const score = (tenant.totalInvites * 200) + 100
 
   return (
     <div className="dashboard dashboard--nav-offset">
@@ -55,20 +55,20 @@ export default function RewardsPage() {
       <div className="dashboard__main-grid">
         <div className="dashboard__col--left">
           
-          <div className="dashboard__card" style={{ background: 'linear-gradient(135deg, #181716 0%, #22201e 100%)', border: '1px solid rgba(217,119,87,0.2)', marginBottom: 24 }}>
+          <div className="dashboard__card xp-card" style={{ marginBottom: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ width: 64, height: 64, borderRadius: 16, background: 'rgba(217,119,87,0.1)', color: 'var(--clay)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 64, height: 64, borderRadius: 16, background: 'var(--clay-faint)', color: 'var(--clay)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Gift size={32} />
               </div>
               <div>
-                <h3 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px' }}>{score.toLocaleString()} XP</h3>
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
+                <h3 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', color: 'var(--text)' }}>{score.toLocaleString()} XP</h3>
+                <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>
                   Active Rank: <strong style={{ color: tiers[currentIdx]?.color || 'var(--clay)' }}>{level}</strong>
                 </p>
               </div>
             </div>
             
-            <div style={{ marginTop: 20, height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ marginTop: 20, height: 6, background: 'var(--surface2)', borderRadius: 3, overflow: 'hidden' }}>
                <div style={{ width: `${((currentIdx + 1) / tiers.length) * 100}%`, height: '100%', background: 'var(--clay)', boxShadow: '0 0 10px var(--clay-glow)' }} />
             </div>
           </div>
@@ -86,14 +86,14 @@ export default function RewardsPage() {
                   key={idx} 
                   className={`tier-card ${isActive ? 'is-active' : ''} ${isDone ? 'is-done' : ''}`}
                   style={{
-                    background: isActive ? 'rgba(255,255,255,0.03)' : 'transparent',
-                    border: `1px solid ${isActive ? 'rgba(217,119,87,0.3)' : 'rgba(255,255,255,0.05)'}`,
+                    background: isActive ? 'var(--clay-faint)' : 'var(--surface)',
+                    border: `1px solid ${isActive ? 'rgba(217,119,87,0.3)' : 'var(--border-solid)'}`,
                     borderRadius: 16,
                     padding: 16,
                     display: 'flex',
                     alignItems: 'center',
                     gap: 16,
-                    opacity: isDone || isActive ? 1 : 0.4,
+                    opacity: isDone || isActive ? 1 : 0.45,
                     transition: 'all 0.3s'
                   }}
                 >
@@ -101,7 +101,7 @@ export default function RewardsPage() {
                     width: 40, 
                     height: 40, 
                     borderRadius: 12, 
-                    background: `${tier.color}15`, 
+                    background: `${tier.color}20`, 
                     color: tier.color,
                     display: 'flex', 
                     alignItems: 'center', 
@@ -113,13 +113,13 @@ export default function RewardsPage() {
                   
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                       <h4 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>{tier.title}</h4>
+                       <h4 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text)' }}>{tier.title}</h4>
                        {isDone && <Check size={14} color="var(--success)" />}
                     </div>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', margin: '2px 0 0' }}>{tier.desc}</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '2px 0 0' }}>{tier.desc}</p>
                     
                     {tier.benefits && (
-                      <div style={{ marginTop: 8, padding: '6px 10px', background: 'rgba(217,119,87,0.05)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ marginTop: 8, padding: '6px 10px', background: 'var(--clay-faint)', border: '1px solid rgba(217,119,87,0.12)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                         <Zap size={12} color="var(--clay)" />
                         <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--clay)' }}>Benefit: {tier.benefits}</span>
                       </div>
@@ -135,9 +135,9 @@ export default function RewardsPage() {
            <div className="dashboard__card">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                  <Info size={18} color="var(--clay)" />
-                 <h3 style={{ fontSize: 16, margin: 0 }}>How to Level Up</h3>
+                 <h3 style={{ fontSize: 16, margin: 0, color: 'var(--text)' }}>How to Level Up</h3>
               </div>
-              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
+              <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 Completing your profile, paying rent consistently with Upward, and inviting friends to join the community are the fastest ways to level up.
               </p>
            </div>
