@@ -47,6 +47,7 @@ async function bootstrap() {
   // Allow Capacitor origins for mobile app
   origins.push('capacitor://localhost')
   origins.push('http://localhost')
+  origins.push('https://localhost')
 
   app.enableCors({
     origin: origins,
