@@ -92,7 +92,6 @@ function LoginForm() {
         </div>
       </div>
 
-      <PoweredByUpward className="pay-page__footer-badge" />
     </div>
   )
 }

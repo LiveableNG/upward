@@ -223,10 +223,7 @@ function SignupForm() {
           <button onClick={() => router.push('/login')}>Sign in</button>
         </div>
       </div>
-      
-      <div className="auth-page__footer">
-        <PoweredByUpward className="pay-page__footer-badge" />
-      </div>
+    
     </div>
   )
 }
