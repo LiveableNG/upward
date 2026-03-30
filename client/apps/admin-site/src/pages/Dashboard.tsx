@@ -76,7 +76,7 @@ const BenefitSection = ({
             letterSpacing: '0.05em',
           }}
         >
-          {role}
+          {role === 'OWNER' ? 'BROKERAGE' : role}
         </div>
         <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>
           {title}
@@ -134,7 +134,7 @@ const BenefitSection = ({
                       letterSpacing: '0.04em',
                     }}
                   >
-                    {item.label.replace(/_/g, ' ')}
+                    {item.label === 'CREDIT' ? 'RENT COLLECTION' : item.label.replace(/_/g, ' ')}
                   </div>
                   <div
                     style={{
@@ -656,7 +656,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                       marginBottom: '6px',
                     }}
                   >
-                    <span style={{ fontWeight: 600 }}>{item.label}</span>
+                    <span style={{ fontWeight: 600 }}>
+                      {item.label === 'OWNER' ? 'BROKERAGE' : item.label}
+                    </span>
                     <span style={{ color: 'var(--text-muted)' }}>
                       {item.count} ({percentage}%)
                     </span>
@@ -1027,7 +1029,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
               />
 
               <BenefitSection
-                title="Owner / Landlord Interest"
+                title="Brokerage Interest"
                 role="OWNER"
                 benefits={stats.distributions?.roleBenefits?.['OWNER'] || []}
                 totalInRole={stats.distributions?.roleTotals?.['OWNER'] || 0}
@@ -1217,7 +1219,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             <MultiSelect
               label="Role"
               placeholder="All Roles"
-              options={(filterOptions?.roles || []).map((r: string) => ({ value: r, label: r }))}
+              options={(filterOptions?.roles || []).map((r: string) => ({
+                value: r,
+                label: r === 'OWNER' ? 'BROKERAGE' : r,
+              }))}
               selected={filters.roles}
               onChange={(vals) => setFilters((prev) => ({ ...prev, roles: vals }))}
             />
@@ -1616,7 +1621,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                       </td>
                       <td style={{ padding: '16px' }}>
                         <div style={{ fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>
-                          {user.role || '—'}
+                          {user.role === 'OWNER' ? 'BROKERAGE' : user.role || '—'}
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                           {user.benefits?.slice(0, 2).map((b: string, i: number) => (
@@ -1973,7 +1978,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                       {(item as any).roles?.map((role: string, idx: number) => (
                         <span
                           key={idx}
-                          title={role === 'TENANT' ? 'Tenant' : 'Owner'}
+                          title={role === 'TENANT' ? 'Tenant' : 'Brokerage'}
                           style={{
                             fontSize: '10px',
                             color: role === 'TENANT' ? '#3b82f6' : '#10b981',
@@ -1989,7 +1994,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                             cursor: 'help',
                           }}
                         >
-                          {role === 'TENANT' ? 'T' : role === 'OWNER' ? 'O' : '?'}
+                          {role === 'TENANT' ? 'T' : role === 'OWNER' ? 'B' : '?'}
                         </span>
                       ))}
                     </div>
