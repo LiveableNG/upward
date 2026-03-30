@@ -59,7 +59,7 @@ const VARIANT_CONTENT: Record<string, { title: string; subtitle: string }> = {
   B: {
     title: "Don't Just Pay Rent. Build With It.",
     subtitle:
-      'Turn every rent payment into proof of financial responsibility—unlock rewards, credit opportunities, and pathways to owning your home.',
+      'Turn every rent payment into proof of financial responsibility—unlock rewards, rent collection opportunities, and pathways to owning your home.',
   },
 }
 
