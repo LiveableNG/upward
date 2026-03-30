@@ -56,9 +56,7 @@ const DropOffAnalysis: React.FC<DropOffAnalysisProps> = ({ token }) => {
         (user.full_name || '').toLowerCase().includes(searchTerm.toLowerCase())
 
       const matchesStage = filters.stage === 'All' || user.drop_off_stage === filters.stage
-      const matchesRole =
-        filters.role === 'All' ||
-        (filters.role === 'BROKERAGE' ? user.role === 'OWNER' : user.role === filters.role)
+      const matchesRole = filters.role === 'All' || user.role === filters.role
 
       return matchesSearch && matchesStage && matchesRole
     })
@@ -123,12 +121,7 @@ const DropOffAnalysis: React.FC<DropOffAnalysisProps> = ({ token }) => {
   }
 
   const stages = ['All', ...Array.from(new Set(users.map((u) => u.drop_off_stage)))]
-  const roles = [
-    'All',
-    ...Array.from(new Set(users.filter((u) => u.role).map((u) => u.role!))).map((r) =>
-      r === 'OWNER' ? 'BROKERAGE' : r,
-    ),
-  ]
+  const roles = ['All', ...Array.from(new Set(users.filter((u) => u.role).map((u) => u.role!)))]
 
   return (
     <div className="page-container fade-in">
@@ -412,9 +405,7 @@ const DropOffAnalysis: React.FC<DropOffAnalysisProps> = ({ token }) => {
                         {user.drop_off_stage}
                       </span>
                     </td>
-                    <td style={{ padding: '16px', fontSize: '13px' }}>
-                      {user.role === 'OWNER' ? 'BROKERAGE' : user.role || '—'}
-                    </td>
+                    <td style={{ padding: '16px', fontSize: '13px' }}>{user.role || '—'}</td>
                     <td style={{ padding: '16px', fontSize: '13px', color: 'var(--text-muted)' }}>
                       {new Date(user.last_activity).toLocaleDateString()}
                     </td>
