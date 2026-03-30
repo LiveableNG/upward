@@ -9,6 +9,7 @@ import {
   FlaskConical,
   FileText,
   ShieldCheck,
+  CalendarClock,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -25,6 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     { name: 'Drop-off Analysis', path: '/drop-off', icon: BarChart3 },
     { name: 'A/B Test Stats', path: '/ab-stats', icon: FlaskConical },
     { name: 'Emailing', path: '/emails', icon: Mail },
+    { name: 'Campaigns', path: '/campaigns', icon: CalendarClock },
     { name: 'Sessions', path: '/sessions', icon: Calendar },
     { name: 'Fairness Stories', path: '/stories', icon: ShieldCheck },
   ]
