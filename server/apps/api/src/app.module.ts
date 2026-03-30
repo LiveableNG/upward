@@ -14,6 +14,7 @@ import { BugsnagModule } from './common/bugsnag/bugsnag.module'
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter'
 
 import { FairnessStoryModule } from './fairness-story/fairness-story.module'
+import { CampaignModule } from './campaign/campaign.module'
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { FairnessStoryModule } from './fairness-story/fairness-story.module'
     AdminLogModule,
     BugsnagModule,
     FairnessStoryModule,
+    CampaignModule,
   ],
   controllers: [AppController],
   providers: [

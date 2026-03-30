@@ -9,12 +9,17 @@ import {
   ToggleRight,
   Users,
   Eye,
+  EyeOff,
   X,
   ChevronDown,
   ChevronUp,
   AlertTriangle,
   CheckCircle2,
   Loader2,
+  Clock,
+  Calendar,
+  UserPlus,
+  Monitor,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -92,6 +97,24 @@ const DEFAULT_WEEK1_HTML = `<!DOCTYPE html>
 </body>
 </html>`
 
+const HOW_IT_WORKS = [
+  {
+    icon: <Clock size={18} color="#d97757" />,
+    title: 'Every Tuesday 08:00 WAT',
+    desc: 'Cron job runs automatically — no manual action needed.',
+  },
+  {
+    icon: <Calendar size={18} color="#d97757" />,
+    title: 'Week-based targeting',
+    desc: 'Users in their 1st week get Week 1 content. 2nd week users get Week 2, etc.',
+  },
+  {
+    icon: <UserPlus size={18} color="#d97757" />,
+    title: 'Current users → Week 1',
+    desc: 'All existing waitlist users are treated as enrolled "this week" until next Tuesday.',
+  },
+]
+
 const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [audience, setAudience] = useState<AudiencePreview[]>([])
@@ -104,8 +127,8 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null)
+  const [showEmailPreview, setShowEmailPreview] = useState(false)
 
-  // Form state
   const [form, setForm] = useState({
     weekNumber: 1,
     subject: '',
@@ -145,6 +168,7 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
   const openCreateEditor = () => {
     const nextWeek = campaigns.length > 0 ? Math.max(...campaigns.map((c) => c.weekNumber)) + 1 : 1
     setEditingCampaign(null)
+    setShowEmailPreview(false)
     setForm({
       weekNumber: nextWeek,
       subject:
@@ -161,6 +185,7 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
 
   const openEditEditor = (campaign: Campaign) => {
     setEditingCampaign(campaign)
+    setShowEmailPreview(false)
     setForm({
       weekNumber: campaign.weekNumber,
       subject: campaign.subject,
@@ -235,12 +260,10 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
     fetchAudience()
   }
 
-  // Determine which weeks have no campaign (coverage gaps)
   const campaignWeekSet = new Set(campaigns.map((c) => c.weekNumber))
 
   return (
     <div className="page-container fade-in">
-      {/* ── Header ── */}
       <div style={{ marginBottom: '32px' }}>
         <div
           style={{
@@ -372,25 +395,22 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
         }}
         className="grid-mobile-1"
       >
-        {[
-          {
-            icon: '📅',
-            title: 'Every Tuesday 08:00 WAT',
-            desc: 'Cron job runs automatically — no manual action needed.',
-          },
-          {
-            icon: '🗓️',
-            title: 'Week-based targeting',
-            desc: 'Users in their 1st week get Week 1 content. 2nd week users get Week 2, etc.',
-          },
-          {
-            icon: '🆕',
-            title: 'Current users → Week 1',
-            desc: 'All existing waitlist users are treated as enrolled "this week" until next Tuesday.',
-          },
-        ].map((item, i) => (
+        {HOW_IT_WORKS.map((item, i) => (
           <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '22px', lineHeight: 1 }}>{item.icon}</span>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: 'rgba(217,119,87,0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {item.icon}
+            </div>
             <div>
               <div style={{ fontWeight: 700, fontSize: '13px', marginBottom: '4px' }}>
                 {item.title}
@@ -526,7 +546,6 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                 transition: 'all 0.3s ease',
               }}
             >
-              {/* Card header */}
               <div
                 style={{
                   padding: '20px 24px',
@@ -538,7 +557,6 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
-                  {/* Week badge */}
                   <div
                     style={{
                       minWidth: '52px',
@@ -620,9 +638,7 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {/* Toggle */}
                   <button
                     id={`btn-toggle-week-${campaign.weekNumber}`}
                     onClick={() => handleToggle(campaign)}
@@ -641,7 +657,6 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                     {campaign.isActive ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
                   </button>
 
-                  {/* Edit */}
                   <button
                     id={`btn-edit-week-${campaign.weekNumber}`}
                     onClick={() => openEditEditor(campaign)}
@@ -662,7 +677,6 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                     <Pencil size={14} /> Edit
                   </button>
 
-                  {/* Delete */}
                   {deleteConfirm === campaign.weekNumber ? (
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <button
@@ -713,7 +727,6 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                     </button>
                   )}
 
-                  {/* Expand preview toggle */}
                   <button
                     id={`btn-expand-week-${campaign.weekNumber}`}
                     onClick={() =>
@@ -738,7 +751,6 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                 </div>
               </div>
 
-              {/* Expanded HTML preview */}
               {expandedWeek === campaign.weekNumber && (
                 <div style={{ borderTop: '1px solid var(--border)', padding: '0' }}>
                   <div
@@ -778,12 +790,13 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
               background: 'var(--white)',
               borderRadius: '20px',
               width: '100%',
-              maxWidth: '780px',
+              maxWidth: showEmailPreview ? '1100px' : '780px',
               maxHeight: '90vh',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
               boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
+              transition: 'max-width 0.3s ease',
             }}
           >
             {/* Modal header */}
@@ -804,32 +817,132 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                   This email will be sent every Tuesday to users in their Week {form.weekNumber}.
                 </p>
               </div>
-              <button
-                onClick={() => setShowEditor(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)',
-                }}
-              >
-                <X size={22} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  id="btn-toggle-email-preview"
+                  onClick={() => setShowEmailPreview((v) => !v)}
+                  title={showEmailPreview ? 'Hide email preview' : 'Show email preview'}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border)',
+                    background: showEmailPreview ? 'rgba(217,119,87,0.08)' : 'var(--white)',
+                    color: showEmailPreview ? 'var(--accent)' : 'var(--text-muted)',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  {showEmailPreview ? <EyeOff size={15} /> : <Monitor size={15} />}
+                  {showEmailPreview ? 'Hide Preview' : 'Preview Email'}
+                </button>
+                <button
+                  onClick={() => setShowEditor(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  <X size={22} />
+                </button>
+              </div>
             </div>
 
-            {/* Modal body */}
+            {/* Modal body — side-by-side when preview open */}
             <div
               style={{
                 flex: 1,
                 overflowY: 'auto',
-                padding: '28px',
                 display: 'flex',
-                flexDirection: 'column',
-                gap: '20px',
+                flexDirection: 'row',
+                minHeight: 0,
               }}
             >
-              {/* Row 1: Week # + Label */}
-              <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '16px' }}>
+              {/* Form pane */}
+              <div
+                style={{
+                  flex: '0 0 auto',
+                  width: showEmailPreview ? '420px' : '100%',
+                  overflowY: 'auto',
+                  padding: '28px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '20px',
+                  borderRight: showEmailPreview ? '1px solid var(--border)' : 'none',
+                  transition: 'width 0.3s ease',
+                }}
+              >
+                <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: 'var(--text-muted)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      Week Number
+                    </label>
+                    <input
+                      id="input-week-number"
+                      type="number"
+                      min={1}
+                      value={form.weekNumber}
+                      disabled={!!editingCampaign}
+                      onChange={(e) =>
+                        setForm({ ...form, weekNumber: parseInt(e.target.value) || 1 })
+                      }
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--border)',
+                        fontSize: '15px',
+                        fontWeight: 700,
+                        outline: 'none',
+                        background: editingCampaign ? 'var(--surface)' : 'var(--white)',
+                        color: 'var(--text)',
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: 'var(--text-muted)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      Label (optional)
+                    </label>
+                    <input
+                      id="input-campaign-label"
+                      type="text"
+                      placeholder="e.g. Welcome to Upward"
+                      value={form.label}
+                      onChange={(e) => setForm({ ...form, label: e.target.value })}
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--border)',
+                        fontSize: '14px',
+                        outline: 'none',
+                        background: 'var(--white)',
+                        color: 'var(--text)',
+                      }}
+                    />
+                  </div>
+                </div>
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label
                     style={{
@@ -840,96 +953,74 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                       letterSpacing: '0.05em',
                     }}
                   >
-                    Week Number
+                    Email Subject Line *
                   </label>
                   <input
-                    id="input-week-number"
-                    type="number"
-                    min={1}
-                    value={form.weekNumber}
-                    disabled={!!editingCampaign}
-                    onChange={(e) =>
-                      setForm({ ...form, weekNumber: parseInt(e.target.value) || 1 })
-                    }
+                    id="input-campaign-subject"
+                    type="text"
+                    placeholder="Enter email subject…"
+                    value={form.subject}
+                    onChange={(e) => setForm({ ...form, subject: e.target.value })}
                     style={{
-                      padding: '10px 14px',
+                      padding: '12px 16px',
                       borderRadius: '10px',
                       border: '1px solid var(--border)',
                       fontSize: '15px',
-                      fontWeight: 700,
-                      outline: 'none',
-                      background: editingCampaign ? 'var(--surface)' : 'var(--white)',
-                      color: 'var(--text)',
-                    }}
-                  />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label
-                    style={{
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                    }}
-                  >
-                    Label (optional)
-                  </label>
-                  <input
-                    id="input-campaign-label"
-                    type="text"
-                    placeholder="e.g. Welcome to Upward"
-                    value={form.label}
-                    onChange={(e) => setForm({ ...form, label: e.target.value })}
-                    style={{
-                      padding: '10px 14px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border)',
-                      fontSize: '14px',
                       outline: 'none',
                       background: 'var(--white)',
                       color: 'var(--text)',
                     }}
                   />
                 </div>
-              </div>
 
-              {/* Subject */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                  }}
-                >
-                  Email Subject Line *
-                </label>
-                <input
-                  id="input-campaign-subject"
-                  type="text"
-                  placeholder="Enter email subject…"
-                  value={form.subject}
-                  onChange={(e) => setForm({ ...form, subject: e.target.value })}
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border)',
-                    fontSize: '15px',
-                    outline: 'none',
-                    background: 'var(--white)',
-                    color: 'var(--text)',
-                  }}
-                />
-              </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: 'var(--text-muted)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      HTML Email Content *
+                    </label>
+                    <div
+                      style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}
+                    >
+                      Use <code>{'{{firstName}}'}</code>, <code>{'{{email}}'}</code> for
+                      personalisation
+                    </div>
+                  </div>
+                  <textarea
+                    id="input-campaign-html"
+                    rows={14}
+                    value={form.htmlContent}
+                    onChange={(e) => setForm({ ...form, htmlContent: e.target.value })}
+                    placeholder="Paste full HTML email here…"
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border)',
+                      fontSize: '13px',
+                      lineHeight: '1.6',
+                      fontFamily: 'monospace',
+                      outline: 'none',
+                      resize: 'vertical',
+                      background: '#0d1117',
+                      color: '#c9d1d9',
+                    }}
+                  />
+                </div>
 
-              {/* HTML Content */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label
                     style={{
                       fontSize: '12px',
@@ -939,105 +1030,149 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                       letterSpacing: '0.05em',
                     }}
                   >
-                    HTML Email Content *
+                    Plain Text Fallback (optional)
                   </label>
-                  <div
-                    style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}
-                  >
-                    Use <code>{'{{firstName}}'}</code>, <code>{'{{email}}'}</code> for
-                    personalisation
-                  </div>
+                  <textarea
+                    id="input-campaign-text"
+                    rows={4}
+                    value={form.textContent}
+                    onChange={(e) => setForm({ ...form, textContent: e.target.value })}
+                    placeholder="Plain text version for email clients that don't render HTML…"
+                    style={{
+                      padding: '12px 16px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border)',
+                      fontSize: '13px',
+                      lineHeight: '1.6',
+                      outline: 'none',
+                      resize: 'vertical',
+                      background: 'var(--white)',
+                      color: 'var(--text)',
+                    }}
+                  />
                 </div>
-                <textarea
-                  id="input-campaign-html"
-                  rows={14}
-                  value={form.htmlContent}
-                  onChange={(e) => setForm({ ...form, htmlContent: e.target.value })}
-                  placeholder="Paste full HTML email here…"
-                  style={{
-                    padding: '14px 16px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border)',
-                    fontSize: '13px',
-                    lineHeight: '1.6',
-                    fontFamily: 'monospace',
-                    outline: 'none',
-                    resize: 'vertical',
-                    background: '#0d1117',
-                    color: '#c9d1d9',
-                  }}
-                />
-              </div>
 
-              {/* Plain text fallback */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
                 >
-                  Plain Text Fallback (optional)
+                  <div
+                    onClick={() => setForm({ ...form, isActive: !form.isActive })}
+                    style={{
+                      width: '44px',
+                      height: '24px',
+                      borderRadius: '12px',
+                      position: 'relative',
+                      background: form.isActive ? 'var(--accent)' : 'var(--border)',
+                      transition: 'background 0.2s',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        background: '#fff',
+                        position: 'absolute',
+                        top: '3px',
+                        left: form.isActive ? '23px' : '3px',
+                        transition: 'left 0.2s',
+                      }}
+                    />
+                  </div>
+                  <span style={{ fontSize: '14px', fontWeight: 600 }}>
+                    {form.isActive
+                      ? 'Active — will be included in Tuesday sends'
+                      : 'Paused — will be skipped'}
+                  </span>
                 </label>
-                <textarea
-                  id="input-campaign-text"
-                  rows={4}
-                  value={form.textContent}
-                  onChange={(e) => setForm({ ...form, textContent: e.target.value })}
-                  placeholder="Plain text version for email clients that don't render HTML…"
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border)',
-                    fontSize: '13px',
-                    lineHeight: '1.6',
-                    outline: 'none',
-                    resize: 'vertical',
-                    background: 'var(--white)',
-                    color: 'var(--text)',
-                  }}
-                />
               </div>
 
-              {/* Active toggle */}
-              <label
-                style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
-              >
+              {/* Live preview pane */}
+              {showEmailPreview && (
                 <div
-                  onClick={() => setForm({ ...form, isActive: !form.isActive })}
                   style={{
-                    width: '44px',
-                    height: '24px',
-                    borderRadius: '12px',
-                    position: 'relative',
-                    background: form.isActive ? 'var(--accent)' : 'var(--border)',
-                    transition: 'background 0.2s',
-                    cursor: 'pointer',
-                    flexShrink: 0,
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                    minWidth: 0,
                   }}
                 >
                   <div
                     style={{
-                      width: '18px',
-                      height: '18px',
-                      borderRadius: '50%',
-                      background: '#fff',
-                      position: 'absolute',
-                      top: '3px',
-                      left: form.isActive ? '23px' : '3px',
-                      transition: 'left 0.2s',
+                      padding: '10px 20px',
+                      background: 'var(--surface)',
+                      borderBottom: '1px solid var(--border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      flexShrink: 0,
                     }}
-                  />
+                  >
+                    <Monitor size={14} color="var(--text-muted)" />
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: 'var(--text-muted)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      Live Email Preview
+                    </span>
+                    <span
+                      style={{
+                        marginLeft: 'auto',
+                        fontSize: '11px',
+                        color: 'var(--text-muted)',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      Updates as you type
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      flex: 1,
+                      background: '#f3f4f6',
+                      overflow: 'hidden',
+                      position: 'relative',
+                    }}
+                  >
+                    {form.htmlContent.trim() ? (
+                      <iframe
+                        srcDoc={form.htmlContent}
+                        title="Email preview"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          border: 'none',
+                          display: 'block',
+                        }}
+                        sandbox="allow-same-origin"
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          height: '100%',
+                          gap: '12px',
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        <Monitor size={36} color="var(--border)" />
+                        <span style={{ fontSize: '13px' }}>Paste HTML to see a preview</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <span style={{ fontSize: '14px', fontWeight: 600 }}>
-                  {form.isActive
-                    ? 'Active — will be included in Tuesday sends'
-                    : 'Paused — will be skipped'}
-                </span>
-              </label>
+              )}
             </div>
 
             {/* Modal footer */}
@@ -1231,9 +1366,20 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                               color: row.hasCampaign ? 'var(--text)' : 'var(--text-muted)',
                             }}
                           >
-                            {row.hasCampaign
-                              ? row.campaignSubject
-                              : '⚠ No campaign — will be skipped'}
+                            {row.hasCampaign ? (
+                              row.campaignSubject
+                            ) : (
+                              <span
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                }}
+                              >
+                                <AlertTriangle size={13} color="#d97757" /> No campaign — will be
+                                skipped
+                              </span>
+                            )}
                           </div>
                           {row.hasCampaign && !row.isActive && (
                             <div
@@ -1264,7 +1410,6 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                     </div>
                   ))}
 
-                  {/* Users with no matching campaign */}
                   {audience.filter((r) => !campaignWeekSet.has(r.weekNumber)).length > 0 && (
                     <div
                       style={{
@@ -1274,10 +1419,20 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                         border: '1px solid #fed7aa',
                         fontSize: '13px',
                         color: '#9a3412',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '10px',
                       }}
                     >
-                      <strong>Note:</strong> Some weeks have users but no campaign content — those
-                      users will be skipped on campaign day.
+                      <AlertTriangle
+                        size={15}
+                        color="#d97757"
+                        style={{ flexShrink: 0, marginTop: '1px' }}
+                      />
+                      <span>
+                        <strong>Note:</strong> Some weeks have users but no campaign content — those
+                        users will be skipped on campaign day.
+                      </span>
                     </div>
                   )}
                 </div>

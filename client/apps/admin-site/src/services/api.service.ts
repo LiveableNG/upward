@@ -1,11 +1,3 @@
-/**
- * Centralised API service.
- *
- * The token is NEVER read from localStorage here. It must be passed in
- * explicitly from the in-memory AuthContext. This prevents any accidental
- * persistence of admin tokens in browser storage.
- */
-
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1'
 
 class ApiService {

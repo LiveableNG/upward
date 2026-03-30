@@ -46,6 +46,7 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-fastify": "^11.0.11",
+    "@nestjs/schedule": "^6.1.1",
     "@prisma/client": "6.19.0",
     "@upward/common-utils": "workspace:*",
     "@upward/shared-types": "workspace:*",
