@@ -34,7 +34,7 @@ const BENEFIT_DESCRIPTIONS: Record<string, string> = {
   // Owner
   HISTORY: 'Find verified tenants and enjoy peace of mind',
   CREDIT: 'Say Goodbye to consistent defaults. Get paid on-time',
-  Brokerage: 'Access exclusive brokerage deals',
+  TITLE: 'Access exclusive brokerage deals',
 }
 
 const BenefitSection = ({
@@ -134,7 +134,13 @@ const BenefitSection = ({
                       letterSpacing: '0.04em',
                     }}
                   >
-                    {item.label === 'CREDIT' ? 'RENT COLLECTION' : item.label.replace(/_/g, ' ')}
+                    {
+                      item.label === 'CREDIT'
+                        ? 'RENT COLLECTION'
+                        : item.label === 'TITLE'
+                        ? 'BROKERAGE'
+                        : item.label.replace(/_/g, ' ')
+                    }
                   </div>
                   <div
                     style={{
