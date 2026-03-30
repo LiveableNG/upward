@@ -120,7 +120,7 @@ export default function MePage() {
                   onChange={v => setFormData({...formData, fullName: v})}
                 />
                 <DetailOrEdit 
-                  isEditing={false} // Email restricted
+                  isEditing={false}
                   icon={Mail} 
                   label="Email Address" 
                   value={tenant.email} 
@@ -154,7 +154,7 @@ export default function MePage() {
                   value={formData.occupation || ''}
                   onChange={v => setFormData({...formData, occupation: v})}
                 />
-                 <DetailOrEdit 
+                <DetailOrEdit 
                   isEditing={isEditing}
                   icon={Heart} 
                   label="Marital Status" 
@@ -169,7 +169,7 @@ export default function MePage() {
                   onChange={v => setFormData({...formData, address: v})}
                 />
                 
-                <div style={{ padding: '24px 20px 8px 20px', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div style={{ padding: '24px 20px 8px 20px', fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                    Emergency Contact
                 </div>
                 
@@ -190,8 +190,8 @@ export default function MePage() {
               </div>
               
               {!isEditing && (
-                <div style={{ padding: 20, borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 10 }}>
-                   <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>
+                <div style={{ padding: 20, borderTop: '1px solid var(--border-solid)', marginTop: 10 }}>
+                   <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                      Need to change your primary email or delete your account? <span style={{ color: 'var(--clay)', cursor: 'pointer' }} onClick={() => router.push('/dashboard/help')}>Contact Support</span>.
                    </p>
                 </div>
@@ -234,13 +234,13 @@ export default function MePage() {
                 <span>{tenant.membershipLevel || 'Window Shopper'}</span>
              </div>
 
-             <h2 style={{ marginBottom: 4, fontSize: 20 }}>{tenant.fullName}</h2>
+             <h2 style={{ marginBottom: 4, fontSize: 20, color: 'var(--text)' }}>{tenant.fullName}</h2>
              <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>{tenant.email}</p>
-                {tenant.totalInvites > 0 && (
-                  <div style={{ marginTop: 12, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'var(--surface2)', border: '1px solid var(--border-solid)', borderRadius: 20, color: 'var(--text-secondary)' }}>
-                    <Users size={12} /> {tenant.totalInvites} People Invited
-                  </div>
-                )}
+             {tenant.totalInvites > 0 && (
+               <div style={{ marginTop: 12, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'var(--surface2)', border: '1px solid var(--border-solid)', borderRadius: 20, color: 'var(--text-secondary)' }}>
+                 <Users size={12} /> {tenant.totalInvites} People Invited
+               </div>
+             )}
           </div>
       
           <div className="dashboard__transaction-items" style={{ marginTop: 20 }}>
@@ -258,8 +258,8 @@ export default function MePage() {
                 >
                   <div className="dashboard__transaction-left">
                     <div className="dashboard__transaction-info" style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(217, 119, 87, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                         <Icon size={18} color="#d97757" />
+                      <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'var(--clay-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                         <Icon size={18} color="var(--clay)" />
                       </div>
                       <span className="dashboard__transaction-company" style={{ fontSize: 15 }}>{s.title}</span>
                     </div>
@@ -270,7 +270,7 @@ export default function MePage() {
                         <AlertCircle size={12} color="#eab308" />
                       </div>
                     )}
-                    <ChevronRight size={16} color="rgba(255,255,255,0.3)" />
+                    <ChevronRight size={16} color="var(--text-muted)" />
                   </div>
                 </div>
               )
@@ -291,8 +291,8 @@ export default function MePage() {
       
         <div className="dashboard__col--right dashboard__col--desktop-only">
            <div className="dashboard__card">
-              <h3 style={{ marginBottom: 12, fontSize: 16 }}>Need Help?</h3>
-              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, marginBottom: 16 }}>
+              <h3 style={{ marginBottom: 12, fontSize: 16, color: 'var(--text)' }}>Need Help?</h3>
+              <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 16 }}>
                 Having issues with your account or need to update restricted information?
               </p>
               <button className="btn btn--secondary btn--full" onClick={() => router.push('/dashboard/help')}>
@@ -306,13 +306,13 @@ export default function MePage() {
 }
 
 function MembershipIcon({ level }: { level?: string }) {
-  if (!level) return <Users size={14} color="rgba(255,255,255,0.4)" />
+  if (!level) return <Users size={14} color="var(--text-muted)" />
   if (level.includes('Stakeholder')) return <Shield size={14} color="#a855f7" />
   if (level === 'Voter') return <Vote size={14} color="#3b82f6" />
   if (level.includes('Club Member')) return <Crown size={14} color="#fbbf24" />
   if (level === 'Contributor') return <Star size={14} color="#22c55e" />
   if (level === 'General Member') return <Trophy size={14} color="#d97757" />
-  return <Users size={14} color="rgba(255,255,255,0.4)" />
+  return <Users size={14} color="var(--text-muted)" />
 }
 
 function DetailOrEdit({ 
@@ -330,7 +330,7 @@ function DetailOrEdit({
   return (
     <div className={`detail-item ${isEditing ? 'detail-item--editing' : ''}`}>
       <div className="detail-item__left">
-        <Icon size={18} color={isEditing ? 'var(--clay)' : 'rgba(255,255,255,0.4)'} />
+        <Icon size={18} color={isEditing ? 'var(--clay)' : 'var(--text-muted)'} />
         <div className="detail-item__info">
           <span className="detail-item__label">{label}</span>
           {isEditing ? (
@@ -363,7 +363,7 @@ function DetailItem({ icon: Icon, label, value }: { icon: any, label: string, va
   return (
     <div className="detail-item">
       <div className="detail-item__left">
-        <Icon size={18} color="rgba(255,255,255,0.4)" />
+        <Icon size={18} color="var(--text-muted)" />
         <div className="detail-item__info">
           <span className="detail-item__label">{label}</span>
           <span className={`detail-item__value ${isMissing ? 'detail-item__value--missing' : ''}`}>
