@@ -9,6 +9,7 @@ import Settings from './pages/Settings'
 import ABTestStats from './pages/ABTestStats'
 import Logs from './pages/Logs'
 import FairnessStories from './pages/FairnessStories'
+import WaitlistCampaigns from './pages/WaitlistCampaigns'
 import Layout from './components/Layout'
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -41,6 +42,7 @@ function AppRoutes() {
             path="/stories"
             element={<FairnessStories token={auth.token} adminRole={auth.user.role} />}
           />
+          <Route path="/campaigns" element={<WaitlistCampaigns token={auth.token} />} />
           {auth.user.role === 'SUPERADMIN' && (
             <>
               <Route
