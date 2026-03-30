@@ -20,8 +20,9 @@ model upward_waitlist {
   country         String?
   city            String?
   selectedSession String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  campaignWeekSent      Int      @default(0)  // How many Tuesday drip emails have been sent to this user. 0 = never sent. Next send = this+1.
   confirmationSent Boolean  @default(false)
   confirmationEmailStatus String?  // PENDING, SENT, FAILED
   confirmationEmailError  String?
@@ -145,6 +146,21 @@ model upward_error_log {
   @@index([createdAt])
   @@index([severity])
   @@index([resolved])
+}
+
+model upward_email_campaign {
+  id          String   @id @default(uuid())
+  weekNumber  Int      @unique  // 1, 2, 3, ... — which week in the drip sequence
+  subject     String
+  htmlContent String   @db.Text
+  textContent String?  @db.Text
+  label       String?  // e.g. "Welcome to Upward", "Week 2: Housing Tips"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([weekNumber])
+  @@index([isActive])
 }
 
 model upward_fairness_story {
