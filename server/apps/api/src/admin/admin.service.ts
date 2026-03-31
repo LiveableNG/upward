@@ -734,7 +734,7 @@ export class AdminService {
           .replace(/{{lastName}}/g, user.lastName ? formatName(user.lastName) : '')
           .replace(/{{email}}/g, user.email)
 
-        const finalHtml = wrapInBaseTemplate(customizedContent, payload.subject)
+        const finalHtml = wrapInBaseTemplate(customizedContent, payload.subject, user.email)
 
         await this.emailService.sendGenericEmail(user.email, payload.subject, finalHtml, user.id)
 

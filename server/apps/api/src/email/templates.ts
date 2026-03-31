@@ -8,8 +8,8 @@ interface WaitlistUser {
   campaignWeekSent: number
 }
 
-export const wrapInBaseTemplate = (content: string, subject: string) => {
-  return `<!DOCTYPE html>
+export const wrapInBaseTemplate = (content: string, subject: string, email: string = '') => {
+  const result = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -120,6 +120,8 @@ export const wrapInBaseTemplate = (content: string, subject: string) => {
   </table>
 </body>
 </html>`
+
+  return result.replace(/{{email}}/g, email)
 }
 
 export const processCampaignHtml = (html: string, user: WaitlistUser) => {
