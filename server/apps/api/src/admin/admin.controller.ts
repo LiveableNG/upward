@@ -248,4 +248,41 @@ export class AdminController {
   async clearErrorLogs() {
     return { data: await this.adminService.clearErrorLogs() }
   }
+
+  // --- Email Logs & System Templates ---
+
+  @Get('email/logs')
+  async getEmailLogs(
+    @Query('email') email?: string,
+    @Query('type') type?: string,
+    @Query('status') status?: string,
+  ) {
+    return { data: await this.adminService.getEmailLogs({ email, type, status }) }
+  }
+
+  @Get('system-email/:slug')
+  async getSystemEmail(@Param('slug') slug: string) {
+    return { data: await this.adminService.getSystemEmail(slug) }
+  }
+
+  @Post('system-email/:slug')
+  async upsertSystemEmail(
+    @Param('slug') slug: string,
+    @Body() payload: { subject: string; htmlContent: string; textContent?: string },
+  ) {
+    return { data: await this.adminService.upsertSystemEmail(slug, payload) }
+  }
+
+  @Post('email/test-send')
+  async sendTestEmail(
+    @Body() payload: { emails: string[]; subject: string; content: string },
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return {
+      data: await this.adminService.sendTestEmails({
+        ...payload,
+        requesterId: req.user.id,
+      }),
+    }
+  }
 }

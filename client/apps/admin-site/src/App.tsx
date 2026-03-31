@@ -10,6 +10,7 @@ import ABTestStats from './pages/ABTestStats'
 import Logs from './pages/Logs'
 import FairnessStories from './pages/FairnessStories'
 import WaitlistCampaigns from './pages/WaitlistCampaigns'
+import EmailLogs from './pages/EmailLogs'
 import Layout from './components/Layout'
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -35,6 +36,7 @@ function AppRoutes() {
         <Routes>
           <Route path="/" element={<Dashboard token={auth.token} adminRole={auth.user.role} />} />
           <Route path="/emails" element={<EmailComposer token={auth.token} />} />
+          <Route path="/email-logs" element={<EmailLogs token={auth.token} />} />
           <Route path="/sessions" element={<Sessions token={auth.token} />} />
           <Route path="/drop-off" element={<DropOffAnalysis token={auth.token} />} />
           <Route path="/ab-stats" element={<ABTestStats token={auth.token} />} />

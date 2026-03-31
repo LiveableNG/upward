@@ -13,6 +13,7 @@ import * as bcrypt from 'bcrypt'
 import { Prisma } from '@prisma/client'
 import { AdminLogService } from '../admin-log/admin-log.service'
 import { formatName } from '@upward/common-utils'
+import { wrapInBaseTemplate } from '../email/templates'
 
 @Injectable()
 export class AdminService {
@@ -709,28 +710,14 @@ export class AdminService {
           .replace(/{{lastName}}/g, formatName(user.lastName || ''))
           .replace(/{{email}}/g, user.email)
 
-        await this.emailService.sendGenericEmail(user.email, payload.subject, customizedContent)
+        const finalHtml = wrapInBaseTemplate(customizedContent, payload.subject)
 
-        await this.prisma.upward_email_log.create({
-          data: {
-            userId: user.id,
-            sessionId: payload.sessionId,
-            subject: payload.subject,
-            status: 'SENT',
-          },
-        })
+        await this.emailService.sendGenericEmail(user.email, payload.subject, finalHtml, user.id)
+
         results.push({ email: user.email, status: 'SENT' })
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         this.logger.error(`Failed to send email to ${user.email}`, error)
-        await this.prisma.upward_email_log.create({
-          data: {
-            userId: user.id,
-            sessionId: payload.sessionId,
-            subject: payload.subject,
-            status: 'FAILED',
-          },
-        })
         results.push({ email: user.email, status: 'FAILED', error: errorMessage })
       }
     }
@@ -982,5 +969,88 @@ export class AdminService {
     return this.prisma.upward_error_log.deleteMany({
       where: { resolved: true },
     })
+  }
+
+  // --- Email Logs & System Templates ---
+
+  async getEmailLogs(query: { email?: string; type?: string; status?: string }) {
+    const { email, type, status } = query
+    return this.prisma.upward_email_log.findMany({
+      where: {
+        ...(email ? { email: { contains: email, mode: 'insensitive' } } : {}),
+        ...(type && type !== 'All'
+          ? type === 'CAMPAIGN'
+            ? { type: { startsWith: 'CAMPAIGN' } }
+            : { type }
+          : {}),
+        ...(status && status !== 'All' ? { status } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      include: {
+        user: {
+          select: { firstName: true, lastName: true, email: true },
+        },
+      },
+    })
+  }
+
+  async getSystemEmail(slug: string) {
+    return this.prisma.upward_system_email.findUnique({
+      where: { slug },
+    })
+  }
+
+  async upsertSystemEmail(
+    slug: string,
+    payload: { subject: string; htmlContent: string; textContent?: string },
+  ) {
+    return this.prisma.upward_system_email.upsert({
+      where: { slug },
+      update: { ...payload },
+      create: { slug, ...payload },
+    })
+  }
+
+  async sendTestEmails(payload: {
+    emails: string[]
+    subject: string
+    content: string
+    requesterId?: string
+  }) {
+    const results = []
+
+    for (const email of payload.emails) {
+      try {
+        const customizedContent = payload.content
+          .replace(/{{firstName}}/g, 'Test User')
+          .replace(/{{lastName}}/g, '(Test)')
+          .replace(/{{email}}/g, email)
+
+        const isFullHtml =
+          customizedContent.toLowerCase().includes('<html') ||
+          customizedContent.toLowerCase().includes('<!doctype')
+        const finalHtml = isFullHtml
+          ? customizedContent
+          : wrapInBaseTemplate(customizedContent, payload.subject)
+
+        await this.emailService.sendGenericEmail(email, payload.subject, finalHtml)
+        results.push({ email, status: 'SENT' })
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        this.logger.error(`Failed to send test email to ${email}`, error)
+        results.push({ email, status: 'FAILED', error: errorMessage })
+      }
+    }
+
+    if (payload.requesterId) {
+      await this.adminLogService.logAction(
+        payload.requesterId,
+        'SEND_TEST_EMAIL',
+        `Sent ${payload.emails.length} test emails. Subject: ${payload.subject}`,
+      )
+    }
+
+    return results
   }
 }

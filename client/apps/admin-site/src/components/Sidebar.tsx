@@ -10,8 +10,8 @@ import {
   FileText,
   ShieldCheck,
   CalendarClock,
+  History,
 } from 'lucide-react'
-
 
 interface SidebarProps {
   isSuperadmin: boolean
@@ -29,6 +29,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     { name: 'Emailing', path: '/emails', icon: Mail },
     { name: 'Campaigns', path: '/campaigns', icon: CalendarClock },
     { name: 'Sessions', path: '/sessions', icon: Calendar },
+    { name: 'Email Logs', path: '/email-logs', icon: History },
     { name: 'Fairness Stories', path: '/stories', icon: ShieldCheck },
   ]
 
