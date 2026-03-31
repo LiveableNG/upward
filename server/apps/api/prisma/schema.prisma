@@ -28,6 +28,8 @@ model upward_waitlist {
   confirmationEmailError  String?
   confirmationEmailRetries Int     @default(0)
   abVariant        String?
+  unsubscribed     Boolean  @default(false)
+  unsubscribedAt   DateTime?
 
   attendances     upward_attendance[]
   emailLogs       upward_email_log[]
@@ -127,6 +129,7 @@ model upward_interaction {
   abVariant        String   // A or B
   ipAddress        String?
   userAgent        String?
+  metadata         String?
   createdAt        DateTime @default(now())
 
   @@index([visitorId])

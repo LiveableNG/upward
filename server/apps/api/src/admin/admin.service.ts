@@ -721,7 +721,7 @@ export class AdminService {
     requesterId?: string
   }) {
     const users = await this.prisma.upward_waitlist.findMany({
-      where: { id: { in: payload.userIds } },
+      where: { id: { in: payload.userIds }, unsubscribed: false },
     })
 
     const results = []

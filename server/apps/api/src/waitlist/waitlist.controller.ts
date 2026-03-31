@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Get,
+  Query,
   UsePipes,
   ValidationPipe,
   Param,
@@ -53,5 +54,16 @@ export class WaitlistController {
     const ua = req.headers['user-agent']
     await this.waitlistService.trackInteraction(dto, ip, ua)
     return { data: { success: true } }
+  }
+
+  @Post('unsubscribe')
+  @HttpCode(HttpStatus.OK)
+  async unsubscribe(
+    @Body('email') bodyEmail: string,
+    @Query('email') queryEmail: string,
+  ): Promise<ApiSuccess<{ success: boolean }>> {
+    const email = bodyEmail || queryEmail
+    const success = await this.waitlistService.unsubscribe(email)
+    return { data: { success }, message: success ? 'Unsubscribed' : 'User not found' }
   }
 }
