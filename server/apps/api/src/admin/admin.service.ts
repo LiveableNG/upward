@@ -34,6 +34,7 @@ export class AdminService {
     createdFrom?: string
     createdTo?: string
     completed?: string
+    missingName?: string
   }) {
     const {
       search,
@@ -44,6 +45,7 @@ export class AdminService {
       createdFrom,
       createdTo,
       completed,
+      missingName,
     } = options
     const where: Prisma.upward_waitlistWhereInput = {}
 
@@ -101,6 +103,26 @@ export class AdminService {
       }
     }
 
+    if (missingName === 'true') {
+      const existingOR = (where.OR as Prisma.upward_waitlistWhereInput[]) || []
+      const nameFilters: Prisma.upward_waitlistWhereInput[] = [
+        { firstName: null },
+        { firstName: '' },
+      ]
+
+      if (existingOR.length > 0) {
+        // If there's already an OR (like from sessions or search), we might need an AND of ORs
+        if (where.AND) {
+          ;(where.AND as Prisma.upward_waitlistWhereInput[]).push({ OR: nameFilters })
+        } else {
+          where.AND = [{ OR: existingOR }, { OR: nameFilters }]
+          delete where.OR
+        }
+      } else {
+        where.OR = nameFilters
+      }
+    }
+
     return where
   }
 
@@ -115,6 +137,7 @@ export class AdminService {
     createdFrom?: string
     createdTo?: string
     completed?: string
+    missingName?: string
   }) {
     const { page, limit } = options
     const skip = (page - 1) * limit
@@ -231,6 +254,7 @@ export class AdminService {
       createdTo?: string
       completed?: string
       search?: string
+      missingName?: string
     } = {},
   ) {
     const where = this.buildWaitlistWhereClause(options)
@@ -706,8 +730,8 @@ export class AdminService {
       try {
         // Variables replacement
         const customizedContent = payload.content
-          .replace(/{{firstName}}/g, formatName(user.firstName || ''))
-          .replace(/{{lastName}}/g, formatName(user.lastName || ''))
+          .replace(/{{firstName}}/g, user.firstName ? formatName(user.firstName) : 'there')
+          .replace(/{{lastName}}/g, user.lastName ? formatName(user.lastName) : '')
           .replace(/{{email}}/g, user.email)
 
         const finalHtml = wrapInBaseTemplate(customizedContent, payload.subject)
@@ -1023,7 +1047,7 @@ export class AdminService {
     for (const email of payload.emails) {
       try {
         const customizedContent = payload.content
-          .replace(/{{firstName}}/g, 'Test User')
+          .replace(/{{firstName}}/g, 'Test Recipient')
           .replace(/{{lastName}}/g, '(Test)')
           .replace(/{{email}}/g, email)
 

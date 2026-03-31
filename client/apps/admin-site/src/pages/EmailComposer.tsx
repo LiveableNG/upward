@@ -25,7 +25,7 @@ interface EmailComposerProps {
   token: string
 }
 
-const buildPreviewHtml = (content: string, subject: string) => `<!DOCTYPE html>
+const buildPreviewHtml = (content: string) => `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -53,19 +53,12 @@ const buildPreviewHtml = (content: string, subject: string) => `<!DOCTYPE html>
           <span style="color:#d97757; font-size:14px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase;">Upward</span>
           <div style="color:#6B7280; font-size:12px; margin-top:4px;">by GoodTenants</div>
         </div>
-        ${
-          subject
-            ? `<div style="color: #111827; font-size: 24px; font-weight: 800; line-height: 1.3; margin-bottom: 24px;">${subject}</div>`
-            : ''
-        }
-        <div style="color:#374151; font-size:16px; line-height:1.7; white-space:pre-wrap;">${content
-          .replace(/{{firstName}}/g, 'Alex')
-          .replace(/{{email}}/g, 'alex@example.com')}</div>
         
-        <div style="margin-top: 40px; border-top: 1px solid #F3F4F6; padding-top: 32px;">
-          <p style="margin:0; color:#111827; font-weight:600; font-size:16px;">The Upward Team</p>
-          <p style="margin:4px 0 0 0; color:#6B7280; font-size:14px;">Building your pathway home.</p>
-        </div>
+        <div style="color:#374151; font-size:16px; line-height:1.7; white-space:pre-wrap;">${content
+          .replace(/{{firstName}}/g, 'Recipient')
+          .replace(/{{email}}/g, 'recipient@example.com')}</div>
+        
+ 
       </div>
     </div>
   </div>
@@ -167,7 +160,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token }) => {
       if (selected) {
         setSubject(`Reminder: ${selected.name}`)
         setContent(
-          `Hi {{firstName}},\n\nThis is a reminder for our upcoming session: **${selected.name}**.\n\nDate: ${new Date(selected.startTime).toLocaleDateString()}\nTime: ${new Date(selected.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}\nMeeting Link: ${selected.googleMeetLink}\n\nWe look forward to seeing you there!\n\nBest regards,\nUpward Team`,
+          `Hi {{firstName}},\n\nThis is a reminder for our upcoming session: **${selected.name}**.\n\nDate: ${new Date(selected.startTime).toLocaleDateString()}\nTime: ${new Date(selected.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}\nMeeting Link: ${selected.googleMeetLink}\n\nWe look forward to seeing you there!`,
         )
       }
     }
@@ -925,7 +918,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token }) => {
               >
                 {content.trim() || subject.trim() ? (
                   <iframe
-                    srcDoc={buildPreviewHtml(content, subject)}
+                    srcDoc={buildPreviewHtml(content)}
                     title="Email preview"
                     style={{
                       width: '100%',

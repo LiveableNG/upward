@@ -81,27 +81,14 @@ export const wrapInBaseTemplate = (content: string, subject: string) => {
                 </tr>
               </table>
 
-              <!-- SUBJECT (Optional, displayed in-body for context) -->
-              ${
-                subject
-                  ? `<div style="color: #111827; font-size: 24px; font-weight: 800; line-height: 1.3; margin-bottom: 24px; letter-spacing: -0.01em;">${subject}</div>`
-                  : ''
-              }
+
 
               <!-- BODY CONTENT -->
               <div style="color: #374151; font-size: 16px; line-height: 1.7; word-break: break-word;">
                 ${content}
               </div>
 
-              <!-- SIGNATURE -->
-              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 40px; border-top: 1px solid #F3F4F6; padding-top: 32px;">
-                <tr>
-                  <td>
-                    <p style="margin: 0; color: #111827; font-weight: 600; font-size: 16px;">The Upward Team</p>
-                    <p style="margin: 4px 0 0 0; color: #6B7280; font-size: 14px;">Building your pathway home.</p>
-                  </td>
-                </tr>
-              </table>
+
             </td>
           </tr>
 
@@ -111,10 +98,15 @@ export const wrapInBaseTemplate = (content: string, subject: string) => {
               <p style="margin: 0 0 12px 0; color: #9CA3AF; font-size: 12px; line-height: 1.6;">
                 You're receiving this because you're part of the Upward waitlist community.
               </p>
-              <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
-                <a href="https://upward.goodtenants.africa" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Our Website</a>
-                <a href="mailto:hello@goodtenants.africa" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Contact Support</a>
-              </div>
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 12px;">
+                <tr>
+                  <td align="center">
+                    <a href="https://upward.goodtenants.io" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Our Website</a>
+                    <span style="color: #D1D5DB; padding: 0 12px;">&nbsp;&bull;&nbsp;</span>
+                    <a href="mailto:hello@goodtenants.africa" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Contact Support</a>
+                  </td>
+                </tr>
+              </table>
               <p style="margin: 20px 0 0 0; color: #D1D5DB; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;">
                 © 2026 Upward by GoodTenants
               </p>

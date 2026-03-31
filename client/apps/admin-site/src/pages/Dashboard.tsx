@@ -134,13 +134,11 @@ const BenefitSection = ({
                       letterSpacing: '0.04em',
                     }}
                   >
-                    {
-                      item.label === 'CREDIT'
-                        ? 'RENT COLLECTION'
-                        : item.label === 'TITLE'
+                    {item.label === 'CREDIT'
+                      ? 'RENT COLLECTION'
+                      : item.label === 'TITLE'
                         ? 'BROKERAGE'
-                        : item.label.replace(/_/g, ' ')
-                    }
+                        : item.label.replace(/_/g, ' ')}
                   </div>
                   <div
                     style={{
@@ -284,6 +282,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     cities: [] as string[],
     selectedSessions: [] as string[],
     completed: 'all' as 'all' | 'true' | 'false',
+    missingName: 'all' as 'all' | 'true',
   })
   const navigate = useNavigate()
   const [dateRange, setDateRange] = useState<'all' | 'today' | 'yesterday' | '2days' | '1week'>(
@@ -330,6 +329,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
           selectedSession: filters.selectedSessions.join(','),
         }),
         ...(filters.completed !== 'all' && { completed: filters.completed }),
+        ...(filters.missingName === 'true' && { missingName: 'true' }),
         ...(dateBounds?.from && { createdFrom: dateBounds.from }),
         ...(dateBounds?.to && { createdTo: dateBounds.to }),
       })
@@ -377,6 +377,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             selectedSession: filters.selectedSessions.join(','),
           }),
           ...(filters.completed !== 'all' && { completed: filters.completed }),
+          ...(filters.missingName === 'true' && { missingName: 'true' }),
           ...(dateBounds?.from && { createdFrom: dateBounds.from }),
           ...(dateBounds?.to && { createdTo: dateBounds.to }),
         })
@@ -502,6 +503,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
           selectedSession: filters.selectedSessions.join(','),
         }),
         ...(filters.completed !== 'all' && { completed: filters.completed }),
+        ...(filters.missingName === 'true' && { missingName: 'true' }),
         ...(dateBounds?.from && { createdFrom: dateBounds.from }),
         ...(dateBounds?.to && { createdTo: dateBounds.to }),
       })
@@ -552,6 +554,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     filters.cities,
     filters.selectedSessions,
     filters.completed,
+    filters.missingName,
     dateRange,
     fetchUsers,
   ])
@@ -866,7 +869,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     filters.countries.length +
     filters.cities.length +
     filters.selectedSessions.length +
-    (filters.completed !== 'all' ? 1 : 0)
+    (filters.completed !== 'all' ? 1 : 0) +
+    (filters.missingName === 'true' ? 1 : 0)
 
   return (
     <div className="page-container fade-in" style={{ paddingTop: '20px' }}>
@@ -1139,6 +1143,52 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             </div>
           </div>
 
+          <div style={{ marginBottom: '16px' }}>
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}
+            >
+              <Users size={16} style={{ color: 'var(--text-muted)' }} />
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                Missing Data
+              </span>
+            </div>
+            <div className="date-chips">
+              {[
+                { key: 'all' as const, label: 'All Recipients' },
+                { key: 'true' as const, label: 'Missing First Name' },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  className={`date-chip${filters.missingName === key ? ' active' : ''}`}
+                  onClick={() => setFilters((prev) => ({ ...prev, missingName: key }))}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    ...(filters.missingName === key && key === 'true'
+                      ? { background: '#f59e0b20', borderColor: '#f59e0b', color: '#f59e0b' }
+                      : {}),
+                  }}
+                >
+                  {filters.missingName === key && key === 'true' ? (
+                    <AlertTriangle size={14} />
+                  ) : (
+                    <Filter size={14} />
+                  )}
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
             <Filter size={16} style={{ color: 'var(--text-muted)' }} />
             <span
@@ -1177,6 +1227,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                     countries: [],
                     cities: [],
                     selectedSessions: [],
+                    missingName: 'all',
                   }))
                 }
                 style={{

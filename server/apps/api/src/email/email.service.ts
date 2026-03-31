@@ -92,7 +92,7 @@ export class EmailService {
       </tr>
       </table>
       <p class="footer-text" style="color:#6B7280;font-size:15px;margin:0;">Thank you for joining early.</p>
-      <p class="brand-name" style="color:#d97757;font-size:16px;margin-top:12px;font-weight:600;">The Upward Team</p>
+
       </td>
       </tr>
       </table>
