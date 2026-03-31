@@ -31,6 +31,7 @@ interface TenantRow {
   emergency_contact_name: string | null
   emergency_contact_phone: string | null
   address: string | null
+  rent_anniversary: string | null
   membership_level: string
   total_invites: number
   created_at: string
@@ -46,6 +47,7 @@ interface TenantProfileDto {
   emergencyContactName?: string
   emergencyContactPhone?: string
   address?: string
+  rentAnniversary?: string
 }
 
 // Lightweight guard — reuses the existing JWT infra but typed for tenants
@@ -151,6 +153,59 @@ export class TenantAuthController {
     return { accessToken: token, tenant: this.formatTenant(tenant) }
   }
 
+  @Post('complete-profile')
+  @HttpCode(HttpStatus.OK)
+  completeProfile(
+    @Body()
+    body: {
+      email: string
+      password: string
+      phone?: string
+      occupation?: string
+      gender?: string
+      dateOfBirth?: string
+    },
+  ) {
+    const db = this.sqlite.getDb()
+    const emailHash = this.hashEmail(body.email)
+
+    const tenant = db
+      .prepare('SELECT * FROM tenants WHERE email_hash = ?')
+      .get(emailHash) as TenantRow
+
+    if (!tenant) {
+      throw new UnauthorizedException('Tenant record not found')
+    }
+
+    if (tenant.signup_status !== 'not_signed_up' && tenant.password_hash) {
+      throw new ConflictException('Account already fully registered. Please log in.')
+    }
+
+    // Update the tenant record with the new details and set password
+    db.prepare(
+      `UPDATE tenants 
+       SET password_hash = ?, 
+           phone = COALESCE(?, phone), 
+           occupation = COALESCE(?, occupation), 
+           gender = COALESCE(?, gender), 
+           date_of_birth = COALESCE(?, date_of_birth),
+           signup_status = 'web_only',
+           updated_at = datetime('now')
+       WHERE id = ?`,
+    ).run(
+      this.hashPassword(body.password),
+      body.phone || null,
+      body.occupation || null,
+      body.gender || null,
+      body.dateOfBirth || null,
+      tenant.id,
+    )
+
+    const updated = db.prepare('SELECT * FROM tenants WHERE id = ?').get(tenant.id) as TenantRow
+    const token = this.generateToken(updated)
+    return { accessToken: token, tenant: this.formatTenant(updated) }
+  }
+
   @Get('me')
   @UseGuards(TenantJwtGuard)
   getMe(@Req() req: { tenantPayload: { sub: number } }) {
@@ -210,6 +265,7 @@ export class TenantAuthController {
       emergencyContactName: 'emergency_contact_name',
       emergencyContactPhone: 'emergency_contact_phone',
       address: 'address',
+      rentAnniversary: 'rent_anniversary',
     }
 
     const updates: string[] = []
@@ -234,7 +290,8 @@ export class TenantAuthController {
     if (updated.membership_level === 'Window Shopper') {
        const isComplete = updated.full_name && updated.phone && updated.date_of_birth && 
                           updated.gender && updated.occupation && updated.marital_status && 
-                          updated.address && updated.emergency_contact_name && updated.emergency_contact_phone
+                          updated.address && updated.emergency_contact_name && updated.emergency_contact_phone &&
+                          updated.rent_anniversary
        
        if (isComplete) {
           db.prepare(`UPDATE tenants SET membership_level = 'General Member' WHERE id = ?`).run(id)
@@ -277,6 +334,7 @@ export class TenantAuthController {
       emergencyContactName: t.emergency_contact_name,
       emergencyContactPhone: t.emergency_contact_phone,
       address: t.address,
+      rentAnniversary: t.rent_anniversary,
       membershipLevel: t.membership_level,
       totalInvites: t.total_invites,
       createdAt: t.created_at,

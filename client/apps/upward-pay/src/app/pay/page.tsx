@@ -5,11 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { api, type PaymentRequestData } from '@/lib/api'
 import { isLoggedIn } from '@/lib/auth'
 import { formatCurrency } from '@/lib/utils'
-import { AlertTriangle, Smartphone, MapPin, CreditCard, X, ShieldCheck, ArrowLeft } from 'lucide-react'
+import { AlertTriangle, Smartphone, MapPin, CreditCard, X, ShieldCheck, ArrowLeft, UserCheck, Info } from 'lucide-react'
 import PoweredByUpward, { UpwardLogo } from '@/components/payment/PoweredByUpward'
 import CompanyHeader from '@/components/payment/CompanyHeader'
 import InvoiceCard from '@/components/payment/InvoiceCard'
-import BenefitChips from '@/components/payment/BenefitChips'
 import PaymentSuccess from '@/components/payment/PaymentSuccess'
 import MockPaystackCheckout from '@/components/payment/MockPaystackCheckout'
 
@@ -26,6 +25,9 @@ function PaymentContent() {
   const [receiptNumber, setReceiptNumber] = useState('')
   const userLoggedIn = isLoggedIn()
   const [isNative, setIsNative] = useState(false)
+
+  // Guest flow state
+  const [isGuestFlow, setIsGuestFlow] = useState(false)
 
   useEffect(() => {
     // Check if running in a native app (Capacitor)
@@ -54,7 +56,12 @@ function PaymentContent() {
         return
       }
 
-      // Pre-fill email for logged-in users — no longer needed for guest
+      // Detect guest flow: tenant in system but not yet signed up
+      const signupStatus = result.tenant?.signupStatus
+      if (signupStatus === 'not_signed_up' || signupStatus === 'not_found' || signupStatus === 'pm_sourced') {
+        setIsGuestFlow(true)
+      }
+
       setStage('invoice')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load payment')
@@ -73,8 +80,8 @@ function PaymentContent() {
   async function handlePay() {
     if (!data || !token) return
 
-    // Mandatory login check
-    if (!userLoggedIn) {
+    // For registered users: require login
+    if (!userLoggedIn && !isGuestFlow) {
       router.push(`/login?redirect=${encodeURIComponent(`/pay?token=${token}`)}`)
       return
     }
@@ -82,11 +89,21 @@ function PaymentContent() {
     const email = data.tenant?.email || ''
 
     try {
-      // Step 1: Initialize payment on backend → get reference
-      const initResult = await api.initializePayment({
-        paymentToken: token,
-        email,
-      })
+      let initResult
+
+      if (isGuestFlow && !userLoggedIn) {
+        // Guest flow: use public endpoint, no auth needed
+        initResult = await api.guestInitializePayment({
+          paymentToken: token,
+          email,
+        })
+      } else {
+        // Registered user: use authenticated endpoint
+        initResult = await api.initializePayment({
+          paymentToken: token,
+          email,
+        })
+      }
 
       // Step 2: Open Paystack checkout with the returned data
       setCheckoutData({
@@ -184,12 +201,20 @@ function PaymentContent() {
           invoiceNumber={receiptNumber || data.paymentRequest.invoiceNumber}
           companyName={data.company.name}
           isLoggedIn={userLoggedIn}
+          isGuest={isGuestFlow && !userLoggedIn}
+          guestEmail={data.tenant?.email}
+          guestName={data.tenant?.fullName}
           onLogin={() =>
             router.push(
               `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`,
             )
           }
           onGoToDashboard={() => router.push('/dashboard')}
+          onCompleteProfile={() =>
+            router.push(
+              `/complete-profile?email=${encodeURIComponent(data.tenant?.email || '')}&name=${encodeURIComponent(data.tenant?.fullName || '')}`
+            )
+          }
         />
         <PoweredByUpward className="pay-page__footer-badge" />
       </div>
@@ -208,6 +233,7 @@ function PaymentContent() {
       </div>
     )
   }
+
   /* ─── Invoice Review ─── */
   return (
     <div className="pay-page">
@@ -253,8 +279,27 @@ function PaymentContent() {
         </div>
       </header>
 
+      {/* Guest Info Banner */}
+      {isGuestFlow && !userLoggedIn && (
+        <div className="pay-page__guest-banner">
+          <span className="pay-page__guest-banner-icon"><UserCheck size={18} /></span>
+          <div className="pay-page__guest-banner-content">
+            <p className="pay-page__guest-banner-title">Pay without signing in</p>
+            <p className="pay-page__guest-banner-text">
+              Your property manager has set up this link for you. Complete your profile after payment to unlock full benefits.
+            </p>
+          </div>
+          <span
+            className="pay-page__guest-banner-info"
+            title="Your name and email were securely shared by your property manager"
+          >
+            <Info size={14} />
+          </span>
+        </div>
+      )}
+
       {/* Web Promo Banner */}
-      {!isNative && (
+      {!isNative && !isGuestFlow && (
         <div className="pay-page__web-promo">
           <span className="pay-page__web-promo-icon"><Smartphone size={20} /></span>
           <div className="pay-page__web-promo-content">
@@ -300,25 +345,39 @@ function PaymentContent() {
 
           {/* Payment Tray */}
           <div className="pay-page__tray">
-            {userLoggedIn && data.tenant && (
+            {/* Show pre-filled name for both logged-in and guest users */}
+            {data.tenant && (
               <div className="pay-page__saved-method">
                 <div className="pay-page__saved-icon"><CreditCard size={20} /></div>
                 <div>
-                  <span className="pay-page__saved-label">Quick pay as</span>
+                  <span className="pay-page__saved-label">
+                    {isGuestFlow && !userLoggedIn ? 'Paying as' : 'Quick pay as'}
+                  </span>
                   <span className="pay-page__saved-name">{data.tenant.fullName}</span>
                 </div>
+                {isGuestFlow && !userLoggedIn && (
+                  <span className="pay-page__guest-tag">Guest</span>
+                )}
               </div>
             )}
 
             <button className="btn btn--primary btn--full btn--pay" onClick={handlePay}>
               {userLoggedIn
                 ? 'Confirm & Pay'
-                : `Login to Pay ${formatCurrency(data.paymentRequest.totalAmount, data.paymentRequest.currency)}`}
+                : isGuestFlow
+                  ? `Pay ${formatCurrency(data.paymentRequest.totalAmount, data.paymentRequest.currency)}`
+                  : `Login to Pay ${formatCurrency(data.paymentRequest.totalAmount, data.paymentRequest.currency)}`}
             </button>
+
+            {isGuestFlow && !userLoggedIn && (
+              <p className="pay-page__guest-note">
+                No account needed · Complete your profile after payment
+              </p>
+            )}
 
             <p className="pay-page__secure-note" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
               <ShieldCheck size={14} color="var(--clay)" />
-              Encrypyted and Secure
+              Encrypted and Secure
             </p>
           </div>
         </div>

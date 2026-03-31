@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Search, Gift, User } from 'lucide-react'
+import { Home, User, Sparkles, History } from 'lucide-react'
 import { UpwardLogo } from '@/components/payment/PoweredByUpward'
 import { api } from '@/lib/api'
 
@@ -20,8 +20,8 @@ export default function BottomNav() {
 
   const navItems = [
     { label: 'Home', icon: Home, href: '/dashboard' },
-    { label: 'Properties', icon: Search, href: '/dashboard/properties' },
-    { label: 'Rewards', icon: Gift, href: '/dashboard/rewards' },
+    { label: 'Activity', icon: History, href: '/dashboard/transactions' },
+    { label: 'Special', icon: Sparkles, href: '/dashboard/coming-soon' },
     { label: 'Me', icon: User, href: '/dashboard/me' },
   ]
 

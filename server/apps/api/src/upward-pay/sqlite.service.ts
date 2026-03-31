@@ -91,6 +91,7 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
         emergency_contact_name  TEXT,
         emergency_contact_phone TEXT,
         address         TEXT,
+        rent_anniversary TEXT,
         membership_level TEXT DEFAULT 'Window Shopper',
         total_invites   INTEGER DEFAULT 0,
         preferences     TEXT DEFAULT '{}',
@@ -321,6 +322,27 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
       0,
     )
 
+    // Tenant 5: Guest tenant for simulation (James Okafor)
+    insertTenant.run(
+      'tenant-uuid-005',
+      'james.okafor@email.com',
+      this.hashEmail('james.okafor@email.com'),
+      '+2348055555555',
+      'James Okafor',
+      'not_signed_up',
+      null,
+      1,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      'Window Shopper',
+      0,
+    )
+
     // ── Payment Requests
     const insertRequest = this.db.prepare(
       `INSERT INTO payment_requests (uuid, company_id, property_id, tenant_id, tenant_email_hash, total_amount, status, payment_link_token, invoice_number, notes)
@@ -355,6 +377,20 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
       'Initial rent payment — Horizon Tower 12A',
     )
 
+    // Payment for guest tenant (James Okafor)
+    insertRequest.run(
+      'pr-uuid-003',
+      1,
+      1,
+      5,
+      this.hashEmail('james.okafor@email.com'),
+      45000000, // ₦450,000 in kobo
+      'pending',
+      'pay-token-guest-001',
+      'INV-2024-0105',
+      'Service Charge — Palm Court Apartments',
+    )
+
     // ── Payment Line Items
     const insertItem = this.db.prepare(
       `INSERT INTO payment_line_items (uuid, payment_request_id, company_id, tenant_id, label, category, amount)
@@ -370,7 +406,9 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
     insertItem.run(this.uuid(), 2, 2, 2, 'Annual Rent', 'rent', 150000000)
     insertItem.run(this.uuid(), 2, 2, 2, 'Caution Deposit', 'caution', 30000000)
     insertItem.run(this.uuid(), 2, 2, 2, 'Agency Fee', 'agency', 10000000)
-    insertItem.run(this.uuid(), 2, 2, 2, 'Legal Fee', 'legal', 5000000)
+    // James's invoice breakdown
+    insertItem.run(this.uuid(), 3, 1, 5, 'Service Charge', 'management', 35000000)
+    insertItem.run(this.uuid(), 3, 1, 5, 'Security Fee', 'security', 10000000)
 
     // ── Invitations
     const insertInvitation = this.db.prepare(

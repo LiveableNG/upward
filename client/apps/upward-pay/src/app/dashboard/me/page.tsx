@@ -55,7 +55,7 @@ export default function MePage() {
 
   if (!tenant) return null
 
-  const hasMissingFields = !tenant.dateOfBirth || !tenant.gender || !tenant.occupation || !tenant.address || !tenant.emergencyContactName
+  const hasMissingFields = !tenant.dateOfBirth || !tenant.gender || !tenant.occupation || !tenant.address || !tenant.emergencyContactName || !tenant.rentAnniversary
 
   if (view === 'personal') {
     return (
@@ -167,6 +167,14 @@ export default function MePage() {
                   label="Residential Address" 
                   value={formData.address || ''}
                   onChange={v => setFormData({...formData, address: v})}
+                />
+                <DetailOrEdit 
+                  isEditing={isEditing}
+                  icon={Calendar} 
+                  label="Rent Anniversary" 
+                  value={formData.rentAnniversary || ''}
+                  placeholder="DD/MM (e.g. 15th April)"
+                  onChange={v => setFormData({...formData, rentAnniversary: v})}
                 />
                 
                 <div style={{ padding: '24px 20px 8px 20px', fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>

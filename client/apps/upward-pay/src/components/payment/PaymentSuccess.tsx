@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Download, ReceiptText } from 'lucide-react'
+import { Check, Download, ReceiptText, TrendingUp, Shield, Receipt, Gift, ArrowRight } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
 export default function PaymentSuccess({
@@ -9,16 +9,24 @@ export default function PaymentSuccess({
   invoiceNumber,
   companyName,
   isLoggedIn,
+  isGuest = false,
+  guestEmail,
+  guestName,
   onLogin,
   onGoToDashboard,
+  onCompleteProfile,
 }: {
   amount: number
   currency?: string
   invoiceNumber: string
   companyName: string
   isLoggedIn: boolean
+  isGuest?: boolean
+  guestEmail?: string
+  guestName?: string
   onLogin: () => void
   onGoToDashboard: () => void
+  onCompleteProfile?: () => void
 }) {
   function handlePrint() {
     const printWindow = window.open('', '_blank')
@@ -139,7 +147,70 @@ export default function PaymentSuccess({
           </button>
 
           {/* CTA */}
-          {!isLoggedIn ? (
+          {isLoggedIn ? (
+            <div className="ps-cta">
+              <button className="btn btn--primary btn--full" onClick={onGoToDashboard}>
+                Go to Dashboard
+              </button>
+              <button className="btn btn--secondary btn--full btn--sm" onClick={onGoToDashboard} style={{ marginTop: 8 }}>
+                <ReceiptText size={14} />
+                View All Receipts
+              </button>
+            </div>
+          ) : isGuest ? (
+            <div className="ps-cta ps-cta--guest">
+              <div className="ps-cta__guest-header">
+                <div className="ps-cta__guest-avatar">
+                  {guestName ? guestName.charAt(0).toUpperCase() : '?'}
+                </div>
+                <div>
+                  <p className="ps-cta__guest-greeting">
+                    Great job, {guestName ? guestName.split(' ')[0] : 'there'}! 🎉
+                  </p>
+                  <p className="ps-cta__guest-email">{guestEmail}</p>
+                </div>
+              </div>
+
+              <div className="ps-cta__guest-divider" />
+
+              <h3 className="ps-cta__title">Your account is waiting</h3>
+              <p className="ps-cta__text">
+                We&apos;ve already set up your profile. Just add a password to unlock your full Upward experience.
+              </p>
+
+              <div className="ps-cta__benefits">
+                <div className="ps-cta__benefit">
+                  <div className="ps-cta__benefit-icon" style={{ background: 'rgba(34,197,94,0.12)' }}>
+                    <TrendingUp size={14} color="#22c55e" />
+                  </div>
+                  <span>Build your rent credit score</span>
+                </div>
+                <div className="ps-cta__benefit">
+                  <div className="ps-cta__benefit-icon" style={{ background: 'rgba(217,119,87,0.12)' }}>
+                    <Gift size={14} color="#d97757" />
+                  </div>
+                  <span>Earn rewards on every payment</span>
+                </div>
+                <div className="ps-cta__benefit">
+                  <div className="ps-cta__benefit-icon" style={{ background: 'rgba(59,130,246,0.12)' }}>
+                    <Shield size={14} color="#3b82f6" />
+                  </div>
+                  <span>Verified tenancy record</span>
+                </div>
+                <div className="ps-cta__benefit">
+                  <div className="ps-cta__benefit-icon" style={{ background: 'rgba(139,92,246,0.12)' }}>
+                    <Receipt size={14} color="#8b5cf6" />
+                  </div>
+                  <span>Digital receipts, forever</span>
+                </div>
+              </div>
+
+              <button className="btn btn--primary btn--full btn--pay" onClick={onCompleteProfile} style={{ marginTop: 12 }}>
+                Complete My Profile <ArrowRight size={18} />
+              </button>
+              <p className="ps-cta__note">Takes 30 seconds · Free forever</p>
+            </div>
+          ) : (
             <div className="ps-cta">
               <h3 className="ps-cta__title">Access your receipt anytime</h3>
               <p className="ps-cta__text">
@@ -149,16 +220,6 @@ export default function PaymentSuccess({
                 Log In to Your Account
               </button>
               <p className="ps-cta__note">Securely view your payment history</p>
-            </div>
-          ) : (
-            <div className="ps-cta">
-              <button className="btn btn--primary btn--full" onClick={onGoToDashboard}>
-                Go to Dashboard
-              </button>
-              <button className="btn btn--secondary btn--full btn--sm" onClick={onGoToDashboard} style={{ marginTop: 8 }}>
-                <ReceiptText size={14} />
-                View All Receipts
-              </button>
             </div>
           )}
         </div>

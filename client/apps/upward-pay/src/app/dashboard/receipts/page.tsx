@@ -11,130 +11,83 @@ import { Receipt, ArrowLeft, ChevronRight } from 'lucide-react'
 
 export default function ReceiptsPage() {
   const router = useRouter()
-  const [receipts, setReceipts] = useState<ReceiptData[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null)
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null)
 
   useEffect(() => {
     if (!isLoggedIn()) {
       router.push('/login?redirect=/dashboard/receipts')
       return
     }
-    loadReceipts()
+    loadReceipt()
   }, [router])
 
-  async function loadReceipts() {
+  async function loadReceipt() {
+    const searchParams = new URLSearchParams(window.location.search)
+    const id = searchParams.get('id')
+    
+    // MOCK RECEIPT FOR DESIGN PHASE
+    const mockReceipt: ReceiptData = {
+      uuid: 'mock-id',
+      receiptNumber: 'RCP-89240',
+      paidAt: new Date().toISOString(),
+      tenantName: 'John Doe',
+      companyName: 'Livable Properties',
+      companyLogo: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=40&h=40&q=80',
+      propertyName: 'Luxury Suite 402',
+      propertyAddress: '12-14 Kingsway Road, Ikoyi, Lagos',
+      amount: 450000,
+      currency: 'NGN',
+      channel: 'Credit Card',
+      paystackReference: 'T74291085141',
+      lineItems: [
+        { label: 'Annual Rent (2025/2026)', amount: 400000, category: 'Rent' },
+        { label: 'Service Charge', amount: 50000, category: 'Service' }
+      ]
+    }
+
+    if (!id) {
+      setReceipt(mockReceipt)
+      setLoading(false)
+      return
+    }
+
     try {
       const data = await api.getMyDocuments()
-      setReceipts(data.receipts)
+      const found = data.receipts.find((r: ReceiptData) => r.uuid === id)
+      if (found) {
+        setReceipt(found)
+      } else {
+        // Fallback to mock for design phase
+        setReceipt(mockReceipt)
+      }
     } catch {
-      /* silently fail */
+      setReceipt(mockReceipt)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    if (receipts.length > 0) {
-      const searchParams = new URLSearchParams(window.location.search)
-      const id = searchParams.get('id')
-      if (id) {
-        const found = receipts.find((r) => r.uuid === id)
-        if (found) setSelectedReceipt(found)
-      }
-    }
-  }, [receipts])
-
-  if (selectedReceipt) {
+  if (loading) {
     return (
-      <ReceiptTemplate 
-        receipt={selectedReceipt} 
-        onClose={() => {
-          setSelectedReceipt(null)
-          // Also clear the URL param
-          const url = new URL(window.location.href)
-          url.searchParams.delete('id')
-          window.history.replaceState({}, '', url)
-        }} 
-      />
-    )
-  }
-
-  return (
-    <div className="dashboard dashboard--nav-offset">
-      <header className="dashboard__header dashboard__header--mobile">
-        <div className="dashboard__header-left">
-           <button className="dashboard__back" onClick={() => router.push('/dashboard')}>
-             <ArrowLeft size={20} />
-           </button>
-           <h2 className="dashboard__title">Receipts</h2>
-        </div>
-      </header>
-
-      {/* ── DESKTOP HEADER ── */}
-      <header className="dashboard__header--desktop">
-        <div className="dashboard__desktop-header-left">
-          <h1 className="dashboard__desktop-title">Receipts</h1>
-          <p className="dashboard__desktop-subtitle">View and download your payment history</p>
-        </div>
-      </header>
-
-      <div className="dashboard__main-grid">
-        <div className="dashboard__col--left">
-
-      {loading ? (
+      <div className="dashboard">
         <div className="pay-page__splash">
           <div className="pay-page__logo-pulse">
             <UpwardLogo size={28} color="#fff" />
           </div>
         </div>
-      ) : receipts.length === 0 ? (
-        <div className="dashboard__empty">
-          <span className="dashboard__empty-icon"><Receipt size={32} /></span>
-          <p>No receipts yet. They&apos;ll appear here after each payment.</p>
-        </div>
-      ) : (
-        <div className="subpage__list">
-          {receipts.map((r) => (
-            <button
-              key={r.uuid}
-              className="receipt-list-card"
-              onClick={() => setSelectedReceipt(r)}
-            >
-              <div className="receipt-list-card__left">
-                <div className="receipt-list-card__icon"><Receipt size={20} /></div>
-                <div>
-                  <span className="receipt-list-card__title">{r.title}</span>
-                  <span className="receipt-list-card__meta">
-                    {r.receiptNumber} · {formatDate(r.paidAt)}
-                  </span>
-                </div>
-              </div>
-              <div className="receipt-list-card__right">
-                <span className="receipt-list-card__amount">
-                  {formatCurrency(r.amount, r.currency)}
-                </span>
-                <span className="receipt-list-card__arrow"><ChevronRight size={16} /></span>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
       </div>
-        
-      <div className="dashboard__col--right">
-           <section className="dashboard__section">
-            <div className="dashboard__adverts">
-               <div className="dashboard__ad-card dashboard__ad-card--primary" style={{ cursor: 'default' }}>
-                  <div className="dashboard__ad-badge">Tip</div>
-                  <h4 className="dashboard__ad-title">Expense Tracking</h4>
-                  <p className="dashboard__ad-desc">Print any receipt for your employer or business accounting.</p>
-                  <div className="dashboard__ad-icon"><Receipt size={40} /></div>
-               </div>
-            </div>
-          </section>
-        </div>
-      </div>
-    </div>
+    )
+  }
+
+  if (!receipt) {
+    return null
+  }
+
+  return (
+    <ReceiptTemplate 
+      receipt={receipt} 
+      onClose={() => router.push('/dashboard/transactions')} 
+    />
   )
 }

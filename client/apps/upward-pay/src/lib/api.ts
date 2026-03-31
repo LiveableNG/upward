@@ -1,4 +1,4 @@
-const API_BASE = 'https://upward-api-pnqn.vercel.app/api/v1'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://upward-api-pnqn.vercel.app/api/v1'
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('upward_token') : null
@@ -96,6 +96,7 @@ export interface TenantProfile {
   emergencyContactName?: string
   emergencyContactPhone?: string
   address?: string
+  rentAnniversary?: string
   membershipLevel: string
   totalInvites: number
   createdAt: string
@@ -225,6 +226,10 @@ export const api = {
   initializePayment: (data: { paymentToken: string; email: string; amount?: number }) =>
     request<PaymentInitResponse>('/pay/initialize', { method: 'POST', body: JSON.stringify(data) }),
 
+  // Guest payment — no auth token needed, uses public endpoint
+  guestInitializePayment: (data: { paymentToken: string; email: string }) =>
+    request<PaymentInitResponse>('/public/pay/guest-initialize', { method: 'POST', body: JSON.stringify(data) }),
+
   verifyPayment: (reference: string) =>
     request<PaymentVerifyResponse>(`/pay/verify/${reference}`, {
       method: 'POST',
@@ -241,7 +246,17 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  // Complete profile after guest payment — creates account from PM-sourced tenant record
+  completeProfile: (data: { email: string; password: string; phone?: string; dateOfBirth?: string; occupation?: string; gender?: string }) =>
+    request<AuthResponse>('/tenant-auth/complete-profile', { method: 'POST', body: JSON.stringify(data) }),
+
   togglePaymentStatus: (token: string, status: string) =>
+    request<{ success: boolean; status: string }>(`/public/test/toggle-payment/${token}`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    }),
+
+  toggleGuestPaymentStatus: (token: string, status: string) =>
     request<{ success: boolean; status: string }>(`/public/test/toggle-payment/${token}`, {
       method: 'POST',
       body: JSON.stringify({ status }),

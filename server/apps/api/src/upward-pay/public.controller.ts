@@ -1,4 +1,4 @@
-import { Controller, Get, Param, NotFoundException, GoneException, Post, Body } from '@nestjs/common'
+import { Controller, Get, Param, NotFoundException, GoneException, Post, Body, HttpCode, HttpStatus } from '@nestjs/common'
 import * as crypto from 'crypto'
 import { SqliteService } from './sqlite.service'
 
@@ -209,5 +209,56 @@ export class PublicController {
     }
 
     return { success: true, status }
+  }
+
+  /**
+   * POST /public/pay/guest-initialize
+   * Public (No Auth) initialize for guests
+   */
+  @Post('pay/guest-initialize')
+  @HttpCode(HttpStatus.OK)
+  guestInitialize(@Body() body: { paymentToken: string; email: string }) {
+    const db = this.sqlite.getDb()
+
+    const request = db
+      .prepare('SELECT * FROM payment_requests WHERE payment_link_token = ?')
+      .get(body.paymentToken) as PaymentRequestRow | undefined
+
+    if (!request) {
+      throw new NotFoundException('Payment request not found or invalid token')
+    }
+
+    if (request.status === 'paid') {
+      throw new GoneException('This payment has already been completed')
+    }
+
+    const reference = `MOCK_GUEST_PSK_${crypto.randomBytes(8).toString('hex').toUpperCase()}`
+
+    // Create a pending transaction
+    const txUuid = crypto.randomUUID()
+    db.prepare(
+      `INSERT INTO payment_transactions (uuid, payment_request_id, tenant_id, company_id, amount, currency, paystack_reference, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
+    ).run(
+      txUuid,
+      request.id,
+      request.tenant_id,
+      request.company_id,
+      request.total_amount,
+      request.currency,
+      reference,
+    )
+
+    return {
+      status: true,
+      message: 'Guest payment initialized',
+      data: {
+        reference,
+        amount: request.total_amount,
+        currency: request.currency,
+        authorization_url: `https://checkout.paystack.com/mock/${reference}`,
+        access_code: `MOCK_GUEST_AC_${reference}`,
+      },
+    }
   }
 }

@@ -1,5 +1,4 @@
 import BottomNav from '@/components/dashboard/BottomNav'
-import AiWidget from '@/components/dashboard/AiWidget'
 
 export default function DashboardLayout({
   children,
@@ -18,9 +17,6 @@ export default function DashboardLayout({
       <main className="dashboard-layout__main">
         {children}
       </main>
-
-      {/* Globally mounting AI Widget for the entire dashboard */}
-      <AiWidget />
     </div>
   )
 }
