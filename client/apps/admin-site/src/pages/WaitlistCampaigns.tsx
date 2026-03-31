@@ -91,7 +91,7 @@ const HOW_IT_WORKS = [
   },
 ]
 
-const wrapInPreviewTemplate = (content: string, subject: string) => {
+const wrapInPreviewTemplate = (content: string) => {
   if (content.toLowerCase().includes('<html') || content.toLowerCase().includes('<!doctype')) {
     return content
   }
@@ -121,19 +121,12 @@ const wrapInPreviewTemplate = (content: string, subject: string) => {
           <span style="color:#d97757; font-size:14px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase;">Upward</span>
           <div style="color:#6B7280; font-size:12px; margin-top:4px;">by GoodTenants</div>
         </div>
-        ${
-          subject
-            ? `<div style="color: #111827; font-size: 24px; font-weight: 800; line-height: 1.3; margin-bottom: 24px;">${subject}</div>`
-            : ''
-        }
-        <div style="color:#374151; font-size:16px; line-height:1.7;">${content
-          .replace(/{{firstName}}/g, 'Alex')
-          .replace(/{{lastName}}/g, 'Recipient')}</div>
         
-        <div style="margin-top: 40px; border-top: 1px solid #F3F4F6; padding-top: 32px;">
-          <p style="margin:0; color:#111827; font-weight:600; font-size:16px;">The Upward Team</p>
-          <p style="margin:4px 0 0 0; color:#6B7280; font-size:14px;">Building your pathway home.</p>
-        </div>
+        <div style="color:#374151; font-size:16px; line-height:1.7;">${content
+          .replace(/{{firstName}}/g, 'Recipient')
+          .replace(/{{lastName}}/g, '(Test)')}</div>
+        
+
       </div>
     </div>
   </div>
@@ -746,7 +739,7 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                     HTML Preview
                   </div>
                   <iframe
-                    srcDoc={wrapInPreviewTemplate(campaign.htmlContent, campaign.subject)}
+                    srcDoc={wrapInPreviewTemplate(campaign.htmlContent)}
                     title={`Week ${campaign.weekNumber} preview`}
                     style={{ width: '100%', minHeight: '400px', border: 'none', display: 'block' }}
                     sandbox="allow-same-origin"
@@ -1130,7 +1123,7 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                   >
                     {form.htmlContent.trim() ? (
                       <iframe
-                        srcDoc={wrapInPreviewTemplate(form.htmlContent, form.subject)}
+                        srcDoc={wrapInPreviewTemplate(form.htmlContent)}
                         title="Email preview"
                         style={{
                           width: '100%',
