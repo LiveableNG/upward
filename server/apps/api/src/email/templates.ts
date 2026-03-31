@@ -54,9 +54,6 @@ export const wrapInBaseTemplate = (content: string, subject: string, email: stri
   </style>
 </head>
 <body style="margin: 0 !important; padding: 0 !important; background-color: #F9FAFB;">
-  <div style="display: none; font-size: 1px; color: #fefefe; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
-    ${subject}
-  </div>
   
   <table border="0" cellpadding="0" cellspacing="0" width="100%">
     <tr>

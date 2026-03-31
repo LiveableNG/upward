@@ -1077,4 +1077,30 @@ export class AdminService {
 
     return results
   }
+
+  async retryEmail(logId: string, requesterId: string) {
+    const log = await this.prisma.upward_email_log.findUnique({
+      where: { id: logId },
+    })
+
+    if (!log || !log.email) {
+      throw new NotFoundException('Email log not found')
+    }
+
+    const result = await this.emailService.sendEmailWithRetry({
+      userId: log.userId ?? '',
+      email: log.email,
+      subject: log.subject,
+      html: log.body || '',
+      type: `${log.type}_RETRY`,
+    })
+
+    await this.adminLogService.logAction(
+      requesterId,
+      'RESEND_EMAIL',
+      `Manually retried email (log: ${logId}) to ${log.email}. Success: ${result.success}`,
+    )
+
+    return result
+  }
 }

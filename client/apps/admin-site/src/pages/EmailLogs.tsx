@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react'
-import { Mail, Search, RefreshCcw, Eye, X, CheckCircle, AlertCircle, Clock } from 'lucide-react'
+import {
+  Mail,
+  Search,
+  RefreshCcw,
+  Eye,
+  X,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  RotateCcw,
+} from 'lucide-react'
 import { apiService } from '../services/api.service'
+import { showToast } from '@upward/client-core'
 
 interface EmailLog {
   id: string
@@ -30,6 +41,22 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
   const [typeFilter, setTypeFilter] = useState('All')
   const [statusFilter, setStatusFilter] = useState('All')
   const [viewLog, setViewLog] = useState<EmailLog | null>(null)
+  const [retrying, setRetrying] = useState<string | null>(null)
+
+  const handleRetry = async (id: string) => {
+    if (retrying) return
+    setRetrying(id)
+    try {
+      await apiService.post(`/admin/email/logs/${id}/retry`, {}, token)
+      showToast('Retry dispatched! Logic will attempt delivery up to 3 times. ✓')
+      fetchLogs()
+    } catch (err) {
+      console.error('Manual retry failed', err)
+      showToast('Manual retry trigger failed', true)
+    } finally {
+      setRetrying(null)
+    }
+  }
 
   const fetchLogs = async () => {
     setLoading(true)
@@ -386,6 +413,30 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
                       >
                         <Eye size={14} /> View
                       </button>
+
+                      {log.status === 'FAILED' && (
+                        <button
+                          onClick={() => handleRetry(log.id)}
+                          disabled={!!retrying}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid #fee2e2',
+                            background: '#fef2f2',
+                            color: '#dc2626',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: retrying === log.id ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          <RotateCcw size={14} className={retrying === log.id ? 'spin' : ''} />
+                          {retrying === log.id ? 'Retrying...' : 'Retry'}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -455,6 +506,52 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
                 <X size={20} />
               </button>
             </div>
+
+            {viewLog.status === 'FAILED' && (
+              <div
+                style={{
+                  background: '#fef2f2',
+                  borderBottom: '1px solid #fee2e2',
+                  padding: '12px 24px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    color: '#dc2626',
+                    fontSize: '13px',
+                  }}
+                >
+                  <AlertCircle size={16} />
+                  <span>This email failed to deliver. You can attempt a manual retry.</span>
+                </div>
+                <button
+                  onClick={() => handleRetry(viewLog.id)}
+                  disabled={!!retrying}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    backgroundColor: '#dc2626',
+                    color: '#fff',
+                    border: 'none',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: retrying === viewLog.id ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <RotateCcw size={14} className={retrying === viewLog.id ? 'spin' : ''} />
+                  {retrying === viewLog.id ? 'Processing Retry...' : 'Retry Now'}
+                </button>
+              </div>
+            )}
 
             <div style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
               <div
