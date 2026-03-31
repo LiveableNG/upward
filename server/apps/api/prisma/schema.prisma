@@ -74,6 +74,7 @@ model upward_email_log {
   subject   String
   type      String   @default("GENERIC") // CONFIRMATION, BULK, SESSION_INVITE, etc.
   status    String   // SENT, FAILED
+  body      String?  @db.Text
   mailgunId String?
   lastError String?
   retries   Int      @default(0)
@@ -161,6 +162,19 @@ model upward_email_campaign {
 
   @@index([weekNumber])
   @@index([isActive])
+}
+
+model upward_system_email {
+  id          String   @id @default(uuid())
+  slug        String   @unique // SIGNUP_CONFIRMATION, etc.
+  subject     String
+  htmlContent String   @db.Text
+  textContent String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
 }
 
 model upward_fairness_story {

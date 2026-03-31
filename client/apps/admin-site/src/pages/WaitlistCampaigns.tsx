@@ -4,7 +4,6 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Play,
   ToggleLeft,
   ToggleRight,
   Users,
@@ -57,50 +56,27 @@ interface WaitlistCampaignsProps {
   token: string
 }
 
-const DEFAULT_WEEK1_HTML = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin:0;padding:0;background-color:#F9FAFB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;background-color:#F9FAFB;">
-    <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;background-color:#ffffff;border-radius:16px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);overflow:hidden;border:1px solid #E5E7EB;">
-        <tr><td style="height:4px;background-color:#d97757;"></td></tr>
-        <tr><td style="padding:40px;">
-          <div style="margin-bottom:32px;">
-            <span style="color:#d97757;font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Upward</span>
-            <div style="color:#6B7280;font-size:12px;margin-top:4px;">by GoodTenants</div>
-          </div>
-          <h1 style="color:#111827;font-size:24px;font-weight:700;margin:0 0 20px 0;">Welcome to Upward, {{firstName}}!</h1>
-          <p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 16px 0;">
-            You're officially on the Upward waitlist — and we couldn't be more excited to have you here.
-          </p>
-          <p style="color:#4B5563;font-size:16px;line-height:1.6;margin:0 0 24px 0;">
-            Upward is building a pathway to better rental terms, financial services, and eventually homeownership — with a community of people building the same future.
-          </p>
-          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-            <tr>
-              <td style="background-color:#FFF7ED;border:1px solid #FFEDD5;border-radius:12px;padding:24px;">
-                <div style="color:#9A3412;font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;">What to expect</div>
-                <p style="color:#431407;font-size:15px;margin:0;line-height:1.5;">Every week we'll send you updates, housing insights, and tips to help you prepare for early access to Upward.</p>
-              </td>
-            </tr>
-          </table>
-          <p style="color:#6B7280;font-size:15px;margin:0;">Stay tuned — exciting things are coming.</p>
-          <p style="color:#d97757;font-size:16px;margin-top:12px;font-weight:600;">The Upward Team</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`
+const DEFAULT_WEEK1_HTML = `<h1 style="color:#111827;font-size:24px;font-weight:700;margin:0 0 20px 0;">Welcome to Upward, {{firstName}}!</h1>
+<p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 16px 0;">
+  You're officially on the Upward waitlist — and we couldn't be more excited to have you here.
+</p>
+<p style="color:#4B5563;font-size:16px;line-height:1.6;margin:0 0 24px 0;">
+  Upward is building a pathway to better rental terms, financial services, and eventually homeownership — with a community of people building the same future.
+</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+  <tr>
+    <td style="background-color:#FFF7ED;border:1px solid #FFEDD5;border-radius:12px;padding:24px;">
+      <div style="color:#9A3412;font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;">What to expect</div>
+      <p style="color:#431407;font-size:15px;margin:0;line-height:1.5;">Every week we'll send you updates, housing insights, and tips to help you prepare for early access to Upward.</p>
+    </td>
+  </tr>
+</table>
+<p style="color:#6B7280;font-size:15px;margin:0;">Stay tuned — exciting things are coming.</p>`
 
 const HOW_IT_WORKS = [
   {
     icon: <Clock size={18} color="#d97757" />,
-    title: 'Every Tuesday 08:00 WAT',
+    title: 'Every Tuesday 19:00 WAT',
     desc: 'Cron job runs automatically — no manual action needed.',
   },
   {
@@ -115,12 +91,61 @@ const HOW_IT_WORKS = [
   },
 ]
 
+const wrapInPreviewTemplate = (content: string, subject: string) => {
+  if (content.toLowerCase().includes('<html') || content.toLowerCase().includes('<!doctype')) {
+    return content
+  }
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { background-color: #F9FAFB; margin: 0; padding: 0; font-family: -apple-system, system-ui, sans-serif; }
+    .main { padding: 40px 20px; }
+    .card { 
+      max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 16px; 
+      border: 1px solid #E5E7EB; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); 
+    }
+    @media (max-width: 600px) {
+      .main { padding: 20px 0; }
+      .card { border-radius: 0; border-left: none; border-right: none; }
+      .inner { padding: 32px 20px !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="main">
+    <div class="card">
+      <div style="height:4px; background:#d97757;"></div>
+      <div class="inner" style="padding: 48px 40px;">
+        <div style="margin-bottom:40px;">
+          <span style="color:#d97757; font-size:14px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase;">Upward</span>
+          <div style="color:#6B7280; font-size:12px; margin-top:4px;">by GoodTenants</div>
+        </div>
+        ${
+          subject
+            ? `<div style="color: #111827; font-size: 24px; font-weight: 800; line-height: 1.3; margin-bottom: 24px;">${subject}</div>`
+            : ''
+        }
+        <div style="color:#374151; font-size:16px; line-height:1.7;">${content
+          .replace(/{{firstName}}/g, 'Alex')
+          .replace(/{{lastName}}/g, 'Recipient')}</div>
+        
+        <div style="margin-top: 40px; border-top: 1px solid #F3F4F6; padding-top: 32px;">
+          <p style="margin:0; color:#111827; font-weight:600; font-size:16px;">The Upward Team</p>
+          <p style="margin:4px 0 0 0; color:#6B7280; font-size:14px;">Building your pathway home.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`
+}
+
 const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [audience, setAudience] = useState<AudiencePreview[]>([])
   const [loading, setLoading] = useState(true)
   const [audienceLoading, setAudienceLoading] = useState(false)
-  const [triggering, setTriggering] = useState(false)
   const [triggerResult, setTriggerResult] = useState<TriggerResult | null>(null)
   const [showEditor, setShowEditor] = useState(false)
   const [showAudience, setShowAudience] = useState(false)
@@ -241,20 +266,6 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
     }
   }
 
-  const handleTrigger = async () => {
-    setTriggering(true)
-    setTriggerResult(null)
-    try {
-      const result = await apiService.post('/admin/campaigns/trigger', {}, token)
-      setTriggerResult(result.data)
-      showToast(`Campaign sent! ${result.data.sent} emails dispatched ✓`)
-    } catch {
-      showToast('Failed to trigger campaign', true)
-    } finally {
-      setTriggering(false)
-    }
-  }
-
   const handleShowAudience = () => {
     setShowAudience(true)
     fetchAudience()
@@ -298,7 +309,7 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
             <p
               style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0, maxWidth: '560px' }}
             >
-              Auto-sends every <strong>Tuesday at 08:00 WAT</strong>. Each waitlist user receives
+              Auto-sends every <strong>Tuesday at 19:00 WAT</strong>. Each waitlist user receives
               the content matching their week number — calculated from when they joined the drip.
               Current users default to <strong>Week 1</strong> until next Tuesday.
             </p>
@@ -324,38 +335,6 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
               }}
             >
               <Eye size={16} /> Preview Audience
-            </button>
-            <button
-              id="btn-trigger-campaign"
-              onClick={handleTrigger}
-              disabled={triggering || campaigns.filter((c) => c.isActive).length === 0}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 18px',
-                borderRadius: '12px',
-                border: 'none',
-                background: triggering
-                  ? 'var(--accent-muted)'
-                  : 'linear-gradient(135deg, #d97757, #c2622e)',
-                color: '#fff',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: triggering ? 'not-allowed' : 'pointer',
-                transition: 'var(--transition)',
-                opacity: campaigns.filter((c) => c.isActive).length === 0 ? 0.5 : 1,
-              }}
-            >
-              {triggering ? (
-                <>
-                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Running…
-                </>
-              ) : (
-                <>
-                  <Play size={16} /> Run Now (Test)
-                </>
-              )}
             </button>
             <button
               id="btn-add-week"
@@ -767,7 +746,7 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                     HTML Preview
                   </div>
                   <iframe
-                    srcDoc={campaign.htmlContent}
+                    srcDoc={wrapInPreviewTemplate(campaign.htmlContent, campaign.subject)}
                     title={`Week ${campaign.weekNumber} preview`}
                     style={{ width: '100%', minHeight: '400px', border: 'none', display: 'block' }}
                     sandbox="allow-same-origin"
@@ -860,22 +839,29 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                 flex: 1,
                 overflowY: 'auto',
                 display: 'flex',
-                flexDirection: 'row',
+                flexDirection: showEmailPreview && window.innerWidth < 1024 ? 'column' : 'row',
                 minHeight: 0,
               }}
             >
               {/* Form pane */}
               <div
                 style={{
-                  flex: '0 0 auto',
-                  width: showEmailPreview ? '420px' : '100%',
+                  flex: showEmailPreview && window.innerWidth < 1024 ? 'none' : '0 0 auto',
+                  width: showEmailPreview ? (window.innerWidth < 1024 ? '100%' : '420px') : '100%',
                   overflowY: 'auto',
                   padding: '28px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '20px',
-                  borderRight: showEmailPreview ? '1px solid var(--border)' : 'none',
-                  transition: 'width 0.3s ease',
+                  borderRight:
+                    showEmailPreview && window.innerWidth >= 1024
+                      ? '1px solid var(--border)'
+                      : 'none',
+                  borderBottom:
+                    showEmailPreview && window.innerWidth < 1024
+                      ? '1px solid var(--border)'
+                      : 'none',
+                  transition: 'all 0.3s ease',
                 }}
               >
                 <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '16px' }}>
@@ -1144,7 +1130,7 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                   >
                     {form.htmlContent.trim() ? (
                       <iframe
-                        srcDoc={form.htmlContent}
+                        srcDoc={wrapInPreviewTemplate(form.htmlContent, form.subject)}
                         title="Email preview"
                         style={{
                           width: '100%',
@@ -1374,10 +1360,10 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: '6px',
+                                  fontWeight: 500,
                                 }}
                               >
-                                <AlertTriangle size={13} color="#d97757" /> No campaign — will be
-                                skipped
+                                <AlertTriangle size={13} color="#d97757" /> No content (will skip)
                               </span>
                             )}
                           </div>

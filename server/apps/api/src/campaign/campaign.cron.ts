@@ -8,14 +8,7 @@ export class CampaignCronTask {
 
   constructor(private readonly campaignService: CampaignService) {}
 
-  /**
-   * Runs at 08:00 WAT (UTC+1) every Tuesday.
-   * Cron expression: "0 7 * * 2"  →  07:00 UTC = 08:00 WAT
-   *
-   * The job calculates which "drip week" each opted-in waitlist user is in
-   * and sends them the corresponding campaign content saved by admins.
-   */
-  @Cron('0 7 * * 2', {
+  @Cron('0 19 * * 2', {
     name: 'tuesday-campaign',
     timeZone: 'Africa/Lagos',
   })

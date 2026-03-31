@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service'
 import { EmailService } from '../email/email.service'
 import { AdminLogService } from '../admin-log/admin-log.service'
 import { formatName } from '@upward/common-utils'
+import { wrapInBaseTemplate, processCampaignHtml } from '../email/templates'
 
 @Injectable()
 export class CampaignService {
@@ -166,10 +167,13 @@ export class CampaignService {
       for (const user of usersInWeek) {
         const formattedName = user.firstName ? formatName(user.firstName) : 'there'
 
-        const personalizedHtml = campaign.htmlContent
-          .replace(/\{\{firstName\}\}/g, formattedName)
-          .replace(/\{\{lastName\}\}/g, user.lastName ? formatName(user.lastName) : '')
-          .replace(/\{\{email\}\}/g, user.email)
+        const personalizedHtmlBody = processCampaignHtml(campaign.htmlContent, user)
+        const isFullHtml =
+          personalizedHtmlBody.toLowerCase().includes('<html') ||
+          personalizedHtmlBody.toLowerCase().includes('<!doctype')
+        const finalHtml = isFullHtml
+          ? personalizedHtmlBody
+          : wrapInBaseTemplate(personalizedHtmlBody, campaign.subject)
 
         const personalizedText = campaign.textContent
           ? campaign.textContent
@@ -182,7 +186,7 @@ export class CampaignService {
             userId: user.id,
             email: user.email,
             subject: campaign.subject,
-            html: personalizedHtml,
+            html: finalHtml,
             text: personalizedText,
             type: `CAMPAIGN_WEEK_${weekNumber}`,
           })
