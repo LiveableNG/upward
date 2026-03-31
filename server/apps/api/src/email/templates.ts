@@ -104,6 +104,8 @@ export const wrapInBaseTemplate = (content: string, subject: string) => {
                     <a href="https://upward.goodtenants.io" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Our Website</a>
                     <span style="color: #D1D5DB; padding: 0 12px;">&nbsp;&bull;&nbsp;</span>
                     <a href="mailto:hello@goodtenants.africa" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Contact Support</a>
+                    <span style="color: #D1D5DB; padding: 0 12px;">&nbsp;&bull;&nbsp;</span>
+                    <a href="https://upward.goodtenants.io/unsubscribe?email={{email}}" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Unsubscribe</a>
                   </td>
                 </tr>
               </table>

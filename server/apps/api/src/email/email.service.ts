@@ -167,6 +167,8 @@ export class EmailService {
           subject,
           text,
           html,
+          'h:List-Unsubscribe': `<https://upward.goodtenants.io/unsubscribe?email=${email}>`,
+          'h:List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
         })
         success = true
         mailgunId = response.id
@@ -232,6 +234,8 @@ export class EmailService {
         to: [email],
         subject: subject,
         html: content,
+        'h:List-Unsubscribe': `<https://upward.goodtenants.io/unsubscribe?email=${email}>`,
+        'h:List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
       })
 
       // LOG IT! (Previously missing)

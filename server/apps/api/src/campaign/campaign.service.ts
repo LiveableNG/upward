@@ -95,7 +95,7 @@ export class CampaignService {
     this.logger.log('[Campaign] Tuesday drip campaign starting…')
 
     const users = await this.prisma.upward_waitlist.findMany({
-      where: { acceptTerms: true },
+      where: { acceptTerms: true, unsubscribed: false },
       select: {
         id: true,
         email: true,
@@ -235,7 +235,7 @@ export class CampaignService {
 
   async previewCampaignAudience() {
     const users = await this.prisma.upward_waitlist.findMany({
-      where: { acceptTerms: true },
+      where: { acceptTerms: true, unsubscribed: false },
       select: { id: true, campaignWeekSent: true },
     })
 
