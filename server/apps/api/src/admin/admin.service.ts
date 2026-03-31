@@ -955,12 +955,7 @@ export class AdminService {
       select: { email: true },
     })
 
-    const emails = superadmins.map((s) => s.email)
-
-    // Fallback if no superadmins
-    if (emails.length === 0) {
-      emails.push('hello@goodtenants.africa')
-    }
+    const emails = Array.from(new Set(superadmins.map((s) => s.email.toLowerCase())))
 
     const stats = {
       completed: completedToday,
