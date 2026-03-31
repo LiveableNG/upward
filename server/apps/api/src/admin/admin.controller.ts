@@ -285,4 +285,9 @@ export class AdminController {
       }),
     }
   }
+
+  @Post('email/logs/:id/retry')
+  async retryEmail(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return { data: await this.adminService.retryEmail(id, req.user.id) }
+  }
 }

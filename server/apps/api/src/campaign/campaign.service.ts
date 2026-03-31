@@ -164,44 +164,120 @@ export class CampaignService {
       let weekSent = 0
       let weekFailed = 0
 
-      for (const user of usersInWeek) {
-        const formattedName = user.firstName ? formatName(user.firstName) : 'there'
+      const BATCH_SIZE = 50
+      const DELAY_MS = 2000 // 2 seconds between batches
+      const failedUsersInWeek: typeof usersInWeek = []
 
-        const personalizedHtmlBody = processCampaignHtml(campaign.htmlContent, user)
-        const isFullHtml =
-          personalizedHtmlBody.toLowerCase().includes('<html') ||
-          personalizedHtmlBody.toLowerCase().includes('<!doctype')
-        const finalHtml = isFullHtml
-          ? personalizedHtmlBody
-          : wrapInBaseTemplate(personalizedHtmlBody, campaign.subject, user.email)
+      for (let i = 0; i < usersInWeek.length; i += BATCH_SIZE) {
+        const batch = usersInWeek.slice(i, i + BATCH_SIZE)
+        this.logger.log(
+          `[Campaign] Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(
+            usersInWeek.length / BATCH_SIZE,
+          )} for Week ${weekNumber} (${batch.length} users)`,
+        )
 
-        const personalizedText = campaign.textContent
-          ? campaign.textContent
-              .replace(/\{\{firstName\}\}/g, formattedName)
-              .replace(/\{\{email\}\}/g, user.email)
-          : undefined
+        await Promise.all(
+          batch.map(async (user) => {
+            const formattedName = user.firstName ? formatName(user.firstName) : 'there'
+            const personalizedHtmlBody = processCampaignHtml(campaign.htmlContent, user)
+            const isFullHtml =
+              personalizedHtmlBody.toLowerCase().includes('<html') ||
+              personalizedHtmlBody.toLowerCase().includes('<!doctype')
+            const finalHtml = isFullHtml
+              ? personalizedHtmlBody
+              : wrapInBaseTemplate(personalizedHtmlBody, campaign.subject, user.email)
 
-        try {
-          await this.emailService.sendEmailWithRetry({
-            userId: user.id,
-            email: user.email,
-            subject: campaign.subject,
-            html: finalHtml,
-            text: personalizedText,
-            type: `CAMPAIGN_WEEK_${weekNumber}`,
-          })
-          weekSent++
-          totalSent++
-        } catch (err) {
-          weekFailed++
-          totalFailed++
-          this.logger.error(`[Campaign] Failed to send Week ${weekNumber} to ${user.email}`, err)
+            const personalizedText = campaign.textContent
+              ? campaign.textContent
+                  .replace(/\{\{firstName\}\}/g, formattedName)
+                  .replace(/\{\{email\}\}/g, user.email)
+              : undefined
+
+            try {
+              const res = await this.emailService.sendEmailWithRetry({
+                userId: user.id,
+                email: user.email,
+                subject: campaign.subject,
+                html: finalHtml,
+                text: personalizedText,
+                type: `CAMPAIGN_WEEK_${weekNumber}`,
+              })
+
+              if (res.success) {
+                weekSent++
+                totalSent++
+                await this.prisma.upward_waitlist.update({
+                  where: { id: user.id },
+                  data: { campaignWeekSent: { increment: 1 } },
+                })
+              } else {
+                failedUsersInWeek.push(user)
+              }
+            } catch (err) {
+              failedUsersInWeek.push(user)
+              this.logger.error(
+                `[Campaign] Unexpected error sending Week ${weekNumber} to ${user.email}`,
+                err,
+              )
+            }
+          }),
+        )
+
+        if (i + BATCH_SIZE < usersInWeek.length) {
+          await new Promise((resolve) => setTimeout(resolve, DELAY_MS))
         }
+      }
 
-        await this.prisma.upward_waitlist.update({
-          where: { id: user.id },
-          data: { campaignWeekSent: { increment: 1 } },
-        })
+      // SECONDARY RETRY FOR FAILED EMAILS
+      if (failedUsersInWeek.length > 0) {
+        this.logger.log(
+          `[Campaign] Retrying ${failedUsersInWeek.length} failed emails for Week ${weekNumber}...`,
+        )
+        // We do these one by one to avoid overwhelming again
+        for (const user of failedUsersInWeek) {
+          const formattedName = user.firstName ? formatName(user.firstName) : 'there'
+          const personalizedHtmlBody = processCampaignHtml(campaign.htmlContent, user)
+          const isFullHtml =
+            personalizedHtmlBody.toLowerCase().includes('<html') ||
+            personalizedHtmlBody.toLowerCase().includes('<!doctype')
+          const finalHtml = isFullHtml
+            ? personalizedHtmlBody
+            : wrapInBaseTemplate(personalizedHtmlBody, campaign.subject, user.email)
+
+          const personalizedText = campaign.textContent
+            ? campaign.textContent
+                .replace(/\{\{firstName\}\}/g, formattedName)
+                .replace(/\{\{email\}\}/g, user.email)
+            : undefined
+
+          try {
+            const res = await this.emailService.sendEmailWithRetry({
+              userId: user.id,
+              email: user.email,
+              subject: campaign.subject,
+              html: finalHtml,
+              text: personalizedText,
+              type: `CAMPAIGN_WEEK_${weekNumber}_RETRY`,
+            })
+
+            if (res.success) {
+              weekSent++
+              totalSent++
+              await this.prisma.upward_waitlist.update({
+                where: { id: user.id },
+                data: { campaignWeekSent: { increment: 1 } },
+              })
+            } else {
+              weekFailed++
+              totalFailed++
+              this.logger.error(`[Campaign] Retry failed for Week ${weekNumber} to ${user.email}`)
+            }
+          } catch (err) {
+            weekFailed++
+            totalFailed++
+            this.logger.error(`[Campaign] Retry error for Week ${weekNumber} to ${user.email}`, err)
+          }
+        }
       }
 
       details.push({
