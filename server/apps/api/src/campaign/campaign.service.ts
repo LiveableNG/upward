@@ -173,7 +173,7 @@ export class CampaignService {
           personalizedHtmlBody.toLowerCase().includes('<!doctype')
         const finalHtml = isFullHtml
           ? personalizedHtmlBody
-          : wrapInBaseTemplate(personalizedHtmlBody, campaign.subject)
+          : wrapInBaseTemplate(personalizedHtmlBody, campaign.subject, user.email)
 
         const personalizedText = campaign.textContent
           ? campaign.textContent

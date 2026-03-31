@@ -91,7 +91,19 @@ export class EmailService {
       </td>
       </tr>
       </table>
-      <p class="footer-text" style="color:#6B7280;font-size:15px;margin:0;">Thank you for joining early.</p>
+      <p class="footer-text" style="color:#6B7280;font-size:15px;margin:0 0 24px 0;">Thank you for joining early.</p>
+
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-top:1px solid #E5E7EB;padding-top:24px;">
+        <tr>
+          <td align="left">
+            <a href="https://upward.goodtenants.io" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Our Website</a>
+            <span style="color: #D1D5DB; padding: 0 12px;">&bull;</span>
+            <a href="mailto:hello@goodtenants.africa" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Contact Support</a>
+            <span style="color: #D1D5DB; padding: 0 12px;">&bull;</span>
+            <a href="https://upward.goodtenants.io/unsubscribe?email={{email}}" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Unsubscribe</a>
+          </td>
+        </tr>
+      </table>
 
       </td>
       </tr>
