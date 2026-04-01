@@ -1,5 +1,8 @@
 'use client'
 
+import React, { useState, useEffect } from 'react'
+import { Shield, Clock, Home, Wallet, Check, ChevronRight, Plus, Building2, ArrowLeft, Loader, Star, Receipt, AlertCircle } from 'lucide-react'
+
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 const MOCK_SAVED_LANDLORDS = [
   {
@@ -85,82 +88,6 @@ type Landlord = {
 
 type PayRentStep = 'select' | 'new' | 'confirm' | 'processing' | 'success'
 
-// ─── ICONS (inline SVG components) ────────────────────────────────────────────
-const icons = {
-  ArrowLeft: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m15 18-6-6 6-6" />
-    </svg>
-  ),
-  Building2: ({ size = 20 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
-      <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
-      <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
-      <path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" />
-    </svg>
-  ),
-  Plus: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  ),
-  ChevronRight: ({ size = 16 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  ),
-  Check: ({ size = 20 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  ),
-  Clock: () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-    </svg>
-  ),
-  Shield: () => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  ),
-  Home: ({ size = 20 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
-    </svg>
-  ),
-  Wallet: () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
-      <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
-      <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
-    </svg>
-  ),
-  Loader: () => (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
-      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-    </svg>
-  ),
-  Star: () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-    </svg>
-  ),
-  Receipt: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
-      <path d="M16 8H8M16 12H8M12 16H8" />
-    </svg>
-  ),
-  AlertCircle: () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" />
-    </svg>
-  ),
-}
-
 // ─── FORMATTING ───────────────────────────────────────────────────────────────
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 }).format(amount)
@@ -176,7 +103,7 @@ function SubpageHeader({ title, onBack }: { title: string; onBack: () => void })
   return (
     <div className="subpage__header">
       <button className="subpage__back" onClick={onBack}>
-        <icons.ArrowLeft />
+        <ArrowLeft size={20} />
       </button>
       <h2 className="subpage__title">{title}</h2>
       <div style={{ width: 36 }} />
@@ -255,13 +182,13 @@ function StepSelect({
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-solid)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface)' }}
         >
           <div style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--clay-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--clay)' }}>
-            <icons.Plus />
+            <Plus size={20} />
           </div>
           <div style={{ textAlign: 'left' }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>New landlord</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Add bank account details</div>
           </div>
-          <div style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}><icons.ChevronRight /></div>
+          <div style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}><ChevronRight size={16} /></div>
         </button>
       </div>
     </div>
@@ -293,12 +220,12 @@ function LandlordCard({ landlord: l, onSelect, tag }: { landlord: Landlord; onSe
         <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{l.bankName} · {l.accountNumber}</div>
         {l.lastPaid && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, color: 'var(--text-muted)', fontSize: 11 }}>
-            <icons.Clock />
+            <Clock size={14} />
             Last paid {formatDate(l.lastPaid)} · {formatCurrency(l.lastAmount)}
           </div>
         )}
       </div>
-      <div style={{ color: 'var(--text-muted)' }}><icons.ChevronRight /></div>
+      <div style={{ color: 'var(--text-muted)' }}><ChevronRight size={16} /></div>
     </div>
   )
 }
@@ -362,10 +289,10 @@ function StepNewLandlord({ onContinue, onBack }: { onContinue: (data: Partial<La
           />
           {resolving && (
             <div style={{ flexShrink: 0, color: 'var(--warning)', animation: 'spin 1s linear infinite' }}>
-              <icons.Loader />
+              <Loader size={20} />
             </div>
           )}
-          {resolved && <div style={{ flexShrink: 0, color: 'var(--success)' }}><icons.Check size={18} /></div>}
+          {resolved && <div style={{ flexShrink: 0, color: 'var(--success)' }}><Check size={18} /></div>}
         </div>
       </div>
 
@@ -376,7 +303,7 @@ function StepNewLandlord({ onContinue, onBack }: { onContinue: (data: Partial<La
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{form.accountName}</div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{selectedBank?.name}</div>
           </div>
-          <div style={{ marginLeft: 'auto', color: 'var(--success)' }}><icons.Check size={16} /></div>
+          <div style={{ marginLeft: 'auto', color: 'var(--success)' }}><Check size={16} /></div>
         </div>
       )}
 
@@ -394,7 +321,7 @@ function StepNewLandlord({ onContinue, onBack }: { onContinue: (data: Partial<La
         </div>
         {Number(form.amount) > 0 && Number(form.amount) < 1000 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, color: 'var(--warning)', fontSize: 12 }}>
-            <icons.AlertCircle />
+            <AlertCircle size={16} />
             Minimum payment is ₦1,000
           </div>
         )}
@@ -422,7 +349,7 @@ function StepNewLandlord({ onContinue, onBack }: { onContinue: (data: Partial<La
           background: form.save ? 'var(--clay)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center',
           transition: 'all 0.2s', flexShrink: 0,
         }}>
-          {form.save && <icons.Check size={13} />}
+          {form.save && <Check size={13} />}
         </div>
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Save for future payments</div>
@@ -491,7 +418,7 @@ function StepConfirm({
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 20, fontSize: 11, color: 'var(--text-muted)' }}>
-        <icons.Shield />
+        <Shield size={12} />
         Secured by Upward · 256-bit encryption
       </div>
 
@@ -523,7 +450,7 @@ function StepSuccess({ landlord, amount, onDone }: { landlord: Landlord; amount:
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px 32px', textAlign: 'center' }}>
       <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, var(--success) 0%, #16a34a 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 32px rgba(34,197,94,0.3)', marginBottom: 24, animation: 'successPop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards' }}>
-        <icons.Check size={32} />
+        <Check size={32} />
       </div>
 
       <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text)', marginBottom: 8 }}>Payment sent!</h2>
@@ -549,7 +476,7 @@ function StepSuccess({ landlord, amount, onDone }: { landlord: Landlord; amount:
 
       <div style={{ width: '100%', padding: '20px', background: 'linear-gradient(135deg, var(--clay-faint) 0%, transparent 100%)', border: '1px solid rgba(217,119,87,0.12)', borderRadius: 'var(--radius-lg)', marginBottom: 24, textAlign: 'left' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <icons.Star />
+          <Star size={14} fill="currentColor" />
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Rent credit recorded</span>
         </div>
         <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
@@ -561,7 +488,7 @@ function StepSuccess({ landlord, amount, onDone }: { landlord: Landlord; amount:
         Back to dashboard
       </button>
       <button className="btn btn--secondary btn--full">
-        <icons.Receipt />
+        <Receipt size={20} />
         Download receipt
       </button>
     </div>
@@ -573,7 +500,7 @@ const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWe
 const inputWrapStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, padding: '0 16px', background: 'var(--surface)', border: '1px solid var(--border-solid)', borderRadius: 'var(--radius-md)', transition: 'all 0.2s' }
 const inputStyle: React.CSSProperties = { flex: 1, background: 'none', border: 'none', padding: '14px 0', fontSize: 15, fontFamily: 'var(--font)', color: 'var(--text)', outline: 'none', width: '100%' }
 
-// ─── AMOUNT SELECTION ─────────────────────────────────────────────────────────
+// ─── STEP: AMOUNT SELECTION ───────────────────────────────────────────────────
 function StepAmount({ landlord, onContinue, onBack }: { landlord: Landlord; onContinue: (amount: number, narration: string) => void; onBack: () => void }) {
   const [amount, setAmount] = React.useState(landlord.lastAmount > 0 ? String(landlord.lastAmount) : '')
   const [narration, setNarration] = React.useState('')
@@ -645,10 +572,7 @@ function StepAmount({ landlord, onContinue, onBack }: { landlord: Landlord; onCo
   )
 }
 
-// ─── MAIN PAY RENT FLOW ───────────────────────────────────────────────────────
-
-import React, { useState, useEffect } from 'react'
-
+// ─── MAIN PAY RENT PAGE ───────────────────────────────────────────────────────
 export function PayRentPage({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<PayRentStep>('select')
   const [selectedLandlord, setSelectedLandlord] = useState<Landlord | null>(null)
@@ -670,23 +594,6 @@ export function PayRentPage({ onBack }: { onBack: () => void }) {
     if (step === 'new') { setStep('select'); setIsNew(false) }
     else if (step === 'confirm') { setStep(isNew ? 'new' : 'select') }
     else { onBack() }
-  }
-
-  function handleSelectLandlord(l: Landlord) {
-    setSelectedLandlord(l)
-    if (l.lastAmount > 0) {
-      setStep('confirm')
-      setPayAmount(l.lastAmount)
-      setNarration('Rent payment')
-    } else {
-      setStep('confirm')
-      setPayAmount(0)
-    }
-    setStep('select') // reset to amount step via amount step
-    // Actually show amount step
-    setSelectedLandlord(l)
-    setStep('confirm')
-    // We'll use a separate "amount" step
   }
 
   return (
@@ -759,8 +666,41 @@ export function PayRentPage({ onBack }: { onBack: () => void }) {
   )
 }
 
-// ─── DASHBOARD PAY RENT CARD (replaces success card when no pending) ──────────
-export function PayRentCard({ onOpen }: { onOpen: () => void }) {
+// ─── DASHBOARD PAY RENT CARD ──────────────────────────────────────────────────
+export function PayRentCard({ onOpen, compact }: { onOpen: () => void; compact?: boolean }) {
+  if (compact) {
+    return (
+      <div
+        onClick={onOpen}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '16px',
+          background: 'var(--surface)',
+          border: '1px solid var(--border-solid)',
+          borderRadius: 'var(--radius-lg)',
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          animation: 'fadeInUp 0.5s ease-out backwards',
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--clay)' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-solid)' }}
+      >
+        <div style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--clay-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--clay)', flexShrink: 0 }}>
+          <Home size={20} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Send Rent Payment</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Quick transfer to any landlord</div>
+        </div>
+        <div style={{ color: 'var(--clay)' }}>
+          <ChevronRight size={20} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       style={{
@@ -775,7 +715,7 @@ export function PayRentCard({ onOpen }: { onOpen: () => void }) {
       <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
           <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--clay-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--clay)' }}>
-            <icons.Home size={20} />
+            <Home size={20} />
           </div>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Pay Rent</div>
@@ -799,25 +739,18 @@ export function PayRentCard({ onOpen }: { onOpen: () => void }) {
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--clay)' }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
               >
-                <LandlordAvatar letter={l.avatar} size={34} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{l.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <icons.Clock />
-                    Last: {formatCurrency(l.lastAmount)}
-                  </div>
-                </div>
-                <div style={{ color: 'var(--clay)' }}><icons.ChevronRight size={14} /></div>
+                <LandlordAvatar letter={l.avatar} size={32} />
+                <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{l.name}</div>
+                <ChevronRight size={14} />
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <div style={{ padding: '14px 16px' }}>
-        <button onClick={onOpen} className="btn btn--primary btn--full btn--sm">
-          <icons.Wallet />
-          Pay rent now
+      <div style={{ padding: 16 }}>
+        <button className="btn btn--primary btn--full btn--sm" onClick={onOpen}>
+          New Payment
         </button>
       </div>
     </div>

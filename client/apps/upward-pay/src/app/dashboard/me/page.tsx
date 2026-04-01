@@ -6,10 +6,11 @@ import {
   ArrowLeft, User, Settings, CreditCard, Palette, LogOut, 
   Mail, Phone, Calendar, Briefcase, Heart, MapPin, 
   ShieldAlert, AlertCircle, ChevronRight, Check, X, Edit2, 
-  Trophy, Star, Crown, Shield, Users, Vote
+  Trophy, Star, Crown, Shield, Users, Vote, FileText, Download
 } from 'lucide-react'
 import { logout, getTenant, setTenant as setLocalTenant } from '@/lib/auth'
-import { api, type TenantProfile } from '@/lib/api'
+import { api, type TenantProfile, type ContractData } from '@/lib/api'
+import { formatCurrency, formatDate } from '@/lib/utils'
 
 export default function MePage() {
   const router = useRouter()
@@ -18,12 +19,29 @@ export default function MePage() {
   const [tenant, setTenant] = useState<TenantProfile | null>(null)
   const [formData, setFormData] = useState<Partial<TenantProfile>>({})
   const [saving, setSaving] = useState(false)
+  const [contracts, setContracts] = useState<ContractData[]>([])
+  const [loadingDocs, setLoadingDocs] = useState(false)
 
   useEffect(() => {
     const t = getTenant()
     setTenant(t)
-    if (t) setFormData(t)
+    if (t) {
+      setFormData(t)
+      loadDocuments()
+    }
   }, [])
+
+  async function loadDocuments() {
+    setLoadingDocs(true)
+    try {
+      const data = await api.getMyDocuments()
+      setContracts(data.contracts)
+    } catch (err) {
+      console.error('Failed to load documents', err)
+    } finally {
+      setLoadingDocs(false)
+    }
+  }
 
   function handleLogout() {
     logout()
@@ -48,7 +66,7 @@ export default function MePage() {
 
   const sections = [
     { id: 'personal', title: 'Personal Details', icon: User, label: 'Profile' },
-    { id: 'payment', title: 'Payment Methods', icon: CreditCard, label: 'Cards' },
+    { id: 'contracts', title: 'Tenancy Agreement', icon: FileText, label: 'Lease' },
     { id: 'personalization', title: 'Personalization', icon: Palette, label: 'Themes' },
     { id: 'settings', title: 'Settings', icon: Settings, label: 'Preferences' },
   ]
@@ -218,7 +236,7 @@ export default function MePage() {
            <button className="dashboard__back" onClick={() => router.push('/dashboard')}>
              <ArrowLeft size={20} />
            </button>
-           <h2 className="dashboard__title">Me</h2>
+            <h2 className="dashboard__title">Housing Credibility Profile</h2>
         </div>
       </header>
 
@@ -244,26 +262,66 @@ export default function MePage() {
 
              <h2 style={{ marginBottom: 4, fontSize: 20, color: 'var(--text)' }}>{tenant.fullName}</h2>
              <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>{tenant.email}</p>
-             {tenant.totalInvites > 0 && (
-               <div style={{ marginTop: 12, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'var(--surface2)', border: '1px solid var(--border-solid)', borderRadius: 20, color: 'var(--text-secondary)' }}>
-                 <Users size={12} /> {tenant.totalInvites} People Invited
-               </div>
-             )}
+              {tenant.totalInvites > 0 && (
+                <div style={{ marginTop: 12, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'var(--surface2)', border: '1px solid var(--border-solid)', borderRadius: 20, color: 'var(--text-secondary)' }}>
+                  <Users size={12} /> {tenant.totalInvites} People Invited
+                </div>
+              )}
+
+              {contracts.length > 0 && (
+                <div 
+                  style={{ 
+                    marginTop: 24, 
+                    textAlign: 'left', 
+                    background: 'var(--surface)', 
+                    border: '1px solid var(--border)', 
+                    borderRadius: '16px', 
+                    padding: '16px',
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--clay-faint)', color: 'var(--clay)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <FileText size={16} />
+                    </div>
+                    <div>
+                      <h4 style={{ fontSize: 14, margin: 0 }}>Active Tenancy</h4>
+                      <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>{contracts[0].propertyName}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Expires {formatDate(contracts[0].leaseEnd)}</span>
+                    <button 
+                      className="btn btn--secondary btn--sm" 
+                      style={{ height: 32, padding: '0 12px', fontSize: 12 }}
+                      onClick={() => router.push('/dashboard/contracts')}
+                    >
+                      View & Download
+                    </button>
+                  </div>
+                </div>
+              )}
           </div>
       
           <div className="dashboard__transaction-items" style={{ marginTop: 20 }}>
             {sections.map((s, idx) => {
               const Icon = s.icon
-              const isPersonal = s.id === 'personal'
-              const showWarning = isPersonal && hasMissingFields
-
-              return (
-                <div 
-                  key={idx} 
-                  className="dashboard__transaction-item" 
-                  onClick={() => isPersonal && setView('personal')}
-                  style={{ cursor: isPersonal ? 'pointer' : 'default' }}
-                >
+                    const isPersonal = s.id === 'personal'
+                    const isContracts = s.id === 'contracts'
+                    const isPay = s.id === 'pay'
+                    const showWarning = isPersonal && hasMissingFields
+    
+                    return (
+                      <div 
+                        key={idx} 
+                        className="dashboard__transaction-item" 
+                        onClick={() => {
+                          if (isPersonal) setView('personal')
+                          if (isContracts) router.push('/dashboard/contracts')
+                          if (isPay) router.push('/dashboard/pay-rent')
+                        }}
+                        style={{ cursor: (isPersonal || isContracts || isPay) ? 'pointer' : 'default' }}
+                      >
                   <div className="dashboard__transaction-left">
                     <div className="dashboard__transaction-info" style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'var(--clay-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -278,7 +336,7 @@ export default function MePage() {
                         <AlertCircle size={12} color="#eab308" />
                       </div>
                     )}
-                    <ChevronRight size={16} color="var(--text-muted)" />
+                    {(isPersonal || isContracts) && <ChevronRight size={16} color="var(--text-muted)" />}
                   </div>
                 </div>
               )

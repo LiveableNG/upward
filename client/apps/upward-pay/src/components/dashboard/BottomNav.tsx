@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, User, Sparkles, History } from 'lucide-react'
+import { Home, User, Sparkles, History, CreditCard } from 'lucide-react'
 import { UpwardLogo } from '@/components/payment/PoweredByUpward'
 import { api } from '@/lib/api'
 
@@ -20,8 +20,9 @@ export default function BottomNav() {
 
   const navItems = [
     { label: 'Home', icon: Home, href: '/dashboard' },
-    { label: 'Activity', icon: History, href: '/dashboard/transactions' },
-    { label: 'Special', icon: Sparkles, href: '/dashboard/coming-soon' },
+    { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent' },
+    { label: 'Transctions', icon: History, href: '/dashboard/transactions' },
+    { label: 'Upcoming', icon: Sparkles, href: '/dashboard/coming-soon' },
     { label: 'Me', icon: User, href: '/dashboard/me' },
   ]
 
@@ -32,13 +33,13 @@ export default function BottomNav() {
           <UpwardLogo size={24} color="var(--clay)" />
           <span style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text)' }}>Upward</span>
         </div>
-        <div className="bottom-nav__profile">
+        <Link href="/dashboard/me" className="bottom-nav__profile">
           <div className="bottom-nav__avatar">{initials}</div>
           <div className="bottom-nav__user-info">
             <span className="bottom-nav__user-name">{fullName}</span>
             <span className="bottom-nav__user-role">Verified Tenant</span>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Nav Links */}

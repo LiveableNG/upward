@@ -32,7 +32,7 @@ export default function HelpPage() {
         </div>
       </header>
 
-      <section className="dashboard__section" style={{ padding: '0 20px', marginTop: '16px' }}>
+      <section className="dashboard__section" style={{ padding: '0 20px', marginTop: '16px', maxWidth: '600px', margin: '16px auto' }}>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'var(--surface)', padding: '4px', borderRadius: 'var(--radius-md)' }}>
           <button 
             style={{ 

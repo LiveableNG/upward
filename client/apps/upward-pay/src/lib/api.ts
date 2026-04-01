@@ -176,6 +176,7 @@ export interface ReceiptData {
   channel: string
   paystackReference: string
   generatedAt: string
+  type?: 'debit' | 'credit'
 }
 
 export interface ContractData {

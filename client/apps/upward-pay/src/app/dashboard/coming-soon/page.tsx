@@ -64,12 +64,6 @@ export default function ComingSoonPage() {
             )
           })}
         </div>
-
-        <div className="coming-soon-footer" style={{ marginTop: '48px', padding: '24px', background: 'var(--surface)', borderRadius: '20px', border: '1px solid var(--border-solid)', animation: 'fadeInUp 0.6s ease-out 0.6s backwards' }}>
-          <Sparkles size={24} color="var(--clay)" style={{ marginBottom: '12px' }} />
-          <h4 style={{ fontWeight: 700, marginBottom: '8px' }}>Early Access</h4>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>You'll be among the first to get notified when these features launch.</p>
-        </div>
       </div>
     </div>
   )

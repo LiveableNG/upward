@@ -41,6 +41,9 @@ function PaymentContent() {
   useEffect(() => {
     if (token) {
       loadPaymentRequest()
+    } else {
+      setError('Invalid or missing payment link. Please check your notification and try again.')
+      setStage('error')
     }
   }, [token])
 

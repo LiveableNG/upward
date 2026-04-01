@@ -28,6 +28,8 @@ import {
 } from 'lucide-react'
 import PoweredByUpward, { UpwardLogo } from '@/components/payment/PoweredByUpward'
 import { PayRentCard, PayRentPage } from '@/components/dashboard/PayRentFlow'
+import ActionCarousel from '@/components/dashboard/ActionCarousel'
+import RentSavingsCard from '@/components/dashboard/RentSavingsCard'
 
 function DashboardContent() {
   const router = useRouter()
@@ -40,6 +42,15 @@ function DashboardContent() {
   const [showPayRent, setShowPayRent] = useState(false)
   const [showAnnouncement, setShowAnnouncement] = useState(true)
   const [showKYCAlert, setShowKYCAlert] = useState(true)
+  const [rentReminders, setRentReminders] = useState<any[]>([])
+  const [hasCompletedActions, setHasCompletedActions] = useState(false)
+
+  const activeReminders = rentReminders.filter(r => {
+    const dueDate = new Date(r.dueDate)
+    const today = new Date()
+    const diffInMonths = (dueDate.getFullYear() - today.getFullYear()) * 12 + (dueDate.getMonth() - today.getMonth())
+    return diffInMonths <= 3 && diffInMonths >= 0
+  })
 
   useEffect(() => {
     if (!isLoggedIn()) {
@@ -57,6 +68,21 @@ function DashboardContent() {
   async function loadDashboard() {
     try {
       const result = await api.getMe()
+
+      if (result.pendingPayments.length === 0) {
+        result.pendingPayments.push({
+          uuid: 'mock-greenland',
+          total_amount: 15000000,
+          currency: 'NGN',
+          status: 'pending',
+          payment_link_token: 'mock-greenland-token',
+          invoice_number: 'INV-2024-GL',
+          notes: 'Rent + Utility · March 2026 for Building A4-201',
+          company_name: 'Greenland Estates Ltd',
+          company_logo: 'https://placehold.co/100x100/d97757/ffffff?text=GE'
+        })
+      }
+
       setData(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard')
@@ -104,15 +130,34 @@ function DashboardContent() {
     <div className="dashboard dashboard--nav-offset">
 
       <header className="dashboard__header dashboard__header--mobile">
-        <div className="dashboard__header-left">
+        <div
+          className="dashboard__header-left"
+          onClick={() => router.push('/dashboard/me')}
+          style={{ cursor: 'pointer' }}
+        >
           <div className="dashboard__avatar">{firstName[0]?.toUpperCase()}</div>
-          <h2 className="dashboard__greeting">Hey, {firstName}</h2>
+          <div>
+            <h2 className="dashboard__greeting" style={{ marginBottom: 0 }}>Hey, {firstName}</h2>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500 }}>View Profile</span>
+          </div>
         </div>
         <div className="dashboard__header-right">
+          <button
+            className="dashboard__icon-btn"
+            title="View Contract"
+            onClick={() => router.push('/dashboard/contracts')}
+            style={{ color: 'var(--clay)', background: 'var(--clay-faint)' }}
+          >
+            <FileText size={18} />
+          </button>
           <button className="dashboard__icon-btn" title="Help" onClick={() => router.push('/dashboard/help')}>
             <HelpCircle size={20} />
           </button>
-          <button className="dashboard__icon-btn" title="Notifications" onClick={() => router.push('/dashboard/notifications')}>
+          <button
+            className="dashboard__icon-btn"
+            title="Activity Hub"
+            onClick={() => router.push('/dashboard/notifications')}
+          >
             <Bell size={20} />
           </button>
         </div>
@@ -124,15 +169,26 @@ function DashboardContent() {
           <p className="dashboard__desktop-subtitle">Welcome back, {firstName}</p>
         </div>
         <div className="dashboard__desktop-header-right">
-          <button className="dashboard__icon-btn" title="Notifications" onClick={() => router.push('/dashboard/notifications')}>
+          <button
+            className="btn btn--secondary btn--sm"
+            style={{ marginRight: '12px', padding: '8px 16px', height: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}
+            onClick={() => router.push('/dashboard/contracts')}
+          >
+            <FileText size={16} />
+            View Contract
+          </button>
+          <button className="dashboard__icon-btn" title="Activity Hub" onClick={() => router.push('/dashboard/notifications')}>
             <Bell size={20} />
           </button>
           <button className="dashboard__icon-btn" title="Help" onClick={() => router.push('/dashboard/help')}>
             <HelpCircle size={20} />
           </button>
-          <div className="dashboard__desktop-profile" onClick={() => router.push('/dashboard/settings')}>
+          <div className="dashboard__desktop-profile" onClick={() => router.push('/dashboard/me')}>
             <div className="dashboard__avatar dashboard__avatar--sm">{firstName[0]?.toUpperCase()}</div>
-            <span className="dashboard__desktop-profile-name">{tenant.fullName}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+              <span className="dashboard__desktop-profile-name" style={{ lineHeight: 1.2 }}>{tenant.fullName}</span>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>My Account</span>
+            </div>
           </div>
         </div>
       </header>
@@ -155,10 +211,10 @@ function DashboardContent() {
         </section>
       )}
 
-      {/* STAT STRIP - Subtly updated with Contract icon access */}
+      {/* STAT STRIP */}
       <div className="dashboard__stat-strip">
         <div className="dashboard__stat-card">
-          <div className="dashboard__stat-icon dashboard__stat-icon--green"><Check size={16} /></div>
+          <div className="dashboard__stat-icon dashboard__stat-icon--clay"><Check size={16} /></div>
           <div>
             <p className="dashboard__stat-value">{data.completedPayments.length}</p>
             <p className="dashboard__stat-label">Payments Made</p>
@@ -171,15 +227,25 @@ function DashboardContent() {
             <p className="dashboard__stat-label">Total Paid</p>
           </div>
         </div>
-        <div className="dashboard__stat-card">
-          <div className="dashboard__stat-icon dashboard__stat-icon--blue"><Clock size={16} /></div>
+        <div
+          className="dashboard__stat-card dashboard__stat-card--action"
+          onClick={() => router.push('/dashboard/notifications')}
+          style={{ cursor: data.pendingPayments.length > 0 ? 'pointer' : 'default' }}
+        >
+          <div
+            className="dashboard__stat-icon dashboard__stat-icon--clay"
+            style={data.pendingPayments.length > 0 ? { animation: 'pulse 2s infinite' } : {}}
+          >
+            <Clock size={16} />
+          </div>
           <div>
             <p className="dashboard__stat-value">{data.pendingPayments.length}</p>
             <p className="dashboard__stat-label">Pending</p>
           </div>
+          {data.pendingPayments.length > 0 && <ArrowUpRight size={14} className="dashboard__stat-arrow" />}
         </div>
         <div className="dashboard__stat-card dashboard__stat-card--action" onClick={() => router.push('/dashboard/contracts')}>
-          <div className="dashboard__stat-icon dashboard__stat-icon--purple"><FileText size={16} /></div>
+          <div className="dashboard__stat-icon dashboard__stat-icon--clay"><FileText size={16} /></div>
           <div>
             <p className="dashboard__stat-value">View</p>
             <p className="dashboard__stat-label">Lease Files</p>
@@ -190,148 +256,129 @@ function DashboardContent() {
 
       <div className="dashboard__main-grid">
 
-        <div className="dashboard__col dashboard__col--left">
-
-        </div>
+        <div className="dashboard__col dashboard__col--left" />
 
         <div className="dashboard__col dashboard__col--right">
-          
-          {showKYCAlert && (
-            <div className="kyc-alert" style={{ marginBottom: '24px' }} onClick={() => router.push('/dashboard/kyc')}>
-              <div className="kyc-alert__content">
-                <div className="kyc-alert__icon"><ShieldCheck size={20} /></div>
-                <div className="kyc-alert__text">
-                  <p>Landlord KYC Request</p>
-                  <span>Verification request for LivableNG/HQ-9-24</span>
-                </div>
+
+          {!hasCompletedActions && (data.pendingPayments.length > 0 || showKYCAlert || activeReminders.length > 0) ? (
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Activity Center</h3>
+                <button
+                  onClick={() => router.push('/dashboard/notifications')}
+                  style={{ fontSize: '11px', fontWeight: 600, color: 'var(--clay)', background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                  See all
+                </button>
               </div>
-              <button className="kyc-alert__btn" style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
-                <ChevronRight size={20} />
+
+              <ActionCarousel
+                pendingPayments={data.pendingPayments}
+                showKYC={showKYCAlert}
+                rentReminders={activeReminders}
+              />
+            </div>
+          ) : null}
+
+          {hasCompletedActions && (
+            <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+              <button
+                onClick={() => setHasCompletedActions(false)}
+                style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--clay)', border: '1px solid var(--clay-faint)', borderRadius: '8px', background: 'var(--clay-faint)', cursor: 'pointer' }}
+              >
+                Reset Dashboard View
               </button>
             </div>
           )}
 
-          {/* CENTER ACTION SLOT (Pending OR Pay Rent) */}
-<div style={{ marginBottom: '24px' }}>
-  {data.pendingPayments.length > 0 ? (
-    <div className="dashboard__payment-card dashboard__payment-card--pending" style={{ animation: 'fadeInUp 0.5s ease-out' }}>
-      {(() => {
-        const p = data.pendingPayments[0] // only show the first one in this slot
-
-        return (
-          <>
-            <div className="dashboard__payment-card-top">
-              <div className="dashboard__payment-card-company">
-                <img
-                  src={p.company_logo}
-                  alt=""
-                  width={32}
-                  height={32}
-                  className="dashboard__payment-card-logo"
-                />
-                <div>
-                  <span className="dashboard__payment-card-name">{p.company_name}</span>
-                  <span
-                    className="dashboard__payment-card-invoice"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      marginTop: '2px',
-                    }}
-                  >
-                    <span className="status-beep" />
-                    Pending · {p.invoice_number}
-                  </span>
-                </div>
-              </div>
-
-              <span className="dashboard__payment-card-amount">
-                {formatCurrency(p.total_amount, p.currency)}
-              </span>
-            </div>
-
-            {p.notes && (
-              <p className="dashboard__payment-card-notes">{p.notes}</p>
-            )}
-
+          {!hasCompletedActions && (data.pendingPayments.length > 0 || showKYCAlert || activeReminders.length > 0) && (
             <button
-              className="btn btn--primary btn--full btn--sm"
-              onClick={() => router.push(`/pay?token=${p.payment_link_token}`)}
+              onClick={() => setHasCompletedActions(true)}
+              style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: '8px', background: 'none', marginBottom: '24px', cursor: 'pointer' }}
             >
-              Pay Now
+              Simulate Actions Completed (Demo)
             </button>
-          </>
-        )
-      })()}
-    </div>
-  ) : (
-    <PayRentCard onOpen={() => setShowPayRent(true)} />
-  )}
-</div>
+          )}
+
+          <RentSavingsCard />
 
           <section className="score-card">
             <div className="score-card__header">
               <h3 className="score-card__title">Rent Credibility Score</h3>
-              <span className="score-card__badge">Excellent</span>
-            </div>
-            
-            <div className="score-visual">
-              <div className="score-gauge" style={{ background: 'conic-gradient(var(--clay) 0% 88%, var(--border-solid) 88% 100%)' }}>
-                <div className="score-value">
-                  <span className="score-num">882</span>
-                  <span className="score-label">of 1,000</span>
-                </div>
+              <div style={{ textAlign: 'right' }}>
+                <span className="score-card__badge" style={{ background: 'var(--clay-faint)', color: 'var(--clay)', border: '1px solid rgba(217,119,87,0.15)' }}>Top Rated</span>
+                <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>Updated today</p>
               </div>
             </div>
 
-            <div className="achievement-list">
-              <div className="achievement-item">
-                <span className="achievement-item__val">12</span>
+            <div className="score-visual">
+              <div
+                className="score-gauge"
+                style={{
+                  background: 'conic-gradient(var(--clay) 0% 88.2%, var(--border-solid) 88.2% 100%)',
+                  boxShadow: '0 0 30px rgba(217,119,87,0.1)'
+                }}
+              >
+                <div className="score-value">
+                  <span className="score-num" style={{ color: 'var(--text)', fontSize: '42px' }}>88.2%</span>
+                  <span className="score-label">882 Score</span>
+                </div>
+              </div>
+              <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  You are in the <span style={{ color: 'var(--clay)' }}>top 1.2%</span> of tenants nationwide.
+                </p>
+              </div>
+            </div>
+
+            <div className="score-breakdown" style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--clay)' }} />
+                  <span style={{ fontSize: '13px', fontWeight: 500 }}>Payment Discipline</span>
+                </div>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--clay)' }}>100%</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--clay-hover)' }} />
+                  <span style={{ fontSize: '13px', fontWeight: 500 }}>Lease Longevity</span>
+                </div>
+                <span style={{ fontSize: '13px', fontWeight: 700 }}>4.2 Years</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--text-muted)' }} />
+                  <span style={{ fontSize: '13px', fontWeight: 500 }}>Housing Stability</span>
+                </div>
+                <span style={{ fontSize: '13px', fontWeight: 700 }}>High</span>
+              </div>
+            </div>
+
+            <div className="achievement-list" style={{ marginTop: '32px', gridTemplateColumns: 'repeat(2, 1fr)' }}>
+              <div className="achievement-item" style={{ background: 'var(--surface2)', border: 'none' }}>
+                <span className="achievement-item__val" style={{ color: 'var(--clay)' }}>12</span>
                 <span className="achievement-item__label">On-time Streaks</span>
               </div>
-              <div className="achievement-item">
-                <span className="achievement-item__val">Top 1%</span>
-                <span className="achievement-item__label">Market Rank</span>
-              </div>
-              <div className="achievement-item">
-                <span className="achievement-item__val">Gold</span>
-                <span className="achievement-item__label">Tenant Tier</span>
-              </div>
-              <div className="achievement-item">
-                <span className="achievement-item__val"><TrendingUp size={16} /></span>
-                <span className="achievement-item__label">+24 pts last mo.</span>
+              <div className="achievement-item" style={{ background: 'var(--surface2)', border: 'none' }}>
+                <span className="achievement-item__val" style={{ color: 'var(--clay)' }}>+24 pts</span>
+                <span className="achievement-item__label">Monthly Growth</span>
               </div>
             </div>
-          </section>          
-          <section className="share-cred" style={{ margin: '0 0 24px 0', animation: 'fadeInUp 0.8s ease-out' }}>
-              <div className="share-cred__badge" style={{ display: 'inline-flex', padding: '6px 12px', background: 'rgba(217,119,87,0.1)', borderRadius: '99px', marginBottom: '16px' }}>
-                <Award size={14} color="var(--clay)" style={{ marginRight: '6px' }} />
-                <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--clay)', textTransform: 'uppercase' }}>Tenant Legacy</span>
-              </div>
-              <h3 className="share-cred__title">Share Your Rent Credibility</h3>
-              <p className="share-cred__desc">
-                Showcase your commitment to housing excellence. Sharing your credibility helps you unlock better deals and housing opportunities.
-              </p>
-              <div className="share-cred__btn">
-                <Share size={18} />
-                <span>Share My Report</span>
-              </div>
           </section>
 
-          {/* CONTRACTS - Better placed on the right sidebar */}
-          <section className="dashboard__section">
-            <div className="dashboard__section-header">
-              <h3 className="dashboard__section-title" style={{ fontSize: '15px' }}>Active Documents</h3>
+          <section className="share-cred" style={{ margin: '0 0 24px 0', animation: 'fadeInUp 0.8s ease-out' }}>
+            <div className="share-cred__badge" style={{ display: 'inline-flex', padding: '6px 12px', background: 'rgba(217,119,87,0.1)', borderRadius: '99px', marginBottom: '16px' }}>
+              <Award size={14} color="var(--clay)" style={{ marginRight: '6px' }} />
+              <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--clay)', textTransform: 'uppercase' }}>Tenant Legacy</span>
             </div>
-            <div>
-              <div className="update-item" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: '16px' }} onClick={() => router.push('/dashboard/contracts')}>
-                <div className="update-item__icon" style={{ background: 'var(--clay-faint)', color: 'var(--clay)' }}><FileText size={20} /></div>
-                <div className="update-item__content">
-                  <div className="update-item__title">Tenancy Agreement</div>
-                  <p className="update-item__desc">Livableng/Ikoyi/A4 · Expires Oct 2026</p>
-                </div>
-              </div>
+            <h3 className="share-cred__title">Share Your Rent Credibility</h3>
+            <p className="share-cred__desc">
+              Showcase your commitment to housing excellence. Sharing your credibility helps you unlock better deals and housing opportunities.
+            </p>
+            <div className="share-cred__btn" onClick={() => router.push('/dashboard/kyc')}>
+              <Share size={18} />
+              <span>Share My Report</span>
             </div>
           </section>
 

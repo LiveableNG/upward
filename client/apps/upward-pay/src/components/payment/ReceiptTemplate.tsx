@@ -3,7 +3,7 @@
 import { formatCurrency, formatDate, getCategoryIconName } from '@/lib/utils'
 import { UpwardLogo } from '@/components/payment/PoweredByUpward'
 import type { ReceiptData } from '@/lib/api'
-import { Download, MapPin, Home, Lock, Users, Scale, Settings, Wrench, Package, ArrowLeft, Check } from 'lucide-react'
+import { Download, MapPin, Home, Lock, Users, Scale, Settings, Wrench, Package, ArrowLeft, Check, TrendingUp } from 'lucide-react'
 
 const CategoryIcon = ({ name, size = 16 }: { name: string; size?: number }) => {
   const icons: Record<string, any> = {
@@ -124,9 +124,12 @@ export default function ReceiptTemplate({
                 <span className="receipt__label">Property Manager</span>
               </div>
             </div>
-            <div className="receipt__badge">
+            <div className="receipt__badge" style={{ 
+              background: receipt.type === 'credit' ? 'var(--success-bg)' : '#dcfce7',
+              color: receipt.type === 'credit' ? 'var(--success)' : '#16a34a'
+            }}>
               <span className="receipt__badge-check"><Check size={12} /></span>
-              PAID
+              {receipt.type === 'credit' ? 'DEPOSITED' : 'PAID'}
             </div>
           </div>
 
@@ -169,7 +172,7 @@ export default function ReceiptTemplate({
               <span>Description</span>
               <span>Amount</span>
             </div>
-            {receipt.lineItems.map((item, i) => (
+            {receipt.lineItems.length > 0 ? receipt.lineItems.map((item, i) => (
               <div key={i} className="receipt__item">
                 <div className="receipt__item-left">
                   <span className="receipt__item-icon">
@@ -181,22 +184,34 @@ export default function ReceiptTemplate({
                   {formatCurrency(item.amount, receipt.currency)}
                 </span>
               </div>
-            ))}
+            )) : (
+              <div className="receipt__item">
+                <div className="receipt__item-left">
+                  <span className="receipt__item-icon">
+                    <TrendingUp size={16} />
+                  </span>
+                  <span>{receipt.type === 'credit' ? 'Savings Deposit' : 'Miscellaneous Payment'}</span>
+                </div>
+                <span className="receipt__item-amount">
+                  {formatCurrency(receipt.amount, receipt.currency)}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="receipt__divider receipt__divider--bold" />
 
           {/* Total */}
           <div className="receipt__total">
-            <span>Total Paid</span>
-            <span className="receipt__total-amount">
+            <span>{receipt.type === 'credit' ? 'Total Saved' : 'Total Paid'}</span>
+            <span className="receipt__total-amount" style={{ color: receipt.type === 'credit' ? 'var(--success)' : 'inherit' }}>
               {formatCurrency(receipt.amount, receipt.currency)}
             </span>
           </div>
 
           {/* Reference */}
           <div className="receipt__reference">
-            <span className="receipt__info-label">Paystack Ref:</span>
+            <span className="receipt__info-label">{receipt.type === 'credit' ? 'Wallet Ref:' : 'Paystack Ref:'}</span>
             <span className="receipt__ref-code">{receipt.paystackReference}</span>
           </div>
 

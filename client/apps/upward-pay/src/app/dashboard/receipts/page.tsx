@@ -54,6 +54,25 @@ export default function ReceiptsPage() {
       return
     }
 
+    if (id === 'mock-credit-1' || id === 'mock-credit-2') {
+      setReceipt({
+        ...mockReceipt,
+        uuid: id,
+        title: 'Rent Savings Deposit',
+        receiptNumber: id === 'mock-credit-1' ? 'RSV-001' : 'RSV-002',
+        amount: id === 'mock-credit-1' ? 5000000 : 2500000,
+        companyName: 'Upward Savings',
+        propertyName: 'Rent Savings Wallet',
+        propertyAddress: 'Lagos, Nigeria',
+        paystackReference: id === 'mock-credit-1' ? 'RSV-7SH92KL' : 'RSV-6XJ21PL',
+        channel: id === 'mock-credit-1' ? 'Auto-Deduction' : 'Manual Deposit',
+        lineItems: [],
+        type: 'credit'
+      })
+      setLoading(false)
+      return
+    }
+
     try {
       const data = await api.getMyDocuments()
       const found = data.receipts.find((r: ReceiptData) => r.uuid === id)

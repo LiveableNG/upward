@@ -21,7 +21,7 @@ export default function KYCReportPage() {
            <button className="dashboard__back" onClick={() => router.push('/dashboard')}>
              <ArrowLeft size={20} />
            </button>
-           <h2 className="dashboard__title">KYC Request</h2>
+            <h2 className="dashboard__title">Housing Credibility Profile</h2>
         </div>
         <div className="dashboard__header-right">
            <button className="btn btn--sm" style={{ background: 'var(--clay)', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
