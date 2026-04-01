@@ -61,13 +61,7 @@ function CompleteProfileContent() {
       setTenant(result.tenant)
       setDone(true)
     } catch (err) {
-      // Fallback: In test mode the backend may not have this endpoint yet,
-      // so we simulate a successful profile completion for demo purposes
-      if (process.env.NODE_ENV === 'development' || true) {
-        setDone(true)
-      } else {
-        setError(err instanceof Error ? err.message : 'Profile completion failed')
-      }
+      setError(err instanceof Error ? err.message : 'Profile completion failed')
     } finally {
       setLoading(false)
     }
