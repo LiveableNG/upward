@@ -42,6 +42,9 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
   const [statusFilter, setStatusFilter] = useState('All')
   const [viewLog, setViewLog] = useState<EmailLog | null>(null)
   const [retrying, setRetrying] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   const handleRetry = async (id: string) => {
     if (retrying) return
@@ -49,7 +52,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
     try {
       await apiService.post(`/admin/email/logs/${id}/retry`, {}, token)
       showToast('Retry dispatched! Logic will attempt delivery up to 3 times. ✓')
-      fetchLogs()
+      fetchLogs(true)
     } catch (err) {
       console.error('Manual retry failed', err)
       showToast('Manual retry trigger failed', true)
@@ -58,24 +61,40 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
     }
   }
 
-  const fetchLogs = async () => {
-    setLoading(true)
+  const fetchLogs = async (reset = true) => {
+    if (reset) {
+      setLoading(true)
+      setPage(1)
+    } else {
+      setLoadingMore(true)
+    }
     try {
+      const currentPage = reset ? 1 : page + 1
       const result = await apiService.get(
-        `/admin/email/logs?email=${search}&type=${typeFilter}&status=${statusFilter}`,
+        `/admin/email/logs?email=${search}&type=${typeFilter}&status=${statusFilter}&page=${currentPage}&limit=10`,
         token,
       )
-      setLogs(result.data)
+      const newLogs = result.data.data
+      const meta = result.data.meta
+
+      if (reset) {
+        setLogs(newLogs)
+      } else {
+        setLogs((prev) => [...prev, ...newLogs])
+        setPage(currentPage)
+      }
+      setHasMore(currentPage < meta.totalPages)
     } catch (err) {
       console.error('Failed to fetch email logs', err)
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchLogs()
+      fetchLogs(true)
     }, 300)
     return () => clearTimeout(timer)
   }, [search, typeFilter, statusFilter])
@@ -142,7 +161,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
         </div>
 
         <button
-          onClick={() => fetchLogs()}
+          onClick={() => fetchLogs(true)}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -153,10 +172,11 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
             borderRadius: '12px',
             fontSize: '14px',
             fontWeight: 600,
-            cursor: 'pointer',
+            cursor: loading ? 'not-allowed' : 'pointer',
           }}
+          disabled={loading}
         >
-          <RefreshCcw size={16} className={loading ? 'spin' : ''} />
+          <RefreshCcw size={16} className={loading && !loadingMore ? 'spin' : ''} />
           Refresh
         </button>
       </div>
@@ -444,6 +464,49 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
             </tbody>
           </table>
         </div>
+
+        {hasMore && (
+          <div
+            style={{
+              padding: '24px',
+              textAlign: 'center',
+              borderTop: '1px solid var(--border)',
+              background: 'var(--surface)',
+            }}
+          >
+            <button
+              onClick={() => fetchLogs(false)}
+              disabled={loadingMore}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '12px 32px',
+                backgroundColor: 'var(--white)',
+                border: '1px solid var(--border)',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: 600,
+                color: 'var(--text)',
+                cursor: loadingMore ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+              }}
+            >
+              {loadingMore ? (
+                <>
+                  <RefreshCcw size={16} className="spin" />
+                  Loading batch...
+                </>
+              ) : (
+                <>
+                  <RefreshCcw size={16} />
+                  View More Logs
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Live View Modal */}

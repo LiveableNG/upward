@@ -256,8 +256,16 @@ export class AdminController {
     @Query('email') email?: string,
     @Query('type') type?: string,
     @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return { data: await this.adminService.getEmailLogs({ email, type, status }) }
+    return this.adminService.getEmailLogs({
+      email,
+      type,
+      status,
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 10,
+    })
   }
 
   @Get('system-email/:slug')
