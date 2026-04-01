@@ -992,26 +992,49 @@ export class AdminService {
 
   // --- Email Logs & System Templates ---
 
-  async getEmailLogs(query: { email?: string; type?: string; status?: string }) {
-    const { email, type, status } = query
-    return this.prisma.upward_email_log.findMany({
-      where: {
-        ...(email ? { email: { contains: email, mode: 'insensitive' } } : {}),
-        ...(type && type !== 'All'
-          ? type === 'CAMPAIGN'
-            ? { type: { startsWith: 'CAMPAIGN' } }
-            : { type }
-          : {}),
-        ...(status && status !== 'All' ? { status } : {}),
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 200,
-      include: {
-        user: {
-          select: { firstName: true, lastName: true, email: true },
+  async getEmailLogs(query: {
+    email?: string
+    type?: string
+    status?: string
+    page?: number
+    limit?: number
+  }) {
+    const { email, type, status, page = 1, limit = 10 } = query
+    const skip = (page - 1) * limit
+    const where = {
+      ...(email ? { email: { contains: email, mode: 'insensitive' as const } } : {}),
+      ...(type && type !== 'All'
+        ? type === 'CAMPAIGN'
+          ? { type: { startsWith: 'CAMPAIGN' } }
+          : { type }
+        : {}),
+      ...(status && status !== 'All' ? { status } : {}),
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.upward_email_log.findMany({
+        where: where as any,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          user: {
+            select: { firstName: true, lastName: true, email: true },
+          },
         },
+      }),
+      this.prisma.upward_email_log.count({ where: where as any }),
+    ])
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
-    })
+    }
   }
 
   async getSystemEmail(slug: string) {
