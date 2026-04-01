@@ -99,6 +99,9 @@ export interface TenantProfile {
   rentAnniversary?: string
   membershipLevel: string
   totalInvites: number
+  hasCompletedOnboarding: boolean
+  savingsBalance: number
+  savingsGoal: number
   createdAt: string
 }
 
@@ -129,6 +132,16 @@ export interface DashboardData {
     paid_at: string
     paystack_reference: string
     company_name: string
+  }>
+  savedLandlords: Array<{
+    uuid: string
+    name: string
+    account_name: string
+    account_number: string
+    bank_name: string
+    bank_code: string
+    last_paid: string | null
+    last_amount: number
   }>
 }
 

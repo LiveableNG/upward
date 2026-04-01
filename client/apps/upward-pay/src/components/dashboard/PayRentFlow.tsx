@@ -1,48 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Shield, Clock, Home, Wallet, Check, ChevronRight, Plus, Building2, ArrowLeft, Loader, Star, Receipt, AlertCircle } from 'lucide-react'
+import { Shield, Clock, Home, Wallet, Check, ChevronRight, Plus, Building2, ArrowLeft, Loader, Star, Receipt, AlertCircle, MapPin, ChevronUp, ChevronDown } from 'lucide-react'
+import MockPaystackCheckout from '@/components/payment/MockPaystackCheckout'
+import { formatCurrency } from '@/lib/utils'
 
-// ─── MOCK DATA ────────────────────────────────────────────────────────────────
-const MOCK_SAVED_LANDLORDS = [
-  {
-    id: '1',
-    name: 'Sunshine Properties Ltd',
-    accountName: 'Sunshine Properties Ltd',
-    accountNumber: '0123456789',
-    bankName: 'GTBank',
-    bankCode: '058',
-    avatar: 'S',
-    lastPaid: '2025-02-01',
-    lastAmount: 180000,
-  },
-  {
-    id: '2',
-    name: 'Mr. Adebayo Okonkwo',
-    accountName: 'Adebayo Okonkwo',
-    accountNumber: '2098765432',
-    bankName: 'Zenith Bank',
-    bankCode: '057',
-    avatar: 'A',
-    lastPaid: '2024-12-15',
-    lastAmount: 120000,
-  },
-]
-
-const MOCK_PM_LANDLORDS = [
-  {
-    id: 'pm1',
-    name: 'Realty Kings NG',
-    accountName: 'Realty Kings Nigeria Ltd',
-    accountNumber: '3056781234',
-    bankName: 'Access Bank',
-    bankCode: '044',
-    avatar: 'R',
-    source: 'pm',
-    lastPaid: null,
-    lastAmount: 0,
-  },
-]
 
 const NIGERIAN_BANKS = [
   { code: '044', name: 'Access Bank' },
@@ -84,14 +46,16 @@ type Landlord = {
   source?: string
   lastPaid: string | null
   lastAmount: number
+  role?: string
+  address?: string
 }
 
-type PayRentStep = 'select' | 'new' | 'confirm' | 'processing' | 'success'
+type PayRentStep = 'select' | 'new' | 'confirm' | 'checkout' | 'processing' | 'success'
 
 // ─── FORMATTING ───────────────────────────────────────────────────────────────
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 }).format(amount)
-}
+// Using global formatCurrency from @/lib/utils which handles kobo conversion.
+// For the rent flow, we'll keep internal state in NGN (not kobo) for easier input handling.
+// But some data from PMs arrives in kobo, so we convert upon loading.
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -114,10 +78,13 @@ function SubpageHeader({ title, onBack }: { title: string; onBack: () => void })
 function LandlordAvatar({ letter, size = 44, color, style }: { letter: string; size?: number; color?: string; style?: React.CSSProperties }) {
   return (
     <div style={{
-      width: size, height: size, borderRadius: size * 0.28,
-      background: color || 'var(--clay)', color: '#fff',
+      width: size, height: size, 
+      borderRadius: 'var(--radius-md)',
+      background: color || 'var(--clay-faint)', 
+      color: color ? '#fff' : 'var(--clay)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontWeight: 700, fontSize: size * 0.42, flexShrink: 0,
+      fontWeight: 700, fontSize: size * 0.4, flexShrink: 0,
+      border: '1px solid var(--border-solid)',
       ...style,
     }}>
       {letter}
@@ -139,7 +106,7 @@ function StepSelect({
     <div style={{ padding: '0 0 32px' }}>
       <div style={{ padding: '20px 20px 12px' }}>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-          Select a saved landlord or add a new payment destination.
+          Select a saved recipient or add a new payment destination.
         </p>
       </div>
 
@@ -185,8 +152,8 @@ function StepSelect({
             <Plus size={20} />
           </div>
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>New landlord</div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Add bank account details</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>New recipient</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Bank account or property manager</div>
           </div>
           <div style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}><ChevronRight size={16} /></div>
         </button>
@@ -385,36 +352,141 @@ function StepNewLandlord({ onContinue, onBack }: { onContinue: (data: Partial<La
 }
 
 // ─── STEP: CONFIRM ────────────────────────────────────────────────────────────
+import InvoiceCard from '@/components/payment/InvoiceCard'
+
 function StepConfirm({
-  landlord, amount, narration, onConfirm, onBack
+  landlord, amount, narration, onConfirm, onBack, isPriorityRequest, useSavings, onToggleSavings, savingsBalance, onPayOther, lineItems = []
 }: {
   landlord: Landlord
   amount: number
   narration: string
   onConfirm: () => void
   onBack: () => void
+  isPriorityRequest?: boolean
+  useSavings: boolean
+  onToggleSavings: (v: boolean) => void
+  savingsBalance: number
+  onPayOther?: () => void
+  lineItems?: Array<{ label: string; amount: number }>
 }) {
-  const fee = 100
-  return (
-    <div style={{ padding: '0 20px 32px' }}>
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border-solid)', borderRadius: 'var(--radius-xl)', overflow: 'hidden', marginBottom: 24 }}>
-        <div style={{ padding: '24px 20px', textAlign: 'center', background: 'linear-gradient(180deg, var(--clay-faint) 0%, transparent 100%)', borderBottom: '1px solid var(--border)' }}>
-          <LandlordAvatar letter={landlord.avatar} size={56} style={{ margin: '0 auto 12px' } as React.CSSProperties} />
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{landlord.accountName}</div>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{landlord.bankName} · {landlord.accountNumber}</div>
-        </div>
+  const fee = 0
+  const savingsToUse = useSavings ? Math.min(savingsBalance, amount) : 0
+  const balanceDue = amount - savingsToUse
+  const totalDebit = balanceDue + fee
 
-        {[
-          ['Amount', formatCurrency(amount)],
-          ['Transaction fee', formatCurrency(fee)],
-          ['Narration', narration || 'Rent payment'],
-          ['Total debit', formatCurrency(amount + fee)],
-        ].map(([label, value], i, arr) => (
-          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{label}</span>
-            <span style={{ fontWeight: i === arr.length - 1 ? 700 : 600, color: i === arr.length - 1 ? 'var(--clay)' : 'var(--text)', fontSize: i === arr.length - 1 ? 16 : 13 } as React.CSSProperties}>{value}</span>
+  return (
+    <div style={{ padding: '0 20px 40px' }}>
+      {/* Refined Header (Matches Pay Page) */}
+      <div style={{ padding: '20px 0 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <LandlordAvatar letter={landlord.avatar} size={48} style={{ flexShrink: 0 }} />
+            <div style={{ minWidth: 0 }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)' }}>{landlord.name}</h3>
+                  <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--success)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9 }}>
+                     <Check size={10} strokeWidth={4} />
+                  </div>
+               </div>
+               <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '2px 0 0' }}>{landlord.role || 'Property Manager'}</p>
+            </div>
+         </div>
+         
+         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)' }}>
+            <MapPin size={14} color="var(--text-muted)" />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {landlord.address || 'Lekki Phase 1, Lagos'}
+            </span>
+         </div>
+      </div>
+
+      <div style={{ 
+        padding: '24px 20px', 
+        background: 'var(--surface)', 
+        border: '1px solid var(--border-solid)', 
+        borderRadius: 'var(--radius-xl)', 
+        textAlign: 'center', 
+        marginBottom: 24,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+      }}>
+         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Amount Due</span>
+         <span style={{ fontSize: 32, fontWeight: 800, color: 'var(--text)' }}>{formatCurrency(amount)}</span>
+      </div>
+
+      {/* Collapsible Invoice Breakdown (Consistent with Pay Page) */}
+      <div style={{ marginBottom: 20 }}>
+        <InvoiceCard 
+          invoiceNumber={landlord.accountNumber.slice(-6)}
+          notes={narration}
+          lineItems={lineItems.length > 0 ? lineItems : [{ label: 'Rent Payment', amount: amount }]}
+          totalAmount={amount}
+          isPriority={isPriorityRequest}
+        />
+      </div>
+
+      {/* Savings Wallet Card */}
+      <div style={{
+        background: useSavings ? 'var(--clay-faint)' : 'var(--surface)',
+        border: `1px solid ${useSavings ? 'var(--clay)' : 'var(--border-solid)'}`,
+        padding: '16px',
+        borderRadius: 'var(--radius-lg)',
+        marginBottom: '20px',
+        transition: 'all 0.2s ease',
+        boxShadow: useSavings ? '0 10px 25px -10px var(--clay-glow)' : 'none'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: 36, height: 36, borderRadius: '10px', background: 'var(--clay-faint)', color: 'var(--clay)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Wallet size={18} />
+            </div>
+            <div>
+              <p style={{ fontSize: '13px', fontWeight: 700, margin: 0 }}>Savings Wallet</p>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>Available: {formatCurrency(savingsBalance)}</p>
+            </div>
           </div>
-        ))}
+          <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '40px', height: '22px' }}>
+            <input 
+              type="checkbox" 
+              checked={useSavings} 
+              onChange={(e) => onToggleSavings(e.target.checked)}
+              style={{ opacity: 0, width: 0, height: 0 }}
+            />
+            <span style={{
+              position: 'absolute',
+              cursor: 'pointer',
+              top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: useSavings ? 'var(--clay)' : '#ccc',
+              transition: '.4s',
+              borderRadius: '34px'
+            }}>
+              <span style={{
+                position: 'absolute',
+                content: '""',
+                height: '16px', width: '16px',
+                left: useSavings ? '20px' : '4px',
+                bottom: '3px',
+                backgroundColor: 'white',
+                transition: '.4s',
+                borderRadius: '50%'
+              }} />
+            </span>
+          </label>
+        </div>
+        
+        {useSavings && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed rgba(217,119,87,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Savings applied</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--clay)' }}>-{formatCurrency(savingsToUse)}</span>
+          </div>
+        )}
+      </div>
+
+      <div style={{ padding: '0 4px 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 16, fontWeight: 700 }}>Total To Pay</span>
+          <span style={{ fontSize: 24, fontWeight: 801, color: 'var(--text)' }}>{formatCurrency(totalDebit)}</span>
+        </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 20, fontSize: 11, color: 'var(--text-muted)' }}>
@@ -422,12 +494,18 @@ function StepConfirm({
         Secured by Upward · 256-bit encryption
       </div>
 
-      <button onClick={onConfirm} className="btn btn--primary btn--full" style={{ marginBottom: 12 }}>
-        Confirm payment · {formatCurrency(amount + fee)}
+      <button onClick={onConfirm} className="btn btn--primary btn--full" style={{ marginBottom: 12, height: 56, fontSize: 16 }}>
+        {balanceDue <= 0 ? 'Pay with Savings' : `Confirm & Pay`}
       </button>
-      <button onClick={onBack} className="btn btn--secondary btn--full">
-        Go back
-      </button>
+      {isPriorityRequest && onPayOther ? (
+        <button onClick={onPayOther} className="btn btn--secondary btn--full" style={{ height: 50 }}>
+          Pay manual transfer instead
+        </button>
+      ) : (
+        <button onClick={onBack} className="btn btn--secondary btn--full" style={{ height: 50 }}>
+          Go back
+        </button>
+      )}
     </div>
   )
 }
@@ -502,7 +580,7 @@ const inputStyle: React.CSSProperties = { flex: 1, background: 'none', border: '
 
 // ─── STEP: AMOUNT SELECTION ───────────────────────────────────────────────────
 function StepAmount({ landlord, onContinue, onBack }: { landlord: Landlord; onContinue: (amount: number, narration: string) => void; onBack: () => void }) {
-  const [amount, setAmount] = React.useState(landlord.lastAmount > 0 ? String(landlord.lastAmount) : '')
+  const [amount, setAmount] = React.useState(landlord.lastAmount > 0 ? String(landlord.lastAmount / 100) : '')
   const [narration, setNarration] = React.useState('')
   const presets = [50000, 100000, 150000, 200000]
   const canProceed = Number(amount) >= 1000
@@ -562,7 +640,7 @@ function StepAmount({ landlord, onContinue, onBack }: { landlord: Landlord; onCo
 
       <button
         disabled={!canProceed}
-        onClick={() => onContinue(Number(amount), narration)}
+        onClick={() => onContinue(Math.round(Number(amount) * 100), narration)}
         className="btn btn--primary btn--full"
         style={{ opacity: canProceed ? 1 : 0.4 }}
       >
@@ -573,31 +651,103 @@ function StepAmount({ landlord, onContinue, onBack }: { landlord: Landlord; onCo
 }
 
 // ─── MAIN PAY RENT PAGE ───────────────────────────────────────────────────────
-export function PayRentPage({ onBack }: { onBack: () => void }) {
-  const [step, setStep] = useState<PayRentStep>('select')
-  const [selectedLandlord, setSelectedLandlord] = useState<Landlord | null>(null)
-  const [payAmount, setPayAmount] = useState(0)
-  const [narration, setNarration] = useState('')
+export function PayRentPage({
+  onBack,
+  pendingPayments = [],
+  savedLandlords = [],
+  savingsBalance = 0,
+}: {
+  onBack: () => void
+  pendingPayments?: any[]
+  savedLandlords?: any[]
+  savingsBalance?: number
+}) {
+  const [isPriorityRequest, setIsPriorityRequest] = useState(pendingPayments.length > 0)
+  const [isDismissedPriority, setIsDismissedPriority] = useState(false)
+  
+  const initialStep: PayRentStep = (isPriorityRequest && !isDismissedPriority) ? 'confirm' : 'select'
+  const [step, setStep] = useState<PayRentStep>(initialStep)
+  
+  const [selectedLandlord, setSelectedLandlord] = useState<Landlord | null>(pendingPayments.length > 0 ? {
+    id: pendingPayments[0].uuid,
+    name: pendingPayments[0].company_name,
+    accountName: pendingPayments[0].company_name,
+    accountNumber: pendingPayments[0].invoice_number || 'INV-REQ',
+    bankName: pendingPayments[0].company_name,
+    bankCode: '',
+    avatar: (pendingPayments[0].company_name || 'L')[0],
+    source: 'pm',
+    lastPaid: null,
+    lastAmount: pendingPayments[0].total_amount,
+  } : null)
+
+  const [payAmount, setPayAmount] = useState(pendingPayments.length > 0 ? pendingPayments[0].total_amount : 0)
+  const [narration, setNarration] = useState(pendingPayments.length > 0 ? pendingPayments[0].notes : '')
   const [isNew, setIsNew] = useState(false)
+  const [useSavings, setUseSavings] = useState(savingsBalance > 0)
+
+  // Map API saved landlords to internal Landlord format
+  const mappedSaved: Landlord[] = savedLandlords.map(l => ({
+    id: l.uuid,
+    name: l.name,
+    accountName: l.account_name,
+    accountNumber: l.account_number,
+    bankName: l.bank_name,
+    bankCode: l.bank_code,
+    avatar: l.name[0],
+    lastPaid: l.last_paid,
+    lastAmount: l.last_amount,
+  }))
 
   const stepTitle: Record<PayRentStep, string> = {
     select: 'Pay Rent',
-    new: 'New Landlord',
+    new: 'New Recipient',
     confirm: 'Confirm Payment',
+    checkout: 'Checkout',
     processing: 'Processing',
     success: 'Payment Sent',
   }
 
-  const showBack = step !== 'processing' && step !== 'success'
+  const showBack = step !== 'processing' && step !== 'success' && step !== 'checkout'
 
   function handleBack() {
-    if (step === 'new') { setStep('select'); setIsNew(false) }
+    if (isPriorityRequest && !isDismissedPriority && step === 'confirm') { 
+      onBack() 
+    }
+    else if (step === 'new') { setStep('select'); setIsNew(false) }
     else if (step === 'confirm') { setStep(isNew ? 'new' : 'select') }
     else { onBack() }
   }
 
+  function handlePayOther() {
+    setIsDismissedPriority(true)
+    setStep('select')
+    setSelectedLandlord(null)
+    setPayAmount(0)
+    setNarration('')
+  }
+
+  // Calculate final checkout amount
+  const savingsToUse = useSavings ? Math.min(savingsBalance, payAmount) : 0
+  const totalToPay = payAmount - savingsToUse
+
   return (
     <div className="subpage" style={{ paddingBottom: 120 }}>
+      {step === 'checkout' && selectedLandlord && (
+        <MockPaystackCheckout
+          email="tenant@example.com"
+          amount={totalToPay}
+          currency="NGN"
+          reference={`REF-${Date.now()}`}
+          companyName={selectedLandlord.name}
+          onSuccess={() => {
+            setStep('processing')
+            setTimeout(() => setStep('success'), 2000)
+          }}
+          onClose={() => setStep('confirm')}
+        />
+      )}
+
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes successPop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
@@ -608,11 +758,11 @@ export function PayRentPage({ onBack }: { onBack: () => void }) {
         title={stepTitle[step]}
         onBack={showBack ? handleBack : () => {}}
       />
-
+      
       {step === 'select' && (
         <StepSelect
-          saved={MOCK_SAVED_LANDLORDS}
-          pm={MOCK_PM_LANDLORDS}
+          saved={mappedSaved}
+          pm={[]}
           onSelect={l => {
             setSelectedLandlord(l)
             setIsNew(false)
@@ -647,9 +797,21 @@ export function PayRentPage({ onBack }: { onBack: () => void }) {
               landlord={selectedLandlord}
               amount={payAmount}
               narration={narration || 'Rent payment'}
+              isPriorityRequest={isPriorityRequest && !isDismissedPriority}
+              useSavings={useSavings}
+              onToggleSavings={setUseSavings}
+              savingsBalance={savingsBalance}
+              onPayOther={handlePayOther}
+              lineItems={isPriorityRequest && !isDismissedPriority && pendingPayments[0]?.lineItems?.length > 0
+                ? pendingPayments[0].lineItems.map((li: any) => ({ label: li.label, amount: li.amount }))
+                : []}
               onConfirm={() => {
-                setStep('processing')
-                setTimeout(() => setStep('success'), 2800)
+                if (payAmount + 100 <= savingsBalance && useSavings) {
+                  setStep('processing')
+                  setTimeout(() => setStep('success'), 2000)
+                } else {
+                  setStep('checkout')
+                }
               }}
               onBack={handleBack}
             />
@@ -667,7 +829,7 @@ export function PayRentPage({ onBack }: { onBack: () => void }) {
 }
 
 // ─── DASHBOARD PAY RENT CARD ──────────────────────────────────────────────────
-export function PayRentCard({ onOpen, compact }: { onOpen: () => void; compact?: boolean }) {
+export function PayRentCard({ onOpen, compact, savedLandlords = [] }: { onOpen: () => void; compact?: boolean; savedLandlords?: any[] }) {
   if (compact) {
     return (
       <div
@@ -692,7 +854,7 @@ export function PayRentCard({ onOpen, compact }: { onOpen: () => void; compact?:
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Send Rent Payment</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Quick transfer to any landlord</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Quick transfer to any recipient</div>
         </div>
         <div style={{ color: 'var(--clay)' }}>
           <ChevronRight size={20} />
@@ -719,27 +881,27 @@ export function PayRentCard({ onOpen, compact }: { onOpen: () => void; compact?:
           </div>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Pay Rent</div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Send directly to your landlord</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Send directly to any recipient</div>
           </div>
         </div>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-          Transfer rent directly to any landlord's bank account — and get it recorded on your credit history.
+          Transfer rent directly to any bank account — recorded on your credibility history.
         </p>
       </div>
 
-      {MOCK_SAVED_LANDLORDS.length > 0 && (
+      {savedLandlords.length > 0 && (
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
           <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: 10 }}>Quick pay</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {MOCK_SAVED_LANDLORDS.slice(0, 2).map(l => (
+            {savedLandlords.slice(0, 2).map(l => (
               <div
-                key={l.id}
+                key={l.uuid}
                 onClick={onOpen}
                 style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all 0.2s' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--clay)' }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
               >
-                <LandlordAvatar letter={l.avatar} size={32} />
+                <LandlordAvatar letter={l.name[0]} size={32} />
                 <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{l.name}</div>
                 <ChevronRight size={14} />
               </div>
@@ -750,7 +912,7 @@ export function PayRentCard({ onOpen, compact }: { onOpen: () => void; compact?:
 
       <div style={{ padding: 16 }}>
         <button className="btn btn--primary btn--full btn--sm" onClick={onOpen}>
-          New Payment
+          {savedLandlords.length > 0 ? 'New Payment' : 'Pay Rent'}
         </button>
       </div>
     </div>

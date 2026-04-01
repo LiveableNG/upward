@@ -21,7 +21,7 @@ export default function BottomNav() {
   const navItems = [
     { label: 'Home', icon: Home, href: '/dashboard' },
     { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent' },
-    { label: 'Transctions', icon: History, href: '/dashboard/transactions' },
+    { label: 'Transactions', icon: History, href: '/dashboard/transactions' },
     { label: 'Upcoming', icon: Sparkles, href: '/dashboard/coming-soon' },
     { label: 'Me', icon: User, href: '/dashboard/me' },
   ]

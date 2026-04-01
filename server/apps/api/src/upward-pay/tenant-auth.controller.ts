@@ -34,6 +34,9 @@ interface TenantRow {
   rent_anniversary: string | null
   membership_level: string
   total_invites: number
+  has_completed_onboarding: number
+  savings_balance: number
+  savings_goal: number
   created_at: string
 }
 
@@ -238,10 +241,19 @@ export class TenantAuthController {
       )
       .all(tenant.id)
 
+    // Grab saved landlords
+    const savedLandlords = db
+      .prepare(
+        `SELECT uuid, name, account_name, account_number, bank_name, bank_code, last_paid, last_amount
+         FROM saved_landlords WHERE tenant_id = ? ORDER BY last_paid DESC NULLS LAST`,
+      )
+      .all(tenant.id)
+
     return {
       tenant: this.formatTenant(tenant),
       pendingPayments,
       completedPayments,
+      savedLandlords,
     }
   }
 
@@ -337,6 +349,9 @@ export class TenantAuthController {
       rentAnniversary: t.rent_anniversary,
       membershipLevel: t.membership_level,
       totalInvites: t.total_invites,
+      hasCompletedOnboarding: !!t.has_completed_onboarding,
+      savingsBalance: t.savings_balance ?? 0,
+      savingsGoal: t.savings_goal ?? 0,
       createdAt: t.created_at,
     }
   }

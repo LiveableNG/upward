@@ -27,6 +27,7 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
     this.db.pragma('journal_mode = WAL')
     this.db.pragma('foreign_keys = ON')
     this.createTables()
+    this.runMigrations()
     this.seedIfEmpty()
   }
 
@@ -94,10 +95,27 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
         rent_anniversary TEXT,
         membership_level TEXT DEFAULT 'Window Shopper',
         total_invites   INTEGER DEFAULT 0,
+        has_completed_onboarding INTEGER NOT NULL DEFAULT 0,
+        savings_balance INTEGER NOT NULL DEFAULT 0,
+        savings_goal    INTEGER NOT NULL DEFAULT 0,
         preferences     TEXT DEFAULT '{}',
         metadata        TEXT DEFAULT '{}',
         created_at      TEXT DEFAULT (datetime('now')),
         updated_at      TEXT DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS saved_landlords (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid            TEXT UNIQUE NOT NULL,
+        tenant_id       INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        name            TEXT NOT NULL,
+        account_name    TEXT NOT NULL,
+        account_number  TEXT NOT NULL,
+        bank_name       TEXT NOT NULL,
+        bank_code       TEXT NOT NULL,
+        last_paid       TEXT,
+        last_amount     INTEGER DEFAULT 0,
+        created_at      TEXT DEFAULT (datetime('now'))
       );
 
       CREATE TABLE IF NOT EXISTS payment_requests (
@@ -191,6 +209,83 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
     `)
   }
 
+  /* ─── migrations ─── */
+  private runMigrations() {
+    // Add new columns to tenants table if they don't exist yet
+    const tenantCols = (this.db.pragma('table_info(tenants)') as { name: string }[]).map(c => c.name)
+
+    if (!tenantCols.includes('has_completed_onboarding')) {
+      this.db.exec(`ALTER TABLE tenants ADD COLUMN has_completed_onboarding INTEGER NOT NULL DEFAULT 0`)
+      // Sarah (id=1) is established — mark her as completed
+      this.db.exec(`UPDATE tenants SET has_completed_onboarding = 1 WHERE uuid = 'tenant-uuid-001'`)
+    }
+    if (!tenantCols.includes('savings_balance')) {
+      this.db.exec(`ALTER TABLE tenants ADD COLUMN savings_balance INTEGER NOT NULL DEFAULT 0`)
+      // Give Sarah a savings balance (₦125,000 = 12,500,000 kobo)
+      this.db.exec(`UPDATE tenants SET savings_balance = 12500000 WHERE uuid = 'tenant-uuid-001'`)
+    }
+    if (!tenantCols.includes('savings_goal')) {
+      this.db.exec(`ALTER TABLE tenants ADD COLUMN savings_goal INTEGER NOT NULL DEFAULT 0`)
+      // Give Sarah a savings goal (₦450,000 = 45,000,000 kobo)
+      this.db.exec(`UPDATE tenants SET savings_goal = 45000000 WHERE uuid = 'tenant-uuid-001'`)
+    }
+
+    // Create saved_landlords table if it doesn't exist
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS saved_landlords (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid            TEXT UNIQUE NOT NULL,
+        tenant_id       INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        name            TEXT NOT NULL,
+        account_name    TEXT NOT NULL,
+        account_number  TEXT NOT NULL,
+        bank_name       TEXT NOT NULL,
+        bank_code       TEXT NOT NULL,
+        last_paid       TEXT,
+        last_amount     INTEGER DEFAULT 0,
+        created_at      TEXT DEFAULT (datetime('now'))
+      );
+    `)
+
+    // Seed saved landlords for Sarah if not already done
+    const savedCount = this.db.prepare(
+      `SELECT COUNT(*) as c FROM saved_landlords WHERE tenant_id = (SELECT id FROM tenants WHERE uuid = 'tenant-uuid-001')`
+    ).get() as { c: number }
+
+    if (savedCount.c === 0) {
+      const sarahId = (this.db.prepare(`SELECT id FROM tenants WHERE uuid = 'tenant-uuid-001'`).get() as { id: number } | undefined)?.id
+      if (sarahId) {
+        const ins = this.db.prepare(
+          `INSERT OR IGNORE INTO saved_landlords (uuid, tenant_id, name, account_name, account_number, bank_name, bank_code, last_paid, last_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        ins.run(this.uuid(), sarahId, 'Greenfield Properties Ltd', 'Greenfield Properties Ltd', '0123456789', 'GTBank', '058', '2025-01-10', 28500000) // ₦285,000
+        ins.run(this.uuid(), sarahId, 'Mr. Babatunde Adeyemi', 'Babatunde Adeyemi', '2098765432', 'Zenith Bank', '057', '2024-07-02', 18000000)          // ₦180,000
+      }
+    }
+
+    // Seed Alex (new user) if tenant-uuid-003 doesn't exist yet with the new email
+    const alexExists = this.db.prepare(`SELECT id FROM tenants WHERE uuid = 'tenant-uuid-003'`).get() as { id: number } | undefined
+    if (alexExists) {
+      // Update existing tenant-uuid-003 (was amara.eze) to alex.eze if it still has old email
+      const row = this.db.prepare(`SELECT email FROM tenants WHERE uuid = 'tenant-uuid-003'`).get() as { email: string } | undefined
+      if (row && row.email !== 'alex.eze@email.com') {
+        this.db.exec(`
+          UPDATE tenants SET
+            email = 'alex.eze@email.com',
+            email_hash = '${this.hashEmailPublic('alex.eze@email.com')}',
+            full_name = 'Alex Eze',
+            has_completed_onboarding = 0
+          WHERE uuid = 'tenant-uuid-003'
+        `)
+      }
+    }
+  }
+
+  // Public version of hashEmail for use in runMigrations (non-private context)
+  private hashEmailPublic(email: string): string {
+    return crypto.createHash('sha256').update(email.toLowerCase().trim()).digest('hex')
+  }
+
   /* ─── seed ─── */
   private seedIfEmpty() {
     const count = this.db.prepare('SELECT COUNT(*) as c FROM companies').get() as { c: number }
@@ -234,11 +329,11 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
 
     // ── Tenants — one signed up, one not
     const insertTenant = this.db.prepare(
-      `INSERT INTO tenants (uuid, email, email_hash, phone, full_name, signup_status, password_hash, invited_by_company_id, date_of_birth, gender, occupation, marital_status, emergency_contact_name, emergency_contact_phone, address, membership_level, total_invites)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO tenants (uuid, email, email_hash, phone, full_name, signup_status, password_hash, invited_by_company_id, date_of_birth, gender, occupation, marital_status, emergency_contact_name, emergency_contact_phone, address, membership_level, total_invites, has_completed_onboarding, savings_balance, savings_goal)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
 
-    // Tenant 1: Signed up (app_installed)
+    // Tenant 1: Sarah — established user, has completed onboarding
     insertTenant.run(
       'tenant-uuid-001',
       'sarah.johnson@email.com',
@@ -257,9 +352,12 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
       '14 Palm Avenue, Lekki Phase 1, Lagos',
       'Club Member',
       5,
+      1,           // has_completed_onboarding
+      12500000,    // savings_balance: ₦125,000 in kobo
+      45000000,    // savings_goal: ₦450,000 in kobo
     )
 
-    // Tenant 2: Not signed up
+    // Tenant 2: Not signed up (David)
     insertTenant.run(
       'tenant-uuid-002',
       'david.okafor@email.com',
@@ -278,15 +376,18 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
       null,
       'Window Shopper',
       0,
+      0, // has_completed_onboarding
+      0, // savings_balance
+      0, // savings_goal
     )
 
-    // Tenant 3: Another signed-up user
+    // Tenant 3: Alex Eze — newly signed up, has NOT completed onboarding
     insertTenant.run(
       'tenant-uuid-003',
-      'amara.eze@email.com',
-      this.hashEmail('amara.eze@email.com'),
+      'alex.eze@email.com',
+      this.hashEmail('alex.eze@email.com'),
       '+2348033333333',
-      'Amara Eze',
+      'Alex Eze',
       'web_only',
       this.hashPassword('password123'),
       1,
@@ -299,6 +400,9 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
       null,
       'Window Shopper',
       0,
+      0, // has_completed_onboarding = false (new user)
+      0, // savings_balance
+      0, // savings_goal
     )
 
     // Tenant 4: Another not-signed-up user
@@ -320,6 +424,7 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
       null,
       'Window Shopper',
       0,
+      0, 0, 0,
     )
 
     // Tenant 5: Guest tenant for simulation (James Okafor)
@@ -341,6 +446,7 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
       null,
       'Window Shopper',
       0,
+      0, 0, 0,
     )
 
     // ── Payment Requests
@@ -446,6 +552,32 @@ export class SqliteService implements OnModuleInit, OnModuleDestroy {
       1,
       'inv-token-sarah',
       'sent',
+    )
+
+    // ── Saved Landlords for Sarah
+    const insertSavedLandlord = this.db.prepare(
+      `INSERT INTO saved_landlords (uuid, tenant_id, name, account_name, account_number, bank_name, bank_code, last_paid, last_amount)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    insertSavedLandlord.run(
+      this.uuid(), 1,
+      'Greenfield Properties Ltd',
+      'Greenfield Properties Ltd',
+      '0123456789',
+      'GTBank',
+      '058',
+      '2025-01-10',
+      28500000, // ₦285,000 in kobo
+    )
+    insertSavedLandlord.run(
+      this.uuid(), 1,
+      'Mr. Babatunde Adeyemi',
+      'Babatunde Adeyemi',
+      '2098765432',
+      'Zenith Bank',
+      '057',
+      '2024-07-02',
+      18000000, // ₦180,000 in kobo
     )
 
     // ── Past payment transactions for Sarah (for receipts)

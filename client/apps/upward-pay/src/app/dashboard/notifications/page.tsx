@@ -84,7 +84,7 @@ export default function ActivityHubPage() {
         </div>
       </header>
 
-      <section className="dashboard__section" style={{ maxWidth: '800px', margin: '16px auto', padding: '0 20px', width: '100%' }}>
+      <section className="dashboard__section" style={{ maxWidth: '1100px', margin: '16px auto', padding: '0 20px', width: '100%' }}>
         {/* TABS SWITCHER */}
         <div style={{ 
           display: 'flex', 
@@ -95,58 +95,79 @@ export default function ActivityHubPage() {
           borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--border-solid)' 
         }}>
-          <button 
-            style={{ 
-              flex: 1, 
-              padding: '12px', 
-              borderRadius: 'var(--radius-md)', 
-              border: 'none', 
-              background: activeTab === 'actions' ? 'var(--bg)' : 'transparent', 
-              color: activeTab === 'actions' ? 'var(--text)' : 'var(--text-muted)',
-              fontWeight: 700,
-              fontSize: '14px',
-              boxShadow: activeTab === 'actions' ? '0 2px 10px rgba(0,0,0,0.06)' : 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              transition: 'all 0.2s'
-            }}
-            onClick={() => setActiveTab('actions')}
-          >
-            <Clock size={16} /> Actions
-            <span style={{ 
-              background: 'var(--clay)', 
-              color: '#fff', 
-              fontSize: '10px', 
-              padding: '2px 6px', 
-              borderRadius: '10px',
-              marginLeft: '4px'
-             }}>2</span>
-          </button>
-          <button 
-            style={{ 
-              flex: 1, 
-              padding: '12px', 
-              borderRadius: 'var(--radius-md)', 
-              border: 'none', 
-              background: activeTab === 'announcements' ? 'var(--bg)' : 'transparent',
-              color: activeTab === 'announcements' ? 'var(--text)' : 'var(--text-muted)',
-              fontWeight: 700,
-              fontSize: '14px',
-              boxShadow: activeTab === 'announcements' ? '0 2px 10px rgba(0,0,0,0.06)' : 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              transition: 'all 0.2s'
-            }}
-            onClick={() => setActiveTab('announcements')}
-          >
-            <Megaphone size={16} /> News
-          </button>
+          {(() => {
+            const actionsCount = MOCK_ACTIONS.length
+            const unreadNewsCount = MOCK_ANNOUNCEMENTS.filter(a => !a.isRead).length
+            
+            return (
+              <>
+                <button 
+                  style={{ 
+                    flex: 1, 
+                    padding: '12px', 
+                    borderRadius: 'var(--radius-md)', 
+                    border: 'none', 
+                    background: activeTab === 'actions' ? 'var(--bg)' : 'transparent', 
+                    color: activeTab === 'actions' ? 'var(--text)' : 'var(--text-muted)',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    boxShadow: activeTab === 'actions' ? '0 2px 10px rgba(0,0,0,0.06)' : 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => setActiveTab('actions')}
+                >
+                  <Clock size={16} /> Actions
+                  {actionsCount > 0 && (
+                    <span style={{ 
+                      background: 'var(--clay)', 
+                      color: '#fff', 
+                      fontSize: '10px', 
+                      padding: '2px 6px', 
+                      borderRadius: '10px',
+                      marginLeft: '4px'
+                    }}>{actionsCount}</span>
+                  )}
+                </button>
+                <button 
+                  style={{ 
+                    flex: 1, 
+                    padding: '12px', 
+                    borderRadius: 'var(--radius-md)', 
+                    border: 'none', 
+                    background: activeTab === 'announcements' ? 'var(--bg)' : 'transparent',
+                    color: activeTab === 'announcements' ? 'var(--text)' : 'var(--text-muted)',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    boxShadow: activeTab === 'announcements' ? '0 2px 10px rgba(0,0,0,0.06)' : 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => setActiveTab('announcements')}
+                >
+                  <Megaphone size={16} /> News
+                  {unreadNewsCount > 0 && (
+                    <span style={{ 
+                      background: 'var(--clay)', 
+                      color: '#fff', 
+                      fontSize: '10px', 
+                      padding: '2px 6px', 
+                      borderRadius: '10px',
+                      marginLeft: '4px'
+                    }}>{unreadNewsCount}</span>
+                  )}
+                </button>
+              </>
+            )
+          })()}
         </div>
 
         {/* ACTIONS TAB */}

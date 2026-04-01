@@ -3,7 +3,7 @@
 import { formatCurrency, formatDate, getCategoryIconName } from '@/lib/utils'
 import { UpwardLogo } from '@/components/payment/PoweredByUpward'
 import type { ReceiptData } from '@/lib/api'
-import { Download, MapPin, Home, Lock, Users, Scale, Settings, Wrench, Package, ArrowLeft, Check, TrendingUp } from 'lucide-react'
+import { Download, MapPin, Home, Lock, Users, Scale, Settings, Wrench, Package, ArrowLeft, Check, TrendingUp, Share2 } from 'lucide-react'
 
 const CategoryIcon = ({ name, size = 16 }: { name: string; size?: number }) => {
   const icons: Record<string, any> = {
@@ -96,17 +96,29 @@ export default function ReceiptTemplate({
     printWindow.document.close()
   }
 
+  function handleShare() {
+    const amountStr = formatCurrency(receipt.amount, receipt.currency)
+    const text = `Hello! I've just paid my rent through Upward. Here is my receipt (#${receipt.receiptNumber}) for ${amountStr}. This payment is verified on the GoodTenants platform for your records.`
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`
+    window.open(whatsappUrl, '_blank')
+  }
+
   return (
     <div className="receipt-overlay">
       <div className="receipt-modal">
         {/* Action bar (hidden in print) */}
-        <div className="receipt-actions no-print">
+        <div className="receipt-actions no-print" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button className="btn btn--secondary btn--sm" onClick={onClose}>
-            <ArrowLeft size={14} style={{ marginRight: 4 }} /> Back
+            <ArrowLeft size={20} />
           </button>
-          <button className="btn btn--primary btn--sm" onClick={handlePrint}>
-            <Download size={14} style={{ marginRight: 4 }} /> Download PDF
-          </button>
+          <div style={{ display: 'flex', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
+            <button className="btn btn--secondary btn--sm" onClick={handleShare}>
+              <Share2 size={14} style={{ marginRight: 4 }} />
+            </button>
+            <button className="btn btn--secondary btn--sm" onClick={handlePrint}>
+              <Download size={14} style={{ marginRight: 4 }} />
+            </button>
+          </div>
         </div>
 
         {/* The actual receipt — this prints */}

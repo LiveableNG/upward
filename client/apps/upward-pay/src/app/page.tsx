@@ -212,7 +212,7 @@ export default function HomePage() {
           {/* ── Flow 1: Sarah (Registered) ── */}
           <div className="home-page__flow-block">
             <div className="home-page__flow-label">
-              <span className="home-page__flow-badge home-page__flow-badge--registered">Registered User</span>
+              <span className="home-page__flow-badge home-page__flow-badge--registered">Scenario A: Established User (Sarah)</span>
             </div>
             <button
               className="home-page__test-link"
@@ -221,7 +221,7 @@ export default function HomePage() {
               <span className="home-page__test-link-icon"><CreditCard size={18} /></span>
               <div>
                 <span className="home-page__test-link-label">Payment — Sarah Johnson</span>
-                <span className="home-page__test-link-desc">Pre-filled tenant · requires sign-in to pay</span>
+                <span className="home-page__test-link-desc">Pre-filled tenant · completed onboarding · has savings history</span>
               </div>
               <span className="home-page__test-link-copy"><Clipboard size={14} /></span>
             </button>
@@ -242,6 +242,47 @@ export default function HomePage() {
                 <div className="home-page__mock-disclosure-content">
                   <div className="home-page__credential-item" onClick={() => copyToClipboard('sarah.johnson@email.com', 'Email')}>
                     <span>Email:</span> <strong>sarah.johnson@email.com</strong> <Clipboard size={12} />
+                  </div>
+                  <div className="home-page__credential-item" onClick={() => copyToClipboard('password123', 'Password')}>
+                    <span>Pass:</span> <strong>password123</strong> <Clipboard size={12} />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="home-page__flow-block">
+            <div className="home-page__flow-label">
+              <span className="home-page__flow-badge" style={{ backgroundColor: 'rgba(99,102,241,0.12)', color: '#6366f1' }}>Scenario B: New User (Alex)</span>
+            </div>
+            <button
+              className="home-page__test-link"
+              onClick={() => copyLink('/dashboard', 'Dashboard link (Alex)')}
+            >
+              <span className="home-page__test-link-icon"><Sparkles size={18} /></span>
+              <div>
+                <span className="home-page__test-link-label">Dashboard — Alex Eze (New User)</span>
+                <span className="home-page__test-link-desc">Just signed up · no onboarding · sees app banner &amp; savings goal prompt</span>
+              </div>
+              <span className="home-page__test-link-copy"><Clipboard size={14} /></span>
+            </button>
+
+            <div className="home-page__mock-disclosure">
+              <button
+                className="home-page__mock-disclosure-trigger"
+                onClick={() => setShowGuestCredentials(!showGuestCredentials)}
+              >
+                <span className="home-page__test-link-icon"><Key size={18} /></span>
+                <span className="home-page__test-link-label">Alex&apos;s Login Credentials</span>
+                <span className="home-page__disclosure-arrow">
+                  {showGuestCredentials ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </span>
+              </button>
+
+              {showGuestCredentials && (
+                <div className="home-page__mock-disclosure-content">
+                  <div className="home-page__credential-item" onClick={() => copyToClipboard('alex.eze@email.com', 'Email')}>
+                    <span>Email:</span> <strong>alex.eze@email.com</strong> <Clipboard size={12} />
                   </div>
                   <div className="home-page__credential-item" onClick={() => copyToClipboard('password123', 'Password')}>
                     <span>Pass:</span> <strong>password123</strong> <Clipboard size={12} />

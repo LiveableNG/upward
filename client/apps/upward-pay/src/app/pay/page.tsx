@@ -26,6 +26,10 @@ function PaymentContent() {
   const userLoggedIn = isLoggedIn()
   const [isNative, setIsNative] = useState(false)
 
+  // Savings Wallet state
+  const [savingsBalance, setSavingsBalance] = useState(1000000) // Mock: 1M NGN saved
+  const [useSavings, setUseSavings] = useState(true)
+
   // Guest flow state
   const [isGuestFlow, setIsGuestFlow] = useState(false)
 
@@ -90,8 +94,23 @@ function PaymentContent() {
     }
 
     const email = data.tenant?.email || ''
+    const totalAmount = data.paymentRequest.totalAmount
+    const savingsToUse = useSavings ? Math.min(savingsBalance, totalAmount) : 0
+    const balanceDue = totalAmount - savingsToUse
 
     try {
+      // If balanceDue is 0, we could theoretically skip Paystack, but for the demo 
+      // we'll still initialize with 0 or just simulate success
+      if (balanceDue <= 0 && useSavings) {
+        setStage('processing')
+        // Simulate a success for full savings payment
+        setTimeout(() => {
+          setReceiptNumber(`REC-${Math.floor(Math.random() * 1000000)}`)
+          setStage('success')
+        }, 1500)
+        return
+      }
+
       let initResult
 
       if (isGuestFlow && !userLoggedIn) {
@@ -105,6 +124,7 @@ function PaymentContent() {
         initResult = await api.initializePayment({
           paymentToken: token,
           email,
+          amount: balanceDue // Pass the calculated balance
         })
       }
 
@@ -348,28 +368,97 @@ function PaymentContent() {
 
           {/* Payment Tray */}
           <div className="pay-page__tray">
-            {/* Show pre-filled name for both logged-in and guest users */}
-            {data.tenant && (
-              <div className="pay-page__saved-method">
-                <div className="pay-page__saved-icon"><CreditCard size={20} /></div>
-                <div>
-                  <span className="pay-page__saved-label">
-                    {isGuestFlow && !userLoggedIn ? 'Paying as' : 'Quick pay as'}
-                  </span>
-                  <span className="pay-page__saved-name">{data.tenant.fullName}</span>
+            {/* Savings Wallet Option (Only for logged in users) */}
+            {userLoggedIn && (
+              <div className="pay-page__savings-wallet" style={{
+                background: useSavings ? 'var(--clay-faint)' : 'var(--surface)',
+                border: `1px solid ${useSavings ? 'var(--clay)' : 'var(--border-solid)'}`,
+                padding: '16px',
+                borderRadius: 'var(--radius-lg)',
+                marginBottom: '20px',
+                transition: 'all 0.2s ease',
+                boxShadow: useSavings ? '0 10px 25px -10px var(--clay-glow)' : 'none'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: useSavings ? '12px' : 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ color: 'var(--clay)' }}><ShieldCheck size={20} /></div>
+                    <div>
+                      <p style={{ fontSize: '13px', fontWeight: 700, margin: 0 }}>Savings Wallet</p>
+                      <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>Available: {formatCurrency(savingsBalance, data.paymentRequest.currency)}</p>
+                    </div>
+                  </div>
+                  <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={useSavings} 
+                      onChange={() => setUseSavings(!useSavings)}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      cursor: 'pointer',
+                      top: 0, left: 0, right: 0, bottom: 0,
+                      backgroundColor: useSavings ? 'var(--clay)' : '#ccc',
+                      transition: '.4s',
+                      borderRadius: '34px'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        content: '""',
+                        height: '18px', width: '18px',
+                        left: useSavings ? '22px' : '4px',
+                        bottom: '3px',
+                        backgroundColor: 'white',
+                        transition: '.4s',
+                        borderRadius: '50%'
+                      }} />
+                    </span>
+                  </label>
                 </div>
-                {isGuestFlow && !userLoggedIn && (
-                  <span className="pay-page__guest-tag">Guest</span>
+                
+                {useSavings && (
+                  <div style={{ 
+                    marginTop: '12px', 
+                    paddingTop: '12px', 
+                    borderTop: '1px dashed rgba(217,119,87,0.2)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Savings applied</span>
+                      <span style={{ fontWeight: 700, color: 'var(--clay)' }}>
+                        -{formatCurrency(Math.min(savingsBalance, data.paymentRequest.totalAmount), data.paymentRequest.currency)}
+                      </span>
+                    </div>
+                    {data.paymentRequest.totalAmount > savingsBalance && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Balance to pay</span>
+                        <span style={{ fontWeight: 700 }}>
+                          {formatCurrency(data.paymentRequest.totalAmount - savingsBalance, data.paymentRequest.currency)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             )}
 
             <button className="btn btn--primary btn--full btn--pay" onClick={handlePay}>
-              {userLoggedIn
-                ? 'Confirm & Pay'
-                : isGuestFlow
-                  ? `Pay ${formatCurrency(data.paymentRequest.totalAmount, data.paymentRequest.currency)}`
-                  : `Login to Pay ${formatCurrency(data.paymentRequest.totalAmount, data.paymentRequest.currency)}`}
+              {(() => {
+                const totalAmount = data.paymentRequest.totalAmount
+                const savingsToUse = useSavings ? Math.min(savingsBalance, totalAmount) : 0
+                const balanceDue = totalAmount - savingsToUse
+
+                if (useSavings) {
+                  if (balanceDue <= 0) return `Pay in full with Savings`
+                  return `Pay ${formatCurrency(balanceDue, data.paymentRequest.currency)} balance`
+                }
+
+                if (userLoggedIn) return 'Confirm & Pay'
+                if (isGuestFlow) return `Pay ${formatCurrency(totalAmount, data.paymentRequest.currency)}`
+                return `Login to Pay ${formatCurrency(totalAmount, data.paymentRequest.currency)}`
+              })()}
             </button>
 
             {isGuestFlow && !userLoggedIn && (
