@@ -29,8 +29,10 @@ export default function ReceiptsPage() {
     // MOCK RECEIPT FOR DESIGN PHASE
     const mockReceipt: ReceiptData = {
       uuid: 'mock-id',
+      title: 'Monthly Rent Receipt',
       receiptNumber: 'RCP-89240',
       paidAt: new Date().toISOString(),
+      generatedAt: new Date().toISOString(),
       tenantName: 'John Doe',
       companyName: 'Livable Properties',
       companyLogo: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=40&h=40&q=80',

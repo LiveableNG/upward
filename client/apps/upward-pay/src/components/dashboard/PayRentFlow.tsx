@@ -184,13 +184,14 @@ function SubpageHeader({ title, onBack }: { title: string; onBack: () => void })
   )
 }
 
-function LandlordAvatar({ letter, size = 44, color }: { letter: string; size?: number; color?: string }) {
+function LandlordAvatar({ letter, size = 44, color, style }: { letter: string; size?: number; color?: string; style?: React.CSSProperties }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: size * 0.28,
       background: color || 'var(--clay)', color: '#fff',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontWeight: 700, fontSize: size * 0.42, flexShrink: 0,
+      ...style,
     }}>
       {letter}
     </div>
@@ -484,7 +485,7 @@ function StepConfirm({
         ].map(([label, value], i, arr) => (
           <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
             <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{label}</span>
-            <span style={{ fontSize: 13, fontWeight: i === arr.length - 1 ? 700 : 600, color: i === arr.length - 1 ? 'var(--clay)' : 'var(--text)', fontSize: i === arr.length - 1 ? 16 : 13 } as React.CSSProperties}>{value}</span>
+            <span style={{ fontWeight: i === arr.length - 1 ? 700 : 600, color: i === arr.length - 1 ? 'var(--clay)' : 'var(--text)', fontSize: i === arr.length - 1 ? 16 : 13 } as React.CSSProperties}>{value}</span>
           </div>
         ))}
       </div>
