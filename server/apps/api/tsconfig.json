@@ -1,6 +1,7 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
+    "baseUrl": ".",
     "module": "CommonJS",
     "moduleResolution": "Node",
     "lib": ["ES2022", "DOM"],
@@ -9,7 +10,11 @@
     "experimentalDecorators": true,
     "paths": {
       "@upward/shared-types": ["../../../common/shared-types/dist/index.d.ts"],
-      "@upward/common-utils": ["../../../common/utils/dist/index.d.ts"]
+      "@upward/common-utils": ["../../../common/utils/dist/index.d.ts"],
+      "@domains/*": ["src/domains/*"],
+      "@application/*": ["src/application/*"],
+      "@interfaces/*": ["src/interfaces/*"],
+      "@shared/*": ["src/shared/*"]
     }
   },
   "include": ["src/**/*"],

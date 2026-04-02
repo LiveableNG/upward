@@ -41,6 +41,41 @@ export default tseslint.config(
     },
   },
 
+  // ── DDD Layer Restrictions (server/apps/api) ──────────────────────────────
+  {
+    files: ['server/apps/api/src/interfaces/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@domains/*'],
+              message:
+                'Interfaces must not depend directly on domains. Use the application layer (@application).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['server/apps/api/src/domains/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@shared/infrastructure/*', '@application/*', '@interfaces/*'],
+              message: 'Domains must be pure and have no dependencies on other layers.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // ── Backend (NestJS) — relax rules that conflict with DI patterns ──────────
   {
     files: ['server/apps/api/**/*.ts'],

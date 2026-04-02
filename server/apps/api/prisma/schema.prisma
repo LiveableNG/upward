@@ -192,3 +192,16 @@ model upward_fairness_story {
 
   @@index([createdAt])
 }
+
+model upward_tenant {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email])
+  @@index([createdAt])
+}
