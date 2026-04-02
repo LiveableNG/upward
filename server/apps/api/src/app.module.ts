@@ -1,34 +1,35 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { APP_FILTER } from '@nestjs/core'
+import { ScheduleModule } from '@nestjs/schedule'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
-import { WaitlistModule } from './waitlist/waitlist.module'
-import { LocationsModule } from './locations/locations.module'
-import { EmailModule } from './email/email.module'
-import { AdminModule } from './admin/admin.module'
-import { AuthModule } from './auth/auth.module'
-import { AdminLogModule } from './admin-log/admin-log.module'
-import { PrismaModule } from './prisma/prisma.module'
-import { BugsnagModule } from './common/bugsnag/bugsnag.module'
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter'
-
-import { FairnessStoryModule } from './fairness-story/fairness-story.module'
-import { CampaignModule } from './campaign/campaign.module'
+import { AuthModule } from '@application/auth/auth.module'
+import { ApplicationModule } from '@application/application.module'
+import { DomainsModule } from '@domains/domains.module'
+import { PrismaModule } from '@shared/infrastructure/prisma/prisma.module'
+import { AdminLogModule } from '@shared/infrastructure/admin-log/admin-log.module'
+import { LocationsModule } from '@shared/locations/locations.module'
+import { EmailModule } from '@shared/infrastructure/email/email.module'
+import { BugsnagModule } from '@shared/infrastructure/common/bugsnag/bugsnag.module'
+import { AllExceptionsFilter } from '@shared/infrastructure/common/filters/all-exceptions.filter'
+import { EventsModule } from '@application/events/events.module'
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     PrismaModule,
-    WaitlistModule,
-    LocationsModule,
-    EmailModule,
-    AdminModule,
-    AuthModule,
     AdminLogModule,
+    EmailModule,
+    LocationsModule,
     BugsnagModule,
-    FairnessStoryModule,
-    CampaignModule,
+
+    // Core Layers
+    AuthModule,
+    DomainsModule,
+    ApplicationModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [

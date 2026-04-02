@@ -1,0 +1,118 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --clay: #d97757;
+  --clay-hover: #c46648;
+  --clay-glow: rgba(217, 119, 87, 0.2);
+  --clay-faint: rgba(217, 119, 87, 0.06);
+  --dark: #0a0a0f;
+  --dark-surface: #141413;
+  --dark-elevated: #1c1c1b;
+  --dark-card: #242423;
+  --oat: #faf9f5;
+  --oat-dim: #f0efe8;
+
+  --bg: #fcfbf9;
+  --surface: #f4f1ea;
+  --surface2: #ebe6dc;
+  --border: rgba(0, 0, 0, 0.05);
+  --border-solid: #e0d8cc;
+  --text: #0a0a0f;
+  --text-secondary: #5a5652;
+  --text-muted: #8a8580;
+  --success: #22c55e;
+  --success-bg: rgba(34, 197, 94, 0.08);
+  --warning: #f59e0b;
+  --error: #ef4444;
+
+  --btn-primary-bg: linear-gradient(135deg, #eaddcf 0%, #d4c5b9 100%);
+  --btn-primary-hover: linear-gradient(135deg, #d4c5b9 0%, #c4b5a8 100%);
+  --btn-primary-text: #0a0a0f;
+  --btn-primary-shadow: 0 4px 14px rgba(212, 197, 185, 0.4);
+  --btn-primary-shadow-hover: 0 6px 20px rgba(212, 197, 185, 0.5);
+
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e0e0d;
+    --surface: #181716;
+    --surface2: #22201e;
+    --border: rgba(255, 255, 255, 0.05);
+    --border-solid: #2a2826;
+    --text: #faf9f5;
+    --text-secondary: #b0aba8;
+    --text-muted: #6a6665;
+    --clay-faint: rgba(217, 119, 87, 0.08);
+    --success-bg: rgba(34, 197, 94, 0.12);
+
+    --btn-primary-bg: linear-gradient(135deg, #2a2725 0%, #1e1b19 100%);
+    --btn-primary-hover: linear-gradient(135deg, #36322e 0%, #2a2725 100%);
+    --btn-primary-text: #eaddcf;
+    --btn-primary-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    --btn-primary-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.6);
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font);
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+  position: relative;
+}
+
+::selection {
+  background: rgba(217, 119, 87, 0.2);
+  color: var(--text);
+}
+
+a {
+  color: var(--clay);
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}

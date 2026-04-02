@@ -1,58 +1,9 @@
-@import "tailwindcss";
-
-:root {
-  /* --- Design Tokens --- */
-  --bg: #ffffff;
-  --surface: #f7f7f7;
-  --surface2: #efefef;
-  --border: rgba(0, 0, 0, 0.08);
-  --accent: #d97757;
-  --text: #0a0a0f;
-  --muted: #666666;
-  --font-head: 'Inter', sans-serif;
-  --font-body: 'Inter', sans-serif;
-  
-  --glow-1: rgba(217, 119, 87, 0.08);
-  --glow-2: rgba(0, 0, 0, 0.04);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #141413;
-    --surface: #1c1c1b;
-    --surface2: #242423;
-    --border: rgba(255, 255, 255, 0.08);
-    --accent: #d97757;
-    --text: #faf9f5;
-    --muted: #8a8a8a;
-    
-    --glow-1: rgba(217, 119, 87, 0.15);
-    --glow-2: rgba(250, 249, 245, 0.08);
-  }
-}
-
-@theme inline {
-  --color-background: var(--bg);
-  --color-foreground: var(--text);
-  --color-accent: var(--accent);
-  --color-surface: var(--surface);
-  --color-muted: var(--muted);
-}
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-body);
-  -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-}
-
-/* Base Utility for Mobile Premium Feel */
-.safe-area-inset-top {
-  padding-top: env(safe-area-inset-top);
-}
-.safe-area-inset-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
-}
+@import '../styles/animations';
+@import '../styles/variables';
+@import '../styles/auth-pages';
+@import '../styles/buttons';
+@import '../styles/components';
+@import '../styles/dashboard';
+@import '../styles/kyc-profile';
+@import '../styles/pay-page';
+@import '../styles/receipts-profile';

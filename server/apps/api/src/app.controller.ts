@@ -1,13 +1,13 @@
 import { Controller, Get, Req, ForbiddenException } from '@nestjs/common'
 import { AppService } from './app.service'
-import { AdminService } from './admin/admin.service'
-import { CampaignService } from './campaign/campaign.service'
+import { CampaignService } from '@domains/campaign/campaign.service'
+import { SendDailyReportUseCase } from '@application/use-cases/analytics/send-daily-report.use-case'
 
 @Controller()
 export class AppController {
   constructor(
     private readonly appService: AppService,
-    private readonly adminService: AdminService,
+    private readonly sendDailyReportUseCase: SendDailyReportUseCase,
     private readonly campaignService: CampaignService,
   ) {}
 
@@ -26,7 +26,7 @@ export class AppController {
       throw new ForbiddenException('Invalid cron secret')
     }
 
-    return this.adminService.sendDailyReport()
+    return this.sendDailyReportUseCase.execute()
   }
 
   @Get('cron/tuesday-campaign')

@@ -12,12 +12,12 @@ export interface AdminUser {
   updatedAt: Date
 }
 
-export interface AuthResponse {
+export interface AdminAuthResponse {
   accessToken: string
   user: AdminUser
 }
 
-export interface JwtPayload {
+export interface AdminJwtPayload {
   sub: string
   email: string
   role: AdminRole
