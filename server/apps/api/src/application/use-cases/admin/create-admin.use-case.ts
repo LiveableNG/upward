@@ -1,7 +1,8 @@
-import { Injectable, ConflictException, Logger } from '@nestjs/common'
+import { Injectable, ConflictException, Logger, Inject } from '@nestjs/common'
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
 import { EmailService } from '@shared/infrastructure/email/email.service'
-import { AdminLogService } from '@shared/infrastructure/admin-log/admin-log.service'
+import { EVENT_BUS, EventBus } from '@application/events/domain-event'
+import { AdminCreatedEvent } from '@application/events/definition/admin-created.event'
 import { AdminRole } from '@upward/shared-types'
 import * as bcrypt from 'bcrypt'
 
@@ -12,7 +13,7 @@ export class CreateAdminUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
-    private readonly adminLogService: AdminLogService,
+    @Inject(EVENT_BUS) private readonly eventBus: EventBus,
   ) {}
 
   async execute(
@@ -57,11 +58,7 @@ export class CreateAdminUseCase {
     }
 
     if (requesterId) {
-      await this.adminLogService.logAction(
-        requesterId,
-        'ADD_ADMIN',
-        `Added new admin: ${email} (${role})`,
-      )
+      this.eventBus.publish(new AdminCreatedEvent(requesterId, admin.id, email, role))
     }
 
     return admin

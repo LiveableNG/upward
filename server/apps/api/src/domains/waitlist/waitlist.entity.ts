@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+
 export interface WaitlistEntryProps {
   email: string
   firstName?: string | null
@@ -25,7 +27,7 @@ export interface WaitlistEntryProps {
 export class WaitlistEntry {
   private constructor(
     private readonly props: WaitlistEntryProps,
-    private readonly id?: string,
+    private readonly id: string,
   ) {
     this.validate()
   }
@@ -41,16 +43,19 @@ export class WaitlistEntry {
       | 'unsubscribed'
     >,
   ): WaitlistEntry {
-    return new WaitlistEntry({
-      ...props,
-      benefits: props.benefits || [],
-      campaignWeekSent: 0,
-      confirmationSent: false,
-      confirmationEmailRetries: 0,
-      unsubscribed: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
+    return new WaitlistEntry(
+      {
+        ...props,
+        benefits: props.benefits || [],
+        campaignWeekSent: 0,
+        confirmationSent: false,
+        confirmationEmailRetries: 0,
+        unsubscribed: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      randomUUID(),
+    )
   }
 
   static reconstitute(id: string, props: WaitlistEntryProps): WaitlistEntry {
@@ -58,7 +63,7 @@ export class WaitlistEntry {
   }
 
   // --- Getters ---
-  get getId() {
+  get getId(): string {
     return this.id
   }
   get email() {

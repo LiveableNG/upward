@@ -1,13 +1,15 @@
 import { Injectable, ForbiddenException } from '@nestjs/common'
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
-import { AdminLogService } from '@shared/infrastructure/admin-log/admin-log.service'
 import { AdminRole } from '@upward/shared-types'
+import { EVENT_BUS, EventBus } from '@application/events/domain-event'
+import { WaitlistUserDeletedEvent } from '@application/events/definition/waitlist-user-deleted.event'
+import { Inject } from '@nestjs/common'
 
 @Injectable()
 export class DeleteWaitlistUserUseCase {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly adminLogService: AdminLogService,
+    @Inject(EVENT_BUS) private readonly eventBus: EventBus,
   ) {}
 
   async execute(id: string, requesterRole: AdminRole, requesterId: string) {
@@ -21,24 +23,12 @@ export class DeleteWaitlistUserUseCase {
         select: { email: true },
       })
 
-      // Delete related records first to avoid foreign key constraint violations
-      await tx.upward_email_log.deleteMany({
-        where: { userId: id },
-      })
-      await tx.upward_attendance.deleteMany({
-        where: { userId: id },
-      })
-
       const deleted = await tx.upward_waitlist.delete({
         where: { id },
       })
 
       if (user) {
-        await this.adminLogService.logAction(
-          requesterId,
-          'DELETE_USER',
-          `Deleted user: ${user.email}`,
-        )
+        this.eventBus.publish(new WaitlistUserDeletedEvent(requesterId, id, user.email))
       }
 
       return deleted

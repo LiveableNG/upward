@@ -1,9 +1,10 @@
 import { Controller, Get, Post, Body, Query, UseGuards, Req } from '@nestjs/common'
-import { AdminLogService } from './admin-log.service'
 import { JwtAuthGuard } from '@application/auth/guards/jwt-auth.guard'
 import { RolesGuard } from '@application/auth/guards/roles.guard'
 import { Roles } from '@application/auth/decorators/roles.decorator'
 import { AdminRole } from '@upward/shared-types'
+import { GetAdminLogsUseCase } from '@application/use-cases/admin-log/get-admin-logs.use-case'
+import { LogAdminActionUseCase } from '@application/use-cases/admin-log/log-admin-action.use-case'
 
 interface AuthenticatedRequest {
   user: {
@@ -18,12 +19,15 @@ interface AuthenticatedRequest {
 @Controller('admin/logs')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AdminLogController {
-  constructor(private readonly adminLogService: AdminLogService) {}
+  constructor(
+    private readonly getLogsUseCase: GetAdminLogsUseCase,
+    private readonly logActionUseCase: LogAdminActionUseCase,
+  ) {}
 
   @Get()
   @Roles(AdminRole.SUPERADMIN)
   async getLogs(@Query('page') page?: string, @Query('limit') limit?: string) {
-    return this.adminLogService.getLogs(page ? parseInt(page) : 1, limit ? parseInt(limit) : 50)
+    return this.getLogsUseCase.execute(page ? parseInt(page) : 1, limit ? parseInt(limit) : 50)
   }
 
   @Post('event')
@@ -34,6 +38,6 @@ export class AdminLogController {
     const ua = req.headers['user-agent']
     const ip = req.ip
 
-    return this.adminLogService.logAction(req.user.id, body.action, body.details, ip, ua)
+    return this.logActionUseCase.execute(req.user.id, body.action, body.details, ip, ua)
   }
 }

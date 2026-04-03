@@ -1,28 +1,15 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
-import { CreateStoryDto } from '@interfaces/http/dto/create-story.dto'
 import { S3Service } from '@shared/infrastructure/common/s3/s3.service'
 
 @Injectable()
-export class FairnessStoryService {
+export class GetFairnessStoriesUseCase {
   constructor(
-    private prisma: PrismaService,
-    private s3Service: S3Service,
+    private readonly prisma: PrismaService,
+    private readonly s3Service: S3Service,
   ) {}
 
-  async create(createStoryDto: CreateStoryDto) {
-    return this.prisma.upward_fairness_story.create({
-      data: {
-        name: createStoryDto.name,
-        categories: createStoryDto.categories,
-        story: createStoryDto.story,
-        audioUrl: createStoryDto.audioUrl,
-        fileUrls: createStoryDto.fileUrls || [],
-      },
-    })
-  }
-
-  async findAll() {
+  async execute() {
     const stories = await this.prisma.upward_fairness_story.findMany({
       orderBy: { createdAt: 'desc' },
     })
@@ -44,11 +31,5 @@ export class FairnessStoryService {
         }
       }),
     )
-  }
-
-  async remove(id: string) {
-    return this.prisma.upward_fairness_story.delete({
-      where: { id },
-    })
   }
 }

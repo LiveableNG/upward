@@ -26,7 +26,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 async function callRefresh(): Promise<AuthState | null> {
   try {
-    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+    const res = await fetch(`${BASE_URL}/admin/auth/refresh`, {
       method: 'POST',
       credentials: 'include', // send the HttpOnly cookie
     })
@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const res = await fetch(`${BASE_URL}/auth/login`, {
+      const res = await fetch(`${BASE_URL}/admin/auth/login`, {
         method: 'POST',
         credentials: 'include', // allow the server to set the HttpOnly cookie
         headers: { 'Content-Type': 'application/json' },
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await fetch(`${BASE_URL}/auth/logout`, {
+      await fetch(`${BASE_URL}/admin/auth/logout`, {
         method: 'POST',
         credentials: 'include',
       })

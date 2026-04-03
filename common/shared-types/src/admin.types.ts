@@ -22,4 +22,5 @@ export interface AdminJwtPayload {
   email: string
   role: AdminRole
   mustChangePassword: boolean
+  [key: string]: unknown
 }

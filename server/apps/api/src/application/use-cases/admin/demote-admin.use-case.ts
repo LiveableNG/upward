@@ -1,30 +1,34 @@
-import { Injectable, ForbiddenException } from '@nestjs/common'
+import { Injectable, Inject, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
-import { AdminLogService } from '@shared/infrastructure/admin-log/admin-log.service'
+import { EVENT_BUS, EventBus } from '@application/events/domain-event'
+import { AdminRoleChangedEvent } from '@application/events/definition/admin-role-changed.event'
 import { AdminRole } from '@upward/shared-types'
 
 @Injectable()
 export class DemoteAdminUseCase {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly adminLogService: AdminLogService,
+    @Inject(EVENT_BUS) private readonly eventBus: EventBus,
   ) {}
 
   async execute(id: string, requesterId: string) {
     if (id === requesterId) {
       throw new ForbiddenException('You cannot demote yourself')
     }
-    return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.upward_admin.update({
-        where: { id },
-        data: { role: AdminRole.ADMIN },
-      })
-      await this.adminLogService.logAction(
-        requesterId,
-        'DEMOTE_ADMIN',
-        `Demoted admin to ADMIN: ${updated.email}`,
-      )
-      return updated
+
+    const admin = await this.prisma.upward_admin.findUnique({ where: { id } })
+    if (!admin) throw new NotFoundException('Admin not found')
+
+    const oldRole = admin.role
+    const newRole = AdminRole.ADMIN
+
+    const updated = await this.prisma.upward_admin.update({
+      where: { id },
+      data: { role: newRole },
     })
+
+    this.eventBus.publish(new AdminRoleChangedEvent(requesterId, id, oldRole, newRole))
+
+    return updated
   }
 }

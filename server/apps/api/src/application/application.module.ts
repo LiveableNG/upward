@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common'
 import { AdminAuditEventHandler } from './events/handlers/admin-audit.handler'
+import { EmailLogEventHandler } from './events/handlers/email-log.handler'
+import { InteractionHandler } from './events/handlers/interaction.handler'
+import { S3Module } from '@shared/infrastructure/common/s3/s3.module'
 
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
@@ -15,6 +18,9 @@ import { UpdateWaitlistUserUseCase } from './use-cases/waitlist/update-waitlist-
 import { DeleteWaitlistUserUseCase } from './use-cases/waitlist/delete-waitlist-user.use-case'
 import { BulkDeleteWaitlistUsersUseCase } from './use-cases/waitlist/bulk-delete-waitlist-users.use-case'
 import { GetWaitlistFilterOptionsUseCase } from './use-cases/waitlist/get-waitlist-filter-options.use-case'
+import { GetWaitlistCountUseCase } from './use-cases/waitlist/get-waitlist-count.use-case'
+import { GetWaitlistByEmailUseCase } from './use-cases/waitlist/get-waitlist-by-email.use-case'
+import { UnsubscribeWaitlistUseCase } from './use-cases/waitlist/unsubscribe-waitlist.use-case'
 
 import { GetSessionsUseCase } from './use-cases/sessions/get-sessions.use-case'
 import { CreateSessionUseCase } from './use-cases/sessions/create-session.use-case'
@@ -27,6 +33,7 @@ import { GetWaitlistAnalyticsUseCase } from './use-cases/analytics/get-waitlist-
 import { GetDropOffAnalysisUseCase } from './use-cases/analytics/get-drop-off-analysis.use-case'
 import { GetAbStatsUseCase } from './use-cases/analytics/get-ab-stats.use-case'
 import { SendDailyReportUseCase } from './use-cases/analytics/send-daily-report.use-case'
+import { TrackInteractionUseCase } from './use-cases/analytics/track-interaction.use-case'
 
 import { SendBulkEmailUseCase } from './use-cases/email/send-bulk-email.use-case'
 import { ResendConfirmationEmailUseCase } from './use-cases/email/resend-confirmation-email.use-case'
@@ -40,11 +47,21 @@ import { GetErrorLogsUseCase } from './use-cases/system/get-error-logs.use-case'
 import { ResolveErrorUseCase } from './use-cases/system/resolve-error.use-case'
 import { ClearErrorLogsUseCase } from './use-cases/system/clear-error-logs.use-case'
 
-// Services (Manager Services that haven't been split into Use Cases yet)
-import { CampaignService } from './services/campaign.service'
-import { CampaignCronTask } from './services/campaign.cron'
-import { FairnessStoryService } from './services/fairness-story.service'
-import { WaitlistService } from './services/waitlist.service'
+import { GetCampaignsUseCase } from './use-cases/campaign/get-campaigns.use-case'
+import { GetCampaignByWeekUseCase } from './use-cases/campaign/get-campaign-by-week.use-case'
+import { UpsertCampaignUseCase } from './use-cases/campaign/upsert-campaign.use-case'
+import { DeleteCampaignUseCase } from './use-cases/campaign/delete-campaign.use-case'
+import { ToggleCampaignUseCase } from './use-cases/campaign/toggle-campaign.use-case'
+import { PreviewCampaignAudienceUseCase } from './use-cases/campaign/preview-campaign-audience.use-case'
+import { RunTuesdayCampaignUseCase } from './use-cases/campaign/run-tuesday-campaign.use-case'
+import { CreateFairnessStoryUseCase } from './use-cases/fairness-story/create-fairness-story.use-case'
+import { GetFairnessStoriesUseCase } from './use-cases/fairness-story/get-fairness-stories.use-case'
+import { DeleteFairnessStoryUseCase } from './use-cases/fairness-story/delete-fairness-story.use-case'
+import { GetStoryUploadUrlsUseCase } from './use-cases/fairness-story/get-story-upload-urls.use-case'
+import { GetAdminLogsUseCase } from './use-cases/admin-log/get-admin-logs.use-case'
+import { LogAdminActionUseCase } from './use-cases/admin-log/log-admin-action.use-case'
+import { GetCountriesUseCase } from './use-cases/location/get-countries.use-case'
+import { GetCitiesUseCase } from './use-cases/location/get-cities.use-case'
 
 const UseCases = [
   DeleteAdminUseCase,
@@ -59,6 +76,9 @@ const UseCases = [
   DeleteWaitlistUserUseCase,
   BulkDeleteWaitlistUsersUseCase,
   GetWaitlistFilterOptionsUseCase,
+  GetWaitlistCountUseCase,
+  GetWaitlistByEmailUseCase,
+  UnsubscribeWaitlistUseCase,
   GetSessionsUseCase,
   CreateSessionUseCase,
   UpdateSessionUseCase,
@@ -69,6 +89,7 @@ const UseCases = [
   GetDropOffAnalysisUseCase,
   GetAbStatsUseCase,
   SendDailyReportUseCase,
+  TrackInteractionUseCase,
   SendBulkEmailUseCase,
   ResendConfirmationEmailUseCase,
   GetEmailLogsUseCase,
@@ -79,12 +100,26 @@ const UseCases = [
   GetErrorLogsUseCase,
   ResolveErrorUseCase,
   ClearErrorLogsUseCase,
+  CreateFairnessStoryUseCase,
+  GetFairnessStoriesUseCase,
+  DeleteFairnessStoryUseCase,
+  GetStoryUploadUrlsUseCase,
+  GetCampaignsUseCase,
+  GetCampaignByWeekUseCase,
+  UpsertCampaignUseCase,
+  DeleteCampaignUseCase,
+  ToggleCampaignUseCase,
+  PreviewCampaignAudienceUseCase,
+  RunTuesdayCampaignUseCase,
+  GetAdminLogsUseCase,
+  LogAdminActionUseCase,
+  GetCountriesUseCase,
+  GetCitiesUseCase,
 ]
 
-const Services = [CampaignService, CampaignCronTask, FairnessStoryService, WaitlistService]
-
 @Module({
-  providers: [AdminAuditEventHandler, ...UseCases, ...Services],
-  exports: [...UseCases, ...Services],
+  imports: [S3Module],
+  providers: [AdminAuditEventHandler, EmailLogEventHandler, InteractionHandler, ...UseCases],
+  exports: [...UseCases],
 })
 export class ApplicationModule {}
