@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
@@ -9,7 +10,6 @@ export class BaseAuthService {
     protected readonly configService: ConfigService,
   ) {}
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   generateRefreshToken(
     payload: string | { sub: string; [key: string]: any },
     secretKeyName: string = 'JWT_REFRESH_SECRET',
@@ -19,7 +19,7 @@ export class BaseAuthService {
     return this.jwtService.sign({ sub, type: 'refresh' }, { secret, expiresIn: '7d' })
   }
 
-  generateAccessToken(payload: Record<string, unknown>): string {
+  generateAccessToken(payload: any): string {
     return this.jwtService.sign(payload)
   }
 

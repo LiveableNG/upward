@@ -17,13 +17,6 @@ export class BulkDeleteWaitlistUsersUseCase {
 
     return this.prisma.$transaction(async (tx) => {
       const count = ids.length
-      // Delete related records first to avoid foreign key constraint violations
-      await tx.upward_email_log.deleteMany({
-        where: { userId: { in: ids } },
-      })
-      await tx.upward_attendance.deleteMany({
-        where: { userId: { in: ids } },
-      })
 
       const result = await tx.upward_waitlist.deleteMany({
         where: { id: { in: ids } },

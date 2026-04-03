@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma.service'
 import { WaitlistRepository } from '@domains/waitlist/waitlist.repository'
 import { WaitlistEntry, WaitlistEntryProps } from '@domains/waitlist/waitlist.entity'
-import { upward_waitlist } from '@prisma/client'
+import { Prisma, upward_waitlist } from '@prisma/client'
 
 @Injectable()
 export class PrismaWaitlistRepository implements WaitlistRepository {
@@ -96,16 +96,11 @@ export class PrismaWaitlistRepository implements WaitlistRepository {
       unsubscribedAt: props.unsubscribedAt,
     }
 
-    if (id) {
-      await this.prisma.upward_waitlist.update({
-        where: { id },
-        data,
-      })
-    } else {
-      await this.prisma.upward_waitlist.create({
-        data,
-      })
-    }
+    await this.prisma.upward_waitlist.upsert({
+      where: { id },
+      update: data,
+      create: { ...data, id },
+    })
   }
 
   async delete(id: string): Promise<void> {

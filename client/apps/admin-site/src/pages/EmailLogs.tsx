@@ -74,8 +74,8 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
         `/admin/email/logs?email=${search}&type=${typeFilter}&status=${statusFilter}&page=${currentPage}&limit=10`,
         token,
       )
-      const newLogs = result.data.data
-      const meta = result.data.meta
+      const newLogs = result.data
+      const meta = result.meta
 
       if (reset) {
         setLogs(newLogs)
@@ -83,7 +83,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
         setLogs((prev) => [...prev, ...newLogs])
         setPage(currentPage)
       }
-      setHasMore(currentPage < meta.totalPages)
+      setHasMore(currentPage < (meta?.totalPages || 0))
     } catch (err) {
       console.error('Failed to fetch email logs', err)
     } finally {

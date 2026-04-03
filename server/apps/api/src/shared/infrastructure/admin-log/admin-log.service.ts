@@ -22,34 +22,4 @@ export class AdminLogService {
       },
     })
   }
-
-  async getLogs(page = 1, limit = 50) {
-    const skip = (page - 1) * limit
-    const [data, total] = await Promise.all([
-      this.prisma.upward_admin_log.findMany({
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          admin: {
-            select: {
-              email: true,
-              role: true,
-            },
-          },
-        },
-      }),
-      this.prisma.upward_admin_log.count(),
-    ])
-
-    return {
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    }
-  }
 }

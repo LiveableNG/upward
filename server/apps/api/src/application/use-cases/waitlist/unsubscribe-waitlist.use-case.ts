@@ -1,9 +1,15 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
+import { EVENT_BUS, EventBus } from '@application/events/domain-event'
+import { InteractionEvent } from '@application/events/definition/interaction.event'
+import { Inject } from '@nestjs/common'
 
 @Injectable()
 export class UnsubscribeWaitlistUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(EVENT_BUS) private readonly eventBus: EventBus,
+  ) {}
 
   async execute(email: string): Promise<boolean> {
     const user = await this.prisma.upward_waitlist.findUnique({
@@ -17,16 +23,16 @@ export class UnsubscribeWaitlistUseCase {
       data: { unsubscribed: true, unsubscribedAt: new Date() },
     })
 
-    // Log the interaction for analytics (without requiring a visitorId)
-    await this.prisma.upward_interaction.create({
-      data: {
-        visitorId: `unsub-${Date.now()}`,
-        type: 'CLICK',
-        target: 'EMAIL_UNSUBSCRIBE',
-        abVariant: 'UNSUB',
-        metadata: JSON.stringify({ email }),
-      },
-    })
+    // Log the interaction via event bus
+    this.eventBus.publish(
+      new InteractionEvent(
+        `unsub-${Date.now()}`,
+        'CLICK',
+        'EMAIL_UNSUBSCRIBE',
+        'UNSUB',
+        JSON.stringify({ email }),
+      ),
+    )
 
     return true
   }

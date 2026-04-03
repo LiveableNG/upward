@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common'
+import { Country, LocationRepository } from '@domains/location/location.repository'
 
 @Injectable()
-export class LocationsService {
-  private readonly countries = [
+export class StaticLocationRepository implements LocationRepository {
+  private readonly countries: Country[] = [
     { id: 'nigeria', name: 'Nigeria' },
     { id: 'kenya', name: 'Kenya' },
   ]
@@ -167,12 +168,12 @@ export class LocationsService {
     ],
   }
 
-  getCountries() {
+  async getCountries(): Promise<Country[]> {
     return this.countries
   }
 
-  async getCities(countryName: string): Promise<string[]> {
-    const key = countryName.toLowerCase()
+  async getCities(countryId: string): Promise<string[]> {
+    const key = countryId.toLowerCase()
     return this.CITIES_DATA[key] || []
   }
 }

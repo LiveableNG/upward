@@ -5,6 +5,9 @@ import FormData from 'form-data'
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
 import { formatName } from '@upward/common-utils'
 import { BugsnagService } from '@shared/infrastructure/common/bugsnag/bugsnag.service'
+import { EVENT_BUS, EventBus } from '@application/events/domain-event'
+import { EmailSentEvent } from '@application/events/definition/email-sent.event'
+import { Inject } from '@nestjs/common'
 
 @Injectable()
 export class EmailService {
@@ -17,6 +20,7 @@ export class EmailService {
     private configService: ConfigService,
     private prisma: PrismaService,
     private bugsnag: BugsnagService,
+    @Inject(EVENT_BUS) private readonly eventBus: EventBus,
   ) {
     const mailgun = new Mailgun(FormData)
     const apiKey = this.configService.get<string>('MAILGUN_API_KEY')
@@ -158,19 +162,6 @@ export class EmailService {
     let lastError = ''
     let mailgunId = ''
 
-    // Create initial log entry
-    const log = await this.prisma.upward_email_log.create({
-      data: {
-        userId,
-        email,
-        subject,
-        type,
-        status: 'PENDING',
-        sessionId,
-        body: html, // Save the actual HTML sent
-      },
-    })
-
     while (retries < this.MAX_RETRIES && !success) {
       try {
         const response = await this.mg.messages.create(domain, {
@@ -198,17 +189,21 @@ export class EmailService {
       }
     }
 
-    // Update log entry
-    await this.prisma.upward_email_log.update({
-      where: { id: log.id },
-      data: {
-        status: success ? 'SENT' : 'FAILED',
+    // Publish Sent Event for logging/other side effects
+    this.eventBus.publish(
+      new EmailSentEvent(
+        userId,
+        email,
+        subject,
+        type,
+        success ? 'SENT' : 'FAILED',
         mailgunId,
-        lastError: success ? null : lastError,
-        retries: retries - 1 >= 0 ? retries - 1 : 0,
-        sentAt: success ? new Date() : null,
-      },
-    })
+        success ? undefined : lastError,
+        retries - 1 >= 0 ? retries - 1 : 0,
+        sessionId,
+        html,
+      ),
+    )
 
     if (!success) {
       this.bugsnag.notify(new Error(`Failed to send ${type} email to ${email}: ${lastError}`), {
@@ -250,20 +245,22 @@ export class EmailService {
         'h:List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
       })
 
-      // LOG IT! (Previously missing)
+      // LOG IT via event bus!
       if (userId) {
-        await this.prisma.upward_email_log.create({
-          data: {
+        this.eventBus.publish(
+          new EmailSentEvent(
             userId,
             email,
             subject,
-            type: 'BULK',
-            status: 'SENT',
-            mailgunId: response.id,
-            sentAt: new Date(),
-            body: content,
-          },
-        })
+            'BULK',
+            'SENT',
+            response.id,
+            undefined,
+            0,
+            undefined,
+            content,
+          ),
+        )
       }
 
       this.logger.log(`Generic email "${subject}" sent to ${email}`)

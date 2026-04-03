@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
 import { EmailService } from '@shared/infrastructure/email/email.service'
 import { AdminLogService } from '@shared/infrastructure/admin-log/admin-log.service'
@@ -6,8 +6,8 @@ import { formatName } from '@upward/common-utils'
 import { wrapInBaseTemplate, processCampaignHtml } from '@shared/infrastructure/email/templates'
 
 @Injectable()
-export class CampaignService {
-  private readonly logger = new Logger(CampaignService.name)
+export class RunTuesdayCampaignUseCase {
+  private readonly logger = new Logger(RunTuesdayCampaignUseCase.name)
 
   constructor(
     private readonly prisma: PrismaService,
@@ -15,71 +15,7 @@ export class CampaignService {
     private readonly adminLogService: AdminLogService,
   ) {}
 
-  // ─── CRUD for campaign weeks ────────────────────────────────────────────────
-
-  async getCampaigns() {
-    return this.prisma.upward_email_campaign.findMany({
-      orderBy: { weekNumber: 'asc' },
-    })
-  }
-
-  async getCampaignByWeek(weekNumber: number) {
-    return this.prisma.upward_email_campaign.findUnique({
-      where: { weekNumber },
-    })
-  }
-
-  async upsertCampaign(data: {
-    weekNumber: number
-    subject: string
-    htmlContent: string
-    textContent?: string
-    label?: string
-    isActive?: boolean
-  }) {
-    const { weekNumber, subject, htmlContent, textContent, label, isActive } = data
-    return this.prisma.upward_email_campaign.upsert({
-      where: { weekNumber },
-      update: { subject, htmlContent, textContent, label, isActive: isActive ?? true },
-      create: { weekNumber, subject, htmlContent, textContent, label, isActive: isActive ?? true },
-    })
-  }
-
-  async deleteCampaign(weekNumber: number) {
-    const existing = await this.prisma.upward_email_campaign.findUnique({ where: { weekNumber } })
-    if (!existing) throw new NotFoundException(`Campaign for week ${weekNumber} not found`)
-    return this.prisma.upward_email_campaign.delete({ where: { weekNumber } })
-  }
-
-  async toggleCampaign(weekNumber: number, isActive: boolean) {
-    return this.prisma.upward_email_campaign.update({
-      where: { weekNumber },
-      data: { isActive },
-    })
-  }
-
-  // ─── Tuesday Cron Logic ─────────────────────────────────────────────────────
-
-  /**
-   * Called every Tuesday morning by the cron job (or manually via admin endpoint).
-   *
-   * How cohorts work:
-   *  - Each user has `campaignWeekSent` (Int, default 0) on their record.
-   *  - 0 = never received a drip email. Their NEXT email is Week 1.
-   *  - 1 = received Week 1. Their NEXT email is Week 2. And so on.
-   *
-   * This means:
-   *  - ALL existing users start at 0 → they all receive Week 1 on the first run.
-   *  - A new user who joins the day BEFORE Tuesday is also at 0 → gets Week 1 too.
-   *  - The following Tuesday every user advances by 1, regardless of join date.
-   *  - No email is ever repeated. The counter only goes forward.
-   *
-   * If no campaign exists for a user's next week:
-   *  - We still advance their counter so they don't get stuck.
-   *  - (Exception: if the admin has only created up to Week 3 and a user is on Week 4,
-   *    they are simply skipped and advanced — a gap warning appears in the preview.)
-   */
-  async runTuesdayCampaign(triggeredBy?: string): Promise<{
+  async execute(triggeredBy?: string): Promise<{
     processed: number
     sent: number
     failed: number
@@ -233,7 +169,6 @@ export class CampaignService {
         this.logger.log(
           `[Campaign] Retrying ${failedUsersInWeek.length} failed emails for Week ${weekNumber}...`,
         )
-        // We do these one by one to avoid overwhelming again
         for (const user of failedUsersInWeek) {
           const formattedName = user.firstName ? formatName(user.firstName) : 'there'
           const personalizedHtmlBody = processCampaignHtml(campaign.htmlContent, user)
@@ -307,37 +242,5 @@ export class CampaignService {
       skipped: totalSkipped,
       details,
     }
-  }
-
-  async previewCampaignAudience() {
-    const users = await this.prisma.upward_waitlist.findMany({
-      where: { acceptTerms: true, unsubscribed: false, role: 'TENANT' },
-      select: { id: true, campaignWeekSent: true },
-    })
-
-    const campaigns = await this.prisma.upward_email_campaign.findMany({
-      orderBy: { weekNumber: 'asc' },
-    })
-    const campaignMap = new Map(campaigns.map((c) => [c.weekNumber, c]))
-
-    const weekBuckets = new Map<number, number>()
-    for (const user of users) {
-      const nextWeek = user.campaignWeekSent + 1
-      weekBuckets.set(nextWeek, (weekBuckets.get(nextWeek) ?? 0) + 1)
-    }
-
-    return Array.from(weekBuckets.entries())
-      .map(([weekNumber, userCount]) => {
-        const campaign = campaignMap.get(weekNumber)
-        return {
-          weekNumber,
-          userCount,
-          hasCampaign: !!campaign,
-          campaignLabel: campaign?.label ?? null,
-          campaignSubject: campaign?.subject ?? null,
-          isActive: campaign?.isActive ?? false,
-        }
-      })
-      .sort((a, b) => a.weekNumber - b.weekNumber)
   }
 }

@@ -9,11 +9,12 @@ import { ApplicationModule } from '@application/application.module'
 import { DomainsModule } from '@domains/domains.module'
 import { PrismaModule } from '@shared/infrastructure/prisma/prisma.module'
 import { AdminLogModule } from '@shared/infrastructure/admin-log/admin-log.module'
-import { LocationsModule } from '@shared/locations/locations.module'
 import { EmailModule } from '@shared/infrastructure/email/email.module'
+import { LocationModule } from '@shared/infrastructure/location/location.module'
 import { BugsnagModule } from '@shared/infrastructure/common/bugsnag/bugsnag.module'
 import { AllExceptionsFilter } from '@shared/infrastructure/common/filters/all-exceptions.filter'
 import { EventsModule } from '@application/events/events.module'
+import { HttpModule } from '@interfaces/http/http.module'
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { EventsModule } from '@application/events/events.module'
     PrismaModule,
     AdminLogModule,
     EmailModule,
-    LocationsModule,
+    LocationModule,
     BugsnagModule,
 
     // Core Layers
@@ -30,6 +31,7 @@ import { EventsModule } from '@application/events/events.module'
     DomainsModule,
     ApplicationModule,
     EventsModule,
+    HttpModule,
   ],
   controllers: [AppController],
   providers: [
