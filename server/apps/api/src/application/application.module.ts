@@ -66,6 +66,16 @@ import { CompleteTenantProfileUseCase } from './use-cases/tenant/complete-tenant
 import { UpdateTenantProfileUseCase } from './use-cases/tenant/update-tenant-profile.use-case'
 import { AuthModule } from './auth/auth.module'
 
+// Payments
+import {
+  SaveLandlordUseCase,
+  GetSavedLandlordsUseCase,
+  RecordTransactionUseCase,
+  ProcessGuestPaymentTokenUseCase,
+  GetBanksUseCase,
+  VerifyAccountUseCase,
+} from './use-cases/payments/payment.use-cases'
+
 const UseCases = [
   DeleteAdminUseCase,
   GetAdminsUseCase,
@@ -120,6 +130,13 @@ const UseCases = [
   GetCitiesUseCase,
   CompleteTenantProfileUseCase,
   UpdateTenantProfileUseCase,
+
+  SaveLandlordUseCase,
+  GetSavedLandlordsUseCase,
+  RecordTransactionUseCase,
+  ProcessGuestPaymentTokenUseCase,
+  GetBanksUseCase,
+  VerifyAccountUseCase,
 ]
 
 @Module({

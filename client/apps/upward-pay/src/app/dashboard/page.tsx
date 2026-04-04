@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle } from 'lucide-react'
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard'
@@ -24,11 +24,26 @@ export default function DashboardPage() {
   const [dismissedAppBanner, setDismissedAppBanner] = useState(false)
   const [showKYCAlert, _setShowKYCAlert] = useState(true)
 
+  // Handle auth errors (expired token, etc.) by redirecting to landing
+  useEffect(() => {
+    if (
+      error &&
+      (error.toLowerCase().includes('expired') || error.toLowerCase().includes('auth'))
+    ) {
+      router.push('/')
+    }
+  }, [error, router])
+
   if (loading) {
     return <FallbackSuspense message="Loading dashboard…" />
   }
 
   if (error || !data) {
+    // If it's an auth error, hide UI and show loader while redirecting
+    if (error.toLowerCase().includes('expired') || error.toLowerCase().includes('auth')) {
+      return <FallbackSuspense message="Session expired. Redirecting..." />
+    }
+
     return (
       <div className="dashboard dashboard--error">
         <div className="pay-page__error">

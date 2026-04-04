@@ -1,5 +1,7 @@
 import { type TenantProfile } from '@/features/auth/types'
 
+export type { TenantProfile }
+
 export interface PendingPayment {
   uuid: string
   total_amount: number

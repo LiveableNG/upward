@@ -15,17 +15,10 @@ import {
   Briefcase,
   Heart,
   MapPin,
-  ShieldAlert,
   AlertCircle,
   ChevronRight,
   Check,
   Edit2,
-  Trophy,
-  Star,
-  Crown,
-  Shield,
-  Users,
-  Vote,
   FileText,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -57,7 +50,7 @@ export function ProfileMenuContent() {
   async function loadDocuments() {
     try {
       const data = await api.getMyDocuments()
-      setContracts(data.contracts)
+      setContracts(data.contracts || [])
     } catch (err) {
       console.error('Failed to load documents', err)
     }
@@ -238,23 +231,6 @@ export function ProfileMenuContent() {
                   placeholder="DD/MM (e.g. 15th April)"
                   onChange={(v) => setFormData({ ...formData, rentAnniversary: v })}
                 />
-
-                <div className="profile-details-section">Emergency Contact</div>
-
-                <DetailOrEdit
-                  isEditing={isEditing}
-                  icon={ShieldAlert}
-                  label="Contact Name"
-                  value={formData.emergencyContactName || ''}
-                  onChange={(v) => setFormData({ ...formData, emergencyContactName: v })}
-                />
-                <DetailOrEdit
-                  isEditing={isEditing}
-                  icon={Phone}
-                  label="Contact Phone"
-                  value={formData.emergencyContactPhone || ''}
-                  onChange={(v) => setFormData({ ...formData, emergencyContactPhone: v })}
-                />
               </div>
 
               {!isEditing && (
@@ -282,7 +258,7 @@ export function ProfileMenuContent() {
           <button className="dashboard__back" onClick={() => router.push('/dashboard')}>
             <ArrowLeft size={20} />
           </button>
-          <h2 className="dashboard__title">Housing Credibility Profile</h2>
+          <h2 className="dashboard__title">Profile</h2>
         </div>
       </header>
 
@@ -302,18 +278,8 @@ export function ProfileMenuContent() {
               {tenant.fullName.charAt(0)}
             </div>
 
-            <div className="membership-badge">
-              <MembershipIcon level={tenant.membershipLevel} />
-              <span>{tenant.membershipLevel || 'Window Shopper'}</span>
-            </div>
-
             <h2 className="profile-hero__name">{tenant.fullName}</h2>
             <p className="profile-hero__email">{tenant.email}</p>
-            {tenant.totalInvites > 0 && (
-              <div className="profile-hero__invites">
-                <Users size={12} /> {tenant.totalInvites} People Invited
-              </div>
-            )}
 
             {contracts.length > 0 && (
               <div className="profile-hero__tenancy">
@@ -405,14 +371,4 @@ export function ProfileMenuContent() {
       </div>
     </div>
   )
-}
-
-function MembershipIcon({ level }: { level?: string }) {
-  if (!level) return <Users size={14} color="var(--text-muted)" />
-  if (level.includes('Stakeholder')) return <Shield size={14} color="#a855f7" />
-  if (level === 'Voter') return <Vote size={14} color="#3b82f6" />
-  if (level.includes('Club Member')) return <Crown size={14} color="#fbbf24" />
-  if (level === 'Contributor') return <Star size={14} color="#22c55e" />
-  if (level === 'General Member') return <Trophy size={14} color="#d97757" />
-  return <Users size={14} color="var(--text-muted)" />
 }
