@@ -10,6 +10,7 @@ import { FairnessStoryController } from './public/fairness-story.controller'
 import { WaitlistController } from './public/waitlist.controller'
 import { LocationsController } from './public/locations.controller'
 import { TenantController } from './tenant/tenant.controller'
+import { PaymentsController } from './public/payments.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule],
@@ -22,6 +23,7 @@ import { TenantController } from './tenant/tenant.controller'
     WaitlistController,
     LocationsController,
     TenantController,
+    PaymentsController,
   ],
 })
 export class HttpModule {}

@@ -211,7 +211,42 @@ model upward_tenant {
   gender                 String?
   dateOfBirth            String?
   isConvertedFromWaitlist Boolean @default(false)
+  isGuest                Boolean @default(false)
 
   @@index([email])
   @@index([createdAt])
+}
+
+model upward_saved_landlord {
+  id            String   @id @default(uuid())
+  tenantId      String
+  name          String
+  accountName   String
+  accountNumber String
+  bankName      String
+  bankCode      String
+  lastAmount    Float?
+  lastPaid      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model upward_transaction {
+  id            String   @id @default(uuid())
+  tenantId      String
+  type          String   @default("RENT") // RENT, SAVINGS
+  status        String   @default("PENDING") // PENDING, SUCCESS, FAILED
+  amount        Float
+  reference     String   @unique
+  narration     String?
+  receiptNumber String?
+  receiptUrl    String?
+  landlordId    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([reference])
 }
