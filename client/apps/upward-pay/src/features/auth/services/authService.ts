@@ -7,26 +7,26 @@ export async function signup(data: {
   fullName: string
   phone?: string
 }) {
-  return request<AuthResponse>('/tenant-auth/signup', {
+  return request<AuthResponse>('/tenant/auth/signup', {
     method: 'POST',
     body: JSON.stringify(data),
   })
 }
 
 export async function login(data: { email: string; password: string }) {
-  return request<AuthResponse>('/tenant-auth/login', { method: 'POST', body: JSON.stringify(data) })
+  return request<AuthResponse>('/tenant/auth/login', { method: 'POST', body: JSON.stringify(data) })
 }
 
 export async function logout() {
-  return request<{ message: string }>('/tenant-auth/logout', { method: 'POST' })
+  return request<{ message: string }>('/tenant/auth/logout', { method: 'POST' })
 }
 
 export async function getMe() {
-  return request<TenantProfile>('/tenant-auth/me')
+  return request<TenantProfile>('/tenant/auth/me')
 }
 
 export async function updateProfile(data: Partial<TenantProfile>) {
-  return request<{ success: boolean; tenant: TenantProfile }>('/tenant-auth/profile', {
+  return request<{ success: boolean; tenant: TenantProfile }>('/tenant/auth/profile', {
     method: 'PATCH',
     body: JSON.stringify(data),
   })
@@ -35,12 +35,18 @@ export async function updateProfile(data: Partial<TenantProfile>) {
 export async function completeProfile(data: {
   email: string
   password: string
+  fullName: string
   phone?: string
   dateOfBirth?: string
   occupation?: string
   gender?: string
+  invitedByCompanyId?: string
+  invitedByCompanyName?: string
+  invitedByCompanyLogo?: string
+  rentAnniversary?: string
+  address?: string
 }) {
-  return request<AuthResponse>('/tenant-auth/complete-profile', {
+  return request<AuthResponse>('/tenant/auth/complete-profile', {
     method: 'POST',
     body: JSON.stringify(data),
   })

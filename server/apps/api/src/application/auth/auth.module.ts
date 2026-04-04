@@ -21,6 +21,6 @@ import { PrismaModule } from '@shared/infrastructure/prisma/prisma.module'
     }),
   ],
   providers: [AdminAuthService, TenantAuthService, BaseAuthService, JwtStrategy],
-  exports: [AdminAuthService, TenantAuthService, BaseAuthService],
+  exports: [AdminAuthService, TenantAuthService, BaseAuthService, JwtModule],
 })
 export class AuthModule {}
