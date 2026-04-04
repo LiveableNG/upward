@@ -772,3 +772,322 @@
   color: var(--text);
   text-align: left;
 }
+
+/* ══════════════════════════════════════════
+   LANDING SPLASH — logo only
+══════════════════════════════════════════ */
+.landing-splash {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+
+.landing-splash__logo {
+  animation: logoBreath 2.5s ease-in-out infinite;
+}
+
+/* ══════════════════════════════════════════
+   AUTH SHELL — base wrapper for /signup
+══════════════════════════════════════════ */
+.auth-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--safe-top) + 16px) var(--space-5) calc(var(--safe-bottom) + 24px);
+  animation: fadeIn 0.35s ease;
+}
+
+/* Welcome mode: clean white/soft bg */
+.auth-shell--welcome {
+  background: var(--bg);
+  justify-content: space-between;
+}
+
+/* Signup mode: warm clay-tinted bg */
+.auth-shell--signup {
+  background:
+    radial-gradient(ellipse at top, rgba(217, 119, 87, 0.08) 0%, transparent 55%), var(--bg);
+}
+
+/* Login mode: deeper, cooler tone */
+.auth-shell--login {
+  background:
+    radial-gradient(ellipse at top, rgba(99, 102, 241, 0.07) 0%, transparent 55%), var(--bg);
+}
+
+.auth-shell__logo {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.auth-shell__top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.auth-shell__back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border-solid);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.auth-shell__back:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.auth-shell__brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-6);
+}
+
+.auth-shell__ctas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+/* ══════════════════════════════════════════
+   BENEFIT CAROUSEL
+══════════════════════════════════════════ */
+.benefit-carousel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+}
+
+.benefit-carousel__track {
+  animation: fadeIn 0.45s ease-out;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.benefit-carousel__icon-ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--accent, var(--clay)) 10%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--accent, var(--clay)) 20%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-2);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent, var(--clay)) 16%, transparent);
+}
+
+.benefit-carousel__title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.benefit-carousel__desc {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  max-width: 280px;
+}
+
+.benefit-carousel__dots {
+  display: flex;
+  gap: 8px;
+  margin-top: var(--space-8);
+  justify-content: center;
+}
+
+.benefit-carousel__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-solid);
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.benefit-carousel__dot:hover {
+  background: var(--text-muted);
+}
+
+.benefit-carousel__dot.is-active {
+  width: 24px;
+  border-radius: 4px;
+  background: var(--clay);
+}
+
+/* ══════════════════════════════════════════
+   STEP PROGRESS PIPS
+══════════════════════════════════════════ */
+.step-progress {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.step-progress__pip {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-solid);
+  transition: all 0.35s ease;
+}
+
+.step-progress__pip.is-active {
+  background: var(--clay);
+  box-shadow: 0 0 6px var(--clay-glow);
+}
+
+.step-progress__pip.is-done {
+  background: var(--success);
+}
+
+/* ══════════════════════════════════════════
+   AUTH CTA BUTTONS (welcome screen)
+══════════════════════════════════════════ */
+.auth-cta {
+  width: 100%;
+  padding: 16px 24px;
+  border-radius: var(--radius-lg);
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: none;
+  transition: all 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  -webkit-tap-highlight-color: transparent;
+  letter-spacing: 0.01em;
+}
+
+.auth-cta:active {
+  transform: scale(0.97);
+}
+
+/* Primary CTA — solid clay/terracotta */
+.auth-cta--primary {
+  background: var(--clay);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(217, 119, 87, 0.38);
+}
+
+.auth-cta--primary:hover {
+  background: var(--clay-hover);
+  box-shadow: 0 6px 22px rgba(217, 119, 87, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Secondary CTA — subtle surface */
+.auth-cta--secondary {
+  background: var(--surface);
+  color: var(--text);
+  border: 1.5px solid var(--border-solid);
+}
+
+.auth-cta--secondary:hover {
+  background: var(--surface2);
+  border-color: var(--clay);
+  color: var(--clay);
+}
+
+/* ══════════════════════════════════════════
+   AUTH STAGE — form container per step
+══════════════════════════════════════════ */
+.auth-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.35s ease-out;
+}
+
+.auth-stage__header {
+  margin-bottom: var(--space-6);
+}
+
+.auth-stage__title {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  margin-bottom: var(--space-2);
+}
+
+.auth-stage__subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.auth-stage__back-sm {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: var(--space-3);
+  font-family: var(--font);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ══════════════════════════════════════════
+   TERMS FOOTER
+══════════════════════════════════════════ */
+.auth-terms {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.6;
+  margin-top: auto;
+  padding-top: var(--space-5);
+}
+
+.auth-terms a {
+  color: var(--clay);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

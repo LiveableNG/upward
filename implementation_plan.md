@@ -1,65 +1,84 @@
-# Revised Auth Strategy: HTTP-Only Cookies & Feature-Based Organization
+# Implementation Plan - Optimized Tenant Onboarding & Conversion
 
-Eliminate `localStorage` usage by moving the Access Token to an HTTP-Only cookie and refactor the `upward-pay` authentication logic to follow the repository's feature-based architecture.
+This plan implements a high-performance onboarding flow for both invited and waitlist users, leveraging Next.js Server Components for initial data fetching and Tanstack Query for client-side interactivity.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **Complete Cookie Auth**: Access tokens will now be stored in HTTP-only cookies. This means they are automatically sent by the browser/Capacitor but are inaccessible to JavaScript, significantly reducing XSS risks.
-> **LocalStorage Deprecation**: `localStorage` will no longer be used for tokens or user profile data; state will be managed in memory (via hooks) or fetched from a `/me` endpoint.
+> **Performance Optimization**: The invitation landing page (`/`) will now fetch data server-side to eliminate client-side waterfalls and improve perceived performance.
+> **Database**: We are adding `isConvertedFromWaitlist` to the `upward_tenant` table to track users coming from the launch campaign.
+> **Deep Linking**: Mobile app detection will be handled via a lightweight client-side overlay to avoid blocking the initial server-render.
 
 ## Proposed Changes
 
----
+### 1. Backend Implementation (`server/apps/api`)
 
-### [Component] Backend (server/apps/api)
+#### [MODIFY] [schema.prisma](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/server/apps/api/prisma/schema.prisma)
 
-#### [MODIFY] [jwt.strategy.ts](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/server/apps/api/src/auth/strategies/jwt.strategy.ts)
+- Update `upward_tenant` model:
+  - `invitedByCompanyId`, `invitedByCompanyName`, `invitedByCompanyLogo` (String?)
+  - `rentAnniversary` (DateTime?)
+  - `address` (String?)
+  - `occupation`, `gender`, `dateOfBirth` (String?)
+  - `isConvertedFromWaitlist` (Boolean @default(false))
 
-- Update to extract the access token from both the `Authorization` header AND an `access_token` cookie.
+#### [NEW] Domain & Application Layers
 
-#### [MODIFY] [auth.controller.ts](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/server/apps/api/src/auth/auth.controller.ts) & [tenant.controller.ts](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/server/apps/api/src/tenant/tenant.controller.ts)
+- **Domain**: Create `TenantRepository` interface in `src/domains/users/tenant.repository.ts`.
+- **Application**: Create `CompleteTenantProfileUseCase` in `src/application/use-cases/tenant/complete-tenant-profile.use-case.ts`.
+  - Logic: Upsert `Tenant` record based on email, link to waitlist if applicable (set `isConvertedFromWaitlist: true`), and store profile details.
+- **Module**: Register new use case in `ApplicationModule.ts`.
 
-- Update standard cookie-setting logic to include an `access_token` cookie (short-lived) alongside the `refresh_token` (long-lived).
-- Ensure both are `httpOnly`, `secure`, and correctly configured for cross-domain usage where necessary.
+#### [NEW] Infrastructure & Interfaces
 
----
+- **Infrastructure**: Implement `PrismaTenantRepository` in `src/shared/infrastructure/prisma/repositories/prisma-tenant.repository.ts`.
+- **Interface**: Create `TenantController` in `src/interfaces/http/controllers/tenant.controller.ts` with `POST /tenants/complete-profile`.
+- **Registration**: Update `HttpModule.ts`.
 
-### [Component] Frontend (client/apps/upward-pay)
+### 2. Frontend Implementation (`upward-pay`)
 
-#### [MODIFY] [api-client.ts](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/client/apps/upward-pay/src/lib/api-client.ts)
+#### [MODIFY] Next.js Infrastructure
 
-- **REMOVE** `localStorage` token extraction and the `Authorization` header logic.
-- Rely solely on `{ credentials: 'include' }` for session management.
+- Integrate `@tanstack/react-query` for client-side mutations.
+- Use `fetch` with Next.js caching (`force-cache` or ISR) for initial invitation data.
 
-#### [MOVE] [Auth Feature Reorganization](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/client/apps/upward-pay/src/features/auth)
+#### [MODIFY] [page.tsx](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/client/apps/upward-pay/src/app/page.tsx) (Landing Page)
 
-- **Components**: Place `LoginForm` and `SignupForm` inside `src/features/auth/component/`.
-- **Services**:
-  - [authService.ts](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/client/apps/upward-pay/src/features/auth/services/authService.ts): Update to match new endpoint behaviors.
-  - [tokenService.ts](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/client/apps/upward-pay/src/features/auth/services/tokenService.ts): **DEPRECATE** or replace with logic that manages in-memory authentication state (no `localStorage`).
-- **Hooks**:
-  - [useLogin.tsx](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/client/apps/upward-pay/src/features/auth/hooks/useLogin.tsx): Refactor to use the new service and handle redirection without manual token setting.
-  - [NEW] `useSignup.tsx`: Implement multi-step signup hook logic.
+- **Server Fetching**: Fetch invitation data using a Server Component.
+- **Streaming**: Wrap invitation content in `<Suspense>` with a Skeleton placeholder.
+- **Deep Link Logic**: Use a lightweight client-side Hook for `upwardpay://` redirection.
+- **UI**: Premium design using Lucide icons (e.g., `Rocket`, `Verified`, `CreditCard`) instead of emojis.
 
-#### [MODIFY] [App Pages](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/client/apps/upward-pay/src/app)
+#### [NEW] [page.tsx](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/client/apps/upward-pay/src/app/complete-profile/page.tsx)
 
-- Update `/login` and `/signup` to use components from the `features/auth` layer.
+- Unified multi-step flow using a Client Component for state management.
+- **Interactivity**: Use `useMutation` (Tanstack Query) for the final profile submission to handle loading/error states gracefully.
+- Fields: Rent Anniversary (with date picker), Full Address, Occupation, etc.
 
----
+#### [NEW] Reusable Components
 
-## Open Questions
+- **PoweredByUpward**: Optimized logo with `next/image`.
+- **CompanyHeader**: Server component for displaying company metadata.
+- **OnboardingCard**: General wrapper for consistency.
 
-1. **In-Memory State**: Since we are removing `localStorage`, would you like a React Context provider specifically for the user profile, or should we continue using a base hook that fetches from `/me`?
-2. **Capacitor Specifics**: For the mobile app, we'll assume the CapacitorHttp plugin is used or the webview handles cookies correctly between domains. Does your setup require specific CORS headers for a specific mobile app origin?
+### 3. Styling & Optimization
+
+#### [NEW] [onboarding.css](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/client/apps/upward-pay/src/styles/onboarding.css)
+
+- Optimized BEM styles.
+- Integrated Project Variables.
 
 ## Verification Plan
 
-### Automated Verification
+### Automated
 
-- Backend tests to ensure cookies are set in the response headers of `/auth/login` and `/tenant/auth/login`.
+- `npx prisma migrate dev` to verify schema.
+- Backend unit tests for `CompleteTenantProfileUseCase`.
 
-### Manual Verification
+### Manual
 
-- Log in and verify that no `upward_token` exists in Application -> Local Storage.
-- Verify that standard API requests (e.g., getting dashboard data) still work (headers should include the cookies automatically).
+- **Performance**: Verify 0% client JS for the initial landing page render (except for deep linking logic).
+- **Functionality**:
+  - Invitation Link -> Prefill -> Complete Profile -> Check DB for correct flags.
+  - Waitlist Flow (Email only) -> Complete Profile -> Verify `isConvertedFromWaitlist` is `true`.
+- **Visuals**: Audit Lucide icon usage and ensure no emojis remain.

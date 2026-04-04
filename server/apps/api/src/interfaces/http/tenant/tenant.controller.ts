@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Patch,
   Get,
   Body,
   HttpCode,
@@ -12,6 +13,8 @@ import {
 } from '@nestjs/common'
 import { TenantAuthService } from '@application/auth/tenant-auth.service'
 import { JwtAuthGuard } from '@application/auth/guards/jwt-auth.guard'
+import { CompleteTenantProfileUseCase } from '@application/use-cases/tenant/complete-tenant-profile.use-case'
+import { UpdateTenantProfileUseCase } from '@application/use-cases/tenant/update-tenant-profile.use-case'
 
 interface FastifyReply {
   setCookie(name: string, value: string, options: Record<string, unknown>): FastifyReply
@@ -54,7 +57,11 @@ function setTenantAuthCookies(reply: FastifyReply, accessToken: string, refreshT
 
 @Controller('tenant/auth')
 export class TenantController {
-  constructor(private readonly tenantAuthService: TenantAuthService) {}
+  constructor(
+    private readonly tenantAuthService: TenantAuthService,
+    private readonly completeTenantProfile: CompleteTenantProfileUseCase,
+    private readonly updateTenantProfile: UpdateTenantProfileUseCase,
+  ) {}
 
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
@@ -65,6 +72,31 @@ export class TenantController {
     const { refreshToken, ...rest } = await this.tenantAuthService.signup(body)
     setTenantAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.CREATED).send(rest)
+  }
+
+  @Post('complete-profile')
+  @HttpCode(HttpStatus.OK)
+  async completeProfile(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    @Body() body: any,
+    @Res({ passthrough: false }) reply: FastifyReply,
+  ) {
+    const { refreshToken, ...rest } = await this.completeTenantProfile.execute({
+      email: body.email,
+      passwordPlain: body.password,
+      fullName: body.fullName || body.name,
+      phone: body.phone,
+      invitedByCompanyId: body.invitedByCompanyId,
+      invitedByCompanyName: body.invitedByCompanyName,
+      invitedByCompanyLogo: body.invitedByCompanyLogo,
+      rentAnniversary: body.rentAnniversary,
+      address: body.address,
+      occupation: body.occupation,
+      gender: body.gender,
+      dateOfBirth: body.dateOfBirth,
+    })
+    setTenantAuthCookies(reply, rest.accessToken, refreshToken)
+    reply.status(HttpStatus.OK).send(rest)
   }
 
   @Post('login')
@@ -106,5 +138,17 @@ export class TenantController {
       throw new UnauthorizedException('No user in request')
     }
     return this.tenantAuthService.getProfile(req.user.id)
+  }
+
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async updateProfile(@Req() req: FastifyRequest, @Body() body: any) {
+    if (!req.user?.id) {
+      throw new UnauthorizedException('No user in request')
+    }
+    const tenant = await this.updateTenantProfile.execute(req.user.id, body)
+    return { success: true, tenant }
   }
 }

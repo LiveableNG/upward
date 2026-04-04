@@ -62,6 +62,9 @@ import { GetAdminLogsUseCase } from './use-cases/admin-log/get-admin-logs.use-ca
 import { LogAdminActionUseCase } from './use-cases/admin-log/log-admin-action.use-case'
 import { GetCountriesUseCase } from './use-cases/location/get-countries.use-case'
 import { GetCitiesUseCase } from './use-cases/location/get-cities.use-case'
+import { CompleteTenantProfileUseCase } from './use-cases/tenant/complete-tenant-profile.use-case'
+import { UpdateTenantProfileUseCase } from './use-cases/tenant/update-tenant-profile.use-case'
+import { AuthModule } from './auth/auth.module'
 
 const UseCases = [
   DeleteAdminUseCase,
@@ -115,10 +118,12 @@ const UseCases = [
   LogAdminActionUseCase,
   GetCountriesUseCase,
   GetCitiesUseCase,
+  CompleteTenantProfileUseCase,
+  UpdateTenantProfileUseCase,
 ]
 
 @Module({
-  imports: [S3Module],
+  imports: [S3Module, AuthModule],
   providers: [AdminAuditEventHandler, EmailLogEventHandler, InteractionHandler, ...UseCases],
   exports: [...UseCases],
 })

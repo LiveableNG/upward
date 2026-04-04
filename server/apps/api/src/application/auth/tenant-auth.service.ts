@@ -57,6 +57,74 @@ export class TenantAuthService extends BaseAuthService {
     }
   }
 
+  async completeProfile(dto: {
+    email: string
+    passwordPlain: string
+    fullName: string
+    phone?: string
+    invitedByCompanyId?: string
+    invitedByCompanyName?: string
+    invitedByCompanyLogo?: string
+    rentAnniversary?: string
+    address?: string
+    occupation?: string
+    gender?: string
+    dateOfBirth?: string
+  }): Promise<TenantAuthResponse & { refreshToken: string }> {
+    const waitlistEntry = await this.prisma.upward_waitlist.findUnique({
+      where: { email: dto.email },
+    })
+
+    const passwordHash = await bcrypt.hash(dto.passwordPlain, 10)
+
+    const tenant = await this.prisma.upward_tenant.upsert({
+      where: { email: dto.email },
+      update: {
+        passwordHash,
+        fullName: dto.fullName,
+        phone: dto.phone,
+        invitedByCompanyId: dto.invitedByCompanyId,
+        invitedByCompanyName: dto.invitedByCompanyName,
+        invitedByCompanyLogo: dto.invitedByCompanyLogo,
+        rentAnniversary: dto.rentAnniversary ? new Date(dto.rentAnniversary) : undefined,
+        address: dto.address,
+        occupation: dto.occupation,
+        gender: dto.gender,
+        dateOfBirth: dto.dateOfBirth,
+        isConvertedFromWaitlist: !!waitlistEntry,
+      },
+      create: {
+        email: dto.email,
+        passwordHash,
+        fullName: dto.fullName,
+        phone: dto.phone,
+        invitedByCompanyId: dto.invitedByCompanyId,
+        invitedByCompanyName: dto.invitedByCompanyName,
+        invitedByCompanyLogo: dto.invitedByCompanyLogo,
+        rentAnniversary: dto.rentAnniversary ? new Date(dto.rentAnniversary) : undefined,
+        address: dto.address,
+        occupation: dto.occupation,
+        gender: dto.gender,
+        dateOfBirth: dto.dateOfBirth,
+        isConvertedFromWaitlist: !!waitlistEntry,
+      },
+    })
+
+    const payload = {
+      sub: tenant.id,
+      email: tenant.email,
+    }
+
+    const accessToken = this.generateAccessToken(payload)
+    const refreshToken = this.generateRefreshToken(tenant.id)
+
+    return {
+      accessToken,
+      refreshToken,
+      tenant: tenant as any,
+    }
+  }
+
   async login(
     email: string,
     password: string,

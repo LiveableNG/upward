@@ -18,24 +18,24 @@
   --oat: #faf9f5;
   --oat-dim: #f0efe8;
 
-  --bg: #fcfbf9;
-  --surface: #f4f1ea;
-  --surface2: #ebe6dc;
-  --border: rgba(0, 0, 0, 0.05);
-  --border-solid: #e0d8cc;
+  --bg: #ffffff;
+  --surface: #f7f5f2;
+  --surface2: #edeae4;
+  --border: rgba(0, 0, 0, 0.06);
+  --border-solid: #e2ddd7;
   --text: #0a0a0f;
-  --text-secondary: #5a5652;
-  --text-muted: #8a8580;
+  --text-secondary: #4a4642;
+  --text-muted: #928e89;
   --success: #22c55e;
   --success-bg: rgba(34, 197, 94, 0.08);
   --warning: #f59e0b;
   --error: #ef4444;
 
-  --btn-primary-bg: linear-gradient(135deg, #eaddcf 0%, #d4c5b9 100%);
-  --btn-primary-hover: linear-gradient(135deg, #d4c5b9 0%, #c4b5a8 100%);
-  --btn-primary-text: #0a0a0f;
-  --btn-primary-shadow: 0 4px 14px rgba(212, 197, 185, 0.4);
-  --btn-primary-shadow-hover: 0 6px 20px rgba(212, 197, 185, 0.5);
+  --btn-primary-bg: linear-gradient(135deg, #d97757 0%, #c86848 100%);
+  --btn-primary-hover: linear-gradient(135deg, #c86848 0%, #b85c3e 100%);
+  --btn-primary-text: #ffffff;
+  --btn-primary-shadow: 0 4px 14px rgba(217, 119, 87, 0.35);
+  --btn-primary-shadow-hover: 0 6px 20px rgba(217, 119, 87, 0.5);
 
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
@@ -72,6 +72,9 @@
     --clay-faint: rgba(217, 119, 87, 0.08);
     --success-bg: rgba(34, 197, 94, 0.12);
 
+    --oat: #1a1918;
+    --oat-dim: #22211f;
+
     --btn-primary-bg: linear-gradient(135deg, #2a2725 0%, #1e1b19 100%);
     --btn-primary-hover: linear-gradient(135deg, #36322e 0%, #2a2725 100%);
     --btn-primary-text: #eaddcf;
@@ -98,7 +101,6 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   padding-top: var(--safe-top);
-  padding-bottom: var(--safe-bottom);
   position: relative;
 }
 

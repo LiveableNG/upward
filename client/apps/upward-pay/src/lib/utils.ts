@@ -1,5 +1,5 @@
-export function formatCurrency(amountInKobo: number, currency = 'NGN'): string {
-  const amount = amountInKobo / 100
+export function formatCurrency(amountInKobo: number | undefined | null, currency = 'NGN'): string {
+  const amount = (amountInKobo || 0) / 100
   return new Intl.NumberFormat('en-NG', {
     style: 'currency',
     currency,

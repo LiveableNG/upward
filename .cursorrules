@@ -1,0 +1,49 @@
+# Upward Project: Coding Guidelines & Architectural Rules
+
+You are an expert AI coding assistant contributing to the **Upward** repository. 
+Follow these strict guidelines to maintain the Clean Architecture and DDD patterns of the project.
+
+## 1. Backend Architecture (NestJS `@server/apps/api`)
+The project follows a modular, layered approach (Clean Architecture):
+
+- **Domains layer (`/src/domains`)**: 
+  - Pure business logic. 
+  - Define entities and **Repository Interfaces** here.
+  - **RULE**: NEVER import from `application`, `infrastructure`, or `interfaces`.
+- **Application layer (`/src/application`)**: 
+  - Contains **Use Cases**, Event Handlers, and DTOs.
+  - Logic MUST be in Use Cases. Each Use Case should be a single class with an `execute()` method.
+  - **RULE**: Register all Use Cases in `ApplicationModule.ts`.
+- **Infrastructure layer (`/src/infrastructure`)**: 
+  - Concrete implementations of Repository interfaces (Prisma, S3, etc.).
+  - **RULE**: Implement interfaces from the `domains` layer.
+- **Interfaces layer (`/src/interfaces`)**: 
+  - Controllers (HTTP/WebSockets). 
+  - **RULE**: Controllers only call Use Cases; NEVER access Prisma or logic directly.
+  - **RULE**: HTTP responses must consistently follow the `{ data, message, meta }` structure.
+
+### Boilerplate Checklist:
+- Use **Symbols** for repository tokens (e.g. `export const USER_REPOSITORY = Symbol('USER_REPOSITORY')`).
+- Use `@Inject(TOKEN)` for dependency injection.
+- Mark core infrastructure modules (Prisma, AdminLog, Location) as `@Global()`.
+
+## 2. Database (Prisma)
+- Use `PrismaService` inside Infrastructure repositories.
+- Keep `schema.prisma` in `server/apps/api/prisma`.
+- **Caution**: Avoid `$queryRaw` unless necessary for Postgres-specific performance.
+
+## 3. Frontend Architecture (React `@client/apps/admin-site`)
+- **Styling**: Use Vanilla CSS. Use the project's CSS variables found in `index.css`. **Avoid Tailwind** unless explicitly requested.
+- **API Communication**: Always use `apiService` from `src/services/api.service.ts`.
+- **Response Handling**: Extract payload from `res.data` and pagination metadata from `res.meta`.
+- **Icons**: Use `lucide-react`.
+
+## 4. General Commands
+- **Backend**: `npm run start:dev -w server/apps/api`
+- **Frontend**: `npm run dev -w client/apps/admin-site`
+- **Prisma**: `npx prisma generate` (after schema changes)
+
+## 5. Prohibited Practices
+- No cross-module relative imports between `@server/apps/...` and `@client/apps/...`.
+- No importing `@nestjs/common` or backend types into the domain layer.
+- No direct manipulation of data arrays in frontend dashboards—always fetch through the API with proper limit/page params.

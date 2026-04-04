@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { signup as authSignup } from '../services/authService'
 import { useAuth } from '../AuthContext'
@@ -6,39 +6,22 @@ import { useAuth } from '../AuthContext'
 export function useSignup(redirect: string = '/dashboard') {
   const router = useRouter()
   const { login: setAuthUser } = useAuth()
+  const queryClient = useQueryClient()
 
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-
-  async function signup(data: {
-    email: string
-    password: string
-    fullName: string
-    phone?: string
-  }) {
-    if (!data.email || !data.password || !data.fullName) {
-      setError('Please fill in all required fields')
-      return
-    }
-
-    setLoading(true)
-    setError('')
-
-    try {
-      const result = await authSignup(data)
+  const signupMutation = useMutation({
+    mutationFn: (data: { email: string; password: string; fullName: string; phone?: string }) =>
+      authSignup(data),
+    onSuccess: (result) => {
       setAuthUser(result.tenant)
-
+      queryClient.setQueryData(['user'], result.tenant)
       router.push(redirect)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Signup failed')
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+  })
 
   return {
-    signup,
-    loading,
-    error,
+    signup: (data: { email: string; password: string; fullName: string; phone?: string }) =>
+      signupMutation.mutate(data),
+    loading: signupMutation.isPending,
+    error: signupMutation.error instanceof Error ? signupMutation.error.message : '',
   }
 }
