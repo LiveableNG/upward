@@ -49,6 +49,7 @@
     "@nestjs/platform-fastify": "^11.0.11",
     "@nestjs/schedule": "^6.1.1",
     "@prisma/client": "6.19.0",
+    "@types/pdfkit": "^0.17.5",
     "@upward/common-utils": "workspace:*",
     "@upward/shared-types": "workspace:*",
     "bcrypt": "^6.0.0",
@@ -59,6 +60,7 @@
     "mailgun.js": "^12.7.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
+    "pdfkit": "^0.18.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },

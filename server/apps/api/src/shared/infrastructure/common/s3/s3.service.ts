@@ -51,9 +51,25 @@ export class S3Service {
       })
 
       return await getSignedUrl(this.s3Client, command, { expiresIn: 3600 }) // 1 hour
-    } catch (error) {
-      console.warn('Error generating download URL for:', key, error)
+    } catch {
       return keyOrUrl // Fallback to original if failed
+    }
+  }
+
+  async uploadBuffer(buffer: Buffer, key: string, contentType: string) {
+    try {
+      const command = new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: buffer,
+        ContentType: contentType,
+      })
+
+      await this.s3Client.send(command)
+      return `https://${this.bucket}.s3.${this.configService.get('AWS_REGION')}.amazonaws.com/${key}`
+    } catch (error) {
+      console.error('Error uploading buffer to S3:', error)
+      throw new InternalServerErrorException('Could not upload file to storage')
     }
   }
 }

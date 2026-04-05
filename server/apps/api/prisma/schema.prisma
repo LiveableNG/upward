@@ -212,6 +212,11 @@ model upward_tenant {
   dateOfBirth            String?
   isConvertedFromWaitlist Boolean @default(false)
   isGuest                Boolean @default(false)
+  hasDismissedAppBanner  Boolean @default(false)
+
+  announcementStates upward_tenant_announcement_state[]
+
+  notifications      upward_notification[]
 
   @@index([email])
   @@index([createdAt])
@@ -242,11 +247,63 @@ model upward_transaction {
   reference     String   @unique
   narration     String?
   receiptNumber String?
-  receiptUrl    String?
+  receiptUrl    String?  @db.Text
   landlordId    String?
+  lineItems     Json?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([tenantId])
   @@index([reference])
 }
+
+model upward_announcement {
+  id        String   @id @default(uuid())
+  title     String
+  message   String   @db.Text
+  iconType  String   @default("sparkles") // sparkles, clock, target, etc.
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  states    upward_tenant_announcement_state[]
+
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+model upward_tenant_announcement_state {
+  id               String   @id @default(uuid())
+  tenantId         String
+  announcementId   String
+  seenPopup        Boolean  @default(false)
+  interactedPopup  Boolean  @default(false)
+  seenBanner       Boolean  @default(false)
+  interactedBanner Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  announcement     upward_announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  tenant           upward_tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, announcementId])
+  @@index([tenantId])
+}
+
+model upward_notification {
+  id        String   @id @default(uuid())
+  tenantId  String
+  title     String
+  message   String   @db.Text
+  type      String   @default("SYSTEM") // SYSTEM, SUPPORT, PAYMENT
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    upward_tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+

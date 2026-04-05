@@ -23,6 +23,8 @@ export class PrismaTenantRepository implements TenantRepository {
       gender: model.gender,
       dateOfBirth: model.dateOfBirth,
       isConvertedFromWaitlist: model.isConvertedFromWaitlist,
+      hasDismissedAppBanner: model.hasDismissedAppBanner,
+      isGuest: model.isGuest,
       createdAt: model.createdAt,
       updatedAt: model.updatedAt,
     }
@@ -59,6 +61,8 @@ export class PrismaTenantRepository implements TenantRepository {
         gender: tenant.gender,
         dateOfBirth: tenant.dateOfBirth,
         isConvertedFromWaitlist: tenant.isConvertedFromWaitlist,
+        hasDismissedAppBanner: tenant.hasDismissedAppBanner,
+        isGuest: tenant.isGuest,
       },
     })
   }
@@ -79,6 +83,8 @@ export class PrismaTenantRepository implements TenantRepository {
         gender: data.gender,
         dateOfBirth: data.dateOfBirth,
         isConvertedFromWaitlist: data.isConvertedFromWaitlist,
+        hasDismissedAppBanner: data.hasDismissedAppBanner,
+        isGuest: data.isGuest,
       },
     })
   }

@@ -14,6 +14,8 @@ import {
   TRANSACTION_REPOSITORY,
   PAYMENT_GATEWAY,
 } from '@domains/payments/payment.repository'
+import { PrismaNotificationRepository } from './repositories/prisma-notification.repository'
+import { NOTIFICATION_REPOSITORY } from '@domains/notifications/notification.repository'
 
 @Global()
 @Module({
@@ -39,6 +41,10 @@ import {
       provide: PAYMENT_GATEWAY,
       useClass: PaystackGateway,
     },
+    {
+      provide: NOTIFICATION_REPOSITORY,
+      useClass: PrismaNotificationRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -47,6 +53,7 @@ import {
     SAVED_LANDLORD_REPOSITORY,
     TRANSACTION_REPOSITORY,
     PAYMENT_GATEWAY,
+    NOTIFICATION_REPOSITORY,
   ],
 })
 export class PrismaModule {}

@@ -14,3 +14,7 @@ export type Landlord = {
 }
 
 export type PayRentStep = 'select' | 'new' | 'confirm' | 'checkout' | 'processing' | 'success'
+export interface LineItem {
+  label: string
+  amount: number
+}

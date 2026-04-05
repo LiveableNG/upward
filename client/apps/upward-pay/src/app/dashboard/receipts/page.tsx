@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -21,48 +22,86 @@ export default function ReceiptsPage() {
     const searchParams = new URLSearchParams(window.location.search)
     const id = searchParams.get('id')
 
-    // MOCK RECEIPT FOR DESIGN PHASE OR IF API FAILS
-    const mockReceipt: ReceiptData = {
-      uuid: 'mock-id',
-      title: 'Monthly Rent Receipt',
-      receiptNumber: 'RCP-89240',
-      paidAt: new Date().toISOString(),
-      generatedAt: new Date().toISOString(),
-      tenantName: 'John Doe',
-      companyName: 'Livable Properties',
-      companyLogo:
-        'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=40&h=40&q=80',
-      propertyName: 'Luxury Suite 402',
-      propertyAddress: '12-14 Kingsway Road, Ikoyi, Lagos',
-      amount: 450000,
-      currency: 'NGN',
-      channel: 'Credit Card',
-      paystackReference: 'T74291085141',
-      lineItems: [
-        { label: 'Annual Rent (2025/2026)', amount: 400000, category: 'Rent' },
-        { label: 'Service Charge', amount: 50000, category: 'Service' },
-      ],
-    }
-
     if (!id) {
-      setReceipt(mockReceipt)
       setLoading(false)
       return
     }
 
     try {
-      // Typically fetch from transactions endpoint in a real app, e.g. api.getTransaction(id)
-      const data = await api.getMyDocuments() // Based on user provided mock code
-      const found = data.receipts.find((r: ReceiptData) => r.uuid === id)
-      if (found) {
-        setReceipt(found)
-      } else {
-        setReceipt(mockReceipt)
+      const [tx, profile, landlords] = await Promise.all([
+        api.getTransaction(id),
+        api.getProfile(),
+        api.getSavedLandlords().catch(() => []),
+      ])
+
+      if (tx) {
+        const landlord = tx.landlordId ? landlords.find((l: any) => l.id === tx.landlordId) : null
+
+        const breakdownDesc =
+          tx.lineItems && tx.lineItems.length > 0
+            ? `${tx.lineItems.map((item: any) => `${item.label} (N${item.amount.toLocaleString()})`).join(', ')}`
+            : tx.type === 'RENT'
+              ? landlord?.name
+                ? `Unit at ${landlord.name}`
+                : 'Property Unit'
+              : 'Upward Wallet'
+
+        // Map backend Transaction to frontend ReceiptData
+        const data: ReceiptData = {
+          uuid: tx.id,
+          title: tx.type === 'RENT' ? 'Rent Payment Receipt' : 'Savings Deposit Receipt',
+          receiptNumber: tx.receiptNumber || `RCP-${tx.reference.slice(-5).toUpperCase()}`,
+          paidAt: tx.createdAt,
+          generatedAt: new Date().toISOString(),
+          tenantName: profile?.fullName || 'Tenant',
+          companyName:
+            landlord?.name || (tx.type === 'RENT' ? 'Property Management' : 'Upward Savings'),
+          companyLogo: landlord?.bankName ? '' : '', // Could use landlord logic here if they had logos
+          propertyName: breakdownDesc,
+          propertyAddress: tx.narration || 'Payment via Upward',
+          amount: tx.amount,
+          currency: 'NGN',
+          channel: 'Paystack',
+          paystackReference: tx.reference,
+          type: tx.type === 'SAVINGS' ? 'credit' : 'debit',
+          lineItems:
+            tx.lineItems && tx.lineItems.length > 0
+              ? tx.lineItems.map((item: any) => ({
+                  label: item.label,
+                  amount: item.amount,
+                  category: item.category || 'Package',
+                }))
+              : tx.type === 'RENT'
+                ? [{ label: 'Rent Payment', amount: tx.amount, category: 'Home' }]
+                : [],
+        }
+        setReceipt(data)
       }
-    } catch {
-      setReceipt(mockReceipt)
+    } catch (e) {
+      console.error('Failed to load receipt:', e)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleDownload() {
+    if (!receipt) return
+    try {
+      const res = await api.getReceiptPdf(receipt.uuid)
+      if (res?.url) {
+        if (res.url.startsWith('data:')) {
+          const link = document.createElement('a')
+          link.href = res.url
+          link.download = `receipt-${receipt.receiptNumber}.pdf`
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+        } else {
+          window.open(res.url, '_blank')
+        }
+      }
+    } catch (e) {
+      console.error('Download failed:', e)
     }
   }
 
@@ -75,6 +114,10 @@ export default function ReceiptsPage() {
   }
 
   return (
-    <ReceiptTemplate receipt={receipt} onClose={() => router.push('/dashboard/transactions')} />
+    <ReceiptTemplate
+      receipt={receipt}
+      onClose={() => router.push('/dashboard/transactions')}
+      onDownload={handleDownload}
+    />
   )
 }

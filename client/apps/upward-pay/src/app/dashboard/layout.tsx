@@ -6,6 +6,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import FallbackSuspense from '@/components/FallbackSuspense'
 
 import { BottomNav } from '@/features/dashboard/components/BottomNav'
+import { AnnouncementManager } from '@/features/dashboard/components/AnnouncementManager'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -28,6 +29,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="dashboard-layout">
+      <AnnouncementManager />
       <main className="dashboard-layout__content">
         <Suspense fallback={<FallbackSuspense message="Loading..." />}>{children}</Suspense>
       </main>

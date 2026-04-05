@@ -1,5 +1,5 @@
 import React from 'react'
-import { Check, MapPin, Wallet, Shield } from 'lucide-react'
+import { MapPin, Wallet } from 'lucide-react'
 import { type Landlord } from './types'
 import { LandlordAvatar } from './LandlordAvatar'
 import { formatCurrency } from '@/lib/utils'
@@ -10,6 +10,7 @@ export function StepConfirm({
   amount,
   narration,
   onConfirm,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onBack,
   useSavings,
   onToggleSavings,
@@ -37,45 +38,30 @@ export function StepConfirm({
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <LandlordAvatar letter={landlord.avatar} size={48} style={{ flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)' }}>
-                {landlord.name}
-              </h3>
-              <div
-                style={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: '50%',
-                  background: 'var(--success)',
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 9,
-                }}
-              >
-                <Check size={10} strokeWidth={4} />
-              </div>
-            </div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)' }}>
+              {landlord.name}
+            </h3>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '2px 0 0' }}>
               {landlord.role || 'Property Manager'}
             </p>
           </div>
         </div>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            fontSize: 13,
-            color: 'var(--text-secondary)',
-          }}
-        >
-          <MapPin size={14} color="var(--text-muted)" />
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {landlord.address || 'Remote payment'}
-          </span>
-        </div>
+        {landlord.address && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 13,
+              color: 'var(--text-secondary)',
+            }}
+          >
+            <MapPin size={14} color="var(--text-muted)" />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {landlord.address}
+            </span>
+          </div>
+        )}
       </div>
       <div
         style={{
@@ -106,14 +92,14 @@ export function StepConfirm({
           {formatCurrency(amount)}
         </span>
       </div>
-      {isPriorityRequest && lineItems.length > 0 && (
+      {(isPriorityRequest || (lineItems && lineItems.length > 0)) && (
         <div style={{ marginBottom: 20 }}>
           <InvoiceCard
             invoiceNumber={landlord.accountNumber.slice(-6)}
             notes={narration}
-            lineItems={lineItems}
+            lineItems={lineItems || []}
             totalAmount={amount}
-            isPriority={true}
+            isPriority={!!isPriorityRequest}
           />
         </div>
       )}
@@ -216,28 +202,13 @@ export function StepConfirm({
           </span>
         </div>
       </div>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
-          marginBottom: 20,
-          fontSize: 11,
-          color: 'var(--text-muted)',
-        }}
-      >
-        <Shield size={12} /> Secured by Upward · 256-bit encryption
-      </div>
+
       <button
         onClick={onConfirm}
         className="btn btn--primary btn--full"
         style={{ marginBottom: 12, height: 56, fontSize: 16 }}
       >
         {totalDebit <= 0 ? 'Pay with Savings' : `Confirm & Pay`}
-      </button>
-      <button onClick={onBack} className="btn btn--secondary btn--full" style={{ height: 50 }}>
-        Go back
       </button>
     </div>
   )

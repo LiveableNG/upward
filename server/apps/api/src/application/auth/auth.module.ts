@@ -16,7 +16,7 @@ import { PrismaModule } from '@shared/infrastructure/prisma/prisma.module'
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET', 'super-secret-key'),
-        signOptions: { expiresIn: '15m' }, // short-lived access token
+        signOptions: { expiresIn: '24h' },
       }),
     }),
   ],

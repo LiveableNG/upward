@@ -55,6 +55,8 @@ export class CompleteTenantProfileUseCase {
       gender: dto.gender,
       dateOfBirth: dto.dateOfBirth,
       isConvertedFromWaitlist: !!waitlistEntry,
+      hasDismissedAppBanner: false,
+      isGuest: false,
     }
 
     if (tenant) {

@@ -11,6 +11,8 @@ import { WaitlistController } from './public/waitlist.controller'
 import { LocationsController } from './public/locations.controller'
 import { TenantController } from './tenant/tenant.controller'
 import { PaymentsController } from './public/payments.controller'
+import { AdminAnnouncementsController } from './admin/announcements.controller'
+import { TenantNotificationsController } from './tenant/notifications.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule],
@@ -24,6 +26,8 @@ import { PaymentsController } from './public/payments.controller'
     LocationsController,
     TenantController,
     PaymentsController,
+    AdminAnnouncementsController,
+    TenantNotificationsController,
   ],
 })
 export class HttpModule {}

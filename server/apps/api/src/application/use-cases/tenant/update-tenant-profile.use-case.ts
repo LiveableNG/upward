@@ -17,6 +17,7 @@ export class UpdateTenantProfileUseCase {
       occupation?: string
       gender?: string
       dateOfBirth?: string
+      hasDismissedAppBanner?: boolean
     },
   ) {
     const tenant = await this.tenantRepository.findById(tenantId)

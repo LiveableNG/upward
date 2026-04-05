@@ -1,10 +1,21 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Check, Loader, AlertCircle, ArrowLeft } from 'lucide-react'
+import { Check, Loader, AlertCircle, ArrowLeft, ChevronDown, Landmark } from 'lucide-react'
 import { LandlordAvatar } from './LandlordAvatar'
+import { BankSelectionModal } from './BankSelectionModal'
 import { type Landlord } from './types'
 import { api } from '@/lib/api'
+
+const spinStyle = `
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+`
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
@@ -62,37 +73,58 @@ export function StepNewLandlord({
 
   const [resolving, setResolving] = useState(false)
   const [resolved, setResolved] = useState(false)
+  const [resolveError, setResolveError] = useState<string | null>(null)
+  const [loadingBanks, setLoadingBanks] = useState(true)
+  const [bankError, setBankError] = useState(false)
+  const [isBankModalOpen, setIsBankModalOpen] = useState(false)
 
   const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }))
 
   useEffect(() => {
+    setLoadingBanks(true)
     api
       .getBanks()
       .then((data) => {
-        const uniqueBanks = Array.from(new Map(data.map((b) => [b.code, b])).values())
-        setBanks(uniqueBanks)
+        if (Array.isArray(data)) {
+          const uniqueBanks = Array.from(new Map(data.map((b) => [b.code, b])).values())
+          setBanks(uniqueBanks)
+          setBankError(false)
+        } else {
+          setBankError(true)
+        }
       })
-      .catch((err) => console.error('Failed to load banks', err))
+      .catch((err) => {
+        console.error('Failed to load banks', err)
+        setBankError(true)
+      })
+      .finally(() => setLoadingBanks(false))
   }, [])
 
   useEffect(() => {
-    if (form.accountNumber.length === 10 && form.bankCode) {
-      setResolving(true)
+    // Reset state when input changes
+    setResolved(false)
+    setResolveError(null)
+    set('accountName', '')
 
-      api
-        .resolveAccount(form.accountNumber, form.bankCode)
-        .then((res) => {
-          setResolved(true)
-          set('accountName', res.accountName)
-        })
-        .catch(() => {
-          setResolved(false)
-          set('accountName', '')
-        })
-        .finally(() => setResolving(false))
-    } else {
-      setResolved(false)
-      set('accountName', '')
+    if (form.accountNumber.length === 10 && form.bankCode) {
+      const handler = setTimeout(() => {
+        setResolving(true)
+        api
+          .resolveAccount(form.accountNumber, form.bankCode)
+          .then((res) => {
+            setResolved(true)
+            set('accountName', res.accountName)
+            setResolveError(null)
+          })
+          .catch((err) => {
+            setResolved(false)
+            setResolveError(err.message || 'Account could not be resolved')
+            console.error('Resolution error:', err)
+          })
+          .finally(() => setResolving(false))
+      }, 600) // 600ms debounce
+
+      return () => clearTimeout(handler)
     }
   }, [form.accountNumber, form.bankCode])
 
@@ -102,6 +134,7 @@ export function StepNewLandlord({
 
   return (
     <div style={{ padding: '0 20px 32px' }}>
+      <style dangerouslySetInnerHTML={{ __html: spinStyle }} />
       {/* Back Button */}
       <div style={{ marginBottom: 16 }}>
         <button
@@ -123,24 +156,54 @@ export function StepNewLandlord({
         </button>
       </div>
 
-      {/* Bank */}
+      {/* Bank Selection Trigger */}
       <div style={{ marginBottom: 24 }}>
         <label style={labelStyle}>Bank</label>
-        <div style={inputWrapStyle}>
-          <select
-            value={form.bankCode}
-            onChange={(e) => set('bankCode', e.target.value)}
-            style={{ ...inputStyle, appearance: 'none' }}
-          >
-            <option value="">Select bank</option>
-            {banks.map((b, idx) => (
-              <option key={`${b.code}-${idx}`} value={b.code}>
-                {b.name}
-              </option>
-            ))}
-          </select>
+        <div
+          onClick={() => !loadingBanks && setIsBankModalOpen(true)}
+          style={{
+            ...inputWrapStyle,
+            cursor: loadingBanks ? 'wait' : 'pointer',
+            padding: '12px 16px',
+            borderColor: isBankModalOpen ? 'var(--clay)' : 'var(--border-solid)',
+          }}
+        >
+          <div style={{ marginRight: 12, color: 'var(--clay)' }}>
+            <Landmark size={20} />
+          </div>
+          <div style={{ flex: 1 }}>
+            {selectedBank ? (
+              <div style={{ fontSize: 15, fontWeight: 600 }}>{selectedBank.name}</div>
+            ) : (
+              <div style={{ fontSize: 15, color: 'var(--text-muted)' }}>
+                {loadingBanks ? 'Loading banks...' : 'Select bank'}
+              </div>
+            )}
+          </div>
+          <ChevronDown
+            size={18}
+            style={{
+              color: 'var(--text-muted)',
+              transform: isBankModalOpen ? 'rotate(180deg)' : 'none',
+              transition: 'transform 0.2s',
+            }}
+          />
         </div>
       </div>
+
+      {/* Custom Bank Selection Modal */}
+      {isBankModalOpen && (
+        <BankSelectionModal
+          banks={banks}
+          loading={loadingBanks}
+          error={bankError}
+          onClose={() => setIsBankModalOpen(false)}
+          onSelect={(bank) => {
+            set('bankCode', bank.code)
+            setIsBankModalOpen(false)
+          }}
+        />
+      )}
 
       {/* Account Number */}
       <div style={{ marginBottom: 24 }}>
@@ -150,9 +213,11 @@ export function StepNewLandlord({
             ...inputWrapStyle,
             borderColor: resolving
               ? 'var(--warning)'
-              : resolved
-                ? 'var(--success)'
-                : 'var(--border-solid)',
+              : resolveError
+                ? '#ef4444' // Error state
+                : resolved
+                  ? 'var(--success)'
+                  : 'var(--border-solid)',
           }}
         >
           <input
@@ -168,7 +233,7 @@ export function StepNewLandlord({
 
           {resolving && (
             <div style={{ color: 'var(--warning)' }}>
-              <Loader size={20} />
+              <Loader className="animate-spin" size={20} />
             </div>
           )}
 
@@ -177,11 +242,37 @@ export function StepNewLandlord({
               <Check size={18} />
             </div>
           )}
+
+          {resolveError && !resolving && (
+            <div style={{ color: '#ef4444' }}>
+              <AlertCircle size={18} />
+            </div>
+          )}
         </div>
       </div>
 
+      {/* Resolve Error Alert */}
+      {resolveError && !resolving && (
+        <div
+          style={{
+            marginBottom: 24,
+            padding: '12px 16px',
+            background: 'rgba(239,68,68,0.06)',
+            border: '1px solid rgba(239,68,68,0.15)',
+            borderRadius: 'var(--radius-md)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            color: '#ef4444',
+          }}
+        >
+          <AlertCircle size={18} />
+          <div style={{ fontSize: 13, fontWeight: 600 }}>{resolveError}</div>
+        </div>
+      )}
+
       {/* Resolved Account */}
-      {resolved && (
+      {resolved && !resolving && (
         <div
           style={{
             marginBottom: 24,

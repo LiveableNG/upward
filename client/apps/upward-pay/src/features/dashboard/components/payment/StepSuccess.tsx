@@ -6,11 +6,13 @@ import { formatCurrency } from '@/lib/utils'
 export function StepSuccess({
   landlord,
   amount,
+  transactionId,
   onDone,
   router,
 }: {
   landlord: Landlord
   amount: number
+  transactionId?: string
   onDone: () => void
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   router: any
@@ -82,8 +84,9 @@ export function StepSuccess({
         Back to dashboard
       </button>
       <button
-        onClick={() => router.push('/dashboard/receipts')}
+        onClick={() => router.push(`/dashboard/receipts?id=${transactionId}`)}
         className="btn btn--secondary btn--full"
+        disabled={!transactionId}
       >
         <Receipt size={20} /> View / Download receipt
       </button>
