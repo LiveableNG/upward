@@ -1,10 +1,15 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle } from 'lucide-react'
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { api } from '@/lib/api'
+
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
+
 import { StatStrip } from '@/features/dashboard/components/StatStrip'
 import { AppInstallBanner } from '@/features/dashboard/components/AppInstallBanner'
 import { AnnouncementBanner } from '@/features/dashboard/components/AnnouncementBanner'
@@ -17,12 +22,23 @@ import FallbackSuspense from '@/components/FallbackSuspense'
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { data, loading, error, reload, notifications, setNotifications } = useDashboard()
+  const { data, loading, error, reload } = useDashboard()
+  const { data: notifData } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => api.getNotifications(),
+  })
 
   const [_showPayRent, setShowPayRent] = useState(false)
   const [showSavingsGoalModal, setShowSavingsGoalModal] = useState(false)
-  const [dismissedAppBanner, setDismissedAppBanner] = useState(false)
   const [showKYCAlert, _setShowKYCAlert] = useState(true)
+  const [localDismissedBanner, setLocalDismissedBanner] = useState(false)
+
+  const dismissAppBannerMutation = useMutation({
+    mutationFn: () => api.updateProfile({ hasDismissedAppBanner: true }),
+    onSuccess: () => {
+      setLocalDismissedBanner(true)
+    },
+  })
 
   // Handle auth errors (expired token, etc.) by redirecting to landing
   useEffect(() => {
@@ -66,10 +82,14 @@ export default function DashboardPage() {
   const totalPaid = completedPayments.reduce((sum, p) => sum + p.amount, 0)
   const currency = completedPayments[0]?.currency || 'NGN'
 
-  // Real notif count logic
-  const notifCount = isNewUser
-    ? notifications.length + pendingPayments.length
-    : (pendingPayments.length || 0) + (showKYCAlert ? 1 : 0)
+  // App Install Banner visibility logic
+  const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor?.isNative
+  const shouldShowAppBanner = !isCapacitor && !tenant.hasDismissedAppBanner && !localDismissedBanner
+
+  // Real notif count logic - combining backend notifications + pending payments
+  const backendNotifCount = notifData?.notifications?.filter((n: any) => !n.read).length || 0
+
+  const notifCount = backendNotifCount + (pendingPayments.length || 0)
 
   return (
     <div className="dashboard dashboard--nav-offset">
@@ -93,16 +113,11 @@ export default function DashboardPage() {
         <div className="dashboard__col dashboard__col--left" />
 
         <div className="dashboard__col dashboard__col--right">
-          {isNewUser && !dismissedAppBanner && (
-            <AppInstallBanner onDismiss={() => setDismissedAppBanner(true)} />
+          {shouldShowAppBanner && (
+            <AppInstallBanner onDismiss={() => dismissAppBannerMutation.mutate()} />
           )}
 
-          {isNewUser && notifications.length > 0 && (
-            <AnnouncementBanner
-              notifications={notifications}
-              onDismiss={(id) => setNotifications((prev) => prev.filter((n) => n.id !== id))}
-            />
-          )}
+          <AnnouncementBanner />
 
           {!isNewUser && pendingPayments.length > 0 && (
             <div className="activity-center">

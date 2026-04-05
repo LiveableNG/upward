@@ -36,6 +36,18 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  getTransaction: (id: string) =>
+    request<any>(`/payments/transactions/${id}`, {
+      method: 'GET',
+    }),
+  getTransactions: () =>
+    request<any[]>('/payments/transactions', {
+      method: 'GET',
+    }),
+  getReceiptPdf: (id: string) =>
+    request<{ url: string }>(`/payments/transactions/${id}/receipt`, {
+      method: 'GET',
+    }),
   getBanks: () =>
     request<any[]>('/payments/banks', {
       method: 'GET',
@@ -50,12 +62,34 @@ export const api = {
     return { receipts: [], contracts: [] }
   },
 
-  getProfile: () => async () => {
-    return
-  },
+  getProfile: () =>
+    request<any>('/tenant/auth/me', {
+      method: 'GET',
+    }),
   updateProfile: (data: Partial<any>) =>
-    request<any>('/tenant/profile', {
+    request<any>('/tenant/auth/profile', {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
+
+  // Notifications & Announcements
+  getNotifications: () =>
+    request<any>('/tenant/notifications', {
+      method: 'GET',
+    }).then((res) => res.data),
+  updateAnnouncementState: (data: {
+    announcementId: string
+    seenPopup?: boolean
+    interactedPopup?: boolean
+    seenBanner?: boolean
+    interactedBanner?: boolean
+  }) =>
+    request<any>('/tenant/notifications/announcements/state', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }).then((res) => res.data),
+  markNotificationRead: (id: string) =>
+    request<any>(`/tenant/notifications/${id}/read`, {
+      method: 'PATCH',
+    }).then((res) => res.data),
 }

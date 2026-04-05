@@ -1,10 +1,19 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { IPaymentGateway, Bank, AccountVerification } from '@domains/payments/payment.repository'
 
 @Injectable()
 export class PaystackGateway implements IPaymentGateway {
-  private readonly secretKey = process.env['PAYSTACK_SECRET_KEY']
+  private readonly logger = new Logger(PaystackGateway.name)
+  private readonly secretKey: string
   private readonly baseUrl = 'https://api.paystack.co'
+
+  constructor(private configService: ConfigService) {
+    this.secretKey = this.configService.get<string>('PAYSTACK_SECRET_KEY') || ''
+    if (!this.secretKey) {
+      this.logger.warn('PAYSTACK_SECRET_KEY is not defined in environment variables')
+    }
+  }
 
   private get headers() {
     return {
@@ -15,23 +24,32 @@ export class PaystackGateway implements IPaymentGateway {
 
   async getBanks(): Promise<Bank[]> {
     try {
+      this.logger.log('Fetching banks from Paystack...')
       const res = await fetch(`${this.baseUrl}/bank?country=nigeria`, {
         method: 'GET',
         headers: this.headers,
       })
 
       if (!res.ok) {
+        const errorText = await res.text()
+        this.logger.error(`Paystack API error: ${res.status} - ${errorText}`)
         throw new Error(`HTTP error ${res.status}`)
       }
 
       const data = await res.json()
+      if (!data.status || !data.data) {
+        this.logger.error('Unexpected response format from Paystack')
+        return []
+      }
+
+      this.logger.log(`Successfully fetched ${data.data.length} banks`)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return data.data.map((b: any) => ({
         code: b.code,
         name: b.name,
       }))
     } catch (error) {
-      console.error('Paystack getBanks error:', error)
+      this.logger.error('Paystack getBanks error:', error)
       throw new Error('Could not fetch banks from gateway')
     }
   }
@@ -48,10 +66,22 @@ export class PaystackGateway implements IPaymentGateway {
       })
 
       if (!res.ok) {
+        if (res.status === 429) {
+          throw new Error('Verification rate limit exceeded. Please wait a few seconds.')
+        }
+        if (res.status === 404 || res.status === 400) {
+          throw new Error(
+            'Account number could not be resolved. Please check the bank and account number.',
+          )
+        }
         throw new Error(`HTTP error ${res.status}`)
       }
 
       const data = await res.json()
+
+      if (!data.status || !data.data) {
+        throw new Error(data.message || 'Could not verify account')
+      }
 
       return {
         accountNumber: data.data.account_number,
@@ -59,27 +89,41 @@ export class PaystackGateway implements IPaymentGateway {
         bankCode,
       }
     } catch (error) {
-      console.error('Paystack verifyAccount error:', error)
-      throw new Error('Invalid account details provided')
+      this.logger.error('Paystack verifyAccount error:', error)
+      throw error // Re-throw the specific error
     }
   }
 
   async verifyTransaction(reference: string): Promise<boolean> {
     try {
+      this.logger.log(`Verifying transaction: ${reference}`)
       const res = await fetch(`${this.baseUrl}/transaction/verify/${reference}`, {
         method: 'GET',
         headers: this.headers,
       })
 
       if (!res.ok) {
+        const errorBody = await res.text().catch(() => 'No body')
+        this.logger.warn(
+          `Transaction verification failed for ${reference}: ${res.status} - ${errorBody}`,
+        )
         return false
       }
 
       const data = await res.json()
+      const isSuccess = data.status && data.data && data.data.status === 'success'
 
-      return data.data.status === 'success'
+      if (isSuccess) {
+        this.logger.log(`Transaction ${reference} verified successfully`)
+      } else {
+        this.logger.warn(
+          `Transaction ${reference} verification returned non-success status: ${data.data?.status}`,
+        )
+      }
+
+      return !!isSuccess
     } catch (error) {
-      console.error('Paystack verifyTransaction error:', error)
+      this.logger.error(`Error verifying transaction ${reference}:`, error)
       return false
     }
   }

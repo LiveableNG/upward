@@ -13,7 +13,7 @@ import {
   X,
 } from 'lucide-react'
 import { useDashboard } from '../../hooks/useDashboard'
-import { formatCurrency, groupTransactionsByDate } from '@/lib/utils'
+import { formatCurrency, groupTransactionsByDate, formatTime } from '@/lib/utils'
 import { type CompletedPayment } from '../../types'
 
 export function TransactionList() {
@@ -129,7 +129,9 @@ export function TransactionList() {
                       <div className="transaction-item__info">
                         <div className="transaction-item__name">{tx.company_name}</div>
                         <div className="transaction-item__meta">
-                          <span className="transaction-item__channel">{tx.channel || 'Card'}</span>
+                          <span className="transaction-item__channel">
+                            {tx.channel || 'Card'} · {formatTime(tx.paid_at)}
+                          </span>
                           <span
                             className={`transaction-item__type-badge ${isCredit ? 'transaction-item__type-badge--credit' : 'transaction-item__type-badge--debit'}`}
                           >

@@ -94,6 +94,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
         receiptNumber: data.receiptNumber,
         receiptUrl: data.receiptUrl,
         landlordId: data.landlordId,
+        lineItems: data.lineItems || undefined,
       },
     })
     return {
@@ -102,6 +103,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       receiptNumber: res.receiptNumber ?? undefined,
       receiptUrl: res.receiptUrl ?? undefined,
       landlordId: res.landlordId ?? undefined,
+      lineItems: res.lineItems || undefined,
     } as Transaction
   }
 
@@ -116,7 +118,23 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       receiptNumber: r.receiptNumber ?? undefined,
       receiptUrl: r.receiptUrl ?? undefined,
       landlordId: r.landlordId ?? undefined,
+      lineItems: r.lineItems || undefined,
     })) as Transaction[]
+  }
+
+  async findById(id: string): Promise<Transaction | null> {
+    const res = await this.prisma.upward_transaction.findUnique({
+      where: { id },
+    })
+    if (!res) return null
+    return {
+      ...res,
+      narration: res.narration ?? undefined,
+      receiptNumber: res.receiptNumber ?? undefined,
+      receiptUrl: res.receiptUrl ?? undefined,
+      landlordId: res.landlordId ?? undefined,
+      lineItems: res.lineItems || undefined,
+    } as Transaction
   }
 
   async findByReference(reference: string): Promise<Transaction | null> {
@@ -130,6 +148,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       receiptNumber: res.receiptNumber ?? undefined,
       receiptUrl: res.receiptUrl ?? undefined,
       landlordId: res.landlordId ?? undefined,
+      lineItems: res.lineItems || undefined,
     } as Transaction
   }
 
@@ -144,6 +163,27 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       receiptNumber: res.receiptNumber ?? undefined,
       receiptUrl: res.receiptUrl ?? undefined,
       landlordId: res.landlordId ?? undefined,
+      lineItems: res.lineItems || undefined,
+    } as Transaction
+  }
+
+  async update(id: string, data: Partial<Transaction>): Promise<Transaction> {
+    const res = await this.prisma.upward_transaction.update({
+      where: { id },
+      data: {
+        status: data.status,
+        receiptUrl: data.receiptUrl,
+        receiptNumber: data.receiptNumber,
+        narration: data.narration,
+      },
+    })
+    return {
+      ...res,
+      narration: res.narration ?? undefined,
+      receiptNumber: res.receiptNumber ?? undefined,
+      receiptUrl: res.receiptUrl ?? undefined,
+      landlordId: res.landlordId ?? undefined,
+      lineItems: res.lineItems || undefined,
     } as Transaction
   }
 }

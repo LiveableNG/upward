@@ -1,11 +1,11 @@
-export function formatCurrency(amountInKobo: number | undefined | null, currency = 'NGN'): string {
-  const amount = (amountInKobo || 0) / 100
+export function formatCurrency(amount: number | undefined | null, currency = 'NGN'): string {
+  const val = amount || 0
   return new Intl.NumberFormat('en-NG', {
     style: 'currency',
     currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(amount)
+  }).format(val)
 }
 
 export function formatDate(dateStr: string): string {
@@ -13,6 +13,14 @@ export function formatDate(dateStr: string): string {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+  })
+}
+
+export function formatTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleTimeString('en-NG', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
   })
 }
 

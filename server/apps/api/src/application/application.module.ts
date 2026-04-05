@@ -3,6 +3,7 @@ import { AdminAuditEventHandler } from './events/handlers/admin-audit.handler'
 import { EmailLogEventHandler } from './events/handlers/email-log.handler'
 import { InteractionHandler } from './events/handlers/interaction.handler'
 import { S3Module } from '@shared/infrastructure/common/s3/s3.module'
+import { ReceiptModule } from '@shared/infrastructure/common/receipt/receipt.module'
 
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
@@ -65,6 +66,14 @@ import { GetCitiesUseCase } from './use-cases/location/get-cities.use-case'
 import { CompleteTenantProfileUseCase } from './use-cases/tenant/complete-tenant-profile.use-case'
 import { UpdateTenantProfileUseCase } from './use-cases/tenant/update-tenant-profile.use-case'
 import { AuthModule } from './auth/auth.module'
+import { CreateAnnouncementUseCase } from './use-cases/notifications/create-announcement.use-case'
+import {
+  GetAdminAnnouncementsUseCase,
+  SendNotificationUseCase,
+  GetTenantNotificationsUseCase,
+  UpdateAnnouncementStateUseCase,
+  MarkNotificationReadUseCase,
+} from './use-cases/notifications/notification.use-cases'
 
 // Payments
 import {
@@ -74,6 +83,9 @@ import {
   ProcessGuestPaymentTokenUseCase,
   GetBanksUseCase,
   VerifyAccountUseCase,
+  GetTransactionUseCase,
+  GetTenantTransactionsUseCase,
+  GenerateReceiptPdfUseCase,
 } from './use-cases/payments/payment.use-cases'
 
 const UseCases = [
@@ -137,10 +149,19 @@ const UseCases = [
   ProcessGuestPaymentTokenUseCase,
   GetBanksUseCase,
   VerifyAccountUseCase,
+  GetTransactionUseCase,
+  GetTenantTransactionsUseCase,
+  GenerateReceiptPdfUseCase,
+  CreateAnnouncementUseCase,
+  GetAdminAnnouncementsUseCase,
+  SendNotificationUseCase,
+  GetTenantNotificationsUseCase,
+  UpdateAnnouncementStateUseCase,
+  MarkNotificationReadUseCase,
 ]
 
 @Module({
-  imports: [S3Module, AuthModule],
+  imports: [S3Module, ReceiptModule, AuthModule],
   providers: [AdminAuditEventHandler, EmailLogEventHandler, InteractionHandler, ...UseCases],
   exports: [...UseCases],
 })

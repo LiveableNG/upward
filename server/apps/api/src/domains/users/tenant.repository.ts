@@ -13,6 +13,8 @@ export interface Tenant {
   gender?: string
   dateOfBirth?: string
   isConvertedFromWaitlist: boolean
+  hasDismissedAppBanner: boolean
+  isGuest: boolean
   createdAt: Date
   updatedAt: Date
 }

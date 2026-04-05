@@ -1,12 +1,12 @@
 import React from 'react'
+import { User } from 'lucide-react'
 
 export function LandlordAvatar({
-  letter,
   size = 44,
   color,
   style,
 }: {
-  letter: string
+  letter?: string
   size?: number
   color?: string
   style?: React.CSSProperties
@@ -16,20 +16,19 @@ export function LandlordAvatar({
       style={{
         width: size,
         height: size,
-        borderRadius: 'var(--radius-md)',
-        background: color || 'var(--clay-faint)',
+        borderRadius: '12px',
+        background: color || 'rgba(217, 119, 87, 0.08)',
         color: color ? '#fff' : 'var(--clay)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontWeight: 700,
         fontSize: size * 0.4,
         flexShrink: 0,
-        border: '1px solid var(--border-solid)',
+        border: `1px solid ${color ? 'transparent' : 'rgba(217, 119, 87, 0.15)'}`,
         ...style,
       }}
     >
-      {letter}
+      <User size={size * 0.5} strokeWidth={2.5} />
     </div>
   )
 }

@@ -1,4 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { S3Service } from '@shared/infrastructure/common/s3/s3.service'
+import { ReceiptService } from '@shared/infrastructure/common/receipt/receipt.service'
 import {
   ISavedLandlordRepository,
   ITransactionRepository,
@@ -9,6 +12,7 @@ import {
   SavedLandlord,
   Transaction,
 } from '@domains/payments/payment.repository'
+import { TENANT_REPOSITORY } from '@domains/users/tenant.repository'
 
 @Injectable()
 export class SaveLandlordUseCase {
@@ -36,6 +40,8 @@ export class GetSavedLandlordsUseCase {
 
 @Injectable()
 export class RecordTransactionUseCase {
+  private readonly logger = new Logger(RecordTransactionUseCase.name)
+
   constructor(
     @Inject(TRANSACTION_REPOSITORY)
     private readonly txRepo: ITransactionRepository,
@@ -44,13 +50,38 @@ export class RecordTransactionUseCase {
   ) {}
 
   async execute(data: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) {
-    // For extra security, we can verify the transaction on the server side
-    const isVerified = await this.gateway.verifyTransaction(data.reference)
-    const txData = {
-      ...data,
-      status: isVerified ? 'SUCCESS' : 'FAILED',
+    try {
+      this.logger.log(`Recording transaction for reference: ${data.reference}`)
+
+      // Idempotency check
+      const existing = await this.txRepo.findByReference(data.reference)
+      if (existing) {
+        this.logger.warn(
+          `Transaction with reference ${data.reference} already exists. Returning existing record.`,
+        )
+        return existing
+      }
+
+      // Verification
+      let isVerified = false
+      try {
+        isVerified = await this.gateway.verifyTransaction(data.reference)
+      } catch (e) {
+        this.logger.error(`Gateway verification failed for ${data.reference}:`, e)
+      }
+
+      const txData = {
+        ...data,
+        status: isVerified ? 'SUCCESS' : 'FAILED',
+      }
+
+      const result = await this.txRepo.create(txData)
+      this.logger.log(`Transaction recorded successfully with ID: ${result.id}`)
+      return result
+    } catch (error) {
+      this.logger.error(`Failed to record transaction ${data.reference}:`, error)
+      throw error
     }
-    return this.txRepo.create(txData)
   }
 }
 
@@ -63,6 +94,30 @@ export class GetBanksUseCase {
 
   async execute() {
     return this.gateway.getBanks()
+  }
+}
+
+@Injectable()
+export class GetTransactionUseCase {
+  constructor(
+    @Inject(TRANSACTION_REPOSITORY)
+    private readonly txRepo: ITransactionRepository,
+  ) {}
+
+  async execute(id: string) {
+    return this.txRepo.findById(id)
+  }
+}
+
+@Injectable()
+export class GetTenantTransactionsUseCase {
+  constructor(
+    @Inject(TRANSACTION_REPOSITORY)
+    private readonly txRepo: ITransactionRepository,
+  ) {}
+
+  async execute(tenantId: string) {
+    return this.txRepo.findByTenantId(tenantId)
   }
 }
 
@@ -82,7 +137,6 @@ export class VerifyAccountUseCase {
 export class ProcessGuestPaymentTokenUseCase {
   async execute(_token: string) {
     // MOCK DECODER logic here as per user request.
-    // Replace with proper JWT decoding logic later.
     return {
       companyName: 'Livable Properties',
       companyAddress: '12-14 Kingsway Road, Ikoyi, Lagos',
@@ -100,5 +154,63 @@ export class ProcessGuestPaymentTokenUseCase {
         { label: 'Service Charge', amount: 50000 },
       ],
     }
+  }
+}
+
+@Injectable()
+export class GenerateReceiptPdfUseCase {
+  constructor(
+    @Inject(TRANSACTION_REPOSITORY)
+    private readonly txRepo: ITransactionRepository,
+    @Inject(TENANT_REPOSITORY)
+    //eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private readonly tenantRepo: any,
+    @Inject(SAVED_LANDLORD_REPOSITORY)
+    private readonly landlordRepo: ISavedLandlordRepository,
+    private readonly s3Service: S3Service,
+    private readonly receiptService: ReceiptService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  async execute(txId: string): Promise<string> {
+    const tx = await this.txRepo.findById(txId)
+    if (!tx) throw new Error('Transaction not found')
+
+    const tenant = await this.tenantRepo.findById(tx.tenantId)
+    const landlord = tx.landlordId ? await this.landlordRepo.findById(tx.landlordId) : null
+
+    const receiptData = {
+      title: tx.type === 'RENT' ? 'Rent Payment Receipt' : 'Savings Deposit Receipt',
+      receiptNumber: tx.receiptNumber || `RCP-${tx.reference.slice(-5).toUpperCase()}`,
+      paidAt: tx.createdAt,
+      tenantName: tenant?.fullName || 'Tenant',
+      landlordName: landlord?.name,
+      propertyName: tx.type === 'RENT' ? 'Property Unit' : 'Upward Savings',
+      propertyAddress: tx.narration,
+      amount: tx.amount,
+      currency: 'NGN',
+      reference: tx.reference,
+      channel: 'Paystack',
+      type: tx.type,
+      lineItems: tx.lineItems,
+    }
+
+    const buffer = await this.receiptService.generateReceiptPdf(receiptData)
+
+    const storageProvider = this.configService.get('STORAGE_PROVIDER') || 'DATABASE'
+    let receiptUrl: string
+
+    if (storageProvider === 'S3') {
+      const key = `upward-receipts/${tx.id}.pdf`
+      receiptUrl = await this.s3Service.uploadBuffer(buffer, key, 'application/pdf')
+      receiptUrl = await this.s3Service.getDownloadUrl(receiptUrl)
+    } else {
+      const base64 = buffer.toString('base64')
+      receiptUrl = `data:application/pdf;base64,${base64}`
+    }
+
+    await this.txRepo.update(txId, { receiptUrl, receiptNumber: receiptData.receiptNumber })
+
+    return receiptUrl
   }
 }

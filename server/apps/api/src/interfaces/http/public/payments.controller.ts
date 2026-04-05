@@ -1,5 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common'
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Req,
+  HttpException,
+  HttpStatus,
+  BadRequestException,
+} from '@nestjs/common'
 import { JwtAuthGuard } from '@application/auth/guards/jwt-auth.guard'
 import {
   SaveLandlordUseCase,
@@ -8,6 +19,9 @@ import {
   ProcessGuestPaymentTokenUseCase,
   GetBanksUseCase,
   VerifyAccountUseCase,
+  GetTransactionUseCase,
+  GetTenantTransactionsUseCase,
+  GenerateReceiptPdfUseCase,
 } from '@application/use-cases/payments/payment.use-cases'
 
 @Controller('payments')
@@ -19,7 +33,17 @@ export class PaymentsController {
     private readonly processGuestTokenUc: ProcessGuestPaymentTokenUseCase,
     private readonly getBanksUc: GetBanksUseCase,
     private readonly verifyAccountUc: VerifyAccountUseCase,
+    private readonly getTxUc: GetTransactionUseCase,
+    private readonly getTenantTxsUc: GetTenantTransactionsUseCase,
+    private readonly generateReceiptPdfUc: GenerateReceiptPdfUseCase,
   ) {}
+
+  @UseGuards(JwtAuthGuard)
+  @Get('transactions')
+  async getTenantTransactions(@Req() req: any) {
+    const tenantId = req.user.id
+    return this.getTenantTxsUc.execute(tenantId)
+  }
 
   @Get('request/:token')
   async getPaymentRequestFromToken(@Param('token') token: string) {
@@ -66,6 +90,19 @@ export class PaymentsController {
     })
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('transactions/:id/receipt')
+  async getReceiptPdf(@Param('id') id: string) {
+    const url = await this.generateReceiptPdfUc.execute(id)
+    return { url }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('transactions/:id')
+  async getTransaction(@Param('id') id: string) {
+    return this.getTxUc.execute(id)
+  }
+
   @Get('banks')
   async getBanks() {
     return this.getBanksUc.execute()
@@ -74,6 +111,21 @@ export class PaymentsController {
   @Get('verify-account')
   async verifyAccount(@Req() req: any) {
     const { accountNumber, bankCode } = req.query
-    return this.verifyAccountUc.execute(accountNumber, bankCode)
+    if (!accountNumber || !bankCode) {
+      throw new BadRequestException('Account number and bank code are required')
+    }
+
+    try {
+      return await this.verifyAccountUc.execute(accountNumber, bankCode)
+    } catch (e: any) {
+      const msg = e.message || ''
+      if (msg.includes('rate limit')) {
+        throw new HttpException(msg, HttpStatus.TOO_MANY_REQUESTS)
+      }
+      if (msg.includes('not be resolved')) {
+        throw new BadRequestException(msg)
+      }
+      throw new HttpException(msg || 'Failed to verify account', HttpStatus.INTERNAL_SERVER_ERROR)
+    }
   }
 }

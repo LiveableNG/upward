@@ -34,6 +34,8 @@ export interface Transaction {
   receiptNumber?: string
   receiptUrl?: string
   landlordId?: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  lineItems?: any
   createdAt: Date
   updatedAt: Date
 }
@@ -41,8 +43,10 @@ export interface Transaction {
 export interface ITransactionRepository {
   create(data: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>): Promise<Transaction>
   findByTenantId(tenantId: string): Promise<Transaction[]>
+  findById(id: string): Promise<Transaction | null>
   findByReference(reference: string): Promise<Transaction | null>
   updateStatus(id: string, status: string): Promise<Transaction>
+  update(id: string, data: Partial<Transaction>): Promise<Transaction>
 }
 
 export interface Bank {

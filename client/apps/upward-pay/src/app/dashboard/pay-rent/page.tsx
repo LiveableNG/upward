@@ -20,14 +20,20 @@ export default function PayRentPage() {
   const [selectedLandlord, setSelectedLandlord] = useState<Landlord | null>(null)
   const [payAmount, setPayAmount] = useState(0)
   const [narration, setNarration] = useState('')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [lineItems, setLineItems] = useState<any[]>([])
   const [useSavings, setUseSavings] = useState(false)
+  const [lastTxId, setLastTxId] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState('tenant@example.com')
   const savingsBalance = 0 // Mock for now
 
   useEffect(() => {
-    // Fetch saved landlords
-    api
-      .getSavedLandlords()
-      .then((res) => setSavedLandlords(res))
+    // Fetch user and saved landlords
+    Promise.all([api.getSavedLandlords(), api.getProfile()])
+      .then(([landlords, profile]) => {
+        setSavedLandlords(landlords)
+        if (profile?.email) setUserEmail(profile.email)
+      })
       .catch(() => {})
   }, [])
 
@@ -43,10 +49,11 @@ export default function PayRentPage() {
   function handleBack() {
     if (step === 'new') setStep('select')
     else if (step === 'confirm') {
-      if (selectedLandlord?.lastAmount && payAmount === selectedLandlord.lastAmount) {
-        setStep('select')
+      if (selectedLandlord && selectedLandlord.id.length < 15) {
+        // IDs from 'new' step use timestamps
+        setStep('new')
       } else {
-        setPayAmount(0)
+        setStep('select')
       }
     } else router.push('/dashboard')
   }
@@ -54,13 +61,17 @@ export default function PayRentPage() {
   const handleCheckoutSuccess = async (ref: string) => {
     setStep('processing')
     try {
-      await api.recordTransaction({
+      const res = await api.recordTransaction({
         type: 'RENT',
         amount: payAmount,
         reference: ref,
         narration: narration || `Rent payment to ${selectedLandlord?.name}`,
         landlordId: selectedLandlord?.id,
+        lineItems: lineItems.length > 0 ? lineItems : undefined,
       })
+      if (res?.id) {
+        setLastTxId(res.id)
+      }
     } catch (e) {
       console.error('Failed to record tx:', e)
     }
@@ -96,6 +107,7 @@ export default function PayRentPage() {
             setSelectedLandlord(l)
             // If they have a previous amount, we can pre-set it but they still go through StepAmount
             setPayAmount(0)
+            setLineItems([])
             setStep('confirm')
           }}
           onNew={() => setStep('new')}
@@ -127,10 +139,12 @@ export default function PayRentPage() {
           {payAmount === 0 ? (
             <StepAmount
               landlord={selectedLandlord}
-              onContinue={(amt, nar) => {
+              onContinue={(amt, nar, items) => {
                 setPayAmount(amt)
                 setNarration(nar)
+                if (items) setLineItems(items)
               }}
+              onBack={() => setStep('select')}
             />
           ) : (
             <StepConfirm
@@ -141,7 +155,8 @@ export default function PayRentPage() {
               onToggleSavings={setUseSavings}
               savingsBalance={savingsBalance}
               onConfirm={() => setStep('checkout')}
-              onBack={() => setPayAmount(0)}
+              onBack={handleBack}
+              lineItems={lineItems}
             />
           )}
         </>
@@ -149,11 +164,12 @@ export default function PayRentPage() {
 
       {step === 'checkout' && selectedLandlord && (
         <PaystackEmbeddedCheckout
-          email="tenant@example.com"
+          email={userEmail}
           amount={amountToDebit}
           companyName={selectedLandlord.name}
           onSuccess={handleCheckoutSuccess}
           onClose={() => setStep('confirm')}
+          lineItems={lineItems}
         />
       )}
 
@@ -195,6 +211,7 @@ export default function PayRentPage() {
         <StepSuccess
           landlord={selectedLandlord}
           amount={payAmount}
+          transactionId={lastTxId || undefined}
           onDone={() => router.push('/dashboard')}
           router={router}
         />

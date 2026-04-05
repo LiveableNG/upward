@@ -15,9 +15,9 @@ import {
   ArrowLeft,
   Check,
   TrendingUp,
+  Activity,
 } from 'lucide-react'
 
-// Dummy typedef for now
 export interface ReceiptData {
   uuid: string
   title: string
@@ -44,12 +44,13 @@ function formatDate(dateStr: string) {
     year: 'numeric',
   })
 }
+
 function getCategoryIconName(category: string) {
   return category
 }
 
 const CategoryIcon = ({ name, size = 16 }: { name: string; size?: number }) => {
-  //eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const icons: Record<string, any> = { Home, Lock, Users, Scale, Settings, Wrench, Package }
   const Icon = icons[name] || Package
   return <Icon size={size} />
@@ -58,80 +59,12 @@ const CategoryIcon = ({ name, size = 16 }: { name: string; size?: number }) => {
 export default function ReceiptTemplate({
   receipt,
   onClose,
+  onDownload,
 }: {
   receipt: ReceiptData
   onClose?: () => void
+  onDownload?: () => void
 }) {
-  function handlePrint() {
-    const printContent = document.getElementById('receipt-printable')
-    if (!printContent) return
-
-    const printWindow = window.open('', '_blank')
-    if (!printWindow) return
-
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Receipt ${receipt.receiptNumber}</title>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-            body { font-family: 'Inter', system-ui, sans-serif; color: #1a1a1a; padding: 40px; margin: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .receipt { max-width: 600px; border: 1px solid #eaeaea; border-radius: 12px; padding: 40px; margin: 0 auto; }
-            .receipt__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-            .receipt__company-row { display: flex; align-items: center; gap: 16px; }
-            .receipt__company-logo { width: 56px; height: 56px; border-radius: 8px; object-fit: contain; border: 1px solid #eaeaea; }
-            .receipt__company-name { font-size: 20px; font-weight: 700; margin: 0 0 4px; color: #111; }
-            .receipt__label { font-size: 13px; color: #666; font-weight: 500; }
-            .receipt__badge { background: #dcfce7; color: #16a34a; padding: 6px 12px; border-radius: 100px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
-            .receipt__badge svg { color: #16a34a; }
-            .receipt__divider { height: 1px; background: #eaeaea; margin: 24px 0; }
-            .receipt__divider--bold { height: 2px; background: #d4d4d4; }
-            .receipt__info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-            .receipt__info-item { display: flex; flex-direction: column; gap: 4px; }
-            .receipt__info-label { font-size: 12px; color: #666; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
-            .receipt__info-value { font-size: 15px; font-weight: 600; color: #111; }
-            .receipt__channel { display: inline-block; background: #f3f4f6; padding: 4px 10px; border-radius: 6px; font-size: 13px; }
-            .receipt__property { display: flex; align-items: center; gap: 12px; background: #fafafa; padding: 16px; border-radius: 8px; border: 1px solid #f0f0f0; margin-top: 24px; }
-            .receipt__property-icon { background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #eaeaea; color: #d97757; }
-            .receipt__property-name { font-size: 15px; font-weight: 600; display: block; margin-bottom: 2px; }
-            .receipt__property-address { font-size: 13px; color: #666; }
-            .receipt__items { margin-top: 24px; }
-            .receipt__items-header { display: flex; justify-content: space-between; font-size: 12px; color: #666; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; border-bottom: 1px solid #eaeaea; padding-bottom: 8px; }
-            .receipt__item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; }
-            .receipt__item-left { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 500; }
-            .receipt__item-icon { color: #888; display: flex; }
-            .receipt__item-amount { font-size: 15px; font-weight: 600; }
-            .receipt__total { display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 700; color: #111; }
-            .receipt__reference { margin-top: 24px; display: inline-block; background: #fafafa; padding: 10px 16px; border-radius: 6px; border: 1px solid #f0f0f0; }
-            .receipt__ref-code { font-family: monospace; font-size: 14px; font-weight: 600; margin-left: 8px; color: #111; }
-            .receipt__footer { margin-top: 40px; text-align: center; color: #888; }
-            .receipt__footer-brand { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 600; color: #111; margin-bottom: 8px; }
-            .receipt__footer-note { font-size: 12px; }
-            @media print {
-               body { padding: 0; }
-               .receipt { border: none; padding: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="receipt">
-            ${printContent.innerHTML}
-          </div>
-          <script>
-            setTimeout(() => {
-              window.print();
-              window.close();
-            }, 250);
-          </script>
-        </body>
-      </html>
-    `
-    printWindow.document.open()
-    printWindow.document.write(html)
-    printWindow.document.close()
-  }
-
   function handleShare() {
     const amountStr = formatCurrency(receipt.amount)
     const text = `Hello! I've just paid my rent through Upward. Here is my receipt (#${receipt.receiptNumber}) for ${amountStr}. This payment is verified on the GoodTenants platform for your records.`
@@ -139,165 +72,189 @@ export default function ReceiptTemplate({
     window.open(whatsappUrl, '_blank')
   }
 
+  const isCredit = receipt.type === 'credit'
+  const isActualBreakdown =
+    receipt.lineItems.length > 1 ||
+    (receipt.lineItems.length === 1 && receipt.lineItems[0].label !== 'Rent Payment')
+
   return (
     <div
       className="receipt-overlay"
-      style={{ background: 'var(--bg)', minHeight: '100vh', padding: 20 }}
+      style={{ background: 'var(--bg)', minHeight: '100vh', padding: '16px' }}
     >
-      {/* Action bar (hidden in print) */}
       <div
         className="receipt-actions no-print"
-        style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: 20 }}
+        style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}
       >
         <button
           className="btn btn--secondary btn--sm"
-          style={{ padding: '8px 12px' }}
+          style={{ padding: '8px 12px', flexShrink: 0 }}
           onClick={onClose}
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={18} />
         </button>
         <div style={{ display: 'flex', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
           <button className="btn btn--secondary btn--sm" onClick={handleShare}>
             Share
           </button>
-          <button className="btn btn--primary btn--sm" onClick={handlePrint}>
-            <Download size={14} style={{ marginRight: 4 }} />
+          <button className="btn btn--primary btn--sm" onClick={() => onDownload?.()}>
+            <Download size={13} style={{ marginRight: 4 }} />
             Download
           </button>
         </div>
       </div>
 
       <div
-        style={{ background: '#fff', color: '#111', padding: 24, borderRadius: 16 }}
         id="receipt-printable"
+        style={{
+          background: 'var(--surface)',
+          color: 'var(--text)',
+          padding: '20px',
+          borderRadius: '16px',
+          border: '1px solid var(--border-solid)',
+        }}
       >
+        {/* Header */}
         <div
+          className="receipt__header"
           style={{
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 24,
+            alignItems: 'flex-start',
+            gap: '12px',
+            marginBottom: '20px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {receipt.companyLogo && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+            {receipt.companyLogo ? (
               <img
                 src={receipt.companyLogo}
                 alt={receipt.companyName}
-                style={{ width: 48, height: 48, borderRadius: 8 }}
+                className="receipt__company-logo"
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 8,
+                  flexShrink: 0,
+                  objectFit: 'cover',
+                }}
               />
-            )}
-            {!receipt.companyLogo && (
+            ) : (
               <div
                 style={{
-                  width: 48,
-                  height: 48,
+                  width: 40,
+                  height: 40,
                   borderRadius: 8,
-                  background: '#f5f5f5',
+                  background: 'var(--bg)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontWeight: 'bold',
+                  border: '1px solid var(--border-solid)',
+                  flexShrink: 0,
                 }}
               >
-                {receipt.companyName[0]}
+                <Activity size={20} color="var(--clay)" />
               </div>
             )}
-            <div>
-              <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px', color: '#111' }}>
+            <div style={{ minWidth: 0 }}>
+              <h2
+                style={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  margin: '0 0 2px',
+                  color: 'var(--text)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: '160px',
+                }}
+                title={receipt.companyName}
+              >
                 {receipt.companyName}
               </h2>
-              <span style={{ fontSize: 12, color: '#666', fontWeight: 500 }}>Property Manager</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>
+                Property Manager
+              </span>
             </div>
           </div>
           <div
             style={{
-              background: receipt.type === 'credit' ? 'var(--success-bg)' : '#dcfce7',
-              color: receipt.type === 'credit' ? 'var(--success)' : '#16a34a',
-              padding: '6px 12px',
+              background: isCredit ? 'var(--success-bg)' : 'rgba(34,197,94,0.08)',
+              color: isCredit ? 'var(--success)' : '#16a34a',
+              padding: '5px 10px',
               borderRadius: 100,
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: 700,
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
+              gap: 5,
+              flexShrink: 0,
+              letterSpacing: '0.04em',
             }}
           >
-            <Check size={12} />
-            {receipt.type === 'credit' ? 'DEPOSITED' : 'PAID'}
+            <Check size={11} />
+            {isCredit ? 'DEPOSITED' : 'PAID'}
           </div>
         </div>
 
-        <div style={{ height: 1, background: '#eaeaea', margin: '24px 0' }} />
+        <div style={{ height: 1, background: 'var(--border-solid)', margin: '0 0 20px' }} />
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {/* Meta grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          {[
+            { label: 'Receipt No.', value: receipt.receiptNumber },
+            { label: 'Date', value: formatDate(receipt.paidAt) },
+            { label: 'Tenant', value: receipt.tenantName },
+          ].map(({ label, value }) => (
+            <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <span
+                style={{
+                  fontSize: 10,
+                  color: 'var(--text-muted)',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                {label}
+              </span>
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: 'var(--text)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                title={value}
+              >
+                {value}
+              </span>
+            </div>
+          ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <span
               style={{
-                fontSize: 11,
-                color: '#666',
-                fontWeight: 500,
+                fontSize: 10,
+                color: 'var(--text-muted)',
+                fontWeight: 600,
                 textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}
-            >
-              Receipt No.
-            </span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>
-              {receipt.receiptNumber}
-            </span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span
-              style={{
-                fontSize: 11,
-                color: '#666',
-                fontWeight: 500,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}
-            >
-              Date
-            </span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>
-              {formatDate(receipt.paidAt)}
-            </span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span
-              style={{
-                fontSize: 11,
-                color: '#666',
-                fontWeight: 500,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}
-            >
-              Tenant
-            </span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>
-              {receipt.tenantName}
-            </span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span
-              style={{
-                fontSize: 11,
-                color: '#666',
-                fontWeight: 500,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
+                letterSpacing: '0.06em',
               }}
             >
               Channel
             </span>
             <span
               style={{
-                display: 'inline-block',
-                background: '#f3f4f6',
-                padding: '4px 8px',
+                display: 'inline-flex',
+                alignSelf: 'flex-start',
+                background: 'var(--clay-faint)',
+                padding: '3px 8px',
                 borderRadius: 6,
-                fontSize: 12,
+                fontSize: 11,
+                color: 'var(--clay)',
+                fontWeight: 600,
               }}
             >
               {receipt.channel}
@@ -305,52 +262,91 @@ export default function ReceiptTemplate({
           </div>
         </div>
 
+        {/* Property card */}
         <div
           style={{
             display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            background: '#fafafa',
-            padding: 16,
-            borderRadius: 8,
-            border: '1px solid #f0f0f0',
-            marginTop: 24,
+            alignItems: 'flex-start',
+            gap: '10px',
+            background: 'var(--bg)',
+            padding: '12px 14px',
+            borderRadius: '10px',
+            border: '1px solid var(--border-solid)',
+            marginTop: '20px',
           }}
         >
           <span
             style={{
-              background: '#fff',
-              padding: 8,
+              background: 'var(--surface)',
+              padding: 7,
               borderRadius: 6,
-              border: '1px solid #eaeaea',
-              color: '#d97757',
+              border: '1px solid var(--border-solid)',
+              color: 'var(--clay)',
+              display: 'flex',
+              flexShrink: 0,
+              marginTop: 1,
             }}
           >
-            <MapPin size={14} />
+            <MapPin size={13} />
           </span>
-          <div>
-            <span style={{ fontSize: 14, fontWeight: 600, display: 'block', marginBottom: 2 }}>
+          <div style={{ minWidth: 0 }}>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                display: 'block',
+                marginBottom: 2,
+                color: 'var(--text)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {receipt.propertyName}
             </span>
-            <span style={{ fontSize: 12, color: '#666' }}>{receipt.propertyAddress}</span>
+            {isActualBreakdown && (
+              <span
+                style={{
+                  fontSize: 10,
+                  color: 'var(--clay)',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  marginBottom: 2,
+                  display: 'block',
+                }}
+              >
+                Payment Breakdown Summary
+              </span>
+            )}
+            <span
+              style={{
+                fontSize: 11,
+                color: 'var(--text-muted)',
+                display: 'block',
+                lineHeight: 1.4,
+              }}
+            >
+              {receipt.propertyAddress || 'Manual Transfer'}
+            </span>
           </div>
         </div>
 
-        <div style={{ height: 1, background: '#eaeaea', margin: '24px 0' }} />
+        <div style={{ height: 1, background: 'var(--border-solid)', margin: '20px 0' }} />
 
-        <div style={{ marginTop: 24 }}>
+        {/* Line items */}
+        <div>
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
-              fontSize: 11,
-              color: '#666',
-              fontWeight: 500,
+              fontSize: 10,
+              color: 'var(--text-muted)',
+              fontWeight: 600,
               textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: 12,
-              borderBottom: '1px solid #eaeaea',
+              letterSpacing: '0.06em',
+              marginBottom: 8,
               paddingBottom: 8,
+              borderBottom: '1px solid var(--border-solid)',
             }}
           >
             <span>Description</span>
@@ -364,24 +360,22 @@ export default function ReceiptTemplate({
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '12px 0',
+                  padding: '10px 0',
+                  borderBottom:
+                    i < receipt.lineItems.length - 1 ? '1px solid var(--border-solid)' : 'none',
                 }}
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    fontSize: 14,
-                    fontWeight: 500,
-                  }}
-                >
-                  <span style={{ color: '#888', display: 'flex' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ color: 'var(--text-muted)', display: 'flex' }}>
                     <CategoryIcon name={getCategoryIconName(item.category)} />
                   </span>
-                  <span>{item.label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
+                    {item.label}
+                  </span>
                 </div>
-                <span style={{ fontSize: 14, fontWeight: 600 }}>{formatCurrency(item.amount)}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                  {formatCurrency(item.amount)}
+                </span>
               </div>
             ))
           ) : (
@@ -390,101 +384,100 @@ export default function ReceiptTemplate({
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '12px 0',
+                padding: '10px 0',
               }}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  fontSize: 14,
-                  fontWeight: 500,
-                }}
-              >
-                <span style={{ color: '#888', display: 'flex' }}>
-                  <TrendingUp size={16} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ color: 'var(--text-muted)', display: 'flex' }}>
+                  <TrendingUp size={15} />
                 </span>
-                <span>
-                  {receipt.type === 'credit' ? 'Savings Deposit' : 'Miscellaneous Payment'}
+                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
+                  {isCredit ? 'Savings Deposit' : 'Miscellaneous Payment'}
                 </span>
               </div>
-              <span style={{ fontSize: 14, fontWeight: 600 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
                 {formatCurrency(receipt.amount)}
               </span>
             </div>
           )}
         </div>
 
-        <div style={{ height: 2, background: '#d4d4d4', margin: '24px 0' }} />
+        <div style={{ height: 2, background: 'var(--border-solid)', margin: '20px 0' }} />
 
+        {/* Total */}
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: 700,
-            color: '#111',
+            color: 'var(--text)',
           }}
         >
-          <span>{receipt.type === 'credit' ? 'Total Saved' : 'Total Paid'}</span>
-          <span style={{ color: receipt.type === 'credit' ? 'var(--success)' : 'inherit' }}>
+          <span>{isCredit ? 'Total Saved' : 'Total Paid'}</span>
+          <span style={{ color: isCredit ? 'var(--success)' : 'var(--clay)', fontSize: 16 }}>
             {formatCurrency(receipt.amount)}
           </span>
         </div>
 
+        {/* Reference */}
         <div
           style={{
-            marginTop: 24,
-            display: 'inline-block',
-            background: '#fafafa',
-            padding: '10px 16px',
-            borderRadius: 6,
-            border: '1px solid #f0f0f0',
+            marginTop: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            background: 'var(--bg)',
+            padding: '10px 14px',
+            borderRadius: 8,
+            border: '1px solid var(--border-solid)',
           }}
         >
           <span
             style={{
-              fontSize: 11,
-              color: '#666',
-              fontWeight: 500,
+              fontSize: 10,
+              color: 'var(--text-muted)',
+              fontWeight: 600,
               textTransform: 'uppercase',
-              letterSpacing: '0.05em',
+              letterSpacing: '0.06em',
+              flexShrink: 0,
             }}
           >
-            {receipt.type === 'credit' ? 'Wallet Ref:' : 'Paystack Ref:'}
+            {isCredit ? 'Wallet Ref:' : 'Paystack Ref:'}
           </span>
           <span
             style={{
               fontFamily: 'monospace',
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 600,
-              marginLeft: 8,
-              color: '#111',
+              color: 'var(--text)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
           >
             {receipt.paystackReference}
           </span>
         </div>
 
-        <div style={{ marginTop: 40, textAlign: 'center', color: '#888' }}>
+        {/* Footer */}
+        <div style={{ marginTop: '32px', textAlign: 'center' }}>
           <div
             style={{
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              fontSize: 13,
+              gap: 6,
+              fontSize: 12,
               fontWeight: 600,
-              color: '#111',
-              marginBottom: 8,
+              color: 'var(--text-secondary)',
+              marginBottom: 6,
             }}
           >
-            <UpwardLogo size={14} color="#d97757" />
+            <UpwardLogo size={13} color="var(--clay)" />
             <span>Powered by Upward</span>
           </div>
-          <p style={{ fontSize: 11 }}>
+          <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             This is an electronically generated receipt. No signature required.
           </p>
         </div>
