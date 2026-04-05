@@ -23,9 +23,11 @@ export function AnnouncementManager() {
   })
 
   const activeAnnouncement = data?.activeAnnouncement
+  const announcementId = activeAnnouncement?.id
+  const hasSeenPopup = activeAnnouncement?.state?.seenPopup
 
   useEffect(() => {
-    if (!isLoading && activeAnnouncement && !activeAnnouncement.state.seenPopup) {
+    if (!isLoading && activeAnnouncement && !hasSeenPopup && !updateStateMutation.isPending) {
       setShowPopup(true)
       // Automatically mark as seen in backend
       updateStateMutation.mutate({
@@ -33,7 +35,13 @@ export function AnnouncementManager() {
         seenPopup: true,
       })
     }
-  }, [isLoading, activeAnnouncement, updateStateMutation])
+  }, [
+    isLoading,
+    announcementId,
+    hasSeenPopup,
+    updateStateMutation.mutate,
+    updateStateMutation.isPending,
+  ])
 
   const handleClosePopup = () => {
     setShowPopup(false)
