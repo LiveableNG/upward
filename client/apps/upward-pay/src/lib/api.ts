@@ -62,6 +62,13 @@ export const api = {
   getMyDocuments: async () => {
     return { receipts: [], contracts: [] }
   },
+  getContracts: () => request<any[]>('/tenant/contracts', { method: 'GET' }),
+  uploadContract: (formData: FormData) =>
+    request<any>('/tenant/contracts/upload', {
+      method: 'POST',
+      body: formData,
+      headers: {}, // Let the browser set the boundary
+    }),
 
   getProfile: () =>
     request<any>('/tenant/auth/me', {

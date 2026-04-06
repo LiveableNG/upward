@@ -60,6 +60,9 @@ export class CompleteTenantProfileUseCase {
       isConvertedFromWaitlist: !!waitlistEntry,
       hasDismissedAppBanner: false,
       isGuest: false,
+      showSavings: true,
+      profilePic: '',
+      useBiometrics: false,
     }
 
     if (tenant) {

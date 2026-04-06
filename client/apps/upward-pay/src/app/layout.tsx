@@ -30,8 +30,24 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable}`}>
-      <head></head>
+    <html lang="en" className={`${inter.variable}`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const theme = localStorage.getItem('upward-theme');
+                const root = document.documentElement;
+                if (theme === 'dark') {
+                  root.classList.add('theme--dark');
+                } else if (theme === 'light') {
+                  root.classList.add('theme--light');
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
       <body suppressHydrationWarning>
         <Providers>
           <AuthProvider>{children}</AuthProvider>

@@ -16,6 +16,7 @@ import { TenantNotificationsController } from './tenant/notifications.controller
 import { PublicProfileController } from './public/public-profile.controller'
 import { SavingsController } from './tenant/savings.controller'
 import { WalletController } from './tenant/wallet.controller'
+import { TenantContractsController } from './tenant/tenant-contracts.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule],
@@ -34,6 +35,7 @@ import { WalletController } from './tenant/wallet.controller'
     PublicProfileController,
     SavingsController,
     WalletController,
+    TenantContractsController,
   ],
 })
 export class HttpModule {}

@@ -15,6 +15,9 @@ export interface Tenant {
   isConvertedFromWaitlist: boolean
   hasDismissedAppBanner: boolean
   isGuest: boolean
+  profilePic?: string
+  showSavings: boolean
+  useBiometrics: boolean
   createdAt: Date
   updatedAt: Date
 }

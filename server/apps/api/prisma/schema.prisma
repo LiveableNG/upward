@@ -223,12 +223,16 @@ model upward_tenant {
   onTimePercentage       Float    @default(100)
   earlyPaymentStreak     Int      @default(0)
   savingsImpact          Float    @default(0)
+  profilePic             String?
+  showSavings            Boolean  @default(true)
+  useBiometrics          Boolean  @default(false)
 
   announcementStates upward_tenant_announcement_state[]
   notifications      upward_notification[]
 
   wallet             upward_wallet?
   savingsGoals       upward_savings_goal[]
+  contracts          upward_contract[]
 
   @@index([email])
   @@index([createdAt])
@@ -360,5 +364,23 @@ model upward_notification {
   @@index([tenantId])
   @@index([isRead])
   @@index([createdAt])
+}
+
+model upward_contract {
+  id           String   @id @default(uuid())
+  tenantId     String
+  name         String
+  url          String
+  type         String
+  size         Int
+  propertyName String?
+  leaseEnd     DateTime?
+  status       String   @default("ACTIVE") // ACTIVE, ARCHIVED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant       upward_tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 

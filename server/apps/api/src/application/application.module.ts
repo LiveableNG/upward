@@ -68,6 +68,11 @@ import { GetCitiesUseCase } from './use-cases/location/get-cities.use-case'
 import { CompleteTenantProfileUseCase } from './use-cases/tenant/complete-tenant-profile.use-case'
 import { UpdateTenantProfileUseCase } from './use-cases/tenant/update-tenant-profile.use-case'
 import { GetPublicProfileUseCase } from './use-cases/tenant/get-public-profile.use-case'
+import {
+  GetTenantContractsUseCase,
+  UploadTenantContractUseCase,
+  DeleteTenantContractUseCase,
+} from './use-cases/tenant/tenant-contracts.use-cases'
 import { AuthModule } from './auth/auth.module'
 import { CreateAnnouncementUseCase } from './use-cases/notifications/create-announcement.use-case'
 import {
@@ -155,6 +160,9 @@ const UseCases = [
   CompleteTenantProfileUseCase,
   UpdateTenantProfileUseCase,
   GetPublicProfileUseCase,
+  GetTenantContractsUseCase,
+  UploadTenantContractUseCase,
+  DeleteTenantContractUseCase,
 
   SaveLandlordUseCase,
   GetSavedLandlordsUseCase,

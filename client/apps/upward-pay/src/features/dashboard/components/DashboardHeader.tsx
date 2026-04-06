@@ -1,22 +1,23 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { FileText, HelpCircle, Bell } from 'lucide-react'
-import { UpwardLogo } from '@/components/PoweredByUpward'
+import { Bell, Settings } from 'lucide-react'
+import { UserAvatar } from '@/components/common/UserAvatar'
 
 interface DashboardHeaderProps {
   firstName: string
   notifCount: number
+  profilePic?: string
 }
 
-export function DashboardHeader({ firstName, notifCount }: DashboardHeaderProps) {
+export function DashboardHeader({ firstName, notifCount, profilePic }: DashboardHeaderProps) {
   const router = useRouter()
 
   return (
     <header className="dashboard__header dashboard__header--mobile">
       <div className="dashboard__header-left">
         <div className="dashboard__avatar" onClick={() => router.push('/dashboard/me')}>
-          <UpwardLogo size={22} className="text-white" />
+          <UserAvatar src={profilePic} size={40} />
         </div>
         <div>
           <div className="dashboard__greeting">
@@ -28,11 +29,8 @@ export function DashboardHeader({ firstName, notifCount }: DashboardHeaderProps)
         </div>
       </div>
       <div className="dashboard__header-right">
-        <button className="dashboard__icon-btn" onClick={() => router.push('/dashboard/documents')}>
-          <FileText size={18} color="white" />
-        </button>
-        <button className="dashboard__icon-btn" onClick={() => router.push('/dashboard/help')}>
-          <HelpCircle size={18} />
+        <button className="dashboard__icon-btn" onClick={() => router.push('/dashboard/settings')}>
+          <Settings size={18} />
         </button>
         <button
           className="dashboard__icon-btn dashboard__icon-btn--notif"
