@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { usePaystackPayment } from 'react-paystack'
 import { UpwardLogo } from '../../../../components/PoweredByUpward'
+import { generateId } from '@/lib/utils'
 
 interface PaystackEmbeddedProps {
   email: string
@@ -40,7 +41,7 @@ export default function PaystackEmbeddedCheckout({
         : `Rent payment to ${companyName}`
 
     return {
-      reference: reference || `UPW-${new Date().getTime().toString()}`,
+      reference: reference || generateId('UPW'),
       email: email,
       amount: Math.round((amount || 0) * 100), // Paystack expects Kobo as integer
       publicKey: PAYSTACK_PUBLIC_KEY,

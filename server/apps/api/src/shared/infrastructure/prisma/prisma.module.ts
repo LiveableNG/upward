@@ -6,6 +6,10 @@ import {
   PrismaSavedLandlordRepository,
   PrismaTransactionRepository,
 } from './repositories/prisma-payments.repository'
+import {
+  PrismaWalletRepository,
+  PrismaSavingsGoalRepository,
+} from './repositories/prisma-wallet.repository'
 import { PaystackGateway } from '../../../domains/payments/paystack.gateway'
 import { WAITLIST_REPOSITORY } from '@domains/waitlist/waitlist.repository'
 import { TENANT_REPOSITORY } from '@domains/users/tenant.repository'
@@ -13,6 +17,8 @@ import {
   SAVED_LANDLORD_REPOSITORY,
   TRANSACTION_REPOSITORY,
   PAYMENT_GATEWAY,
+  WALLET_REPOSITORY,
+  SAVINGS_GOAL_REPOSITORY,
 } from '@domains/payments/payment.repository'
 import { PrismaNotificationRepository } from './repositories/prisma-notification.repository'
 import { NOTIFICATION_REPOSITORY } from '@domains/notifications/notification.repository'
@@ -45,6 +51,14 @@ import { NOTIFICATION_REPOSITORY } from '@domains/notifications/notification.rep
       provide: NOTIFICATION_REPOSITORY,
       useClass: PrismaNotificationRepository,
     },
+    {
+      provide: WALLET_REPOSITORY,
+      useClass: PrismaWalletRepository,
+    },
+    {
+      provide: SAVINGS_GOAL_REPOSITORY,
+      useClass: PrismaSavingsGoalRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -54,6 +68,8 @@ import { NOTIFICATION_REPOSITORY } from '@domains/notifications/notification.rep
     TRANSACTION_REPOSITORY,
     PAYMENT_GATEWAY,
     NOTIFICATION_REPOSITORY,
+    WALLET_REPOSITORY,
+    SAVINGS_GOAL_REPOSITORY,
   ],
 })
 export class PrismaModule {}

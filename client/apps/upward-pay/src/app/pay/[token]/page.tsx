@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import PaystackEmbeddedCheckout from '@/features/dashboard/components/payment/PaystackEmbeddedCheckout'
 import FallbackSuspense from '@/components/FallbackSuspense'
 import { Check, Star, Crown, ArrowRight } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, generateId } from '@/lib/utils'
 import { api } from '@/lib/api'
 
 type GuestStep = 'loading' | 'checkout' | 'processing' | 'success' | 'onboarding'
@@ -105,7 +105,7 @@ export default function GuestPayPage() {
               email={requestData.tenantEmail || 'guest@example.com'}
               amount={requestData.totalAmount}
               companyName={requestData.companyName}
-              reference={`GST-${new Date().getTime()}`}
+              reference={generateId('GST')}
               onSuccess={handleSuccess}
               onClose={() => {
                 /* Guest can't navigate back, do nothing or show warning */

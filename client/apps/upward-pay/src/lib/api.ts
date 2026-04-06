@@ -44,9 +44,10 @@ export const api = {
     request<any[]>('/payments/transactions', {
       method: 'GET',
     }),
-  getReceiptPdf: (id: string) =>
-    request<{ url: string }>(`/payments/transactions/${id}/receipt`, {
-      method: 'GET',
+  getReceiptPdf: (data: any) =>
+    request<{ url: string }>('/payments/transactions/receipt', {
+      method: 'POST',
+      body: JSON.stringify(data),
     }),
   getBanks: () =>
     request<any[]>('/payments/banks', {
@@ -92,4 +93,42 @@ export const api = {
     request<any>(`/tenant/notifications/${id}/read`, {
       method: 'PATCH',
     }).then((res) => res.data),
+
+  // Wallet & Savings
+  getWallet: () => request<any>('/wallet', { method: 'GET' }),
+  fundWallet: (data: { amount: number }) =>
+    request<any>('/wallet/fund', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getSavingsGoals: () => request<any[]>('/savings/goals', { method: 'GET' }),
+  createSavingsGoal: (data: any) =>
+    request<any>('/savings/goals', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateSavingsGoal: (id: string, data: any) =>
+    request<any>(`/savings/goals/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  // Public
+  getPublicProfile: (slug: string) =>
+    request<any>(`/public/profile/${slug}`, {
+      method: 'GET',
+    }),
+
+  // Generic Helpers
+  get: <T = any>(url: string) => request<T>(url, { method: 'GET' }),
+  post: <T = any>(url: string, data: any) =>
+    request<T>(url, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  patch: <T = any>(url: string, data: any) =>
+    request<T>(url, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
 }

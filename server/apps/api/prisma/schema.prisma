@@ -213,10 +213,22 @@ model upward_tenant {
   isConvertedFromWaitlist Boolean @default(false)
   isGuest                Boolean @default(false)
   hasDismissedAppBanner  Boolean @default(false)
+  savingsBalance         Float   @default(0)
+  savingsGoal            Float   @default(0)
+  creditScore            Int      @default(300)
+  profileSlug            String?  @unique
+  bio                    String?  @db.Text
+  isProfileComplete      Boolean  @default(false)
+  reliabilityRank        String   @default("A")
+  onTimePercentage       Float    @default(100)
+  earlyPaymentStreak     Int      @default(0)
+  savingsImpact          Float    @default(0)
 
   announcementStates upward_tenant_announcement_state[]
-
   notifications      upward_notification[]
+
+  wallet             upward_wallet?
+  savingsGoals       upward_savings_goal[]
 
   @@index([email])
   @@index([createdAt])
@@ -238,23 +250,66 @@ model upward_saved_landlord {
   @@index([tenantId])
 }
 
+model upward_wallet {
+  id            String   @id @default(uuid())
+  tenantId      String   @unique
+  balance       Float    @default(0)
+  accountNumber String?
+  accountName   String?
+  bankName      String?
+  bankCode      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant       upward_tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  transactions upward_transaction[]
+}
+
+model upward_savings_goal {
+  id            String   @id @default(uuid())
+  tenantId      String
+  name          String
+  targetAmount  Float
+  currentAmount Float    @default(0)
+  startDate     DateTime @default(now())
+  endDate       DateTime?
+  status        String   @default("ACTIVE") // ACTIVE, COMPLETED, CANCELLED
+  
+  reminderEnabled   Boolean  @default(false)
+  reminderFrequency String?  // DAILY, WEEKLY, BI_WEEKLY, MONTHLY, TWO_DAYS
+  reminderDay       Int?     // Day of month (1-31) or weekday (0-6)
+  autoSaveEnabled   Boolean  @default(false)
+  autoSaveAmount    Float?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant        upward_tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  transactions  upward_transaction[]
+}
+
 model upward_transaction {
   id            String   @id @default(uuid())
   tenantId      String
-  type          String   @default("RENT") // RENT, SAVINGS
+  type          String   @default("RENT") // RENT, SAVINGS, WALLET_DEPOSIT, WALLET_WITHDRAWAL, GOAL_ALLOCATION
   status        String   @default("PENDING") // PENDING, SUCCESS, FAILED
   amount        Float
   reference     String   @unique
   narration     String?
-  receiptNumber String?
-  receiptUrl    String?  @db.Text
   landlordId    String?
   lineItems     Json?
+  walletId      String?
+  goalId        String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  wallet        upward_wallet? @relation(fields: [walletId], references: [id])
+  goal          upward_savings_goal? @relation(fields: [goalId], references: [id])
+
   @@index([tenantId])
   @@index([reference])
+  @@index([walletId])
+  @@index([goalId])
 }
 
 model upward_announcement {

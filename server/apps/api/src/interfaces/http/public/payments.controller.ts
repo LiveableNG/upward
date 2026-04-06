@@ -84,16 +84,15 @@ export class PaymentsController {
       amount: body.amount,
       reference: body.reference,
       narration: body.narration,
-      receiptNumber: body.receiptNumber,
-      receiptUrl: body.receiptUrl,
       landlordId: body.landlordId,
+      lineItems: body.lineItems,
     })
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('transactions/:id/receipt')
-  async getReceiptPdf(@Param('id') id: string) {
-    const url = await this.generateReceiptPdfUc.execute(id)
+  @Post('transactions/receipt')
+  async getReceiptPdf(@Body() body: any) {
+    const url = await this.generateReceiptPdfUc.execute(body)
     return { url }
   }
 

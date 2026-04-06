@@ -1,7 +1,8 @@
 'use client'
 
-import { Target, TrendingUp, ChevronRight } from 'lucide-react'
+import { Target, TrendingUp, ChevronRight, Plus } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
 
 interface RentSavingsCardProps {
   isNewUser: boolean
@@ -18,6 +19,7 @@ export function RentSavingsCard({
   autoSave,
   onConfigureGoal,
 }: RentSavingsCardProps) {
+  const router = useRouter()
   const progress = savingsGoal > 0 ? (savingsBalance / savingsGoal) * 100 : 0
 
   return (
@@ -32,9 +34,20 @@ export function RentSavingsCard({
             {autoSave ? 'Auto-save is active' : 'Plan for next rent'}
           </span>
         </div>
-        <button className="rent-savings-card__config" onClick={onConfigureGoal}>
-          <ChevronRight size={16} />
-        </button>
+        <div className="rent-savings-card__header-actions">
+          <button
+            className="rent-savings-card__deposit-btn"
+            onClick={() => router.push('/dashboard/savings/deposit')}
+          >
+            <Plus size={14} /> Deposit
+          </button>
+          <button
+            className="rent-savings-card__config"
+            onClick={() => router.push('/dashboard/savings/set-goal')}
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
       </div>
 
       <div className="rent-savings-card__balance-row">
@@ -59,8 +72,20 @@ export function RentSavingsCard({
         </div>
         <div className="rent-savings-card__progress-text">
           <span>{Math.round(progress)}% of goal reached</span>
-          {isNewUser && progress === 0 && (
-            <span className="text--clay" onClick={onConfigureGoal}>
+          {savingsGoal > 0 ? (
+            <span
+              className="dashboard__email"
+              onClick={onConfigureGoal}
+              style={{ cursor: 'pointer' }}
+            >
+              Edit Your Goal
+            </span>
+          ) : (
+            <span
+              className="dashboard__email"
+              onClick={onConfigureGoal}
+              style={{ cursor: 'pointer' }}
+            >
               Set a goal
             </span>
           )}

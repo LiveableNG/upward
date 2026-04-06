@@ -127,4 +127,111 @@ export class PaystackGateway implements IPaymentGateway {
       return false
     }
   }
+
+  async initializeTransaction(data: {
+    email: string
+    amount: number
+    reference: string
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    metadata?: any
+  }): Promise<{ authorizationUrl: string }> {
+    try {
+      this.logger.log(`Initializing transaction ${data.reference} for ${data.email}`)
+      const res = await fetch(`${this.baseUrl}/transaction/initialize`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify({
+          email: data.email,
+          amount: Math.round(data.amount * 100), // convert to kobo
+          reference: data.reference,
+          metadata: data.metadata,
+        }),
+      })
+
+      if (!res.ok) {
+        const errorText = await res.text()
+        this.logger.error(`Paystack initialize error: ${res.status} - ${errorText}`)
+        throw new Error(`Gateway initialization failed: ${res.status}`)
+      }
+
+      const responseData = await res.json()
+      if (!responseData.status || !responseData.data) {
+        throw new Error(responseData.message || 'Initialization failed')
+      }
+
+      return {
+        authorizationUrl: responseData.data.authorization_url,
+      }
+    } catch (error) {
+      this.logger.error('Paystack initializeTransaction error:', error)
+      throw error
+    }
+  }
+
+  async createVirtualAccount(tenant: {
+    email: string
+    fullName: string
+    phone?: string
+  }): Promise<{
+    bankName: string
+    accountNumber: string
+    bankCode?: string
+    accountName?: string
+  }> {
+    try {
+      this.logger.log(`Creating virtual account for ${tenant.email}`)
+
+      // Step 1: Create/Update Customer
+      const customerRes = await fetch(`${this.baseUrl}/customer`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify({
+          email: tenant.email,
+          first_name: tenant.fullName.split(' ')[0],
+          last_name: tenant.fullName.split(' ').slice(1).join(' '),
+          phone: tenant.phone,
+        }),
+      })
+
+      if (!customerRes.ok) {
+        const errorText = await customerRes.text()
+        this.logger.error(`Paystack customer creation error: ${customerRes.status} - ${errorText}`)
+        // If customer exists, we might need to fetch them, but usually Paystack returns 200/201
+      }
+
+      const customerData = await customerRes.json()
+
+      const isTestMode = this.secretKey.startsWith('sk_test_')
+      const preferredBank = isTestMode
+        ? 'test-bank'
+        : this.configService.get<string>('PAYSTACK_PREFERRED_BANK') || 'wema-bank'
+
+      const dvaRes = await fetch(`${this.baseUrl}/dedicated_account`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify({
+          customer: customerData.data?.customer_code || customerData.data?.id,
+          preferred_bank: preferredBank,
+        }),
+      })
+
+      if (!dvaRes.ok) {
+        const errorText = await dvaRes.text()
+        this.logger.error(`Paystack DVA creation error: ${dvaRes.status} - ${errorText}`)
+        throw new Error(`Could not create virtual account: ${dvaRes.status}`)
+      }
+
+      const dvaData = await dvaRes.json()
+
+      return {
+        bankName: dvaData.data.bank.name,
+        accountNumber: dvaData.data.account_number,
+        bankCode: dvaData.data.bank.slug,
+        accountName: dvaData.data.account_name,
+      }
+    } catch (error) {
+      this.logger.error('Paystack createVirtualAccount error:', error)
+      throw error
+    }
+  }
 }

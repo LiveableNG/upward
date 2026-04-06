@@ -91,19 +91,19 @@ export class PrismaTransactionRepository implements ITransactionRepository {
         amount: data.amount,
         reference: data.reference,
         narration: data.narration,
-        receiptNumber: data.receiptNumber,
-        receiptUrl: data.receiptUrl,
         landlordId: data.landlordId,
         lineItems: data.lineItems || undefined,
+        walletId: data.walletId,
+        goalId: data.goalId,
       },
     })
     return {
       ...res,
       narration: res.narration ?? undefined,
-      receiptNumber: res.receiptNumber ?? undefined,
-      receiptUrl: res.receiptUrl ?? undefined,
       landlordId: res.landlordId ?? undefined,
       lineItems: res.lineItems || undefined,
+      walletId: res.walletId ?? undefined,
+      goalId: res.goalId ?? undefined,
     } as Transaction
   }
 
@@ -115,10 +115,10 @@ export class PrismaTransactionRepository implements ITransactionRepository {
     return res.map((r) => ({
       ...r,
       narration: r.narration ?? undefined,
-      receiptNumber: r.receiptNumber ?? undefined,
-      receiptUrl: r.receiptUrl ?? undefined,
       landlordId: r.landlordId ?? undefined,
       lineItems: r.lineItems || undefined,
+      walletId: r.walletId ?? undefined,
+      goalId: r.goalId ?? undefined,
     })) as Transaction[]
   }
 
@@ -130,10 +130,10 @@ export class PrismaTransactionRepository implements ITransactionRepository {
     return {
       ...res,
       narration: res.narration ?? undefined,
-      receiptNumber: res.receiptNumber ?? undefined,
-      receiptUrl: res.receiptUrl ?? undefined,
       landlordId: res.landlordId ?? undefined,
       lineItems: res.lineItems || undefined,
+      walletId: res.walletId ?? undefined,
+      goalId: res.goalId ?? undefined,
     } as Transaction
   }
 
@@ -145,10 +145,10 @@ export class PrismaTransactionRepository implements ITransactionRepository {
     return {
       ...res,
       narration: res.narration ?? undefined,
-      receiptNumber: res.receiptNumber ?? undefined,
-      receiptUrl: res.receiptUrl ?? undefined,
       landlordId: res.landlordId ?? undefined,
       lineItems: res.lineItems || undefined,
+      walletId: res.walletId ?? undefined,
+      goalId: res.goalId ?? undefined,
     } as Transaction
   }
 
@@ -160,10 +160,10 @@ export class PrismaTransactionRepository implements ITransactionRepository {
     return {
       ...res,
       narration: res.narration ?? undefined,
-      receiptNumber: res.receiptNumber ?? undefined,
-      receiptUrl: res.receiptUrl ?? undefined,
       landlordId: res.landlordId ?? undefined,
       lineItems: res.lineItems || undefined,
+      walletId: res.walletId ?? undefined,
+      goalId: res.goalId ?? undefined,
     } as Transaction
   }
 
@@ -172,18 +172,16 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       where: { id },
       data: {
         status: data.status,
-        receiptUrl: data.receiptUrl,
-        receiptNumber: data.receiptNumber,
         narration: data.narration,
       },
     })
     return {
       ...res,
       narration: res.narration ?? undefined,
-      receiptNumber: res.receiptNumber ?? undefined,
-      receiptUrl: res.receiptUrl ?? undefined,
       landlordId: res.landlordId ?? undefined,
       lineItems: res.lineItems || undefined,
+      walletId: res.walletId ?? undefined,
+      goalId: res.goalId ?? undefined,
     } as Transaction
   }
 }
