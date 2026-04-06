@@ -1,7 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-import { S3Service } from '@shared/infrastructure/common/s3/s3.service'
-import { ReceiptService } from '@shared/infrastructure/common/receipt/receipt.service'
+import {
+  ReceiptService,
+  ReceiptPdfData,
+} from '@shared/infrastructure/common/receipt/receipt.service'
 import {
   ISavedLandlordRepository,
   ITransactionRepository,
@@ -12,7 +13,8 @@ import {
   SavedLandlord,
   Transaction,
 } from '@domains/payments/payment.repository'
-import { TENANT_REPOSITORY } from '@domains/users/tenant.repository'
+import { EVENT_BUS, EventBus } from '@application/events/domain-event'
+import { TransactionCompletedEvent } from '@application/events/definition/transaction-completed.event'
 
 @Injectable()
 export class SaveLandlordUseCase {
@@ -47,6 +49,8 @@ export class RecordTransactionUseCase {
     private readonly txRepo: ITransactionRepository,
     @Inject(PAYMENT_GATEWAY)
     private readonly gateway: IPaymentGateway,
+    @Inject(EVENT_BUS)
+    private readonly eventBus: EventBus,
   ) {}
 
   async execute(data: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) {
@@ -77,6 +81,21 @@ export class RecordTransactionUseCase {
 
       const result = await this.txRepo.create(txData)
       this.logger.log(`Transaction recorded successfully with ID: ${result.id}`)
+
+      if (isVerified) {
+        this.eventBus.publish(
+          new TransactionCompletedEvent(
+            result.id,
+            result.tenantId,
+            result.type,
+            result.amount,
+            result.reference,
+            result.status,
+            result.createdAt,
+          ),
+        )
+      }
+
       return result
     } catch (error) {
       this.logger.error(`Failed to record transaction ${data.reference}:`, error)
@@ -159,58 +178,18 @@ export class ProcessGuestPaymentTokenUseCase {
 
 @Injectable()
 export class GenerateReceiptPdfUseCase {
-  constructor(
-    @Inject(TRANSACTION_REPOSITORY)
-    private readonly txRepo: ITransactionRepository,
-    @Inject(TENANT_REPOSITORY)
-    //eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private readonly tenantRepo: any,
-    @Inject(SAVED_LANDLORD_REPOSITORY)
-    private readonly landlordRepo: ISavedLandlordRepository,
-    private readonly s3Service: S3Service,
-    private readonly receiptService: ReceiptService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly receiptService: ReceiptService) {}
 
-  async execute(txId: string): Promise<string> {
-    const tx = await this.txRepo.findById(txId)
-    if (!tx) throw new Error('Transaction not found')
-
-    const tenant = await this.tenantRepo.findById(tx.tenantId)
-    const landlord = tx.landlordId ? await this.landlordRepo.findById(tx.landlordId) : null
-
-    const receiptData = {
-      title: tx.type === 'RENT' ? 'Rent Payment Receipt' : 'Savings Deposit Receipt',
-      receiptNumber: tx.receiptNumber || `RCP-${tx.reference.slice(-5).toUpperCase()}`,
-      paidAt: tx.createdAt,
-      tenantName: tenant?.fullName || 'Tenant',
-      landlordName: landlord?.name,
-      propertyName: tx.type === 'RENT' ? 'Property Unit' : 'Upward Savings',
-      propertyAddress: tx.narration,
-      amount: tx.amount,
-      currency: 'NGN',
-      reference: tx.reference,
-      channel: 'Paystack',
-      type: tx.type,
-      lineItems: tx.lineItems,
+  async execute(data: ReceiptPdfData): Promise<string> {
+    // Ensure paidAt is a Date object (if stringified by JSON transport)
+    if (data.paidAt && typeof data.paidAt === 'string') {
+      data.paidAt = new Date(data.paidAt)
     }
 
-    const buffer = await this.receiptService.generateReceiptPdf(receiptData)
+    const buffer = await this.receiptService.generateReceiptPdf(data)
 
-    const storageProvider = this.configService.get('STORAGE_PROVIDER') || 'DATABASE'
-    let receiptUrl: string
-
-    if (storageProvider === 'S3') {
-      const key = `upward-receipts/${tx.id}.pdf`
-      receiptUrl = await this.s3Service.uploadBuffer(buffer, key, 'application/pdf')
-      receiptUrl = await this.s3Service.getDownloadUrl(receiptUrl)
-    } else {
-      const base64 = buffer.toString('base64')
-      receiptUrl = `data:application/pdf;base64,${base64}`
-    }
-
-    await this.txRepo.update(txId, { receiptUrl, receiptNumber: receiptData.receiptNumber })
-
-    return receiptUrl
+    // Simply convert to base64 and return as data URI
+    const base64 = buffer.toString('base64')
+    return `data:application/pdf;base64,${base64}`
   }
 }

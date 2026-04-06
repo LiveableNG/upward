@@ -95,6 +95,7 @@ export default function DashboardPage() {
     <div className="dashboard dashboard--nav-offset">
       {showSavingsGoalModal && (
         <SavingsGoalModal
+          existingGoal={tenant.savingsGoals?.[0]}
           onDone={() => setShowSavingsGoalModal(false)}
           onSkip={() => setShowSavingsGoalModal(false)}
         />
@@ -142,20 +143,20 @@ export default function DashboardPage() {
           <RentSavingsCard
             isNewUser={isNewUser}
             savingsBalance={tenant.savingsBalance}
-            savingsGoal={tenant.savingsGoal}
-            autoSave={!isNewUser}
+            savingsGoal={tenant.savingsGoals?.[0]?.targetAmount || tenant.savingsGoal}
+            autoSave={tenant.savingsGoals?.[0]?.autoSaveEnabled ?? !isNewUser}
             onConfigureGoal={() => setShowSavingsGoalModal(true)}
           />
 
           <RentCredibilityScore
             isNewUser={isNewUser}
-            credScore={isNewUser ? 0 : 882}
-            credPercentage={isNewUser ? 0 : 88.2}
+            credScore={tenant.creditScore || (isNewUser ? 0 : 300)}
+            credPercentage={Math.min(((tenant.creditScore || 0) / 1000) * 100, 100)}
             onShowPayRent={() => setShowPayRent(true)}
             onShowSavingsGoal={() => setShowSavingsGoalModal(true)}
           />
 
-          {!isNewUser && <ShareCredibility />}
+          {!isNewUser && <ShareCredibility profileSlug={tenant.profileSlug} />}
         </div>
       </div>
     </div>

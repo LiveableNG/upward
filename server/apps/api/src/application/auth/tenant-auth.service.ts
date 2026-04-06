@@ -188,6 +188,13 @@ export class TenantAuthService extends BaseAuthService {
   async getProfile(tenantId: string): Promise<any> {
     const tenant = await this.prisma.upward_tenant.findUnique({
       where: { id: tenantId },
+      include: {
+        savingsGoals: {
+          where: { status: 'ACTIVE' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
     })
 
     if (!tenant) {

@@ -15,6 +15,11 @@ export interface TenantProfile {
   savingsBalance: number
   savingsGoal: number
   hasDismissedAppBanner: boolean
+  creditScore: number
+  profileSlug?: string | null
+  isProfileComplete: boolean
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  savingsGoals?: any[]
   createdAt: string
 }
 

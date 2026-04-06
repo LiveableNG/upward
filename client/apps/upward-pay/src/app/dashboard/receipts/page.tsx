@@ -87,7 +87,21 @@ export default function ReceiptsPage() {
   async function handleDownload() {
     if (!receipt) return
     try {
-      const res = await api.getReceiptPdf(receipt.uuid)
+      const res = await api.getReceiptPdf({
+        title: receipt.title,
+        receiptNumber: receipt.receiptNumber,
+        paidAt: receipt.paidAt,
+        tenantName: receipt.tenantName,
+        landlordName: receipt.companyName,
+        propertyName: receipt.propertyName,
+        propertyAddress: receipt.propertyAddress,
+        amount: receipt.amount,
+        currency: receipt.currency,
+        reference: receipt.paystackReference,
+        channel: receipt.channel,
+        type: receipt.type === 'credit' ? 'SAVINGS' : 'RENT',
+        lineItems: receipt.lineItems,
+      })
       if (res?.url) {
         if (res.url.startsWith('data:')) {
           const link = document.createElement('a')

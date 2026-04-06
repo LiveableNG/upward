@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common'
 import { AdminAuditEventHandler } from './events/handlers/admin-audit.handler'
 import { EmailLogEventHandler } from './events/handlers/email-log.handler'
 import { InteractionHandler } from './events/handlers/interaction.handler'
+import { TenantScoringHandler } from './events/handlers/tenant-scoring.handler'
 import { S3Module } from '@shared/infrastructure/common/s3/s3.module'
 import { ReceiptModule } from '@shared/infrastructure/common/receipt/receipt.module'
+import { CreditScoreService } from '@shared/infrastructure/common/credit-score.service'
 
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
@@ -65,6 +67,7 @@ import { GetCountriesUseCase } from './use-cases/location/get-countries.use-case
 import { GetCitiesUseCase } from './use-cases/location/get-cities.use-case'
 import { CompleteTenantProfileUseCase } from './use-cases/tenant/complete-tenant-profile.use-case'
 import { UpdateTenantProfileUseCase } from './use-cases/tenant/update-tenant-profile.use-case'
+import { GetPublicProfileUseCase } from './use-cases/tenant/get-public-profile.use-case'
 import { AuthModule } from './auth/auth.module'
 import { CreateAnnouncementUseCase } from './use-cases/notifications/create-announcement.use-case'
 import {
@@ -87,6 +90,15 @@ import {
   GetTenantTransactionsUseCase,
   GenerateReceiptPdfUseCase,
 } from './use-cases/payments/payment.use-cases'
+import {
+  InitializeWalletUseCase,
+  FundWalletUseCase,
+  CreateSavingsGoalUseCase,
+  UpdateSavingsGoalUseCase,
+  GetSavingsGoalsUseCase,
+  GetWalletDetailsUseCase,
+  ProcessWalletWebhookUseCase,
+} from './use-cases/wallet/wallet.use-cases'
 
 const UseCases = [
   DeleteAdminUseCase,
@@ -142,6 +154,7 @@ const UseCases = [
   GetCitiesUseCase,
   CompleteTenantProfileUseCase,
   UpdateTenantProfileUseCase,
+  GetPublicProfileUseCase,
 
   SaveLandlordUseCase,
   GetSavedLandlordsUseCase,
@@ -152,17 +165,33 @@ const UseCases = [
   GetTransactionUseCase,
   GetTenantTransactionsUseCase,
   GenerateReceiptPdfUseCase,
+  MarkNotificationReadUseCase,
+  CreditScoreService,
+
+  InitializeWalletUseCase,
+  FundWalletUseCase,
+  CreateSavingsGoalUseCase,
+  UpdateSavingsGoalUseCase,
+  GetSavingsGoalsUseCase,
+  GetWalletDetailsUseCase,
+  ProcessWalletWebhookUseCase,
+
   CreateAnnouncementUseCase,
   GetAdminAnnouncementsUseCase,
   SendNotificationUseCase,
   GetTenantNotificationsUseCase,
   UpdateAnnouncementStateUseCase,
-  MarkNotificationReadUseCase,
 ]
 
 @Module({
   imports: [S3Module, ReceiptModule, AuthModule],
-  providers: [AdminAuditEventHandler, EmailLogEventHandler, InteractionHandler, ...UseCases],
+  providers: [
+    AdminAuditEventHandler,
+    EmailLogEventHandler,
+    InteractionHandler,
+    TenantScoringHandler,
+    ...UseCases,
+  ],
   exports: [...UseCases],
 })
 export class ApplicationModule {}

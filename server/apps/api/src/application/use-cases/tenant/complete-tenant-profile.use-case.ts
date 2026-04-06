@@ -5,6 +5,8 @@ import { WAITLIST_REPOSITORY, WaitlistRepository } from '@domains/waitlist/waitl
 import * as bcrypt from 'bcrypt'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
+import { EVENT_BUS, EventBus } from '@application/events/domain-event'
+import { TenantProfileUpdatedEvent } from '@application/events/definition/tenant-profile-updated.event'
 
 @Injectable()
 export class CompleteTenantProfileUseCase {
@@ -14,6 +16,7 @@ export class CompleteTenantProfileUseCase {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    @Inject(EVENT_BUS) private readonly eventBus: EventBus,
     @Inject(TENANT_REPOSITORY) private readonly tenantRepository: TenantRepository,
     @Inject(WAITLIST_REPOSITORY) private readonly waitlistRepository: WaitlistRepository,
   ) {}
@@ -76,7 +79,12 @@ export class CompleteTenantProfileUseCase {
 
     if (!tenant) throw new Error('Failed to create/update tenant')
 
-    // 4. Generate Tokens
+    // 4. Update Credit Score asynchronously via Events
+    this.eventBus.publish(
+      new TenantProfileUpdatedEvent(tenant.id, tenant.email, tenant.fullName, Object.keys(dto)),
+    )
+
+    // 5. Generate Tokens
     const payload = { sub: tenant.id, email: tenant.email }
     const accessToken = this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_ACCESS_SECRET'),
