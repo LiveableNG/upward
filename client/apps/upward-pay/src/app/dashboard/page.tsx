@@ -101,7 +101,11 @@ export default function DashboardPage() {
         />
       )}
 
-      <DashboardHeader firstName={firstName} notifCount={notifCount} />
+      <DashboardHeader
+        firstName={firstName}
+        notifCount={notifCount}
+        profilePic={tenant.profilePic}
+      />
 
       <StatStrip
         completedPaymentsCount={completedPayments.length}
@@ -140,13 +144,15 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <RentSavingsCard
-            isNewUser={isNewUser}
-            savingsBalance={tenant.savingsBalance}
-            savingsGoal={tenant.savingsGoals?.[0]?.targetAmount || tenant.savingsGoal}
-            autoSave={tenant.savingsGoals?.[0]?.autoSaveEnabled ?? !isNewUser}
-            onConfigureGoal={() => setShowSavingsGoalModal(true)}
-          />
+          {tenant.showSavings !== false && (
+            <RentSavingsCard
+              isNewUser={isNewUser}
+              savingsBalance={tenant.savingsBalance}
+              savingsGoal={tenant.savingsGoals?.[0]?.targetAmount || tenant.savingsGoal}
+              autoSave={tenant.savingsGoals?.[0]?.autoSaveEnabled ?? !isNewUser}
+              onConfigureGoal={() => setShowSavingsGoalModal(true)}
+            />
+          )}
 
           <RentCredibilityScore
             isNewUser={isNewUser}

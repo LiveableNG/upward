@@ -21,7 +21,9 @@ import {
   SAVINGS_GOAL_REPOSITORY,
 } from '@domains/payments/payment.repository'
 import { PrismaNotificationRepository } from './repositories/prisma-notification.repository'
+import { PrismaContractRepository } from './repositories/prisma-contract.repository'
 import { NOTIFICATION_REPOSITORY } from '@domains/notifications/notification.repository'
+import { CONTRACT_REPOSITORY } from '@domains/contracts/contract.repository'
 
 @Global()
 @Module({
@@ -59,6 +61,10 @@ import { NOTIFICATION_REPOSITORY } from '@domains/notifications/notification.rep
       provide: SAVINGS_GOAL_REPOSITORY,
       useClass: PrismaSavingsGoalRepository,
     },
+    {
+      provide: CONTRACT_REPOSITORY,
+      useClass: PrismaContractRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -70,6 +76,7 @@ import { NOTIFICATION_REPOSITORY } from '@domains/notifications/notification.rep
     NOTIFICATION_REPOSITORY,
     WALLET_REPOSITORY,
     SAVINGS_GOAL_REPOSITORY,
+    CONTRACT_REPOSITORY,
   ],
 })
 export class PrismaModule {}

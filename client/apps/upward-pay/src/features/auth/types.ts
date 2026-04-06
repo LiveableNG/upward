@@ -20,6 +20,9 @@ export interface TenantProfile {
   isProfileComplete: boolean
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   savingsGoals?: any[]
+  profilePic?: string
+  showSavings?: boolean
+  useBiometrics?: boolean
   createdAt: string
 }
 

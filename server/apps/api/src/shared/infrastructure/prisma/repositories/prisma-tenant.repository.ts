@@ -25,6 +25,9 @@ export class PrismaTenantRepository implements TenantRepository {
       isConvertedFromWaitlist: model.isConvertedFromWaitlist,
       hasDismissedAppBanner: model.hasDismissedAppBanner,
       isGuest: model.isGuest,
+      profilePic: model.profilePic,
+      showSavings: model.showSavings,
+      useBiometrics: model.useBiometrics,
       createdAt: model.createdAt,
       updatedAt: model.updatedAt,
     }
@@ -63,6 +66,9 @@ export class PrismaTenantRepository implements TenantRepository {
         isConvertedFromWaitlist: tenant.isConvertedFromWaitlist,
         hasDismissedAppBanner: tenant.hasDismissedAppBanner,
         isGuest: tenant.isGuest,
+        profilePic: tenant.profilePic,
+        showSavings: tenant.showSavings,
+        useBiometrics: tenant.useBiometrics,
       },
     })
   }
@@ -85,6 +91,9 @@ export class PrismaTenantRepository implements TenantRepository {
         isConvertedFromWaitlist: data.isConvertedFromWaitlist,
         hasDismissedAppBanner: data.hasDismissedAppBanner,
         isGuest: data.isGuest,
+        profilePic: data.profilePic,
+        showSavings: data.showSavings,
+        useBiometrics: data.useBiometrics,
       },
     })
   }

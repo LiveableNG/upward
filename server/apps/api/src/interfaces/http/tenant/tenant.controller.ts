@@ -151,4 +151,15 @@ export class TenantController {
     const tenant = await this.updateTenantProfile.execute(req.user.id, body)
     return { success: true, tenant }
   }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async changePassword(@Req() req: FastifyRequest, @Body() body: { current: string; new: string }) {
+    if (!req.user?.id) {
+      throw new UnauthorizedException('No user in request')
+    }
+    await this.tenantAuthService.changePassword(req.user.id, body.current, body.new)
+    return { success: true, message: 'Password changed successfully' }
+  }
 }

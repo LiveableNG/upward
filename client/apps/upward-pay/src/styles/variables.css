@@ -59,8 +59,31 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Explicit Dark Theme and System Dark (when not forced to light) */
+:root.theme--dark {
+  --bg: #0e0e0d;
+  --surface: #181716;
+  --surface2: #22201e;
+  --border: rgba(255, 255, 255, 0.05);
+  --border-solid: #2a2826;
+  --text: #faf9f5;
+  --text-secondary: #b0aba8;
+  --text-muted: #6a6665;
+  --clay-faint: rgba(217, 119, 87, 0.08);
+  --success-bg: rgba(34, 197, 94, 0.12);
+
+  --oat: #1a1918;
+  --oat-dim: #22211f;
+
+  --btn-primary-bg: linear-gradient(135deg, #2a2725 0%, #1e1b19 100%);
+  --btn-primary-hover: linear-gradient(135deg, #36322e 0%, #2a2725 100%);
+  --btn-primary-text: #eaddcf;
+  --btn-primary-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --btn-primary-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.6);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.theme--light) {
     --bg: #0e0e0d;
     --surface: #181716;
     --surface2: #22201e;
@@ -82,7 +105,6 @@
     --btn-primary-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.6);
   }
 }
-
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;

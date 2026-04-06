@@ -4,34 +4,36 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  ArrowLeft,
   User,
-  Settings,
-  Palette,
   LogOut,
   Mail,
   Phone,
   Calendar,
   Briefcase,
-  Heart,
   MapPin,
   AlertCircle,
   ChevronRight,
-  Check,
   Edit2,
   FileText,
+  Camera,
+  Shield,
+  MessageCircle,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { api } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
 import { DetailOrEdit } from './DetailOrEdit'
 import { type TenantProfile, type ContractData } from '../../types'
+import { PageHeader } from '@/components/common/PageHeader'
+import { UserAvatar } from '@/components/common/UserAvatar'
+import { useToast } from '@/components/common/Toast'
 
 type ViewMode = 'menu' | 'personal'
 
 export function ProfileMenuContent() {
   const router = useRouter()
-  const { logout, user } = useAuth()
+  const { logout, user, refreshUser } = useAuth()
+  const { success, error: toastError } = useToast()
   const [view, setView] = useState<ViewMode>('menu')
   const [isEditing, setIsEditing] = useState(false)
   const [tenant, setTenant] = useState<TenantProfile | null>(null)
@@ -49,8 +51,8 @@ export function ProfileMenuContent() {
 
   async function loadDocuments() {
     try {
-      const data = await api.getMyDocuments()
-      setContracts(data.contracts || [])
+      const data = await api.getContracts()
+      setContracts(data || [])
     } catch (err) {
       console.error('Failed to load documents', err)
     }
@@ -64,20 +66,37 @@ export function ProfileMenuContent() {
       if (res.success) {
         setTenant(res.tenant)
         setIsEditing(false)
-        // Note: In a real app, you'd also update the global auth context here
+        await refreshUser()
+        success('Profile updated successfully')
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update profile')
+      toastError(err instanceof Error ? err.message : 'Failed to update profile')
     } finally {
       setSaving(false)
     }
   }
 
+  const handleAvatarChange = async () => {
+    const url = prompt('Enter image URL for profile picture (Mock):')
+    if (url) {
+      setSaving(true)
+      try {
+        await api.updateProfile({ profilePic: url })
+        await refreshUser()
+        success('Profile picture updated')
+      } catch {
+        toastError('Failed to update picture')
+      } finally {
+        setSaving(false)
+      }
+    }
+  }
+
   const sections = [
-    { id: 'personal', title: 'Personal Details', icon: User, label: 'Profile' },
-    { id: 'contracts', title: 'Tenancy Agreement', icon: FileText, label: 'Lease' },
-    { id: 'personalization', title: 'Personalization', icon: Palette, label: 'Themes' },
-    { id: 'settings', title: 'Settings', icon: Settings, label: 'Preferences' },
+    { id: 'personal', title: 'Personal Details', icon: User },
+    { id: 'contracts', title: 'Tenancy Agreement', icon: FileText },
+    { id: 'support', title: 'Customer Service Center', icon: MessageCircle },
+    { id: 'legal', title: 'Legal & Privacy', icon: Shield },
   ]
 
   if (!tenant) return null
@@ -87,81 +106,19 @@ export function ProfileMenuContent() {
     !tenant.gender ||
     !tenant.occupation ||
     !tenant.address ||
-    !tenant.emergencyContactName ||
     !tenant.rentAnniversary
 
   if (view === 'personal') {
     return (
       <div className="profile-page dashboard--nav-offset">
-        <header className="dashboard__header dashboard__header--mobile">
-          <div className="dashboard__header-left">
-            <button
-              className="dashboard__back"
-              onClick={() => {
-                setView('menu')
-                setIsEditing(false)
-              }}
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <h2 className="dashboard__title">{isEditing ? 'Edit Details' : 'Personal Details'}</h2>
-          </div>
-          <div className="dashboard__header-right">
-            {!isEditing ? (
-              <button className="dashboard__icon-btn" onClick={() => setIsEditing(true)}>
-                <Edit2 size={18} />
-              </button>
-            ) : (
-              <button className="dashboard__icon-btn" onClick={handleSave} disabled={saving}>
-                <Check size={20} color="var(--success)" />
-              </button>
-            )}
-          </div>
-        </header>
-
-        <header className="dashboard__header--desktop">
-          <div className="dashboard__desktop-header-left">
-            <button
-              className="btn btn--ghost profile-page__back-btn"
-              onClick={() => {
-                setView('menu')
-                setIsEditing(false)
-              }}
-            >
-              <ArrowLeft size={18} /> Back to Settings
-            </button>
-            <div className="profile-page__desktop-title-wrap">
-              <div>
-                <h1 className="dashboard__desktop-title">
-                  {isEditing ? 'Edit Profile' : 'Personal Details'}
-                </h1>
-                <p className="dashboard__desktop-subtitle">
-                  Your basic information used across Upward Pay
-                </p>
-              </div>
-              <div className="profile-page__desktop-actions">
-                {!isEditing ? (
-                  <button className="btn btn--secondary" onClick={() => setIsEditing(true)}>
-                    <Edit2 size={16} /> Edit Profile
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      className="btn btn--secondary"
-                      onClick={() => setIsEditing(false)}
-                      disabled={saving}
-                    >
-                      Cancel
-                    </button>
-                    <button className="btn btn--primary" onClick={handleSave} disabled={saving}>
-                      {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </header>
+        <PageHeader
+          title={isEditing ? 'Edit Details' : 'Personal Details'}
+          showBack
+          onBack={() => {
+            setView('menu')
+            setIsEditing(false)
+          }}
+        />
 
         <div className="dashboard__main-grid">
           <div className="dashboard__col--left">
@@ -211,13 +168,6 @@ export function ProfileMenuContent() {
                 />
                 <DetailOrEdit
                   isEditing={isEditing}
-                  icon={Heart}
-                  label="Marital Status"
-                  value={formData.maritalStatus || ''}
-                  onChange={(v) => setFormData({ ...formData, maritalStatus: v })}
-                />
-                <DetailOrEdit
-                  isEditing={isEditing}
                   icon={MapPin}
                   label="Residential Address"
                   value={formData.address || ''}
@@ -231,6 +181,30 @@ export function ProfileMenuContent() {
                   placeholder="DD/MM (e.g. 15th April)"
                   onChange={(v) => setFormData({ ...formData, rentAnniversary: v })}
                 />
+              </div>
+
+              <div className="profile-details-actions">
+                {!isEditing ? (
+                  <button
+                    className="btn btn--secondary btn--full"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <Edit2 size={16} /> Edit Profile
+                  </button>
+                ) : (
+                  <div className="profile-edit-buttons">
+                    <button
+                      className="btn btn--ghost"
+                      onClick={() => setIsEditing(false)}
+                      disabled={saving}
+                    >
+                      Cancel
+                    </button>
+                    <button className="btn btn--primary" onClick={handleSave} disabled={saving}>
+                      {saving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                )}
               </div>
 
               {!isEditing && (
@@ -253,29 +227,21 @@ export function ProfileMenuContent() {
 
   return (
     <div className="profile-menu-page dashboard--nav-offset">
-      <header className="dashboard__header dashboard__header--mobile">
-        <div className="dashboard__header-left">
-          <button className="dashboard__back" onClick={() => router.push('/dashboard')}>
-            <ArrowLeft size={20} />
-          </button>
-          <h2 className="dashboard__title">Profile</h2>
-        </div>
-      </header>
-
-      <header className="dashboard__header--desktop">
-        <div className="dashboard__desktop-header-left">
-          <h1 className="dashboard__desktop-title">Account Settings</h1>
-          <p className="dashboard__desktop-subtitle">
-            Manage your personal information and preferences
-          </p>
-        </div>
-      </header>
+      <PageHeader title="Profile" showBack backPath="/dashboard" />
 
       <div className="dashboard__main-grid">
         <div className="dashboard__col--left">
           <div className="dashboard__card profile-hero">
-            <div className="dashboard__avatar profile-hero__avatar">
-              {tenant.fullName.charAt(0)}
+            <div className="profile-hero__avatar-wrap" onClick={handleAvatarChange}>
+              <UserAvatar
+                src={tenant.profilePic}
+                size={100}
+                className="profile-hero__avatar"
+                color="var(--bg)"
+              />
+              <div className="profile-hero__avatar-edit">
+                <Camera size={16} />
+              </div>
             </div>
 
             <h2 className="profile-hero__name">{tenant.fullName}</h2>
@@ -294,7 +260,7 @@ export function ProfileMenuContent() {
                 </div>
                 <div className="profile-hero__tenancy-footer">
                   <span className="profile-hero__tenancy-expiry">
-                    Expires {formatDate(contracts[0].leaseEnd)}
+                    Expires {formatDate(contracts[0].leaseEnd || '')}
                   </span>
                   <button
                     className="btn btn--secondary btn--sm"
@@ -320,7 +286,9 @@ export function ProfileMenuContent() {
                   className="profile-menu-item"
                   onClick={() => {
                     if (isPersonal) setView('personal')
-                    if (isContracts) router.push('/dashboard/contracts')
+                    else if (isContracts) router.push('/dashboard/contracts')
+                    else if (s.id === 'support') router.push('/dashboard/help')
+                    else if (s.id === 'legal') router.push('/dashboard/legal')
                   }}
                 >
                   <div className="profile-menu-item__left">
@@ -335,9 +303,7 @@ export function ProfileMenuContent() {
                         <AlertCircle size={12} color="#eab308" />
                       </div>
                     )}
-                    {(isPersonal || isContracts) && (
-                      <ChevronRight size={16} color="var(--text-muted)" />
-                    )}
+                    <ChevronRight size={18} color="var(--text-muted)" />
                   </div>
                 </div>
               )
@@ -346,9 +312,9 @@ export function ProfileMenuContent() {
             <div className="profile-menu-item profile-menu-item--logout" onClick={logout}>
               <div className="profile-menu-item__left">
                 <div className="profile-menu-item__icon-wrap profile-menu-item__icon-wrap--logout">
-                  <LogOut size={18} color="#ef4444" />
+                  <LogOut size={18} />
                 </div>
-                <span className="profile-menu-item__title">Logout</span>
+                <span className="profile-menu-item__title">Sign Out</span>
               </div>
             </div>
           </div>
@@ -369,6 +335,159 @@ export function ProfileMenuContent() {
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .profile-hero {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 2.5rem 1.5rem;
+          text-align: center;
+          margin-bottom: 24px;
+        }
+        .profile-hero__avatar-wrap {
+          position: relative;
+          margin-bottom: 1.5rem;
+          cursor: pointer;
+        }
+        .profile-hero__avatar-edit {
+          position: absolute;
+          bottom: 0;
+          right: 0;
+          background: var(--clay);
+          color: white;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 3px solid var(--surface);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .profile-hero__name {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: var(--text);
+          margin-bottom: 0.25rem;
+        }
+        .profile-hero__email {
+          font-size: 0.95rem;
+          color: var(--text-muted);
+          margin-bottom: 2rem;
+        }
+        .profile-hero__tenancy {
+          width: 100%;
+          background: var(--surface2);
+          border-radius: 16px;
+          padding: 1rem;
+          text-align: left;
+        }
+        .profile-hero__tenancy-header {
+          display: flex;
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+        }
+        .profile-hero__tenancy-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: var(--clay-faint);
+          color: var(--clay);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .profile-hero__tenancy-title {
+          font-size: 0.8rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-muted);
+          margin-bottom: 0.1rem;
+        }
+        .profile-hero__tenancy-property {
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: var(--text);
+        }
+        .profile-hero__tenancy-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-top: 1rem;
+          border-top: 1px solid var(--border);
+        }
+        .profile-hero__tenancy-expiry {
+          font-size: 0.8rem;
+          color: var(--text-muted);
+        }
+
+        .profile-menu-list {
+          background: var(--surface);
+          border-radius: 20px;
+          border: 1px solid var(--border);
+          overflow: hidden;
+        }
+        .profile-menu-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1.25rem 1rem;
+          cursor: pointer;
+          transition: background 0.2s;
+          border-bottom: 1px solid var(--border);
+        }
+        .profile-menu-item:last-child {
+          border-bottom: none;
+        }
+        .profile-menu-item:active {
+          background: var(--surface2);
+        }
+        .profile-menu-item__left {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+        .profile-menu-item__icon-wrap {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          background: var(--clay-faint);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .profile-menu-item__title {
+          font-size: 1rem;
+          font-weight: 600;
+        }
+        .profile-menu-item__right {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .profile-menu-item--logout {
+          border-top: 1px solid var(--border);
+          color: #ef4444;
+        }
+        .profile-menu-item__icon-wrap--logout {
+          background: #fee2e2 !important;
+          color: #ef4444;
+        }
+
+        .profile-details-actions {
+          padding: 1.5rem;
+          border-top: 1px solid var(--border);
+        }
+        .profile-edit-buttons {
+          display: grid;
+          grid-template-columns: 1fr 2fr;
+          gap: 1rem;
+        }
+      `}</style>
     </div>
   )
 }

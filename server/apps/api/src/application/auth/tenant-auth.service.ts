@@ -205,4 +205,25 @@ export class TenantAuthService extends BaseAuthService {
 
     return profile
   }
+
+  async changePassword(tenantId: string, currentPlain: string, newPlain: string): Promise<void> {
+    const tenant = await this.prisma.upward_tenant.findUnique({
+      where: { id: tenantId },
+    })
+
+    if (!tenant) {
+      throw new UnauthorizedException('User not found')
+    }
+
+    const isCurrentValid = await bcrypt.compare(currentPlain, tenant.passwordHash)
+    if (!isCurrentValid) {
+      throw new UnauthorizedException('Current password incorrect')
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPlain, 10)
+    await this.prisma.upward_tenant.update({
+      where: { id: tenantId },
+      data: { passwordHash: newPasswordHash },
+    })
+  }
 }
