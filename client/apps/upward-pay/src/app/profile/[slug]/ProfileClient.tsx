@@ -64,7 +64,7 @@ export default function ProfileClient() {
     const pdfWidth = pdf.internal.pageSize.getWidth()
     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
     pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
-    pdf.save(`Upward_Credibility_Report_${profile.fullName.replace(/\s+/g, '_')}.pdf`)
+    pdf.save(`Upward_Credibility_Report_${(profile.firstName + '_' + profile.lastName).replace(/\s+/g, '_')}.pdf`)
   }
 
   if (isLoading) return <FallbackSuspense message="Validating credentials..." />
@@ -82,13 +82,15 @@ export default function ProfileClient() {
     )
   }
 
-  const score = profile.creditScore || 300
-  const rank = profile.reliabilityRank || 'A'
-  const streak = profile.earlyPaymentStreak || 0
-  const onTime = profile.onTimePercentage || 100
-  const savingsImpact = profile.savingsImpact || 0
-  const rankColor = rank === 'S' ? '#B8860B' : '#d97757'
-  const rankBorderColor = rank === 'S' ? '#FFD700' : '#d97757'
+  // Mocked metrics as requested
+  const score = 750
+  const rank = 'A'
+  const streak = 12
+  const onTime = 98
+  const savingsImpact = 5
+  const rankColor = '#d97757'
+  const rankBorderColor = '#d97757'
+  const fullName = `${profile.firstName} ${profile.lastName}`
 
   return (
     <div className="profile-page">
@@ -128,7 +130,7 @@ export default function ProfileClient() {
               </div>
               <div className="cert-id">
                 <span className="cert-id__label">VERIFICATION ID</span>
-                <strong className="cert-id__val">UPW-{profile.id?.slice(0, 8).toUpperCase() || 'VALID'}</strong>
+                <strong className="cert-id__val">UPW-{profile.firstName?.toUpperCase() || 'VALID'}</strong>
               </div>
             </header>
 
@@ -137,17 +139,17 @@ export default function ProfileClient() {
                 <div className="profile-top-row">
                   <div className="profile-avatar">
                     {profile.profilePic ? (
-                      <img src={profile.profilePic} alt={profile.fullName} />
+                      <img src={profile.profilePic} alt={fullName} />
                     ) : (
-                      profile.fullName?.charAt(0)
+                      profile.firstName?.charAt(0)
                     )}
                   </div>
                   <div className="profile-info">
-                    <h2 className="profile-name">{profile.fullName}</h2>
+                    <h2 className="profile-name">{fullName}</h2>
                     <div className="profile-meta">
                       <span className="meta-tag">
                         <MapPin size={13} />
-                        {profile.city || 'Lagos'}, {profile.country || 'Nigeria'}
+                        Lagos, Nigeria
                       </span>
                       <span className="meta-tag">
                         <Calendar size={13} />

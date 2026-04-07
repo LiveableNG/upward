@@ -1,36 +1,39 @@
 import { request } from '@/lib/api-client'
-import { type AuthResponse, type TenantProfile } from '../types'
+import { type AuthResponse, type UserProfile } from '../types'
 
 export async function signup(data: {
   email: string
   password: string
-  fullName: string
+  firstName: string
+  lastName: string
   phone?: string
   rentAnniversary?: string
   address?: string
   city?: string
   country?: string
+  isFromWaitlist?: boolean
+  isFromInvite?: boolean
 }) {
-  return request<AuthResponse>('/tenant/auth/signup', {
+  return request<AuthResponse>('/user/auth/signup', {
     method: 'POST',
     body: JSON.stringify(data),
   })
 }
 
 export async function login(data: { email: string; password: string }) {
-  return request<AuthResponse>('/tenant/auth/login', { method: 'POST', body: JSON.stringify(data) })
+  return request<AuthResponse>('/user/auth/login', { method: 'POST', body: JSON.stringify(data) })
 }
 
 export async function logout() {
-  return request<{ message: string }>('/tenant/auth/logout', { method: 'POST' })
+  return request<{ message: string }>('/user/auth/logout', { method: 'POST' })
 }
 
 export async function getMe() {
-  return request<TenantProfile>('/tenant/auth/me')
+  return request<UserProfile>('/user/auth/me')
 }
 
-export async function updateProfile(data: Partial<TenantProfile>) {
-  return request<{ success: boolean; tenant: TenantProfile }>('/tenant/auth/profile', {
+export async function updateProfile(data: Partial<UserProfile>) {
+  return request<{ success: boolean; user: UserProfile }>('/user/auth/profile', {
     method: 'PATCH',
     body: JSON.stringify(data),
   })
@@ -53,20 +56,20 @@ export async function completeProfile(data: {
   country?: string
   profilePic?: string
 }) {
-  return request<AuthResponse>('/tenant/auth/complete-profile', {
+  return request<AuthResponse>('/user/auth/complete-profile', {
     method: 'POST',
     body: JSON.stringify(data),
   })
 }
 export async function forgotPassword(email: string) {
-  return request<{ success: boolean; message: string }>('/tenant/auth/forgot-password', {
+  return request<{ success: boolean; message: string }>('/user/auth/forgot-password', {
     method: 'POST',
     body: JSON.stringify({ email }),
   })
 }
 
 export async function resetPassword(data: { email: string; otp: string; new: string }) {
-  return request<{ success: boolean; message: string }>('/tenant/auth/reset-password', {
+  return request<{ success: boolean; message: string }>('/user/auth/reset-password', {
     method: 'POST',
     body: JSON.stringify(data),
   })

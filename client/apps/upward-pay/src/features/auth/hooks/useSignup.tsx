@@ -12,16 +12,16 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
     mutationFn: (data: { 
       email: string; 
       password: string; 
-      fullName: string; 
+      firstName: string; 
+      lastName: string;
       phone?: string;
       rentAnniversary?: string;
       address?: string;
-      city?: string;
-      country?: string;
+      isFromInvite?: boolean;
     }) => authSignup(data),
     onSuccess: (result) => {
-      setAuthUser(result.tenant)
-      queryClient.setQueryData(['user'], result.tenant)
+      setAuthUser(result.user)
+      queryClient.setQueryData(['user'], result.user)
       if (onSuccess) {
         onSuccess()
       } else {
@@ -34,12 +34,15 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
     signup: (data: { 
       email: string; 
       password: string; 
-      fullName: string; 
+      firstName: string; 
+      lastName: string;
       phone?: string;
       rentAnniversary?: string;
       address?: string;
       city?: string;
       country?: string;
+      isFromWaitlist?: boolean;
+      isFromInvite?: boolean;
     }) => signupMutation.mutate(data),
     loading: signupMutation.isPending,
     error: signupMutation.error instanceof Error ? signupMutation.error.message : '',

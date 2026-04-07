@@ -5,19 +5,24 @@ export interface User {
   emailHash: string
   firstName: string
   lastName: string
-  phone?: string
-  phoneHash?: string
+  phone?: string | null
+  phoneHash?: string | null
   passwordHash: string
-  occupation?: string
-  address?: string
-  rentAnniversary?: string
-  gender?: string
-  dateOfBirth?: string
-  isConvertedFromWaitlist: boolean
-  hasDismissedAppBanner: boolean
-  profilePic?: string
+  occupation?: string | null
+  address?: string | null
+  rentAnniversary?: Date | null
+  gender?: string | null
+  dateOfBirth?: string | null
+  isFromWaitlist: boolean
+  isFromInvite: boolean
+  profilePic?: string | null
+  profileSlug?: string | null
+  bio?: string | null
   useBiometrics: boolean
   
+  resetPasswordOTP?: string | null
+  resetPasswordExpires?: Date | null
+
   createdAt: Date
   updatedAt: Date
 }

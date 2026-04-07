@@ -1,6 +1,6 @@
 import { Injectable, Logger, Inject } from '@nestjs/common'
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
-import { UserRepository, USER_REPOSITORY } from '@domains/users/user.repository'
+import { UserRepository, USER_REPOSITORY, User } from '@domains/users/user.repository'
 import { WAITLIST_REPOSITORY, WaitlistRepository } from '@domains/waitlist/waitlist.repository'
 import * as bcrypt from 'bcrypt'
 import { JwtService } from '@nestjs/jwt'
@@ -39,17 +39,21 @@ export class CompleteUserProfileUseCase {
 
     let user = await this.userRepository.findByEmail(dto.email)
 
+    const nameParts = dto.fullName.split(' ')
+    const firstName = nameParts[0] || ''
+    const lastName = nameParts.slice(1).join(' ') || ''
+
     const userData: any = {
       email: dto.email,
-      fullName: dto.fullName,
+      firstName,
+      lastName,
       phone: dto.phone,
       occupation: dto.occupation,
       gender: dto.gender,
       dateOfBirth: dto.dateOfBirth,
       profilePic: dto.profilePic || '',
-      isConvertedFromWaitlist: !!waitlistEntry,
-      isProfileComplete: true,
-      hasDismissedAppBanner: false,
+      isFromWaitlist: !!waitlistEntry,
+      isFromInvite: false, // Default for this flow
       useBiometrics: false,
     }
 
@@ -64,20 +68,21 @@ export class CompleteUserProfileUseCase {
       if (!passwordHash) {
         throw new Error('Password is required for new user registration')
       }
-      const newUser = {
+      const newUser: User = {
         ...userData,
         passwordHash,
-        id: crypto.randomUUID(),
+        uuid: crypto.randomUUID(),
+        id: 0, // Will be replaced by autoincrement
         createdAt: new Date(),
         updatedAt: new Date(),
       }
       await this.userRepository.save(newUser)
-      user = newUser
+      user = await this.userRepository.findByEmail(dto.email)
     }
 
     if (!user) throw new Error('Failed to create/update user')
 
-    const payload = { sub: user.id, email: user.email }
+    const payload = { sub: user.uuid, email: user.email }
     const accessToken = this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_SECRET', 'super-secret-key'),
       expiresIn: '1h',

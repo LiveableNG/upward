@@ -1,6 +1,6 @@
-import { type TenantProfile } from '@/features/auth/types'
+import { type UserProfile } from '@/features/auth/types'
 
-export type { TenantProfile }
+export type { UserProfile }
 
 export interface PendingPayment {
   uuid: string
@@ -49,7 +49,7 @@ export interface ContractData {
 }
 
 export interface DashboardData {
-  tenant: TenantProfile
+  user: UserProfile
   pendingPayments: PendingPayment[]
   completedPayments: CompletedPayment[]
   savedLandlords: SavedLandlord[]

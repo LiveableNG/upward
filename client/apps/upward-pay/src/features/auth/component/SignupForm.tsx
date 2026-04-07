@@ -12,13 +12,13 @@ import {
   Mail,
   User,
   Lock,
-  Phone,
   ChevronRight,
   Sprout,
   Star,
+  Calendar,
 } from 'lucide-react'
 
-type Step = 0 | 1 | 2
+type Step = 0 | 1 | 2 | 3
 
 export default function SignupForm() {
   const router = useRouter()
@@ -29,7 +29,7 @@ export default function SignupForm() {
   const [step, setStep] = useState<Step>(0)
   const [email, setEmail] = useState(prefillEmail)
   const [fullName, setFullName] = useState(prefillName)
-  const [phone, setPhone] = useState('')
+  const [rentAnniversary, setRentAnniversary] = useState('')
   const [password, setPassword] = useState('')
 
   const { signup, loading, error } = useSignup('/dashboard')
@@ -39,7 +39,10 @@ export default function SignupForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    signup({ email, password, fullName, phone })
+    const nameParts = fullName.trim().split(' ')
+    const firstName = nameParts[0] || ''
+    const lastName = nameParts.slice(1).join(' ') || ''
+    signup({ email, password, firstName, lastName, rentAnniversary })
   }
 
   const benefits = [
@@ -63,14 +66,17 @@ export default function SignupForm() {
     },
   ]
 
+  const progressWidth = (step / 3) * 100
+
   return (
     <div className="auth-page__content">
       <div className="signup-progress mb-8">
         <div
-          className={`signup-progress__bar ${step === 0 ? 'w-0' : step === 1 ? 'w-1/2' : 'w-full'}`}
+          className="signup-progress__bar"
+          style={{ width: `${progressWidth}%` }}
         ></div>
         <div className="signup-progress__dots">
-          {[0, 1, 2].map((s) => (
+          {[0, 1, 2, 3].map((s) => (
             <div
               key={s}
               className={`signup-progress__dot ${step === s ? 'is-active' : step > s ? 'is-done' : ''}`}
@@ -157,20 +163,6 @@ export default function SignupForm() {
               </div>
             </div>
 
-            <div className="auth-form__field">
-              <label htmlFor="phone">Phone Number</label>
-              <div className="input-with-icon">
-                <Phone size={18} />
-                <input
-                  id="phone"
-                  type="tel"
-                  placeholder="+234 800 000 0000"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              </div>
-            </div>
-
             <button
               className="btn btn--primary btn--full btn--pay"
               onClick={nextStep}
@@ -183,6 +175,45 @@ export default function SignupForm() {
       )}
 
       {step === 2 && (
+        <div className="signup-step signup-step--form">
+          <button className="signup-step__back" onClick={prevStep}>
+            <ArrowLeft size={18} /> Back
+          </button>
+
+          <div className="signup-step__header">
+            <h2 className="auth-page__title">Rent Expiry</h2>
+            <p className="auth-page__subtitle">
+              When does your current rent agreement expire? This helps us track your credibility.
+            </p>
+          </div>
+
+          <div className="auth-form">
+            <div className="auth-form__field">
+              <label htmlFor="rentAnniversary">Rent Expiry Date</label>
+              <div className="input-with-icon">
+                <Calendar size={18} />
+                <input
+                  id="rentAnniversary"
+                  type="date"
+                  value={rentAnniversary}
+                  onChange={(e) => setRentAnniversary(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              className="btn btn--primary btn--full btn--pay"
+              onClick={nextStep}
+              disabled={!rentAnniversary}
+            >
+              Continue <ChevronRight size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 3 && (
         <div className="signup-step signup-step--form">
           <button className="signup-step__back" onClick={prevStep}>
             <ArrowLeft size={18} /> Back

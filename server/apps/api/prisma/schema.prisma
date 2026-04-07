@@ -213,7 +213,8 @@ model upward_user {
   occupation             String?
   gender                 String?
   dateOfBirth            String?
-  isConvertedFromWaitlist Boolean @default(false)
+  isFromWaitlist Boolean @default(false)
+  isFromInvite Boolean @default(false)
   profileSlug            String?  @unique
   bio                    String?  @db.Text
   profilePic             String?
@@ -263,14 +264,11 @@ model upward_transaction {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  goal          upward_savings_goal? @relation(fields: [goalId], references: [id])
   paymentRequestId Int?
   paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
 
   @@index([userId])
   @@index([reference])
-  @@index([walletId])
-  @@index([goalId])
   @@index([paymentRequestId])
 }
 
