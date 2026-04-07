@@ -1,84 +1,82 @@
-# Implementation Plan - Optimized Tenant Onboarding & Conversion
+# B2B Platform Schema Restructure & API Integration
 
-This plan implements a high-performance onboarding flow for both invited and waitlist users, leveraging Next.js Server Components for initial data fetching and Tanstack Query for client-side interactivity.
+This plan outlines the architectural changes required to introduce the Upward B2B (Third-Party Software Platform) capabilities. It covers the schema refactoring from "Tenants" to a more generalized "Users" structure, the addition of Company/Manager/Property models, PII encryption, and the external API setup.
 
 ## User Review Required
 
-> [!IMPORTANT]
-> **Performance Optimization**: The invitation landing page (`/`) will now fetch data server-side to eliminate client-side waterfalls and improve perceived performance.
-> **Database**: We are adding `isConvertedFromWaitlist` to the `upward_tenant` table to track users coming from the launch campaign.
-> **Deep Linking**: Mobile app detection will be handled via a lightweight client-side overlay to avoid blocking the initial server-render.
+> [!WARNING]  
+> **Major Database Refactoring & "Tenant" to "User" Migration**
+> The current schema heavily relies on `upward_user`. You requested `users` instead. 
+> To align with this, the plan proposes replacing the concept of `upward_user` entirely with `upward_user`. This means existing fields like `fullName` will be split/replaced with `first_name` and `last_name`, and references across the DB (`wallet`, `savings_goal`, `payment_requests`) will be updated from `tenantId` to `userId`. 
+> Is this acceptable, or would you prefer a new `upward_user` table that exists alongside `upward_user`? 
+
+> [!IMPORTANT]  
+> **PII Encryption Mechanism**
+> The database cannot easily index or search natively encrypted text (like email checking during login). To encrypt `first_name`, `last_name`, `phone`, and `email`, the best approach is to either:
+> 1. Use **Prisma Field Encryption** (`@prisma/extension-field-encryption`), which handles encryption seamlessly but makes direct DB querying limits (like `findUnique` by email requires a deterministic encryption or blind index).
+> 2. Use a **hashed email index** (e.g., `email_hash`) for quick lookups while keeping the actual `email` column encrypted.
+> Does a deterministic encryption (approach 2) sound good to you for the email and phone fields? 
 
 ## Proposed Changes
 
-### 1. Backend Implementation (`server/apps/api`)
+---
 
-#### [MODIFY] [schema.prisma](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/server/apps/api/prisma/schema.prisma)
+### Database Schema (Prisma)
 
-- Update `upward_tenant` model:
-  - `invitedByCompanyId`, `invitedByCompanyName`, `invitedByCompanyLogo` (String?)
-  - `rentAnniversary` (DateTime?)
-  - `address` (String?)
-  - `occupation`, `gender`, `dateOfBirth` (String?)
-  - `isConvertedFromWaitlist` (Boolean @default(false))
+We will redefine the Prisma schema to introduce the B2B entities and update the user model.
 
-#### [NEW] Domain & Application Layers
+#### [MODIFY] `schema.prisma`
+*   **Rename & Refactor `upward_user` -> `upward_user`:**
+    *   Add: `firstName`, `lastName`, `uuid`. (Drop `fullName`).
+    *   Fields marked for encryption (PII): `firstName`, `lastName`, `phone`, `email`.
+*   **New Entities:**
+    *   `upward_company`: `id`, `uuid`, `name`, `address`, `webhook_url`, `apiKey` (Hashed for 3rd party Auth).
+    *   `upward_company_user`: Junction table with `id`, `companyId`, `userId`, `invitedAt`, `acceptedAt`.
+    *   `upward_manager`: `id`, `uuid`, `companyId`, `firstName`, `lastName`, `phone`, `email`.
+    *   `upward_location`: `id`, `uuid`, `country`, `state`, `area`, `subarea`.
+    *   `upward_user_property`: `id`, `userId`, `companyId`, `rentAmount`, `managerId`, `rentStartDate`, `rentEndDate`, `locationId`.
+*   **Update `upward_payment_request`:**
+    *   Rename `tenantId` to `userId`. Add relations to `upward_user_property` so that payments can track rent.
 
-- **Domain**: Create `TenantRepository` interface in `src/domains/users/tenant.repository.ts`.
-- **Application**: Create `CompleteTenantProfileUseCase` in `src/application/use-cases/tenant/complete-tenant-profile.use-case.ts`.
-  - Logic: Upsert `Tenant` record based on email, link to waitlist if applicable (set `isConvertedFromWaitlist: true`), and store profile details.
-- **Module**: Register new use case in `ApplicationModule.ts`.
+---
 
-#### [NEW] Infrastructure & Interfaces
+### Application Layer (Backend Integration)
 
-- **Infrastructure**: Implement `PrismaTenantRepository` in `src/shared/infrastructure/prisma/repositories/prisma-tenant.repository.ts`.
-- **Interface**: Create `TenantController` in `src/interfaces/http/controllers/tenant.controller.ts` with `POST /tenants/complete-profile`.
-- **Registration**: Update `HttpModule.ts`.
+#### [NEW] `server/apps/api/src/domains/companies/`
+*   **Interfaces**: `company.repository.ts`, `manager.repository.ts`.
+*   Define the domains for the B2B entities.
 
-### 2. Frontend Implementation (`upward-pay`)
+#### [NEW] `server/apps/api/src/application/use-cases/third-party/`
+*   `InviteUsersUseCase.ts`: Handles single or bulk payload of users, generated UUID tokens, and upserts generic user data. Emits physical invite links. Does not overwrite existing user profiles.
 
-#### [MODIFY] Next.js Infrastructure
+#### [NEW] `server/apps/api/src/interfaces/http/third-party/`
+*   **API Auth Guard**: `ThirdPartyApiKeyGuard.ts` checking the `x-api-key` header against the `upward_company.apiKey`.
+*   **Controller**: `ThirdPartyIntegrationController.ts` exposing `POST /v1/external/invites`.
 
-- Integrate `@tanstack/react-query` for client-side mutations.
-- Use `fetch` with Next.js caching (`force-cache` or ISR) for initial invitation data.
+#### [MODIFY] `server/apps/api/src/domains/users/user.repository.ts` (formerly TenantRepo)
+*   Modify the repository and NestJS Service files (e.g., Auth, Payments) to point to `upward_user` instead of `upward_user`.
 
-#### [MODIFY] [page.tsx](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/client/apps/upward-pay/src/app/page.tsx) (Landing Page)
+---
 
-- **Server Fetching**: Fetch invitation data using a Server Component.
-- **Streaming**: Wrap invitation content in `<Suspense>` with a Skeleton placeholder.
-- **Deep Link Logic**: Use a lightweight client-side Hook for `upwardpay://` redirection.
-- **UI**: Premium design using Lucide icons (e.g., `Rocket`, `Verified`, `CreditCard`) instead of emojis.
+### Frontend Layer (Upward-Pay Next.js)
 
-#### [NEW] [page.tsx](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/client/apps/upward-pay/src/app/complete-profile/page.tsx)
+#### [NEW] `client/apps/upward-pay/src/app/invite/[uuid]/page.tsx`
+*   **Dynamic Invite UI**: Reads the `uuid` from the URL, calls a new public endpoint (`GET /api/v1/public/invites/:uuid`) to fetch the inviter details (company logo, role, property info) and pre-fill the tenant data.
 
-- Unified multi-step flow using a Client Component for state management.
-- **Interactivity**: Use `useMutation` (Tanstack Query) for the final profile submission to handle loading/error states gracefully.
-- Fields: Rent Anniversary (with date picker), Full Address, Occupation, etc.
+#### [MODIFY] `client/apps/upward-pay/src/app/signup/page.tsx`
+*   **Seamless Onboarding**: If coming from an invite link, streamline the UI so the user only needs to verify the pre-filled data and choose a password.
 
-#### [NEW] Reusable Components
+## Open Questions
 
-- **PoweredByUpward**: Optimized logo with `next/image`.
-- **CompanyHeader**: Server component for displaying company metadata.
-- **OnboardingCard**: General wrapper for consistency.
-
-### 3. Styling & Optimization
-
-#### [NEW] [onboarding.css](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/client/apps/upward-pay/src/styles/onboarding.css)
-
-- Optimized BEM styles.
-- Integrated Project Variables.
+1.  **UUID vs ID generation:** Standard `uuid()` from Prisma will be used for both ID and UUID columns if requested, but normally `id` is the primary key UUID. Do you specifically want an integer `id` AND a string `uuid`, or is `id String @id @default(uuid())` sufficient?
+2.  **API Key Management:** Do you want an endpoint in an Admin dashboard to generate and revoke API keys for these companies, or should we seed the first ones manually for now?
 
 ## Verification Plan
 
-### Automated
+### Automated Tests
+- Scaffold standard NestJS unit tests for the `InviteUsersUseCase` ensuring bulk inserts don't overwrite existing users.
 
-- `npx prisma migrate dev` to verify schema.
-- Backend unit tests for `CompleteTenantProfileUseCase`.
-
-### Manual
-
-- **Performance**: Verify 0% client JS for the initial landing page render (except for deep linking logic).
-- **Functionality**:
-  - Invitation Link -> Prefill -> Complete Profile -> Check DB for correct flags.
-  - Waitlist Flow (Email only) -> Complete Profile -> Verify `isConvertedFromWaitlist` is `true`.
-- **Visuals**: Audit Lucide icon usage and ensure no emojis remain.
+### Manual Verification
+1.  **DB Check**: Run migrations and verify schema changes manually using `npx prisma studio`.
+2.  **Third Party Request**: Mock a property manager making a `POST /v1/external/invites` call via cURL with a generated API Key. Verify the response contains the unique invite links.
+3.  **Frontend Flow**: Open the generated invite link (`http://localhost:3000/invite/<uuid>`), verify it displays the company information, and proceed via signup to create the password. Check that the `companies_users.acceptedAt` gets populated.

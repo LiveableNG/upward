@@ -1,4 +1,4 @@
-import { Award, Share2, Check } from 'lucide-react'
+import { Award, Share2, Check, ExternalLink } from 'lucide-react'
 import { useState } from 'react'
 
 interface ShareCredibilityProps {
@@ -44,10 +44,20 @@ export function ShareCredibility({ profileSlug }: ShareCredibilityProps) {
         Showcase your commitment to housing excellence. Sharing your credibility helps you unlock
         better deals and housing opportunities.
       </p>
-      <button className="share-cred__btn" onClick={handleShare} disabled={!profileSlug}>
-        {copied ? <Check size={18} /> : <Share2 size={18} />}
-        <span>{copied ? 'Link Copied!' : 'Share My Profile'}</span>
-      </button>
+      <div className="share-cred__actions">
+        <button className="share-cred__btn" onClick={handleShare} disabled={!profileSlug}>
+          {copied ? <Check size={18} /> : <Share2 size={18} />}
+          <span>{copied ? 'Link Copied!' : 'Share Profile'}</span>
+        </button>
+        <button 
+          className="share-cred__btn share-cred__btn--outline" 
+          onClick={() => window.open(`${window.location.origin}/profile/${profileSlug}`, '_blank')}
+          disabled={!profileSlug}
+        >
+          <ExternalLink size={18} />
+          <span>Preview</span>
+        </button>
+      </div>
     </section>
   )
 }

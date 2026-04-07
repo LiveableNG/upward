@@ -1891,25 +1891,46 @@
   margin-bottom: 20px;
 }
 
+.share-cred__actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
 .share-cred__btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  width: 100%;
-  padding: 14px;
+  flex: 1;
+  padding: 14px 8px;
   background: var(--clay);
   color: #fff;
-  border: none;
+  border: 1px solid var(--clay);
   border-radius: 12px;
   font-weight: 700;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .share-cred__btn:hover {
   background: var(--clay-hover);
+  border-color: var(--clay-hover);
   transform: translateY(-1px);
+}
+
+.share-cred__btn--outline {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border-solid);
+}
+
+.share-cred__btn--outline:hover {
+  background: var(--surface2);
+  border-color: var(--border);
+  color: var(--clay);
 }
 
 /* ── Help Page ── */

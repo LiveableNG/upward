@@ -1,15 +1,16 @@
-export interface Tenant {
+export interface User {
   id: string
   email: string
   fullName: string
   phone?: string | null
+  
   createdAt: Date
   updatedAt: Date
 }
 
-export interface TenantAuthResponse {
+export interface UserAuthResponse {
   accessToken: string
-  tenant: Tenant
+  user: User
 }
 
 export interface SignupDto {

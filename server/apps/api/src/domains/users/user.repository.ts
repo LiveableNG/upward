@@ -1,20 +1,33 @@
-export interface UserProfile {
-  id: string
-  identityId: string // maps to upward_tenant.id or upward_admin.id
-  firstName?: string
-  lastName?: string
-  fullName: string
+export interface User {
+  id: number
+  uuid: string
+  email: string
+  emailHash: string
+  firstName: string
+  lastName: string
   phone?: string
-  avatarUrl?: string
+  phoneHash?: string
+  passwordHash: string
+  occupation?: string
+  address?: string
+  rentAnniversary?: string
+  gender?: string
+  dateOfBirth?: string
+  isConvertedFromWaitlist: boolean
+  hasDismissedAppBanner: boolean
+  profilePic?: string
+  useBiometrics: boolean
+  
   createdAt: Date
   updatedAt: Date
 }
 
 export interface UserRepository {
-  findById(id: string): Promise<UserProfile | null>
-  findByIdentityId(identityId: string): Promise<UserProfile | null>
-  save(user: UserProfile): Promise<void>
-  delete(id: string): Promise<void>
+  findByEmail(email: string): Promise<User | null>
+  findById(id: number): Promise<User | null>
+  findByUuid(uuid: string): Promise<User | null>
+  save(user: User): Promise<void>
+  update(id: number, data: Partial<User>): Promise<void>
 }
 
 export const USER_REPOSITORY = Symbol('USER_REPOSITORY')

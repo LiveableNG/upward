@@ -10,7 +10,7 @@ async function main() {
   const tenantEmail = 'test-tenant@upward.ng'
   const hashedPassword = await bcrypt.hash('Password123!', 10)
 
-  const tenant = await prisma.upward_tenant.upsert({
+  const tenant = await prisma.upward_user.upsert({
     where: { email: tenantEmail },
     update: {
       passwordHash: hashedPassword,

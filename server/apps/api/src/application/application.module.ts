@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common'
 import { AdminAuditEventHandler } from './events/handlers/admin-audit.handler'
 import { EmailLogEventHandler } from './events/handlers/email-log.handler'
 import { InteractionHandler } from './events/handlers/interaction.handler'
-import { TenantScoringHandler } from './events/handlers/tenant-scoring.handler'
 import { S3Module } from '@shared/infrastructure/common/s3/s3.module'
 import { ReceiptModule } from '@shared/infrastructure/common/receipt/receipt.module'
 import { CreditScoreService } from '@shared/infrastructure/common/credit-score.service'
@@ -65,20 +64,14 @@ import { GetAdminLogsUseCase } from './use-cases/admin-log/get-admin-logs.use-ca
 import { LogAdminActionUseCase } from './use-cases/admin-log/log-admin-action.use-case'
 import { GetCountriesUseCase } from './use-cases/location/get-countries.use-case'
 import { GetCitiesUseCase } from './use-cases/location/get-cities.use-case'
-import { CompleteTenantProfileUseCase } from './use-cases/tenant/complete-tenant-profile.use-case'
-import { UpdateTenantProfileUseCase } from './use-cases/tenant/update-tenant-profile.use-case'
-import { GetPublicProfileUseCase } from './use-cases/tenant/get-public-profile.use-case'
-import {
-  GetTenantContractsUseCase,
-  UploadTenantContractUseCase,
-  DeleteTenantContractUseCase,
-} from './use-cases/tenant/tenant-contracts.use-cases'
+import { CompleteUserProfileUseCase } from './use-cases/user/complete-user-profile.use-case'
+import { GetPublicProfileUseCase } from './use-cases/user/get-public-profile.use-case'
 import { AuthModule } from './auth/auth.module'
 import { CreateAnnouncementUseCase } from './use-cases/notifications/create-announcement.use-case'
 import {
   GetAdminAnnouncementsUseCase,
   SendNotificationUseCase,
-  GetTenantNotificationsUseCase,
+  GetUserNotificationsUseCase,
   UpdateAnnouncementStateUseCase,
   MarkNotificationReadUseCase,
 } from './use-cases/notifications/notification.use-cases'
@@ -88,22 +81,13 @@ import {
   SaveLandlordUseCase,
   GetSavedLandlordsUseCase,
   RecordTransactionUseCase,
-  ProcessGuestPaymentTokenUseCase,
   GetBanksUseCase,
   VerifyAccountUseCase,
   GetTransactionUseCase,
-  GetTenantTransactionsUseCase,
+  GetUserTransactionsUseCase,
   GenerateReceiptPdfUseCase,
 } from './use-cases/payments/payment.use-cases'
-import {
-  InitializeWalletUseCase,
-  FundWalletUseCase,
-  CreateSavingsGoalUseCase,
-  UpdateSavingsGoalUseCase,
-  GetSavingsGoalsUseCase,
-  GetWalletDetailsUseCase,
-  ProcessWalletWebhookUseCase,
-} from './use-cases/wallet/wallet.use-cases'
+
 
 const UseCases = [
   DeleteAdminUseCase,
@@ -157,37 +141,23 @@ const UseCases = [
   LogAdminActionUseCase,
   GetCountriesUseCase,
   GetCitiesUseCase,
-  CompleteTenantProfileUseCase,
-  UpdateTenantProfileUseCase,
+  CompleteUserProfileUseCase,
   GetPublicProfileUseCase,
-  GetTenantContractsUseCase,
-  UploadTenantContractUseCase,
-  DeleteTenantContractUseCase,
-
   SaveLandlordUseCase,
   GetSavedLandlordsUseCase,
   RecordTransactionUseCase,
-  ProcessGuestPaymentTokenUseCase,
   GetBanksUseCase,
   VerifyAccountUseCase,
   GetTransactionUseCase,
-  GetTenantTransactionsUseCase,
+  GetUserTransactionsUseCase,
   GenerateReceiptPdfUseCase,
   MarkNotificationReadUseCase,
   CreditScoreService,
 
-  InitializeWalletUseCase,
-  FundWalletUseCase,
-  CreateSavingsGoalUseCase,
-  UpdateSavingsGoalUseCase,
-  GetSavingsGoalsUseCase,
-  GetWalletDetailsUseCase,
-  ProcessWalletWebhookUseCase,
-
   CreateAnnouncementUseCase,
   GetAdminAnnouncementsUseCase,
   SendNotificationUseCase,
-  GetTenantNotificationsUseCase,
+  GetUserNotificationsUseCase,
   UpdateAnnouncementStateUseCase,
 ]
 
@@ -197,7 +167,6 @@ const UseCases = [
     AdminAuditEventHandler,
     EmailLogEventHandler,
     InteractionHandler,
-    TenantScoringHandler,
     ...UseCases,
   ],
   exports: [...UseCases],

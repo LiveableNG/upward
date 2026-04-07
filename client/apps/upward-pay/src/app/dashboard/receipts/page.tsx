@@ -57,8 +57,8 @@ export default function ReceiptsPage() {
           companyName:
             landlord?.name || (tx.type === 'RENT' ? 'Property Management' : 'Upward Savings'),
           companyLogo: landlord?.bankName ? '' : '', // Could use landlord logic here if they had logos
-          propertyName: breakdownDesc,
-          propertyAddress: tx.narration || 'Payment via Upward',
+          paymentType: tx.paymentType || breakdownDesc,
+          propertyAddress: tx.propertyAddress || tx.narration || profile?.address || 'Payment via Upward',
           amount: tx.amount,
           currency: 'NGN',
           channel: 'Paystack',
@@ -93,7 +93,7 @@ export default function ReceiptsPage() {
         paidAt: receipt.paidAt,
         tenantName: receipt.tenantName,
         landlordName: receipt.companyName,
-        propertyName: receipt.propertyName,
+        paymentType: receipt.paymentType,
         propertyAddress: receipt.propertyAddress,
         amount: receipt.amount,
         currency: receipt.currency,

@@ -4,7 +4,7 @@ import {
   Announcement,
   Notification,
   NotificationRepository,
-  TenantAnnouncementState,
+  UserAnnouncementState,
 } from '@domains/notifications/notification.repository'
 
 @Injectable()
@@ -25,7 +25,7 @@ export class PrismaNotificationRepository implements NotificationRepository {
         isActive: true,
       },
     })
-    return record as Announcement
+    return record as unknown as Announcement
   }
 
   async findActiveAnnouncement(): Promise<Announcement | null> {
@@ -33,14 +33,14 @@ export class PrismaNotificationRepository implements NotificationRepository {
       where: { isActive: true },
       orderBy: { createdAt: 'desc' },
     })
-    return record as Announcement | null
+    return record as unknown as Announcement | null
   }
 
   async findAllAnnouncements(): Promise<Announcement[]> {
     const records = await this.prisma.upward_announcement.findMany({
       orderBy: { createdAt: 'desc' },
     })
-    return records as Announcement[]
+    return records as unknown as Announcement[]
   }
 
   async deactivateAllAnnouncements(): Promise<void> {
@@ -52,32 +52,32 @@ export class PrismaNotificationRepository implements NotificationRepository {
 
   // Announcement State
   async getAnnouncementState(
-    tenantId: string,
-    announcementId: string,
-  ): Promise<TenantAnnouncementState | null> {
-    const record = await this.prisma.upward_tenant_announcement_state.findUnique({
+    userId: number,
+    announcementId: number,
+  ): Promise<UserAnnouncementState | null> {
+    const record = await this.prisma.upward_user_announcement_state.findUnique({
       where: {
-        tenantId_announcementId: {
-          tenantId,
+        userId_announcementId: {
+          userId,
           announcementId,
         },
       },
     })
-    return record as TenantAnnouncementState | null
+    return record as unknown as UserAnnouncementState | null
   }
 
   async upsertAnnouncementState(data: {
-    tenantId: string
-    announcementId: string
+    userId: number
+    announcementId: number
     seenPopup?: boolean
     interactedPopup?: boolean
     seenBanner?: boolean
     interactedBanner?: boolean
   }): Promise<void> {
-    await this.prisma.upward_tenant_announcement_state.upsert({
+    await this.prisma.upward_user_announcement_state.upsert({
       where: {
-        tenantId_announcementId: {
-          tenantId: data.tenantId,
+        userId_announcementId: {
+          userId: data.userId,
           announcementId: data.announcementId,
         },
       },
@@ -88,7 +88,7 @@ export class PrismaNotificationRepository implements NotificationRepository {
         interactedBanner: data.interactedBanner,
       },
       create: {
-        tenantId: data.tenantId,
+        userId: data.userId,
         announcementId: data.announcementId,
         seenPopup: data.seenPopup ?? false,
         interactedPopup: data.interactedPopup ?? false,
@@ -100,40 +100,40 @@ export class PrismaNotificationRepository implements NotificationRepository {
 
   // Direct Notifications
   async createNotification(data: {
-    tenantId: string
+    userId: number
     title: string
     message: string
     type: string
   }): Promise<Notification> {
     const record = await this.prisma.upward_notification.create({
       data: {
-        tenantId: data.tenantId,
+        userId: data.userId,
         title: data.title,
         message: data.message,
         type: data.type,
       },
     })
-    return record as Notification
+    return record as unknown as Notification
   }
 
-  async findTenantNotifications(tenantId: string): Promise<Notification[]> {
+  async findUserNotifications(userId: number): Promise<Notification[]> {
     const records = await this.prisma.upward_notification.findMany({
-      where: { tenantId },
+      where: { userId },
       orderBy: { createdAt: 'desc' },
     })
-    return records as Notification[]
+    return records as unknown as Notification[]
   }
 
-  async markNotificationAsRead(notificationId: string): Promise<void> {
+  async markNotificationAsRead(notificationId: number): Promise<void> {
     await this.prisma.upward_notification.update({
       where: { id: notificationId },
       data: { isRead: true },
     })
   }
 
-  async countUnreadNotifications(tenantId: string): Promise<number> {
+  async countUnreadNotifications(userId: number): Promise<number> {
     return this.prisma.upward_notification.count({
-      where: { tenantId, isRead: false },
+      where: { userId, isRead: false },
     })
   }
 }

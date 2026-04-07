@@ -21,7 +21,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     amount: t.amount,
     currency: 'NGN',
     status: t.status,
-    channel: 'Card',
+    channel: 'Paystack',
     paid_at: t.createdAt,
     paystack_reference: t.reference,
     company_name: t.narration || (t.type === 'RENT' ? 'Rent Payment' : 'Transfer'),

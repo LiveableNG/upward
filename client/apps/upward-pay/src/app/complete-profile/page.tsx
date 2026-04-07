@@ -5,14 +5,18 @@ import { useSearchParams } from 'next/navigation'
 import CompleteProfileContent from '@/features/onboarding/CompleteProfileContent'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 
-export default function CompleteProfilePage() {
+function CompleteProfileInner() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token') || undefined
   const email = searchParams.get('email') || undefined
 
+  return <CompleteProfileContent initialEmail={email} token={token} />
+}
+
+export default function CompleteProfilePage() {
   return (
     <Suspense fallback={<OnboardingSkeleton />}>
-      <CompleteProfileContent initialEmail={email} token={token} />
+      <CompleteProfileInner />
     </Suspense>
   )
 }

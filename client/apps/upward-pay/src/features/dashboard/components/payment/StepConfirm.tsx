@@ -9,6 +9,8 @@ export function StepConfirm({
   landlord,
   amount,
   narration,
+  paymentType = 'Rent Payment',
+  propertyAddress = '',
   onConfirm,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onBack,
@@ -21,6 +23,8 @@ export function StepConfirm({
   landlord: Landlord
   amount: number
   narration: string
+  paymentType?: string
+  propertyAddress?: string
   onConfirm: () => void
   onBack: () => void
   useSavings: boolean

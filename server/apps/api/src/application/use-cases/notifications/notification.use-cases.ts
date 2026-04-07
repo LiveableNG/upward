@@ -23,26 +23,26 @@ export class SendNotificationUseCase {
     private readonly notificationRepository: NotificationRepository,
   ) {}
 
-  async execute(data: { tenantId: string; title: string; message: string; type: string }) {
+  async execute(data: { userId: string; title: string; message: string; type: string }) {
     return this.notificationRepository.createNotification(data)
   }
 }
 
 @Injectable()
-export class GetTenantNotificationsUseCase {
+export class GetUserNotificationsUseCase {
   constructor(
     @Inject(NOTIFICATION_REPOSITORY)
     private readonly notificationRepository: NotificationRepository,
   ) {}
 
-  async execute(tenantId: string) {
+  async execute(userId: string) {
     // 1. Get active announcement
     const activeAnnouncement = await this.notificationRepository.findActiveAnnouncement()
 
     let activeAnnouncementWithState = null
     if (activeAnnouncement) {
       const state = await this.notificationRepository.getAnnouncementState(
-        tenantId,
+        userId,
         activeAnnouncement.id,
       )
       activeAnnouncementWithState = {
@@ -58,10 +58,10 @@ export class GetTenantNotificationsUseCase {
 
     // 2. Get personal notifications
     const personalNotifications =
-      await this.notificationRepository.findTenantNotifications(tenantId)
+      await this.notificationRepository.findUserNotifications(userId)
 
     // 3. Get unread count
-    const unreadCount = await this.notificationRepository.countUnreadNotifications(tenantId)
+    const unreadCount = await this.notificationRepository.countUnreadNotifications(userId)
 
     // Calculate un-interacted announcement count (if active and not interacted)
     const announcementUnread =
@@ -83,7 +83,7 @@ export class UpdateAnnouncementStateUseCase {
   ) {}
 
   async execute(data: {
-    tenantId: string
+    userId: string
     announcementId: string
     seenPopup?: boolean
     interactedPopup?: boolean

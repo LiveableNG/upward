@@ -4,7 +4,7 @@ import { PassportModule } from '@nestjs/passport'
 import { ConfigService } from '@nestjs/config'
 import { BaseAuthService } from './base-auth.service'
 import { AdminAuthService } from './admin-auth.service'
-import { TenantAuthService } from './tenant-auth.service'
+import { UserAuthService } from './user-auth.service'
 import { JwtStrategy } from './strategies/jwt.strategy'
 import { PrismaModule } from '@shared/infrastructure/prisma/prisma.module'
 
@@ -20,7 +20,7 @@ import { PrismaModule } from '@shared/infrastructure/prisma/prisma.module'
       }),
     }),
   ],
-  providers: [AdminAuthService, TenantAuthService, BaseAuthService, JwtStrategy],
-  exports: [AdminAuthService, TenantAuthService, BaseAuthService, JwtModule],
+  providers: [AdminAuthService, UserAuthService, BaseAuthService, JwtStrategy],
+  exports: [AdminAuthService, UserAuthService, BaseAuthService, JwtModule],
 })
 export class AuthModule {}

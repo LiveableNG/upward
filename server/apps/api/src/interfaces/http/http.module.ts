@@ -9,14 +9,11 @@ import { CampaignController } from './admin/campaign.controller'
 import { FairnessStoryController } from './public/fairness-story.controller'
 import { WaitlistController } from './public/waitlist.controller'
 import { LocationsController } from './public/locations.controller'
-import { TenantController } from './tenant/tenant.controller'
+import { UserController } from './user/user.controller'
 import { PaymentsController } from './public/payments.controller'
 import { AdminAnnouncementsController } from './admin/announcements.controller'
-import { TenantNotificationsController } from './tenant/notifications.controller'
+import { UserNotificationsController } from './user/notifications.controller'
 import { PublicProfileController } from './public/public-profile.controller'
-import { SavingsController } from './tenant/savings.controller'
-import { WalletController } from './tenant/wallet.controller'
-import { TenantContractsController } from './tenant/tenant-contracts.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule],
@@ -28,14 +25,12 @@ import { TenantContractsController } from './tenant/tenant-contracts.controller'
     FairnessStoryController,
     WaitlistController,
     LocationsController,
-    TenantController,
+    UserController,
     PaymentsController,
     AdminAnnouncementsController,
-    TenantNotificationsController,
+    UserNotificationsController,
     PublicProfileController,
-    SavingsController,
-    WalletController,
-    TenantContractsController,
+
   ],
 })
 export class HttpModule {}

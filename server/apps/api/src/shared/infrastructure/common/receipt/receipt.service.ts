@@ -9,6 +9,7 @@ export interface ReceiptPdfData {
   landlordName?: string
   propertyName?: string
   propertyAddress?: string
+  paymentType?: string
   amount: number
   currency: string
   reference: string
@@ -157,7 +158,7 @@ export class ReceiptService {
         { label: 'Receipt No.', value: data.receiptNumber },
         {
           label: 'Payment Type',
-          value: isSavings ? 'Savings Deposit' : data.title || 'Rent Payment',
+          value: isSavings ? 'Savings Deposit' : data.paymentType || data.title || 'Rent Payment',
         },
         { label: 'Channel', value: data.channel },
       ]
@@ -169,7 +170,7 @@ export class ReceiptService {
         : data.propertyName || data.propertyAddress || 'Rent Payment'
 
       if (data.type === 'RENT') {
-        rows.push({ label: 'Property', value: breakdownDesc })
+        rows.push({ label: 'Property', value: data.propertyAddress || breakdownDesc })
       }
       if (data.type === 'RENT' && data.landlordName) {
         rows.push({ label: 'Landlord', value: data.landlordName })

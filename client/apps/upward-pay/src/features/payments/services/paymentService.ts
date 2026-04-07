@@ -47,3 +47,45 @@ export async function toggleGuestPaymentStatus(token: string, status: string) {
     body: JSON.stringify({ status }),
   })
 }
+export async function getSavedLandlords() {
+  return request<any[]>('/payments/landlords', { method: 'GET' })
+}
+
+export async function saveLandlord(data: any) {
+  return request<any>('/payments/landlords', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function recordTransaction(data: any) {
+  return request<any>('/payments/transactions', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function getTransaction(id: string) {
+  return request<any>(`/payments/transactions/${id}`, { method: 'GET' })
+}
+
+export async function getTransactions() {
+  return request<any[]>('/payments/transactions', { method: 'GET' })
+}
+
+export async function getReceiptPdf(data: any) {
+  return request<{ url: string }>('/payments/transactions/receipt', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function getBanks() {
+  return request<any[]>('/payments/banks', { method: 'GET' })
+}
+
+export async function resolveAccount(accountNumber: string, bankCode: string) {
+  return request<any>(`/payments/verify-account?accountNumber=${accountNumber}&bankCode=${bankCode}`, {
+    method: 'GET',
+  })
+}

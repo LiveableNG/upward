@@ -18,6 +18,12 @@ export interface TenantProfile {
   creditScore: number
   profileSlug?: string | null
   isProfileComplete: boolean
+  reliabilityRank?: string
+  onTimePercentage?: number
+  earlyPaymentStreak?: number
+  savingsImpact?: number
+  city?: string
+  country?: string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   savingsGoals?: any[]
   profilePic?: string

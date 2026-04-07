@@ -303,6 +303,26 @@
   gap: var(--space-2);
 }
 
+.auth-form__link {
+  display: block;
+  width: fit-content;
+  margin: var(--space-4) auto 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--clay);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+}
+
+.auth-form__link:hover {
+  text-decoration: underline;
+  background: var(--clay-faint);
+}
+
 .auth-form__field label {
   font-size: 13px;
   font-weight: 500;
@@ -479,6 +499,69 @@
 
 .input-with-icon input::placeholder {
   color: var(--text-muted);
+}
+
+.password-toggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.password-toggle:hover {
+  color: var(--clay);
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.icon-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-circle--success {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.otp-input {
+  width: 100%;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border-solid);
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 24px;
+  letter-spacing: 0.5em;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.otp-input:focus {
+  border-color: var(--clay);
+  box-shadow: 0 0 0 3px var(--clay-faint);
 }
 
 /* ── Benefits List ── */

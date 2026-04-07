@@ -27,7 +27,7 @@ export interface ReceiptData {
   tenantName: string
   companyName: string
   companyLogo: string
-  propertyName: string
+  paymentType: string
   propertyAddress: string
   amount: number
   currency: string
@@ -302,7 +302,7 @@ export default function ReceiptTemplate({
                 whiteSpace: 'nowrap',
               }}
             >
-              {receipt.propertyName}
+              {receipt.paymentType}
             </span>
             {isActualBreakdown && (
               <span

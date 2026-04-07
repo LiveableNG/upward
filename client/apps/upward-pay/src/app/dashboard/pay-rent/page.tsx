@@ -20,6 +20,8 @@ export default function PayRentPage() {
   const [selectedLandlord, setSelectedLandlord] = useState<Landlord | null>(null)
   const [payAmount, setPayAmount] = useState(0)
   const [narration, setNarration] = useState('')
+  const [propertyAddress, setPropertyAddress] = useState('')
+  const [paymentType, setpaymentType] = useState('Rent Payment')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [lineItems, setLineItems] = useState<any[]>([])
   const [useSavings, setUseSavings] = useState(false)
@@ -33,6 +35,7 @@ export default function PayRentPage() {
       .then(([landlords, profile]) => {
         setSavedLandlords(landlords)
         if (profile?.email) setUserEmail(profile.email)
+        if (profile?.address) setPropertyAddress(profile.address)
       })
       .catch(() => {})
   }, [])
@@ -68,6 +71,8 @@ export default function PayRentPage() {
         narration: narration || `Rent payment to ${selectedLandlord?.name}`,
         landlordId: selectedLandlord?.id,
         lineItems: lineItems.length > 0 ? lineItems : undefined,
+        paymentType,
+        propertyAddress,
       })
       if (res?.id) {
         setLastTxId(res.id)
@@ -139,9 +144,13 @@ export default function PayRentPage() {
           {payAmount === 0 ? (
             <StepAmount
               landlord={selectedLandlord}
-              onContinue={(amt, nar, items) => {
+              initialPropertyAddress={propertyAddress}
+              initialPaymentType={paymentType}
+              onContinue={(amt, nar, addr, name, items) => {
                 setPayAmount(amt)
                 setNarration(nar)
+                setPropertyAddress(addr)
+                setpaymentType(name)
                 if (items) setLineItems(items)
               }}
               onBack={() => setStep('select')}
@@ -151,6 +160,8 @@ export default function PayRentPage() {
               landlord={selectedLandlord}
               amount={payAmount}
               narration={narration}
+              paymentType={paymentType}
+              propertyAddress={propertyAddress}
               useSavings={useSavings}
               onToggleSavings={setUseSavings}
               savingsBalance={savingsBalance}
@@ -167,6 +178,8 @@ export default function PayRentPage() {
           email={userEmail}
           amount={amountToDebit}
           companyName={selectedLandlord.name}
+          paymentType={paymentType}
+          propertyAddress={propertyAddress}
           onSuccess={handleCheckoutSuccess}
           onClose={() => setStep('confirm')}
           lineItems={lineItems}
