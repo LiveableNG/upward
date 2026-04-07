@@ -25,7 +25,7 @@ const inputStyle: React.CSSProperties = {
   background: 'none',
   border: 'none',
   padding: '14px 0',
-  fontSize: 15,
+  fontSize: 14,
   fontFamily: 'var(--font)',
   color: 'var(--text)',
   outline: 'none',
@@ -46,16 +46,22 @@ const COMMON_LABELS = [
 
 export function StepAmount({
   landlord,
+  initialPaymentType = 'Rent Payment',
+  initialPropertyAddress = '',
   onContinue,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onBack,
 }: {
   landlord: Landlord
-  onContinue: (amount: number, narration: string, lineItems?: LineItem[]) => void
+  initialPaymentType?: string
+  initialPropertyAddress?: string
+  onContinue: (amount: number, narration: string, propertyAddress: string, propertyName: string, lineItems?: LineItem[]) => void
   onBack?: () => void
 }) {
   const [amount, setAmount] = useState(landlord.lastAmount > 0 ? String(landlord.lastAmount) : '')
   const [narration, setNarration] = useState('')
+  const [propertyAddress, setPropertyAddress] = useState(initialPropertyAddress)
+  const [paymentType, setPaymentType] = useState(initialPaymentType)
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { label: 'Rent', amount: landlord.lastAmount > 0 ? landlord.lastAmount : 0 },
@@ -316,6 +322,33 @@ export function StepAmount({
         </button>
       </div>
 
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        <div>
+          <label style={labelStyle}>Payment Type</label>
+          <div style={inputWrapStyle}>
+            <input
+              type="text"
+              placeholder="e.g. Rent Payment"
+              value={paymentType}
+              onChange={(e) => setPaymentType(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+        </div>
+        <div>
+          <label style={labelStyle}>Property Address</label>
+          <div style={inputWrapStyle}>
+            <input
+              type="text"
+              placeholder="Fetched from profile"
+              value={propertyAddress}
+              onChange={(e) => setPropertyAddress(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+        </div>
+      </div>
+
       <div style={{ marginBottom: 28 }}>
         <label style={labelStyle}>
           Narration <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span>
@@ -333,7 +366,7 @@ export function StepAmount({
 
       <button
         disabled={!canProceed}
-        onClick={() => onContinue(Number(amount), narration, showBreakdown ? lineItems : undefined)}
+        onClick={() => onContinue(Number(amount), narration, propertyAddress, paymentType, showBreakdown ? lineItems : undefined)}
         className="btn btn--primary btn--full"
         style={{ opacity: canProceed ? 1 : 0.4, marginBottom: 12, height: 52 }}
       >

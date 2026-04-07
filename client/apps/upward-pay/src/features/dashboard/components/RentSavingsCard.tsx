@@ -82,9 +82,9 @@ export function RentSavingsCard({
             </span>
           ) : (
             <span
-              className="dashboard__email"
+              
               onClick={onConfigureGoal}
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: 'pointer', color: 'var(--clay)'}}
             >
               Set a goal
             </span>

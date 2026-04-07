@@ -130,7 +130,7 @@ export function TransactionList() {
                         <div className="transaction-item__name">{tx.company_name}</div>
                         <div className="transaction-item__meta">
                           <span className="transaction-item__channel">
-                            {tx.channel || 'Card'} · {formatTime(tx.paid_at)}
+                            {tx.channel || 'Paystack'} · {formatTime(tx.paid_at)}
                           </span>
                           <span
                             className={`transaction-item__type-badge ${isCredit ? 'transaction-item__type-badge--credit' : 'transaction-item__type-badge--debit'}`}

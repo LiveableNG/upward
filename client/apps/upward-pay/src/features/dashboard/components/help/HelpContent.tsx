@@ -45,30 +45,6 @@ export function HelpContent() {
       <PageHeader title="Customer Service" showBack backPath="/dashboard" showSettings={false} />
 
       <section className="help-section">
-        <div className="contact-quick-cards">
-          <div
-            className="contact-card theme-card"
-            onClick={() => (window.location.href = 'mailto:hello@goodtenants.africa')}
-          >
-            <div className="contact-card__icon-wrap">
-              <Mail size={18} />
-            </div>
-            <div className="contact-card__info">
-              <span className="contact-card__label">Email Support</span>
-              <span className="contact-card__val">Available 24/7</span>
-            </div>
-          </div>
-          <div className="contact-card theme-card">
-            <div className="contact-card__icon-wrap">
-              <Clock size={18} />
-            </div>
-            <div className="contact-card__info">
-              <span className="contact-card__label">Office Hours</span>
-              <span className="contact-card__val">MON-FRI, 9AM-5PM</span>
-            </div>
-          </div>
-        </div>
-
         <div className="help-tabs">
           <button
             className={`help-tab ${activeTab === 'faq' ? 'help-tab--active' : ''}`}

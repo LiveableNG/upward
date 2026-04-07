@@ -16,11 +16,10 @@ import {
   SaveLandlordUseCase,
   GetSavedLandlordsUseCase,
   RecordTransactionUseCase,
-  ProcessGuestPaymentTokenUseCase,
   GetBanksUseCase,
   VerifyAccountUseCase,
   GetTransactionUseCase,
-  GetTenantTransactionsUseCase,
+  GetUserTransactionsUseCase,
   GenerateReceiptPdfUseCase,
 } from '@application/use-cases/payments/payment.use-cases'
 
@@ -30,39 +29,34 @@ export class PaymentsController {
     private readonly saveLandlordUc: SaveLandlordUseCase,
     private readonly getSavedLandlordsUc: GetSavedLandlordsUseCase,
     private readonly recordTransactionUc: RecordTransactionUseCase,
-    private readonly processGuestTokenUc: ProcessGuestPaymentTokenUseCase,
     private readonly getBanksUc: GetBanksUseCase,
     private readonly verifyAccountUc: VerifyAccountUseCase,
     private readonly getTxUc: GetTransactionUseCase,
-    private readonly getTenantTxsUc: GetTenantTransactionsUseCase,
+    private readonly getUserTxsUc: GetUserTransactionsUseCase,
     private readonly generateReceiptPdfUc: GenerateReceiptPdfUseCase,
   ) {}
 
   @UseGuards(JwtAuthGuard)
   @Get('transactions')
-  async getTenantTransactions(@Req() req: any) {
-    const tenantId = req.user.id
-    return this.getTenantTxsUc.execute(tenantId)
+  async getUserTransactions(@Req() req: any) {
+    const userId = req.user.id
+    return this.getUserTxsUc.execute(userId)
   }
 
-  @Get('request/:token')
-  async getPaymentRequestFromToken(@Param('token') token: string) {
-    return this.processGuestTokenUc.execute(token)
-  }
 
   @UseGuards(JwtAuthGuard)
   @Get('landlords')
   async getSavedLandlords(@Req() req: any) {
-    const tenantId = req.user.id
-    return this.getSavedLandlordsUc.execute(tenantId)
+    const userId = req.user.id
+    return this.getSavedLandlordsUc.execute(userId)
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('landlords')
   async saveLandlord(@Req() req: any, @Body() body: any) {
-    const tenantId = req.user.id
+    const userId = req.user.id
     return this.saveLandlordUc.execute({
-      tenantId,
+      userId,
       name: body.name,
       accountName: body.accountName,
       accountNumber: body.accountNumber,
@@ -76,9 +70,9 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard)
   @Post('transactions')
   async recordTransaction(@Req() req: any, @Body() body: any) {
-    const tenantId = req.user.id
+    const userId = req.user.id
     return this.recordTransactionUc.execute({
-      tenantId,
+      userId,
       type: body.type || 'RENT',
       status: body.status || 'SUCCESS',
       amount: body.amount,
@@ -86,6 +80,8 @@ export class PaymentsController {
       narration: body.narration,
       landlordId: body.landlordId,
       lineItems: body.lineItems,
+      paymentType: body.paymentType,
+      propertyAddress: body.propertyAddress,
     })
   }
 

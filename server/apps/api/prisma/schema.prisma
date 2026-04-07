@@ -193,54 +193,46 @@ model upward_fairness_story {
   @@index([createdAt])
 }
 
-model upward_tenant {
-  id           String   @id @default(uuid())
-  email        String   @unique
+model upward_user {
+  id           Int   @id @default(autoincrement())
+  uuid          String   @unique @default(uuid())
   passwordHash String
-  fullName     String
-  phone        String?
+
+  emailHash    String   @unique
+  email        String   /// @encrypted
+  firstName    String   /// @encrypted
+  lastName     String   /// @encrypted
+  phone        String?  /// @encrypted
+  phoneHash    String?
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  invitedByCompanyId     String?
-  invitedByCompanyName   String?
-  invitedByCompanyLogo   String?
   rentAnniversary        DateTime?
   address                String?
   occupation             String?
   gender                 String?
   dateOfBirth            String?
   isConvertedFromWaitlist Boolean @default(false)
-  isGuest                Boolean @default(false)
-  hasDismissedAppBanner  Boolean @default(false)
-  savingsBalance         Float   @default(0)
-  savingsGoal            Float   @default(0)
-  creditScore            Int      @default(300)
   profileSlug            String?  @unique
   bio                    String?  @db.Text
-  isProfileComplete      Boolean  @default(false)
-  reliabilityRank        String   @default("A")
-  onTimePercentage       Float    @default(100)
-  earlyPaymentStreak     Int      @default(0)
-  savingsImpact          Float    @default(0)
   profilePic             String?
-  showSavings            Boolean  @default(true)
   useBiometrics          Boolean  @default(false)
+  resetPasswordOTP       String?
+  resetPasswordExpires   DateTime?
 
-  announcementStates upward_tenant_announcement_state[]
+  announcementStates upward_user_announcement_state[]
   notifications      upward_notification[]
-
-  wallet             upward_wallet?
-  savingsGoals       upward_savings_goal[]
-  contracts          upward_contract[]
+  paymentRequests    upward_payment_request[]
 
   @@index([email])
   @@index([createdAt])
 }
 
 model upward_saved_landlord {
-  id            String   @id @default(uuid())
-  tenantId      String
+  id            Int   @id @default(autoincrement())
+  uuid          String   @unique @default(uuid())
+  userId      Int
   name          String
   accountName   String
   accountNumber String
@@ -251,73 +243,40 @@ model upward_saved_landlord {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  @@index([tenantId])
+  @@index([userId])
 }
 
-model upward_wallet {
-  id            String   @id @default(uuid())
-  tenantId      String   @unique
-  balance       Float    @default(0)
-  accountNumber String?
-  accountName   String?
-  bankName      String?
-  bankCode      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  tenant       upward_tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  transactions upward_transaction[]
-}
-
-model upward_savings_goal {
-  id            String   @id @default(uuid())
-  tenantId      String
-  name          String
-  targetAmount  Float
-  currentAmount Float    @default(0)
-  startDate     DateTime @default(now())
-  endDate       DateTime?
-  status        String   @default("ACTIVE") // ACTIVE, COMPLETED, CANCELLED
-  
-  reminderEnabled   Boolean  @default(false)
-  reminderFrequency String?  // DAILY, WEEKLY, BI_WEEKLY, MONTHLY, TWO_DAYS
-  reminderDay       Int?     // Day of month (1-31) or weekday (0-6)
-  autoSaveEnabled   Boolean  @default(false)
-  autoSaveAmount    Float?
-
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  tenant        upward_tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  transactions  upward_transaction[]
-}
 
 model upward_transaction {
-  id            String   @id @default(uuid())
-  tenantId      String
+  id            Int   @id @default(autoincrement())
+  uuid          String   @unique @default(uuid())
+  userId      Int
   type          String   @default("RENT") // RENT, SAVINGS, WALLET_DEPOSIT, WALLET_WITHDRAWAL, GOAL_ALLOCATION
   status        String   @default("PENDING") // PENDING, SUCCESS, FAILED
   amount        Float
   reference     String   @unique
   narration     String?
   landlordId    String?
+  paymentType   String?
+  propertyAddress String?
   lineItems     Json?
-  walletId      String?
-  goalId        String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  wallet        upward_wallet? @relation(fields: [walletId], references: [id])
   goal          upward_savings_goal? @relation(fields: [goalId], references: [id])
+  paymentRequestId Int?
+  paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
 
-  @@index([tenantId])
+  @@index([userId])
   @@index([reference])
   @@index([walletId])
   @@index([goalId])
+  @@index([paymentRequestId])
 }
 
 model upward_announcement {
-  id        String   @id @default(uuid())
+  id        Int   @id @default(autoincrement())
+  uuid          String   @unique @default(uuid())
   title     String
   message   String   @db.Text
   iconType  String   @default("sparkles") // sparkles, clock, target, etc.
@@ -325,16 +284,17 @@ model upward_announcement {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  states    upward_tenant_announcement_state[]
+  states    upward_user_announcement_state[]
 
   @@index([isActive])
   @@index([createdAt])
 }
 
-model upward_tenant_announcement_state {
-  id               String   @id @default(uuid())
-  tenantId         String
-  announcementId   String
+model upward_user_announcement_state {
+  id               Int   @id @default(autoincrement())
+  uuid          String   @unique @default(uuid())
+  userId         Int
+  announcementId   Int
   seenPopup        Boolean  @default(false)
   interactedPopup  Boolean  @default(false)
   seenBanner       Boolean  @default(false)
@@ -343,15 +303,16 @@ model upward_tenant_announcement_state {
   updatedAt        DateTime @updatedAt
 
   announcement     upward_announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
-  tenant           upward_tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user             upward_user       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([tenantId, announcementId])
-  @@index([tenantId])
+  @@unique([userId, announcementId])
+  @@index([userId])
 }
 
 model upward_notification {
-  id        String   @id @default(uuid())
-  tenantId  String
+  id        Int   @id @default(autoincrement())
+  uuid          String   @unique @default(uuid())
+  userId  Int
   title     String
   message   String   @db.Text
   type      String   @default("SYSTEM") // SYSTEM, SUPPORT, PAYMENT
@@ -359,28 +320,113 @@ model upward_notification {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant    upward_tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
+  @@index([userId])
   @@index([isRead])
   @@index([createdAt])
 }
 
-model upward_contract {
-  id           String   @id @default(uuid())
-  tenantId     String
-  name         String
-  url          String
-  type         String
-  size         Int
-  propertyName String?
-  leaseEnd     DateTime?
-  status       String   @default("ACTIVE") // ACTIVE, ARCHIVED
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
 
-  tenant       upward_tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+model upward_payment_request {
+  id            Int   @id @default(autoincrement())
+  uuid          String   @unique @default(uuid())
+  userId      Int
+  userPropertyId Int?
+  landlordId    String?
+  amount        Float
+  currency      String   @default("NGN")
+  description   String?
+  dueDate       DateTime
+  status        String   @default("PENDING") // PENDING, PAID, CANCELLED
+  paidAt        DateTime?
+  reference     String?  @unique // Reference to the successful transaction if paid
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  @@index([tenantId])
+  user          upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  upward_transaction[]
+
+  @@index([userId])
+  @@index([status])
 }
 
+
+
+model upward_company {
+  id              Int      @id @default(autoincrement())
+  uuid            String   @unique @default(uuid())
+  name            String
+  address         String?
+  webhookUrl      String?
+  apiKey          String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  companyUsers    upward_company_user[]
+  properties      upward_user_property[]
+  managers        upward_manager[]
+}
+
+model upward_company_user {
+  id              Int      @id @default(autoincrement())
+  uuid            String   @unique @default(uuid())
+  companyId       Int
+  userId          Int
+  invitedAt       DateTime @default(now())
+  acceptedAt      DateTime?
+  
+  company         upward_company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user            upward_user    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, userId])
+}
+
+model upward_manager {
+  id              Int      @id @default(autoincrement())
+  uuid            String   @unique @default(uuid())
+  companyId       Int
+  firstName       String   /// @encrypted
+  lastName        String   /// @encrypted
+  phone           String?  /// @encrypted
+  email           String   /// @encrypted
+  emailHash       String   @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company         upward_company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  properties      upward_user_property[]
+}
+
+model upward_location {
+  id              Int      @id @default(autoincrement())
+  uuid            String   @unique @default(uuid())
+  country         String
+  state           String
+  area            String
+  subarea         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  properties      upward_user_property[]
+}
+
+model upward_user_property {
+  id              Int      @id @default(autoincrement())
+  uuid            String   @unique @default(uuid())
+  userId          Int
+  companyId       Int
+  managerId       Int?
+  locationId      Int?
+  rentAmount      Float    @default(0)
+  rentStartDate   DateTime?
+  rentEndDate     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            upward_user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company         upward_company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  manager         upward_manager? @relation(fields: [managerId], references: [id])
+  location        upward_location?@relation(fields: [locationId], references: [id])
+  paymentRequests upward_payment_request[]
+}

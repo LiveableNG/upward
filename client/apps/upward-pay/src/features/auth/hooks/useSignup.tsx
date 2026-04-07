@@ -3,24 +3,44 @@ import { useRouter } from 'next/navigation'
 import { signup as authSignup } from '../services/authService'
 import { useAuth } from '../AuthContext'
 
-export function useSignup(redirect: string = '/dashboard') {
+export function useSignup(redirect: string = '/dashboard', onSuccess?: () => void) {
   const router = useRouter()
   const { login: setAuthUser } = useAuth()
   const queryClient = useQueryClient()
 
   const signupMutation = useMutation({
-    mutationFn: (data: { email: string; password: string; fullName: string; phone?: string }) =>
-      authSignup(data),
+    mutationFn: (data: { 
+      email: string; 
+      password: string; 
+      fullName: string; 
+      phone?: string;
+      rentAnniversary?: string;
+      address?: string;
+      city?: string;
+      country?: string;
+    }) => authSignup(data),
     onSuccess: (result) => {
       setAuthUser(result.tenant)
       queryClient.setQueryData(['user'], result.tenant)
-      router.push(redirect)
+      if (onSuccess) {
+        onSuccess()
+      } else {
+        router.push(redirect)
+      }
     },
   })
 
   return {
-    signup: (data: { email: string; password: string; fullName: string; phone?: string }) =>
-      signupMutation.mutate(data),
+    signup: (data: { 
+      email: string; 
+      password: string; 
+      fullName: string; 
+      phone?: string;
+      rentAnniversary?: string;
+      address?: string;
+      city?: string;
+      country?: string;
+    }) => signupMutation.mutate(data),
     loading: signupMutation.isPending,
     error: signupMutation.error instanceof Error ? signupMutation.error.message : '',
   }

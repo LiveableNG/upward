@@ -6,7 +6,7 @@ const prisma = new PrismaClient()
 async function main() {
   try {
     console.log('--- Tenants ---')
-    const tenants = await prisma.upward_tenant.findMany({ take: 5, orderBy: { createdAt: 'desc' } })
+    const tenants = await prisma.upward_user.findMany({ take: 5, orderBy: { createdAt: 'desc' } })
     console.table(tenants.map((t) => ({ id: t.id.slice(0, 8), email: t.email, name: t.fullName })))
 
     console.log('\n--- Announcements ---')
@@ -19,7 +19,7 @@ async function main() {
     )
 
     console.log('\n--- Announcement User States ---')
-    const states = await prisma.upward_tenant_announcement_state.findMany({
+    const states = await prisma.upward_user_announcement_state.findMany({
       take: 10,
       orderBy: { updatedAt: 'desc' },
     })

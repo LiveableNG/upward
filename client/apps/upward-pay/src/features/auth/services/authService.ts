@@ -6,6 +6,10 @@ export async function signup(data: {
   password: string
   fullName: string
   phone?: string
+  rentAnniversary?: string
+  address?: string
+  city?: string
+  country?: string
 }) {
   return request<AuthResponse>('/tenant/auth/signup', {
     method: 'POST',
@@ -34,7 +38,7 @@ export async function updateProfile(data: Partial<TenantProfile>) {
 
 export async function completeProfile(data: {
   email: string
-  password: string
+  password?: string
   fullName: string
   phone?: string
   dateOfBirth?: string
@@ -45,8 +49,24 @@ export async function completeProfile(data: {
   invitedByCompanyLogo?: string
   rentAnniversary?: string
   address?: string
+  city?: string
+  country?: string
+  profilePic?: string
 }) {
   return request<AuthResponse>('/tenant/auth/complete-profile', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+export async function forgotPassword(email: string) {
+  return request<{ success: boolean; message: string }>('/tenant/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export async function resetPassword(data: { email: string; otp: string; new: string }) {
+  return request<{ success: boolean; message: string }>('/tenant/auth/reset-password', {
     method: 'POST',
     body: JSON.stringify(data),
   })

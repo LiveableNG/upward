@@ -10,6 +10,7 @@ export class PrismaWaitlistRepository implements WaitlistRepository {
 
   private toDomain(model: upward_waitlist): WaitlistEntry {
     const props: WaitlistEntryProps = {
+      uuid: model.uuid,
       email: model.email,
       firstName: model.firstName,
       lastName: model.lastName,
@@ -36,9 +37,16 @@ export class PrismaWaitlistRepository implements WaitlistRepository {
     return WaitlistEntry.reconstitute(model.id, props)
   }
 
-  async findById(id: string): Promise<WaitlistEntry | null> {
+  async findById(id: number): Promise<WaitlistEntry | null> {
     const record = await this.prisma.upward_waitlist.findUnique({
       where: { id },
+    })
+    return record ? this.toDomain(record) : null
+  }
+
+  async findByUuid(uuid: string): Promise<WaitlistEntry | null> {
+    const record = await this.prisma.upward_waitlist.findUnique({
+      where: { uuid },
     })
     return record ? this.toDomain(record) : null
   }
@@ -51,7 +59,6 @@ export class PrismaWaitlistRepository implements WaitlistRepository {
     take?: number
     skip?: number
   }): Promise<WaitlistEntry[]> {
-    // Basic implementation for now, should map complex queries
     const records = await this.prisma.upward_waitlist.findMany({
       where: params?.where || {},
       orderBy: params?.orderBy,
@@ -73,6 +80,7 @@ export class PrismaWaitlistRepository implements WaitlistRepository {
     const id = entry.getId
 
     const data = {
+      uuid: props.uuid,
       email: props.email,
       firstName: props.firstName,
       lastName: props.lastName,
@@ -96,14 +104,19 @@ export class PrismaWaitlistRepository implements WaitlistRepository {
       unsubscribedAt: props.unsubscribedAt,
     }
 
-    await this.prisma.upward_waitlist.upsert({
-      where: { id },
-      update: data,
-      create: { ...data, id },
-    })
+    if (id === 0) {
+      await this.prisma.upward_waitlist.create({
+        data: data,
+      })
+    } else {
+      await this.prisma.upward_waitlist.update({
+        where: { id },
+        data: data,
+      })
+    }
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: number): Promise<void> {
     await this.prisma.upward_waitlist.delete({
       where: { id },
     })

@@ -1,10 +1,17 @@
 import { request } from '@/lib/api-client'
-import { type DocumentsData, type ReceiptData } from '../types'
 
 export async function getMyDocuments() {
-  return request<DocumentsData>('/documents/mine')
+  return { receipts: [], contracts: [] }
 }
 
-export async function getReceipt(uuid: string) {
-  return request<ReceiptData>(`/documents/receipt/${uuid}`)
+export async function getContracts() {
+  return request<any[]>('/tenant/contracts', { method: 'GET' })
+}
+
+export async function uploadContract(formData: FormData) {
+  return request<any>('/tenant/contracts/upload', {
+    method: 'POST',
+    body: formData,
+    headers: {}, // Browser set boundary
+  })
 }

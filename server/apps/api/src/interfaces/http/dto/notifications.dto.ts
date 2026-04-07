@@ -9,7 +9,7 @@ export enum NotificationType {
 export class CreateNotificationDto {
   @IsString()
   @IsNotEmpty()
-  tenantId!: string
+  userId!: string
 
   @IsString()
   @IsNotEmpty()

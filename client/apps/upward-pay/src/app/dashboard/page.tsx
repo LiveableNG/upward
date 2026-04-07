@@ -155,11 +155,8 @@ export default function DashboardPage() {
           )}
 
           <RentCredibilityScore
-            isNewUser={isNewUser}
-            credScore={tenant.creditScore || (isNewUser ? 0 : 300)}
-            credPercentage={Math.min(((tenant.creditScore || 0) / 1000) * 100, 100)}
-            onShowPayRent={() => setShowPayRent(true)}
-            onShowSavingsGoal={() => setShowSavingsGoalModal(true)}
+            tenant={tenant}
+            onShowPayRent={() => router.push('/dashboard/pay-rent')}
           />
 
           {!isNewUser && <ShareCredibility profileSlug={tenant.profileSlug} />}

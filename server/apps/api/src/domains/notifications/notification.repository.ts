@@ -1,5 +1,6 @@
 export interface Announcement {
-  id: string
+  id: number
+  uuid: string
   title: string
   message: string
   iconType: string
@@ -8,10 +9,11 @@ export interface Announcement {
   updatedAt: Date
 }
 
-export interface TenantAnnouncementState {
-  id: string
-  tenantId: string
-  announcementId: string
+export interface UserAnnouncementState {
+  id: number
+  uuid: string
+  userId: number
+  announcementId: number
   seenPopup: boolean
   interactedPopup: boolean
   seenBanner: boolean
@@ -21,8 +23,9 @@ export interface TenantAnnouncementState {
 }
 
 export interface Notification {
-  id: string
-  tenantId: string
+  id: number
+  uuid: string
+  userId: number
   title: string
   message: string
   type: string
@@ -44,12 +47,12 @@ export interface NotificationRepository {
 
   // Announcement State (User interactions)
   getAnnouncementState(
-    tenantId: string,
-    announcementId: string,
-  ): Promise<TenantAnnouncementState | null>
+    userId: number,
+    announcementId: number,
+  ): Promise<UserAnnouncementState | null>
   upsertAnnouncementState(data: {
-    tenantId: string
-    announcementId: string
+    userId: number
+    announcementId: number
     seenPopup?: boolean
     interactedPopup?: boolean
     seenBanner?: boolean
@@ -58,14 +61,14 @@ export interface NotificationRepository {
 
   // Direct Notifications
   createNotification(data: {
-    tenantId: string
+    userId: number
     title: string
     message: string
     type: string
   }): Promise<Notification>
-  findTenantNotifications(tenantId: string): Promise<Notification[]>
-  markNotificationAsRead(notificationId: string): Promise<void>
-  countUnreadNotifications(tenantId: string): Promise<number>
+  findUserNotifications(userId: number): Promise<Notification[]>
+  markNotificationAsRead(notificationId: number): Promise<void>
+  countUnreadNotifications(userId: number): Promise<number>
 }
 
 export const NOTIFICATION_REPOSITORY = Symbol('NOTIFICATION_REPOSITORY')

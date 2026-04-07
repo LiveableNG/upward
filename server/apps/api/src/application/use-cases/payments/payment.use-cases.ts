@@ -13,8 +13,6 @@ import {
   SavedLandlord,
   Transaction,
 } from '@domains/payments/payment.repository'
-import { EVENT_BUS, EventBus } from '@application/events/domain-event'
-import { TransactionCompletedEvent } from '@application/events/definition/transaction-completed.event'
 
 @Injectable()
 export class SaveLandlordUseCase {
@@ -35,8 +33,8 @@ export class GetSavedLandlordsUseCase {
     private readonly landlordRepo: ISavedLandlordRepository,
   ) {}
 
-  async execute(tenantId: string) {
-    return this.landlordRepo.findByTenantId(tenantId)
+  async execute(userId: string) {
+    return this.landlordRepo.findByUserId(userId)
   }
 }
 
@@ -49,8 +47,6 @@ export class RecordTransactionUseCase {
     private readonly txRepo: ITransactionRepository,
     @Inject(PAYMENT_GATEWAY)
     private readonly gateway: IPaymentGateway,
-    @Inject(EVENT_BUS)
-    private readonly eventBus: EventBus,
   ) {}
 
   async execute(data: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) {
@@ -81,20 +77,6 @@ export class RecordTransactionUseCase {
 
       const result = await this.txRepo.create(txData)
       this.logger.log(`Transaction recorded successfully with ID: ${result.id}`)
-
-      if (isVerified) {
-        this.eventBus.publish(
-          new TransactionCompletedEvent(
-            result.id,
-            result.tenantId,
-            result.type,
-            result.amount,
-            result.reference,
-            result.status,
-            result.createdAt,
-          ),
-        )
-      }
 
       return result
     } catch (error) {
@@ -129,14 +111,14 @@ export class GetTransactionUseCase {
 }
 
 @Injectable()
-export class GetTenantTransactionsUseCase {
+export class GetUserTransactionsUseCase {
   constructor(
     @Inject(TRANSACTION_REPOSITORY)
     private readonly txRepo: ITransactionRepository,
   ) {}
 
-  async execute(tenantId: string) {
-    return this.txRepo.findByTenantId(tenantId)
+  async execute(userId: string) {
+    return this.txRepo.findByUserId(userId)
   }
 }
 
@@ -151,44 +133,17 @@ export class VerifyAccountUseCase {
     return this.gateway.verifyAccountNumber(accountNumber, bankCode)
   }
 }
-
-@Injectable()
-export class ProcessGuestPaymentTokenUseCase {
-  async execute(_token: string) {
-    // MOCK DECODER logic here as per user request.
-    return {
-      companyName: 'Livable Properties',
-      companyAddress: '12-14 Kingsway Road, Ikoyi, Lagos',
-      role: 'Property Manager',
-      totalAmount: 450000,
-      tenantFirstName: 'Guest',
-      tenantLastName: 'User',
-      tenantEmail: 'guest@example.com',
-      companyBankName: 'Guaranty Trust Bank',
-      companyBankCode: '058',
-      companyAccountNumber: '0123456789',
-      invoiceNumber: 'INV-REQ',
-      lineItems: [
-        { label: 'Annual Rent', amount: 400000 },
-        { label: 'Service Charge', amount: 50000 },
-      ],
-    }
-  }
-}
-
 @Injectable()
 export class GenerateReceiptPdfUseCase {
   constructor(private readonly receiptService: ReceiptService) {}
 
   async execute(data: ReceiptPdfData): Promise<string> {
-    // Ensure paidAt is a Date object (if stringified by JSON transport)
     if (data.paidAt && typeof data.paidAt === 'string') {
       data.paidAt = new Date(data.paidAt)
     }
 
     const buffer = await this.receiptService.generateReceiptPdf(data)
 
-    // Simply convert to base64 and return as data URI
     const base64 = buffer.toString('base64')
     return `data:application/pdf;base64,${base64}`
   }

@@ -11,6 +11,8 @@ interface PaystackEmbeddedProps {
   currency?: string
   reference?: string
   companyName: string
+  paymentType?: string
+  propertyAddress?: string
   onSuccess: (reference: string) => void
   onClose: () => void
   //eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,6 +28,8 @@ export default function PaystackEmbeddedCheckout({
   currency = 'NGN',
   reference,
   companyName,
+  paymentType,
+  propertyAddress,
   onSuccess,
   onClose,
   metadata = {},
@@ -38,7 +42,7 @@ export default function PaystackEmbeddedCheckout({
     const description =
       lineItems.length > 0
         ? `Breakdown: ${lineItems.map((item) => `${item.label} (N${item.amount.toLocaleString()})`).join(', ')}`
-        : `Rent payment to ${companyName}`
+        : `${paymentType || 'Rent payment'} for ${propertyAddress || companyName}`
 
     return {
       reference: reference || generateId('UPW'),

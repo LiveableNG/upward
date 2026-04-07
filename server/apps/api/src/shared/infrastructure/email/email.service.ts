@@ -327,4 +327,44 @@ export class EmailService {
       this.bugsnag.notify(error, { email: recipientEmail, type: 'DAILY_ANALYTICS' })
     }
   }
+
+  async sendPasswordResetOTP(email: string, fullName: string, otp: string) {
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
+
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: #f9fafb; padding: 40px; border-radius: 16px;">
+        <div style="margin-bottom:32px;">
+          <span style="color:#d97757;font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Upward</span>
+          <div style="color:#6B7280;font-size:12px;margin-top:4px;">by GoodTenants</div>
+        </div>
+        <h2 style="color: #111827; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">Password Reset Request</h2>
+        <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Hello ${fullName},</p>
+        <p style="font-size: 16px; color: #4b5563;">We received a request to reset your password. Use the code below to proceed. This code expires in 15 minutes.</p>
+        
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 32px; border-radius: 12px; margin: 32px 0; text-align: center;">
+          <div style="font-size: 11px; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 12px;">Verification Code</div>
+          <div style="font-size: 48px; font-weight: 800; color: #d97757; letter-spacing: 0.1em; line-height: 1;">${otp}</div>
+        </div>
+
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5;">
+          If you didn't request this, you can safely ignore this email. Someone may have typed your email address by mistake.
+        </p>
+      </div>
+    `
+
+    try {
+      await this.mg.messages.create(domain, {
+        from,
+        to: [email],
+        subject: `Your Upward Password Reset Code: ${otp}`,
+        html,
+      })
+      this.logger.log(`Password reset OTP sent to ${email}`)
+    } catch (error) {
+      this.logger.error(`Failed to send password reset OTP to ${email}`, error)
+      this.bugsnag.notify(error, { email, type: 'PASSWORD_RESET' })
+      throw error
+    }
+  }
 }

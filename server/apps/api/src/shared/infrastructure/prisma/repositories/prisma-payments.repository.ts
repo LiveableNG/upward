@@ -12,11 +12,11 @@ export class PrismaSavedLandlordRepository implements ISavedLandlordRepository {
   constructor(private prisma: PrismaService) {}
 
   async create(
-    data: Omit<SavedLandlord, 'id' | 'createdAt' | 'updatedAt'>,
+    data: Omit<SavedLandlord, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
   ): Promise<SavedLandlord> {
     const res = await this.prisma.upward_saved_landlord.create({
       data: {
-        tenantId: data.tenantId,
+        userId: data.userId,
         name: data.name,
         accountName: data.accountName,
         accountNumber: data.accountNumber,
@@ -30,22 +30,22 @@ export class PrismaSavedLandlordRepository implements ISavedLandlordRepository {
       ...res,
       lastAmount: res.lastAmount ?? undefined,
       lastPaid: res.lastPaid ?? undefined,
-    } as SavedLandlord
+    } as unknown as SavedLandlord
   }
 
-  async findByTenantId(tenantId: string): Promise<SavedLandlord[]> {
+  async findByUserId(userId: number): Promise<SavedLandlord[]> {
     const res = await this.prisma.upward_saved_landlord.findMany({
-      where: { tenantId },
+      where: { userId },
       orderBy: { lastPaid: 'desc' },
     })
     return res.map((r) => ({
       ...r,
       lastAmount: r.lastAmount ?? undefined,
       lastPaid: r.lastPaid ?? undefined,
-    })) as SavedLandlord[]
+    })) as unknown as SavedLandlord[]
   }
 
-  async findById(id: string): Promise<SavedLandlord | null> {
+  async findById(id: number): Promise<SavedLandlord | null> {
     const res = await this.prisma.upward_saved_landlord.findUnique({
       where: { id },
     })
@@ -54,10 +54,22 @@ export class PrismaSavedLandlordRepository implements ISavedLandlordRepository {
       ...res,
       lastAmount: res.lastAmount ?? undefined,
       lastPaid: res.lastPaid ?? undefined,
-    } as SavedLandlord
+    } as unknown as SavedLandlord
   }
 
-  async update(id: string, data: Partial<SavedLandlord>): Promise<SavedLandlord> {
+  async findByUuid(uuid: string): Promise<SavedLandlord | null> {
+    const res = await this.prisma.upward_saved_landlord.findUnique({
+      where: { uuid },
+    })
+    if (!res) return null
+    return {
+      ...res,
+      lastAmount: res.lastAmount ?? undefined,
+      lastPaid: res.lastPaid ?? undefined,
+    } as unknown as SavedLandlord
+  }
+
+  async update(id: number, data: Partial<SavedLandlord>): Promise<SavedLandlord> {
     const res = await this.prisma.upward_saved_landlord.update({
       where: { id },
       data: {
@@ -74,7 +86,7 @@ export class PrismaSavedLandlordRepository implements ISavedLandlordRepository {
       ...res,
       lastAmount: res.lastAmount ?? undefined,
       lastPaid: res.lastPaid ?? undefined,
-    } as SavedLandlord
+    } as unknown as SavedLandlord
   }
 }
 
@@ -82,16 +94,18 @@ export class PrismaSavedLandlordRepository implements ISavedLandlordRepository {
 export class PrismaTransactionRepository implements ITransactionRepository {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>): Promise<Transaction> {
+  async create(data: Omit<Transaction, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<Transaction> {
     const res = await this.prisma.upward_transaction.create({
       data: {
-        tenantId: data.tenantId,
+        userId: data.userId,
         type: data.type,
         status: data.status,
         amount: data.amount,
         reference: data.reference,
         narration: data.narration,
         landlordId: data.landlordId,
+        paymentType: data.paymentType,
+        propertyAddress: data.propertyAddress,
         lineItems: data.lineItems || undefined,
         walletId: data.walletId,
         goalId: data.goalId,
@@ -101,28 +115,32 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       ...res,
       narration: res.narration ?? undefined,
       landlordId: res.landlordId ?? undefined,
+      paymentType: res.paymentType ?? undefined,
+      propertyAddress: res.propertyAddress ?? undefined,
       lineItems: res.lineItems || undefined,
       walletId: res.walletId ?? undefined,
       goalId: res.goalId ?? undefined,
-    } as Transaction
+    } as unknown as Transaction
   }
 
-  async findByTenantId(tenantId: string): Promise<Transaction[]> {
+  async findByUserId(userId: number): Promise<Transaction[]> {
     const res = await this.prisma.upward_transaction.findMany({
-      where: { tenantId },
+      where: { userId },
       orderBy: { createdAt: 'desc' },
     })
     return res.map((r) => ({
       ...r,
       narration: r.narration ?? undefined,
       landlordId: r.landlordId ?? undefined,
+      paymentType: r.paymentType ?? undefined,
+      propertyAddress: r.propertyAddress ?? undefined,
       lineItems: r.lineItems || undefined,
       walletId: r.walletId ?? undefined,
       goalId: r.goalId ?? undefined,
-    })) as Transaction[]
+    })) as unknown as Transaction[]
   }
 
-  async findById(id: string): Promise<Transaction | null> {
+  async findById(id: number): Promise<Transaction | null> {
     const res = await this.prisma.upward_transaction.findUnique({
       where: { id },
     })
@@ -131,10 +149,29 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       ...res,
       narration: res.narration ?? undefined,
       landlordId: res.landlordId ?? undefined,
+      paymentType: res.paymentType ?? undefined,
+      propertyAddress: res.propertyAddress ?? undefined,
       lineItems: res.lineItems || undefined,
       walletId: res.walletId ?? undefined,
       goalId: res.goalId ?? undefined,
-    } as Transaction
+    } as unknown as Transaction
+  }
+
+  async findByUuid(uuid: string): Promise<Transaction | null> {
+    const res = await this.prisma.upward_transaction.findUnique({
+      where: { uuid },
+    })
+    if (!res) return null
+    return {
+      ...res,
+      narration: res.narration ?? undefined,
+      landlordId: res.landlordId ?? undefined,
+      paymentType: res.paymentType ?? undefined,
+      propertyAddress: res.propertyAddress ?? undefined,
+      lineItems: res.lineItems || undefined,
+      walletId: res.walletId ?? undefined,
+      goalId: res.goalId ?? undefined,
+    } as unknown as Transaction
   }
 
   async findByReference(reference: string): Promise<Transaction | null> {
@@ -146,13 +183,15 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       ...res,
       narration: res.narration ?? undefined,
       landlordId: res.landlordId ?? undefined,
+      paymentType: res.paymentType ?? undefined,
+      propertyAddress: res.propertyAddress ?? undefined,
       lineItems: res.lineItems || undefined,
       walletId: res.walletId ?? undefined,
       goalId: res.goalId ?? undefined,
-    } as Transaction
+    } as unknown as Transaction
   }
 
-  async updateStatus(id: string, status: string): Promise<Transaction> {
+  async updateStatus(id: number, status: string): Promise<Transaction> {
     const res = await this.prisma.upward_transaction.update({
       where: { id },
       data: { status },
@@ -161,13 +200,15 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       ...res,
       narration: res.narration ?? undefined,
       landlordId: res.landlordId ?? undefined,
+      paymentType: res.paymentType ?? undefined,
+      propertyAddress: res.propertyAddress ?? undefined,
       lineItems: res.lineItems || undefined,
       walletId: res.walletId ?? undefined,
       goalId: res.goalId ?? undefined,
-    } as Transaction
+    } as unknown as Transaction
   }
 
-  async update(id: string, data: Partial<Transaction>): Promise<Transaction> {
+  async update(id: number, data: Partial<Transaction>): Promise<Transaction> {
     const res = await this.prisma.upward_transaction.update({
       where: { id },
       data: {
@@ -179,9 +220,11 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       ...res,
       narration: res.narration ?? undefined,
       landlordId: res.landlordId ?? undefined,
+      paymentType: res.paymentType ?? undefined,
+      propertyAddress: res.propertyAddress ?? undefined,
       lineItems: res.lineItems || undefined,
       walletId: res.walletId ?? undefined,
       goalId: res.goalId ?? undefined,
-    } as Transaction
+    } as unknown as Transaction
   }
 }

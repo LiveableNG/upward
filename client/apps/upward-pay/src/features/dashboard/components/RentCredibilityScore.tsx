@@ -1,250 +1,412 @@
-import { TrendingUp, FileText, Zap, ShieldCheck, Crown } from 'lucide-react'
+import { TrendingUp, FileText, Zap, ShieldCheck, Crown, Flame, Target, Share2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { type TenantProfile } from '@/features/auth/types'
 
 interface RentCredibilityScoreProps {
-  isNewUser: boolean
-  credScore: number
-  credPercentage: number
+  tenant: TenantProfile
   onShowPayRent: () => void
-  onShowSavingsGoal: () => void
 }
 
 export function RentCredibilityScore({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  isNewUser,
-  credScore,
-  credPercentage,
+  tenant,
 }: RentCredibilityScoreProps) {
   const router = useRouter()
+  const credScore = tenant.creditScore || 300
+  const credPercentage = (credScore / 1000) * 100
+  const rank = tenant.reliabilityRank || 'A'
+  const streak = tenant.earlyPaymentStreak || 0
+  const onTime = tenant.onTimePercentage || 100
+  const savingsImpact = tenant.savingsImpact || 0
+
+  const getRankColor = () => {
+    if (rank === 'S') return '#FFD700'
+    if (rank === 'A') return 'var(--clay)'
+    return 'var(--text-muted)'
+  }
 
   return (
-    <section className="score-card score-card--premium">
-      <div className="score-card__header">
-        <div className="score-card__status">
-          <Zap size={14} className="text--clay animate-pulse" />
-          <span className="live-indicator">CONNECTING LIVE</span>
+    <section className="credibility-hub">
+      <div className="hub-header">
+        <div className="hub-header__title">
+          <h2>Rent Credibility</h2>
+          <p>Your verified payment reputation across the Upward network.</p>
         </div>
-        <div className="score-card__rank">
-          {credScore > 800 ? (
-            <Crown size={16} color="var(--clay)" />
-          ) : (
-            <ShieldCheck size={16} color="var(--clay)" />
-          )}
-          <span className="rank-text">{credScore > 800 ? 'Platinum Tier' : 'Verified Member'}</span>
-        </div>
-      </div>
-
-      <div className="kd-ratio">
-        <div className="kd-ratio__main">
-          <div className="kd-ratio__label">RENT LEGACY</div>
-          <div className="kd-ratio__value">{(credScore / 100).toFixed(2)}</div>
-          <div className="kd-ratio__sub">SCORE: {credScore}</div>
-        </div>
-        <div className="kd-ratio__gauge">
-          <div className="kd-ratio__fill" style={{ width: `${credPercentage}%` }} />
-        </div>
-      </div>
-
-      <div className="score-metrics">
-        <div className="metric-item">
-          <span className="metric-item__val">100%</span>
-          <span className="metric-item__label">RELIABILITY</span>
-        </div>
-        <div className="metric-item">
-          <span className="metric-item__val">Elite</span>
-          <span className="metric-item__label">STANDING</span>
-        </div>
-        <div className="metric-item">
-          <span className="metric-item__val">+{Math.floor(credScore / 10)}</span>
-          <span className="metric-item__label">GROWTH</span>
-        </div>
-      </div>
-
-      <div className="quick-actions">
-        <button className="q-action" onClick={() => router.push('/dashboard/pay-rent')}>
-          <TrendingUp size={16} />
-          <span>Boost Score</span>
+        <button 
+          className="share-btn" 
+          onClick={() => router.push(`/profile/${tenant.profileSlug}`)}
+        >
+          <Share2 size={16} />
+          <span>Public Profile</span>
         </button>
-        <button className="q-action" onClick={() => router.push('/dashboard/kyc')}>
-          <FileText size={16} />
-          <span>KYC Status</span>
-        </button>
+      </div>
+
+      <div className="hub-grid">
+        <div className="hub-main-card">
+          <div className="score-display">
+            <div className="score-circle">
+              <svg viewBox="0 0 100 100">
+                <circle className="score-circle__bg" cx="50" cy="50" r="45" />
+                <circle 
+                  className="score-circle__fill" 
+                  cx="50" cy="50" r="45" 
+                  style={{ strokeDasharray: `${credPercentage * 2.82} 282` }}
+                />
+              </svg>
+              <div className="score-content">
+                <span className="score-val">{credScore}</span>
+                <span className="score-label">UPWARD SCORE</span>
+              </div>
+            </div>
+            
+            <div className="rank-badge" style={{ borderColor: getRankColor() }}>
+              <span className="rank-letter" style={{ color: getRankColor() }}>{rank}</span>
+              <span className="rank-tier">{rank === 'S' ? 'ELITE' : 'VERIFIED'}</span>
+            </div>
+          </div>
+
+          <div className="quick-stats">
+            <div className="q-stat">
+              <Flame size={20} className={streak > 0 ? 'text--orange' : 'text--muted'} />
+              <div className="q-stat__info">
+                <span className="q-val">{streak}</span>
+                <span className="q-lbl">STREAK</span>
+              </div>
+            </div>
+            <div className="q-stat">
+              <ShieldCheck size={20} className="text--clay" />
+              <div className="q-stat__info">
+                <span className="q-val">{onTime}%</span>
+                <span className="q-lbl">ON-TIME</span>
+              </div>
+            </div>
+            <div className="q-stat">
+              <Target size={20} className="text--green" />
+              <div className="q-stat__info">
+                <span className="q-val">{Math.floor(savingsImpact)}%</span>
+                <span className="q-lbl">IMPACT</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="hub-details-card">
+          <h3>Performance Insights</h3>
+          <div className="insight-list">
+            <div className="insight-item">
+              <div className="insight-item__top">
+                <span>Reliability Rating</span>
+                <span>{onTime}%</span>
+              </div>
+              <div className="insight-progress">
+                <div className="insight-progress__fill" style={{ width: `${onTime}%` }} />
+              </div>
+            </div>
+            <div className="insight-item">
+              <div className="insight-item__top">
+                <span>Savings Contribution</span>
+                <span>{Math.floor(savingsImpact)}%</span>
+              </div>
+              <div className="insight-progress">
+                <div className="insight-progress__fill" style={{ width: `${savingsImpact}%`, background: 'var(--green)' }} />
+              </div>
+            </div>
+          </div>
+
+          <div className="hub-actions">
+            <button className="hub-btn hub-btn--primary" onClick={() => router.push('/dashboard/pay-rent')}>
+              <TrendingUp size={18} />
+              <span>Boost Your Score</span>
+            </button>
+            <button className="hub-btn hub-btn--outline" onClick={() => router.push('/dashboard/settings')}>
+              <FileText size={18} />
+              <span>Complete Profile</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <style jsx>{`
-        .score-card--premium {
-          background: var(--dark);
-          color: white;
-          border-radius: 24px;
-          padding: 1.5rem;
-          border: 1px solid rgba(var(--clay-rgb), 0.3);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-          position: relative;
-          overflow: hidden;
+        .credibility-hub {
+          margin-bottom: 2rem;
+          width: 100%;
         }
 
-        .score-card--premium::before {
-          content: '';
-          position: absolute;
-          top: -50%;
-          left: -50%;
-          width: 200%;
-          height: 200%;
-          background: radial-gradient(
-            circle at 30% 30%,
-            rgba(var(--clay-rgb), 0.1) 0%,
-            transparent 50%
-          );
-          pointer-events: none;
-        }
-
-        .score-card__header {
+        .hub-header {
           display: flex;
           justify-content: space-between;
-          align-items: center;
-          margin-bottom: 2rem;
+          align-items: flex-end;
+          margin-bottom: 1.5rem;
         }
 
-        .score-card__status {
+        .hub-header__title h2 {
+          font-size: 1.5rem;
+          font-weight: 800;
+          margin: 0;
+          color: var(--text);
+        }
+
+        .hub-header__title p {
+          font-size: 0.85rem;
+          color: var(--text-muted);
+          margin: 0.25rem 0 0;
+        }
+
+        .share-btn {
           display: flex;
           align-items: center;
           gap: 0.5rem;
           background: rgba(var(--clay-rgb), 0.1);
-          padding: 0.3rem 0.7rem;
-          border-radius: 20px;
-          border: 1px solid rgba(var(--clay-rgb), 0.2);
-        }
-
-        .live-indicator {
-          font-size: 0.65rem;
-          font-weight: 700;
-          letter-spacing: 1px;
           color: var(--clay);
-        }
-
-        .score-card__rank {
-          display: flex;
-          align-items: center;
-          gap: 0.4rem;
-          font-size: 0.75rem;
+          padding: 0.6rem 1rem;
+          border-radius: 12px;
+          border: 1px solid rgba(var(--clay-rgb), 0.2);
+          font-size: 0.85rem;
           font-weight: 600;
-          color: var(--text-muted);
+          cursor: pointer;
+          transition: all 0.2s;
         }
 
-        .kd-ratio {
+        .share-btn:hover {
+          background: var(--clay);
+          color: white;
+        }
+
+        .hub-grid {
+          display: grid;
+          grid-template-columns: 1fr 1.5fr;
+          gap: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+          .hub-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .hub-main-card {
+          background: var(--dark);
+          color: white;
+          border-radius: 24px;
+          padding: 2rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .hub-main-card::before {
+          content: '';
+          position: absolute;
+          top: -20%;
+          right: -20%;
+          width: 60%;
+          height: 60%;
+          background: radial-gradient(circle, rgba(var(--clay-rgb), 0.15) 0%, transparent 70%);
+          pointer-events: none;
+        }
+
+        .score-display {
+          position: relative;
           margin-bottom: 2rem;
         }
 
-        .kd-ratio__main {
-          text-align: center;
-          margin-bottom: 1rem;
+        .score-circle {
+          width: 180px;
+          height: 180px;
+          position: relative;
         }
 
-        .kd-ratio__label {
-          font-size: 0.7rem;
-          letter-spacing: 3px;
+        .score-circle svg {
+          transform: rotate(-90deg);
+        }
+
+        .score-circle__bg {
+          fill: none;
+          stroke: rgba(255,255,255,0.05);
+          stroke-width: 8;
+        }
+
+        .score-circle__fill {
+          fill: none;
+          stroke: var(--clay);
+          stroke-width: 8;
+          stroke-linecap: round;
+          transition: stroke-dasharray 1s ease-in-out;
+        }
+
+        .score-content {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          text-align: center;
+        }
+
+        .score-val {
+          display: block;
+          font-size: 3.5rem;
+          font-weight: 900;
+          line-height: 1;
+        }
+
+        .score-label {
+          font-size: 0.65rem;
+          font-weight: 800;
+          letter-spacing: 2px;
           color: var(--text-muted);
+        }
+
+        .rank-badge {
+          position: absolute;
+          bottom: -10px;
+          right: -10px;
+          background: var(--dark);
+          border: 2px solid var(--clay);
+          width: 60px;
+          height: 60px;
+          border-radius: 20px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .rank-letter {
+          font-size: 1.8rem;
+          font-weight: 900;
+          line-height: 1;
+        }
+
+        .rank-tier {
+          font-size: 0.5rem;
+          font-weight: 800;
+          letter-spacing: 1px;
+        }
+
+        .quick-stats {
+          display: flex;
+          gap: 2rem;
+          margin-top: auto;
+        }
+
+        .q-stat {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .q-stat__info {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .q-val {
+          font-size: 1.1rem;
+          font-weight: 800;
+        }
+
+        .q-lbl {
+          font-size: 0.55rem;
+          font-weight: 700;
+          color: var(--text-muted);
+          letter-spacing: 1px;
+        }
+
+        .hub-details-card {
+          background: var(--surface);
+          border-radius: 24px;
+          padding: 2rem;
+          border: 1px solid var(--border);
+          display: flex;
+          flex-direction: column;
+        }
+
+        :global(.theme--dark) .hub-details-card {
+          background: var(--surface2);
+          border-color: var(--border);
+        }
+
+        .hub-details-card h3 {
+          font-size: 1.1rem;
+          font-weight: 700;
+          margin: 0 0 1.5rem;
+        }
+
+        .insight-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+          margin-bottom: 2rem;
+        }
+
+        .insight-item__top {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.9rem;
           font-weight: 600;
           margin-bottom: 0.5rem;
         }
 
-        .kd-ratio__value {
-          font-size: 4rem;
-          font-weight: 900;
-          line-height: 1;
-          color: white;
-          text-shadow: 0 0 20px rgba(var(--clay-rgb), 0.5);
-        }
-
-        .kd-ratio__sub {
-          font-size: 0.8rem;
-          font-weight: 700;
-          color: var(--clay);
-          margin-top: 0.2rem;
-        }
-
-        .kd-ratio__gauge {
-          height: 6px;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 3px;
+        .insight-progress {
+          height: 8px;
+          background: var(--bg);
+          border-radius: 4px;
           overflow: hidden;
         }
 
-        .kd-ratio__fill {
+        .insight-progress__fill {
           height: 100%;
-          background: linear-gradient(90deg, var(--clay), var(--clay-hover));
-          box-shadow: 0 0 10px var(--clay);
-          transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+          background: var(--clay);
+          border-radius: 4px;
         }
 
-        .score-metrics {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1rem;
-          margin-bottom: 2rem;
-          background: rgba(255, 255, 255, 0.03);
-          padding: 1rem;
-          border-radius: 16px;
-        }
-
-        .metric-item {
-          text-align: center;
-        }
-
-        .metric-item__val {
-          display: block;
-          font-weight: 800;
-          font-size: 1.1rem;
-          color: white;
-        }
-
-        .metric-item__label {
-          display: block;
-          font-size: 0.6rem;
-          color: var(--text-muted);
-          font-weight: 700;
-          margin-top: 0.2rem;
-        }
-
-        .quick-actions {
+        .hub-actions {
+          margin-top: auto;
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1rem;
         }
 
-        .q-action {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          color: white;
-          padding: 0.6rem;
-          border-radius: 12px;
+        .hub-btn {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 0.5rem;
-          font-size: 0.8rem;
-          font-weight: 600;
-          transition: all 0.2s;
+          gap: 0.75rem;
+          padding: 1rem;
+          border-radius: 16px;
+          font-size: 0.9rem;
+          font-weight: 700;
           cursor: pointer;
+          transition: all 0.2s;
         }
 
-        .q-action:hover {
-          background: rgba(var(--clay-rgb), 0.2);
+        .hub-btn--primary {
+          background: var(--clay);
+          color: white;
+          border: none;
+        }
+
+        .hub-btn--primary:hover {
+          background: var(--clay-hover);
+          transform: translateY(-2px);
+        }
+
+        .hub-btn--outline {
+          background: transparent;
+          border: 2px solid var(--border);
+          color: var(--text);
+        }
+
+        .hub-btn--outline:hover {
           border-color: var(--clay);
+          color: var(--clay);
         }
 
-        @keyframes animate-pulse {
-          0%,
-          100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.5;
-          }
-        }
-        .animate-pulse {
-          animation: animate-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
+        .text--orange { color: #FF8C00; }
+        .text--green { color: var(--green); }
       `}</style>
     </section>
   )
