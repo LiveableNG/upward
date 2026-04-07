@@ -1,38 +1,26 @@
-export interface TenantProfile {
-  id: string
+export interface UserProfile {
+  id: number
+  uuid: string
   email: string
-  fullName: string
-  phone: string
-  signupStatus: string
+  firstName: string
+  lastName: string
+  phone?: string | null
   dateOfBirth?: string
   gender?: string
   occupation?: string
-  maritalStatus?: string
   address?: string
   rentAnniversary?: string
-  membershipLevel: string
-  hasCompletedOnboarding: boolean
-  savingsBalance: number
-  savingsGoal: number
-  hasDismissedAppBanner: boolean
-  creditScore: number
-  profileSlug?: string | null
-  isProfileComplete: boolean
-  reliabilityRank?: string
-  onTimePercentage?: number
-  earlyPaymentStreak?: number
-  savingsImpact?: number
-  city?: string
-  country?: string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  savingsGoals?: any[]
   profilePic?: string
-  showSavings?: boolean
+  profileSlug?: string | null
+  bio?: string | null
   useBiometrics?: boolean
+  isFromWaitlist: boolean
+  isFromInvite: boolean
   createdAt: string
+  updatedAt: string
 }
 
 export interface AuthResponse {
   accessToken: string
-  tenant: TenantProfile
+  user: UserProfile
 }

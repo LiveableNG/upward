@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common'
+import { Injectable, UnauthorizedException, ConflictException, Inject } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
+import { UserRepository, USER_REPOSITORY, User } from '@domains/users/user.repository'
 import { EmailService } from '@shared/infrastructure/email/email.service'
 import * as bcrypt from 'bcrypt'
 import { UserAuthResponse } from '@upward/shared-types'
@@ -11,7 +10,7 @@ import { BaseAuthService } from './base-auth.service'
 @Injectable()
 export class UserAuthService extends BaseAuthService {
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     private readonly emailService: EmailService,
     jwtService: JwtService,
     configService: ConfigService,
@@ -22,14 +21,15 @@ export class UserAuthService extends BaseAuthService {
   async signup(dto: {
     email: string
     password: string
-    fullName: string
+    firstName: string
+    lastName: string
     phone?: string
     rentAnniversary?: string
     address?: string
+    isFromWaitlist?: boolean
+    isFromInvite?: boolean
   }): Promise<UserAuthResponse & { refreshToken: string }> {
-    const existing = await this.prisma.upward_user.findUnique({
-      where: { email: dto.email },
-    })
+    const existing = await this.userRepository.findByEmail(dto.email)
 
     if (existing) {
       throw new ConflictException('User with this email already exists')
@@ -37,32 +37,38 @@ export class UserAuthService extends BaseAuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 10)
 
-    const user = await this.prisma.upward_user.create({
-      data: {
-        email: dto.email,
-        passwordHash,
-        fullName: dto.fullName,
-        phone: dto.phone,
-        rentAnniversary: dto.rentAnniversary ? new Date(dto.rentAnniversary) : undefined,
-        address: dto.address,
-        isProfileComplete: false,
-        hasDismissedAppBanner: false,
-        useBiometrics: false,
-      },
-    })
+    const userData: Partial<User> = {
+      uuid: crypto.randomUUID(),
+      email: dto.email,
+      passwordHash,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      phone: dto.phone,
+      rentAnniversary: dto.rentAnniversary ? new Date(dto.rentAnniversary) : undefined,
+      address: dto.address,
+      isFromWaitlist: dto.isFromWaitlist ?? false,
+      isFromInvite: dto.isFromInvite ?? false,
+      useBiometrics: false,
+    }
+
+    await this.userRepository.save(userData as User)
+    const user = await this.userRepository.findByEmail(dto.email)
+
+    if (!user) throw new Error('Failed to create user')
 
     const payload = {
-      sub: user.id,
+      sub: user.uuid,
       email: user.email,
     }
 
     const accessToken = this.generateAccessToken(payload)
-    const refreshToken = this.generateRefreshToken(user.id)
+    const refreshToken = this.generateRefreshToken(user.uuid)
 
+    const { passwordHash: _, ...userNoPass } = user
     return {
       accessToken,
       refreshToken,
-      user: user as any,
+      user: userNoPass as any,
     }
   }
 
@@ -70,9 +76,7 @@ export class UserAuthService extends BaseAuthService {
     email: string,
     password: string,
   ): Promise<UserAuthResponse & { refreshToken: string }> {
-    const user = await this.prisma.upward_user.findUnique({
-      where: { email },
-    })
+    const user = await this.userRepository.findByEmail(email)
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials')
@@ -84,17 +88,18 @@ export class UserAuthService extends BaseAuthService {
     }
 
     const payload = {
-      sub: user.id,
+      sub: user.uuid,
       email: user.email,
     }
 
     const accessToken = this.generateAccessToken(payload)
-    const refreshToken = this.generateRefreshToken(user.id)
+    const refreshToken = this.generateRefreshToken(user.uuid)
 
+    const { passwordHash: _, ...userNoPass } = user
     return {
       accessToken,
       refreshToken,
-      user: user as any,
+      user: userNoPass as any,
     }
   }
 
@@ -103,40 +108,30 @@ export class UserAuthService extends BaseAuthService {
   ): Promise<UserAuthResponse & { refreshToken: string }> {
     const decoded = await this.verifyRefreshToken(refreshToken)
 
-    const user = await this.prisma.upward_user.findUnique({
-      where: { id: decoded.sub },
-    })
+    const user = await this.userRepository.findByUuid(decoded.sub)
 
     if (!user) {
       throw new UnauthorizedException('User not found')
     }
 
     const payload = {
-      sub: user.id,
+      sub: user.uuid,
       email: user.email,
     }
 
     const newAccessToken = this.generateAccessToken(payload)
-    const newRefreshToken = this.generateRefreshToken(user.id)
+    const newRefreshToken = this.generateRefreshToken(user.uuid)
 
+    const { passwordHash: _, ...userNoPass } = user
     return {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,
-      user: user as any,
+      user: userNoPass as any,
     }
   }
 
-  async getProfile(userId: string): Promise<any> {
-    const user = await this.prisma.upward_user.findUnique({
-      where: { id: userId },
-      include: {
-        savingsGoals: {
-          where: { status: 'ACTIVE' },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
-    })
+  async getProfile(userUuid: string): Promise<any> {
+    const user = await this.userRepository.findByUuid(userUuid)
 
     if (!user) {
       throw new UnauthorizedException('User not found')
@@ -147,10 +142,16 @@ export class UserAuthService extends BaseAuthService {
     return profile
   }
 
-  async changePassword(userId: string, currentPlain: string, newPlain: string): Promise<void> {
-    const user = await this.prisma.upward_user.findUnique({
-      where: { id: userId },
-    })
+  async updateProfile(userUuid: string, data: Partial<User>): Promise<any> {
+    const user = await this.userRepository.findByUuid(userUuid)
+    if (!user) throw new UnauthorizedException('User not found')
+
+    await this.userRepository.update(user.id, data)
+    return this.getProfile(userUuid)
+  }
+
+  async changePassword(userUuid: string, currentPlain: string, newPlain: string): Promise<void> {
+    const user = await this.userRepository.findByUuid(userUuid)
 
     if (!user) {
       throw new UnauthorizedException('User not found')
@@ -162,16 +163,11 @@ export class UserAuthService extends BaseAuthService {
     }
 
     const newPasswordHash = await bcrypt.hash(newPlain, 10)
-    await this.prisma.upward_user.update({
-      where: { id: userId },
-      data: { passwordHash: newPasswordHash },
-    })
+    await this.userRepository.update(user.id, { passwordHash: newPasswordHash })
   }
 
   async forgotPassword(email: string): Promise<void> {
-    const user = await this.prisma.upward_user.findUnique({
-      where: { email },
-    })
+    const user = await this.userRepository.findByEmail(email)
 
     if (!user) {
       // Don't reveal account existence for security, but we stop here
@@ -181,21 +177,17 @@ export class UserAuthService extends BaseAuthService {
     const otp = Math.floor(100000 + Math.random() * 900000).toString()
     const expires = new Date(Date.now() + 15 * 60 * 1000) // 15 mins
 
-    await this.prisma.upward_user.update({
-      where: { id: user.id },
-      data: {
-        resetPasswordOTP: otp,
-        resetPasswordExpires: expires,
-      },
+    await this.userRepository.update(user.id, {
+      resetPasswordOTP: otp,
+      resetPasswordExpires: expires,
     })
 
-    await this.emailService.sendPasswordResetOTP(user.email, user.fullName, otp)
+    const fullName = `${user.firstName} ${user.lastName}`
+    await this.emailService.sendPasswordResetOTP(user.email, fullName, otp)
   }
 
   async resetPassword(email: string, otp: string, newPlain: string): Promise<void> {
-    const user = await this.prisma.upward_user.findUnique({
-      where: { email },
-    })
+    const user = await this.userRepository.findByEmail(email)
 
     if (!user || !user.resetPasswordOTP || !user.resetPasswordExpires) {
       throw new UnauthorizedException('Invalid or expired verification code')
@@ -206,13 +198,10 @@ export class UserAuthService extends BaseAuthService {
     }
 
     const newPasswordHash = await bcrypt.hash(newPlain, 10)
-    await this.prisma.upward_user.update({
-      where: { id: user.id },
-      data: {
-        passwordHash: newPasswordHash,
-        resetPasswordOTP: null,
-        resetPasswordExpires: null,
-      },
+    await this.userRepository.update(user.id, {
+      passwordHash: newPasswordHash,
+      resetPasswordOTP: null,
+      resetPasswordExpires: null,
     })
   }
 }

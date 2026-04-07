@@ -16,16 +16,8 @@ export class GetPublicProfileUseCase {
         firstName: true,
         lastName: true,
         bio: true,
-        creditScore: true,
-        isProfileComplete: true,
         createdAt: true,
-        reliabilityRank: true,
-        onTimePercentage: true,
-        earlyPaymentStreak: true,
-        savingsImpact: true,
         profilePic: true,
-        city: true,
-        country: true,
       },
     })
 

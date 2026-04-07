@@ -18,6 +18,7 @@ import { ShareCredibility } from '@/features/dashboard/components/ShareCredibili
 import { SavingsGoalModal } from '@/features/dashboard/components/SavingsGoalModal'
 import { RentSavingsCard } from '@/features/dashboard/components/RentSavingsCard'
 import { ActionCarousel } from '@/features/dashboard/components/ActionCarousel'
+import { CompleteProfilePopup } from '@/features/dashboard/components/CompleteProfilePopup'
 import FallbackSuspense from '@/components/FallbackSuspense'
 
 export default function DashboardPage() {
@@ -33,12 +34,20 @@ export default function DashboardPage() {
   const [showKYCAlert, _setShowKYCAlert] = useState(true)
   const [localDismissedBanner, setLocalDismissedBanner] = useState(false)
 
-  const dismissAppBannerMutation = useMutation({
-    mutationFn: () => api.updateProfile({ hasDismissedAppBanner: true }),
-    onSuccess: () => {
+  // Initialize dismissal state from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const dismissed = localStorage.getItem('app_banner_dismissed') === 'true'
+      setLocalDismissedBanner(dismissed)
+    }
+  }, [])
+
+  const handleDismissBanner = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('app_banner_dismissed', 'true')
       setLocalDismissedBanner(true)
-    },
-  })
+    }
+  }
 
   // Handle auth errors (expired token, etc.) by redirecting to landing
   useEffect(() => {
@@ -76,15 +85,15 @@ export default function DashboardPage() {
     )
   }
 
-  const { tenant, pendingPayments, completedPayments } = data
-  const firstName = tenant.fullName?.split(' ')[0] || 'Tenant'
-  const isNewUser = !tenant.hasCompletedOnboarding
+  const { user, pendingPayments, completedPayments } = data
+  const firstName = user.firstName || 'User'
+  const isNewUser = !user.address
   const totalPaid = completedPayments.reduce((sum, p) => sum + p.amount, 0)
   const currency = completedPayments[0]?.currency || 'NGN'
 
   // App Install Banner visibility logic
   const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor?.isNative
-  const shouldShowAppBanner = !isCapacitor && !tenant.hasDismissedAppBanner && !localDismissedBanner
+  const shouldShowAppBanner = !isCapacitor && !localDismissedBanner
 
   // Real notif count logic - combining backend notifications + pending payments
   const backendNotifCount = notifData?.notifications?.filter((n: any) => !n.read).length || 0
@@ -93,18 +102,12 @@ export default function DashboardPage() {
 
   return (
     <div className="dashboard dashboard--nav-offset">
-      {showSavingsGoalModal && (
-        <SavingsGoalModal
-          existingGoal={tenant.savingsGoals?.[0]}
-          onDone={() => setShowSavingsGoalModal(false)}
-          onSkip={() => setShowSavingsGoalModal(false)}
-        />
-      )}
+
 
       <DashboardHeader
         firstName={firstName}
         notifCount={notifCount}
-        profilePic={tenant.profilePic}
+        profilePic={user.profilePic}
       />
 
       <StatStrip
@@ -119,7 +122,7 @@ export default function DashboardPage() {
 
         <div className="dashboard__col dashboard__col--right">
           {shouldShowAppBanner && (
-            <AppInstallBanner onDismiss={() => dismissAppBannerMutation.mutate()} />
+            <AppInstallBanner onDismiss={handleDismissBanner} />
           )}
 
           <AnnouncementBanner />
@@ -144,24 +147,16 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {tenant.showSavings !== false && (
-            <RentSavingsCard
-              isNewUser={isNewUser}
-              savingsBalance={tenant.savingsBalance}
-              savingsGoal={tenant.savingsGoals?.[0]?.targetAmount || tenant.savingsGoal}
-              autoSave={tenant.savingsGoals?.[0]?.autoSaveEnabled ?? !isNewUser}
-              onConfigureGoal={() => setShowSavingsGoalModal(true)}
-            />
-          )}
-
           <RentCredibilityScore
-            tenant={tenant}
+            user={user}
             onShowPayRent={() => router.push('/dashboard/pay-rent')}
           />
 
-          {!isNewUser && <ShareCredibility profileSlug={tenant.profileSlug} />}
+          {!isNewUser && <ShareCredibility profileSlug={user.profileSlug} />}
         </div>
       </div>
+
+      {isNewUser && <CompleteProfilePopup />}
     </div>
   )
 }

@@ -65,10 +65,13 @@ export class UserController {
     @Body() body: {
       email: string;
       password: string;
-      fullName: string;
+      firstName: string;
+      lastName: string;
       phone?: string;
       rentAnniversary?: string;
       address?: string;
+      isFromWaitlist?: boolean;
+      isFromInvite?: boolean;
     },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
@@ -149,7 +152,7 @@ export class UserController {
     if (!req.user?.id) {
       throw new UnauthorizedException('No user in request')
     }
-    const user = await this.updateUserProfile.execute(req.user.id, body)
+    const user = await this.userAuthService.updateProfile(req.user.id, body)
     return { success: true, user }
   }
 

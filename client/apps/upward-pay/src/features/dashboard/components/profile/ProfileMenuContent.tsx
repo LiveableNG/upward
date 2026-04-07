@@ -23,7 +23,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { api } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
 import { DetailOrEdit } from './DetailOrEdit'
-import { type TenantProfile, type ContractData } from '../../types'
+import { type UserProfile, type ContractData } from '../../types'
 import { PageHeader } from '@/components/common/PageHeader'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useToast } from '@/components/common/Toast'
@@ -36,14 +36,14 @@ export function ProfileMenuContent() {
   const { success, error: toastError } = useToast()
   const [view, setView] = useState<ViewMode>('menu')
   const [isEditing, setIsEditing] = useState(false)
-  const [tenant, setTenant] = useState<TenantProfile | null>(null)
-  const [formData, setFormData] = useState<Partial<TenantProfile>>({})
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [formData, setFormData] = useState<Partial<UserProfile>>({})
   const [saving, setSaving] = useState(false)
   const [contracts, setContracts] = useState<ContractData[]>([])
 
   useEffect(() => {
     if (user) {
-      setTenant(user as any)
+      setProfile(user as any)
       setFormData(user as any)
       loadDocuments()
     }
@@ -59,12 +59,12 @@ export function ProfileMenuContent() {
   }
 
   async function handleSave() {
-    if (!tenant) return
+    if (!profile) return
     setSaving(true)
     try {
       const res = await api.updateProfile(formData)
       if (res.success) {
-        setTenant(res.tenant)
+        setProfile(res.user)
         setIsEditing(false)
         await refreshUser()
         success('Profile updated successfully')
@@ -99,14 +99,14 @@ export function ProfileMenuContent() {
     { id: 'legal', title: 'Legal & Privacy', icon: Shield },
   ]
 
-  if (!tenant) return null
+  if (!profile) return null
 
   const hasMissingFields =
-    !tenant.dateOfBirth ||
-    !tenant.gender ||
-    !tenant.occupation ||
-    !tenant.address ||
-    !tenant.rentAnniversary
+    !profile.dateOfBirth ||
+    !profile.gender ||
+    !profile.occupation ||
+    !profile.address ||
+    !profile.rentAnniversary
 
   if (view === 'personal') {
     return (
@@ -127,15 +127,22 @@ export function ProfileMenuContent() {
                 <DetailOrEdit
                   isEditing={isEditing}
                   icon={User}
-                  label="Full Name"
-                  value={formData.fullName || ''}
-                  onChange={(v) => setFormData({ ...formData, fullName: v })}
+                  label="First Name"
+                  value={formData.firstName || ''}
+                  onChange={(v) => setFormData({ ...formData, firstName: v })}
+                />
+                <DetailOrEdit
+                  isEditing={isEditing}
+                  icon={User}
+                  label="Last Name"
+                  value={formData.lastName || ''}
+                  onChange={(v) => setFormData({ ...formData, lastName: v })}
                 />
                 <DetailOrEdit
                   isEditing={false}
                   icon={Mail}
                   label="Email Address"
-                  value={tenant.email}
+                  value={profile.email}
                 />
                 <DetailOrEdit
                   isEditing={isEditing}
@@ -207,17 +214,6 @@ export function ProfileMenuContent() {
                 )}
               </div>
 
-              {!isEditing && (
-                <div className="profile-details-footer">
-                  <p>
-                    Need to change your primary email or delete your account?{' '}
-                    <span className="text--clay" onClick={() => router.push('/dashboard/help')}>
-                      Contact Support
-                    </span>
-                    .
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -234,7 +230,7 @@ export function ProfileMenuContent() {
           <div className="dashboard__card profile-hero">
             <div className="profile-hero__avatar-wrap" onClick={handleAvatarChange}>
               <UserAvatar
-                src={tenant.profilePic}
+                src={profile.profilePic}
                 size={100}
                 className="profile-hero__avatar"
                 color="var(--bg)"
@@ -244,8 +240,8 @@ export function ProfileMenuContent() {
               </div>
             </div>
 
-            <h2 className="profile-hero__name">{tenant.fullName}</h2>
-            <p className="profile-hero__email">{tenant.email}</p>
+            <h2 className="profile-hero__name">{profile.firstName} {profile.lastName}</h2>
+            <p className="profile-hero__email">{profile.email}</p>
 
             {contracts.length > 0 && (
               <div className="profile-hero__tenancy">

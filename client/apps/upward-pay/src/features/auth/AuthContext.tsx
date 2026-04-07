@@ -1,15 +1,15 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { type TenantProfile } from './types'
+import { type UserProfile } from './types'
 import { getMe, logout as authLogout } from './services/authService'
 import { useRouter } from 'next/navigation'
 
 interface AuthContextType {
-  user: TenantProfile | null
+  user: UserProfile | null
   loading: boolean
   isLoggedIn: boolean
-  login: (user: TenantProfile) => void
+  login: (user: UserProfile) => void
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -17,7 +17,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<TenantProfile | null>(null)
+  const [user, setUser] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -36,13 +36,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser()
   }, [])
 
-  const login = (newUser: TenantProfile) => {
+  const login = (newUser: UserProfile) => {
     setUser(newUser)
   }
 
   const logout = async () => {
     try {
       await authLogout()
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('app_banner_dismissed')
+      }
     } finally {
       setUser(null)
       router.push('/login')

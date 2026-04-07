@@ -1,27 +1,26 @@
 import { TrendingUp, FileText, Zap, ShieldCheck, Crown, Flame, Target, Share2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { type TenantProfile } from '@/features/auth/types'
+import { type UserProfile } from '@/features/auth/types'
 
 interface RentCredibilityScoreProps {
-  tenant: TenantProfile
+  user: UserProfile
   onShowPayRent: () => void
 }
 
 export function RentCredibilityScore({
-  tenant,
+  user,
 }: RentCredibilityScoreProps) {
   const router = useRouter()
-  const credScore = tenant.creditScore || 300
+  // Mocked data as requested
+  const credScore = 750
   const credPercentage = (credScore / 1000) * 100
-  const rank = tenant.reliabilityRank || 'A'
-  const streak = tenant.earlyPaymentStreak || 0
-  const onTime = tenant.onTimePercentage || 100
-  const savingsImpact = tenant.savingsImpact || 0
+  const rank = 'A'
+  const streak = 12
+  const onTime = 98
+  const savingsImpact = 5
 
   const getRankColor = () => {
-    if (rank === 'S') return '#FFD700'
-    if (rank === 'A') return 'var(--clay)'
-    return 'var(--text-muted)'
+    return 'var(--clay)'
   }
 
   return (
@@ -33,7 +32,7 @@ export function RentCredibilityScore({
         </div>
         <button 
           className="share-btn" 
-          onClick={() => router.push(`/profile/${tenant.profileSlug}`)}
+          onClick={() => router.push(`/profile/${user.profileSlug}`)}
         >
           <Share2 size={16} />
           <span>Public Profile</span>
@@ -60,7 +59,7 @@ export function RentCredibilityScore({
             
             <div className="rank-badge" style={{ borderColor: getRankColor() }}>
               <span className="rank-letter" style={{ color: getRankColor() }}>{rank}</span>
-              <span className="rank-tier">{rank === 'S' ? 'ELITE' : 'VERIFIED'}</span>
+              <span className="rank-tier">VERIFIED</span>
             </div>
           </div>
 

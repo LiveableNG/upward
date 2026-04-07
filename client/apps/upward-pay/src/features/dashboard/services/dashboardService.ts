@@ -7,7 +7,7 @@ import {
   type CompletedPayment,
   type SavedLandlord,
 } from '../types'
-import { type TenantProfile } from '@/features/auth/types'
+import { type UserProfile } from '@/features/auth/types'
 
 export async function getDashboardData(): Promise<DashboardData> {
   const [profile, txs, landlords] = await Promise.all([
@@ -39,14 +39,8 @@ export async function getDashboardData(): Promise<DashboardData> {
     last_amount: l.lastAmount || 0,
   }))
 
-  const tenant: TenantProfile = {
-    ...profile,
-    savingsBalance: profile.savingsBalance ?? 0,
-    savingsGoal: profile.savingsGoal ?? 0,
-  }
-
   return {
-    tenant,
+    user: profile,
     pendingPayments: [],
     completedPayments,
     savedLandlords,
@@ -60,7 +54,7 @@ export async function getMyDocuments(): Promise<{ contracts: ContractData[] }> {
 }
 
 export async function updateProfile(
-  data: Partial<TenantProfile>,
-): Promise<{ success: boolean; tenant: TenantProfile }> {
+  data: Partial<UserProfile>,
+): Promise<{ success: boolean; user: UserProfile }> {
   return api.updateProfile(data)
 }

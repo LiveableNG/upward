@@ -1,7 +1,9 @@
 export interface User {
-  id: string
+  id: number
+  uuid: string
   email: string
-  fullName: string
+  firstName: string
+  lastName: string
   phone?: string | null
   
   createdAt: Date
@@ -16,6 +18,7 @@ export interface UserAuthResponse {
 export interface SignupDto {
   email: string
   passwordHash: string
-  fullName: string
+  firstName: string
+  lastName: string
   phone?: string
 }
