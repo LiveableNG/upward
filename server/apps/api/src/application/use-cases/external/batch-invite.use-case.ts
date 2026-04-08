@@ -24,7 +24,6 @@ export interface InviteRequest {
   lastName: string
   phone?: string
   address?: string
-  city?: string
   state?: string
   area?: string
   subarea?: string
@@ -64,7 +63,7 @@ export class BatchInviteUseCase {
           profilePic: payload.company.profilePic,
         }
       })
-    } else if (payload.company.profilePic || payload.company.address) {
+    } else if (payload.company.address) {
       await this.prisma.upward_company.update({
         where: { id: company.id },
         data: {
