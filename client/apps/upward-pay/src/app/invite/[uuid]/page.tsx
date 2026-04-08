@@ -9,6 +9,8 @@ import {
   Lock,
   ArrowRight,
   ShieldCheck,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
@@ -24,11 +26,18 @@ export default function InvitePage() {
 
   const [loading, setLoading] = useState(true)
   const [inviteData, setInviteData] = useState<any>(null)
+  const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState<any>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
     password: '',
     confirmPassword: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [localError, setLocalError] = useState('')
 
   useEffect(() => {
     fetchInviteData()
@@ -39,14 +48,14 @@ export default function InvitePage() {
       const res = await api.get(`/public/invite/${uuid}`)
       if (res.success) {
         setInviteData(res)
-        setFormData({
-          ...formData,
-          firstName: res.user.firstName,
-          lastName: res.user.lastName,
-          email: res.user.email,
-          phone: res.user.phone,
-          address: res.user.address
-        })
+        setFormData((prev: any) => ({
+          ...prev,
+          firstName: res.user.firstName || '',
+          lastName: res.user.lastName || '',
+          email: res.user.email || '',
+          phone: res.user.phone || '',
+          address: res.user.address || ''
+        }))
       }
     } catch (err) {
       toastError('Invite not found or has expired')
@@ -58,8 +67,11 @@ export default function InvitePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setLocalError('')
+
     if (formData.password !== formData.confirmPassword) {
-      return toastError('Passwords do not match')
+      setLocalError('Passwords do not match')
+      return
     }
 
     setIsSubmitting(true)
@@ -91,53 +103,54 @@ export default function InvitePage() {
   }
 
   if (loading) return (
-    <div className="invite-loading">
-      <UpwardLogo size={36} color="#d97757" />
+    <div className="auth-shell auth-shell--signup flex-center">
       <div className="loading-spinner" />
+      <style jsx>{`
+        .flex-center {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 100vh;
+        }
+        .loading-spinner {
+          width: 32px;
+          height: 32px;
+          border: 3px solid var(--surface2);
+          border-top-color: var(--clay);
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   )
 
-  const companyLogo = inviteData.company?.profilePic && inviteData.company.profilePic.trim() !== '' 
-    ? inviteData.company.profilePic 
-    : null;
+  const companyName = inviteData?.company?.name || 'Your Landlord'
 
   return (
-    <div className="invite-page">
-      <div className="invite-card">
-        <header className="invite-header">
-          <div className="brand-row">
-            <UpwardLogo size={24} color="#d97757" />
-            <span className="brand-name">UPWARD</span>
-          </div>
+    <div className="auth-shell auth-shell--signup">
+      <div className="auth-shell__brand">
+        <UpwardLogo size={28} color="var(--clay)" />
+      </div>
 
-          <div className="company-avatar-row">
-            <div className="company-logo-wrap">
-              {companyLogo ? (
-                <img src={companyLogo} alt={inviteData.company?.name} className="company-logo-img" />
-              ) : (
-                <UpwardLogo size={24} color="#d97757" />
-              )}
-            </div>
-            <div className="invite-badge">Official Invitation</div>
-          </div>
-
-          <h1 className="invite-title">Your rent now works for you</h1>
-          <p className="invite-subtitle">
-            {inviteData.manager?.name ? (
-              <><strong>{inviteData.manager.name}</strong> at <strong>{inviteData.company?.name}</strong> has invited you. </>
-            ) : (
-              <><strong>{inviteData.company?.name}</strong> has invited you. </>
-            )}
-            Join Upward to build credit, earn rewards, and secure your tenancy record.
+      <div className="auth-stage">
+        <div className="auth-stage__header">
+          <h1 className="auth-stage__title">Activate your account</h1>
+          <p className="auth-stage__subtitle">
+            You&apos;ve been invited by <strong>{companyName}</strong> to join Upward and start building your payment credibility.
           </p>
-        </header>
+        </div>
 
-        <form className="invite-form" onSubmit={handleSubmit}>
-          <section className="form-section">
-            <h3 className="section-title">Verify Your Data</h3>
-            <div className="input-grid">
-              <div className="input-field">
-                <label><User size={13} /> First Name</label>
+        <form className="auth-form" onSubmit={handleSubmit}>
+          {localError && <div className="auth-form__error">{localError}</div>}
+          
+          <div className="auth-form__row">
+            <div className="auth-form__field">
+              <label>First Name</label>
+              <div className="input-with-icon">
+                <User size={17} />
                 <input
                   type="text"
                   value={formData.firstName}
@@ -145,8 +158,11 @@ export default function InvitePage() {
                   required
                 />
               </div>
-              <div className="input-field">
-                <label><User size={13} /> Last Name</label>
+            </div>
+            <div className="auth-form__field">
+              <label>Last Name</label>
+              <div className="input-with-icon">
+                <User size={17} />
                 <input
                   type="text"
                   value={formData.lastName}
@@ -154,301 +170,102 @@ export default function InvitePage() {
                   required
                 />
               </div>
-              <div className="input-field full-width">
-                <label><Mail size={13} /> Email</label>
-                <input type="email" value={formData.email} disabled className="disabled-input" />
-              </div>
             </div>
-          </section>
+          </div>
 
-          <section className="form-section">
-            <h3 className="section-title">Set Your Password</h3>
-            <div className="input-grid">
-              <div className="input-field full-width">
-                <label><Lock size={13} /> Password</label>
+          <div className="auth-form__field mt-1">
+            <label>Email Address</label>
+            <div className="input-with-icon">
+              <Mail size={17} />
+              <input 
+                type="email" 
+                value={formData.email} 
+                disabled 
+                className="disabled-input" 
+              />
+            </div>
+          </div>
+
+          <div className="auth-form__row mt-1">
+            <div className="auth-form__field">
+              <label>Set Password</label>
+              <div className="input-with-icon">
+                <Lock size={17} />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={e => setFormData({ ...formData, password: e.target.value })}
                   required
                   minLength={8}
-                  placeholder="At least 8 characters"
+                  placeholder="Min. 8 characters"
                 />
               </div>
-              <div className="input-field full-width">
-                <label><Lock size={13} /> Confirm Password</label>
+            </div>
+            <div className="auth-form__field">
+              <label>Confirm Password</label>
+              <div className="input-with-icon">
+                <Lock size={17} />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={formData.confirmPassword}
                   onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
                   required
                 />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
-          </section>
-
-          <div className="form-info-box">
-            <ShieldCheck size={18} color="var(--success)" style={{ flexShrink: 0 }} />
-            <p>Your tenancy at <strong>{inviteData.property?.location?.area || 'your residential area'}</strong> will be verified upon joining.</p>
           </div>
 
-          <button className="invite-submit" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'One moment...' : 'Accept Invitation'}
+          <div className="form-info-box mt-4">
+            <ShieldCheck size={18} color="var(--success)" strokeWidth={2.5} />
+            <p>Direct invitation from <strong>{companyName}</strong>. Your data is secure and verified.</p>
+          </div>
+
+          <button className="btn btn--primary btn--full btn--pay mt-6" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Activating account…' : 'Accept Invitation'}
             {!isSubmitting && <ArrowRight size={17} />}
           </button>
         </form>
       </div>
 
       <style jsx>{`
-        .invite-page {
-          min-height: 100vh;
-          min-height: 100dvh;
-          background: var(--surface);
-          display: flex;
-          align-items: flex-start;
-          justify-content: center;
-          padding: var(--safe-top) 0 calc(var(--safe-bottom) + 2rem);
-        }
-
-        .invite-card {
-          background: var(--bg);
-          width: 100%;
-          max-width: 500px;
-          border-radius: var(--radius-xl);
-          border: 1px solid var(--border-solid);
-          overflow: hidden;
-          margin: 1.5rem 1rem;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-        }
-
-        .invite-header {
-          padding: 2rem 1.5rem 1.5rem;
-          background: var(--surface);
-          border-bottom: 1px solid var(--border-solid);
-        }
-
-        .brand-row {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin-bottom: 2rem;
-        }
-
-        .brand-name {
-          font-weight: 900;
-          font-size: 0.9rem;
-          letter-spacing: 1.5px;
-          color: var(--text);
-        }
-
-        .company-avatar-row {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          margin-bottom: 1rem;
-        }
-
-        .company-logo-wrap {
-          width: 44px;
-          height: 44px;
-          background: var(--bg);
-          border-radius: var(--radius-md);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-          border: 1px solid var(--border-solid);
-          flex-shrink: 0;
-        }
-
-        .company-logo-img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .invite-badge {
-          background: var(--clay-faint);
-          color: var(--clay);
-          padding: 0.25rem 0.75rem;
-          border-radius: var(--radius-full);
-          font-size: 0.7rem;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .invite-title {
-          font-size: 1.35rem;
-          font-weight: 900;
-          line-height: 1.2;
-          margin-bottom: 0.5rem;
-          color: var(--text);
-        }
-
-        .invite-subtitle {
-          color: var(--text-muted);
-          font-size: 0.88rem;
-          line-height: 1.5;
-        }
-
-        .invite-subtitle strong {
-          color: var(--text);
-          font-weight: 700;
-        }
-
-        .invite-form {
-          padding: 1.5rem;
-        }
-
-        .form-section {
-          margin-bottom: 1.75rem;
-        }
-
-        .section-title {
-          font-size: 0.65rem;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: 1.5px;
-          color: var(--text-muted);
-          margin-bottom: 1rem;
-          padding-bottom: 0.5rem;
-          border-bottom: 1px solid var(--border-solid);
-        }
-
-        .input-grid {
+        .auth-form__row {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 0.85rem;
+          gap: 12px;
         }
-
-        .input-field {
-          display: flex;
-          flex-direction: column;
-          gap: 0.35rem;
+        .mt-1 {
+          margin-top: 12px;
         }
-
-        .full-width {
-          grid-column: span 2;
-        }
-
-        .input-field label {
-          font-size: 0.75rem;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 0.4rem;
-          color: var(--text-muted);
-        }
-
-        .input-field input {
-          background: var(--surface);
-          border: 1px solid var(--border-solid);
-          color: var(--text);
-          padding: 0.7rem 0.9rem;
-          border-radius: var(--radius-md);
-          font-size: 0.9rem;
-          font-family: inherit;
-          transition: all 0.2s;
-          width: 100%;
-        }
-
-        .input-field input:focus {
-          background: var(--bg);
-          border-color: var(--clay);
-          box-shadow: 0 0 0 3px var(--clay-glow);
-          outline: none;
-        }
-
         .disabled-input {
           cursor: not-allowed;
-          opacity: 0.6;
+          opacity: 0.7;
           background: var(--surface2) !important;
         }
-
         .form-info-box {
           background: var(--surface);
           border: 1px solid var(--border-solid);
-          padding: 0.85rem;
-          border-radius: var(--radius-lg);
+          padding: 12px;
+          border-radius: var(--radius-md);
           display: flex;
-          gap: 0.75rem;
+          gap: 10px;
           align-items: center;
-          margin-bottom: 1.5rem;
         }
-
         .form-info-box p {
-          font-size: 0.8rem;
-          color: var(--text-muted);
+          font-size: 13px;
+          color: var(--text-secondary);
           line-height: 1.4;
+          margin: 0;
         }
-
-        .form-info-box p strong {
-          color: var(--text);
-        }
-
-        .invite-submit {
-          width: 100%;
-          background: var(--clay);
-          color: white;
-          border: none;
-          padding: 0.9rem;
-          border-radius: var(--radius-lg);
-          font-size: 0.9rem;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.6rem;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .invite-submit:hover:not(:disabled) {
-          filter: brightness(1.05);
-          transform: translateY(-1px);
-        }
-
-        .invite-submit:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .invite-loading {
-          height: 100vh;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 1.5rem;
-          background: var(--bg);
-        }
-
-        .loading-spinner {
-          width: 28px;
-          height: 28px;
-          border: 2px solid var(--surface2);
-          border-top-color: var(--clay);
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
         @media (max-width: 480px) {
-          .invite-card {
-            margin: 0;
-            border-radius: 0;
-            border: none;
-            min-height: 100vh;
-          }
-          .input-grid {
+          .auth-form__row {
             grid-template-columns: 1fr;
-          }
-          .full-width {
-            grid-column: span 1;
           }
         }
       `}</style>
