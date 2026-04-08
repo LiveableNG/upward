@@ -1,5 +1,5 @@
 export interface User {
-  id: number
+  id?: number
   uuid: string
   email: string
   emailHash: string
@@ -31,8 +31,8 @@ export interface UserRepository {
   findByEmail(email: string): Promise<User | null>
   findById(id: number): Promise<User | null>
   findByUuid(uuid: string): Promise<User | null>
-  save(user: User): Promise<void>
-  update(id: number, data: Partial<User>): Promise<void>
+  save(user: User): Promise<User>
+  update(id: number, data: Partial<User>): Promise<User>
 }
 
 export const USER_REPOSITORY = Symbol('USER_REPOSITORY')

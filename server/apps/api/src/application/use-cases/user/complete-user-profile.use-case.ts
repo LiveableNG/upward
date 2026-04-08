@@ -79,8 +79,8 @@ export class CompleteUserProfileUseCase {
     }
 
     if (user) {
-      await this.userRepository.update(user.id, userData)
-      user = await this.userRepository.findById(user.id)
+      await this.userRepository.update(user.id!, userData)
+      user = await this.userRepository.findById(user.id!)
     } else {
       if (!passwordHash) {
         throw new Error('Password is required for new user registration')
@@ -89,7 +89,6 @@ export class CompleteUserProfileUseCase {
         ...userData,
         passwordHash,
         uuid: crypto.randomUUID(),
-        id: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
       }
@@ -101,7 +100,7 @@ export class CompleteUserProfileUseCase {
 
     // Sync Properties
     if (properties.length > 0) {
-      await this.syncProperties(user.id, properties)
+      await this.syncProperties(user.id!, properties)
     }
 
     const payload = { sub: user.uuid, email: user.email }
@@ -110,7 +109,7 @@ export class CompleteUserProfileUseCase {
       expiresIn: '1h',
     })
     const refreshToken = this.jwtService.sign(
-      { sub: user.id, type: 'refresh' },
+      { sub: user.id!, type: 'refresh' },
       {
         secret: this.configService.get('JWT_REFRESH_SECRET', 'super-refresh-secret-key'),
         expiresIn: '7d',

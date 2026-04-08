@@ -32,7 +32,7 @@ export class SendNotificationUseCase {
 
     return this.notificationRepository.createNotification({
       ...data,
-      userId: user.id,
+      userId: user.id!,
     })
   }
 }
@@ -50,7 +50,7 @@ export class GetUserNotificationsUseCase {
     const user = await this.userRepository.findByUuid(userId)
     if (!user) throw new Error('User not found')
 
-    const numericUserId = user.id
+    const numericUserId = user.id!
 
     // 1. Get active announcement
     const activeAnnouncement = await this.notificationRepository.findActiveAnnouncement()
@@ -113,7 +113,7 @@ export class UpdateAnnouncementStateUseCase {
 
     return this.notificationRepository.upsertAnnouncementState({
       ...data,
-      userId: user.id,
+      userId: user.id!,
       announcementId: Number(data.announcementId),
     })
   }

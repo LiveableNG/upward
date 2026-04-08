@@ -32,7 +32,7 @@ export class PrismaPropertyRepository implements PropertyRepository {
     return records as unknown as Property[]
   }
 
-  async save(property: Property): Promise<void> {
+  async save(property: Property): Promise<Property> {
     const data = {
       userId: property.userId,
       companyId: property.companyId,
@@ -42,21 +42,21 @@ export class PrismaPropertyRepository implements PropertyRepository {
       rentStartDate: property.rentStartDate,
       rentEndDate: property.rentEndDate,
     }
-    if (property.id === 0) {
-      await this.prisma.upward_user_property.create({ data })
-    } else {
-      await this.prisma.upward_user_property.update({
-        where: { id: property.id },
-        data,
-      })
-    }
+    const record = property.id
+      ? await this.prisma.upward_user_property.update({
+          where: { id: property.id },
+          data,
+        })
+      : await this.prisma.upward_user_property.create({ data })
+    return record as unknown as Property
   }
 
-  async update(id: number, data: Partial<Property>): Promise<void> {
-    await this.prisma.upward_user_property.update({
+  async update(id: number, data: Partial<Property>): Promise<Property> {
+    const record = await this.prisma.upward_user_property.update({
       where: { id },
       data: data as any,
     })
+    return record as unknown as Property
   }
 }
 
@@ -78,20 +78,20 @@ export class PrismaLocationRepository implements LocationRepository {
     return record as unknown as Location | null
   }
 
-  async save(location: Location): Promise<void> {
+  async save(location: Location): Promise<Location> {
     const data = {
       country: location.country,
       state: location.state,
       area: location.area,
       subarea: location.subarea,
+      address: (location as any).address,
     }
-    if (location.id === 0) {
-      await this.prisma.upward_location.create({ data })
-    } else {
-      await this.prisma.upward_location.update({
-        where: { id: location.id },
-        data,
-      })
-    }
+    const record = location.id
+      ? await this.prisma.upward_location.update({
+          where: { id: location.id },
+          data,
+        })
+      : await this.prisma.upward_location.create({ data })
+    return record as unknown as Location
   }
 }

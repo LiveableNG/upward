@@ -60,8 +60,8 @@ export class PrismaUserRepository implements UserRepository {
     return record ? this.toDomain(record) : null
   }
 
-  async save(user: User): Promise<void> {
-    await this.prisma.upward_user.create({
+  async save(user: User): Promise<User> {
+    const record = await this.prisma.upward_user.create({
       data: {
         uuid: user.uuid,
         email: this.encryption.encrypt(user.email),
@@ -85,9 +85,10 @@ export class PrismaUserRepository implements UserRepository {
         resetPasswordExpires: user.resetPasswordExpires,
       },
     })
+    return this.toDomain(record)
   }
 
-  async update(id: number, data: Partial<User>): Promise<void> {
+  async update(id: number, data: Partial<User>): Promise<User> {
     const updateData: any = { ...data }
     
     if (data.email) {
@@ -107,9 +108,10 @@ export class PrismaUserRepository implements UserRepository {
       updateData.phoneHash = this.encryption.hash(data.phone)
     }
 
-    await this.prisma.upward_user.update({
+    const record = await this.prisma.upward_user.update({
       where: { id },
       data: updateData,
     })
+    return this.toDomain(record)
   }
 }

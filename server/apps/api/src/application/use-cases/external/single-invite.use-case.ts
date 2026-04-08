@@ -1,7 +1,20 @@
 import { Injectable, Logger, Inject, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
 import { UserRepository, USER_REPOSITORY } from '@domains/users/user.repository'
-import { CompanyRepository, COMPANY_REPOSITORY, MANAGER_REPOSITORY, ManagerRepository } from '@domains/companies/company.repository'
+import { 
+  CompanyRepository, 
+  COMPANY_REPOSITORY, 
+  MANAGER_REPOSITORY, 
+  ManagerRepository,
+  COMPANY_USER_REPOSITORY,
+  CompanyUserRepository
+} from '@domains/companies/company.repository'
+import { 
+  PropertyRepository, 
+  PROPERTY_REPOSITORY, 
+  LOCATION_REPOSITORY, 
+  LocationRepository 
+} from '@domains/companies/property.repository'
 import { EncryptionService } from '@shared/infrastructure/common/encryption.service'
 import { randomUUID } from 'crypto'
 
@@ -63,11 +76,15 @@ export class SingleInviteUseCase {
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(COMPANY_REPOSITORY) private readonly companyRepository: CompanyRepository,
     @Inject(MANAGER_REPOSITORY) private readonly managerRepository: ManagerRepository,
+    @Inject(COMPANY_USER_REPOSITORY) private readonly companyUserRepository: CompanyUserRepository,
+    @Inject(PROPERTY_REPOSITORY) private readonly propertyRepository: PropertyRepository,
+    @Inject(LOCATION_REPOSITORY) private readonly locationRepository: LocationRepository,
   ) {}
 
   async execute(payload: InviteRequest, platformId?: number): Promise<any> {
     const { company: companyData, invite } = payload
 
+    // 1. Find or Create Company
     let company = companyData.id 
       ? await this.companyRepository.findById(companyData.id)
       : (companyData.name ? await this.companyRepository.findByName(companyData.name) : null)
@@ -76,16 +93,14 @@ export class SingleInviteUseCase {
       if (!companyData.name) {
         throw new BadRequestException('Company name is required for new company')
       }
-      const companyUuid = randomUUID()
-      await this.companyRepository.save({
-        uuid: companyUuid,
+      company = await this.companyRepository.save({
+        uuid: randomUUID(),
         name: companyData.name,
         address: companyData.address,
         platformId: platformId || null,
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any)
-      company = await this.companyRepository.findByUuid(companyUuid)
     } else {
       // Update company details if they changed and provided
       const updateData: any = {}
@@ -93,11 +108,11 @@ export class SingleInviteUseCase {
       if (companyData.address && company.address !== companyData.address) updateData.address = companyData.address
       
       if (Object.keys(updateData).length > 0) {
-        await this.companyRepository.update(company.id, updateData)
+        company = await this.companyRepository.update(company.id!, updateData)
       }
     }
-    if (!company) throw new Error('Failed to handle company')
 
+    // 2. Find or Create Manager
     const managerData = invite.property.manager
     let manager = managerData.id
       ? await this.managerRepository.findById(managerData.id)
@@ -107,9 +122,8 @@ export class SingleInviteUseCase {
       if (!managerData.firstName || !managerData.lastName || !managerData.email) {
         throw new BadRequestException('Manager details (firstName, lastName, email) are required for new manager')
       }
-      const managerUuid = randomUUID()
-      await this.managerRepository.save({
-        uuid: managerUuid,
+      manager = await this.managerRepository.save({
+        uuid: randomUUID(),
         companyId: company.id,
         firstName: managerData.firstName,
         lastName: managerData.lastName,
@@ -118,7 +132,6 @@ export class SingleInviteUseCase {
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any)
-      manager = await this.managerRepository.findByUuid(managerUuid)
     } else {
       // Update manager details if they changed and provided
       const updateData: any = {}
@@ -128,21 +141,17 @@ export class SingleInviteUseCase {
       if (managerData.phone) updateData.phone = managerData.phone
       
       if (Object.keys(updateData).length > 0) {
-        await this.managerRepository.update(manager.id, updateData)
+        manager = await this.managerRepository.update(manager.id!, updateData)
       }
     }
-
-    if (!manager) throw new Error('Failed to handle manager')
 
     // 3. Find or Create User
     const userData = invite.user
     let user = await this.userRepository.findByEmail(userData.email)
 
     if (!user) {
-      const userUuid = randomUUID()
-
-      await this.userRepository.save({
-        uuid: userUuid,
+      user = await this.userRepository.save({
+        uuid: randomUUID(),
         email: userData.email,
         firstName: userData.firstName,
         lastName: userData.lastName,
@@ -152,57 +161,47 @@ export class SingleInviteUseCase {
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any)
-      user = await this.userRepository.findByUuid(userUuid)
     }
 
-    if (!user) throw new Error('Failed to handle user')
-
-
-    const existingLink = await this.prisma.upward_company_user.findUnique({
-      where: {
-        companyId_userId: { companyId: company.id, userId: user.id }
-      }
-    })
+    // 4. Link User to Company
+    const existingLink = await this.companyUserRepository.findByCompanyAndUser(company.id!, user.id!)
 
     if (!existingLink) {
-      await this.prisma.upward_company_user.create({
-        data: {
-          company: { connect: { id: company.id } },
-          user: { connect: { id: user.id } },
-          invitedAt: new Date(),
-        }
-      })
+      await this.companyUserRepository.save({
+        companyId: company.id!,
+        userId: user.id!,
+        invitedAt: new Date(),
+      } as any)
     } else {
-      await this.prisma.upward_company_user.update({
-        where: { id: existingLink.id },
-        data: { invitedAt: new Date() }
-      })
+      await this.companyUserRepository.update(existingLink.id!, { invitedAt: new Date() })
     }
 
+    // 5. Create Location and Property
     const locData = invite.property.location
     const rentData = invite.property.rent
 
-    const location = await this.prisma.upward_location.create({
-      data: {
-        uuid: randomUUID(),
-        country: locData.country || 'Nigeria',
-        state: locData.state || '',
-        area: locData.area || '',
-        subarea: locData.subarea || locData.address || ''
-      }
+    const location = await this.locationRepository.save({
+      uuid: randomUUID(),
+      country: locData.country || 'Nigeria',
+      state: locData.state || '',
+      area: locData.area || '',
+      subarea: locData.subarea || '',
+      address: locData.address || '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
     })
 
-    await this.prisma.upward_user_property.create({
-      data: {
-        uuid: randomUUID(),
-        user: { connect: { id: user.id } },
-        company: company.id ? { connect: { id: company.id } } : undefined,
-        manager: manager.id ? { connect: { id: manager.id } } : undefined,
-        location: location.id ? { connect: { id: location.id } } : undefined,
-        rentAmount: rentData.rentAmount || 0,
-        rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : null,
-        rentEndDate: rentData.rentEndDate ? new Date(rentData.rentEndDate) : null,
-      }
+    await this.propertyRepository.save({
+      uuid: randomUUID(),
+      userId: user.id!,
+      companyId: company.id!,
+      managerId: manager.id!,
+      locationId: location.id!,
+      rentAmount: rentData.rentAmount || 0,
+      rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : undefined,
+      rentEndDate: rentData.rentEndDate ? new Date(rentData.rentEndDate) : undefined,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     })
 
     return [
