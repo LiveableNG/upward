@@ -1,5 +1,5 @@
 export interface Company {
-  id: number
+  id?: number
   uuid: string
   name: string
   nameHash?: string | null
@@ -14,7 +14,7 @@ export interface Company {
 }
 
 export interface Platform {
-  id: number
+  id?: number
   uuid: string
   apiKey: string
   webhookUrl: string
@@ -28,7 +28,7 @@ export interface Platform {
 }
 
 export interface CompanyUser {
-  id: number
+  id?: number
   companyId: number
   userId: number
   invitedAt: Date
@@ -36,7 +36,7 @@ export interface CompanyUser {
 }
 
 export interface Manager {
-  id: number
+  id?: number
   uuid: string
   companyId: number
   firstName?: string | null
@@ -55,30 +55,30 @@ export interface CompanyRepository {
   findById(id: number): Promise<Company | null>
   findByUuid(uuid: string): Promise<Company | null>
   findByName(name: string): Promise<Company | null>
-  save(company: Company): Promise<void>
-  update(id: number, data: Partial<Company>): Promise<void>
+  save(company: Company): Promise<Company>
+  update(id: number, data: Partial<Company>): Promise<Company>
 }
 
 export interface PlatformRepository {
   findById(id: number): Promise<Platform | null>
   findByApiKey(apiKey: string): Promise<Platform | null>
   findByEmail(email: string): Promise<Platform | null>
-  save(platform: Platform): Promise<void>
-  update(id: number, data: Partial<Platform>): Promise<void>
+  save(platform: Platform): Promise<Platform>
+  update(id: number, data: Partial<Platform>): Promise<Platform>
 }
 
 export interface CompanyUserRepository {
   findByCompanyAndUser(companyId: number, userId: number): Promise<CompanyUser | null>
-  save(companyUser: CompanyUser): Promise<void>
-  update(id: number, data: Partial<CompanyUser>): Promise<void>
+  save(companyUser: CompanyUser): Promise<CompanyUser>
+  update(id: number, data: Partial<CompanyUser>): Promise<CompanyUser>
 }
 
 export interface ManagerRepository {
   findById(id: number): Promise<Manager | null>
   findByUuid(uuid: string): Promise<Manager | null>
   findByEmail(email: string): Promise<Manager | null>
-  save(manager: Manager): Promise<void>
-  update(id: number, data: Partial<Manager>): Promise<void>
+  save(manager: Manager): Promise<Manager>
+  update(id: number, data: Partial<Manager>): Promise<Manager>
 }
 
 export const COMPANY_REPOSITORY = Symbol('COMPANY_REPOSITORY')

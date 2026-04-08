@@ -30,7 +30,7 @@ export class SaveLandlordUseCase {
 
     return this.landlordRepo.create({
       ...data,
-      userId: user.id,
+      userId: user.id!,
     })
   }
 }
@@ -47,7 +47,7 @@ export class GetSavedLandlordsUseCase {
   async execute(userId: string) {
     const user = await this.userRepository.findByUuid(userId)
     if (!user) throw new Error('User not found')
-    return this.landlordRepo.findByUserId(user.id)
+    return this.landlordRepo.findByUserId(user.id!)
   }
 }
 
@@ -90,7 +90,7 @@ export class RecordTransactionUseCase {
 
       const txData = {
         ...data,
-        userId: user.id,
+        userId: user.id!,
         status: isVerified ? 'SUCCESS' : 'FAILED',
       }
 
@@ -141,7 +141,7 @@ export class GetUserTransactionsUseCase {
   async execute(userId: string) {
     const user = await this.userRepository.findByUuid(userId)
     if (!user) throw new Error('User not found')
-    return this.txRepo.findByUserId(user.id)
+    return this.txRepo.findByUserId(user.id!)
   }
 }
 

@@ -85,7 +85,7 @@ export class UserAuthService extends BaseAuthService {
     }
 
     if (propertyList.length > 0) {
-      await this.syncProperties(user.id, propertyList)
+      await this.syncProperties(user.id!, propertyList)
     }
 
     return {
@@ -170,7 +170,7 @@ export class UserAuthService extends BaseAuthService {
     if (!user) throw new UnauthorizedException('User not found')
 
 
-    await this.userRepository.update(user.id, data as any)
+    await this.userRepository.update(user.id!, data as any)
 
     // Sync Location and Property logic
     const propertyList = (data as any).properties || []
@@ -182,7 +182,7 @@ export class UserAuthService extends BaseAuthService {
     }
 
     if (propertyList.length > 0) {
-      await this.syncProperties(user.id, propertyList)
+      await this.syncProperties(user.id!, propertyList)
     }
 
     return this.getProfile(userUuid)
@@ -292,7 +292,7 @@ export class UserAuthService extends BaseAuthService {
     }
 
     const newPasswordHash = await bcrypt.hash(newPlain, 10)
-    await this.userRepository.update(user.id, { passwordHash: newPasswordHash })
+    await this.userRepository.update(user.id!, { passwordHash: newPasswordHash })
   }
 
   async forgotPassword(email: string): Promise<void> {
@@ -306,7 +306,7 @@ export class UserAuthService extends BaseAuthService {
     const otp = Math.floor(100000 + Math.random() * 900000).toString()
     const expires = new Date(Date.now() + 15 * 60 * 1000) // 15 mins
 
-    await this.userRepository.update(user.id, {
+    await this.userRepository.update(user.id!, {
       resetPasswordOTP: otp,
       resetPasswordExpires: expires,
     })
@@ -327,7 +327,7 @@ export class UserAuthService extends BaseAuthService {
     }
 
     const newPasswordHash = await bcrypt.hash(newPlain, 10)
-    await this.userRepository.update(user.id, {
+    await this.userRepository.update(user.id!, {
       passwordHash: newPasswordHash,
       resetPasswordOTP: null,
       resetPasswordExpires: null,

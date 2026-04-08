@@ -58,7 +58,7 @@ export class PrismaCompanyRepository implements CompanyRepository {
     return record ? this.toDomain(record) : null
   }
 
-  async save(company: Company): Promise<void> {
+  async save(company: Company): Promise<Company> {
     const data: any = {
       uuid: company.uuid || crypto.randomUUID(),
       name: this.encryption.encrypt(company.name),
@@ -70,10 +70,13 @@ export class PrismaCompanyRepository implements CompanyRepository {
       phoneHash: company.phone ? this.encryption.hash(company.phone) : null,
       platform: company.platformId ? { connect: { id: company.platformId } } : undefined,
     }
-    await this.prisma.upward_company.create({ data })
+    const record = company.id
+      ? await this.prisma.upward_company.update({ where: { id: company.id }, data })
+      : await this.prisma.upward_company.create({ data })
+    return this.toDomain(record)
   }
 
-  async update(id: number, data: Partial<Company>): Promise<void> {
+  async update(id: number, data: Partial<Company>): Promise<Company> {
     const updateData: any = { ...data }
     if (data.name) {
       updateData.name = this.encryption.encrypt(data.name)
@@ -87,10 +90,11 @@ export class PrismaCompanyRepository implements CompanyRepository {
       updateData.phone = this.encryption.encrypt(data.phone)
       updateData.phoneHash = this.encryption.hash(data.phone)
     }
-    await this.prisma.upward_company.update({
+    const record = await this.prisma.upward_company.update({
       where: { id },
       data: updateData,
     })
+    return this.toDomain(record)
   }
 }
 
@@ -139,21 +143,23 @@ export class PrismaPlatformRepository implements PlatformRepository {
     return record ? this.toDomain(record) : null
   }
 
-  async save(platform: Platform): Promise<void> {
-    await this.prisma.upward_platform.create({
-      data: {
-        apiKey: platform.apiKey,
-        webhookUrl: platform.webhookUrl,
-        name: this.encryption.encrypt(platform.name),
-        nameHash: this.encryption.hash(platform.name),
-        address: platform.address,
-        email: platform.email ? this.encryption.encrypt(platform.email) : null,
-        emailHash: platform.email ? this.encryption.hash(platform.email) : null,
-      },
-    })
+  async save(platform: Platform): Promise<Platform> {
+    const data = {
+      apiKey: platform.apiKey,
+      webhookUrl: platform.webhookUrl,
+      name: this.encryption.encrypt(platform.name),
+      nameHash: this.encryption.hash(platform.name),
+      address: platform.address,
+      email: platform.email ? this.encryption.encrypt(platform.email) : null,
+      emailHash: platform.email ? this.encryption.hash(platform.email) : null,
+    }
+    const record = platform.id
+      ? await this.prisma.upward_platform.update({ where: { id: platform.id }, data })
+      : await this.prisma.upward_platform.create({ data })
+    return this.toDomain(record)
   }
 
-  async update(id: number, data: Partial<Platform>): Promise<void> {
+  async update(id: number, data: Partial<Platform>): Promise<Platform> {
     const updateData: any = { ...data }
     if (data.name) {
       updateData.name = this.encryption.encrypt(data.name)
@@ -163,10 +169,11 @@ export class PrismaPlatformRepository implements PlatformRepository {
       updateData.email = this.encryption.encrypt(data.email)
       updateData.emailHash = this.encryption.hash(data.email)
     }
-    await this.prisma.upward_platform.update({
+    const record = await this.prisma.upward_platform.update({
       where: { id },
       data: updateData,
     })
+    return this.toDomain(record)
   }
 }
 
@@ -183,22 +190,25 @@ export class PrismaCompanyUserRepository implements CompanyUserRepository {
     return record as unknown as CompanyUser | null
   }
 
-  async save(companyUser: CompanyUser): Promise<void> {
-    await this.prisma.upward_company_user.create({
-      data: {
-        companyId: companyUser.companyId,
-        userId: companyUser.userId,
-        invitedAt: companyUser.invitedAt,
-        acceptedAt: companyUser.acceptedAt,
-      },
-    })
+  async save(companyUser: CompanyUser): Promise<CompanyUser> {
+    const data = {
+      companyId: companyUser.companyId,
+      userId: companyUser.userId,
+      invitedAt: companyUser.invitedAt,
+      acceptedAt: companyUser.acceptedAt,
+    }
+    const record = companyUser.id
+      ? await this.prisma.upward_company_user.update({ where: { id: companyUser.id }, data })
+      : await this.prisma.upward_company_user.create({ data })
+    return record as unknown as CompanyUser
   }
 
-  async update(id: number, data: Partial<CompanyUser>): Promise<void> {
-    await this.prisma.upward_company_user.update({
+  async update(id: number, data: Partial<CompanyUser>): Promise<CompanyUser> {
+    const record = await this.prisma.upward_company_user.update({
       where: { id },
       data,
     })
+    return record as unknown as CompanyUser
   }
 }
 
@@ -249,7 +259,7 @@ export class PrismaManagerRepository implements ManagerRepository {
     return record ? this.toDomain(record) : null
   }
 
-  async save(manager: Manager): Promise<void> {
+  async save(manager: Manager): Promise<Manager> {
     const data: any = {
       uuid: manager.uuid || crypto.randomUUID(),
       company: { connect: { id: manager.companyId } },
@@ -262,10 +272,13 @@ export class PrismaManagerRepository implements ManagerRepository {
       email: manager.email ? this.encryption.encrypt(manager.email) : null,
       emailHash: manager.email ? this.encryption.hash(manager.email) : null,
     }
-    await this.prisma.upward_manager.create({ data })
+    const record = manager.id
+      ? await this.prisma.upward_manager.update({ where: { id: manager.id }, data })
+      : await this.prisma.upward_manager.create({ data })
+    return this.toDomain(record)
   }
 
-  async update(id: number, data: Partial<Manager>): Promise<void> {
+  async update(id: number, data: Partial<Manager>): Promise<Manager> {
     const updateData: any = { ...data }
     if (data.firstName) {
       updateData.firstName = this.encryption.encrypt(data.firstName)
@@ -283,9 +296,10 @@ export class PrismaManagerRepository implements ManagerRepository {
       updateData.email = this.encryption.encrypt(data.email)
       updateData.emailHash = this.encryption.hash(data.email)
     }
-    await this.prisma.upward_manager.update({
+    const record = await this.prisma.upward_manager.update({
       where: { id: id },
       data: updateData,
     })
+    return this.toDomain(record)
   }
 }
