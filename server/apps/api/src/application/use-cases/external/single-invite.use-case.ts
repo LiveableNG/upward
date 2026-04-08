@@ -82,6 +82,27 @@ export class SingleInviteUseCase {
   ) {}
 
   async execute(payload: InviteRequest, platformId?: number): Promise<any> {
+    const result = await this.setupInviteContext(payload, platformId);
+    
+    return [
+      {
+        userId: result.user.uuid,
+        managerId: result.manager.uuid,
+        companyId: result.company.uuid,
+        userPropertyUuid: result.property.uuid,
+        email: result.user.email,
+        inviteLink: FRONTEND_URL + `/invite/${result.user.uuid}`
+      }
+    ]
+  }
+
+  async setupInviteContext(payload: InviteRequest, platformId?: number): Promise<{
+    user: any,
+    company: any,
+    manager: any,
+    property: any,
+    location: any
+  }> {
     const { company: companyData, invite } = payload
 
     // 1. Find or Create Company
@@ -102,7 +123,6 @@ export class SingleInviteUseCase {
         updatedAt: new Date(),
       } as any)
     } else {
-      // Update company details if they changed and provided
       const updateData: any = {}
       if (companyData.name && company.name !== companyData.name) updateData.name = companyData.name
       if (companyData.address && company.address !== companyData.address) updateData.address = companyData.address
@@ -124,7 +144,7 @@ export class SingleInviteUseCase {
       }
       manager = await this.managerRepository.save({
         uuid: randomUUID(),
-        companyId: company.id,
+        companyId: company.id!,
         firstName: managerData.firstName,
         lastName: managerData.lastName,
         email: managerData.email,
@@ -133,7 +153,6 @@ export class SingleInviteUseCase {
         updatedAt: new Date(),
       } as any)
     } else {
-      // Update manager details if they changed and provided
       const updateData: any = {}
       if (managerData.firstName) updateData.firstName = managerData.firstName
       if (managerData.lastName) updateData.lastName = managerData.lastName
@@ -180,6 +199,10 @@ export class SingleInviteUseCase {
     const locData = invite.property.location
     const rentData = invite.property.rent
 
+    if (!rentData.rentAmount || !rentData.rentEndDate) {
+      throw new BadRequestException('Rent amount and rent end date are compulsory for invitation');
+    }
+
     const location = await this.locationRepository.save({
       uuid: randomUUID(),
       country: locData.country || 'Nigeria',
@@ -189,29 +212,22 @@ export class SingleInviteUseCase {
       address: locData.address || '',
       createdAt: new Date(),
       updatedAt: new Date(),
-    })
+    } as any)
 
-    await this.propertyRepository.save({
+    const property = await this.propertyRepository.save({
       uuid: randomUUID(),
       userId: user.id!,
       companyId: company.id!,
       managerId: manager.id!,
       locationId: location.id!,
-      rentAmount: rentData.rentAmount || 0,
+      rentAmount: rentData.rentAmount,
+      rentEndDate: new Date(rentData.rentEndDate),
       rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : undefined,
-      rentEndDate: rentData.rentEndDate ? new Date(rentData.rentEndDate) : undefined,
+      currency: (rentData as any).currency || 'NGN',
       createdAt: new Date(),
       updatedAt: new Date(),
-    })
+    } as any)
 
-    return [
-      {
-        userId: user.uuid,
-        managerId: manager.uuid,
-        companyId: company.uuid,
-        email: user.email,
-        inviteLink:  FRONTEND_URL + `/invite/${user.uuid}`
-      }
-    ]
+    return { user, company, manager, property, location }
   }
 }

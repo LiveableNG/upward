@@ -5,6 +5,8 @@ import {
   ITransactionRepository,
   SavedLandlord,
   Transaction,
+  PaymentRequest,
+  IPaymentRequestRepository,
 } from '@domains/payments/payment.repository'
 
 @Injectable()
@@ -211,5 +213,100 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       propertyAddress: res.propertyAddress ?? undefined,
       lineItems: res.lineItems || undefined,
     } as unknown as Transaction
+  }
+}
+
+@Injectable()
+export class PrismaPaymentRequestRepository implements IPaymentRequestRepository {
+  constructor(private prisma: PrismaService) {}
+
+  async create(
+    data: Omit<PaymentRequest, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
+  ): Promise<PaymentRequest> {
+    const res = await this.prisma.upward_payment_request.create({
+      data: {
+        userId: data.userId,
+        userPropertyId: data.userPropertyId,
+        amount: data.amount,
+        currency: data.currency,
+        description: data.description,
+        lineItems: data.lineItems || undefined,
+        dueDate: data.dueDate,
+        status: data.status,
+        reference: data.reference,
+      },
+    })
+    return {
+      ...res,
+      description: res.description ?? undefined,
+      reference: res.reference ?? undefined,
+      userPropertyId: res.userPropertyId ?? undefined,
+      lineItems: res.lineItems || undefined,
+    } as unknown as PaymentRequest
+  }
+
+  async findById(id: number): Promise<PaymentRequest | null> {
+    const res = await this.prisma.upward_payment_request.findUnique({
+      where: { id },
+    })
+    if (!res) return null
+    return {
+      ...res,
+      description: res.description ?? undefined,
+      reference: res.reference ?? undefined,
+      userPropertyId: res.userPropertyId ?? undefined,
+      lineItems: res.lineItems || undefined,
+    } as unknown as PaymentRequest
+  }
+
+  async findByUuid(uuid: string): Promise<PaymentRequest | null> {
+    const res = await this.prisma.upward_payment_request.findUnique({
+      where: { uuid },
+    })
+    if (!res) return null
+    return {
+      ...res,
+      description: res.description ?? undefined,
+      reference: res.reference ?? undefined,
+      userPropertyId: res.userPropertyId ?? undefined,
+      lineItems: res.lineItems || undefined,
+    } as unknown as PaymentRequest
+  }
+
+  async findByUserId(userId: number): Promise<PaymentRequest[]> {
+    const res = await this.prisma.upward_payment_request.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    })
+    return res.map((r) => ({
+      ...r,
+      description: r.description ?? undefined,
+      reference: r.reference ?? undefined,
+      userPropertyId: r.userPropertyId ?? undefined,
+      lineItems: r.lineItems || undefined,
+    })) as unknown as PaymentRequest[]
+  }
+
+  async update(id: number, data: Partial<PaymentRequest>): Promise<PaymentRequest> {
+    const res = await this.prisma.upward_payment_request.update({
+      where: { id },
+      data: {
+        status: data.status,
+        paidAt: data.paidAt,
+        reference: data.reference,
+        amount: data.amount,
+        currency: data.currency,
+        description: data.description,
+        lineItems: data.lineItems || undefined,
+        dueDate: data.dueDate,
+      },
+    })
+    return {
+      ...res,
+      description: res.description ?? undefined,
+      reference: res.reference ?? undefined,
+      userPropertyId: res.userPropertyId ?? undefined,
+      lineItems: res.lineItems || undefined,
+    } as unknown as PaymentRequest
   }
 }

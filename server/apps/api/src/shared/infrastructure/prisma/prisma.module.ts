@@ -5,6 +5,7 @@ import { PrismaUserRepository } from './repositories/prisma-user.repository'
 import {
   PrismaSavedLandlordRepository,
   PrismaTransactionRepository,
+  PrismaPaymentRequestRepository,
 } from './repositories/prisma-payments.repository'
 import {
   PrismaCompanyRepository,
@@ -23,6 +24,7 @@ import {
   SAVED_LANDLORD_REPOSITORY,
   TRANSACTION_REPOSITORY,
   PAYMENT_GATEWAY,
+  PAYMENT_REQUEST_REPOSITORY,
 } from '@domains/payments/payment.repository'
 import {
   COMPANY_REPOSITORY,
@@ -64,6 +66,10 @@ import { EncryptionService } from '@shared/infrastructure/common/encryption.serv
       useClass: PaystackGateway,
     },
     {
+      provide: PAYMENT_REQUEST_REPOSITORY,
+      useClass: PrismaPaymentRequestRepository,
+    },
+    {
       provide: NOTIFICATION_REPOSITORY,
       useClass: PrismaNotificationRepository,
     },
@@ -100,6 +106,7 @@ import { EncryptionService } from '@shared/infrastructure/common/encryption.serv
     SAVED_LANDLORD_REPOSITORY,
     TRANSACTION_REPOSITORY,
     PAYMENT_GATEWAY,
+    PAYMENT_REQUEST_REPOSITORY,
     NOTIFICATION_REPOSITORY,
     COMPANY_REPOSITORY,
     PLATFORM_REPOSITORY,

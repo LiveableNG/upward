@@ -8,6 +8,7 @@ export interface Property {
   rentAmount: number
   rentStartDate?: Date
   rentEndDate?: Date
+  currency: string
   createdAt: Date
   updatedAt: Date
 }
