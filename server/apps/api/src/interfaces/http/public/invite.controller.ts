@@ -68,20 +68,19 @@ export class InviteController {
 
     let managerName = ''
     if (property?.manager) {
-      managerName = `${this.encryption.decrypt(property.manager.firstName)} ${this.encryption.decrypt(property.manager.lastName)}`
+      managerName = `${property.manager.firstName ? this.encryption.decrypt(property.manager.firstName) : ''} ${property.manager.lastName ? this.encryption.decrypt(property.manager.lastName) : ''}`
     }
 
     return {
       success: true,
       user: {
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        phone: user.phone,
-        address: user.address,
+        email: this.encryption.decrypt(user.email),
+        firstName: this.encryption.decrypt(user.firstName),
+        lastName: this.encryption.decrypt(user.lastName),
+        phone: user.phone ? this.encryption.decrypt(user.phone) : null,
       },
       company: companyUser ? {
-        name: companyUser.company.name,
+        name: this.encryption.decrypt(companyUser.company.name),
         profilePic: (companyUser.company as any).profilePic,
       } : null,
       manager: managerName ? {
@@ -118,16 +117,15 @@ export class InviteController {
 
     const passwordHash = await bcrypt.hash(data.password, 10)
 
-    const updatedUser = await this.prisma.upward_user.update({
-      where: { id: user.id },
-      data: {
-        passwordHash,
-        firstName: data.firstName || user.firstName,
-        lastName: data.lastName || user.lastName,
-        phone: data.phone || user.phone,
-        address: data.address || user.address,
-      }
+    await (this.userAuthService as any).userRepository.update(user.id, {
+      passwordHash,
+      firstName: data.firstName || user.firstName,
+      lastName: data.lastName || user.lastName,
+      phone: data.phone || user.phone,
     })
+
+    const updatedUser = await (this.userAuthService as any).userRepository.findById(user.id)
+    if (!updatedUser) throw new Error('Failed to update user')
 
     // Generate tokens for direct login
     const payload = {

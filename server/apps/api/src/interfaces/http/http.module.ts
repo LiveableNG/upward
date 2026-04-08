@@ -16,6 +16,7 @@ import { UserNotificationsController } from './user/notifications.controller'
 import { PublicProfileController } from './public/public-profile.controller'
 import { ExternalInviteController } from './external/external-invite.controller'
 import { InviteController } from './public/invite.controller'
+import { PlatformAdminController } from './external/platform-invite.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule],
@@ -34,6 +35,7 @@ import { InviteController } from './public/invite.controller'
     PublicProfileController,
     ExternalInviteController,
     InviteController,
+    PlatformAdminController,
   ],
 })
 export class HttpModule {}

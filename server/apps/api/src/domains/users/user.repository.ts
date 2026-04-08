@@ -4,12 +4,13 @@ export interface User {
   email: string
   emailHash: string
   firstName: string
+  firstNameHash: string
   lastName: string
+  lastNameHash: string
   phone?: string | null
   phoneHash?: string | null
   passwordHash: string
   occupation?: string | null
-  address?: string | null
   rentAnniversary?: Date | null
   gender?: string | null
   dateOfBirth?: string | null
@@ -18,7 +19,6 @@ export interface User {
   profilePic?: string | null
   profileSlug?: string | null
   bio?: string | null
-  useBiometrics: boolean
   
   resetPasswordOTP?: string | null
   resetPasswordExpires?: Date | null

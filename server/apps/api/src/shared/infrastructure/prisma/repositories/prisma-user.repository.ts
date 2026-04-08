@@ -18,11 +18,12 @@ export class PrismaUserRepository implements UserRepository {
       email: this.encryption.decrypt(model.email),
       emailHash: model.emailHash,
       firstName: this.encryption.decrypt(model.firstName),
+      firstNameHash: model.firstNameHash,
       lastName: this.encryption.decrypt(model.lastName),
+      lastNameHash: model.lastNameHash,
       phone: model.phone ? this.encryption.decrypt(model.phone) : undefined,
       phoneHash: model.phoneHash,
       passwordHash: model.passwordHash,
-      occupation: model.occupation,
       gender: model.gender,
       dateOfBirth: model.dateOfBirth,
       isFromWaitlist: model.isFromWaitlist,
@@ -30,7 +31,6 @@ export class PrismaUserRepository implements UserRepository {
       profilePic: model.profilePic,
       profileSlug: model.profileSlug,
       bio: model.bio,
-      useBiometrics: model.useBiometrics,
       resetPasswordOTP: model.resetPasswordOTP,
       resetPasswordExpires: model.resetPasswordExpires,
       createdAt: model.createdAt,
@@ -67,7 +67,9 @@ export class PrismaUserRepository implements UserRepository {
         email: this.encryption.encrypt(user.email),
         emailHash: this.encryption.hash(user.email),
         firstName: this.encryption.encrypt(user.firstName),
+        firstNameHash: this.encryption.hash(user.firstName),
         lastName: this.encryption.encrypt(user.lastName),
+        lastNameHash: this.encryption.hash(user.lastName),
         phone: user.phone ? this.encryption.encrypt(user.phone) : null,
         phoneHash: user.phone ? this.encryption.hash(user.phone) : null,
         passwordHash: user.passwordHash,
@@ -79,7 +81,6 @@ export class PrismaUserRepository implements UserRepository {
         profilePic: user.profilePic,
         profileSlug: user.profileSlug,
         bio: user.bio,
-        useBiometrics: user.useBiometrics,
         resetPasswordOTP: user.resetPasswordOTP,
         resetPasswordExpires: user.resetPasswordExpires,
       },
@@ -95,9 +96,11 @@ export class PrismaUserRepository implements UserRepository {
     }
     if (data.firstName) {
       updateData.firstName = this.encryption.encrypt(data.firstName)
+      updateData.firstNameHash = this.encryption.hash(data.firstName)
     }
     if (data.lastName) {
       updateData.lastName = this.encryption.encrypt(data.lastName)
+      updateData.lastNameHash = this.encryption.hash(data.lastName)
     }
     if (data.phone) {
       updateData.phone = this.encryption.encrypt(data.phone)

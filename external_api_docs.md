@@ -1,163 +1,174 @@
-# Upward External Invite API Documentation
+# Upward External API Documentation
 
-This API allows third-party property management software to seamlessly invite tenants to the Upward platform. By calling this API, you can pre-populate tenant profiles, set up their tenancy details, and generate unique invite links for email distribution.
+This API allows property management platforms and software providers to integrate with Upward. It provides endpoints for platform registration and tenant invitation.
 
-## Authentication
-
-All requests to the External API must include an `x-api-key` header.
-
-| Header | Value | Description |
-| :--- | :--- | :--- |
-| `x-api-key` | `up_sk_test_7f8d2e9a1b4c` | Your master software service API key. |
-
-> [!IMPORTANT]
-> This key is hardcoded
-
-## Endpoints
-
-### Batch/Single Invite Tenants
+## 1. Platform Registration
+Before you can invite tenants, your platform must be registered to obtain an `x-api-key`.
 
 **Method**: `POST`  
-**Endpoint**: `/external/invites`
+**Endpoint**: `/api/v1/platform/get-key`
 
-> [!NOTE]
-> All passable parameters in the request body are **optional** except for fields explicitly marked as **Yes** in the "Required" column.
+#### Request Body
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `string` | **Yes** | The name of your platform. |
+| `email` | `string` | **Yes** | Contact email for the platform. |
+| `webhookUrl` | `string` | **Yes** | URL where Upward will send event notifications. |
+| `address` | `string` | No | Physical address of the platform office. |
+
+#### Request format
+```json
+{
+  "name": "Liveable Platform",
+  "email": "[EMAIL_ADDRESS]",
+  "webhookUrl": "https://liveable.ng/webhook",
+  "address": "No 1 High Street, Lagos"
+}
+```
+#### Response
+```json
+{
+  "id": "platform-uuid",
+  "apiKey": "up_sk_live_...",
+  "name": "Liveable Platform",
+  "email": "contact@liveable.ng"
+}
+```
+> [!IMPORTANT]
+> **Store your API key securely.** The raw key is only shown once during creation. On our servers, it is stored as a SHA-256 hash.
+
+
+---
+
+## 2. Tenant Invitations
+Once you have an API key, you can generate invite links for your tenants.
+
+**Method**: `POST`  
+**Endpoint**: `/api/v1/single/invite`
+
+#### Authentication
+Include your API key in the headers:
+| Header | Value |
+| :--- | :--- |
+| `x-api-key` | `your_raw_api_key_here` |
 
 #### Request Body Schema
+The request follows a nested structure to coordinate between companies, users, and properties.
 
 | Field | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
 | `company` | `Object` | **Yes** | Details about the property management company. |
-| `manager` | `Object` | No | Details about the manager sending the invitation. |
-| `invites` | `Array` or `Object` | **Yes** | A single invite object or an array of invite objects. |
+| `invite` | `Object` | **Yes** | Nested object containing user and property info. |
 
-#### Company Object Schema
-
+### Company Object
 | Field | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `name` | `string` | **Yes** | The full name of the company. |
+| `id` | `number` | No | Upward Company ID (if already known). |
+| `name` | `string` | Cond. | Required if `id` is not provided. Case-insensitive search. |
 | `address` | `string` | No | Company's physical address. |
-| `profilePic` | `string` | No | URL to the company's logo/profile picture. |
 
-#### Manager Object Schema
-
+### Invite Object
 | Field | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `firstName` | `string` | **Yes** | Manager's first name. |
-| `lastName` | `string` | **Yes** | Manager's last name. |
-| `email` | `string` | **Yes** | Manager's email (unique identifier). |
-| `phone` | `string` | No | Manager's phone number. |
+| `user` | `Object` | **Yes** | The tenant being invited. |
+| `property` | `Object` | **Yes** | Lease and location details. |
 
-#### Invite Object Schema (Tenant & Lease Details)
-
+### User Object
 | Field | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `email` | `string` | **Yes** | Tenant's email address. |
+| `email` | `string` | **Yes** | Tenant's email address (unique identifier). |
 | `firstName` | `string` | **Yes** | Tenant's first name. |
 | `lastName` | `string` | **Yes** | Tenant's last name. |
 | `phone` | `string` | No | Tenant's phone number. |
-| `country` | `string` | No | Country name (Defaults to "Nigeria"). |
-| `state` | `string` | No | State (e.g., "Lagos"). |
-| `city` | `string` | No | City or Local Government Area. |
-| `area` | `string` | No | Specific neighborhood or area (e.g., "Victoria Island"). |
-| `subarea` | `string` | No | Detailed part of the address (e.g., "Penthouse B"). |
-| `address` | `string` | No | Full street address. |
-| `rentAmount` | `number` | No | Total rent amount for the period. |
-| `rentStartDate` | `string` | No | Lease start date (ISO-8601: `YYYY-MM-DD`). |
-| `rentEndDate` | `string` | No | Lease end date / Due date (ISO-8601: `YYYY-MM-DD`). |
 
-#### Comprehensive Request Example
+### Property Object
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `location` | `Object` | **Yes** | Physical location of the unit. |
+| `rent` | `Object` | **Yes** | Financial terms of the lease. |
+| `manager` | `Object` | **Yes** | The manager responsible for this unit. |
 
+### Location Object
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `country` | `string` | **Yes** | Defaults to "Nigeria". |
+| `state` | `string` | **Yes** | State or Province (e.g., "Lagos"). |
+| `area` | `string` | **Yes** | Neighborhood (e.g., "Ikoyi"). |
+| `address` | `string` | No | Street address. |
+| `subarea` | `string` | No | Apartment/Unit number. Fallback is `address`. |
+
+### Rent Object
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `rentAmount` | `number` | **Yes** | Total rent amount. |
+| `rentStartDate` | `string` | **Yes** | ISO-8601 date. |
+| `rentEndDate` | `string` | **Yes** | ISO-8601 date. |
+
+### Manager Object
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `number` | No | Upward Manager ID (if already known). |
+| `firstName` | `string` | Cond. | Required if `id` is not provided. |
+| `lastName` | `string` | Cond. | Required if `id` is not provided. |
+| `email` | `string` | Cond. | Required if `id` is not provided. |
+| `phone` | `string` | No | Manager's phone number. |
+
+---
+
+### Request Example
 ```json
 {
   "company": {
-    "name": "Acme Residential Management",
-    "address": "123 Business District, Lagos",
-    "profilePic": "https://cdn.acme.com/logo-sq.png"
+    "name": "Global Properties LTD",
+    "address": "No 1 High Street, Lagos"
   },
-  "manager": {
-    "firstName": "Opeyemi",
-    "lastName": "Adetunji",
-    "email": "opeyemi@acme-residential.com",
-    "phone": "+2348000000000"
-  },
-  "invites": [
-    {
-      "email": "john.doe.test@gmail.com",
+  "invite": {
+    "user": {
+      "email": "john.doe@gmail.com",
       "firstName": "John",
       "lastName": "Doe",
-      "phone": "+2348012345678",
-      "country": "Nigeria",
-      "state": "Lagos",
-      "city": "Lagos Island",
-      "area": "Victoria Island",
-      "subarea": "Penthouse B",
-      "address": "45 Corporate Way",
-      "rentAmount": 5500000,
-      "rentStartDate": "2024-04-01",
-      "rentEndDate": "2025-03-31"
+      "phone": "+2348001112222"
+    },
+    "property": {
+      "location": {
+        "country": "Nigeria",
+        "state": "Lagos",
+        "area": "Ikoyi",
+        "address": "Bourdillon Road"
+      },
+      "rent": {
+        "rentAmount": 5000000,
+        "rentStartDate": "2024-01-01T00:00:00Z",
+        "rentEndDate": "2025-01-01T00:00:00Z"
+      },
+      "manager": {
+        "firstName": "Bisi",
+        "lastName": "Manager",
+        "email": "bisi@globalprop.ng"
+      }
     }
-  ]
+  }
 }
 ```
 
-#### Example Response
-
+### Response Example
 ```json
 {
   "success": true,
+  "message": "Created",
   "data": [
     {
+      "userId": "b7a71853-2d7a-4399-af09-115a6c1406ce",
+      "managerId": "f1c2d3e4-...",
+      "companyId": "a1b2c3d4-...",
       "email": "john.doe@gmail.com",
-      "success": true,
-      "inviteLink": "https://localhost:3000/invite/6628b7a1-8d2a-4c91-b072-4d2c8038bca1"
+      "inviteLink": "http://localhost:3000/invite/b7a71853-2d7a-4399-af09-115a6c1406ce"
     }
   ]
 }
 ```
 
-## Testing with CURL
-
-All passable parameters in the request body are optional except the ones marked as required.
-
-```bash
-curl -X POST http://localhost:4000/api/v1/external/invites \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: up_sk_test_7f8d2e9a1b4c" \
-  -d '{
-    "company": {
-      "name": "Acme Residential Management",
-      "address": "123 Business District, Lagos",
-      "profilePic": "https://cdn.acme.com/logo-sq.png"
-    },
-    "manager": {
-      "firstName": "Opeyemi",
-      "lastName": "Adetunji",
-      "email": "opeyemi@acme-residential.com",
-      "phone": "+2348000000000"
-    },
-    "invites": [
-      {
-        "email": "john.doe.test@gmail.com",
-        "firstName": "John",
-        "lastName": "Doe",
-        "phone": "+2348012345678",
-        "country": "Nigeria",
-        "state": "Lagos",
-        "city": "Lagos Island",
-        "area": "Victoria Island",
-        "subarea": "Penthouse B",
-        "address": "45 Corporate Way",
-        "rentAmount": 5500000,
-        "rentStartDate": "2024-04-01",
-        "rentEndDate": "2025-03-31"
-      }
-    ]
-  }'
-```
-
-## Implementation Flow
-
-1. **Auto-Link**: The system intelligently maps tenants to companies and managers based on the payload.
-2. **Location Granularity**: By providing `state`, `area`, and `subarea`, the tenant's profile is automatically populated with a structured residential history.
-3. **Activation**: The tenant clicks the `inviteLink`, verifies their information, and sets a password to start using Upward.
+## Implementation Notes
+1. **Case Insensitivity**: Company name searches are case-insensitive.
+2. **Entity Persistence**: If a company or manager with the same details exists, Upward will link to the existing record and update its details if new ones are provided.
+3. **API Security**: Raw API keys are hashed on the server. If you lose your key, you must generate a new one.
