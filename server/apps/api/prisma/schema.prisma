@@ -369,6 +369,12 @@ model upward_company {
   managers     upward_manager[]
 }
 
+model upward_platform {
+  id        Int      @id @default(autoincrement())
+  apiKey    String   @unique
+  
+}
+
 model upward_company_user {
   id         Int       @id @default(autoincrement())
   uuid       String    @unique @default(uuid())
@@ -392,6 +398,9 @@ model upward_manager {
   phone     String? /// @encrypted
   email     String /// @encrypted
   emailHash String   @unique
+  phoneHash String
+  firstNameHash String
+  lastNameHash String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
