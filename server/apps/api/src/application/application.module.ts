@@ -4,7 +4,6 @@ import { EmailLogEventHandler } from './events/handlers/email-log.handler'
 import { InteractionHandler } from './events/handlers/interaction.handler'
 import { S3Module } from '@shared/infrastructure/common/s3/s3.module'
 import { ReceiptModule } from '@shared/infrastructure/common/receipt/receipt.module'
-import { CreditScoreService } from '@shared/infrastructure/common/credit-score.service'
 
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
@@ -66,6 +65,7 @@ import { GetCountriesUseCase } from './use-cases/location/get-countries.use-case
 import { GetCitiesUseCase } from './use-cases/location/get-cities.use-case'
 import { CompleteUserProfileUseCase } from './use-cases/user/complete-user-profile.use-case'
 import { GetPublicProfileUseCase } from './use-cases/user/get-public-profile.use-case'
+import { BatchInviteUseCase } from './use-cases/external/batch-invite.use-case'
 import { AuthModule } from './auth/auth.module'
 import { CreateAnnouncementUseCase } from './use-cases/notifications/create-announcement.use-case'
 import {
@@ -152,13 +152,14 @@ const UseCases = [
   GetUserTransactionsUseCase,
   GenerateReceiptPdfUseCase,
   MarkNotificationReadUseCase,
-  CreditScoreService,
 
   CreateAnnouncementUseCase,
   GetAdminAnnouncementsUseCase,
   SendNotificationUseCase,
   GetUserNotificationsUseCase,
   UpdateAnnouncementStateUseCase,
+  MarkNotificationReadUseCase,
+  BatchInviteUseCase,
 ]
 
 @Module({

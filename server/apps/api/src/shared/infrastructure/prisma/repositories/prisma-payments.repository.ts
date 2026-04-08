@@ -107,8 +107,6 @@ export class PrismaTransactionRepository implements ITransactionRepository {
         paymentType: data.paymentType,
         propertyAddress: data.propertyAddress,
         lineItems: data.lineItems || undefined,
-        walletId: data.walletId,
-        goalId: data.goalId,
       },
     })
     return {
@@ -118,8 +116,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       paymentType: res.paymentType ?? undefined,
       propertyAddress: res.propertyAddress ?? undefined,
       lineItems: res.lineItems || undefined,
-      walletId: res.walletId ?? undefined,
-      goalId: res.goalId ?? undefined,
+
     } as unknown as Transaction
   }
 
@@ -135,8 +132,6 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       paymentType: r.paymentType ?? undefined,
       propertyAddress: r.propertyAddress ?? undefined,
       lineItems: r.lineItems || undefined,
-      walletId: r.walletId ?? undefined,
-      goalId: r.goalId ?? undefined,
     })) as unknown as Transaction[]
   }
 
@@ -152,8 +147,6 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       paymentType: res.paymentType ?? undefined,
       propertyAddress: res.propertyAddress ?? undefined,
       lineItems: res.lineItems || undefined,
-      walletId: res.walletId ?? undefined,
-      goalId: res.goalId ?? undefined,
     } as unknown as Transaction
   }
 
@@ -169,8 +162,6 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       paymentType: res.paymentType ?? undefined,
       propertyAddress: res.propertyAddress ?? undefined,
       lineItems: res.lineItems || undefined,
-      walletId: res.walletId ?? undefined,
-      goalId: res.goalId ?? undefined,
     } as unknown as Transaction
   }
 
@@ -186,8 +177,6 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       paymentType: res.paymentType ?? undefined,
       propertyAddress: res.propertyAddress ?? undefined,
       lineItems: res.lineItems || undefined,
-      walletId: res.walletId ?? undefined,
-      goalId: res.goalId ?? undefined,
     } as unknown as Transaction
   }
 
@@ -203,8 +192,6 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       paymentType: res.paymentType ?? undefined,
       propertyAddress: res.propertyAddress ?? undefined,
       lineItems: res.lineItems || undefined,
-      walletId: res.walletId ?? undefined,
-      goalId: res.goalId ?? undefined,
     } as unknown as Transaction
   }
 
@@ -223,8 +210,6 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       paymentType: res.paymentType ?? undefined,
       propertyAddress: res.propertyAddress ?? undefined,
       lineItems: res.lineItems || undefined,
-      walletId: res.walletId ?? undefined,
-      goalId: res.goalId ?? undefined,
     } as unknown as Transaction
   }
 }

@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
 export interface WaitlistEntryProps {
-  uuid: string
   email: string
   firstName?: string | null
   lastName?: string | null
@@ -28,7 +27,7 @@ export interface WaitlistEntryProps {
 export class WaitlistEntry {
   private constructor(
     private readonly props: WaitlistEntryProps,
-    private readonly id: number,
+    private readonly id: string,
   ) {
     this.validate()
   }
@@ -48,7 +47,6 @@ export class WaitlistEntry {
     return new WaitlistEntry(
       {
         ...props,
-        uuid: randomUUID(),
         benefits: props.benefits || [],
         campaignWeekSent: 0,
         confirmationSent: false,
@@ -57,20 +55,20 @@ export class WaitlistEntry {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-      0, // ID will be assigned by DB
+      '', // ID will be assigned by DB
     )
   }
 
-  static reconstitute(id: number, props: WaitlistEntryProps): WaitlistEntry {
+  static reconstitute(id: string, props: WaitlistEntryProps): WaitlistEntry {
     return new WaitlistEntry(props, id)
   }
 
   // --- Getters ---
-  get getId(): number {
+  get getId(): string {
     return this.id
   }
   get uuid() {
-    return this.props.uuid
+    return this.id // Use internal ID as UUID for convenience if needed, but schema uses ID
   }
   get email() {
     return this.props.email

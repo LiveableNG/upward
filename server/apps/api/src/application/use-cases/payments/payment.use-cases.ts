@@ -13,16 +13,25 @@ import {
   SavedLandlord,
   Transaction,
 } from '@domains/payments/payment.repository'
+import { USER_REPOSITORY, UserRepository } from '@domains/users/user.repository'
 
 @Injectable()
 export class SaveLandlordUseCase {
   constructor(
     @Inject(SAVED_LANDLORD_REPOSITORY)
     private readonly landlordRepo: ISavedLandlordRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: UserRepository,
   ) {}
 
-  async execute(data: Omit<SavedLandlord, 'id' | 'createdAt' | 'updatedAt'>) {
-    return this.landlordRepo.create(data)
+  async execute(data: Omit<SavedLandlord, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'userId'> & { userId: string }) {
+    const user = await this.userRepository.findByUuid(data.userId)
+    if (!user) throw new Error('User not found')
+
+    return this.landlordRepo.create({
+      ...data,
+      userId: user.id,
+    })
   }
 }
 
@@ -31,10 +40,14 @@ export class GetSavedLandlordsUseCase {
   constructor(
     @Inject(SAVED_LANDLORD_REPOSITORY)
     private readonly landlordRepo: ISavedLandlordRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: UserRepository,
   ) {}
 
   async execute(userId: string) {
-    return this.landlordRepo.findByUserId(userId)
+    const user = await this.userRepository.findByUuid(userId)
+    if (!user) throw new Error('User not found')
+    return this.landlordRepo.findByUserId(user.id)
   }
 }
 
@@ -47,11 +60,16 @@ export class RecordTransactionUseCase {
     private readonly txRepo: ITransactionRepository,
     @Inject(PAYMENT_GATEWAY)
     private readonly gateway: IPaymentGateway,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: UserRepository,
   ) {}
 
-  async execute(data: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) {
+  async execute(data: Omit<Transaction, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'userId'> & { userId: string }) {
     try {
       this.logger.log(`Recording transaction for reference: ${data.reference}`)
+
+      const user = await this.userRepository.findByUuid(data.userId)
+      if (!user) throw new Error('User not found')
 
       // Idempotency check
       const existing = await this.txRepo.findByReference(data.reference)
@@ -72,6 +90,7 @@ export class RecordTransactionUseCase {
 
       const txData = {
         ...data,
+        userId: user.id,
         status: isVerified ? 'SUCCESS' : 'FAILED',
       }
 
@@ -105,8 +124,8 @@ export class GetTransactionUseCase {
     private readonly txRepo: ITransactionRepository,
   ) {}
 
-  async execute(id: string) {
-    return this.txRepo.findById(id)
+  async execute(uuid: string) {
+    return this.txRepo.findByUuid(uuid)
   }
 }
 
@@ -115,10 +134,14 @@ export class GetUserTransactionsUseCase {
   constructor(
     @Inject(TRANSACTION_REPOSITORY)
     private readonly txRepo: ITransactionRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: UserRepository,
   ) {}
 
   async execute(userId: string) {
-    return this.txRepo.findByUserId(userId)
+    const user = await this.userRepository.findByUuid(userId)
+    if (!user) throw new Error('User not found')
+    return this.txRepo.findByUserId(user.id)
   }
 }
 

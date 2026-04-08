@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import { UserRepository, USER_REPOSITORY, User } from '@domains/users/user.repository'
 import { EmailService } from '@shared/infrastructure/email/email.service'
+import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
 import * as bcrypt from 'bcrypt'
 import { UserAuthResponse } from '@upward/shared-types'
 import { BaseAuthService } from './base-auth.service'
@@ -11,6 +12,7 @@ import { BaseAuthService } from './base-auth.service'
 export class UserAuthService extends BaseAuthService {
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
+    private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     jwtService: JwtService,
     configService: ConfigService,
@@ -26,6 +28,8 @@ export class UserAuthService extends BaseAuthService {
     phone?: string
     rentAnniversary?: string
     address?: string
+    city?: string
+    country?: string
     isFromWaitlist?: boolean
     isFromInvite?: boolean
   }): Promise<UserAuthResponse & { refreshToken: string }> {
@@ -37,6 +41,7 @@ export class UserAuthService extends BaseAuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 10)
 
+    const addressConcatenated = [dto.address, dto.city, dto.country].filter(Boolean).join(', ')
     const userData: Partial<User> = {
       uuid: crypto.randomUUID(),
       email: dto.email,
@@ -45,7 +50,7 @@ export class UserAuthService extends BaseAuthService {
       lastName: dto.lastName,
       phone: dto.phone,
       rentAnniversary: dto.rentAnniversary ? new Date(dto.rentAnniversary) : undefined,
-      address: dto.address,
+      address: addressConcatenated,
       isFromWaitlist: dto.isFromWaitlist ?? false,
       isFromInvite: dto.isFromInvite ?? false,
       useBiometrics: false,
@@ -65,6 +70,17 @@ export class UserAuthService extends BaseAuthService {
     const refreshToken = this.generateRefreshToken(user.uuid)
 
     const { passwordHash: _, ...userNoPass } = user
+
+    // Create a property record for the user if rentAnniversary is provided
+    if (dto.rentAnniversary || dto.address || dto.city || dto.country) {
+      await this.syncPropertyData(user.id, {
+        rentAnniversary: dto.rentAnniversary ? new Date(dto.rentAnniversary) : undefined,
+        address: dto.address,
+        city: dto.city,
+        country: dto.country
+      } as any)
+    }
+
     return {
       accessToken,
       refreshToken,
@@ -142,12 +158,80 @@ export class UserAuthService extends BaseAuthService {
     return profile
   }
 
-  async updateProfile(userUuid: string, data: Partial<User>): Promise<any> {
+  async updateProfile(userUuid: string, data: Partial<User> & { city?: string; country?: string }): Promise<any> {
     const user = await this.userRepository.findByUuid(userUuid)
     if (!user) throw new UnauthorizedException('User not found')
 
-    await this.userRepository.update(user.id, data)
+    if (data.city || data.country) {
+      const street = data.address || user.address?.split(',')[0] || ''
+      data.address = [street, data.city, data.country].filter(Boolean).join(', ')
+    }
+
+    await this.userRepository.update(user.id, data as any)
+
+    // Sync Location and Property logic
+    if (data.address || data.rentAnniversary || data.city || data.country) {
+      await this.syncPropertyData(user.id, data)
+    }
+
     return this.getProfile(userUuid)
+  }
+
+  private async syncPropertyData(userId: number, data: Partial<User> & { city?: string; country?: string }) {
+    // 1. Find or Create Property
+    const existingProperty = await this.prisma.upward_user_property.findFirst({
+      where: { userId }
+    })
+
+    let locationId = existingProperty?.locationId
+
+    // 2. Handle Location Update if address is provided
+    if (data.address || data.city || data.country) {
+      if (locationId) {
+        await this.prisma.upward_location.update({
+          where: { id: locationId },
+          data: { 
+            area: data.address || '',
+            state: data.city || '',
+            country: data.country || ''
+          }
+        })
+      } else {
+        const newLocation = await this.prisma.upward_location.create({
+          data: {
+            country: data.country || 'Nigeria', // Default
+            state: data.city || 'Lagos',   // Default
+            area: data.address || '',
+            subarea: ''
+          }
+        })
+        locationId = newLocation.id
+      }
+    }
+
+    // 3. Update/Create Property
+    const propertyPayload: any = {
+      userId,
+      rentEndDate: data.rentAnniversary ? new Date(data.rentAnniversary) : (data as any).rentAnniversary === null ? null : undefined
+    }
+
+    if (locationId) {
+      propertyPayload.locationId = locationId
+    }
+
+    if (existingProperty) {
+      await this.prisma.upward_user_property.update({
+        where: { id: existingProperty.id },
+        data: propertyPayload
+      })
+    } else {
+      await this.prisma.upward_user_property.create({
+        data: {
+          ...propertyPayload,
+          uuid: crypto.randomUUID()
+        }
+      })
+    }
   }
 
   async changePassword(userUuid: string, currentPlain: string, newPlain: string): Promise<void> {

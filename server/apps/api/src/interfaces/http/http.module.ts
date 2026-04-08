@@ -14,6 +14,8 @@ import { PaymentsController } from './public/payments.controller'
 import { AdminAnnouncementsController } from './admin/announcements.controller'
 import { UserNotificationsController } from './user/notifications.controller'
 import { PublicProfileController } from './public/public-profile.controller'
+import { ExternalInviteController } from './external/external-invite.controller'
+import { InviteController } from './public/invite.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule],
@@ -30,7 +32,8 @@ import { PublicProfileController } from './public/public-profile.controller'
     AdminAnnouncementsController,
     UserNotificationsController,
     PublicProfileController,
-
+    ExternalInviteController,
+    InviteController,
   ],
 })
 export class HttpModule {}

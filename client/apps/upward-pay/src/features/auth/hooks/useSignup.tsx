@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { signup as authSignup } from '../services/authService'
 import { useAuth } from '../AuthContext'
+import { setCookie } from '@/lib/cookie-utils'
 
 export function useSignup(redirect: string = '/dashboard', onSuccess?: () => void) {
   const router = useRouter()
@@ -20,6 +21,11 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
       isFromInvite?: boolean;
     }) => authSignup(data),
     onSuccess: (result) => {
+      // Set cookie for middleware visibility
+      if (result.accessToken) {
+        setCookie('access_token', result.accessToken)
+      }
+
       setAuthUser(result.user)
       queryClient.setQueryData(['user'], result.user)
       if (onSuccess) {

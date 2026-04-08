@@ -34,7 +34,6 @@ import {
 } from '@domains/companies/property.repository'
 import { PrismaNotificationRepository } from './repositories/prisma-notification.repository'
 import { NOTIFICATION_REPOSITORY } from '@domains/notifications/notification.repository'
-import { CONTRACT_REPOSITORY } from '@domains/contracts/contract.repository'
 import { EncryptionService } from '@shared/infrastructure/common/encryption.service'
 
 @Global()
@@ -96,7 +95,6 @@ import { EncryptionService } from '@shared/infrastructure/common/encryption.serv
     TRANSACTION_REPOSITORY,
     PAYMENT_GATEWAY,
     NOTIFICATION_REPOSITORY,
-    CONTRACT_REPOSITORY,
     COMPANY_REPOSITORY,
     COMPANY_USER_REPOSITORY,
     MANAGER_REPOSITORY,
