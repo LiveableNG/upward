@@ -58,7 +58,7 @@ async function bootstrap() {
     origin: origins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'x-api-key'],
     exposedHeaders: ['Set-Cookie'],
   })
 

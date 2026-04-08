@@ -41,19 +41,19 @@ export class UserAuthService extends BaseAuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 10)
 
-    const addressConcatenated = [dto.address, dto.city, dto.country].filter(Boolean).join(', ')
     const userData: Partial<User> = {
       uuid: crypto.randomUUID(),
       email: dto.email,
       passwordHash,
       firstName: dto.firstName,
+      firstNameHash: (this.userRepository as any).encryption.hash(dto.firstName),
       lastName: dto.lastName,
+      lastNameHash: (this.userRepository as any).encryption.hash(dto.lastName),
       phone: dto.phone,
+      phoneHash: dto.phone ? (this.userRepository as any).encryption.hash(dto.phone) : null,
       rentAnniversary: dto.rentAnniversary ? new Date(dto.rentAnniversary) : undefined,
-      address: addressConcatenated,
       isFromWaitlist: dto.isFromWaitlist ?? false,
       isFromInvite: dto.isFromInvite ?? false,
-      useBiometrics: false,
     }
 
     await this.userRepository.save(userData as User)
@@ -163,14 +163,13 @@ export class UserAuthService extends BaseAuthService {
     if (!user) throw new UnauthorizedException('User not found')
 
     if (data.city || data.country) {
-      const street = data.address || user.address?.split(',')[0] || ''
-      data.address = [street, data.city, data.country].filter(Boolean).join(', ')
+      // Just passthrough
     }
 
     await this.userRepository.update(user.id, data as any)
 
     // Sync Location and Property logic
-    if (data.address || data.rentAnniversary || data.city || data.country) {
+    if ((data as any).address || data.rentAnniversary || data.city || data.country) {
       await this.syncPropertyData(user.id, data)
     }
 
@@ -186,12 +185,12 @@ export class UserAuthService extends BaseAuthService {
     let locationId = existingProperty?.locationId
 
     // 2. Handle Location Update if address is provided
-    if (data.address || data.city || data.country) {
+    if ((data as any).address || data.city || data.country) {
       if (locationId) {
         await this.prisma.upward_location.update({
           where: { id: locationId },
           data: { 
-            area: data.address || '',
+            area: (data as any).address || '',
             state: data.city || '',
             country: data.country || ''
           }
@@ -201,7 +200,7 @@ export class UserAuthService extends BaseAuthService {
           data: {
             country: data.country || 'Nigeria', // Default
             state: data.city || 'Lagos',   // Default
-            area: data.address || '',
+            area: (data as any).address || '',
             subarea: ''
           }
         })

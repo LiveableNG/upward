@@ -10,6 +10,7 @@ import {
   PrismaCompanyRepository,
   PrismaCompanyUserRepository,
   PrismaManagerRepository,
+  PrismaPlatformRepository,
 } from './repositories/prisma-company.repository'
 import {
   PrismaPropertyRepository,
@@ -25,6 +26,7 @@ import {
 } from '@domains/payments/payment.repository'
 import {
   COMPANY_REPOSITORY,
+  PLATFORM_REPOSITORY,
   COMPANY_USER_REPOSITORY,
   MANAGER_REPOSITORY,
 } from '@domains/companies/company.repository'
@@ -70,6 +72,10 @@ import { EncryptionService } from '@shared/infrastructure/common/encryption.serv
       useClass: PrismaCompanyRepository,
     },
     {
+      provide: PLATFORM_REPOSITORY,
+      useClass: PrismaPlatformRepository,
+    },
+    {
       provide: COMPANY_USER_REPOSITORY,
       useClass: PrismaCompanyUserRepository,
     },
@@ -96,6 +102,7 @@ import { EncryptionService } from '@shared/infrastructure/common/encryption.serv
     PAYMENT_GATEWAY,
     NOTIFICATION_REPOSITORY,
     COMPANY_REPOSITORY,
+    PLATFORM_REPOSITORY,
     COMPANY_USER_REPOSITORY,
     MANAGER_REPOSITORY,
     PROPERTY_REPOSITORY,

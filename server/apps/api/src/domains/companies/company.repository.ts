@@ -2,9 +2,27 @@ export interface Company {
   id: number
   uuid: string
   name: string
-  address?: string
-  webhookUrl?: string
-  apiKey?: string
+  nameHash?: string | null
+  address?: string | null
+  email?: string | null
+  emailHash?: string | null
+  phone?: string | null
+  phoneHash?: string | null
+  platformId?: number | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface Platform {
+  id: number
+  uuid: string
+  apiKey: string
+  webhookUrl: string
+  name: string
+  nameHash?: string | null
+  address?: string | null
+  email?: string | null
+  emailHash?: string | null
   createdAt: Date
   updatedAt: Date
 }
@@ -21,9 +39,12 @@ export interface Manager {
   id: number
   uuid: string
   companyId: number
-  firstName: string
-  lastName: string
-  phone?: string
+  firstName?: string | null
+  firstNameHash?: string | null
+  lastName?: string | null
+  lastNameHash?: string | null
+  phone?: string | null
+  phoneHash?: string | null
   email: string
   emailHash: string
   createdAt: Date
@@ -33,8 +54,17 @@ export interface Manager {
 export interface CompanyRepository {
   findById(id: number): Promise<Company | null>
   findByUuid(uuid: string): Promise<Company | null>
-  findByApiKey(apiKey: string): Promise<Company | null>
+  findByName(name: string): Promise<Company | null>
   save(company: Company): Promise<void>
+  update(id: number, data: Partial<Company>): Promise<void>
+}
+
+export interface PlatformRepository {
+  findById(id: number): Promise<Platform | null>
+  findByApiKey(apiKey: string): Promise<Platform | null>
+  findByEmail(email: string): Promise<Platform | null>
+  save(platform: Platform): Promise<void>
+  update(id: number, data: Partial<Platform>): Promise<void>
 }
 
 export interface CompanyUserRepository {
@@ -48,8 +78,10 @@ export interface ManagerRepository {
   findByUuid(uuid: string): Promise<Manager | null>
   findByEmail(email: string): Promise<Manager | null>
   save(manager: Manager): Promise<void>
+  update(id: number, data: Partial<Manager>): Promise<void>
 }
 
 export const COMPANY_REPOSITORY = Symbol('COMPANY_REPOSITORY')
+export const PLATFORM_REPOSITORY = Symbol('PLATFORM_REPOSITORY')
 export const COMPANY_USER_REPOSITORY = Symbol('COMPANY_USER_REPOSITORY')
 export const MANAGER_REPOSITORY = Symbol('MANAGER_REPOSITORY')

@@ -1,26 +1,22 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common'
+import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common'
 import { ApiKeyGuard } from './api-key.guard'
-import { BatchInviteUseCase, InviteRequest, CompanyInfo, ManagerInfo } from '@application/use-cases/external/batch-invite.use-case'
+import { SingleInviteUseCase, InviteRequest } from '@application/use-cases/external/single-invite.use-case'
 
-@Controller('external/invites')
+@Controller('single/invite')
 export class ExternalInviteController {
-  constructor(private readonly batchInviteUseCase: BatchInviteUseCase) {}
+  constructor(private readonly singleInviteUseCase: SingleInviteUseCase) { }
 
   @Post()
   @UseGuards(ApiKeyGuard)
-  async batchInvite(@Body() data: { company: CompanyInfo; manager?: ManagerInfo; invites: InviteRequest[] | InviteRequest }) {
-    // Support both single and batch uploads
-    const invites = Array.isArray(data.invites) ? data.invites : [data.invites || (data as any)]
-    
-    const results = await this.batchInviteUseCase.execute({
-        company: data.company,
-        manager: data.manager,
-        invites: invites
-    })
-    
+  async generateInvite(@Body() data: InviteRequest, @Req() req: any) {
+    const platformId = req.platformId
+
+    const result = await this.singleInviteUseCase.execute(data, platformId)
+
     return {
       success: true,
-      data: results
+      message: 'Created',
+      data: result
     }
   }
 }

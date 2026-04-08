@@ -199,18 +199,19 @@ model upward_user {
   uuid         String @unique @default(uuid())
   passwordHash String
 
-  emailHash String  @unique
   email     String
   firstName String
   lastName  String
   phone     String?
+  emailHash String  @unique
+  firstNameHash String
+  lastNameHash String
   phoneHash String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   rentAnniversary      DateTime?
-  address              String?
   occupation           String?
   gender               String?
   dateOfBirth          String?
@@ -219,7 +220,6 @@ model upward_user {
   profileSlug          String?   @unique
   bio                  String?   @db.Text
   profilePic           String?
-  useBiometrics        Boolean   @default(false)
   resetPasswordOTP     String?
   resetPasswordExpires DateTime?
 
@@ -358,11 +358,15 @@ model upward_company {
   uuid       String   @unique @default(uuid())
   name       String
   address    String?
-  profilePic String?
-  webhookUrl String?
-  apiKey     String?  @unique
+  email      String?
+  phone      String?
+  emailHash  String?  @unique
+  phoneHash  String?
+  nameHash   String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  platformId Int?
+  platform upward_platform? @relation(fields: [platformId], references: [id], onDelete: Cascade)
 
   companyUsers upward_company_user[]
   properties   upward_user_property[]
@@ -371,8 +375,18 @@ model upward_company {
 
 model upward_platform {
   id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid())
   apiKey    String   @unique
-  
+  webhookUrl String
+  name      String
+  address   String?
+  email     String?
+  emailHash String?  @unique
+  nameHash  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companies upward_company[]
 }
 
 model upward_company_user {
@@ -393,14 +407,14 @@ model upward_manager {
   id        Int      @id @default(autoincrement())
   uuid      String   @unique @default(uuid())
   companyId Int
-  firstName String /// @encrypted
-  lastName  String /// @encrypted
+  firstName String? /// @encrypted
+  lastName  String? /// @encrypted
   phone     String? /// @encrypted
-  email     String /// @encrypted
-  emailHash String   @unique
-  phoneHash String
-  firstNameHash String
-  lastNameHash String
+  email     String? /// @encrypted
+  emailHash String?   @unique
+  phoneHash String?
+  firstNameHash String?
+  lastNameHash String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
