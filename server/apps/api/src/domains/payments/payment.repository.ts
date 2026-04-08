@@ -1,6 +1,7 @@
 export const SAVED_LANDLORD_REPOSITORY = Symbol('SAVED_LANDLORD_REPOSITORY')
 export const TRANSACTION_REPOSITORY = Symbol('TRANSACTION_REPOSITORY')
 export const PAYMENT_GATEWAY = Symbol('PAYMENT_GATEWAY')
+export const PAYMENT_REQUEST_REPOSITORY = Symbol('PAYMENT_REQUEST_REPOSITORY')
 
 export interface SavedLandlord {
   id: number
@@ -83,3 +84,27 @@ export interface IPaymentGateway {
   // }): Promise<{ bankName: string; accountNumber: string; bankCode?: string; accountName?: string }>
 }
 
+export interface PaymentRequest {
+  id?: number
+  uuid: string
+  userId: number
+  userPropertyId?: number
+  amount: number
+  currency: string
+  description?: string
+  lineItems?: any
+  dueDate: Date
+  status: string
+  paidAt?: Date
+  reference?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface IPaymentRequestRepository {
+  create(data: Omit<PaymentRequest, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<PaymentRequest>
+  findById(id: number): Promise<PaymentRequest | null>
+  findByUuid(uuid: string): Promise<PaymentRequest | null>
+  findByUserId(userId: number): Promise<PaymentRequest[]>
+  update(id: number, data: Partial<PaymentRequest>): Promise<PaymentRequest>
+}

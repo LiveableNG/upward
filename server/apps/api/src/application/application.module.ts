@@ -67,6 +67,7 @@ import { CompleteUserProfileUseCase } from './use-cases/user/complete-user-profi
 import { GetPublicProfileUseCase } from './use-cases/user/get-public-profile.use-case'
 import { SingleInviteUseCase } from './use-cases/external/single-invite.use-case'
 import { CreatePlatformUseCase } from './use-cases/platform/create-platform.use-case'
+import { CreateExternalPaymentRequestUseCase } from './use-cases/external/create-payment-request.use-case'
 import { AuthModule } from './auth/auth.module'
 import { CreateAnnouncementUseCase } from './use-cases/notifications/create-announcement.use-case'
 import {
@@ -162,6 +163,7 @@ const UseCases = [
   MarkNotificationReadUseCase,
   SingleInviteUseCase,
   CreatePlatformUseCase,
+  CreateExternalPaymentRequestUseCase,
 ]
 
 @Module({

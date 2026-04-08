@@ -39,6 +39,7 @@ export class PrismaPropertyRepository implements PropertyRepository {
       managerId: property.managerId,
       locationId: property.locationId,
       rentAmount: property.rentAmount,
+      currency: property.currency,
       rentStartDate: property.rentStartDate,
       rentEndDate: property.rentEndDate,
     }

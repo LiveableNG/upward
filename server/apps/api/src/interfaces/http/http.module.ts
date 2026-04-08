@@ -17,6 +17,7 @@ import { PublicProfileController } from './public/public-profile.controller'
 import { ExternalInviteController } from './external/external-invite.controller'
 import { InviteController } from './public/invite.controller'
 import { PlatformAdminController } from './external/platform-invite.controller'
+import { ExternalPaymentController } from './external/external-payment.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule],
@@ -36,6 +37,7 @@ import { PlatformAdminController } from './external/platform-invite.controller'
     ExternalInviteController,
     InviteController,
     PlatformAdminController,
+    ExternalPaymentController,
   ],
 })
 export class HttpModule {}

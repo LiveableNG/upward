@@ -161,6 +161,7 @@ The request follows a nested structure to coordinate between companies, users, a
       "userId": "b7a71853-2d7a-4399-af09-115a6c1406ce",
       "managerId": "f1c2d3e4-...",
       "companyId": "a1b2c3d4-...",
+      "userPropertyUuid": "5cab404a-df37-4408-826b-e8b820e26fac",
       "email": "john.doe@gmail.com",
       "inviteLink": "http://localhost:3000/invite/b7a71853-2d7a-4399-af09-115a6c1406ce"
     }
@@ -168,7 +169,82 @@ The request follows a nested structure to coordinate between companies, users, a
 }
 ```
 
+## 3. Payment Requests
+Generate a payment link for a tenant based on an existing property or by initiating an auto-invite.
+
+**Method**: `POST`  
+**Endpoint**: `/api/v1/payment-request`
+
+#### Request Body Schema
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `userPropertyUuid` | `string` | Cond. | Required if `invite` is not provided. Target property UUID. |
+| `amount` | `number` | No | Total amount. Defaults to property rent amount. |
+| `currency` | `string` | No | Currency (e.g., "NGN"). Defaults to property currency. |
+| `description` | `string` | No | Narrative for the payment request. |
+| `lineItems` | `Array` | No | Breakdown of the amount (e.g., security, cleanup). |
+| `dueDate` | `string` | **Yes** | ISO-8601 date. |
+| `invite` | `Object` | Cond. | Full invite payload if performing a "Cold Start". |
+
+### Request Example (Existing Property)
+```json
+{
+  "userPropertyUuid": "5cab404a-df37-4408-826b-e8b820e26fac",
+  "dueDate": "2024-12-31T23:59:59Z",
+  "description": "Quarterly Service Charge",
+  "amount": 45000,
+  "currency": "NGN",
+  "lineItems": [
+    { "name": "Security Fee", "amount": 25000 },
+    { "name": "Waste Management", "amount": 20000 }
+  ]
+}
+```
+
+### Request Example (Cold Start - Auto-Invite)
+Use this if the tenant has not been invited to Upward yet. This will create the user and property automatically.
+
+```json
+{
+  "invite": {
+    "company": { "name": "Global Properties LTD" },
+    "invite": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "firstName": "Jane",
+        "lastName": "Doe"
+      },
+      "property": {
+        "location": { "country": "Nigeria", "state": "Lagos", "area": "Ikoyi" },
+        "rent": {
+          "rentAmount": 5000000,
+          "rentEndDate": "2025-01-01T00:00:00Z"
+        },
+        "manager": { "firstName": "Bisi", "lastName": "Manager", "email": "bisi@globalprop.ng" }
+      }
+    }
+  },
+  "dueDate": "2024-06-15T00:00:00Z",
+  "description": "Initial Deposit & Security Fee",
+  "amount": 500000
+}
+```
+
+### Response Example
+```json
+{
+  "success": true,
+  "data": {
+    "paymentUuid": "d8e9f0a1-...",
+    "paymentLink": "http://localhost:3000/pay/d8e9f0a1-..."
+  }
+}
+```
+
+---
+
 ## Implementation Notes
 1. **Case Insensitivity**: Company name searches are case-insensitive.
-2. **Entity Persistence**: If a company or manager with the same details exists, Upward will link to the existing record and update its details if new ones are provided.
-3. **API Security**: Raw API keys are hashed on the server. If you lose your key, you must generate a new one.
+2. **Entity Persistence**: If a company or manager with the same details exists, Upward will link to the existing record.
+3. **Mandatory Rent**: For invitations, `rentAmount`, `rentStartDate`, and `rentEndDate` must be provided.
+4. **API Security**: Raw API keys are hashed on the server.
