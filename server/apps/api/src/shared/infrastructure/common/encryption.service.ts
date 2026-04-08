@@ -26,7 +26,12 @@ export class EncryptionService {
   decrypt(encryptedText: string): string {
     if (!encryptedText || !encryptedText.includes(':')) return encryptedText;
     try {
-      const [ivHex, authTagHex, encrypted] = encryptedText.split(':');
+      const parts = encryptedText.split(':');
+      if (parts.length !== 3) return encryptedText;
+
+      const [ivHex, authTagHex, encrypted] = parts;
+      if (!ivHex || !authTagHex || !encrypted) return encryptedText;
+
       const iv = Buffer.from(ivHex, 'hex');
       const authTag = Buffer.from(authTagHex, 'hex');
       const decipher = crypto.createDecipheriv(this.algorithm, this.key, iv);

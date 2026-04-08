@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import * as locationService from '@/features/onboarding/services/locationService'
 import {
   User,
   LogOut,
@@ -40,14 +41,55 @@ export function ProfileMenuContent() {
   const [formData, setFormData] = useState<Partial<UserProfile>>({})
   const [saving, setSaving] = useState(false)
   const [contracts, setContracts] = useState<ContractData[]>([])
+  
+  const [countries, setCountries] = useState<locationService.Country[]>([])
+  const [cities, setCities] = useState<string[]>([])
+  const [loadingLocations, setLoadingLocations] = useState(false)
 
   useEffect(() => {
     if (user) {
       setProfile(user as any)
-      setFormData(user as any)
+      const parts = user.address?.split(', ') || []
+      setFormData({
+        ...(user as any),
+        address: parts[0] || '',
+        city: parts[1] || '',
+        country: parts[2] || ''
+      })
       loadDocuments()
     }
   }, [user])
+
+  useEffect(() => {
+    loadCountries()
+  }, [])
+
+  useEffect(() => {
+    if (formData.country) {
+      loadCities(formData.country)
+    }
+  }, [formData.country])
+
+  async function loadCountries() {
+    try {
+      const res = await locationService.getCountries()
+      setCountries(res.data)
+    } catch (err) {
+      console.error('Failed to load countries', err)
+    }
+  }
+
+  async function loadCities(country: string) {
+    setLoadingLocations(true)
+    try {
+      const res = await locationService.getCities(country)
+      setCities(res.data)
+    } catch (err) {
+      console.error('Failed to load cities', err)
+    } finally {
+      setLoadingLocations(false)
+    }
+  }
 
   async function loadDocuments() {
     try {
@@ -176,7 +218,26 @@ export function ProfileMenuContent() {
                 <DetailOrEdit
                   isEditing={isEditing}
                   icon={MapPin}
-                  label="Residential Address"
+                  label="Country"
+                  value={formData.country || ''}
+                  type="select"
+                  options={countries.map(c => ({ value: c.name, label: c.name }))}
+                  onChange={(v) => setFormData({ ...formData, country: v, city: '' })}
+                />
+                <DetailOrEdit
+                  isEditing={isEditing}
+                  icon={MapPin}
+                  label="City/State"
+                  value={formData.city || ''}
+                  type="select"
+                  options={cities.map(c => ({ value: c, label: c }))}
+                  disabled={!formData.country || loadingLocations}
+                  onChange={(v) => setFormData({ ...formData, city: v })}
+                />
+                <DetailOrEdit
+                  isEditing={isEditing}
+                  icon={MapPin}
+                  label="Street Address"
                   value={formData.address || ''}
                   onChange={(v) => setFormData({ ...formData, address: v })}
                 />

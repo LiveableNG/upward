@@ -9,6 +9,8 @@ export interface UserProfile {
   gender?: string
   occupation?: string
   address?: string
+  city?: string
+  country?: string
   rentAnniversary?: string
   profilePic?: string
   profileSlug?: string | null

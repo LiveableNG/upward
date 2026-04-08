@@ -39,8 +39,6 @@ export interface Transaction {
   propertyAddress?: string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lineItems?: any
-  walletId?: number
-  goalId?: number
   createdAt: Date
   updatedAt: Date
 }

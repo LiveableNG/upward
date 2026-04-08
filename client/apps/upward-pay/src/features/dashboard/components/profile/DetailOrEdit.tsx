@@ -9,6 +9,8 @@ interface DetailOrEditProps {
   value: string
   placeholder?: string
   onChange?: (v: string) => void
+  type?: 'text' | 'select' | 'date'
+  options?: { value: string; label: string }[]
 }
 
 export function DetailOrEdit({
@@ -18,6 +20,8 @@ export function DetailOrEdit({
   value,
   placeholder,
   onChange,
+  type = 'text',
+  options,
 }: DetailOrEditProps) {
   const isMissing = !value || value === ''
 
@@ -28,13 +32,28 @@ export function DetailOrEdit({
         <div className="detail-item__info">
           <span className="detail-item__label">{label}</span>
           {isEditing ? (
-            <input
-              type="text"
-              className="detail-item__input"
-              value={value}
-              placeholder={placeholder || `Enter ${label}`}
-              onChange={(e) => onChange?.(e.target.value)}
-            />
+            type === 'select' ? (
+              <select
+                className="detail-item__input"
+                value={value}
+                onChange={(e) => onChange?.(e.target.value)}
+              >
+                <option value="">Select {label}</option>
+                {options?.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type={type}
+                className="detail-item__input"
+                value={value}
+                placeholder={placeholder || `Enter ${label}`}
+                onChange={(e) => onChange?.(e.target.value)}
+              />
+            )
           ) : (
             <span
               className={`detail-item__value ${isMissing ? 'detail-item__value--missing' : ''}`}

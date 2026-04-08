@@ -29,6 +29,8 @@ export class CompleteUserProfileUseCase {
     gender?: string
     dateOfBirth?: string
     profilePic?: string
+    rentAnniversary?: string
+    address?: string
   }) {
     const waitlistEntry = await this.waitlistRepository.findByEmail(dto.email)
 
@@ -52,6 +54,8 @@ export class CompleteUserProfileUseCase {
       gender: dto.gender,
       dateOfBirth: dto.dateOfBirth,
       profilePic: dto.profilePic || '',
+      rentAnniversary: dto.rentAnniversary ? new Date(dto.rentAnniversary) : null,
+      address: dto.address || '',
       isFromWaitlist: !!waitlistEntry,
       isFromInvite: false, // Default for this flow
       useBiometrics: false,

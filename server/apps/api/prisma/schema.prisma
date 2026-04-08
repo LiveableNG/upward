@@ -8,31 +8,31 @@ datasource db {
 }
 
 model upward_waitlist {
-  id              String   @id @default(uuid())
-  email           String   @unique
-  firstName       String?
-  lastName        String?
-  phone           String?
-  role            String?
-  benefits        String[]
-  acceptTerms     Boolean  @default(false)
-  wantsAmbassador Boolean  @default(false)
-  country         String?
-  city            String?
-  selectedSession String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  campaignWeekSent      Int      @default(0)  // How many Tuesday drip emails have been sent to this user. 0 = never sent. Next send = this+1.
-  confirmationSent Boolean  @default(false)
-  confirmationEmailStatus String?  // PENDING, SENT, FAILED
-  confirmationEmailError  String?
-  confirmationEmailRetries Int     @default(0)
-  abVariant        String?
-  unsubscribed     Boolean  @default(false)
-  unsubscribedAt   DateTime?
+  id                       String    @id @default(uuid())
+  email                    String    @unique
+  firstName                String?
+  lastName                 String?
+  phone                    String?
+  role                     String?
+  benefits                 String[]
+  acceptTerms              Boolean   @default(false)
+  wantsAmbassador          Boolean   @default(false)
+  country                  String?
+  city                     String?
+  selectedSession          String?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  campaignWeekSent         Int       @default(0) // How many Tuesday drip emails have been sent to this user. 0 = never sent. Next send = this+1.
+  confirmationSent         Boolean   @default(false)
+  confirmationEmailStatus  String? // PENDING, SENT, FAILED
+  confirmationEmailError   String?
+  confirmationEmailRetries Int       @default(0)
+  abVariant                String?
+  unsubscribed             Boolean   @default(false)
+  unsubscribedAt           DateTime?
 
-  attendances     upward_attendance[]
-  emailLogs       upward_email_log[]
+  attendances upward_attendance[]
+  emailLogs   upward_email_log[]
 
   @@index([email])
   @@index([createdAt])
@@ -48,8 +48,8 @@ model upward_session {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  attendances    upward_attendance[]
-  emailLogs      upward_email_log[]
+  attendances upward_attendance[]
+  emailLogs   upward_email_log[]
 
   @@index([startTime])
 }
@@ -62,59 +62,60 @@ model upward_attendance {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      upward_waitlist @relation(fields: [userId], references: [id], onDelete: Cascade)
-  session   upward_session  @relation(fields: [sessionId], references: [id])
+  user    upward_waitlist @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session upward_session  @relation(fields: [sessionId], references: [id])
 
   @@unique([sessionId, userId])
 }
 
 model upward_email_log {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String
   email     String?
   sessionId String?
   subject   String
-  type      String   @default("GENERIC") // CONFIRMATION, BULK, SESSION_INVITE, etc.
-  status    String   // SENT, FAILED
-  body      String?  @db.Text
+  type      String    @default("GENERIC") // CONFIRMATION, BULK, SESSION_INVITE, etc.
+  status    String // SENT, FAILED
+  body      String?   @db.Text
   mailgunId String?
   lastError String?
-  retries   Int      @default(0)
+  retries   Int       @default(0)
   sentAt    DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  user      upward_waitlist @relation(fields: [userId], references: [id], onDelete: Cascade)
-  session   upward_session? @relation(fields: [sessionId], references: [id])
+  user    upward_waitlist @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session upward_session? @relation(fields: [sessionId], references: [id])
 
   @@index([userId])
   @@index([sessionId])
   @@index([status])
   @@index([type])
 }
+
 model upward_admin {
-  id                 String   @id @default(uuid())
-  email              String   @unique
+  id                 String             @id @default(uuid())
+  email              String             @unique
   passwordHash       String
-  role               String   @default("ADMIN") // ADMIN, SUPERADMIN
-  mustChangePassword Boolean  @default(true) 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  role               String             @default("ADMIN") // ADMIN, SUPERADMIN
+  mustChangePassword Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  logs               upward_admin_log[]
 
   @@index([email])
-  logs               upward_admin_log[]
 }
 
 model upward_admin_log {
   id        String   @id @default(uuid())
   adminId   String
-  action    String   // LOGIN, LOGOUT, EXPORT_CSV, SEND_EMAIL, ADD_ADMIN, DELETE_ADMIN, DEMOTE_ADMIN, DELETE_USER, etc.
-  details   String?  // Summary or JSON string: "Deleted 3 users", "Subject: Welcome Email"
+  action    String // LOGIN, LOGOUT, EXPORT_CSV, SEND_EMAIL, ADD_ADMIN, DELETE_ADMIN, DEMOTE_ADMIN, DELETE_USER, etc.
+  details   String? // Summary or JSON string: "Deleted 3 users", "Subject: Welcome Email"
   ipAddress String?
   userAgent String?
   createdAt DateTime @default(now())
 
-  admin     upward_admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  admin upward_admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   @@index([adminId])
   @@index([action])
@@ -122,15 +123,15 @@ model upward_admin_log {
 }
 
 model upward_interaction {
-  id               String   @id @default(uuid())
-  visitorId        String   // Anonymous ID from localStorage
-  type             String   // CLICK, VIEW, SCROLL
-  target           String   // e.g. "HERO_CTA", "BENEFITS_SECTION"
-  abVariant        String   // A or B
-  ipAddress        String?
-  userAgent        String?
-  metadata         String?
-  createdAt        DateTime @default(now())
+  id        String   @id @default(uuid())
+  visitorId String // Anonymous ID from localStorage
+  type      String // CLICK, VIEW, SCROLL
+  target    String // e.g. "HERO_CTA", "BENEFITS_SECTION"
+  abVariant String // A or B
+  ipAddress String?
+  userAgent String?
+  metadata  String?
+  createdAt DateTime @default(now())
 
   @@index([visitorId])
   @@index([type])
@@ -141,7 +142,7 @@ model upward_error_log {
   id        String   @id @default(uuid())
   message   String
   stack     String?
-  context   String?  // JSON string of request context (URL, Body, Params, etc.)
+  context   String? // JSON string of request context (URL, Body, Params, etc.)
   severity  String   @default("ERROR") // ERROR, WARNING, INFO
   resolved  Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -154,11 +155,11 @@ model upward_error_log {
 
 model upward_email_campaign {
   id          String   @id @default(uuid())
-  weekNumber  Int      @unique  // 1, 2, 3, ... — which week in the drip sequence
+  weekNumber  Int      @unique // 1, 2, 3, ... — which week in the drip sequence
   subject     String
   htmlContent String   @db.Text
   textContent String?  @db.Text
-  label       String?  // e.g. "Welcome to Upward", "Week 2: Housing Tips"
+  label       String? // e.g. "Welcome to Upward", "Week 2: Housing Tips"
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -181,59 +182,62 @@ model upward_system_email {
 }
 
 model upward_fairness_story {
-  id              String   @id @default(uuid())
-  name            String?
-  categories      String[]
-  story           String   @db.Text
-  audioUrl        String?
-  fileUrls        String[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id         String   @id @default(uuid())
+  name       String?
+  categories String[]
+  story      String   @db.Text
+  audioUrl   String?
+  fileUrls   String[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([createdAt])
 }
 
 model upward_user {
-  id           Int   @id @default(autoincrement())
-  uuid          String   @unique @default(uuid())
+  id           Int    @id @default(autoincrement())
+  uuid         String @unique @default(uuid())
   passwordHash String
 
-  emailHash    String   @unique
-  email        String   /// @encrypted
-  firstName    String   /// @encrypted
-  lastName     String   /// @encrypted
-  phone        String?  /// @encrypted
-  phoneHash    String?
+  emailHash String  @unique
+  email     String
+  firstName String
+  lastName  String
+  phone     String?
+  phoneHash String?
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  rentAnniversary        DateTime?
-  address                String?
-  occupation             String?
-  gender                 String?
-  dateOfBirth            String?
-  isFromWaitlist Boolean @default(false)
-  isFromInvite Boolean @default(false)
-  profileSlug            String?  @unique
-  bio                    String?  @db.Text
-  profilePic             String?
-  useBiometrics          Boolean  @default(false)
-  resetPasswordOTP       String?
-  resetPasswordExpires   DateTime?
+  rentAnniversary      DateTime?
+  address              String?
+  occupation           String?
+  gender               String?
+  dateOfBirth          String?
+  isFromWaitlist       Boolean   @default(false)
+  isFromInvite         Boolean   @default(false)
+  profileSlug          String?   @unique
+  bio                  String?   @db.Text
+  profilePic           String?
+  useBiometrics        Boolean   @default(false)
+  resetPasswordOTP     String?
+  resetPasswordExpires DateTime?
 
   announcementStates upward_user_announcement_state[]
   notifications      upward_notification[]
   paymentRequests    upward_payment_request[]
+
+  companyUsers upward_company_user[]
+  properties   upward_user_property[]
 
   @@index([email])
   @@index([createdAt])
 }
 
 model upward_saved_landlord {
-  id            Int   @id @default(autoincrement())
-  uuid          String   @unique @default(uuid())
-  userId      Int
+  id            Int       @id @default(autoincrement())
+  uuid          String    @unique @default(uuid())
+  userId        Int
   name          String
   accountName   String
   accountNumber String
@@ -241,28 +245,27 @@ model upward_saved_landlord {
   bankCode      String
   lastAmount    Float?
   lastPaid      DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([userId])
 }
 
-
 model upward_transaction {
-  id            Int   @id @default(autoincrement())
-  uuid          String   @unique @default(uuid())
-  userId      Int
-  type          String   @default("RENT") // RENT, SAVINGS, WALLET_DEPOSIT, WALLET_WITHDRAWAL, GOAL_ALLOCATION
-  status        String   @default("PENDING") // PENDING, SUCCESS, FAILED
-  amount        Float
-  reference     String   @unique
-  narration     String?
-  landlordId    String?
-  paymentType   String?
+  id              Int      @id @default(autoincrement())
+  uuid            String   @unique @default(uuid())
+  userId          Int
+  type            String   @default("RENT") // RENT, SAVINGS, WALLET_DEPOSIT, WALLET_WITHDRAWAL, GOAL_ALLOCATION
+  status          String   @default("PENDING") // PENDING, SUCCESS, FAILED
+  amount          Float
+  reference       String   @unique
+  narration       String?
+  landlordId      String?
+  paymentType     String?
   propertyAddress String?
-  lineItems     Json?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  lineItems       Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   paymentRequestId Int?
   paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
@@ -273,8 +276,8 @@ model upward_transaction {
 }
 
 model upward_announcement {
-  id        Int   @id @default(autoincrement())
-  uuid          String   @unique @default(uuid())
+  id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid())
   title     String
   message   String   @db.Text
   iconType  String   @default("sparkles") // sparkles, clock, target, etc.
@@ -282,16 +285,16 @@ model upward_announcement {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  states    upward_user_announcement_state[]
+  states upward_user_announcement_state[]
 
   @@index([isActive])
   @@index([createdAt])
 }
 
 model upward_user_announcement_state {
-  id               Int   @id @default(autoincrement())
-  uuid          String   @unique @default(uuid())
-  userId         Int
+  id               Int      @id @default(autoincrement())
+  uuid             String   @unique @default(uuid())
+  userId           Int
   announcementId   Int
   seenPopup        Boolean  @default(false)
   interactedPopup  Boolean  @default(false)
@@ -300,17 +303,17 @@ model upward_user_announcement_state {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  announcement     upward_announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
-  user             upward_user       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  announcement upward_announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user         upward_user         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, announcementId])
   @@index([userId])
 }
 
 model upward_notification {
-  id        Int   @id @default(autoincrement())
-  uuid          String   @unique @default(uuid())
-  userId  Int
+  id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid())
+  userId    Int
   title     String
   message   String   @db.Text
   type      String   @default("SYSTEM") // SYSTEM, SUPPORT, PAYMENT
@@ -318,113 +321,114 @@ model upward_notification {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isRead])
   @@index([createdAt])
 }
 
-
 model upward_payment_request {
-  id            Int   @id @default(autoincrement())
-  uuid          String   @unique @default(uuid())
-  userId      Int
+  id             Int       @id @default(autoincrement())
+  uuid           String    @unique @default(uuid())
+  userId         Int
   userPropertyId Int?
-  landlordId    String?
-  amount        Float
-  currency      String   @default("NGN")
-  description   String?
-  dueDate       DateTime
-  status        String   @default("PENDING") // PENDING, PAID, CANCELLED
-  paidAt        DateTime?
-  reference     String?  @unique // Reference to the successful transaction if paid
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  landlordId     String?
+  amount         Float
+  currency       String    @default("NGN")
+  description    String?
+  dueDate        DateTime
+  status         String    @default("PENDING")
+  paidAt         DateTime?
+  reference      String?   @unique
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  user          upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions  upward_transaction[]
+  user         upward_user          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions upward_transaction[]
+
+  userProperty upward_user_property? @relation(fields: [userPropertyId], references: [id])
 
   @@index([userId])
   @@index([status])
 }
 
-
-
 model upward_company {
-  id              Int      @id @default(autoincrement())
-  uuid            String   @unique @default(uuid())
-  name            String
-  address         String?
-  webhookUrl      String?
-  apiKey          String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id         Int      @id @default(autoincrement())
+  uuid       String   @unique @default(uuid())
+  name       String
+  address    String?
+  profilePic String?
+  webhookUrl String?
+  apiKey     String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  companyUsers    upward_company_user[]
-  properties      upward_user_property[]
-  managers        upward_manager[]
+  companyUsers upward_company_user[]
+  properties   upward_user_property[]
+  managers     upward_manager[]
 }
 
 model upward_company_user {
-  id              Int      @id @default(autoincrement())
-  uuid            String   @unique @default(uuid())
-  companyId       Int
-  userId          Int
-  invitedAt       DateTime @default(now())
-  acceptedAt      DateTime?
-  
-  company         upward_company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user            upward_user    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         Int       @id @default(autoincrement())
+  uuid       String    @unique @default(uuid())
+  companyId  Int
+  userId     Int
+  invitedAt  DateTime  @default(now())
+  acceptedAt DateTime?
+
+  company upward_company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    upward_user    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([companyId, userId])
 }
 
 model upward_manager {
-  id              Int      @id @default(autoincrement())
-  uuid            String   @unique @default(uuid())
-  companyId       Int
-  firstName       String   /// @encrypted
-  lastName        String   /// @encrypted
-  phone           String?  /// @encrypted
-  email           String   /// @encrypted
-  emailHash       String   @unique
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid())
+  companyId Int
+  firstName String /// @encrypted
+  lastName  String /// @encrypted
+  phone     String? /// @encrypted
+  email     String /// @encrypted
+  emailHash String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  company         upward_company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  properties      upward_user_property[]
+  company    upward_company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  properties upward_user_property[]
 }
 
 model upward_location {
-  id              Int      @id @default(autoincrement())
-  uuid            String   @unique @default(uuid())
-  country         String
-  state           String
-  area            String
-  subarea         String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid())
+  country   String
+  state     String
+  area      String
+  subarea   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  properties      upward_user_property[]
+  properties upward_user_property[]
 }
 
 model upward_user_property {
-  id              Int      @id @default(autoincrement())
-  uuid            String   @unique @default(uuid())
-  userId          Int
-  companyId       Int
-  managerId       Int?
-  locationId      Int?
-  rentAmount      Float    @default(0)
-  rentStartDate   DateTime?
-  rentEndDate     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id            Int       @id @default(autoincrement())
+  uuid          String    @unique @default(uuid())
+  userId        Int
+  companyId     Int?
+  managerId     Int?
+  locationId    Int?
+  rentAmount    Float     @default(0)
+  rentStartDate DateTime?
+  rentEndDate   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  user            upward_user     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company         upward_company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  manager         upward_manager? @relation(fields: [managerId], references: [id])
-  location        upward_location?@relation(fields: [locationId], references: [id])
+  user            upward_user              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company         upward_company?          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  manager         upward_manager?          @relation(fields: [managerId], references: [id])
+  location        upward_location?         @relation(fields: [locationId], references: [id])
+
   paymentRequests upward_payment_request[]
 }

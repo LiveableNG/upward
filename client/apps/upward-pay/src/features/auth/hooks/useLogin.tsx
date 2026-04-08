@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { login as authLogin } from '../services/authService'
 import { useAuth } from '../AuthContext'
+import { setCookie } from '@/lib/cookie-utils'
 
 export function useLogin(redirect: string) {
   const router = useRouter()
@@ -11,8 +12,13 @@ export function useLogin(redirect: string) {
   const loginMutation = useMutation({
     mutationFn: (credentials: { email: string; password: string }) => authLogin(credentials),
     onSuccess: (result) => {
-      setAuthUser(result.tenant)
-      queryClient.setQueryData(['user'], result.tenant)
+      // Set cookie for middleware visibility
+      if (result.accessToken) {
+        setCookie('access_token', result.accessToken)
+      }
+      
+      setAuthUser(result.user)
+      queryClient.setQueryData(['user'], result.user)
       router.push(redirect)
     },
   })
