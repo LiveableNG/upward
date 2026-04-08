@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Camera, Briefcase, Users, ArrowRight, SkipForward } from 'lucide-react'
+import { Camera, Briefcase, Users, ArrowRight, SkipForward, Phone } from 'lucide-react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { completeProfile } from '@/features/auth/services/authService'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -16,6 +16,7 @@ export function CompleteProfileStep() {
   
   const [occupation, setOccupation] = useState('')
   const [gender, setGender] = useState('')
+  const [phone, setPhone] = useState('')
   const [profilePic, setProfilePic] = useState('') // Placeholder for now
 
   const genders = ['Male', 'Female', 'Other', 'Prefer not to say']
@@ -30,13 +31,14 @@ export function CompleteProfileStep() {
     try {
       const response = await completeProfile({
         email: user.email,
-        fullName: user.fullName || '',
+        fullName: `${user.firstName} ${user.lastName}`.trim(),
         occupation,
         gender,
+        phone,
         profilePic,
       })
       
-      updateAuthUser(response.tenant)
+      updateAuthUser(response.user)
       router.push('/dashboard')
     } catch (err: any) {
       setError(err.message || 'Failed to update profile')
@@ -80,6 +82,20 @@ export function CompleteProfileStep() {
           </div>
 
           <div className="auth-form__field mt-6">
+            <label htmlFor="phone">Phone Number</label>
+            <div className="input-with-icon">
+              <Phone size={17} />
+              <input
+                id="phone"
+                type="tel"
+                placeholder="+234 800 000 0000"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="auth-form__field mt-4">
             <label htmlFor="occupation">Occupation</label>
             <div className="input-with-icon">
               <Briefcase size={17} />
