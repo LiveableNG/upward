@@ -69,13 +69,13 @@ export default function PayRentPage() {
         amount: payAmount,
         reference: ref,
         narration: narration || `Rent payment to ${selectedLandlord?.name}`,
-        landlordId: selectedLandlord?.id,
+        landlordId: selectedLandlord?.uuid,
         lineItems: lineItems.length > 0 ? lineItems : undefined,
         paymentType,
         propertyAddress,
       })
-      if (res?.id) {
-        setLastTxId(res.id)
+      if (res?.uuid) {
+        setLastTxId(res.uuid)
       }
     } catch (e) {
       console.error('Failed to record tx:', e)

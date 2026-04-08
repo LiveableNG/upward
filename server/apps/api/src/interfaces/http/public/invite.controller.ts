@@ -63,6 +63,8 @@ export class InviteController {
       throw new NotFoundException('Invite not found or expired')
     }
 
+    const hasPassword = !!user.passwordHash && user.passwordHash !== '' && user.passwordHash !== 'INVITED'
+
     const companyUser = user.companyUsers[0]
     const property = user.properties[0]
 
@@ -73,6 +75,7 @@ export class InviteController {
 
     return {
       success: true,
+      hasPassword,
       user: {
         email: this.encryption.decrypt(user.email),
         firstName: this.encryption.decrypt(user.firstName),

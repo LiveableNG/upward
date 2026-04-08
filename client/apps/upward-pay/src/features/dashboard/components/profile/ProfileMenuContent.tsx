@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import * as locationService from '@/features/onboarding/services/locationService'
+
 import {
   User,
   LogOut,
@@ -42,62 +42,29 @@ export function ProfileMenuContent() {
   const [saving, setSaving] = useState(false)
   const [contracts, setContracts] = useState<ContractData[]>([])
   
-  const [countries, setCountries] = useState<locationService.Country[]>([])
-  const [cities, setCities] = useState<string[]>([])
-  const [loadingLocations, setLoadingLocations] = useState(false)
+
 
   useEffect(() => {
     if (user) {
       setProfile(user as any)
-      const parts = user.address?.split(', ') || []
       setFormData({
         ...(user as any),
-        address: parts[0] || '',
-        city: parts[1] || '',
-        country: parts[2] || ''
+        address: user.address || '',
+        properties: (user as any).properties || []
       })
       loadDocuments()
     }
   }, [user])
 
-  useEffect(() => {
-    loadCountries()
-  }, [])
 
-  useEffect(() => {
-    if (formData.country) {
-      loadCities(formData.country)
-    }
-  }, [formData.country])
-
-  async function loadCountries() {
-    try {
-      const res = await locationService.getCountries()
-      setCountries(res.data)
-    } catch (err) {
-      console.error('Failed to load countries', err)
-    }
-  }
-
-  async function loadCities(country: string) {
-    setLoadingLocations(true)
-    try {
-      const res = await locationService.getCities(country)
-      setCities(res.data)
-    } catch (err) {
-      console.error('Failed to load cities', err)
-    } finally {
-      setLoadingLocations(false)
-    }
-  }
 
   async function loadDocuments() {
-    try {
-      const data = await api.getContracts()
-      setContracts(data || [])
-    } catch (err) {
-      console.error('Failed to load documents', err)
-    }
+    // try {
+    //   const data = await api.get('/user/contracts')
+    //   setContracts(data || [])
+    // } catch (err) {
+    //   console.error('Failed to load documents', err)
+    // }
   }
 
   async function handleSave() {
@@ -147,15 +114,14 @@ export function ProfileMenuContent() {
     !profile.dateOfBirth ||
     !profile.gender ||
     !profile.occupation ||
-    !profile.address ||
-    !profile.rentAnniversary
-
+    (profile as any).properties?.length === 0
   if (view === 'personal') {
     return (
       <div className="profile-page dashboard--nav-offset">
         <PageHeader
           title={isEditing ? 'Edit Details' : 'Personal Details'}
           showBack
+          showSettings={!isEditing}
           onBack={() => {
             setView('menu')
             setIsEditing(false)
@@ -215,40 +181,88 @@ export function ProfileMenuContent() {
                   value={formData.occupation || ''}
                   onChange={(v) => setFormData({ ...formData, occupation: v })}
                 />
-                <DetailOrEdit
-                  isEditing={isEditing}
-                  icon={MapPin}
-                  label="Country"
-                  value={formData.country || ''}
-                  type="select"
-                  options={countries.map(c => ({ value: c.name, label: c.name }))}
-                  onChange={(v) => setFormData({ ...formData, country: v, city: '' })}
-                />
-                <DetailOrEdit
-                  isEditing={isEditing}
-                  icon={MapPin}
-                  label="City/State"
-                  value={formData.city || ''}
-                  type="select"
-                  options={cities.map(c => ({ value: c, label: c }))}
-                  disabled={!formData.country || loadingLocations}
-                  onChange={(v) => setFormData({ ...formData, city: v })}
-                />
-                <DetailOrEdit
-                  isEditing={isEditing}
-                  icon={MapPin}
-                  label="Street Address"
-                  value={formData.address || ''}
-                  onChange={(v) => setFormData({ ...formData, address: v })}
-                />
-                <DetailOrEdit
-                  isEditing={isEditing}
-                  icon={Calendar}
-                  label="Rent Anniversary"
-                  value={formData.rentAnniversary || ''}
-                  placeholder="DD/MM (e.g. 15th April)"
-                  onChange={(v) => setFormData({ ...formData, rentAnniversary: v })}
-                />
+
+                <div className="properties-section mt-8">
+                  <div className="section-header flex justify-between items-center mb-6 px-2">
+                    <h3 className="text-xl font-bold text-gray-800">Your Properties</h3>
+                    <span className="badge badge--clay">{formData.properties?.length || 0} Total</span>
+                  </div>
+                  
+                  <div className="properties-list">
+                    {(formData.properties || []).map((prop: any, idx: number) => (
+                      <div key={idx} className="property-card mb-6 overflow-hidden">
+                        <div className="property-card__header">
+                          <div className="flex items-center gap-2">
+                            <span className="property-card__index">{idx + 1}</span>
+                            <h4 className="property-card__title">Residential Unit</h4>
+                          </div>
+                          
+                          {isEditing && (formData.properties || []).length > 1 && (
+                            <button 
+                              className="btn-remove"
+                              onClick={() => {
+                                const newProps = [...(formData.properties || [])]
+                                newProps.splice(idx, 1)
+                                setFormData({ ...formData, properties: newProps })
+                              }}
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="property-card__body">
+                          <DetailOrEdit
+                            isEditing={isEditing}
+                            icon={MapPin}
+                            label="Street Address"
+                            value={prop.address || ''}
+                            onChange={(v) => {
+                              const newProps = [...(formData.properties || [])]
+                              newProps[idx].address = v
+                              setFormData({ ...formData, properties: newProps })
+                            }}
+                          />
+                          <DetailOrEdit
+                            isEditing={isEditing}
+                            icon={Calendar}
+                            label="Rent Due Date"
+                            value={prop.rentEndDate || ''}
+                            placeholder="YYYY-MM-DD"
+                            onChange={(v) => {
+                              const newProps = [...(formData.properties || [])]
+                              newProps[idx].rentEndDate = v
+                              setFormData({ ...formData, properties: newProps })
+                            }}
+                          />
+                          <DetailOrEdit
+                            isEditing={isEditing}
+                            icon={Briefcase}
+                            label="Company/Agent"
+                            value={prop.companyName || ''}
+                            onChange={(v) => {
+                              const newProps = [...(formData.properties || [])]
+                              newProps[idx].companyName = v
+                              setFormData({ ...formData, properties: newProps })
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {isEditing && (
+                    <button
+                      className="btn-add-property"
+                      onClick={() => {
+                        const newProps = [...(formData.properties || []), { address: '', rentEndDate: '', companyName: '' }]
+                        setFormData({ ...formData, properties: newProps })
+                      }}
+                    >
+                      <span>+</span> Add Another Property
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="profile-details-actions">
@@ -535,6 +549,106 @@ export function ProfileMenuContent() {
           color: #ef4444;
         }
 
+        .properties-section {
+          padding-top: 1rem;
+        }
+        .property-card {
+          background: white;
+          border-radius: 20px;
+          border: 1px solid var(--border);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .property-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+        }
+        .property-card__header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1.25rem 1.5rem;
+          background: #fcfdfe;
+          border-bottom: 1px solid #f1f5f9;
+        }
+        .property-card__index {
+          width: 24px;
+          height: 24px;
+          background: var(--clay);
+          color: white;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: 700;
+        }
+        .property-card__title {
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: var(--text);
+        }
+        .property-card__body {
+          padding: 0.5rem 0;
+        }
+        .btn-remove {
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: #ef4444;
+          background: #fee2e2;
+          padding: 6px 12px;
+          border-radius: 8px;
+          transition: all 0.2s;
+        }
+        .btn-remove:hover {
+          background: #fecaca;
+        }
+        .btn-add-property {
+          width: 100%;
+          padding: 1.25rem;
+          border-radius: 20px;
+          border: 2px dashed var(--border);
+          background: transparent;
+          color: var(--text-muted);
+          font-weight: 600;
+          font-size: 0.95rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+        }
+        .btn-add-property span {
+          background: var(--border);
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 18px;
+        }
+        .btn-add-property:hover {
+          border-color: var(--clay);
+          color: var(--clay);
+          background: var(--clay-faint);
+        }
+        .btn-add-property:hover span {
+          background: var(--clay);
+        }
+        .badge {
+          padding: 6px 12px;
+          border-radius: 30px;
+          font-size: 0.75rem;
+          font-weight: 700;
+        }
+        .badge--clay {
+          background: var(--clay-faint);
+          color: var(--clay);
+        }
+        
         .profile-details-actions {
           padding: 1.5rem;
           border-top: 1px solid var(--border);

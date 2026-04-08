@@ -7,12 +7,10 @@ import {
   Moon,
   Monitor,
   Lock,
-  Shield,
   LogOut,
   Eye,
   EyeOff,
   ChevronRight,
-  Target,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useTheme } from '@/features/dashboard/components/ThemeProvider'
@@ -32,27 +30,6 @@ export default function SettingsPage() {
 
   if (!user) return null
 
-  const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor?.isNative
-
-  const handleToggleSavings = async () => {
-    try {
-      await api.updateProfile({ showSavings: !user.showSavings })
-      await refreshUser()
-      success(`Savings experience ${!user.showSavings ? 'enabled' : 'disabled'}`)
-    } catch {
-      error('Failed to update settings')
-    }
-  }
-
-  const handleToggleBiometrics = async () => {
-    try {
-      await api.updateProfile({ useBiometrics: !user.useBiometrics })
-      await refreshUser()
-      success(`Biometrics ${!user.useBiometrics ? 'enabled' : 'disabled'}`)
-    } catch {
-      error('Failed to update settings')
-    }
-  }
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,7 +40,7 @@ export default function SettingsPage() {
     setSaving(true)
     try {
       // In a real app, you'd have a specific endpoint for this
-      await api.post('/tenant/auth/change-password', passwords)
+      await api.post('/user/auth/change-password', passwords)
       success('Password updated successfully')
       setIsChangingPassword(false)
       setPasswords({ current: '', new: '', confirm: '' })
@@ -114,47 +91,13 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* Preferences Section */}
-          <section className="settings-section">
-            <h3 className="settings-section__title">Preferences</h3>
-            <div className="settings-list">
-              <div className="settings-item" onClick={handleToggleSavings}>
-                <div className="settings-item__left">
-                  <div className="settings-item__icon-wrap">
-                    <Target size={18} color="var(--clay)" />
-                  </div>
-                  <div>
-                    <span className="settings-item__title">Savings Experience</span>
-                    <p className="settings-item__sub">Show savings goal and wallet cards</p>
-                  </div>
-                </div>
-                <div className={`settings-toggle ${user.showSavings ? 'is-on' : ''}`}>
-                  <div className="settings-toggle__handle" />
-                </div>
-              </div>
-            </div>
-          </section>
+
 
           {/* Security Section */}
           <section className="settings-section">
             <h3 className="settings-section__title">Security</h3>
             <div className="settings-list">
-              {isCapacitor && (
-                <div className="settings-item" onClick={handleToggleBiometrics}>
-                  <div className="settings-item__left">
-                    <div className="settings-item__icon-wrap">
-                      <Shield size={18} color="var(--clay)" />
-                    </div>
-                    <div>
-                      <span className="settings-item__title">Biometric Login</span>
-                      <p className="settings-item__sub">Use Fingerprint or Face ID</p>
-                    </div>
-                  </div>
-                  <div className={`settings-toggle ${user.useBiometrics ? 'is-on' : ''}`}>
-                    <div className="settings-toggle__handle" />
-                  </div>
-                </div>
-              )}
+
 
               <div
                 className="settings-item"
@@ -347,31 +290,7 @@ export default function SettingsPage() {
           color: var(--text-muted);
         }
 
-        .settings-toggle {
-          width: 44px;
-          height: 24px;
-          background: var(--border-solid);
-          border-radius: 12px;
-          position: relative;
-          transition: background 0.3s;
-        }
-        .settings-toggle.is-on {
-          background: var(--success);
-        }
-        .settings-toggle__handle {
-          width: 20px;
-          height: 20px;
-          background: white;
-          border-radius: 50%;
-          position: absolute;
-          top: 2px;
-          left: 2px;
-          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .settings-toggle.is-on .settings-toggle__handle {
-          transform: translateX(20px);
-        }
+
 
         .settings-chevron {
           transition: transform 0.3s;

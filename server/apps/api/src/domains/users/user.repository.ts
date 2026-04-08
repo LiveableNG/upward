@@ -11,7 +11,7 @@ export interface User {
   phoneHash?: string | null
   passwordHash: string
   occupation?: string | null
-  rentAnniversary?: Date | null
+  rentEndDate?: Date | null
   gender?: string | null
   dateOfBirth?: string | null
   isFromWaitlist: boolean

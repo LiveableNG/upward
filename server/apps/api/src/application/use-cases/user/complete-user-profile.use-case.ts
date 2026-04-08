@@ -29,8 +29,14 @@ export class CompleteUserProfileUseCase {
     gender?: string
     dateOfBirth?: string
     profilePic?: string
-    rentAnniversary?: string
+    rentEndDate?: string
     address?: string
+    properties?: Array<{
+      address: string;
+      rentEndDate: string;
+      companyName?: string;
+      managerName?: string;
+    }>
   }) {
     const waitlistEntry = await this.waitlistRepository.findByEmail(dto.email)
 
@@ -54,11 +60,18 @@ export class CompleteUserProfileUseCase {
       gender: dto.gender,
       dateOfBirth: dto.dateOfBirth,
       profilePic: dto.profilePic || '',
-      rentAnniversary: dto.rentAnniversary ? new Date(dto.rentAnniversary) : null,
+      rentEndDate: dto.rentEndDate ? new Date(dto.rentEndDate) : null,
       address: dto.address || '',
       isFromWaitlist: !!waitlistEntry,
-      isFromInvite: false, // Default for this flow
-      useBiometrics: false,
+      isFromInvite: false,
+    }
+
+    const properties = dto.properties || []
+    if (dto.address || dto.rentEndDate) {
+      properties.push({
+        address: dto.address || '',
+        rentEndDate: dto.rentEndDate || '',
+      })
     }
 
     if (passwordHash) {
@@ -76,7 +89,7 @@ export class CompleteUserProfileUseCase {
         ...userData,
         passwordHash,
         uuid: crypto.randomUUID(),
-        id: 0, // Will be replaced by autoincrement
+        id: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
       }
@@ -85,6 +98,11 @@ export class CompleteUserProfileUseCase {
     }
 
     if (!user) throw new Error('Failed to create/update user')
+
+    // Sync Properties
+    if (properties.length > 0) {
+      await this.syncProperties(user.id, properties)
+    }
 
     const payload = { sub: user.uuid, email: user.email }
     const accessToken = this.jwtService.sign(payload, {
@@ -103,6 +121,91 @@ export class CompleteUserProfileUseCase {
       accessToken,
       refreshToken,
       user,
+    }
+  }
+
+  private async syncProperties(userId: number, properties: Array<{
+    uuid?: string;
+    address: string;
+    rentEndDate: string;
+    companyName?: string;
+    managerName?: string;
+  }>) {
+    for (const prop of properties) {
+      let locationId: number | undefined
+      let companyId: number | undefined
+      let managerId: number | undefined
+
+      let existingProperty = null
+      if (prop.uuid) {
+        existingProperty = await this.prisma.upward_user_property.findFirst({
+          where: { uuid: prop.uuid, userId }
+        })
+      }
+
+      if (existingProperty?.locationId) {
+        await this.prisma.upward_location.update({
+          where: { id: existingProperty.locationId },
+          data: { area: prop.address || '' }
+        })
+        locationId = existingProperty.locationId
+      } else {
+        const location = await this.prisma.upward_location.create({
+          data: {
+            area: prop.address || '',
+            subarea: '',
+            country: 'Nigeria',
+            state: 'Lagos'
+          }
+        })
+        locationId = location.id
+      }
+
+      if (prop.companyName) {
+        let company = await this.prisma.upward_company.findFirst({
+          where: { name: prop.companyName }
+        })
+        if (!company) {
+          company = await this.prisma.upward_company.create({
+            data: { name: prop.companyName }
+          })
+        }
+        companyId = company.id
+      }
+
+      if (prop.managerName && companyId) {
+        let manager = await this.prisma.upward_manager.findFirst({
+          where: { firstName: prop.managerName, companyId }
+        })
+        if (!manager) {
+          manager = await this.prisma.upward_manager.create({
+            data: { firstName: prop.managerName, companyId }
+          })
+        }
+        managerId = manager.id
+      }
+
+      const propertyData = {
+        userId,
+        locationId,
+        companyId,
+        managerId,
+        rentEndDate: prop.rentEndDate ? new Date(prop.rentEndDate) : null,
+      }
+
+      if (existingProperty) {
+        await this.prisma.upward_user_property.update({
+          where: { id: existingProperty.id },
+          data: propertyData
+        })
+      } else {
+        await this.prisma.upward_user_property.create({
+          data: {
+            ...propertyData,
+            uuid: crypto.randomUUID()
+          }
+        })
+      }
     }
   }
 }

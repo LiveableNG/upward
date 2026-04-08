@@ -9,13 +9,18 @@ export interface UserProfile {
   gender?: string
   occupation?: string
   address?: string
-  city?: string
-  country?: string
-  rentAnniversary?: string
+  rentEndDate?: string
   profilePic?: string
   profileSlug?: string | null
   bio?: string | null
-  useBiometrics?: boolean
+  properties?: Array<{
+    uuid?: string;
+    address: string;
+    rentEndDate: string;
+    rentAmount?: number;
+    companyName?: string;
+    managerName?: string;
+  }>
   isFromWaitlist: boolean
   isFromInvite: boolean
   createdAt: string

@@ -29,7 +29,12 @@ export default function SignupForm() {
   const [step, setStep] = useState<Step>(0)
   const [email, setEmail] = useState(prefillEmail)
   const [fullName, setFullName] = useState(prefillName)
-  const [rentAnniversary, setRentAnniversary] = useState('')
+  const [properties, setProperties] = useState<Array<{
+    address: string;
+    rentEndDate: string;
+    companyName?: string;
+    managerName?: string;
+  }>>([{ address: '', rentEndDate: '', companyName: '', managerName: '' }])
   const [password, setPassword] = useState('')
 
   const { signup, loading, error } = useSignup('/dashboard')
@@ -42,7 +47,7 @@ export default function SignupForm() {
     const nameParts = fullName.trim().split(' ')
     const firstName = nameParts[0] || ''
     const lastName = nameParts.slice(1).join(' ') || ''
-    signup({ email, password, firstName, lastName, rentAnniversary })
+    signup({ email, password, firstName, lastName, properties })
   }
 
   const benefits = [
@@ -179,33 +184,91 @@ export default function SignupForm() {
           <button className="signup-step__back" onClick={prevStep}>
             <ArrowLeft size={18} /> Back
           </button>
-
+          
           <div className="signup-step__header">
-            <h2 className="auth-page__title">Rent Expiry</h2>
+            <h2 className="auth-page__title">Where do you live?</h2>
             <p className="auth-page__subtitle">
-              When does your current rent agreement expire? This helps us track your credibility.
+              Add your current property details. You can add more than one if you have multiple places.
             </p>
           </div>
 
-          <div className="auth-form">
-            <div className="auth-form__field">
-              <label htmlFor="rentAnniversary">Rent Expiry Date</label>
-              <div className="input-with-icon">
-                <Calendar size={18} />
-                <input
-                  id="rentAnniversary"
-                  type="date"
-                  value={rentAnniversary}
-                  onChange={(e) => setRentAnniversary(e.target.value)}
-                  required
-                />
+          <div className="auth-form pb-8">
+            {properties.map((prop, index) => (
+              <div key={index} className="property-item mb-8 p-4 border rounded-2xl bg-white/50">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-bold text-sm uppercase tracking-wider text-gray-400">
+                    Property {index + 1}
+                  </h4>
+                  {properties.length > 1 && (
+                    <button 
+                      className="text-red-500 text-xs font-semibold"
+                      onClick={() => setProperties(properties.filter((_, i) => i !== index))}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                <div className="auth-form__field">
+                  <label>Street Address</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 123 Baker Street"
+                    value={prop.address}
+                    onChange={(e) => {
+                      const newProps = [...properties]
+                      newProps[index].address = e.target.value
+                      setProperties(newProps)
+                    }}
+                    required
+                  />
+                </div>
+
+                <div className="auth-form__field mt-4">
+                  <label>Rent Due Date</label>
+                  <div className="input-with-icon">
+                    <Calendar size={18} />
+                    <input
+                      type="date"
+                      value={prop.rentEndDate}
+                      onChange={(e) => {
+                        const newProps = [...properties]
+                        newProps[index].rentEndDate = e.target.value
+                        setProperties(newProps)
+                      }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="auth-form__field mt-4">
+                  <label>Company/Agent (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Baker Realty"
+                    value={prop.companyName}
+                    onChange={(e) => {
+                      const newProps = [...properties]
+                      newProps[index].companyName = e.target.value
+                      setProperties(newProps)
+                    }}
+                  />
+                </div>
               </div>
-            </div>
+            ))}
+
+            <button
+              type="button"
+              className="btn btn--outline btn--full mb-6"
+              onClick={() => setProperties([...properties, { address: '', rentEndDate: '', companyName: '', managerName: '' }])}
+            >
+              + Add Another Property
+            </button>
 
             <button
               className="btn btn--primary btn--full btn--pay"
               onClick={nextStep}
-              disabled={!rentAnniversary}
+              disabled={properties.some(p => !p.address || !p.rentEndDate)}
             >
               Continue <ChevronRight size={18} />
             </button>

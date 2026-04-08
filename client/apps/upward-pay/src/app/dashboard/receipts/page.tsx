@@ -35,7 +35,9 @@ export default function ReceiptsPage() {
       ])
 
       if (tx) {
-        const landlord = tx.landlordId ? landlords.find((l: any) => l.id === tx.landlordId) : null
+        const landlord = tx.landlordId
+          ? landlords.find((l: any) => l.uuid === tx.landlordId || String(l.id) === tx.landlordId)
+          : null
 
         const breakdownDesc =
           tx.lineItems && tx.lineItems.length > 0
@@ -48,12 +50,12 @@ export default function ReceiptsPage() {
 
         // Map backend Transaction to frontend ReceiptData
         const data: ReceiptData = {
-          uuid: tx.id,
+          uuid: tx.uuid,
           title: tx.type === 'RENT' ? 'Rent Payment Receipt' : 'Savings Deposit Receipt',
           receiptNumber: tx.receiptNumber || `RCP-${tx.reference.slice(-5).toUpperCase()}`,
           paidAt: tx.createdAt,
           generatedAt: new Date().toISOString(),
-          tenantName: profile?.fullName || 'Tenant',
+          tenantName: profile ? `${profile.firstName} ${profile.lastName}` : 'Tenant',
           companyName:
             landlord?.name || (tx.type === 'RENT' ? 'Property Management' : 'Upward Savings'),
           companyLogo: landlord?.bankName ? '' : '', // Could use landlord logic here if they had logos

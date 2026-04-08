@@ -1,5 +1,6 @@
 export type Landlord = {
   id: string
+  uuid: string
   name: string
   accountName: string
   accountNumber: string

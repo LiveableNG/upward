@@ -27,7 +27,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [rentAnniversary, setRentAnniversary] = useState('')
+  const [rentEndDate, setrentEndDate] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [localError, setLocalError] = useState('')
 
@@ -45,7 +45,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
       password, 
       firstName,
       lastName,
-      rentAnniversary,
+      rentEndDate,
     })
   }
 
@@ -123,8 +123,8 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
             <DateInput 
               id="rent-anniversary"
               label="Rent Anniversary"
-              value={rentAnniversary}
-              onChange={setRentAnniversary}
+              value={rentEndDate}
+              onChange={setrentEndDate}
               required
             />
           </div>
@@ -171,7 +171,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
             id="signup-submit"
             className="btn btn--primary btn--full btn--pay mt-4"
             type="submit"
-            disabled={!firstName || !lastName || !email || !password || !confirmPassword || !rentAnniversary || signupLoading}
+            disabled={!firstName || !lastName || !email || !password || !confirmPassword || !rentEndDate || signupLoading}
           >
             {signupLoading ? 'Creating account…' : 'Create account'} <ArrowRight size={17} />
           </button>

@@ -16,7 +16,7 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
       firstName: string; 
       lastName: string;
       phone?: string;
-      rentAnniversary?: string;
+      rentEndDate?: string;
       address?: string;
       isFromInvite?: boolean;
     }) => authSignup(data),
@@ -43,12 +43,16 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
       firstName: string; 
       lastName: string;
       phone?: string;
-      rentAnniversary?: string;
+      rentEndDate?: string;
       address?: string;
-      city?: string;
-      country?: string;
       isFromWaitlist?: boolean;
       isFromInvite?: boolean;
+      properties?: Array<{
+        address: string;
+        rentEndDate: string;
+        companyName?: string;
+        managerName?: string;
+      }>
     }) => signupMutation.mutate(data),
     loading: signupMutation.isPending,
     error: signupMutation.error instanceof Error ? signupMutation.error.message : '',

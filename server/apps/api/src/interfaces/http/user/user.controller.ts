@@ -68,7 +68,7 @@ export class UserController {
       firstName: string;
       lastName: string;
       phone?: string;
-      rentAnniversary?: string;
+      rentEndDate?: string;
       address?: string;
       isFromWaitlist?: boolean;
       isFromInvite?: boolean;
@@ -92,7 +92,7 @@ export class UserController {
       passwordPlain: body.password,
       fullName: body.fullName || body.name,
       phone: body.phone,
-      rentAnniversary: body.rentAnniversary,
+      rentEndDate: body.rentEndDate,
       address: body.address,
       occupation: body.occupation,
       gender: body.gender,

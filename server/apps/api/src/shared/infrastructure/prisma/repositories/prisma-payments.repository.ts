@@ -103,7 +103,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
         amount: data.amount,
         reference: data.reference,
         narration: data.narration,
-        landlordId: data.landlordId,
+        landlordId: data.landlordId ? String(data.landlordId) : undefined,
         paymentType: data.paymentType,
         propertyAddress: data.propertyAddress,
         lineItems: data.lineItems || undefined,

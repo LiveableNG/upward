@@ -26,10 +26,14 @@ export class UserAuthService extends BaseAuthService {
     firstName: string
     lastName: string
     phone?: string
-    rentAnniversary?: string
+    rentEndDate?: string
     address?: string
-    city?: string
-    country?: string
+    properties?: Array<{
+      address: string;
+      rentEndDate: string;
+      companyName?: string;
+      managerName?: string;
+    }>
     isFromWaitlist?: boolean
     isFromInvite?: boolean
   }): Promise<UserAuthResponse & { refreshToken: string }> {
@@ -51,7 +55,7 @@ export class UserAuthService extends BaseAuthService {
       lastNameHash: (this.userRepository as any).encryption.hash(dto.lastName),
       phone: dto.phone,
       phoneHash: dto.phone ? (this.userRepository as any).encryption.hash(dto.phone) : null,
-      rentAnniversary: dto.rentAnniversary ? new Date(dto.rentAnniversary) : undefined,
+      rentEndDate: dto.rentEndDate ? new Date(dto.rentEndDate) : undefined,
       isFromWaitlist: dto.isFromWaitlist ?? false,
       isFromInvite: dto.isFromInvite ?? false,
     }
@@ -71,14 +75,17 @@ export class UserAuthService extends BaseAuthService {
 
     const { passwordHash: _, ...userNoPass } = user
 
-    // Create a property record for the user if rentAnniversary is provided
-    if (dto.rentAnniversary || dto.address || dto.city || dto.country) {
-      await this.syncPropertyData(user.id, {
-        rentAnniversary: dto.rentAnniversary ? new Date(dto.rentAnniversary) : undefined,
-        address: dto.address,
-        city: dto.city,
-        country: dto.country
-      } as any)
+    // Create/Sync properties
+    const propertyList = dto.properties || []
+    if (dto.address || dto.rentEndDate) {
+      propertyList.push({
+        address: dto.address || '',
+        rentEndDate: dto.rentEndDate || '',
+      })
+    }
+
+    if (propertyList.length > 0) {
+      await this.syncProperties(user.id, propertyList)
     }
 
     return {
@@ -158,78 +165,117 @@ export class UserAuthService extends BaseAuthService {
     return profile
   }
 
-  async updateProfile(userUuid: string, data: Partial<User> & { city?: string; country?: string }): Promise<any> {
+  async updateProfile(userUuid: string, data: Partial<User>): Promise<any> {
     const user = await this.userRepository.findByUuid(userUuid)
     if (!user) throw new UnauthorizedException('User not found')
 
-    if (data.city || data.country) {
-      // Just passthrough
-    }
 
     await this.userRepository.update(user.id, data as any)
 
     // Sync Location and Property logic
-    if ((data as any).address || data.rentAnniversary || data.city || data.country) {
-      await this.syncPropertyData(user.id, data)
+    const propertyList = (data as any).properties || []
+    if ((data as any).address || (data as any).rentEndDate) {
+      propertyList.push({
+        address: (data as any).address || '',
+        rentEndDate: (data as any).rentEndDate || '',
+      })
+    }
+
+    if (propertyList.length > 0) {
+      await this.syncProperties(user.id, propertyList)
     }
 
     return this.getProfile(userUuid)
   }
 
-  private async syncPropertyData(userId: number, data: Partial<User> & { city?: string; country?: string }) {
-    // 1. Find or Create Property
-    const existingProperty = await this.prisma.upward_user_property.findFirst({
-      where: { userId }
-    })
+  private async syncProperties(userId: number, properties: Array<{
+    uuid?: string;
+    address: string;
+    rentEndDate: string;
+    companyName?: string;
+    managerName?: string;
+  }>) {
+    for (const prop of properties) {
+      let locationId: number | undefined
+      let companyId: number | undefined
+      let managerId: number | undefined
+      let propertyId: number | undefined
 
-    let locationId = existingProperty?.locationId
+      // 1. Check if we're updating an existing property
+      let existingProperty = null
+      if (prop.uuid) {
+        existingProperty = await this.prisma.upward_user_property.findFirst({
+          where: { uuid: prop.uuid, userId }
+        })
+      }
 
-    // 2. Handle Location Update if address is provided
-    if ((data as any).address || data.city || data.country) {
-      if (locationId) {
+      // 2. Handle Location
+      if (existingProperty?.locationId) {
         await this.prisma.upward_location.update({
-          where: { id: locationId },
-          data: { 
-            area: (data as any).address || '',
-            state: data.city || '',
-            country: data.country || ''
+          where: { id: existingProperty.locationId },
+          data: { area: prop.address || '' }
+        })
+        locationId = existingProperty.locationId
+      } else {
+        const location = await this.prisma.upward_location.create({
+          data: {
+            area: prop.address || '',
+            subarea: '',
+            country: 'Nigeria',
+            state: 'Lagos'
           }
+        })
+        locationId = location.id
+      }
+
+      // 3. Handle Company
+      if (prop.companyName) {
+        let company = await this.prisma.upward_company.findFirst({
+          where: { name: prop.companyName }
+        })
+        if (!company) {
+          company = await this.prisma.upward_company.create({
+            data: { name: prop.companyName }
+          })
+        }
+        companyId = company.id
+      }
+
+      // 4. Handle Manager
+      if (prop.managerName && companyId) {
+        let manager = await this.prisma.upward_manager.findFirst({
+          where: { firstName: prop.managerName, companyId }
+        })
+        if (!manager) {
+          manager = await this.prisma.upward_manager.create({
+            data: { firstName: prop.managerName, companyId }
+          })
+        }
+        managerId = manager.id
+      }
+
+      // 5. Create or Update Property
+      const propertyData = {
+        userId,
+        locationId,
+        companyId,
+        managerId,
+        rentEndDate: prop.rentEndDate ? new Date(prop.rentEndDate) : null,
+      }
+
+      if (existingProperty) {
+        await this.prisma.upward_user_property.update({
+          where: { id: existingProperty.id },
+          data: propertyData
         })
       } else {
-        const newLocation = await this.prisma.upward_location.create({
+        await this.prisma.upward_user_property.create({
           data: {
-            country: data.country || 'Nigeria', // Default
-            state: data.city || 'Lagos',   // Default
-            area: (data as any).address || '',
-            subarea: ''
+            ...propertyData,
+            uuid: crypto.randomUUID()
           }
         })
-        locationId = newLocation.id
       }
-    }
-
-    // 3. Update/Create Property
-    const propertyPayload: any = {
-      userId,
-      rentEndDate: data.rentAnniversary ? new Date(data.rentAnniversary) : (data as any).rentAnniversary === null ? null : undefined
-    }
-
-    if (locationId) {
-      propertyPayload.locationId = locationId
-    }
-
-    if (existingProperty) {
-      await this.prisma.upward_user_property.update({
-        where: { id: existingProperty.id },
-        data: propertyPayload
-      })
-    } else {
-      await this.prisma.upward_user_property.create({
-        data: {
-          ...propertyPayload,
-          uuid: crypto.randomUUID()
-        }
-      })
     }
   }
 

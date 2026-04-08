@@ -17,7 +17,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   ])
 
   const completedPayments: CompletedPayment[] = (txs || []).map((t: any) => ({
-    uuid: t.id,
+    uuid: t.uuid,
     amount: t.amount,
     currency: 'NGN',
     status: t.status,
@@ -29,7 +29,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   }))
 
   const savedLandlords: SavedLandlord[] = (landlords || []).map((l: any) => ({
-    uuid: l.id,
+    uuid: l.uuid,
     name: l.name,
     account_name: l.accountName,
     account_number: l.accountNumber,
