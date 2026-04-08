@@ -7,12 +7,16 @@ export async function signup(data: {
   firstName: string
   lastName: string
   phone?: string
-  rentAnniversary?: string
+  rentEndDate?: string
   address?: string
-  city?: string
-  country?: string
   isFromWaitlist?: boolean
   isFromInvite?: boolean
+  properties?: Array<{
+    address: string;
+    rentEndDate: string;
+    companyName?: string;
+    managerName?: string;
+  }>
 }) {
   return request<AuthResponse>('/user/auth/signup', {
     method: 'POST',
@@ -50,11 +54,14 @@ export async function completeProfile(data: {
   invitedByCompanyId?: string
   invitedByCompanyName?: string
   invitedByCompanyLogo?: string
-  rentAnniversary?: string
   address?: string
-  city?: string
-  country?: string
   profilePic?: string
+  properties?: Array<{
+    address: string;
+    rentEndDate: string;
+    companyName?: string;
+    managerName?: string;
+  }>
 }) {
   return request<AuthResponse>('/user/auth/complete-profile', {
     method: 'POST',

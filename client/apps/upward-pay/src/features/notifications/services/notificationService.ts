@@ -2,7 +2,7 @@
 import { request } from '@/lib/api-client'
 
 export async function getNotifications() {
-  return request<any>('/tenant/notifications', { method: 'GET' }).then((res) => res.data)
+  return request<any>('/user/notifications', { method: 'GET' }).then((res) => res.data)
 }
 
 export async function updateAnnouncementState(data: {
@@ -12,14 +12,14 @@ export async function updateAnnouncementState(data: {
   seenBanner?: boolean
   interactedBanner?: boolean
 }) {
-  return request<any>('/tenant/notifications/announcements/state', {
+  return request<any>('/user/notifications/announcements/state', {
     method: 'PATCH',
     body: JSON.stringify(data),
   }).then((res) => res.data)
 }
 
 export async function markNotificationRead(id: string) {
-  return request<any>(`/tenant/notifications/${id}/read`, {
+  return request<any>(`/user/notifications/${id}/read`, {
     method: 'PATCH',
   }).then((res) => res.data)
 }

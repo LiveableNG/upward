@@ -22,7 +22,7 @@ export default function InvitePage() {
   const { uuid } = useParams()
   const router = useRouter()
   const { success, error: toastError } = useToast()
-  const { login } = useAuth()
+  const { login, user } = useAuth()
 
   const [loading, setLoading] = useState(true)
   const [inviteData, setInviteData] = useState<any>(null)
@@ -40,13 +40,22 @@ export default function InvitePage() {
   const [localError, setLocalError] = useState('')
 
   useEffect(() => {
+    if (user) {
+      router.push('/dashboard')
+      return
+    }
     fetchInviteData()
-  }, [uuid])
+  }, [uuid, user])
 
   async function fetchInviteData() {
     try {
       const res = await api.get(`/public/invite/${uuid}`)
       if (res.success) {
+        if (res.hasPassword) {
+          success('Your account is already active. Please sign in.')
+          router.push('/login')
+          return
+        }
         setInviteData(res)
         setFormData((prev: any) => ({
           ...prev,

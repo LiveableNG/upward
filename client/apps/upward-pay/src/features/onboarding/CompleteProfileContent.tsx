@@ -33,7 +33,7 @@ const profileSchema = z.object({
   fullName: z.string().min(2, 'Full name is required'),
   phone: z.string().min(10, 'Valid phone number is required'),
   address: z.string().optional(),
-  rentAnniversary: z.string().optional(),
+  rentEndDate: z.string().optional(),
 })
 
 type ProfileFormValues = z.infer<typeof profileSchema>
@@ -73,7 +73,7 @@ export default function CompleteProfileContent({
       phone: initialData?.phone || '',
       password: '',
       address: '',
-      rentAnniversary: '',
+      rentEndDate: '',
     },
   })
 
@@ -118,10 +118,10 @@ export default function CompleteProfileContent({
   const onFinalSubmit = async (data: ProfileFormValues) => {
     setIsSyncing(true)
     try {
-      if (data.address || data.rentAnniversary) {
+      if (data.address || data.rentEndDate) {
         await updateMutation.mutateAsync({
           address: data.address,
-          rentAnniversary: data.rentAnniversary,
+          rentEndDate: data.rentEndDate,
         })
       }
       setTimeout(() => {
@@ -354,7 +354,7 @@ export default function CompleteProfileContent({
                 <label>Rent Anniversary</label>
                 <div className="input-with-icon">
                   <Calendar size={18} />
-                  <input {...register('rentAnniversary')} type="date" />
+                  <input {...register('rentEndDate')} type="date" />
                 </div>
               </div>
 
