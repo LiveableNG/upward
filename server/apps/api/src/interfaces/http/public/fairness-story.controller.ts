@@ -1,12 +1,12 @@
 import { Controller, Post, Get, Body, Delete, Param } from '@nestjs/common'
 import { CreateStoryDto } from '../dto/create-story.dto'
-import { CreateFairnessStoryUseCase } from '@application/use-cases/fairness-story/create-fairness-story.use-case'
-import { GetFairnessStoriesUseCase } from '@application/use-cases/fairness-story/get-fairness-stories.use-case'
-import { DeleteFairnessStoryUseCase } from '@application/use-cases/fairness-story/delete-fairness-story.use-case'
+import { CreateFairnessStoryUseCase } from '../../../application/use-cases/fairness-story/create-fairness-story.use-case'
+import { GetFairnessStoriesUseCase } from '../../../application/use-cases/fairness-story/get-fairness-stories.use-case'
+import { DeleteFairnessStoryUseCase } from '../../../application/use-cases/fairness-story/delete-fairness-story.use-case'
 import {
   GetStoryUploadUrlsUseCase,
   StoryFileUploadDto,
-} from '@application/use-cases/fairness-story/get-story-upload-urls.use-case'
+} from '../../../application/use-cases/fairness-story/get-story-upload-urls.use-case'
 
 @Controller('fairness-story')
 export class FairnessStoryController {

@@ -1,7 +1,7 @@
 import { Module, Global } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { EmailService } from './email.service'
-import { PrismaModule } from '@shared/infrastructure/prisma/prisma.module'
+import { PrismaModule } from '../../../shared/infrastructure/prisma/prisma.module'
 
 @Global()
 @Module({

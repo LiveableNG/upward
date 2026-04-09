@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Param, Body, NotFoundException, BadRequestException, Res, HttpStatus } from '@nestjs/common'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
-import { EncryptionService } from '@shared/infrastructure/common/encryption.service'
-import { UserAuthService } from '@application/auth/user-auth.service'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { UserAuthService } from '../../../application/auth/user-auth.service'
 import * as bcrypt from 'bcrypt'
 
 interface FastifyReply {

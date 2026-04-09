@@ -10,12 +10,12 @@ import {
   Param,
   UnauthorizedException,
 } from '@nestjs/common'
-import { JwtAuthGuard } from '@application/auth/guards/jwt-auth.guard'
+import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import {
   GetUserNotificationsUseCase,
   UpdateAnnouncementStateUseCase,
   MarkNotificationReadUseCase,
-} from '@application/use-cases/notifications/notification.use-cases'
+} from '../../../application/use-cases/notifications/notification.use-cases'
 import { UpdateAnnouncementStateDto } from '../dto/announcements.dto'
 
 interface FastifyRequest {

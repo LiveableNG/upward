@@ -10,9 +10,9 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common'
-import { AdminAuthService } from '@application/auth/admin-auth.service'
-import { AdminLogService } from '@shared/infrastructure/admin-log/admin-log.service'
-import { JwtAuthGuard } from '@application/auth/guards/jwt-auth.guard'
+import { AdminAuthService } from '../../../application/auth/admin-auth.service'
+import { AdminLogService } from '../../../shared/infrastructure/admin-log/admin-log.service'
+import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import { AdminRole } from '@upward/shared-types'
 
 // Fastify request/reply types (lightweight inline)

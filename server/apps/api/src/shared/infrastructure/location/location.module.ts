@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common'
 import { StaticLocationRepository } from './static-location.repository'
-import { LOCATION_REPOSITORY } from '@domains/location/location.repository'
+import { LOCATION_REPOSITORY } from '../../../domains/location/location.repository'
 
 @Global()
 @Module({

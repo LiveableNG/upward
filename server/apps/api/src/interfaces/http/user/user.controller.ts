@@ -11,9 +11,9 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common'
-import { UserAuthService } from '@application/auth/user-auth.service'
-import { JwtAuthGuard } from '@application/auth/guards/jwt-auth.guard'
-import { CompleteUserProfileUseCase } from '@application/use-cases/user/complete-user-profile.use-case'
+import { UserAuthService } from '../../../application/auth/user-auth.service'
+import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
+import { CompleteUserProfileUseCase } from '../../../application/use-cases/user/complete-user-profile.use-case'
 
 interface FastifyReply {
   setCookie(name: string, value: string, options: Record<string, unknown>): FastifyReply

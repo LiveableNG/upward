@@ -5,7 +5,7 @@ import {
   Notification,
   NotificationRepository,
   UserAnnouncementState,
-} from '@domains/notifications/notification.repository'
+} from '../../../../domains/notifications/notification.repository'
 
 @Injectable()
 export class PrismaNotificationRepository implements NotificationRepository {

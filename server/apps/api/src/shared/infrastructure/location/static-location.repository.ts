@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { Country, LocationRepository } from '@domains/location/location.repository'
+import { Country, LocationRepository } from '../../../domains/location/location.repository'
 
 @Injectable()
 export class StaticLocationRepository implements LocationRepository {

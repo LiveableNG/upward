@@ -1,10 +1,10 @@
 import { Controller, Get, Post, Body, Query, UseGuards, Req } from '@nestjs/common'
-import { JwtAuthGuard } from '@application/auth/guards/jwt-auth.guard'
-import { RolesGuard } from '@application/auth/guards/roles.guard'
-import { Roles } from '@application/auth/decorators/roles.decorator'
+import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
+import { RolesGuard } from '../../../application/auth/guards/roles.guard'
+import { Roles } from '../../../application/auth/decorators/roles.decorator'
 import { AdminRole } from '@upward/shared-types'
-import { GetAdminLogsUseCase } from '@application/use-cases/admin-log/get-admin-logs.use-case'
-import { LogAdminActionUseCase } from '@application/use-cases/admin-log/log-admin-action.use-case'
+import { GetAdminLogsUseCase } from '../../../application/use-cases/admin-log/get-admin-logs.use-case'
+import { LogAdminActionUseCase } from '../../../application/use-cases/admin-log/log-admin-action.use-case'
 
 interface AuthenticatedRequest {
   user: {

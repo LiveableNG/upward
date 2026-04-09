@@ -1,6 +1,6 @@
 import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common'
 import { ApiKeyGuard } from './api-key.guard'
-import { SingleInviteUseCase, InviteRequest } from '@application/use-cases/external/single-invite.use-case'
+import { SingleInviteUseCase, InviteRequest } from '../../../application/use-cases/external/single-invite.use-case'
 
 @Controller('single/invite')
 export class ExternalInviteController {

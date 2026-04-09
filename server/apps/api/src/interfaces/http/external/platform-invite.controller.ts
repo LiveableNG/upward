@@ -1,5 +1,5 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common'
-import { CreatePlatformUseCase } from '@application/use-cases/platform/create-platform.use-case'
+import { CreatePlatformUseCase } from '../../../application/use-cases/platform/create-platform.use-case'
 
 @Controller('platform/get-key')
 export class PlatformAdminController {

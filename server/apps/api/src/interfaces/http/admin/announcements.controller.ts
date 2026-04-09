@@ -1,10 +1,10 @@
 import { Controller, Post, Get, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common'
-import { JwtAuthGuard } from '@application/auth/guards/jwt-auth.guard'
-import { CreateAnnouncementUseCase } from '@application/use-cases/notifications/create-announcement.use-case'
+import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
+import { CreateAnnouncementUseCase } from '../../../application/use-cases/notifications/create-announcement.use-case'
 import {
   GetAdminAnnouncementsUseCase,
   SendNotificationUseCase,
-} from '@application/use-cases/notifications/notification.use-cases'
+} from '../../../application/use-cases/notifications/notification.use-cases'
 import { CreateAnnouncementDto } from '../dto/announcements.dto'
 import { CreateNotificationDto } from '../dto/notifications.dto'
 

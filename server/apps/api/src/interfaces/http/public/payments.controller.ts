@@ -12,7 +12,7 @@ import {
   HttpStatus,
   BadRequestException,
 } from '@nestjs/common'
-import { JwtAuthGuard } from '@application/auth/guards/jwt-auth.guard'
+import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import {
   SaveLandlordUseCase,
   GetSavedLandlordsUseCase,
@@ -24,7 +24,7 @@ import {
   GenerateReceiptPdfUseCase,
   GetPendingPaymentsUseCase,
   ResolveSubaccountUseCase,
-} from '@application/use-cases/payments/payment.use-cases'
+} from '../../../application/use-cases/payments/payment.use-cases'
 
 @Controller('payments')
 export class PaymentsController {

@@ -1,5 +1,5 @@
 import { Controller, Get, Param, NotFoundException } from '@nestjs/common'
-import { GetPublicProfileUseCase } from '@application/use-cases/user/get-public-profile.use-case'
+import { GetPublicProfileUseCase } from '../../../application/use-cases/user/get-public-profile.use-case'
 
 @Controller('public/profile')
 export class PublicProfileController {
