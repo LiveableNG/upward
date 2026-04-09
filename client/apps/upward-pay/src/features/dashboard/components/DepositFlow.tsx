@@ -149,7 +149,7 @@ export function DepositFlow() {
                 <div className="dva-card__row">
                   <span className="dva-card__label">Account Name</span>
                   <span className="dva-card__value">
-                    {wallet.accountName || `UPWARD / ${user?.fullName.toUpperCase()}`}
+                    {wallet.accountName || null }
                   </span>
                 </div>
               </div>

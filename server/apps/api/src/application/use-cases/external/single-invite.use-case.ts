@@ -64,7 +64,10 @@ export interface InviteRequest {
     }
   }
 }
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000'
+  const frontendUrl = process.env['FRONTEND_URL']
+  const urls = frontendUrl
+    ? frontendUrl.split(',').map((url) => url.trim())
+    : ['http://localhost:3000', 'http://localhost:5173']
 
 @Injectable()
 export class SingleInviteUseCase {
@@ -91,7 +94,7 @@ export class SingleInviteUseCase {
         companyId: result.company.uuid,
         userPropertyUuid: result.property.uuid,
         email: result.user.email,
-        inviteLink: FRONTEND_URL + `/invite/${result.user.uuid}`
+        inviteLink: urls[0] + `/invite/${result.user.uuid}`
       }
     ]
   }

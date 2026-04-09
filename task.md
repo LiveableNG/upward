@@ -1,4 +1,4 @@
-curl -X POST http://localhost:4000/api/v1/platform/get-key \
+curl -X POST https://upward-dev.vercel.app/api/v1/platform/get-key \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Liveable Platform",
@@ -176,3 +176,4 @@ curl -X POST http://localhost:4000/api/v1/external/payment-request \
 
 
 one thing i can't get off my mind is what if user has already signed up and we try to make an invite to them won't that overrid their own signup data? 
+DEPLOYED  up_sk_live_7e266528891511580dcaf224

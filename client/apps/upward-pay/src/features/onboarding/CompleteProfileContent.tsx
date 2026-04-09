@@ -81,8 +81,8 @@ export default function CompleteProfileContent({
     mutationFn: (data: ProfileFormValues) =>
       completeProfile({ ...data, invitedByCompanyId: token }),
     onSuccess: (result) => {
-      setAuthUser(result.tenant)
-      queryClient.setQueryData(['user'], result.tenant)
+      setAuthUser(result.user)
+      queryClient.setQueryData(['user'], result.user)
     },
   })
 
