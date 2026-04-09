@@ -7,11 +7,17 @@ import {
   Transaction,
   PaymentRequest,
   IPaymentRequestRepository,
+  ISubaccountRepository,
+  PaystackSubaccount,
 } from '@domains/payments/payment.repository'
+import { EncryptionService } from '@shared/infrastructure/common/encryption.service'
 
 @Injectable()
 export class PrismaSavedLandlordRepository implements ISavedLandlordRepository {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private encryption: EncryptionService,
+  ) {}
 
   async create(
     data: Omit<SavedLandlord, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
@@ -26,48 +32,68 @@ export class PrismaSavedLandlordRepository implements ISavedLandlordRepository {
         bankCode: data.bankCode,
         lastAmount: data.lastAmount ?? null,
         lastPaid: data.lastPaid ?? null,
+        subaccountId: data.subaccountId,
       },
     })
     return {
       ...res,
       lastAmount: res.lastAmount ?? undefined,
       lastPaid: res.lastPaid ?? undefined,
+      subaccountId: res.subaccountId ?? undefined,
     } as unknown as SavedLandlord
   }
 
   async findByUserId(userId: number): Promise<SavedLandlord[]> {
     const res = await this.prisma.upward_saved_landlord.findMany({
       where: { userId },
+      include: { subaccount: true },
       orderBy: { lastPaid: 'desc' },
     })
     return res.map((r) => ({
       ...r,
+      name: r.name ? (r.name.includes(':') ? this.encryption.decrypt(r.name) : r.name) : r.name,
+      accountName: r.accountName ? (r.accountName.includes(':') ? this.encryption.decrypt(r.accountName) : r.accountName) : r.accountName,
       lastAmount: r.lastAmount ?? undefined,
       lastPaid: r.lastPaid ?? undefined,
+      subaccountId: r.subaccountId ?? undefined,
+      subaccount: r.subaccount as unknown as PaystackSubaccount,
+      subaccountCode: (r.subaccount as any)?.subaccountCode,
     })) as unknown as SavedLandlord[]
   }
 
   async findById(id: number): Promise<SavedLandlord | null> {
     const res = await this.prisma.upward_saved_landlord.findUnique({
       where: { id },
+      include: { subaccount: true },
     })
     if (!res) return null
     return {
       ...res,
+      name: res.name ? (res.name.includes(':') ? this.encryption.decrypt(res.name) : res.name) : res.name,
+      accountName: res.accountName ? (res.accountName.includes(':') ? this.encryption.decrypt(res.accountName) : res.accountName) : res.accountName,
       lastAmount: res.lastAmount ?? undefined,
       lastPaid: res.lastPaid ?? undefined,
+      subaccountId: res.subaccountId ?? undefined,
+      subaccount: res.subaccount as unknown as PaystackSubaccount,
+      subaccountCode: (res.subaccount as any)?.subaccountCode,
     } as unknown as SavedLandlord
   }
 
   async findByUuid(uuid: string): Promise<SavedLandlord | null> {
     const res = await this.prisma.upward_saved_landlord.findUnique({
       where: { uuid },
+      include: { subaccount: true },
     })
     if (!res) return null
     return {
       ...res,
+      name: res.name ? (res.name.includes(':') ? this.encryption.decrypt(res.name) : res.name) : res.name,
+      accountName: res.accountName ? (res.accountName.includes(':') ? this.encryption.decrypt(res.accountName) : res.accountName) : res.accountName,
       lastAmount: res.lastAmount ?? undefined,
       lastPaid: res.lastPaid ?? undefined,
+      subaccountId: res.subaccountId ?? undefined,
+      subaccount: res.subaccount as unknown as PaystackSubaccount,
+      subaccountCode: (res.subaccount as any)?.subaccountCode,
     } as unknown as SavedLandlord
   }
 
@@ -88,6 +114,7 @@ export class PrismaSavedLandlordRepository implements ISavedLandlordRepository {
       ...res,
       lastAmount: res.lastAmount ?? undefined,
       lastPaid: res.lastPaid ?? undefined,
+      subaccountId: res.subaccountId ?? undefined,
     } as unknown as SavedLandlord
   }
 }
@@ -108,7 +135,9 @@ export class PrismaTransactionRepository implements ITransactionRepository {
         landlordId: data.landlordId ? String(data.landlordId) : undefined,
         paymentType: data.paymentType,
         propertyAddress: data.propertyAddress,
+        paymentRequestId: data.paymentRequestId,
         lineItems: data.lineItems || undefined,
+        currency: data.currency || 'NGN',
       },
     })
     return {
@@ -218,7 +247,10 @@ export class PrismaTransactionRepository implements ITransactionRepository {
 
 @Injectable()
 export class PrismaPaymentRequestRepository implements IPaymentRequestRepository {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private encryption: EncryptionService,
+  ) {}
 
   async create(
     data: Omit<PaymentRequest, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
@@ -234,6 +266,7 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
         dueDate: data.dueDate,
         status: data.status,
         reference: data.reference,
+        subaccountId: data.subaccountId,
       },
     })
     return {
@@ -242,48 +275,115 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       reference: res.reference ?? undefined,
       userPropertyId: res.userPropertyId ?? undefined,
       lineItems: res.lineItems || undefined,
+      subaccountId: res.subaccountId ?? undefined,
     } as unknown as PaymentRequest
   }
 
   async findById(id: number): Promise<PaymentRequest | null> {
     const res = await this.prisma.upward_payment_request.findUnique({
       where: { id },
+      include: {
+        subaccount: true,
+      },
     })
     if (!res) return null
     return {
       ...res,
-      description: res.description ?? undefined,
+      description: res.description ? (res.description.includes(':') ? this.encryption.decrypt(res.description) : res.description) : res.description,
       reference: res.reference ?? undefined,
       userPropertyId: res.userPropertyId ?? undefined,
       lineItems: res.lineItems || undefined,
+      subaccountId: res.subaccountId ?? undefined,
+      subaccount: res.subaccount as unknown as PaystackSubaccount,
     } as unknown as PaymentRequest
   }
 
   async findByUuid(uuid: string): Promise<PaymentRequest | null> {
     const res = await this.prisma.upward_payment_request.findUnique({
       where: { uuid },
+      include: {
+        subaccount: true,
+      },
     })
     if (!res) return null
     return {
       ...res,
-      description: res.description ?? undefined,
+      description: res.description ? (res.description.includes(':') ? this.encryption.decrypt(res.description) : res.description) : res.description,
       reference: res.reference ?? undefined,
       userPropertyId: res.userPropertyId ?? undefined,
       lineItems: res.lineItems || undefined,
+      subaccountId: res.subaccountId ?? undefined,
+      subaccount: res.subaccount as unknown as PaystackSubaccount,
     } as unknown as PaymentRequest
   }
 
   async findByUserId(userId: number): Promise<PaymentRequest[]> {
     const res = await this.prisma.upward_payment_request.findMany({
       where: { userId },
+      include: {
+        subaccount: true,
+        userProperty: {
+          include: {
+            company: true,
+            manager: true,
+            location: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     })
     return res.map((r) => ({
       ...r,
-      description: r.description ?? undefined,
+      description: r.description ? (r.description.includes(':') ? this.encryption.decrypt(r.description) : r.description) : r.description,
       reference: r.reference ?? undefined,
       userPropertyId: r.userPropertyId ?? undefined,
       lineItems: r.lineItems || undefined,
+      companyName: (r.userProperty as any)?.company?.name
+        ? ((r.userProperty as any).company.name.includes(':') ? this.encryption.decrypt((r.userProperty as any).company.name) : (r.userProperty as any).company.name)
+        : undefined,
+      managerName: (r.userProperty as any)?.manager
+        ? (this.encryption.decrypt((r.userProperty as any).manager.firstName) +
+          ' ' +
+          this.encryption.decrypt((r.userProperty as any).manager.lastName))
+        : undefined,
+      propertyLocation: (r.userProperty as any)?.location?.address,
+      subaccountId: r.subaccountId ?? undefined,
+      subaccount: r.subaccount as unknown as PaystackSubaccount,
+    })) as unknown as PaymentRequest[]
+  }
+
+  async findByUserIdAndStatus(userId: number, status: string): Promise<PaymentRequest[]> {
+    const res = await this.prisma.upward_payment_request.findMany({
+      where: { userId, status },
+      include: {
+        subaccount: true,
+        userProperty: {
+          include: {
+            company: true,
+            manager: true,
+            location: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+    return res.map((r) => ({
+      ...r,
+      description: r.description ? (r.description.includes(':') ? this.encryption.decrypt(r.description) : r.description) : r.description,
+      reference: r.reference ?? undefined,
+      userPropertyId: r.userPropertyId ?? undefined,
+      lineItems: r.lineItems || undefined,
+      companyName: (r.userProperty as any)?.company?.name
+        ? ((r.userProperty as any).company.name.includes(':') ? this.encryption.decrypt((r.userProperty as any).company.name) : (r.userProperty as any).company.name)
+        : undefined,
+      managerName: (r.userProperty as any)?.manager
+        ? (this.encryption.decrypt((r.userProperty as any).manager.firstName) +
+          ' ' +
+          this.encryption.decrypt((r.userProperty as any).manager.lastName))
+        : undefined,
+      propertyLocation: (r.userProperty as any)?.location?.address,
+      subaccountId: r.subaccountId ?? undefined,
+      subaccount: r.subaccount as unknown as PaystackSubaccount,
     })) as unknown as PaymentRequest[]
   }
 
@@ -307,6 +407,36 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       reference: res.reference ?? undefined,
       userPropertyId: res.userPropertyId ?? undefined,
       lineItems: res.lineItems || undefined,
+      subaccountId: res.subaccountId ?? undefined,
     } as unknown as PaymentRequest
+  }
+}
+
+@Injectable()
+export class PrismaSubaccountRepository implements ISubaccountRepository {
+  constructor(private prisma: PrismaService) {}
+
+  async create(data: Omit<PaystackSubaccount, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<PaystackSubaccount> {
+    const res = await this.prisma.upward_paystack_subaccount.create({
+      data: {
+        accountNumber: data.accountNumber,
+        bankCode: data.bankCode,
+        subaccountCode: data.subaccountCode,
+        businessName: data.businessName,
+      },
+    })
+    return res as unknown as PaystackSubaccount
+  }
+
+  async findByAccountInfo(accountNumber: string, bankCode: string): Promise<PaystackSubaccount | null> {
+    const res = await this.prisma.upward_paystack_subaccount.findUnique({
+      where: {
+        accountNumber_bankCode: {
+          accountNumber,
+          bankCode,
+        },
+      },
+    })
+    return res as unknown as PaystackSubaccount | null
   }
 }

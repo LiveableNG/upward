@@ -6,6 +6,7 @@ import {
   PrismaSavedLandlordRepository,
   PrismaTransactionRepository,
   PrismaPaymentRequestRepository,
+  PrismaSubaccountRepository,
 } from './repositories/prisma-payments.repository'
 import {
   PrismaCompanyRepository,
@@ -25,6 +26,7 @@ import {
   TRANSACTION_REPOSITORY,
   PAYMENT_GATEWAY,
   PAYMENT_REQUEST_REPOSITORY,
+  SUBACCOUNT_REPOSITORY,
 } from '@domains/payments/payment.repository'
 import {
   COMPANY_REPOSITORY,
@@ -97,6 +99,10 @@ import { EncryptionService } from '@shared/infrastructure/common/encryption.serv
       provide: LOCATION_REPOSITORY,
       useClass: PrismaLocationRepository,
     },
+    {
+      provide: SUBACCOUNT_REPOSITORY,
+      useClass: PrismaSubaccountRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -114,6 +120,7 @@ import { EncryptionService } from '@shared/infrastructure/common/encryption.serv
     MANAGER_REPOSITORY,
     PROPERTY_REPOSITORY,
     LOCATION_REPOSITORY,
+    SUBACCOUNT_REPOSITORY,
   ],
 })
 export class PrismaModule {}

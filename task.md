@@ -130,14 +130,7 @@ curl -X POST http://localhost:4000/api/v1/platform/get-key \
   -H "x-api-key: up_sk_live_e1f7b01642560ba4fa0b68c0" \
   -d '{
     "userPropertyUuid": "5cab404a-df37-4408-826b-e8b820e26fac",
-    "dueDate": "2024-12-31T23:59:59Z",
-    "description": "Quarterly Service Charge",
-    "amount": 45000,
-    "currency": "NGN",
-    "lineItems": [
-      { "name": "Security Fee", "amount": 25000 },
-      { "name": "Waste Management", "amount": 20000 }
-    ]
+    "dueDate": "2027-12-31T23:59:59Z"
   }'
 
 
@@ -180,3 +173,6 @@ curl -X POST http://localhost:4000/api/v1/external/payment-request \
     "description": "Initial Setup & Security Deposit",
     "amount": 150000
   }'
+
+
+one thing i can't get off my mind is what if user has already signed up and we try to make an invite to them won't that overrid their own signup data? 

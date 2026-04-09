@@ -30,8 +30,6 @@ export default function DashboardPage() {
   })
 
   const [_showPayRent, setShowPayRent] = useState(false)
-  const [showSavingsGoalModal, setShowSavingsGoalModal] = useState(false)
-  const [showKYCAlert, _setShowKYCAlert] = useState(true)
   const [localDismissedBanner, setLocalDismissedBanner] = useState(false)
 
   // Initialize dismissal state from localStorage
@@ -95,10 +93,10 @@ export default function DashboardPage() {
   const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor?.isNative
   const shouldShowAppBanner = !isCapacitor && !localDismissedBanner
 
-  // Real notif count logic - combining backend notifications + pending payments
+  // Real notif count logic - avoid double counting if backend notifications include payment alerts
   const backendNotifCount = notifData?.notifications?.filter((n: any) => !n.read).length || 0
-
-  const notifCount = backendNotifCount + (pendingPayments.length || 0)
+  const pendingCount = pendingPayments.length || 0
+  const notifCount = Math.max(backendNotifCount, pendingCount)
 
   return (
     <div className="dashboard dashboard--nav-offset">
@@ -127,7 +125,7 @@ export default function DashboardPage() {
 
           <AnnouncementBanner />
 
-          {!isNewUser && pendingPayments.length > 0 && (
+          {pendingPayments.length > 0 && (
             <div className="activity-center">
               <div className="activity-center__header">
                 <h3 className="activity-center__title">Activity Center</h3>
@@ -141,7 +139,7 @@ export default function DashboardPage() {
               </div>
               <ActionCarousel
                 pendingPayments={pendingPayments}
-                showKYC={showKYCAlert}
+                showKYC={isNewUser}
                 rentReminders={[]}
               />
             </div>

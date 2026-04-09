@@ -14,9 +14,6 @@ export function StepConfirm({
   onConfirm,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onBack,
-  useSavings,
-  onToggleSavings,
-  savingsBalance,
   isPriorityRequest,
   lineItems = [],
 }: {
@@ -27,14 +24,10 @@ export function StepConfirm({
   propertyAddress?: string
   onConfirm: () => void
   onBack: () => void
-  useSavings: boolean
-  onToggleSavings: (v: boolean) => void
-  savingsBalance: number
   isPriorityRequest?: boolean
   lineItems?: Array<{ label: string; amount: number }>
 }) {
-  const savingsToUse = useSavings ? Math.min(savingsBalance, amount) : 0
-  const totalDebit = amount - savingsToUse
+
 
   return (
     <div style={{ padding: '0 20px 40px' }}>
@@ -46,7 +39,7 @@ export function StepConfirm({
               {landlord.name}
             </h3>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '2px 0 0' }}>
-              {landlord.role || 'Property Manager'}
+              Managed by {landlord.accountName}
             </p>
           </div>
         </div>
@@ -96,113 +89,22 @@ export function StepConfirm({
           {formatCurrency(amount)}
         </span>
       </div>
-      {(isPriorityRequest || (lineItems && lineItems.length > 0)) && (
+      {lineItems && lineItems.length > 0 && (
         <div style={{ marginBottom: 20 }}>
           <InvoiceCard
             invoiceNumber={landlord.accountNumber.slice(-6)}
             notes={narration}
-            lineItems={lineItems || []}
+            lineItems={lineItems}
             totalAmount={amount}
             isPriority={!!isPriorityRequest}
           />
         </div>
       )}
-      <div
-        style={{
-          background: useSavings ? 'var(--clay-faint)' : 'var(--surface)',
-          border: `1px solid ${useSavings ? 'var(--clay)' : 'var(--border-solid)'}`,
-          padding: '16px',
-          borderRadius: 'var(--radius-lg)',
-          marginBottom: '20px',
-          transition: 'all 0.2s ease',
-          boxShadow: useSavings ? '0 10px 25px -10px var(--clay-glow)' : 'none',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: '10px',
-                background: 'var(--clay-faint)',
-                color: 'var(--clay)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Wallet size={18} />
-            </div>
-            <div>
-              <p style={{ fontSize: '13px', fontWeight: 700, margin: 0 }}>Savings</p>
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
-                Available: {formatCurrency(savingsBalance)}
-              </p>
-            </div>
-          </div>
-          <label
-            className="switch"
-            style={{ position: 'relative', display: 'inline-block', width: '40px', height: '22px' }}
-          >
-            <input
-              type="checkbox"
-              checked={useSavings}
-              onChange={(e) => onToggleSavings(e.target.checked)}
-              style={{ opacity: 0, width: 0, height: 0 }}
-            />
-            <span
-              style={{
-                position: 'absolute',
-                cursor: 'pointer',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: useSavings ? 'var(--clay)' : '#ccc',
-                transition: '.4s',
-                borderRadius: '34px',
-              }}
-            >
-              <span
-                style={{
-                  position: 'absolute',
-                  content: '""',
-                  height: '16px',
-                  width: '16px',
-                  left: useSavings ? '20px' : '4px',
-                  bottom: '3px',
-                  backgroundColor: 'white',
-                  transition: '.4s',
-                  borderRadius: '50%',
-                }}
-              />
-            </span>
-          </label>
-        </div>
-        {useSavings && (
-          <div
-            style={{
-              marginTop: 12,
-              paddingTop: 12,
-              borderTop: '1px dashed rgba(217,119,87,0.2)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Savings applied</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--clay)' }}>
-              -{formatCurrency(savingsToUse)}
-            </span>
-          </div>
-        )}
-      </div>
       <div style={{ padding: '0 4px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 16, fontWeight: 700 }}>Total To Pay</span>
           <span style={{ fontSize: 24, fontWeight: 801, color: 'var(--text)' }}>
-            {formatCurrency(totalDebit)}
+            {formatCurrency(amount)}
           </span>
         </div>
       </div>
@@ -212,7 +114,7 @@ export function StepConfirm({
         className="btn btn--primary btn--full"
         style={{ marginBottom: 12, height: 56, fontSize: 16 }}
       >
-        {totalDebit <= 0 ? 'Pay with Savings' : `Confirm & Pay`}
+        Confirm & Pay
       </button>
     </div>
   )

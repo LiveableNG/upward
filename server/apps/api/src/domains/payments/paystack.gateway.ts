@@ -1,6 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, Inject } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { IPaymentGateway, Bank, AccountVerification } from '@domains/payments/payment.repository'
+import { 
+  IPaymentGateway, 
+  Bank, 
+  AccountVerification,
+  SUBACCOUNT_REPOSITORY,
+  ISubaccountRepository,
+  PaystackSubaccount
+} from '@domains/payments/payment.repository'
 
 @Injectable()
 export class PaystackGateway implements IPaymentGateway {
@@ -8,7 +15,10 @@ export class PaystackGateway implements IPaymentGateway {
   private readonly secretKey: string
   private readonly baseUrl = 'https://api.paystack.co'
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    @Inject(SUBACCOUNT_REPOSITORY) private readonly subaccountRepository: ISubaccountRepository,
+  ) {
     this.secretKey = this.configService.get<string>('PAYSTACK_SECRET_KEY') || ''
     if (!this.secretKey) {
       this.logger.warn('PAYSTACK_SECRET_KEY is not defined in environment variables')
@@ -132,6 +142,7 @@ export class PaystackGateway implements IPaymentGateway {
     email: string
     amount: number
     reference: string
+    subaccount?: string
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     metadata?: any
   }): Promise<{ authorizationUrl: string }> {
@@ -145,6 +156,7 @@ export class PaystackGateway implements IPaymentGateway {
           amount: Math.round(data.amount * 100), // convert to kobo
           reference: data.reference,
           metadata: data.metadata,
+          subaccount: data.subaccount,
         }),
       })
 
@@ -168,4 +180,56 @@ export class PaystackGateway implements IPaymentGateway {
     }
   }
 
+  async findOrCreateSubaccount(data: {
+    businessName: string
+    bankCode: string
+    accountNumber: string
+  }): Promise<PaystackSubaccount | null> {
+    try {
+      this.logger.log(`Resolving subaccount for ${data.accountNumber} at ${data.bankCode}`)
+      
+      // 1. Check database first
+      const existing = await this.subaccountRepository.findByAccountInfo(data.accountNumber, data.bankCode)
+      if (existing) {
+        this.logger.log(`Found existing subaccount in DB: ${existing.subaccountCode}`)
+        return existing
+      }
+
+      // 2. Create on Paystack if not in DB
+      const res = await fetch(`${this.baseUrl}/subaccount`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify({
+          business_name: data.businessName,
+          settlement_bank: data.bankCode,
+          account_number: data.accountNumber,
+          percentage_charge: 0,
+        }),
+      })
+
+      const responseData = await res.json()
+      
+      if (!res.ok) {
+        this.logger.error(`Subaccount creation failed: ${res.status} - ${JSON.stringify(responseData)}`)
+        return null
+      }
+
+      const subaccountCode = responseData.data?.subaccount_code || ''
+      
+      if (subaccountCode) {
+        // 3. Save to DB for next time
+        return await this.subaccountRepository.create({
+          accountNumber: data.accountNumber,
+          bankCode: data.bankCode,
+          subaccountCode: subaccountCode,
+          businessName: data.businessName,
+        })
+      }
+
+      return null
+    } catch (error) {
+      this.logger.error('Paystack findOrCreateSubaccount error:', error)
+      return null
+    }
+  }
 }

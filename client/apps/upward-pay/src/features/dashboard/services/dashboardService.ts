@@ -10,11 +10,30 @@ import {
 import { type UserProfile } from '@/features/auth/types'
 
 export async function getDashboardData(): Promise<DashboardData> {
-  const [profile, txs, landlords] = await Promise.all([
+  const [profile, txs, landlords, pending] = await Promise.all([
     api.getProfile(),
     api.getTransactions(),
     api.getSavedLandlords(),
+    api.getPendingPayments(),
   ])
+
+  const pendingPayments = (pending || []).map((p: any) => ({
+    uuid: p.uuid,
+    amount: p.amount,
+    currency: p.currency,
+    total_amount: p.amount,
+    status: p.status,
+    company_name: p.companyName || null,
+    manager_name: p.managerName || null,
+    property_address: p.propertyLocation || null,
+    description: p.description,
+    due_date: p.dueDate,
+    payment_link_token: p.uuid,
+    invoice_number: p.reference || p.uuid.slice(0, 8),
+    notes: p.description,
+    subaccount_code: p.subaccountCode || null,
+    company_logo: '',
+  }))
 
   const completedPayments: CompletedPayment[] = (txs || []).map((t: any) => ({
     uuid: t.uuid,
@@ -41,7 +60,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   return {
     user: profile,
-    pendingPayments: [],
+    pendingPayments,
     completedPayments,
     savedLandlords,
     contracts: [],

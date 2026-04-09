@@ -245,8 +245,11 @@ model upward_saved_landlord {
   bankCode      String
   lastAmount    Float?
   lastPaid      DateTime?
+  subaccountId  Int?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  subaccount    upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
 
   @@index([userId])
 }
@@ -258,6 +261,7 @@ model upward_transaction {
   type            String   @default("RENT") // RENT, SAVINGS, WALLET_DEPOSIT, WALLET_WITHDRAWAL, GOAL_ALLOCATION
   status          String   @default("PENDING") // PENDING, SUCCESS, FAILED
   amount          Float
+  currency        String   @default("NGN")
   reference       String   @unique
   narration       String?
   landlordId      String?
@@ -317,6 +321,7 @@ model upward_notification {
   title     String
   message   String   @db.Text
   type      String   @default("SYSTEM") // SYSTEM, SUPPORT, PAYMENT
+  url       String?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -341,6 +346,7 @@ model upward_payment_request {
   status         String    @default("PENDING")
   paidAt         DateTime?
   reference      String?   @unique
+  subaccountId   Int?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -348,6 +354,7 @@ model upward_payment_request {
   transactions upward_transaction[]
 
   userProperty upward_user_property? @relation(fields: [userPropertyId], references: [id])
+  subaccount   upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
 
   @@index([userId])
   @@index([status])
@@ -456,4 +463,21 @@ model upward_user_property {
   location        upward_location?         @relation(fields: [locationId], references: [id])
 
   paymentRequests upward_payment_request[]
+}
+
+model upward_paystack_subaccount {
+  id              Int      @id @default(autoincrement())
+  uuid            String   @unique @default(uuid())
+  accountNumber   String
+  bankCode        String
+  subaccountCode  String   @unique
+  businessName    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([accountNumber, bankCode])
+  @@index([accountNumber, bankCode])
+
+  paymentRequests upward_payment_request[]
+  savedLandlords  upward_saved_landlord[]
 }

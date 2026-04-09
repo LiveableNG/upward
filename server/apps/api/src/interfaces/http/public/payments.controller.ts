@@ -22,6 +22,8 @@ import {
   GetTransactionUseCase,
   GetUserTransactionsUseCase,
   GenerateReceiptPdfUseCase,
+  GetPendingPaymentsUseCase,
+  ResolveSubaccountUseCase,
 } from '@application/use-cases/payments/payment.use-cases'
 
 @Controller('payments')
@@ -35,7 +37,16 @@ export class PaymentsController {
     private readonly getTxUc: GetTransactionUseCase,
     private readonly getUserTxsUc: GetUserTransactionsUseCase,
     private readonly generateReceiptPdfUc: GenerateReceiptPdfUseCase,
+    private readonly getPendingPaymentsUc: GetPendingPaymentsUseCase,
+    private readonly resolveSubaccountUc: ResolveSubaccountUseCase,
   ) {}
+
+  @UseGuards(JwtAuthGuard)
+  @Get('transactions/pending')
+  async getPendingPayments(@Req() req: any) {
+    const userId = req.user.id
+    return this.getPendingPaymentsUc.execute(userId)
+  }
 
   @UseGuards(JwtAuthGuard)
   @Get('transactions')
@@ -83,6 +94,7 @@ export class PaymentsController {
       lineItems: body.lineItems,
       paymentType: body.paymentType,
       propertyAddress: body.propertyAddress,
+      currency: body.currency || 'NGN',
     })
   }
 
@@ -123,5 +135,15 @@ export class PaymentsController {
       }
       throw new HttpException(msg || 'Failed to verify account', HttpStatus.INTERNAL_SERVER_ERROR)
     }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('resolve-subaccount')
+  async resolveSubaccount(@Req() req: any) {
+    const { accountNumber, bankCode, businessName } = req.query
+    if (!accountNumber || !bankCode) {
+      throw new BadRequestException('Account number and bank code are required')
+    }
+    return this.resolveSubaccountUc.execute(accountNumber, bankCode, businessName)
   }
 }

@@ -24,21 +24,42 @@ export default function PayRentPage() {
   const [paymentType, setpaymentType] = useState('Rent Payment')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [lineItems, setLineItems] = useState<any[]>([])
-  const [useSavings, setUseSavings] = useState(false)
   const [lastTxId, setLastTxId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState('tenant@example.com')
-  const savingsBalance = 0 // Mock for now
 
+  const [pendingPayments, setPendingPayments] = useState<any[]>([])
+  
   useEffect(() => {
-    // Fetch user and saved landlords
-    Promise.all([api.getSavedLandlords(), api.getProfile()])
-      .then(([landlords, profile]) => {
+    // Fetch user, saved landlords and pending payments
+    Promise.all([api.getSavedLandlords(), api.getProfile(), api.getPendingPayments()])
+      .then(([landlords, profile, pending]) => {
         setSavedLandlords(landlords)
         if (profile?.email) setUserEmail(profile.email)
         if (profile?.address) setPropertyAddress(profile.address)
+        setPendingPayments(pending || [])
       })
       .catch(() => {})
   }, [])
+
+  function handleSelectPending(p: any) {
+    setSelectedLandlord({
+      id: p.uuid,
+      uuid: p.uuid,
+      name: p.company_name || null,
+      accountName: p.manager_name || null,
+      accountNumber: p.invoice_number || p.uuid.slice(-8),
+      bankName: p.property_address || null,
+      bankCode: '',
+      lastPaid: null,
+      lastAmount: 0,
+      avatar: '',
+      subaccountCode: p.subaccountCode || null,
+    })
+    setPayAmount(p.amount)
+    setNarration(p.description || 'Property Payment')
+    if (p.lineItems) setLineItems(p.lineItems)
+    setStep('confirm')
+  }
 
   const stepTitle: Record<PayRentStep, string> = {
     select: 'Pay Rent',
@@ -83,7 +104,7 @@ export default function PayRentPage() {
     setTimeout(() => setStep('success'), 1500)
   }
 
-  const amountToDebit = payAmount - (useSavings ? Math.min(savingsBalance, payAmount) : 0)
+  const amountToDebit = payAmount
 
   return (
     <div className="subpage dashboard dashboard--nav-offset">
@@ -108,9 +129,10 @@ export default function PayRentPage() {
         <StepSelect
           saved={savedLandlords}
           pm={[]}
+          pending={pendingPayments}
+          onSelectPending={handleSelectPending}
           onSelect={(l) => {
             setSelectedLandlord(l)
-            // If they have a previous amount, we can pre-set it but they still go through StepAmount
             setPayAmount(0)
             setLineItems([])
             setStep('confirm')
@@ -128,6 +150,13 @@ export default function PayRentPage() {
                 finalLandlord = await api.saveLandlord(data)
               } catch (e) {
                 console.error('Failed to save landlord:', e)
+              }
+            } else if (data.accountNumber && data.bankCode) {
+              try {
+                const res = await api.resolveSubaccount(data.accountNumber, data.bankCode, data.name)
+                finalLandlord = { ...data, subaccountCode: res.subaccountCode } as Landlord
+              } catch (e) {
+                console.error('Failed to resolve subaccount on the fly:', e)
               }
             }
             setSelectedLandlord(finalLandlord)
@@ -162,9 +191,6 @@ export default function PayRentPage() {
               narration={narration}
               paymentType={paymentType}
               propertyAddress={propertyAddress}
-              useSavings={useSavings}
-              onToggleSavings={setUseSavings}
-              savingsBalance={savingsBalance}
               onConfirm={() => setStep('checkout')}
               onBack={handleBack}
               lineItems={lineItems}
@@ -183,6 +209,7 @@ export default function PayRentPage() {
           onSuccess={handleCheckoutSuccess}
           onClose={() => setStep('confirm')}
           lineItems={lineItems}
+          subaccount={selectedLandlord.subaccountCode}
         />
       )}
 

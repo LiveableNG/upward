@@ -104,6 +104,7 @@ export class PrismaNotificationRepository implements NotificationRepository {
     title: string
     message: string
     type: string
+    url?: string
   }): Promise<Notification> {
     const record = await this.prisma.upward_notification.create({
       data: {
@@ -111,6 +112,7 @@ export class PrismaNotificationRepository implements NotificationRepository {
         title: data.title,
         message: data.message,
         type: data.type,
+        url: data.url,
       },
     })
     return record as unknown as Notification

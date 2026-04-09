@@ -9,7 +9,9 @@ import {
   SAVED_LANDLORD_REPOSITORY,
   TRANSACTION_REPOSITORY,
   PAYMENT_GATEWAY,
+  PAYMENT_REQUEST_REPOSITORY,
   IPaymentGateway,
+  IPaymentRequestRepository,
   SavedLandlord,
   Transaction,
 } from '@domains/payments/payment.repository'
@@ -22,15 +24,24 @@ export class SaveLandlordUseCase {
     private readonly landlordRepo: ISavedLandlordRepository,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepository,
+    @Inject(PAYMENT_GATEWAY)
+    private readonly paymentGateway: IPaymentGateway,
   ) {}
 
   async execute(data: Omit<SavedLandlord, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'userId'> & { userId: string }) {
     const user = await this.userRepository.findByUuid(data.userId)
     if (!user) throw new Error('User not found')
 
+    const subaccount = await this.paymentGateway.findOrCreateSubaccount({
+      businessName: data.name,
+      bankCode: data.bankCode,
+      accountNumber: data.accountNumber,
+    })
+
     return this.landlordRepo.create({
       ...data,
       userId: user.id!,
+      subaccountId: subaccount?.id,
     })
   }
 }
@@ -169,5 +180,50 @@ export class GenerateReceiptPdfUseCase {
 
     const base64 = buffer.toString('base64')
     return `data:application/pdf;base64,${base64}`
+  }
+}
+@Injectable()
+export class GetPendingPaymentsUseCase {
+  constructor(
+    @Inject(PAYMENT_REQUEST_REPOSITORY)
+    private readonly paymentRequestRepo: IPaymentRequestRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: UserRepository,
+    @Inject(PAYMENT_GATEWAY)
+    private readonly gateway: IPaymentGateway,
+  ) {}
+
+  async execute(userId: string) {
+    const user = await this.userRepository.findByUuid(userId)
+    if (!user) throw new Error('User not found')
+    
+    const payments = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PENDING')
+    
+    return payments.map((p) => ({
+      ...p,
+      subaccountCode: p.subaccount?.subaccountCode || null,
+      company_name: p.companyName,
+      manager_name: p.managerName,
+      property_address: p.propertyLocation,
+    }))
+  }
+}
+
+@Injectable()
+export class ResolveSubaccountUseCase {
+  constructor(
+    @Inject(PAYMENT_GATEWAY)
+    private readonly gateway: IPaymentGateway,
+  ) {}
+
+  async execute(accountNumber: string, bankCode: string, businessName?: string) {
+    const subaccount = await this.gateway.findOrCreateSubaccount({
+      accountNumber,
+      bankCode,
+      businessName: businessName || 'Property Payment',
+    })
+    return {
+      subaccountCode: subaccount?.subaccountCode,
+    }
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable, Logger, Inject, BadRequestException, NotFoundException } from '@nestjs/common'
-import { PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository } from '@domains/payments/payment.repository'
+import { PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository, PAYMENT_GATEWAY, IPaymentGateway } from '@domains/payments/payment.repository'
 import { PROPERTY_REPOSITORY, PropertyRepository } from '@domains/companies/property.repository'
 import { USER_REPOSITORY, UserRepository } from '@domains/users/user.repository'
 import { NOTIFICATION_REPOSITORY, NotificationRepository } from '@domains/notifications/notification.repository'
@@ -13,6 +13,8 @@ export interface ExternalPaymentRequestPayload {
   description?: string
   lineItems?: any
   dueDate: string
+  bankCode?: string
+  accountNumber?: string
   invite?: InviteRequest
 }
 
@@ -28,6 +30,7 @@ export class CreateExternalPaymentRequestUseCase {
     @Inject(PROPERTY_REPOSITORY) private readonly propertyRepository: PropertyRepository,
     @Inject(PAYMENT_REQUEST_REPOSITORY) private readonly paymentRequestRepository: IPaymentRequestRepository,
     @Inject(NOTIFICATION_REPOSITORY) private readonly notificationRepository: NotificationRepository,
+    @Inject(PAYMENT_GATEWAY) private readonly paymentGateway: IPaymentGateway,
   ) {}
 
   async execute(payload: ExternalPaymentRequestPayload, platformId: number): Promise<any> {
@@ -45,8 +48,24 @@ export class CreateExternalPaymentRequestUseCase {
       throw new BadRequestException('Either userPropertyUuid or invite data must be provided')
     }
 
+    if (!payload.bankCode || !payload.accountNumber) {
+      throw new BadRequestException('bankCode and accountNumber are required for settlement routing')
+    }
+
     const amount = payload.amount || property.rentAmount
     const currency = payload.currency || property.currency || 'NGN'
+
+    let subaccountId: number | undefined
+    if (payload.bankCode && payload.accountNumber) {
+      const subaccount = await this.paymentGateway.findOrCreateSubaccount({
+        businessName: property.company?.name || null,
+        bankCode: payload.bankCode,
+        accountNumber: payload.accountNumber,
+      })
+      if (subaccount) {
+        subaccountId = subaccount.id
+      }
+    }
 
     const paymentRequest = await this.paymentRequestRepository.create({
       userId: property.userId,
@@ -58,6 +77,7 @@ export class CreateExternalPaymentRequestUseCase {
       dueDate: new Date(payload.dueDate),
       status: 'PENDING',
       reference: `EXT_${randomUUID()}_${Date.now()}`,
+      subaccountId: subaccountId,
     })
 
     const user = await this.userRepository.findById(property.userId)
@@ -67,7 +87,8 @@ export class CreateExternalPaymentRequestUseCase {
         userId: user.id!,
         title: 'New Payment Request',
         message: `You have a new payment request for ${paymentRequest.currency} ${paymentRequest.amount.toLocaleString()}. Description: ${paymentRequest.description || 'N/A'}`,
-        type: 'PAYMENT'
+        type: 'PAYMENT',
+        url: `/pay/${paymentRequest.uuid}`
       })
     }
 
