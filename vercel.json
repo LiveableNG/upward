@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "buildCommand": "pnpm turbo run build --filter=@upward/api",
+  "outputDirectory": "server/apps/api/dist/src",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "functions": {
+    "server/apps/api/dist/src/main.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "server/apps/api/dist/src/main.js"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/v1/cron/daily-report",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/v1/cron/tuesday-campaign",
+      "schedule": "0 18 * * 2"
+    }
+  ]
+}
