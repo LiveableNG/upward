@@ -1,5 +1,5 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Inject } from '@nestjs/common'
-import { PLATFORM_REPOSITORY, PlatformRepository } from '@domains/companies/company.repository'
+import { PLATFORM_REPOSITORY, PlatformRepository } from '../../../domains/companies/company.repository'
 import { createHash } from 'crypto'
 
 @Injectable()

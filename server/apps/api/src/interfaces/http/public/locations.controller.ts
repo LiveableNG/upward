@@ -1,6 +1,6 @@
 import { Controller, Get, Query, HttpCode, HttpStatus } from '@nestjs/common'
-import { GetCountriesUseCase } from '@application/use-cases/location/get-countries.use-case'
-import { GetCitiesUseCase } from '@application/use-cases/location/get-cities.use-case'
+import { GetCountriesUseCase } from '../../../application/use-cases/location/get-countries.use-case'
+import { GetCitiesUseCase } from '../../../application/use-cases/location/get-cities.use-case'
 
 @Controller('locations')
 export class LocationsController {

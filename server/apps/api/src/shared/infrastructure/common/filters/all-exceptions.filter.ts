@@ -8,9 +8,9 @@ import {
   Injectable,
 } from '@nestjs/common'
 import { FastifyReply, FastifyRequest } from 'fastify'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
+import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service'
 import Bugsnag from '@bugsnag/js'
-import { EmailService } from '@shared/infrastructure/email/email.service'
+import { EmailService } from '../../../../shared/infrastructure/email/email.service'
 
 function shouldExcludeFromBugsnag(
   exception: any,
