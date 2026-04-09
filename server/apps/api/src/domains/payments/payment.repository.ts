@@ -2,6 +2,7 @@ export const SAVED_LANDLORD_REPOSITORY = Symbol('SAVED_LANDLORD_REPOSITORY')
 export const TRANSACTION_REPOSITORY = Symbol('TRANSACTION_REPOSITORY')
 export const PAYMENT_GATEWAY = Symbol('PAYMENT_GATEWAY')
 export const PAYMENT_REQUEST_REPOSITORY = Symbol('PAYMENT_REQUEST_REPOSITORY')
+export const SUBACCOUNT_REPOSITORY = Symbol('SUBACCOUNT_REPOSITORY')
 
 export interface SavedLandlord {
   id: number
@@ -14,6 +15,8 @@ export interface SavedLandlord {
   bankCode: string
   lastAmount?: number
   lastPaid?: Date
+  subaccountId?: number
+  subaccount?: PaystackSubaccount
   createdAt: Date
   updatedAt: Date
 }
@@ -33,11 +36,13 @@ export interface Transaction {
   type: string
   status: string
   amount: number
+  currency: string
   reference: string
   narration?: string
   landlordId?: string
   paymentType?: string
   propertyAddress?: string
+  paymentRequestId?: number
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lineItems?: any
   createdAt: Date
@@ -74,8 +79,14 @@ export interface IPaymentGateway {
     email: string
     amount: number
     reference: string
+    subaccount?: string
     metadata?: any
   }): Promise<{ authorizationUrl: string }>
+  findOrCreateSubaccount(data: {
+    businessName: string
+    bankCode: string
+    accountNumber: string
+  }): Promise<PaystackSubaccount | null>
   // createVirtualAccount(user: {
   //   email: string
   //   firstName: string
@@ -97,6 +108,11 @@ export interface PaymentRequest {
   status: string
   paidAt?: Date
   reference?: string
+  companyName?: string
+  managerName?: string
+  propertyLocation?: string
+  subaccountId?: number
+  subaccount?: PaystackSubaccount
   createdAt: Date
   updatedAt: Date
 }
@@ -106,5 +122,22 @@ export interface IPaymentRequestRepository {
   findById(id: number): Promise<PaymentRequest | null>
   findByUuid(uuid: string): Promise<PaymentRequest | null>
   findByUserId(userId: number): Promise<PaymentRequest[]>
+  findByUserIdAndStatus(userId: number, status: string): Promise<PaymentRequest[]>
   update(id: number, data: Partial<PaymentRequest>): Promise<PaymentRequest>
+}
+
+export interface PaystackSubaccount {
+  id: number
+  uuid: string
+  accountNumber: string
+  bankCode: string
+  subaccountCode: string
+  businessName?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface ISubaccountRepository {
+  create(data: Omit<PaystackSubaccount, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<PaystackSubaccount>
+  findByAccountInfo(accountNumber: string, bankCode: string): Promise<PaystackSubaccount | null>
 }

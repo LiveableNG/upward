@@ -30,7 +30,7 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
       title: 'Payment Pending',
       desc: `You have an invoice for ${formatCurrency(p.total_amount, p.currency)} from ${p.company_name}.`,
       actionLabel: 'Pay Now',
-      action: () => router.push(`/dashboard/pay?id=${p.uuid}`),
+      action: () => router.push(`/pay/${p.uuid}`),
       icon: <Clock size={20} color="var(--clay)" />,
       bg: 'var(--clay-faint)',
     })
@@ -71,12 +71,16 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
 
   return (
     <div className="action-carousel">
-      <div className="action-carousel__slide" style={{ background: current.bg }}>
+      <div 
+        className="action-carousel__slide" 
+        style={{ background: current.bg, cursor: 'pointer' }}
+        onClick={current.action}
+      >
         <div className="action-carousel__icon-wrap">{current.icon}</div>
         <div className="action-carousel__content">
           <h4 className="action-carousel__title">{current.title}</h4>
           <p className="action-carousel__desc">{current.desc}</p>
-          <button className="action-carousel__btn" onClick={current.action}>
+          <button className="action-carousel__btn" onClick={(e) => { e.stopPropagation(); current.action(); }}>
             <span>{current.actionLabel}</span>
             <ArrowRight size={14} />
           </button>

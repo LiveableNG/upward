@@ -56,9 +56,12 @@ export default function NotificationsPage() {
     }
   })
 
-  const handleMarkRead = (id: string, read: boolean) => {
+  const handleMarkRead = (id: string, read: boolean, url?: string) => {
     if (!read) {
       markReadMutation.mutate(id)
+    }
+    if (url) {
+      router.push(url)
     }
   }
 
@@ -94,7 +97,7 @@ export default function NotificationsPage() {
                     <div
                       key={notif.id}
                       className={`notification-card ${!notif.read ? 'notification-card--unread' : ''}`}
-                      onClick={() => handleMarkRead(notif.id, notif.read)}
+                      onClick={() => handleMarkRead(notif.id, notif.read, notif.url)}
                     >
                       <div className="notification-card__icon">
                         {ICON_MAP[notif.type] || <Info size={18} />}

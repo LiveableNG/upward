@@ -16,8 +16,8 @@ export function RentCredibilityScore({
   const credPercentage = (credScore / 1000) * 100
   const rank = 'A'
   const streak = 12
-  const onTime = 98
-  const savingsImpact = 5
+  const onTime = 100
+  const profileCompletion = user.address ? 100 : 40
 
   const getRankColor = () => {
     return 'var(--clay)'
@@ -79,10 +79,10 @@ export function RentCredibilityScore({
               </div>
             </div>
             <div className="q-stat">
-              <Target size={20} className="text--green" />
+              <Zap size={20} className="text--green" />
               <div className="q-stat__info">
-                <span className="q-val">{Math.floor(savingsImpact)}%</span>
-                <span className="q-lbl">IMPACT</span>
+                <span className="q-val">{profileCompletion}%</span>
+                <span className="q-lbl">PROFILE</span>
               </div>
             </div>
           </div>
@@ -102,11 +102,11 @@ export function RentCredibilityScore({
             </div>
             <div className="insight-item">
               <div className="insight-item__top">
-                <span>Savings Contribution</span>
-                <span>{Math.floor(savingsImpact)}%</span>
+                <span>Profile Completion</span>
+                <span>{profileCompletion}%</span>
               </div>
               <div className="insight-progress">
-                <div className="insight-progress__fill" style={{ width: `${savingsImpact}%`, background: 'var(--green)' }} />
+                <div className="insight-progress__fill" style={{ width: `${profileCompletion}%`, background: 'var(--green)' }} />
               </div>
             </div>
           </div>

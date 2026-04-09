@@ -12,6 +12,7 @@ export type Landlord = {
   lastAmount: number
   role?: string
   address?: string
+  subaccountCode?: string
 }
 
 export type PayRentStep = 'select' | 'new' | 'confirm' | 'checkout' | 'processing' | 'success'

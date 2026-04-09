@@ -184,6 +184,8 @@ Generate a payment link for a tenant based on an existing property or by initiat
 | `description` | `string` | No | Narrative for the payment request. |
 | `lineItems` | `Array` | No | Breakdown of the amount (e.g., security, cleanup). |
 | `dueDate` | `string` | **Yes** | ISO-8601 date. |
+| `bankCode` | `string` | **Yes** | 3-digit bank code for direct settlement (split payments). |
+| `accountNumber` | `string` | **Yes** | 10-digit NUBAN account number for settlement. |
 | `invite` | `Object` | Cond. | Full invite payload if performing a "Cold Start". |
 
 ### Request Example (Existing Property)
@@ -194,6 +196,8 @@ Generate a payment link for a tenant based on an existing property or by initiat
   "description": "Quarterly Service Charge",
   "amount": 45000,
   "currency": "NGN",
+  "bankCode": "058",
+  "accountNumber": "0123456789",
   "lineItems": [
     { "name": "Security Fee", "amount": 25000 },
     { "name": "Waste Management", "amount": 20000 }
@@ -226,7 +230,9 @@ Use this if the tenant has not been invited to Upward yet. This will create the 
   },
   "dueDate": "2024-06-15T00:00:00Z",
   "description": "Initial Deposit & Security Fee",
-  "amount": 500000
+  "amount": 500000,
+  "bankCode": "011",
+  "accountNumber": "0987654321"
 }
 ```
 
@@ -248,3 +254,4 @@ Use this if the tenant has not been invited to Upward yet. This will create the 
 2. **Entity Persistence**: If a company or manager with the same details exists, Upward will link to the existing record.
 3. **Mandatory Rent**: For invitations, `rentAmount`, `rentStartDate`, and `rentEndDate` must be provided.
 4. **API Security**: Raw API keys are hashed on the server.
+5. **Automated Settlement**: Providing `bankCode` and `accountNumber` in a payment request triggers automated settlement routing. Upward resolves or creates a persistent Paystack subaccount linked to those details to ensure funds are correctly routed during checkout.

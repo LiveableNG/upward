@@ -19,9 +19,6 @@ export const api = {
     authService.resetPassword({ email, otp, new: newPass }),
 
   // Payments
-  getPaymentRequest: (token: string) =>
-    request<any>(`/payments/request/${token}`, { method: 'GET' }), // Special case from old api
-  fetchPaymentRequest: paymentService.fetchPaymentRequest,
   initializePayment: paymentService.initializePayment,
   guestInitializePayment: paymentService.guestInitializePayment,
   verifyPayment: paymentService.verifyPayment,
@@ -29,10 +26,12 @@ export const api = {
   saveLandlord: paymentService.saveLandlord,
   recordTransaction: paymentService.recordTransaction,
   getTransaction: paymentService.getTransaction,
+  getPendingPayments: paymentService.getPendingPayments,
   getTransactions: paymentService.getTransactions,
   getReceiptPdf: paymentService.getReceiptPdf,
   getBanks: paymentService.getBanks,
   resolveAccount: paymentService.resolveAccount,
+  resolveSubaccount: paymentService.resolveSubaccount,
 
   // Documents
   getMyDocuments: documentService.getMyDocuments,

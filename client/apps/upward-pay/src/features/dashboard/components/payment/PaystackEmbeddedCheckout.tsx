@@ -1,9 +1,11 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
-import { usePaystackPayment } from 'react-paystack'
 import { UpwardLogo } from '../../../../components/PoweredByUpward'
 import { generateId } from '@/lib/utils'
+const usePaystackPayment = typeof window !== 'undefined'
+  ? require('react-paystack').usePaystackPayment
+  : null
 
 interface PaystackEmbeddedProps {
   email: string
@@ -13,6 +15,7 @@ interface PaystackEmbeddedProps {
   companyName: string
   paymentType?: string
   propertyAddress?: string
+  subaccount?: string
   onSuccess: (reference: string) => void
   onClose: () => void
   //eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,6 +35,7 @@ export default function PaystackEmbeddedCheckout({
   propertyAddress,
   onSuccess,
   onClose,
+  subaccount,
   metadata = {},
   lineItems = [],
 }: PaystackEmbeddedProps) {
@@ -50,16 +54,17 @@ export default function PaystackEmbeddedCheckout({
       amount: Math.round((amount || 0) * 100), // Paystack expects Kobo as integer
       publicKey: PAYSTACK_PUBLIC_KEY,
       currency: currency || 'NGN',
+      subaccount: subaccount,
       metadata: {
         custom_fields: [
           {
-            display_name: 'Recipient Company',
-            variable_name: 'recipient_company',
-            value: companyName || 'Upward Partner',
+            display_name: null,
+            variable_name: null,
+            value: companyName ||null,
           },
           {
-            display_name: 'Payment Description',
-            variable_name: 'description',
+            display_name: null,
+            variable_name: null,
             value: description,
           },
         ],
@@ -81,37 +86,29 @@ export default function PaystackEmbeddedCheckout({
     })
   }, [config])
 
-  const initializePayment = usePaystackPayment(config)
+  const initializePayment = usePaystackPayment
+    ? usePaystackPayment(config)
+    : null
 
   useEffect(() => {
+    if (!initializePayment) return
+
     if (!init && PAYSTACK_PUBLIC_KEY) {
       setInit(true)
-      try {
-        initializePayment({
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          onSuccess: (res: any) => {
-            if (triggered.current) return
-            triggered.current = true
-            console.log('Payment Successful:', res)
-            onSuccess(res.reference)
-          },
-          onClose: () => {
-            if (triggered.current) return
-            triggered.current = true
-            console.log('Payment Closed')
-            onClose()
-          },
-        })
-      } catch (err) {
-        console.error('Paystack Initialization Error:', err)
-      }
-    } else if (!PAYSTACK_PUBLIC_KEY && !init) {
-      setInit(true)
-      console.error(
-        'CRITICAL: Paystack Public Key (NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY) is missing from your environment variables.',
-      )
+      initializePayment({
+        onSuccess: (res: any) => {
+          if (triggered.current) return
+          triggered.current = true
+          onSuccess(res.reference)
+        },
+        onClose: () => {
+          if (triggered.current) return
+          triggered.current = true
+          onClose()
+        },
+      })
     }
-  }, [init, initializePayment, onSuccess, onClose])
+  }, [init, initializePayment])
 
   return (
     <div

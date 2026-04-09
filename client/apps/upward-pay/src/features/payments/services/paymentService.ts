@@ -89,3 +89,11 @@ export async function resolveAccount(accountNumber: string, bankCode: string) {
     method: 'GET',
   })
 }
+export async function getPendingPayments() {
+  return request<any[]>('/payments/transactions/pending', { method: 'GET' })
+}
+export async function resolveSubaccount(accountNumber: string, bankCode: string, businessName?: string) {
+  let url = `/payments/resolve-subaccount?accountNumber=${accountNumber}&bankCode=${bankCode}`
+  if (businessName) url += `&businessName=${encodeURIComponent(businessName)}`
+  return request<{ subaccountCode: string }>(url, { method: 'GET' })
+}

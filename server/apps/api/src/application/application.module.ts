@@ -68,6 +68,8 @@ import { GetPublicProfileUseCase } from './use-cases/user/get-public-profile.use
 import { SingleInviteUseCase } from './use-cases/external/single-invite.use-case'
 import { CreatePlatformUseCase } from './use-cases/platform/create-platform.use-case'
 import { CreateExternalPaymentRequestUseCase } from './use-cases/external/create-payment-request.use-case'
+import { GetPublicPaymentDetailsUseCase } from './use-cases/external/get-public-payment.use-case'
+import { ConfirmExternalPaymentUseCase } from './use-cases/external/confirm-payment.use-case'
 import { AuthModule } from './auth/auth.module'
 import { CreateAnnouncementUseCase } from './use-cases/notifications/create-announcement.use-case'
 import {
@@ -88,6 +90,8 @@ import {
   GetTransactionUseCase,
   GetUserTransactionsUseCase,
   GenerateReceiptPdfUseCase,
+  GetPendingPaymentsUseCase,
+  ResolveSubaccountUseCase,
 } from './use-cases/payments/payment.use-cases'
 
 
@@ -164,6 +168,10 @@ const UseCases = [
   SingleInviteUseCase,
   CreatePlatformUseCase,
   CreateExternalPaymentRequestUseCase,
+  GetPublicPaymentDetailsUseCase,
+  ConfirmExternalPaymentUseCase,
+  GetPendingPaymentsUseCase,
+  ResolveSubaccountUseCase,
 ]
 
 @Module({

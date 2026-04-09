@@ -29,6 +29,7 @@ export interface Notification {
   title: string
   message: string
   type: string
+  url?: string
   isRead: boolean
   createdAt: Date
   updatedAt: Date
@@ -65,6 +66,7 @@ export interface NotificationRepository {
     title: string
     message: string
     type: string
+    url?: string
   }): Promise<Notification>
   findUserNotifications(userId: number): Promise<Notification[]>
   markNotificationAsRead(notificationId: number): Promise<void>

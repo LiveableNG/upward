@@ -22,16 +22,22 @@
       "json",
       "ts"
     ],
-    "rootDir": "src",
+    "rootDir": ".",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "src/**/*.(t|j)s"
     ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "coverageDirectory": "./coverage",
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@domains/(.*)$": "<rootDir>/src/domains/$1",
+      "^@application/(.*)$": "<rootDir>/src/application/$1",
+      "^@interfaces/(.*)$": "<rootDir>/src/interfaces/$1",
+      "^@shared/(.*)$": "<rootDir>/src/shared/$1"
+    }
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1017.0",
