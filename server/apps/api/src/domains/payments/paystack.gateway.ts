@@ -7,7 +7,7 @@ import {
   SUBACCOUNT_REPOSITORY,
   ISubaccountRepository,
   PaystackSubaccount
-} from '@domains/payments/payment.repository'
+} from '../../domains/payments/payment.repository'
 
 @Injectable()
 export class PaystackGateway implements IPaymentGateway {

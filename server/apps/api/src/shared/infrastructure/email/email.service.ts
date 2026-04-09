@@ -4,9 +4,9 @@ import Mailgun from 'mailgun.js'
 import FormData from 'form-data'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { formatName } from '@upward/common-utils'
-import { BugsnagService } from '@shared/infrastructure/common/bugsnag/bugsnag.service'
-import { EVENT_BUS, EventBus } from '@application/events/domain-event'
-import { EmailSentEvent } from '@application/events/definition/email-sent.event'
+import { BugsnagService } from '../../../shared/infrastructure/common/bugsnag/bugsnag.service'
+import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
+import { EmailSentEvent } from '../../../application/events/definition/email-sent.event'
 import { Inject } from '@nestjs/common'
 
 @Injectable()

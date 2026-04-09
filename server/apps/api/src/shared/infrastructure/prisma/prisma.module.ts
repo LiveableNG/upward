@@ -19,9 +19,9 @@ import {
   PrismaPropertyRepository,
   PrismaLocationRepository,
 } from './repositories/prisma-property.repository'
-import { PaystackGateway } from '@domains/payments/paystack.gateway'
-import { WAITLIST_REPOSITORY } from '@domains/waitlist/waitlist.repository'
-import { USER_REPOSITORY } from '@domains/users/user.repository'
+import { PaystackGateway } from '../../../domains/payments/paystack.gateway'
+import { WAITLIST_REPOSITORY } from '../../../domains/waitlist/waitlist.repository'
+import { USER_REPOSITORY } from '../../../domains/users/user.repository'
 import {
   SAVED_LANDLORD_REPOSITORY,
   TRANSACTION_REPOSITORY,
@@ -29,20 +29,20 @@ import {
   PAYMENT_REQUEST_REPOSITORY,
   SUBACCOUNT_REPOSITORY,
   WEBHOOK_REPOSITORY,
-} from '@domains/payments/payment.repository'
+} from '../../../domains/payments/payment.repository'
 import {
   COMPANY_REPOSITORY,
   PLATFORM_REPOSITORY,
   COMPANY_USER_REPOSITORY,
   MANAGER_REPOSITORY,
-} from '@domains/companies/company.repository'
+} from '../../../domains/companies/company.repository'
 import {
   PROPERTY_REPOSITORY,
   LOCATION_REPOSITORY,
-} from '@domains/companies/property.repository'
+} from '../../../domains/companies/property.repository'
 import { PrismaNotificationRepository } from './repositories/prisma-notification.repository'
-import { NOTIFICATION_REPOSITORY } from '@domains/notifications/notification.repository'
-import { EncryptionService } from '@shared/infrastructure/common/encryption.service'
+import { NOTIFICATION_REPOSITORY } from '../../../domains/notifications/notification.repository'
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Global()
 @Module({
