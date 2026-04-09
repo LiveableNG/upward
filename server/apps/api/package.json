@@ -3,7 +3,6 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "vercel-build": "pnpm build",
     "dev": "nest start --watch",
     "build": "nest build && tsc-alias",
     "start": "node dist/main.js",
