@@ -18,7 +18,10 @@ export interface ExternalPaymentRequestPayload {
   invite?: InviteRequest
 }
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000'
+  const frontendUrl = process.env['FRONTEND_URL']
+  const urls = frontendUrl
+    ? frontendUrl.split(',').map((url) => url.trim())
+    : ['http://localhost:3000', 'http://localhost:5173']
 
 @Injectable()
 export class CreateExternalPaymentRequestUseCase {
@@ -96,7 +99,7 @@ export class CreateExternalPaymentRequestUseCase {
       success: true,
       data: {
         paymentUuid: paymentRequest.uuid,
-        paymentLink: `${FRONTEND_URL}/pay/${paymentRequest.uuid}`
+        paymentLink: `${urls[0]}/pay/${paymentRequest.uuid}`
       }
     }
   }
