@@ -1,8 +1,8 @@
 import { Injectable, ConflictException, Logger, Inject } from '@nestjs/common'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
-import { EmailService } from '@shared/infrastructure/email/email.service'
-import { EVENT_BUS, EventBus } from '@application/events/domain-event'
-import { AdminCreatedEvent } from '@application/events/definition/admin-created.event'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { EmailService } from '../../../shared/infrastructure/email/email.service'
+import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
+import { AdminCreatedEvent } from '../../../application/events/definition/admin-created.event'
 import { AdminRole } from '@upward/shared-types'
 import * as bcrypt from 'bcrypt'
 

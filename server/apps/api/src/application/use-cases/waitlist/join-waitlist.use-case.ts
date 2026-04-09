@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common'
-import { WAITLIST_REPOSITORY, WaitlistRepository } from '@domains/waitlist/waitlist.repository'
-import { WaitlistEntry } from '@domains/waitlist/waitlist.entity'
-import { EmailService } from '@shared/infrastructure/email/email.service'
+import { WAITLIST_REPOSITORY, WaitlistRepository } from '../../../domains/waitlist/waitlist.repository'
+import { WaitlistEntry } from '../../../domains/waitlist/waitlist.entity'
+import { EmailService } from '../../../shared/infrastructure/email/email.service'
 
 export interface JoinWaitlistDto {
   email: string

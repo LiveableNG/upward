@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common'
-import { S3Service } from '@shared/infrastructure/common/s3/s3.service'
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 import { randomUUID } from 'crypto'
 
 export interface StoryFileUploadDto {

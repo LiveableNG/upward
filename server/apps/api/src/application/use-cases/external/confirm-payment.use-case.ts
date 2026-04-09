@@ -1,8 +1,8 @@
 import { Injectable, Inject, NotFoundException, BadRequestException, Logger } from '@nestjs/common'
-import { PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository } from '@domains/payments/payment.repository'
-import { USER_REPOSITORY, UserRepository } from '@domains/users/user.repository'
+import { PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository } from '../../../domains/payments/payment.repository'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { RecordTransactionUseCase } from '../payments/payment.use-cases'
-import { WebhookService } from '@shared/infrastructure/common/webhook/webhook.service'
+import { WebhookService } from '../../../shared/infrastructure/common/webhook/webhook.service'
 
 @Injectable()
 export class ConfirmExternalPaymentUseCase {

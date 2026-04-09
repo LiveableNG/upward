@@ -1,6 +1,6 @@
 import { Injectable, Logger, Inject } from '@nestjs/common'
-import { WEBHOOK_REPOSITORY, IWebhookRepository } from '@domains/payments/payment.repository'
-import { PLATFORM_REPOSITORY, PlatformRepository } from '@domains/companies/company.repository'
+import { WEBHOOK_REPOSITORY, IWebhookRepository } from '../../../../domains/payments/payment.repository'
+import { PLATFORM_REPOSITORY, PlatformRepository } from '../../../../domains/companies/company.repository'
 import { Cron, CronExpression } from '@nestjs/schedule'
 
 @Injectable()

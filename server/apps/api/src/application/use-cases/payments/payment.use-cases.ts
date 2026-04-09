@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common'
 import {
   ReceiptService,
   ReceiptPdfData,
-} from '@shared/infrastructure/common/receipt/receipt.service'
+} from '../../../shared/infrastructure/common/receipt/receipt.service'
 import {
   ISavedLandlordRepository,
   ITransactionRepository,
@@ -14,8 +14,8 @@ import {
   IPaymentRequestRepository,
   SavedLandlord,
   Transaction,
-} from '@domains/payments/payment.repository'
-import { USER_REPOSITORY, UserRepository } from '@domains/users/user.repository'
+} from '../../../domains/payments/payment.repository'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 
 @Injectable()
 export class SaveLandlordUseCase {

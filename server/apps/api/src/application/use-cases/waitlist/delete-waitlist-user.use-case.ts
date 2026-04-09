@@ -1,8 +1,8 @@
 import { Injectable, ForbiddenException } from '@nestjs/common'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { AdminRole } from '@upward/shared-types'
-import { EVENT_BUS, EventBus } from '@application/events/domain-event'
-import { WaitlistUserDeletedEvent } from '@application/events/definition/waitlist-user-deleted.event'
+import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
+import { WaitlistUserDeletedEvent } from '../../../application/events/definition/waitlist-user-deleted.event'
 import { Inject } from '@nestjs/common'
 
 @Injectable()

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { LOCATION_REPOSITORY, LocationRepository } from '@domains/location/location.repository'
+import { LOCATION_REPOSITORY, LocationRepository } from '../../../domains/location/location.repository'
 
 @Injectable()
 export class GetCitiesUseCase {

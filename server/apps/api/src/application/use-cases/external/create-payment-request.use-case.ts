@@ -1,8 +1,8 @@
 import { Injectable, Logger, Inject, BadRequestException, NotFoundException } from '@nestjs/common'
-import { PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository, PAYMENT_GATEWAY, IPaymentGateway } from '@domains/payments/payment.repository'
-import { PROPERTY_REPOSITORY, PropertyRepository } from '@domains/companies/property.repository'
-import { USER_REPOSITORY, UserRepository } from '@domains/users/user.repository'
-import { NOTIFICATION_REPOSITORY, NotificationRepository } from '@domains/notifications/notification.repository'
+import { PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository, PAYMENT_GATEWAY, IPaymentGateway } from '../../../domains/payments/payment.repository'
+import { PROPERTY_REPOSITORY, PropertyRepository } from '../../../domains/companies/property.repository'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import { NOTIFICATION_REPOSITORY, NotificationRepository } from '../../../domains/notifications/notification.repository'
 import { SingleInviteUseCase, InviteRequest } from './single-invite.use-case'
 import { randomUUID } from 'crypto'
 
