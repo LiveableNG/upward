@@ -17,6 +17,10 @@
       "@shared/*": ["src/shared/*"]
     }
   },
+  "tsc-alias": {
+    "resolveFullPaths": true,
+    "verbose": false
+  },
   "include": ["src/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist", "scripts"]
 }
