@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
-import { CreateStoryDto } from '@interfaces/http/dto/create-story.dto'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { CreateStoryDto } from '../../../interfaces/http/dto/create-story.dto'
 
 @Injectable()
 export class CreateFairnessStoryUseCase {

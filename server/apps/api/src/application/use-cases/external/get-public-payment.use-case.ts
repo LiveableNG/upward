@@ -2,10 +2,10 @@ import { Injectable, Inject, NotFoundException } from '@nestjs/common'
 import { 
   PAYMENT_REQUEST_REPOSITORY, 
   IPaymentRequestRepository,
-} from '@domains/payments/payment.repository'
-import { PROPERTY_REPOSITORY, PropertyRepository } from '@domains/companies/property.repository'
-import { USER_REPOSITORY, UserRepository } from '@domains/users/user.repository'
-import { COMPANY_REPOSITORY, CompanyRepository, MANAGER_REPOSITORY, ManagerRepository } from '@domains/companies/company.repository'
+} from '../../../domains/payments/payment.repository'
+import { PROPERTY_REPOSITORY, PropertyRepository } from '../../../domains/companies/property.repository'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import { COMPANY_REPOSITORY, CompanyRepository, MANAGER_REPOSITORY, ManagerRepository } from '../../../domains/companies/company.repository'
 
 @Injectable()
 export class GetPublicPaymentDetailsUseCase {

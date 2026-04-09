@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
-import { EmailService } from '@shared/infrastructure/email/email.service'
-import { AdminLogService } from '@shared/infrastructure/admin-log/admin-log.service'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { EmailService } from '../../../shared/infrastructure/email/email.service'
+import { AdminLogService } from '../../../shared/infrastructure/admin-log/admin-log.service'
 import { formatName } from '@upward/common-utils'
-import { wrapInBaseTemplate } from '@shared/infrastructure/email/templates'
+import { wrapInBaseTemplate } from '../../../shared/infrastructure/email/templates'
 
 @Injectable()
 export class SendBulkEmailUseCase {

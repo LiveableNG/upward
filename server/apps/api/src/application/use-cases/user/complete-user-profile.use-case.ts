@@ -1,11 +1,11 @@
 import { Injectable, Logger, Inject } from '@nestjs/common'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
-import { UserRepository, USER_REPOSITORY, User } from '@domains/users/user.repository'
-import { WAITLIST_REPOSITORY, WaitlistRepository } from '@domains/waitlist/waitlist.repository'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { UserRepository, USER_REPOSITORY, User } from '../../../domains/users/user.repository'
+import { WAITLIST_REPOSITORY, WaitlistRepository } from '../../../domains/waitlist/waitlist.repository'
 import * as bcrypt from 'bcrypt'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
-import { EVENT_BUS, EventBus } from '@application/events/domain-event'
+import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
 
 @Injectable()
 export class CompleteUserProfileUseCase {

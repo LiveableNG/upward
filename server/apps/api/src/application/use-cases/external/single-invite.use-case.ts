@@ -1,6 +1,6 @@
 import { Injectable, Logger, Inject, BadRequestException } from '@nestjs/common'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
-import { UserRepository, USER_REPOSITORY } from '@domains/users/user.repository'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { UserRepository, USER_REPOSITORY } from '../../../domains/users/user.repository'
 import { 
   CompanyRepository, 
   COMPANY_REPOSITORY, 
@@ -8,14 +8,14 @@ import {
   ManagerRepository,
   COMPANY_USER_REPOSITORY,
   CompanyUserRepository
-} from '@domains/companies/company.repository'
+} from '../../../domains/companies/company.repository'
 import { 
   PropertyRepository, 
   PROPERTY_REPOSITORY, 
   LOCATION_REPOSITORY, 
   LocationRepository 
-} from '@domains/companies/property.repository'
-import { EncryptionService } from '@shared/infrastructure/common/encryption.service'
+} from '../../../domains/companies/property.repository'
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { randomUUID } from 'crypto'
 
 export interface CompanyInfo {

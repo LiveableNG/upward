@@ -1,7 +1,7 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
-import { EVENT_BUS, EventBus } from '@application/events/domain-event'
-import { AdminRoleChangedEvent } from '@application/events/definition/admin-role-changed.event'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
+import { AdminRoleChangedEvent } from '../../../application/events/definition/admin-role-changed.event'
 import { AdminRole } from '@upward/shared-types'
 
 @Injectable()

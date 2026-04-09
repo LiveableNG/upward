@@ -1,7 +1,7 @@
 import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
-import { EVENT_BUS, EventBus } from '@application/events/domain-event'
-import { AdminDeletedEvent } from '@application/events/definition/admin-deleted.event'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
+import { AdminDeletedEvent } from '../../../application/events/definition/admin-deleted.event'
 
 @Injectable()
 export class DeleteAdminUseCase {

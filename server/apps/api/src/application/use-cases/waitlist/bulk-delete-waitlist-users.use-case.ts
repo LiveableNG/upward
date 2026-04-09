@@ -1,6 +1,6 @@
 import { Injectable, ForbiddenException } from '@nestjs/common'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
-import { AdminLogService } from '@shared/infrastructure/admin-log/admin-log.service'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { AdminLogService } from '../../../shared/infrastructure/admin-log/admin-log.service'
 import { AdminRole } from '@upward/shared-types'
 
 @Injectable()

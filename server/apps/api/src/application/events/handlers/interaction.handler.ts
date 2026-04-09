@@ -1,8 +1,8 @@
 import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
 import { Subscription } from 'rxjs'
-import { EVENT_BUS, EventBus } from '@application/events/domain-event'
-import { InteractionEvent } from '@application/events/definition/interaction.event'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
+import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
+import { InteractionEvent } from '../../../application/events/definition/interaction.event'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 @Injectable()
 export class InteractionHandler implements OnModuleInit, OnModuleDestroy {

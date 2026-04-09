@@ -1,6 +1,6 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common'
-import { WAITLIST_REPOSITORY, WaitlistRepository } from '@domains/waitlist/waitlist.repository'
-import { AdminLogService } from '@shared/infrastructure/admin-log/admin-log.service'
+import { WAITLIST_REPOSITORY, WaitlistRepository } from '../../../domains/waitlist/waitlist.repository'
+import { AdminLogService } from '../../../shared/infrastructure/admin-log/admin-log.service'
 
 @Injectable()
 export class DeleteWaitlistEntryUseCase {

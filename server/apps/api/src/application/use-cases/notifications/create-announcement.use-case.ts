@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import {
   NOTIFICATION_REPOSITORY,
   NotificationRepository,
-} from '@domains/notifications/notification.repository'
+} from '../../../domains/notifications/notification.repository'
 
 @Injectable()
 export class CreateAnnouncementUseCase {

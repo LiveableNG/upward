@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { WaitlistEntryResponse, UserRole, WaitlistBenefit } from '@upward/shared-types'
 
 const maskPhone = (str: string | null | undefined) => {

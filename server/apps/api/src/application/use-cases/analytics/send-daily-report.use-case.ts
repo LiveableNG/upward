@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
-import { EmailService } from '@shared/infrastructure/email/email.service'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { AdminRole } from '@upward/shared-types'
 
 @Injectable()

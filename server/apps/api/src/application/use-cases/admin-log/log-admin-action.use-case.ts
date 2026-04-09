@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { AdminLogService } from '@shared/infrastructure/admin-log/admin-log.service'
+import { AdminLogService } from '../../../shared/infrastructure/admin-log/admin-log.service'
 
 @Injectable()
 export class LogAdminActionUseCase {

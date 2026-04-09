@@ -1,5 +1,5 @@
 import { Injectable, Inject, ConflictException } from '@nestjs/common'
-import { PlatformRepository, PLATFORM_REPOSITORY } from '@domains/companies/company.repository'
+import { PlatformRepository, PLATFORM_REPOSITORY } from '../../../domains/companies/company.repository'
 import { randomBytes, createHash } from 'crypto'
 
 @Injectable()

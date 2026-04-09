@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { EmailService } from '@shared/infrastructure/email/email.service'
-import { AdminLogService } from '@shared/infrastructure/admin-log/admin-log.service'
-import { wrapInBaseTemplate } from '@shared/infrastructure/email/templates'
+import { EmailService } from '../../../shared/infrastructure/email/email.service'
+import { AdminLogService } from '../../../shared/infrastructure/admin-log/admin-log.service'
+import { wrapInBaseTemplate } from '../../../shared/infrastructure/email/templates'
 
 @Injectable()
 export class SendTestEmailsUseCase {

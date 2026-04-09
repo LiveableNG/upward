@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
-import { S3Service } from '@shared/infrastructure/common/s3/s3.service'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 
 @Injectable()
 export class GetFairnessStoriesUseCase {

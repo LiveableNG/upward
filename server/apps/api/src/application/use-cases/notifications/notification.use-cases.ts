@@ -2,8 +2,8 @@ import { Inject, Injectable } from '@nestjs/common'
 import {
   NOTIFICATION_REPOSITORY,
   NotificationRepository,
-} from '@domains/notifications/notification.repository'
-import { USER_REPOSITORY, UserRepository } from '@domains/users/user.repository'
+} from '../../../domains/notifications/notification.repository'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 
 @Injectable()
 export class GetAdminAnnouncementsUseCase {
