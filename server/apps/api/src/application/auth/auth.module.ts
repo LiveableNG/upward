@@ -6,7 +6,7 @@ import { BaseAuthService } from './base-auth.service'
 import { AdminAuthService } from './admin-auth.service'
 import { UserAuthService } from './user-auth.service'
 import { JwtStrategy } from './strategies/jwt.strategy'
-import { PrismaModule } from '@shared/infrastructure/prisma/prisma.module'
+import { PrismaModule } from '../../shared/infrastructure/prisma/prisma.module'
 
 @Module({
   imports: [
