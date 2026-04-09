@@ -41,19 +41,21 @@ const REFRESH_COOKIE_NAME = 'admin_refresh'
 const ACCESS_COOKIE_NAME = 'access_token'
 
 function setAuthCookies(reply: FastifyReply, accessToken: string, refreshToken: string) {
+  const isProd = process.env['NODE_ENV'] === 'production'
+
   // Refresh Token: Long-lived
   reply.setCookie(REFRESH_COOKIE_NAME, refreshToken, {
     httpOnly: true,
-    secure: process.env['NODE_ENV'] === 'production',
-    sameSite: 'strict',
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
     path: '/',
     maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
   })
 
   reply.setCookie(ACCESS_COOKIE_NAME, accessToken, {
     httpOnly: true,
-    secure: process.env['NODE_ENV'] === 'production',
-    sameSite: 'strict',
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
     path: '/',
     maxAge: 3600, // 1 hour in seconds
   })
