@@ -1,4 +1,16 @@
 {
+  "builds": [
+    {
+      "src": "apps/api/package.json",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "apps/api/dist/main.js"
+    }
+  ],
   "crons": [
     {
       "path": "/api/v1/cron/daily-report",
