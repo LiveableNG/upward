@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma.service'
-import { WaitlistRepository } from '@domains/waitlist/waitlist.repository'
-import { WaitlistEntry, WaitlistEntryProps } from '@domains/waitlist/waitlist.entity'
+import { WaitlistRepository } from '../../../../domains/waitlist/waitlist.repository'
+import { WaitlistEntry, WaitlistEntryProps } from '../../../../domains/waitlist/waitlist.entity'
 import { Prisma, upward_waitlist } from '@prisma/client'
 
 @Injectable()

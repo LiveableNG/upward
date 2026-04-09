@@ -5,7 +5,7 @@ import {
   Location,
   PropertyRepository,
   LocationRepository,
-} from '@domains/companies/property.repository'
+} from '../../../../domains/companies/property.repository'
 
 @Injectable()
 export class PrismaPropertyRepository implements PropertyRepository {

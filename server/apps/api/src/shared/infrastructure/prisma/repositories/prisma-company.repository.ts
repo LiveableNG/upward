@@ -9,8 +9,8 @@ import {
   CompanyUserRepository,
   ManagerRepository,
   PlatformRepository,
-} from '@domains/companies/company.repository'
-import { EncryptionService } from '@shared/infrastructure/common/encryption.service'
+} from '../../../../domains/companies/company.repository'
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service'
 
 @Injectable()
 export class PrismaCompanyRepository implements CompanyRepository {

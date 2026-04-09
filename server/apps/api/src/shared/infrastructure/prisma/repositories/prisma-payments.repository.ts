@@ -12,8 +12,8 @@ import {
   IWebhookRepository,
   WebhookLog,
   WEBHOOK_REPOSITORY,
-} from '@domains/payments/payment.repository'
-import { EncryptionService } from '@shared/infrastructure/common/encryption.service'
+} from '../../../../domains/payments/payment.repository'
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service'
 
 @Injectable()
 export class PrismaSavedLandlordRepository implements ISavedLandlordRepository {
