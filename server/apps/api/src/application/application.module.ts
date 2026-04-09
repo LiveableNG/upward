@@ -4,6 +4,7 @@ import { EmailLogEventHandler } from './events/handlers/email-log.handler'
 import { InteractionHandler } from './events/handlers/interaction.handler'
 import { S3Module } from '@shared/infrastructure/common/s3/s3.module'
 import { ReceiptModule } from '@shared/infrastructure/common/receipt/receipt.module'
+import { WebhookService } from '@shared/infrastructure/common/webhook/webhook.service'
 
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
@@ -180,8 +181,9 @@ const UseCases = [
     AdminAuditEventHandler,
     EmailLogEventHandler,
     InteractionHandler,
+    WebhookService,
     ...UseCases,
   ],
-  exports: [...UseCases],
+  exports: [WebhookService, ...UseCases],
 })
 export class ApplicationModule { }

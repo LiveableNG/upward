@@ -1,8 +1,4 @@
-export const SAVED_LANDLORD_REPOSITORY = Symbol('SAVED_LANDLORD_REPOSITORY')
-export const TRANSACTION_REPOSITORY = Symbol('TRANSACTION_REPOSITORY')
-export const PAYMENT_GATEWAY = Symbol('PAYMENT_GATEWAY')
-export const PAYMENT_REQUEST_REPOSITORY = Symbol('PAYMENT_REQUEST_REPOSITORY')
-export const SUBACCOUNT_REPOSITORY = Symbol('SUBACCOUNT_REPOSITORY')
+
 
 export interface SavedLandlord {
   id: number
@@ -113,6 +109,9 @@ export interface PaymentRequest {
   propertyLocation?: string
   subaccountId?: number
   subaccount?: PaystackSubaccount
+  webhookUrl?: string
+  platformName?: string
+  platformId?: number
   createdAt: Date
   updatedAt: Date
 }
@@ -141,3 +140,32 @@ export interface ISubaccountRepository {
   create(data: Omit<PaystackSubaccount, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<PaystackSubaccount>
   findByAccountInfo(accountNumber: string, bankCode: string): Promise<PaystackSubaccount | null>
 }
+
+export interface WebhookLog {
+  id: string
+  platformId: number
+  event: string
+  url: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any
+  status: string // PENDING, SENT, FAILED
+  responseCode?: number
+  errorMessage?: string
+  retries: number
+  lastTriedAt?: Date
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface IWebhookRepository {
+  create(data: Omit<WebhookLog, 'id' | 'createdAt' | 'updatedAt'>): Promise<WebhookLog>
+  update(id: string, data: Partial<WebhookLog>): Promise<WebhookLog>
+  findToRetry(maxRetries: number): Promise<WebhookLog[]>
+}
+
+export const SAVED_LANDLORD_REPOSITORY = Symbol('SAVED_LANDLORD_REPOSITORY')
+export const TRANSACTION_REPOSITORY = Symbol('TRANSACTION_REPOSITORY')
+export const PAYMENT_GATEWAY = Symbol('PAYMENT_GATEWAY')
+export const PAYMENT_REQUEST_REPOSITORY = Symbol('PAYMENT_REQUEST_REPOSITORY')
+export const SUBACCOUNT_REPOSITORY = Symbol('SUBACCOUNT_REPOSITORY')
+export const WEBHOOK_REPOSITORY = Symbol('WEBHOOK_REPOSITORY')

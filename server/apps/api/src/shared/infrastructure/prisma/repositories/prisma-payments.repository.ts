@@ -9,6 +9,9 @@ import {
   IPaymentRequestRepository,
   ISubaccountRepository,
   PaystackSubaccount,
+  IWebhookRepository,
+  WebhookLog,
+  WEBHOOK_REPOSITORY,
 } from '@domains/payments/payment.repository'
 import { EncryptionService } from '@shared/infrastructure/common/encryption.service'
 
@@ -303,6 +306,15 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       where: { uuid },
       include: {
         subaccount: true,
+        userProperty: {
+          include: {
+            company: {
+              include: {
+                platform: true,
+              },
+            },
+          },
+        },
       },
     })
     if (!res) return null
@@ -314,6 +326,9 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       lineItems: res.lineItems || undefined,
       subaccountId: res.subaccountId ?? undefined,
       subaccount: res.subaccount as unknown as PaystackSubaccount,
+      webhookUrl: (res.userProperty as any)?.company?.platform?.webhookUrl,
+      platformName: (res.userProperty as any)?.company?.platform?.name,
+      platformId: (res.userProperty as any)?.company?.platform?.id,
     } as unknown as PaymentRequest
   }
 
@@ -438,5 +453,52 @@ export class PrismaSubaccountRepository implements ISubaccountRepository {
       },
     })
     return res as unknown as PaystackSubaccount | null
+  }
+}
+
+@Injectable()
+export class PrismaWebhookRepository implements IWebhookRepository {
+  constructor(private prisma: PrismaService) {}
+
+  async create(data: Omit<WebhookLog, 'id' | 'createdAt' | 'updatedAt'>): Promise<WebhookLog> {
+    const res = await this.prisma.upward_webhook_log.create({
+      data: {
+        platformId: data.platformId,
+        event: data.event,
+        url: data.url,
+        payload: data.payload,
+        status: data.status,
+        responseCode: data.responseCode,
+        errorMessage: data.errorMessage,
+        retries: data.retries,
+        lastTriedAt: data.lastTriedAt,
+      },
+    })
+    return res as unknown as WebhookLog
+  }
+
+  async update(id: string, data: Partial<WebhookLog>): Promise<WebhookLog> {
+    const res = await this.prisma.upward_webhook_log.update({
+      where: { id },
+      data: {
+        status: data.status,
+        responseCode: data.responseCode,
+        errorMessage: data.errorMessage,
+        retries: data.retries,
+        lastTriedAt: data.lastTriedAt,
+      },
+    })
+    return res as unknown as WebhookLog
+  }
+
+  async findToRetry(maxRetries: number): Promise<WebhookLog[]> {
+    const res = await this.prisma.upward_webhook_log.findMany({
+      where: {
+        status: { in: ['FAILED', 'PENDING'] },
+        retries: { lt: maxRetries },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+    return res as unknown as WebhookLog[]
   }
 }
