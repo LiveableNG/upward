@@ -3,6 +3,7 @@ import { ConfirmExternalPaymentUseCase } from '@application/use-cases/external/c
 import { IPaymentRequestRepository } from '@domains/payments/payment.repository'
 import { UserRepository } from '@domains/users/user.repository'
 import { RecordTransactionUseCase } from '@application/use-cases/payments/payment.use-cases'
+import { WebhookService } from '@shared/infrastructure/common/webhook/webhook.service'
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -17,6 +18,7 @@ const makePaymentRequest = (overrides: Partial<any> = {}) => ({
   dueDate: new Date('2026-02-01'),
   status: 'PENDING',
   reference: undefined,
+  platformId: 77,
   createdAt: new Date(),
   updatedAt: new Date(),
   ...overrides,
@@ -29,6 +31,13 @@ const makeUser = (overrides: Partial<any> = {}) => ({
   firstName: 'Ada',
   lastName: 'Obi',
   passwordHash: 'bcrypt-hash',
+  emailHash: 'hash',
+  firstNameHash: 'hash',
+  lastNameHash: 'hash',
+  isFromWaitlist: false,
+  isFromInvite: false,
+  createdAt: new Date(),
+  updatedAt: new Date(),
   ...overrides,
 })
 
@@ -54,6 +63,7 @@ describe('ConfirmExternalPaymentUseCase', () => {
   let paymentRequestRepository: jest.Mocked<IPaymentRequestRepository>
   let userRepository: jest.Mocked<UserRepository>
   let recordTransactionUseCase: jest.Mocked<RecordTransactionUseCase>
+  let webhookService: jest.Mocked<WebhookService>
 
   beforeEach(() => {
     paymentRequestRepository = {
@@ -77,10 +87,15 @@ describe('ConfirmExternalPaymentUseCase', () => {
       execute: jest.fn(),
     } as any
 
+    webhookService = {
+      sendWebhook: jest.fn(),
+    } as any
+
     useCase = new ConfirmExternalPaymentUseCase(
       paymentRequestRepository,
       userRepository,
       recordTransactionUseCase,
+      webhookService,
     )
   })
 
@@ -97,7 +112,7 @@ describe('ConfirmExternalPaymentUseCase', () => {
 
       it('should return success immediately if payment request is already PAID', async () => {
         const paidRequest = makePaymentRequest({ status: 'PAID' })
-        paymentRequestRepository.findByUuid.mockResolvedValue(paidRequest)
+        paymentRequestRepository.findByUuid.mockResolvedValue(paidRequest as any)
 
         const result = await useCase.execute(paymentUuid, reference)
 
@@ -106,7 +121,7 @@ describe('ConfirmExternalPaymentUseCase', () => {
       })
 
       it('should throw NotFoundException if user associated with payment request not found', async () => {
-        paymentRequestRepository.findByUuid.mockResolvedValue(makePaymentRequest())
+        paymentRequestRepository.findByUuid.mockResolvedValue(makePaymentRequest() as any)
         userRepository.findById.mockResolvedValue(null)
 
         await expect(useCase.execute(paymentUuid, reference)).rejects.toThrow(NotFoundException)
@@ -116,19 +131,19 @@ describe('ConfirmExternalPaymentUseCase', () => {
 
     describe('Verification Flow', () => {
       beforeEach(() => {
-        paymentRequestRepository.findByUuid.mockResolvedValue(makePaymentRequest())
-        userRepository.findById.mockResolvedValue(makeUser())
+        paymentRequestRepository.findByUuid.mockResolvedValue(makePaymentRequest() as any)
+        userRepository.findById.mockResolvedValue(makeUser() as any)
       })
 
       it('should throw BadRequestException if recordTransactionUseCase fails or returns non-success', async () => {
-        recordTransactionUseCase.execute.mockResolvedValue(makeTransaction({ status: 'FAILED' }))
+        recordTransactionUseCase.execute.mockResolvedValue(makeTransaction({ status: 'FAILED' }) as any)
 
         await expect(useCase.execute(paymentUuid, reference)).rejects.toThrow(BadRequestException)
       })
 
       it('should update payment request and return success when transaction is SUCCESS', async () => {
-        recordTransactionUseCase.execute.mockResolvedValue(makeTransaction({ status: 'SUCCESS' }))
-        paymentRequestRepository.update.mockResolvedValue(makePaymentRequest({ status: 'PAID' }))
+        recordTransactionUseCase.execute.mockResolvedValue(makeTransaction({ status: 'SUCCESS' }) as any)
+        paymentRequestRepository.update.mockResolvedValue(makePaymentRequest({ status: 'PAID' }) as any)
 
         const result = await useCase.execute(paymentUuid, reference)
 
@@ -148,6 +163,20 @@ describe('ConfirmExternalPaymentUseCase', () => {
           status: 'PAID',
           transactionUuid: 'tx-uuid-001',
         })
+      })
+
+      it('should send webhook if platformId is present', async () => {
+        recordTransactionUseCase.execute.mockResolvedValue(makeTransaction({ status: 'SUCCESS' }) as any)
+        
+        await useCase.execute(paymentUuid, reference)
+
+        expect(webhookService.sendWebhook).toHaveBeenCalledWith(
+          77,
+          'payment.confirmed',
+          expect.objectContaining({
+            event: 'payment.confirmed',
+          })
+        )
       })
     })
   })

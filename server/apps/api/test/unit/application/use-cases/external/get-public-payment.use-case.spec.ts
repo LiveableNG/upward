@@ -134,11 +134,11 @@ describe('GetPublicPaymentDetailsUseCase', () => {
     })
 
     it('should return nested data for a public payment request', async () => {
-      paymentRequestRepository.findByUuid.mockResolvedValue(makePaymentRequest())
-      userRepository.findById.mockResolvedValue(makeUser())
-      propertyRepository.findById.mockResolvedValue(makeProperty())
-      companyRepository.findById.mockResolvedValue(makeCompany())
-      managerRepository.findById.mockResolvedValue(makeManager())
+      paymentRequestRepository.findByUuid.mockResolvedValue(makePaymentRequest() as any)
+      userRepository.findById.mockResolvedValue(makeUser() as any)
+      propertyRepository.findById.mockResolvedValue(makeProperty() as any)
+      companyRepository.findById.mockResolvedValue(makeCompany() as any)
+      managerRepository.findById.mockResolvedValue(makeManager() as any)
 
       const result = await useCase.execute('pay-req-uuid-001')
 
@@ -157,10 +157,10 @@ describe('GetPublicPaymentDetailsUseCase', () => {
     })
 
     it('should handle property without a manager', async () => {
-      paymentRequestRepository.findByUuid.mockResolvedValue(makePaymentRequest())
-      userRepository.findById.mockResolvedValue(makeUser())
-      propertyRepository.findById.mockResolvedValue(makeProperty({ managerId: null }))
-      companyRepository.findById.mockResolvedValue(makeCompany())
+      paymentRequestRepository.findByUuid.mockResolvedValue(makePaymentRequest() as any)
+      userRepository.findById.mockResolvedValue(makeUser() as any)
+      propertyRepository.findById.mockResolvedValue(makeProperty({ managerId: null }) as any)
+      companyRepository.findById.mockResolvedValue(makeCompany() as any)
 
       const result = await useCase.execute('pay-req-uuid-001')
 
@@ -171,10 +171,10 @@ describe('GetPublicPaymentDetailsUseCase', () => {
     it('should include subaccountCode when present in payment request', async () => {
       paymentRequestRepository.findByUuid.mockResolvedValue(makePaymentRequest({
         subaccount: { subaccountCode: 'ACCT_123' },
-      }))
-      userRepository.findById.mockResolvedValue(makeUser())
-      propertyRepository.findById.mockResolvedValue(makeProperty())
-      companyRepository.findById.mockResolvedValue(makeCompany())
+      }) as any)
+      userRepository.findById.mockResolvedValue(makeUser() as any)
+      propertyRepository.findById.mockResolvedValue(makeProperty() as any)
+      companyRepository.findById.mockResolvedValue(makeCompany() as any)
 
       const result = await useCase.execute('pay-req-uuid-001')
 
@@ -182,10 +182,10 @@ describe('GetPublicPaymentDetailsUseCase', () => {
     })
     
     it('should indicate hasPassword=false for INVITED users', async () => {
-      paymentRequestRepository.findByUuid.mockResolvedValue(makePaymentRequest())
-      userRepository.findById.mockResolvedValue(makeUser({ passwordHash: 'INVITED' }))
-      propertyRepository.findById.mockResolvedValue(makeProperty())
-      companyRepository.findById.mockResolvedValue(makeCompany())
+      paymentRequestRepository.findByUuid.mockResolvedValue(makePaymentRequest() as any)
+      userRepository.findById.mockResolvedValue(makeUser({ passwordHash: 'INVITED' }) as any)
+      propertyRepository.findById.mockResolvedValue(makeProperty() as any)
+      companyRepository.findById.mockResolvedValue(makeCompany() as any)
 
       const result = await useCase.execute('pay-req-uuid-001')
 
@@ -193,10 +193,10 @@ describe('GetPublicPaymentDetailsUseCase', () => {
     })
 
     it('should indicate hasPassword=true for active users', async () => {
-      paymentRequestRepository.findByUuid.mockResolvedValue(makePaymentRequest())
-      userRepository.findById.mockResolvedValue(makeUser({ passwordHash: 'active-hash' }))
-      propertyRepository.findById.mockResolvedValue(makeProperty())
-      companyRepository.findById.mockResolvedValue(makeCompany())
+      paymentRequestRepository.findByUuid.mockResolvedValue(makePaymentRequest() as any)
+      userRepository.findById.mockResolvedValue(makeUser({ passwordHash: 'active-hash' }) as any)
+      propertyRepository.findById.mockResolvedValue(makeProperty() as any)
+      companyRepository.findById.mockResolvedValue(makeCompany() as any)
 
       const result = await useCase.execute('pay-req-uuid-001')
 

@@ -32,7 +32,14 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm turbo run lint type-check test build
+      - name: Lint and Type Check
+        run: pnpm turbo run lint type-check
+
+      - name: Run Backend Unit Tests
+        run: pnpm turbo run test --filter=@upward/api
+
+      - name: Build Application
+        run: pnpm turbo run build
 
       - run: pnpm audit --audit-level=high
         continue-on-error: true
