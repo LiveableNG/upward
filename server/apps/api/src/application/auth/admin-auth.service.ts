@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
-import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
+import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service'
 import * as bcrypt from 'bcrypt'
 import { AdminRole, AdminJwtPayload, AdminAuthResponse } from '@upward/shared-types'
 import { BaseAuthService } from './base-auth.service'
