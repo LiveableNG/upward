@@ -1,11 +1,11 @@
 import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
 import { Subscription } from 'rxjs'
-import { EVENT_BUS, EventBus } from '@application/events/domain-event'
-import { AdminDeletedEvent } from '@application/events/definition/admin-deleted.event'
-import { WaitlistUserDeletedEvent } from '@application/events/definition/waitlist-user-deleted.event'
-import { AdminCreatedEvent } from '@application/events/definition/admin-created.event'
-import { AdminRoleChangedEvent } from '@application/events/definition/admin-role-changed.event'
-import { AdminLogService } from '@shared/infrastructure/admin-log/admin-log.service'
+import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
+import { AdminDeletedEvent } from '../../../application/events/definition/admin-deleted.event'
+import { WaitlistUserDeletedEvent } from '../../../application/events/definition/waitlist-user-deleted.event'
+import { AdminCreatedEvent } from '../../../application/events/definition/admin-created.event'
+import { AdminRoleChangedEvent } from '../../../application/events/definition/admin-role-changed.event'
+import { AdminLogService } from '../../../shared/infrastructure/admin-log/admin-log.service'
 
 @Injectable()
 export class AdminAuditEventHandler implements OnModuleInit, OnModuleDestroy {
