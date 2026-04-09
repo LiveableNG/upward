@@ -1,13 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "pnpm turbo run build --filter=@upward/api",
-  "outputDirectory": "server/apps/api/dist/src",
+  "buildCommand": "pnpm turbo run build --filter=@upward/api...",
   "installCommand": "pnpm install --frozen-lockfile",
-  "functions": {
-    "server/apps/api/dist/src/main.js": {
-      "runtime": "nodejs20.x"
-    }
-  },
+  "outputDirectory": "server/apps/api/dist/src",
   "routes": [
     {
       "src": "/(.*)",
