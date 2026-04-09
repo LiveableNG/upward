@@ -70,7 +70,8 @@
     "pdfkit": "^0.18.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "tsc-alias": "^1.8.16"
+    "tsc-alias": "^1.8.16",
+    "tsconfig-paths": "^4.2.0"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.3.0",
