@@ -255,3 +255,34 @@ Use this if the tenant has not been invited to Upward yet. This will create the 
 3. **Mandatory Rent**: For invitations, `rentAmount`, `rentStartDate`, and `rentEndDate` must be provided.
 4. **API Security**: Raw API keys are hashed on the server.
 5. **Automated Settlement**: Providing `bankCode` and `accountNumber` in a payment request triggers automated settlement routing. Upward resolves or creates a persistent Paystack subaccount linked to those details to ensure funds are correctly routed during checkout.
+
+---
+
+## 4. Webhook Notifications
+Upward sends asynchronous notifications to the `webhookUrl` provided during platform registration to keep your system in sync.
+
+### Event: `payment.confirmed`
+Triggered when a tenant successfully completes a payment via the payment link.
+
+#### Payload Structure
+```json
+{
+  "event": "payment.confirmed",
+  "data": {
+    "paymentUuid": "d8e9f0a1-...",
+    "reference": "EXT_5cab404a...",
+    "amount": 45000,
+    "currency": "NGN",
+    "description": "Quarterly Service Charge",
+    "status": "PAID",
+    "paidAt": "2024-06-15T14:30:00Z",
+    "customerEmail": "jane.doe@example.com"
+  }
+}
+```
+
+### Delivery Details
+1. **Method**: `POST`
+2. **Content-Type**: `application/json`
+3. **Expectation**: Your server should return a `200 OK` response within 5 seconds.
+4. **Retries**: If your server is down or returns an error (non-2xx), Upward will retry the delivery with an exponential backoff (e.g., after 5m, 15m, 1h, 6h, 24h).
