@@ -1,25 +1,4 @@
-import { register } from 'tsconfig-paths';
-import * as tsConfig from '../tsconfig.json';
-
-// This manually maps the aliases at runtime
-register({
-  baseUrl: './dist', // Points to your transpiled JS
-  paths: (tsConfig as any).compilerOptions.paths,
-});
-
 import { NestFactory } from '@nestjs/core';
-import 'reflect-metadata'
-
-// Handle BigInt serialization for JSON.stringify
-declare global {
-  interface BigInt {
-    toJSON(): string
-  }
-}
-BigInt.prototype.toJSON = function () {
-  return this.toString()
-}
-
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { FastifyAdapter } from '@nestjs/platform-fastify'
 import { ValidationPipe } from '@nestjs/common'
