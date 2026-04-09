@@ -1,7 +1,7 @@
 import { Controller, Get, Req, ForbiddenException } from '@nestjs/common'
 import { AppService } from './app.service'
-import { SendDailyReportUseCase } from '@application/use-cases/analytics/send-daily-report.use-case'
-import { RunTuesdayCampaignUseCase } from '@application/use-cases/campaign/run-tuesday-campaign.use-case'
+import { SendDailyReportUseCase } from './application/use-cases/analytics/send-daily-report.use-case'
+import { RunTuesdayCampaignUseCase } from './application/use-cases/campaign/run-tuesday-campaign.use-case'
 
 @Controller()
 export class AppController {
