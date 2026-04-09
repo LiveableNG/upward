@@ -7,6 +7,7 @@ import {
   PrismaTransactionRepository,
   PrismaPaymentRequestRepository,
   PrismaSubaccountRepository,
+  PrismaWebhookRepository,
 } from './repositories/prisma-payments.repository'
 import {
   PrismaCompanyRepository,
@@ -27,6 +28,7 @@ import {
   PAYMENT_GATEWAY,
   PAYMENT_REQUEST_REPOSITORY,
   SUBACCOUNT_REPOSITORY,
+  WEBHOOK_REPOSITORY,
 } from '@domains/payments/payment.repository'
 import {
   COMPANY_REPOSITORY,
@@ -103,6 +105,10 @@ import { EncryptionService } from '@shared/infrastructure/common/encryption.serv
       provide: SUBACCOUNT_REPOSITORY,
       useClass: PrismaSubaccountRepository,
     },
+    {
+      provide: WEBHOOK_REPOSITORY,
+      useClass: PrismaWebhookRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -121,6 +127,7 @@ import { EncryptionService } from '@shared/infrastructure/common/encryption.serv
     PROPERTY_REPOSITORY,
     LOCATION_REPOSITORY,
     SUBACCOUNT_REPOSITORY,
+    WEBHOOK_REPOSITORY,
   ],
 })
 export class PrismaModule {}

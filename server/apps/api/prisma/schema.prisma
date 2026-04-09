@@ -394,6 +394,7 @@ model upward_platform {
   updatedAt DateTime @updatedAt
 
   companies upward_company[]
+  webhookLogs upward_webhook_log[]
 }
 
 model upward_company_user {
@@ -480,4 +481,25 @@ model upward_paystack_subaccount {
 
   paymentRequests upward_payment_request[]
   savedLandlords  upward_saved_landlord[]
+}
+
+model upward_webhook_log {
+  id          String   @id @default(uuid())
+  platformId  Int
+  event       String   // e.g. payment.confirmed
+  url         String
+  payload     Json
+  status      String   // PENDING, SENT, FAILED
+  responseCode Int?
+  errorMessage String?
+  retries     Int      @default(0)
+  lastTriedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  platform    upward_platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+
+  @@index([platformId])
+  @@index([status])
+  @@index([createdAt])
 }
