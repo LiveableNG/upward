@@ -154,10 +154,10 @@ export class SingleInviteUseCase {
       } as any)
     } else {
       const updateData: any = {}
-      if (managerData.firstName) updateData.firstName = managerData.firstName
-      if (managerData.lastName) updateData.lastName = managerData.lastName
-      if (managerData.email) updateData.email = managerData.email
-      if (managerData.phone) updateData.phone = managerData.phone
+      if (managerData.firstName && manager.firstName !== managerData.firstName) updateData.firstName = managerData.firstName
+      if (managerData.lastName && manager.lastName !== managerData.lastName) updateData.lastName = managerData.lastName
+      if (managerData.email && manager.email !== managerData.email) updateData.email = managerData.email
+      if (managerData.phone && manager.phone !== managerData.phone) updateData.phone = managerData.phone
       
       if (Object.keys(updateData).length > 0) {
         manager = await this.managerRepository.update(manager.id!, updateData)
