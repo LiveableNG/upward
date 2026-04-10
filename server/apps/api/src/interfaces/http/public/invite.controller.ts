@@ -2,6 +2,7 @@ import { Controller, Get, Post, Param, Body, NotFoundException, BadRequestExcept
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { UserAuthService } from '../../../application/auth/user-auth.service'
+import { WebhookService } from '../../../shared/infrastructure/common/webhook/webhook.service'
 import * as bcrypt from 'bcrypt'
 
 interface FastifyReply {
@@ -40,6 +41,7 @@ export class InviteController {
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
     private readonly userAuthService: UserAuthService,
+    private readonly webhookService: WebhookService,
   ) { }
 
   @Get(':uuid')
@@ -109,7 +111,14 @@ export class InviteController {
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
     const user = await this.prisma.upward_user.findUnique({
-      where: { uuid }
+      where: { uuid },
+      include: {
+        companyUsers: {
+          include: {
+            company: true
+          }
+        }
+      }
     })
 
     if (!user) {
@@ -144,6 +153,22 @@ export class InviteController {
     setUserAuthCookies(reply, accessToken, refreshToken)
 
     const { passwordHash: _, ...userNoPass } = updatedUser
+
+    const companyUser = user.companyUsers[0]
+    const platformId = companyUser?.company?.platformId
+
+    if (platformId) {
+      await this.webhookService.sendWebhook(platformId, 'invite.accepted', {
+        event: 'invite.accepted',
+        data: {
+          userUuid: updatedUser.uuid,
+          customerEmail: this.encryption.decrypt(updatedUser.email),
+          firstName: updatedUser.firstName ? this.encryption.decrypt(updatedUser.firstName) : '',
+          lastName: updatedUser.lastName ? this.encryption.decrypt(updatedUser.lastName) : '',
+          registeredAt: updatedUser.updatedAt,
+        }
+      })
+    }
 
     reply.status(HttpStatus.OK).send({
       success: true,

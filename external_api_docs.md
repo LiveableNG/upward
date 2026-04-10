@@ -156,16 +156,14 @@ The request follows a nested structure to coordinate between companies, users, a
 {
   "success": true,
   "message": "Created",
-  "data": [
-    {
-      "userId": "b7a71853-2d7a-4399-af09-115a6c1406ce",
-      "managerId": "f1c2d3e4-...",
-      "companyId": "a1b2c3d4-...",
-      "userPropertyUuid": "5cab404a-df37-4408-826b-e8b820e26fac",
-      "email": "john.doe@gmail.com",
-      "inviteLink": "http://localhost:3000/invite/b7a71853-2d7a-4399-af09-115a6c1406ce"
-    }
-  ]
+  "data": {
+    "userId": "b7a71853-2d7a-4399-af09-115a6c1406ce",
+    "managerId": "f1c2d3e4-...",
+    "companyId": "a1b2c3d4-...",
+    "userPropertyUuid": "5cab404a-df37-4408-826b-e8b820e26fac",
+    "email": "john.doe@gmail.com",
+    "inviteLink": "http://localhost:3000/invite/b7a71853-2d7a-4399-af09-115a6c1406ce"
+  }
 }
 ```
 
@@ -277,6 +275,23 @@ Triggered when a tenant successfully completes a payment via the payment link.
     "status": "PAID",
     "paidAt": "2024-06-15T14:30:00Z",
     "customerEmail": "jane.doe@example.com"
+  }
+}
+```
+
+### Event: `invite.accepted`
+Triggered when a tenant successfully signs up and activates their account via the invite link.
+
+#### Payload Structure
+```json
+{
+  "event": "invite.accepted",
+  "data": {
+    "userUuid": "b7a71853-2d7a-4399-af09-115a6c1406ce",
+    "customerEmail": "jane.doe@example.com",
+    "firstName": "Jane",
+    "lastName": "Doe",
+    "registeredAt": "2024-06-15T14:30:00Z"
   }
 }
 ```
