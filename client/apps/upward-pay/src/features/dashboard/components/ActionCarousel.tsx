@@ -23,12 +23,19 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
   const slides: any[] = []
 
   // Pending Payments
-  pendingPayments.forEach((p) => {
+  pendingPayments
+    .filter(p => p.status !== 'PAID' && (p.amountPaid || 0) < p.total_amount)
+    .forEach((p) => {
+      const remaining = p.total_amount - (p.amountPaid || 0)
+      const isPartial = (p.amountPaid || 0) > 0
+
     slides.push({
       type: 'pending',
       id: p.uuid,
-      title: 'Payment Pending',
-      desc: `You have an invoice for ${formatCurrency(p.total_amount, p.currency)} from ${p.company_name}.`,
+      title: isPartial ? 'Partial Payment Pending' : 'Payment Pending',
+      desc: isPartial 
+        ? `Balance: ${formatCurrency(remaining, p.currency)} to ${p.company_name}${p.property_address ? ` for ${p.property_address}` : ''}.`
+        : `Invoice for ${formatCurrency(p.total_amount, p.currency)} from ${p.company_name}${p.property_address ? ` for ${p.property_address}` : ''}.`,
       actionLabel: 'Pay Now',
       action: () => router.push(`/pay/${p.uuid}`),
       icon: <Clock size={20} color="var(--clay)" />,

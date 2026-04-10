@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { AdminAuditEventHandler } from './events/handlers/admin-audit.handler'
 import { EmailLogEventHandler } from './events/handlers/email-log.handler'
 import { InteractionHandler } from './events/handlers/interaction.handler'
+import { PaymentWebhookHandler } from './events/handlers/payment-webhook.handler'
 import { S3Module } from '../shared/infrastructure/common/s3/s3.module'
 import { ReceiptModule } from '../shared/infrastructure/common/receipt/receipt.module'
 import { WebhookService } from '../shared/infrastructure/common/webhook/webhook.service'
@@ -208,6 +209,7 @@ const UseCases = [
     AdminAuditEventHandler,
     EmailLogEventHandler,
     InteractionHandler,
+    PaymentWebhookHandler,
     WebhookService,
     PushNotificationService,
     PrismaDeviceTokenRepository,

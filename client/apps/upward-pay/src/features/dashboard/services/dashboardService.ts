@@ -19,32 +19,39 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const pendingPayments = (pending || []).map((p: any) => ({
     uuid: p.uuid,
-    amount: p.amount,
+    id: p.id,
+    amount: p.total_amount || p.amount,
     currency: p.currency,
-    total_amount: p.amount,
+    total_amount: p.total_amount || p.amount,
+    amountPaid: p.amountPaid || 0,
     status: p.status,
-    company_name: p.companyName || null,
-    manager_name: p.managerName || null,
-    property_address: p.propertyLocation || null,
+    allowPartial: p.allowPartial,
+    company_name: p.company_name || p.manager_name || 'Unmanaged Property',
+    manager_name: p.manager_name || null,
+    property_address: p.property_address || null,
     description: p.description,
-    due_date: p.dueDate,
+    due_date: p.due_date,
     payment_link_token: p.uuid,
-    invoice_number: p.reference || p.uuid.slice(0, 8),
+    invoice_number: p.invoice_number || p.uuid.slice(0, 8),
     notes: p.description,
-    subaccount_code: p.subaccountCode || null,
+    subaccount_code: p.subaccount_code || null,
     company_logo: '',
+    lineItemRecords: p.lineItemRecords || [],
   }))
 
   const completedPayments: CompletedPayment[] = (txs || []).map((t: any) => ({
     uuid: t.uuid,
     amount: t.amount,
-    currency: 'NGN',
+    currency: t.currency || 'NGN',
     status: t.status,
     channel: 'Paystack',
     paid_at: t.createdAt,
     paystack_reference: t.reference,
     company_name: t.narration || (t.type === 'RENT' ? 'Rent Payment' : 'Transfer'),
     type: 'debit',
+    transactionType: t.transactionType || 'PAYMENT',
+    property_address: t.propertyAddress || null,
+    lineItems: t.lineItems || [],
   }))
 
   const savedLandlords: SavedLandlord[] = (landlords || []).map((l: any) => ({

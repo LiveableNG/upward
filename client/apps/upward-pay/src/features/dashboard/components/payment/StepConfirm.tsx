@@ -3,6 +3,7 @@ import { MapPin, Wallet } from 'lucide-react'
 import { type Landlord } from './types'
 import { LandlordAvatar } from './LandlordAvatar'
 import { formatCurrency } from '@/lib/utils'
+import { Info } from 'lucide-react'
 import InvoiceCard from './InvoiceCard'
 
 export function StepConfirm({
@@ -12,10 +13,13 @@ export function StepConfirm({
   paymentType = 'Rent Payment',
   propertyAddress = '',
   onConfirm,
+  onEditAmount,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onBack,
   isPriorityRequest,
   lineItems = [],
+  requestedAmount = 0,
+  totalPaidAlready = 0,
 }: {
   landlord: Landlord
   amount: number
@@ -23,10 +27,17 @@ export function StepConfirm({
   paymentType?: string
   propertyAddress?: string
   onConfirm: () => void
+  onEditAmount?: () => void
   onBack: () => void
   isPriorityRequest?: boolean
   lineItems?: Array<{ label: string; amount: number }>
+  requestedAmount?: number
+  totalPaidAlready?: number
 }) {
+  const remainingRequested = Math.max(0, requestedAmount - totalPaidAlready)
+  const excess = requestedAmount > 0 ? Math.max(0, amount - remainingRequested) : 0
+  const appliedToBill = requestedAmount > 0 ? Math.min(amount, remainingRequested) : amount
+
 
 
   return (
@@ -88,7 +99,53 @@ export function StepConfirm({
         <span style={{ fontSize: 32, fontWeight: 800, color: 'var(--text)' }}>
           {formatCurrency(amount)}
         </span>
+        {onEditAmount && (
+          <button 
+            onClick={onEditAmount}
+            style={{ 
+              marginTop: 8, 
+              fontSize: 12, 
+              fontWeight: 600, 
+              color: 'var(--clay)', 
+              background: 'none', 
+              border: 'none', 
+              padding: '4px 8px', 
+              cursor: 'pointer' 
+            }}
+          >
+            Change Amount
+          </button>
+        )}
       </div>
+
+      {excess > 0 && (
+        <div style={{
+          padding: '16px',
+          background: 'var(--dark)',
+          borderLeft: '4px solid var(--clay)',
+          borderRadius: 'var(--radius-md)',
+          marginBottom: 24,
+          textAlign: 'left'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Applied to request</span>
+            <span style={{ fontSize: 13, fontWeight: 700 }}>{formatCurrency(appliedToBill)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              Future Credit (Overpayment)
+              <div style={{ color: 'var(--clay)', cursor: 'help' }} title="This excess will be tracked and visible in your transactions for future use.">
+                <Info size={14} />
+              </div>
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--clay)' }}>{formatCurrency(excess)}</span>
+          </div>
+          <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+            <Info size={12} style={{ flexShrink: 0, marginTop: 1 }} />
+            Editing this allocation will be explicitly reflected in your receipt.
+          </div>
+        </div>
+      )}
       {lineItems && lineItems.length > 0 && (
         <div style={{ marginBottom: 20 }}>
           <InvoiceCard

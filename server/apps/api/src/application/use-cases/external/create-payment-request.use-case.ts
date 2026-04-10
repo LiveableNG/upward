@@ -1,5 +1,9 @@
 import { Injectable, Logger, Inject, BadRequestException, NotFoundException } from '@nestjs/common'
-import { PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository, PAYMENT_GATEWAY, IPaymentGateway } from '../../../domains/payments/payment.repository'
+import {
+  PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository,
+  PAYMENT_GATEWAY, IPaymentGateway,
+  PAYMENT_LINE_ITEM_REPOSITORY, IPaymentLineItemRepository,
+} from '../../../domains/payments/payment.repository'
 import { PROPERTY_REPOSITORY, PropertyRepository } from '../../../domains/companies/property.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { NOTIFICATION_REPOSITORY, NotificationRepository } from '../../../domains/notifications/notification.repository'
@@ -11,17 +15,19 @@ export interface ExternalPaymentRequestPayload {
   amount?: number
   currency?: string
   description?: string
-  lineItems?: any
+  lineItems?: Array<{ label: string; amount: number }>
   dueDate: string
   bankCode?: string
   accountNumber?: string
   invite?: InviteRequest
+  allowPartial?: boolean
+  minAmount?: number
 }
 
-  const frontendUrl = process.env['FRONTEND_URL']
-  const urls = frontendUrl
-    ? frontendUrl.split(',').map((url) => url.trim())
-    : ['http://localhost:3000', 'http://localhost:5173']
+const frontendUrl = process.env['FRONTEND_URL']
+const urls = frontendUrl
+  ? frontendUrl.split(',').map((url) => url.trim())
+  : ['http://localhost:3000', 'http://localhost:5173']
 
 @Injectable()
 export class CreateExternalPaymentRequestUseCase {
@@ -34,7 +40,8 @@ export class CreateExternalPaymentRequestUseCase {
     @Inject(PAYMENT_REQUEST_REPOSITORY) private readonly paymentRequestRepository: IPaymentRequestRepository,
     @Inject(NOTIFICATION_REPOSITORY) private readonly notificationRepository: NotificationRepository,
     @Inject(PAYMENT_GATEWAY) private readonly paymentGateway: IPaymentGateway,
-  ) {}
+    @Inject(PAYMENT_LINE_ITEM_REPOSITORY) private readonly lineItemRepository: IPaymentLineItemRepository,
+  ) { }
 
   async execute(payload: ExternalPaymentRequestPayload, platformId: number): Promise<any> {
     let property: any
@@ -55,13 +62,33 @@ export class CreateExternalPaymentRequestUseCase {
       throw new BadRequestException('bankCode and accountNumber are required for settlement routing')
     }
 
+    if (payload.minAmount && !payload.allowPartial) {
+      throw new BadRequestException('minAmount can only be set if allowPartial is true')
+    }
+
     const amount = payload.amount || property.rentAmount
     const currency = payload.currency || property.currency || 'NGN'
 
+    if (payload.lineItems && payload.lineItems.length > 0) {
+      const lineItemsTotal = payload.lineItems.reduce((sum, item) => sum + item.amount, 0)
+      if (Math.abs(lineItemsTotal - amount) > 0.01) {
+        throw new BadRequestException(
+          `The sum of line items (${lineItemsTotal}) must equal the total amount (${amount})`
+        )
+      }
+    }
+
     let subaccountId: number | undefined
     if (payload.bankCode && payload.accountNumber) {
+      const businessName = property.company?.name ||
+        (property.manager ? `${property.manager.firstName} ${property.manager.lastName}` : null)
+
+      if (!businessName) {
+        throw new BadRequestException('A company name or manager name is required to create a settlement subaccount')
+      }
+
       const subaccount = await this.paymentGateway.findOrCreateSubaccount({
-        businessName: property.company?.name || null,
+        businessName: businessName,
         bankCode: payload.bankCode,
         accountNumber: payload.accountNumber,
       })
@@ -71,28 +98,67 @@ export class CreateExternalPaymentRequestUseCase {
     }
 
     const userPendingRequests = await this.paymentRequestRepository.findByUserIdAndStatus(property.userId, 'PENDING')
-    let paymentRequest = userPendingRequests.find(pr => 
-      pr.userPropertyId === property.id && 
+    let paymentRequest = userPendingRequests.find(pr =>
+      pr.userPropertyId === property.id &&
       pr.amount === amount &&
       new Date(pr.dueDate).getTime() === new Date(payload.dueDate).getTime()
     )
 
-    if (!paymentRequest) {
+    if (paymentRequest) {
+      // Upsert: update existing pending request with new metadata/settings
+      paymentRequest = await this.paymentRequestRepository.update(paymentRequest.id!, {
+        description: payload.description,
+        allowPartial: payload.allowPartial ?? paymentRequest.allowPartial,
+        minAmount: payload.minAmount || paymentRequest.minAmount,
+        subaccountId: subaccountId,
+      })
+
+      // Re-sync line items: delete old, recreate
+      if (payload.lineItems && payload.lineItems.length > 0) {
+        await this.lineItemRepository.deleteByPaymentRequestId(paymentRequest.id!)
+        await this.lineItemRepository.bulkCreate(
+          payload.lineItems.map((item, idx) => ({
+            paymentRequestId: paymentRequest!.id!,
+            label: item.label,
+            totalAmount: item.amount,
+            amountPaid: 0,
+            status: 'PENDING',
+            sortOrder: idx,
+          }))
+        )
+      }
+      this.logger.log(`Updated existing payment request: ${paymentRequest.uuid}`)
+    } else {
       paymentRequest = await this.paymentRequestRepository.create({
         userId: property.userId,
         userPropertyId: property.id,
         amount: amount,
         currency: currency,
         description: payload.description,
-        lineItems: payload.lineItems || undefined,
         dueDate: new Date(payload.dueDate),
         status: 'PENDING',
         reference: `EXT_${randomUUID()}_${Date.now()}`,
         subaccountId: subaccountId,
+        allowPartial: payload.allowPartial ?? false,
+        minAmount: payload.minAmount || undefined,
       })
 
+      // Create line item records
+      if (payload.lineItems && payload.lineItems.length > 0) {
+        await this.lineItemRepository.bulkCreate(
+          payload.lineItems.map((item, idx) => ({
+            paymentRequestId: paymentRequest!.id!,
+            label: item.label,
+            totalAmount: item.amount,
+            amountPaid: 0,
+            status: 'PENDING',
+            sortOrder: idx,
+          }))
+        )
+      }
+
       const user = await this.userRepository.findById(property.userId)
-      
+
       if (user && user.passwordHash !== 'INVITED') {
         await this.notificationRepository.createNotification({
           userId: user.id!,

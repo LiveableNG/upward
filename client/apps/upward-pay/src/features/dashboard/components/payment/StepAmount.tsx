@@ -48,6 +48,8 @@ export function StepAmount({
   landlord,
   initialPaymentType = 'Rent Payment',
   initialPropertyAddress = '',
+  requestedAmount = 0,
+  totalPaidAlready = 0,
   onContinue,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onBack,
@@ -55,6 +57,8 @@ export function StepAmount({
   landlord: Landlord
   initialPaymentType?: string
   initialPropertyAddress?: string
+  requestedAmount?: number
+  totalPaidAlready?: number
   onContinue: (amount: number, narration: string, propertyAddress: string, propertyName: string, lineItems?: LineItem[]) => void
   onBack?: () => void
 }) {
@@ -63,9 +67,19 @@ export function StepAmount({
   const [propertyAddress, setPropertyAddress] = useState(initialPropertyAddress)
   const [paymentType, setPaymentType] = useState(initialPaymentType)
   const [showBreakdown, setShowBreakdown] = useState(false)
+  const [showOverpaymentDialog, setShowOverpaymentDialog] = useState(false)
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { label: 'Rent', amount: landlord.lastAmount > 0 ? landlord.lastAmount : 0 },
   ])
+
+  const remainingBalance = Math.max(0, requestedAmount - totalPaidAlready)
+
+  useEffect(() => {
+    // If a balance remains, default to that amount
+    if (requestedAmount > 0 && amount === '') {
+      setAmount(String(remainingBalance))
+    }
+  }, [requestedAmount, remainingBalance, amount])
 
   const presets = [50000, 100000, 150000, 200000]
 
@@ -120,6 +134,30 @@ export function StepAmount({
           </div>
         </div>
       </div>
+
+      {requestedAmount > 0 && (
+        <div 
+          style={{ 
+            padding: '12px 16px', 
+            background: 'var(--clay-faint)', 
+            borderRadius: 'var(--radius-lg)', 
+            marginBottom: 20,
+            border: '1px solid var(--clay-faint)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--clay)', textTransform: 'uppercase' }}>Remaining Balance</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{formatCurrency(remainingBalance)}</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Original Request</div>
+            <div style={{ fontSize: 12, fontWeight: 600 }}>{formatCurrency(requestedAmount)}</div>
+          </div>
+        </div>
+      )}
 
       {!showBreakdown ? (
         <>
@@ -366,12 +404,82 @@ export function StepAmount({
 
       <button
         disabled={!canProceed}
-        onClick={() => onContinue(Number(amount), narration, propertyAddress, paymentType, showBreakdown ? lineItems : undefined)}
+        onClick={() => {
+          if (requestedAmount > 0 && Number(amount) > remainingBalance) {
+            setShowOverpaymentDialog(true)
+          } else {
+            onContinue(Number(amount), narration, propertyAddress, paymentType, showBreakdown ? lineItems : undefined)
+          }
+        }}
         className="btn btn--primary btn--full"
         style={{ opacity: canProceed ? 1 : 0.4, marginBottom: 12, height: 52 }}
       >
         Continue
       </button>
+
+      {showOverpaymentDialog && (
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 20,
+          zIndex: 1000
+        }}>
+          <div className="modal-card" style={{
+            background: 'var(--bg)',
+            borderRadius: 'var(--radius-xl)',
+            padding: 32,
+            width: '100%',
+            maxWidth: 400,
+            textAlign: 'center',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'var(--clay-faint)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px',
+              color: 'var(--clay)'
+            }}>
+              <Info size={28} />
+            </div>
+            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>Confirm Overpayment</h3>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 24 }}>
+              You are about to pay <strong>{formatCurrency(Number(amount))}</strong>, which is <strong>{formatCurrency(Number(amount) - remainingBalance)}</strong> more than the remaining balance. Do you wish to proceed?
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button 
+                className="btn btn--secondary btn--full" 
+                onClick={() => setShowOverpaymentDialog(false)}
+                style={{ height: 48 }}
+              >
+                No, Edit
+              </button>
+              <button 
+                className="btn btn--primary btn--full" 
+                onClick={() => {
+                  setShowOverpaymentDialog(false)
+                  onContinue(Number(amount), narration, propertyAddress, paymentType, showBreakdown ? lineItems : undefined)
+                }}
+                style={{ height: 48 }}
+              >
+                Yes, Proceed
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <p
         style={{

@@ -26,6 +26,9 @@ export default function PayRentPage() {
   const [lineItems, setLineItems] = useState<any[]>([])
   const [lastTxId, setLastTxId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState('tenant@example.com')
+  const [paymentRequestId, setPaymentRequestId] = useState<number | null>(null)
+  const [requestedAmount, setRequestedAmount] = useState(0)
+  const [totalPaidAlready, setTotalPaidAlready] = useState(0)
 
   const [pendingPayments, setPendingPayments] = useState<any[]>([])
   
@@ -41,24 +44,8 @@ export default function PayRentPage() {
       .catch(() => {})
   }, [])
 
-  function handleSelectPending(p: any) {
-    setSelectedLandlord({
-      id: p.uuid,
-      uuid: p.uuid,
-      name: p.company_name || null,
-      accountName: p.manager_name || null,
-      accountNumber: p.invoice_number || p.uuid.slice(-8),
-      bankName: p.property_address || null,
-      bankCode: '',
-      lastPaid: null,
-      lastAmount: 0,
-      avatar: '',
-      subaccountCode: p.subaccountCode || null,
-    })
-    setPayAmount(p.amount)
-    setNarration(p.description || 'Property Payment')
-    if (p.lineItems) setLineItems(p.lineItems)
-    setStep('confirm')
+  const handleSelectPending = (p: any) => {
+    router.push(`/pay/${p.uuid}`)
   }
 
   const stepTitle: Record<PayRentStep, string> = {
@@ -91,6 +78,7 @@ export default function PayRentPage() {
         reference: ref,
         narration: narration || `Rent payment to ${selectedLandlord?.name}`,
         landlordId: selectedLandlord?.uuid,
+        paymentRequestId: paymentRequestId || undefined,
         lineItems: lineItems.length > 0 ? lineItems : undefined,
         paymentType,
         propertyAddress,
@@ -175,6 +163,8 @@ export default function PayRentPage() {
               landlord={selectedLandlord}
               initialPropertyAddress={propertyAddress}
               initialPaymentType={paymentType}
+              requestedAmount={requestedAmount}
+              totalPaidAlready={totalPaidAlready}
               onContinue={(amt, nar, addr, name, items) => {
                 setPayAmount(amt)
                 setNarration(nar)
@@ -182,7 +172,13 @@ export default function PayRentPage() {
                 setpaymentType(name)
                 if (items) setLineItems(items)
               }}
-              onBack={() => setStep('select')}
+              onBack={() => {
+                setPayAmount(0)
+                setRequestedAmount(0)
+                setTotalPaidAlready(0)
+                setPaymentRequestId(null)
+                setStep('select')
+              }}
             />
           ) : (
             <StepConfirm
@@ -191,7 +187,10 @@ export default function PayRentPage() {
               narration={narration}
               paymentType={paymentType}
               propertyAddress={propertyAddress}
+              requestedAmount={requestedAmount}
+              totalPaidAlready={totalPaidAlready}
               onConfirm={() => setStep('checkout')}
+              onEditAmount={() => setPayAmount(0)}
               onBack={handleBack}
               lineItems={lineItems}
             />

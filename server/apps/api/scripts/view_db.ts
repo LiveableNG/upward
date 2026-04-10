@@ -48,6 +48,7 @@ async function main() {
     const users = await prisma.upward_user.findMany({ take: 5 })
     console.table(users.map(u => ({
       id: u.id,
+      uuid: u.uuid,
       email_RAW: u.email.slice(0, 15) + '...',
       email_DEC: encryption.decrypt(u.email),
       firstName: encryption.decrypt(u.firstName),
@@ -152,6 +153,27 @@ async function main() {
         companyId: cu.companyId,
         userId: cu.userId,
         invitedAt: cu.invitedAt
+    })))
+
+    // 11. WEBHOOKS
+    console.log('\n\x1b[36m>>> TABLE: upward_webhook_log\x1b[0m')
+    const webhooks = await prisma.upward_webhook_log.findMany({ take: 5 })
+    console.table(webhooks.map(w => ({
+        id: w.id,
+        payload: w.payload,
+        status: w.status,
+        createdAt: w.createdAt
+    })))
+
+    // 12. OVERPAYMENTS
+    console.log('\n\x1b[36m>>> TABLE: upward_overpayment\x1b[0m')
+    const overpayments = await prisma.upward_overpayment.findMany({ take: 5 })
+    console.table(overpayments.map(o => ({
+        id: o.id,
+        userId: o.userId,
+        amount: o.amount,
+        status: o.status,
+        createdAt: o.createdAt
     })))
 
   } catch (err) {

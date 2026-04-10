@@ -1,17 +1,11 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { 
-  Check, 
-  ArrowRight, 
   Lock, 
   CreditCard, 
-  AlertCircle, 
-  Building,
-  Calendar,
-  Eye,
-  EyeOff,
+  ArrowRight,
   ChevronRight
 } from 'lucide-react'
 import { api } from '@/lib/api'
@@ -21,10 +15,71 @@ import { useToast } from '@/components/common/Toast'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import PaystackEmbeddedCheckout from '@/features/dashboard/components/payment/PaystackEmbeddedCheckout'
 import FallbackSuspense from '@/components/FallbackSuspense'
-import { OnboardingFields } from '@/features/auth/components/OnboardingFields'
 import { setCookie } from '@/lib/cookie-utils'
 
+// Sub-components
+import { InvoiceHeader } from '@/features/payments/components/unified-pay/InvoiceHeader'
+import { AmountDetailCard } from '@/features/payments/components/unified-pay/AmountDetailCard'
+import { PaymentInput } from '@/features/payments/components/unified-pay/PaymentInput'
+import { AllocationBreakdown } from '@/features/payments/components/unified-pay/AllocationBreakdown'
+import { SuccessStep } from '@/features/payments/components/unified-pay/SuccessStep'
+import { OnboardingStep } from '@/features/payments/components/unified-pay/OnboardingStep'
+
 type PayStep = 'loading' | 'invoice' | 'checkout' | 'processing' | 'success' | 'onboarding' | 'error'
+
+interface LineItemRecord {
+  id: number
+  label: string
+  totalAmount: number
+  amountPaid: number
+  status: 'PENDING' | 'PARTIAL' | 'PAID'
+}
+
+interface LineItemAllocation {
+  id: number
+  label: string
+  totalAmount: number
+  amountPaid: number
+  allocated: number
+  remaining: number
+}
+
+function distributeAmount(amount: number, items: LineItemRecord[], totalOwed: number): LineItemAllocation[] {
+  const itemSum = items.reduce((acc, i) => acc + Math.max(0, i.totalAmount - i.amountPaid), 0)
+  const discrepancy = Math.max(0, totalOwed - itemSum)
+
+  const allocs: LineItemAllocation[] = items.map(i => ({
+    id: i.id,
+    label: i.label,
+    totalAmount: i.totalAmount,
+    amountPaid: i.amountPaid,
+    remaining: Math.max(0, i.totalAmount - i.amountPaid),
+    allocated: 0
+  }))
+
+  // Add virtual item for the discrepancy if it exists
+  if (discrepancy > 0) {
+    allocs.push({
+      id: -1, // Use -1 as virtual ID
+      label: 'Invoice Balance',
+      totalAmount: discrepancy,
+      amountPaid: 0,
+      remaining: discrepancy,
+      allocated: 0
+    })
+  }
+
+  let remaining = amount
+  for (const item of allocs) {
+    if (item.remaining <= 0) continue
+    const pay = Math.min(remaining, item.remaining)
+    item.allocated = pay
+    remaining -= pay
+    if (remaining <= 0) break
+  }
+
+  return allocs
+}
 
 export default function UnifiedPayPage() {
   const router = useRouter()
@@ -34,10 +89,19 @@ export default function UnifiedPayPage() {
 
   const [step, setStep] = useState<PayStep>('loading')
   const [paymentData, setPaymentData] = useState<any>(null)
+  const [lineItems, setLineItems] = useState<LineItemRecord[]>([])
   const [errorMessage, setErrorMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
+  const [amountInput, setAmountInput] = useState('')
+  const [showBreakdown, setShowBreakdown] = useState(false)
+  const [manualMode, setManualMode] = useState(false)
+  const [manualAllocs, setManualAllocs] = useState<Record<number, number>>({})
+  const [futureCreditAmount, setFutureCreditAmount] = useState(0)
+  const [futureCreditLabel, setFutureCreditLabel] = useState('Future Credit')
+  const [overpayConfirmed, setOverpayConfirmed] = useState(false)
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -49,9 +113,7 @@ export default function UnifiedPayPage() {
   })
 
   useEffect(() => {
-    if (uuid) {
-      loadPaymentDetails()
-    }
+    if (uuid) loadPaymentDetails()
   }, [uuid])
 
   async function loadPaymentDetails() {
@@ -59,6 +121,10 @@ export default function UnifiedPayPage() {
       const res = await api.get(`/payment-request/${uuid}`)
       if (res.success) {
         setPaymentData(res.data)
+        const items = (res.data.payment.lineItemRecords || []) as LineItemRecord[]
+        setLineItems(items)
+        const due = res.data.payment.amount - (res.data.payment.amountPaid || 0)
+        setAmountInput(due.toString())
         setFormData(prev => ({
           ...prev,
           firstName: res.data.user.firstName || '',
@@ -76,13 +142,73 @@ export default function UnifiedPayPage() {
     }
   }
 
+  const totalOwed = useMemo(() => {
+    if (!paymentData?.payment) return 0
+    return Math.max(0, paymentData.payment.amount - (paymentData.payment.amountPaid || 0))
+  }, [paymentData])
+
+  const canPayPartial = !!(authUser && paymentData?.payment?.allowPartial)
+  const minRequired = paymentData?.payment?.minAmount || 0
+  const currency = paymentData?.payment?.currency || 'NGN'
+
+  const parsedAmount = parseFloat(amountInput) || 0
+
+  const isOverpaying = parsedAmount > totalOwed
+  const isBelowMin = minRequired > 0 && parsedAmount > 0 && parsedAmount < minRequired
+  const isValidAmount = parsedAmount > 0 && !isBelowMin && (isOverpaying ? overpayConfirmed : true)
+
+  const autoAllocs = useMemo(() =>
+    distributeAmount(Math.min(parsedAmount, totalOwed), lineItems, totalOwed)
+  , [parsedAmount, lineItems, totalOwed])
+
+  const effectiveAllocs: LineItemAllocation[] = useMemo(() => {
+    if (!manualMode) return autoAllocs
+    return autoAllocs.map(a => ({
+      ...a,
+      allocated: manualAllocs[a.id] ?? a.allocated
+    }))
+  }, [manualMode, autoAllocs, manualAllocs])
+
+  const finalAmount = parsedAmount
+
+  const finalLineItemPayments = effectiveAllocs
+    .filter(a => a.allocated > 0 && a.id !== -1)
+    .map(a => ({ id: a.id, amountPaid: a.allocated, label: a.label }))
+
+  const progressPct = totalOwed > 0
+    ? Math.min(100, (Math.min(parsedAmount, totalOwed) / totalOwed) * 100)
+    : 0
+
+  const enterManualMode = useCallback(() => {
+    const init: Record<number, number> = {}
+    autoAllocs.forEach(a => { init[a.id] = a.allocated })
+    setManualAllocs(init)
+    setManualMode(true)
+  }, [autoAllocs])
+
+  const handleAmountChange = (val: string) => {
+    setAmountInput(val)
+    setOverpayConfirmed(false)
+    setManualMode(false)
+    const n = parseFloat(val) || 0
+    if (n <= totalOwed) {
+      setFutureCreditAmount(0)
+    } else {
+      setFutureCreditAmount(n - totalOwed)
+    }
+  }
+
   const handlePaymentSuccess = async (reference: string) => {
     setStep('processing')
     try {
-      const res = await api.post(`/payment-request/${uuid}/confirm`, { reference })
+      const res = await api.post(`/payment-request/${uuid}/confirm`, {
+        reference,
+        lineItemPayments: finalLineItemPayments,
+        futureCreditAmount: futureCreditAmount > 0 ? futureCreditAmount : undefined,
+        futureCreditLabel: futureCreditAmount > 0 ? futureCreditLabel : undefined
+      })
       if (res.success) {
         success('Payment successful!')
-        // If guest (hasPassword === false), go to onboarding
         if (!paymentData.hasPassword) {
           setStep('onboarding')
         } else {
@@ -101,11 +227,8 @@ export default function UnifiedPayPage() {
       toastError('Passwords do not match')
       return
     }
-
     setIsSubmitting(true)
     try {
-      // Use the existing accept invite endpoint as it does exactly what we need
-      // (sets password and returns tokens)
       const res = await api.post(`/public/invite/${uuid}/accept`, {
         password: formData.password,
         firstName: formData.firstName,
@@ -113,9 +236,8 @@ export default function UnifiedPayPage() {
         phone: formData.phone,
         address: formData.address
       })
-
       if (res.success) {
-        success('Account activated! Welcome to Upward.')
+        success('Account activated!')
         if (res.user && res.accessToken) {
           setCookie('access_token', res.accessToken)
           login(res.user)
@@ -135,393 +257,389 @@ export default function UnifiedPayPage() {
 
   if (step === 'error') {
     return (
-      <div className="flex-center min-h-screen">
-        <div className="error-card text-center">
-          <AlertCircle size={48} color="var(--error)" className="mx-auto mb-4" />
-          <h2 className="text-xl font-bold mb-2">Unavailable</h2>
-          <p className="text-muted mb-6">{errorMessage}</p>
-          <button className="btn btn--secondary" onClick={() => router.push('/')}>Return Home</button>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center p-8 bg-white rounded-3xl shadow-xl max-w-sm border border-solid border-[var(--border-solid)]">
+           <UpwardLogo size={40} className="mx-auto mb-6 opacity-20" />
+           <h2 className="text-xl font-extrabold mb-2">Link Expired</h2>
+           <p className="text-muted text-sm mb-6">{errorMessage}</p>
+           <button className="btn btn--secondary btn--full" onClick={() => router.push('/')}>Return Home</button>
         </div>
       </div>
     )
   }
 
   if (step === 'invoice' && paymentData) {
-    const isGuest = !paymentData.hasPassword
     const loginRequired = paymentData.hasPassword && !authUser
+    const hasLineItems = lineItems.length > 0
+    const showAmountEntry = !loginRequired
+
+    const ctaLabel = () => {
+      if (parsedAmount === 0) return 'Enter amount to continue'
+      if (isBelowMin) return `Minimum is ${formatCurrency(minRequired, currency)}`
+      if (isOverpaying && !overpayConfirmed) return 'Confirm overpayment'
+      return `Pay ${formatCurrency(finalAmount, currency)} now`
+    }
 
     return (
       <div className="auth-shell auth-shell--pay">
-        <div className="auth-shell__brand" style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: '480px', margin: '0 auto' }}>
-          <UpwardLogo size={28} color="var(--clay)" />
-          {authUser && (
-            <button 
-              className="back-to-dash"
-              onClick={() => router.push('/dashboard')}
-              style={{
-                marginLeft: 'auto',
-                fontSize: '13px',
-                fontWeight: 600,
-                color: 'var(--text-secondary)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <div style={{ transform: 'rotate(180deg)', display: 'flex' }}>
-                <ChevronRight size={14} />
-              </div>
-              Back to Dashboard
-            </button>
-          )}
-        </div>
-
-        <div className="pay-invoice mt-8">
-          <header className="pay-invoice__header">
-            <span className="pay-invoice__tag">Secure Payment Request</span>
-            <h1 className="pay-invoice__title">{paymentData.company.name}</h1>
-            <p className="pay-invoice__subtitle">Requesting payment for {paymentData.payment.description || 'Rent'}</p>
-          </header>
-
-          <div className="pay-invoice__amount-card">
-            <label>Amount Due</label>
-            <div className="amount">{formatCurrency(paymentData.payment.amount, paymentData.payment.currency)}</div>
-            <div className="due-date">
-              <Calendar size={14} />
-              <span>Due by {new Date(paymentData.payment.dueDate).toLocaleDateString()}</span>
-            </div>
-          </div>
-
-          {paymentData.payment.lineItems && (
-            <div className="pay-invoice__breakdown mt-6">
-              <h3>Itemized Breakdown</h3>
-              <div className="items-list">
-                {paymentData.payment.lineItems.map((item: any, i: number) => (
-                  <div key={i} className="item">
-                    <span>{item.label || item.name || `Item #${i + 1}`}</span>
-                    <span className="price">{formatCurrency(item.amount, paymentData.payment.currency)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="pay-invoice__actions mt-10">
-            {loginRequired ? (
-              <div className="login-prompt text-center">
-                <p className="mb-4 text-sm text-secondary">
-                  This payment request is for an existing Upward account. 
-                  Please login to proceed with payment.
-                </p>
-                <button 
-                  className="btn btn--primary btn--full"
-                  onClick={() => router.push(`/login?redirect=/pay/${uuid}`)}
+        <header className="pay-header">
+           <div className="pay-header__content">
+              <UpwardLogo size={24} color="var(--clay)" />
+              {authUser && (
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="pay-header__dashboard-btn"
                 >
-                  <Lock size={18} className="mr-2" /> Login to Pay
+                  <ChevronRight size={14} className="icon--left" />
+                  <span>Dashboard</span>
                 </button>
-              </div>
-            ) : (
-              <button 
-                className="btn btn--primary btn--full btn--pay"
-                onClick={() => setStep('checkout')}
-              >
-                <CreditCard size={18} className="mr-2" /> 
-                {authUser ? 'Proceed to Payment' : 'Pay Now'}
-                <ArrowRight size={18} className="ml-2" />
-              </button>
-            )}
-          </div>
+              )}
+           </div>
+        </header>
 
-          <footer className="pay-invoice__footer mt-8">
-            <div className="secure-badge">
-              <Lock size={14} /> Encrypted & Secure Payment
+        <main className="pay-main">
+          <div className="pay-container">
+            <InvoiceHeader 
+              companyName={paymentData.company?.name} 
+              description={paymentData.payment?.description || 'Housing Invoice'} 
+              logo={paymentData.company?.logo}
+            />
+
+            <AmountDetailCard 
+              totalOwed={totalOwed}
+              currency={currency}
+              dueDate={paymentData.payment.dueDate}
+              parsedAmount={parsedAmount}
+              progressPct={progressPct}
+            />
+
+            {showAmountEntry && (
+              <>
+                {authUser && (
+                  <PaymentInput 
+                    canPayPartial={canPayPartial}
+                    isBelowMin={isBelowMin}
+                    isOverpaying={isOverpaying}
+                    amountInput={amountInput}
+                    currency={currency}
+                    totalOwed={totalOwed}
+                    minRequired={minRequired}
+                    futureCreditAmount={futureCreditAmount}
+                    overpayConfirmed={overpayConfirmed}
+                    onAmountChange={handleAmountChange}
+                    onConfirmOverpay={() => setOverpayConfirmed(true)}
+                  />
+                )}
+
+                <AllocationBreakdown 
+                  showBreakdown={showBreakdown}
+                  setShowBreakdown={setShowBreakdown}
+                  manualMode={manualMode}
+                  setManualMode={setManualMode}
+                  effectiveAllocs={effectiveAllocs}
+                  currency={currency}
+                  lineItems={lineItems}
+                  overpayConfirmed={overpayConfirmed}
+                  futureCreditAmount={futureCreditAmount}
+                  futureCreditLabel={futureCreditLabel}
+                  setFutureCreditLabel={setFutureCreditLabel}
+                  manualAllocs={manualAllocs}
+                  setManualAllocs={setManualAllocs}
+                  onEnterManualMode={enterManualMode}
+                />
+              </>
+            )}
+
+            <div className="pay-actions">
+              {loginRequired ? (
+                <div className="login-prompt">
+                  <p className="login-prompt__text">This request is linked to an account. Login to pay.</p>
+                  <button className="btn btn--primary btn--full btn--pill" onClick={() => router.push(`/login?redirect=/pay/${uuid}`)}>
+                    <Lock size={16} className="mr-2" /> Login to Pay
+                  </button>
+                </div>
+              ) : (
+                <button
+                  className="btn btn--primary btn--full btn--pay btn--pill"
+                  onClick={() => setStep('checkout')}
+                  disabled={!isValidAmount}
+                >
+                  <CreditCard size={18} className="icon--left" />
+                  <span>{ctaLabel()}</span>
+                  {isValidAmount && <ArrowRight size={18} className="icon--right" />}
+                </button>
+              )}
+              
+              <div className="pay-footer">
+                 <div className="secure-badge">
+                    <Lock size={11} className="text-success" />
+                    <span className="secure-badge__text">Secure &amp; Encrypted</span>
+                 </div>
+                 
+                 <p className="pay-footer__disclaimer">
+                    All payments are processed securely via Paystack. By continuing, you agree to our 
+                    <a href="#" className="link--dark">Terms of Service</a> 
+                    and 
+                    <a href="#" className="link--dark">Privacy Policy</a>.
+                 </p>
+
+                 <div className="pci-badges">
+                    <div className="pci-badge">PCI Protected</div>
+                    <div className="pci-dot" />
+                    <div className="pci-badge">SSL Encrypted</div>
+                 </div>
+              </div>
             </div>
-            <p className="text-xs text-muted mt-2">
-              By paying, you agree to Upward Tenants terms and privacy policy. 
-              Transaction fees may apply depending on payment method.
-            </p>
-          </footer>
-        </div>
+          </div>
+        </main>
 
         <style jsx>{`
-          .pay-invoice {
+          .pay-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border-solid);
+            height: 64px;
+            display: flex;
+            align-items: center;
+          }
+          @supports (backdrop-filter: blur(12px)) {
+            .pay-header { 
+              background: var(--bg);
+              opacity: 0.95;
+              backdrop-filter: blur(12px); 
+            }
+          }
+          .pay-header__content {
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
+          .pay-header__dashboard-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 100px;
+            background: var(--surface);
+            border: 1px solid var(--border-solid);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          }
+          .pay-header__dashboard-btn:hover {
+            color: var(--clay);
+            border-color: rgba(217, 119, 87, 0.2);
+            background: var(--clay-faint);
+            transform: translateY(-1px);
+          }
+          .icon--left { margin-right: 4px; }
+          .icon--right { margin-left: 8px; }
+          .pay-header__dashboard-btn .icon--left {
+            transform: rotate(180deg);
+            margin-right: 0;
+          }
+
+          .pay-main {
+            padding-top: 84px;
+            padding-bottom: 80px;
+            min-height: 100vh;
+            background: var(--oat-dim);
+          }
+
+          .pay-container {
+            width: 100%;
             max-width: 480px;
             margin: 0 auto;
             background: var(--bg);
-            border-radius: var(--radius-xl);
-            padding: 32px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.05);
-          }
-          .pay-invoice__header {
-            text-align: center;
-            margin-bottom: 24px;
-          }
-          .pay-invoice__tag {
-            display: inline-block;
-            background: var(--clay-faint);
-            color: var(--clay);
-            font-size: 11px;
-            font-weight: 700;
-            padding: 4px 12px;
-            border-radius: 100px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 12px;
-          }
-          .pay-invoice__title {
-            font-size: 20px;
-            font-weight: 800;
-            margin: 0;
-          }
-          .pay-invoice__subtitle {
-            color: var(--text-secondary);
-            font-size: 14px;
-            margin-top: 4px;
-          }
-          .pay-invoice__amount-card {
-            background: var(--surface);
+            border-radius: 40px;
+            padding: 64px 40px;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.06), 0 10px 40px rgba(0,0,0,0.02);
             border: 1px solid var(--border-solid);
-            padding: 24px;
-            border-radius: var(--radius-lg);
-            text-align: center;
           }
-          .pay-invoice__amount-card label {
-            font-size: 12px;
-            color: var(--text-muted);
+
+          .pay-actions {
+            margin-top: 40px;
+          }
+          .btn--pay {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 64px;
+            font-size: 15px;
+            font-weight: 800;
             text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            background: var(--clay);
+            color: #fff;
+            box-shadow: 0 12px 30px var(--clay-glow);
+          }
+          .btn--pay:not(:disabled):hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 20px 40px var(--clay-glow);
+            filter: brightness(1.1);
+          }
+          .btn--pay:disabled {
+            background: var(--surface);
+            color: var(--text-muted);
+            box-shadow: none;
+            cursor: not-allowed;
+          }
+          .btn--pill { border-radius: 100px; }
+
+          .login-prompt {
+            text-align: center;
+            padding: 32px 24px;
+            background: var(--surface);
+            border-radius: 28px;
+            border: 1px solid var(--border-solid);
+          }
+          .login-prompt__text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
             font-weight: 600;
           }
-          .pay-invoice__amount-card .amount {
-            font-size: 32px;
-            font-weight: 800;
-            color: var(--text);
-            margin: 8px 0;
-          }
-          .pay-invoice__amount-card .due-date {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            font-size: 13px;
-            color: var(--text-secondary);
-          }
-          .pay-invoice__breakdown h3 {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            margin-bottom: 12px;
-          }
-          .items-list {
+
+          .pay-footer {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-          }
-          .item {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-            color: var(--text-secondary);
-            padding-bottom: 10px;
-            border-bottom: 1px dashed var(--border-solid);
-          }
-          .item:last-child {
-            border-bottom: none;
-          }
-          .price {
-            font-weight: 600;
-            color: var(--text);
+            align-items: center;
+            gap: 24px;
+            margin-top: 48px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border-solid);
           }
           .secure-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            color: var(--success);
-            font-weight: 600;
-          }
-          .login-prompt {
-            padding: 20px;
-            background: var(--surface2);
-            border-radius: var(--radius-md);
-          }
-          .flex-center {
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 100px;
+            background: var(--success-bg);
+            border: 1px solid rgba(34, 197, 94, 0.1);
           }
-          .mr-2 { margin-right: 8px; }
-          .ml-2 { margin-left: 8px; }
-          .mt-8 { margin-top: 32px; }
-          .mt-10 { margin-top: 40px; }
+          .secure-badge__text {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--success);
+          }
+          .pay-footer__disclaimer {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-align: center;
+            line-height: 1.6;
+            max-width: 320px;
+          }
+          .link--dark {
+            margin: 0 4px;
+            color: var(--text);
+            font-weight: 600;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            text-decoration-color: var(--border-solid);
+          }
+          .pci-badges {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            opacity: 0.4;
+          }
+          .pci-badge {
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text);
+          }
+          .pci-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--text);
+            opacity: 0.2;
+          }
+
+          @media (max-width: 520px) {
+            .pay-container {
+              border-radius: 0;
+              padding: 64px 24px;
+              border: none;
+              box-shadow: none;
+              background: transparent;
+            }
+            .pay-main {
+              background: var(--bg);
+              padding-top: 64px;
+            }
+          }
         `}</style>
       </div>
     )
+
   }
 
   if (step === 'checkout') {
     return (
-      <div className="checkout-shell flex-center min-h-screen" style={{ background: 'var(--surface)' }}>
-        <div className="checkout-container">
+      <div className="checkout-view flex items-center justify-center min-h-screen bg-[var(--surface)]">
+        <div className="w-full max-w-[500px] bg-white rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
           <PaystackEmbeddedCheckout
             email={paymentData.user.email}
-            amount={paymentData.payment.amount}
-            currency={paymentData.payment.currency}
-            companyName={paymentData.company.name}
+            amount={finalAmount}
+            currency={currency}
+            companyName={paymentData.company?.name}
             reference={generateId('PAY')}
             subaccount={paymentData.payment.subaccountCode}
             onSuccess={handlePaymentSuccess}
             onClose={() => setStep('invoice')}
-            lineItems={paymentData.payment.lineItems}
+            lineItems={finalLineItemPayments.map(p => ({ label: p.label, amount: p.amountPaid }))}
           />
         </div>
-        <style jsx>{`
-          .checkout-container {
-            width: 100%;
-            max-width: 500px;
-            background: #fff;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
-          }
-        `}</style>
       </div>
     )
   }
 
   if (step === 'onboarding') {
     return (
-       <div className="auth-shell auth-shell--signup">
-        <div className="auth-shell__brand">
-          <UpwardLogo size={28} color="var(--clay)" />
-        </div>
-
-        <div className="auth-stage">
-          <header className="auth-stage__header">
-            <div className="success-icon mb-4">
-              <Check size={32} color="white" />
-            </div>
-            <h1 className="auth-stage__title">Payment Successful!</h1>
-            <p className="auth-stage__subtitle">
-              We&apos;ve securely recorded your payment to <strong>{paymentData.company.name}</strong>. Now, let&apos;s get your profile set up to track your rent credibility.
-            </p>
-          </header>
-
-          <form className="auth-form mt-8" onSubmit={handleActivation}>
-            <OnboardingFields 
-              formData={formData} 
-              setFormData={setFormData}
-            />
-
-            <div className="auth-form__row mt-3">
-              <div className="auth-form__field">
-                <label>Set Password</label>
-                <div className="input-with-icon">
-                  <Lock size={17} />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={formData.password}
-                    onChange={e => setFormData({ ...formData, password: e.target.value })}
-                    required
-                    minLength={8}
-                    placeholder="Min. 8 chars"
-                  />
-                </div>
-              </div>
-              <div className="auth-form__field">
-                <label>Confirm Password</label>
-                <div className="input-with-icon">
-                  <Lock size={17} />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={formData.confirmPassword}
-                    onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    required
-                  />
-                  <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <button className="btn btn--primary btn--full mt-8" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Finalizing...' : 'Complete Account Setup'}
-              <ArrowRight size={18} className="ml-2" />
-            </button>
-          </form>
-        </div>
-
-        <style jsx>{`
-          .success-icon {
-            width: 64px;
-            height: 64px;
-            background: var(--success);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto;
-            box-shadow: 0 0 20px var(--success-glow);
-          }
-          .auth-form__row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-          }
-          .mt-3 { margin-top: 12px; }
-          .password-toggle {
-            position: absolute;
-            right: 12px;
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-          }
-          @media (max-width: 480px) {
-            .auth-form__row {
-              grid-template-columns: 1fr;
-            }
-          }
-        `}</style>
-      </div>
+      <OnboardingStep 
+        formData={formData}
+        setFormData={setFormData}
+        showPassword={showPassword}
+        setShowPassword={setShowPassword}
+        isSubmitting={isSubmitting}
+        companyName={paymentData.company.name}
+        handleActivation={handleActivation}
+      />
     )
   }
 
   if (step === 'success') {
-     return (
-       <div className="auth-shell flex-center">
-         <div className="success-page text-center">
-            <div className="success-icon mb-6">
-              <Check size={48} color="white" />
-            </div>
-            <h1 className="text-2xl font-bold mb-4">Payment Confirmed</h1>
-            <p className="text-secondary mb-8">
-              Your payment of <strong>{formatCurrency(paymentData.payment.amount, paymentData.payment.currency)}</strong> to <strong>{paymentData.company.name}</strong> was successful.
-            </p>
-            <button className="btn btn--primary" onClick={() => router.push('/dashboard')}>
-              Go to Dashboard <ChevronRight size={18} />
-            </button>
-         </div>
-         <style jsx>{`
-           .success-icon {
-             width: 96px;
-             height: 96px;
-             background: var(--success);
-             border-radius: 50%;
-             display: flex;
-             align-items: center;
-             justify-content: center;
-             margin: 0 auto;
-             box-shadow: 0 10px 30px var(--success-glow);
-           }
-         `}</style>
-       </div>
-     )
+    return (
+      <SuccessStep 
+        finalAmount={finalAmount}
+        futureCreditAmount={futureCreditAmount}
+        futureCreditLabel={futureCreditLabel}
+        currency={currency}
+        companyName={paymentData.company.name}
+        onDone={() => router.push('/dashboard')}
+      />
+    )
   }
+
+  if (step === 'processing') return <FallbackSuspense message="Finalizing payment..." />
 
   return null
 }

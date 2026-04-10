@@ -54,6 +54,7 @@ export default function PaystackEmbeddedCheckout({
       amount: Math.round((amount || 0) * 100), // Paystack expects Kobo as integer
       publicKey: PAYSTACK_PUBLIC_KEY,
       currency: currency || 'NGN',
+      channels: ['bank_transfer'],
       subaccount: subaccount,
       metadata: {
         custom_fields: [

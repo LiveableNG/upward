@@ -39,6 +39,11 @@ export default function ReceiptsPage() {
           ? landlords.find((l: any) => l.uuid === tx.landlordId || String(l.id) === tx.landlordId)
           : null
 
+        const isFutureCredit = tx.transactionType === 'FUTURE_CREDIT'
+        const title = isFutureCredit 
+          ? 'Future Credit Receipt' 
+          : (tx.type === 'RENT' ? 'Rent Payment Receipt' : 'Savings Deposit Receipt')
+
         const breakdownDesc =
           tx.lineItems && tx.lineItems.length > 0
             ? `${tx.lineItems.map((item: any) => `${item.label} (N${item.amount.toLocaleString()})`).join(', ')}`
@@ -51,18 +56,17 @@ export default function ReceiptsPage() {
         // Map backend Transaction to frontend ReceiptData
         const data: ReceiptData = {
           uuid: tx.uuid,
-          title: tx.type === 'RENT' ? 'Rent Payment Receipt' : 'Savings Deposit Receipt',
+          title: title,
           receiptNumber: tx.receiptNumber || `RCP-${tx.reference.slice(-5).toUpperCase()}`,
           paidAt: tx.createdAt,
           generatedAt: new Date().toISOString(),
           tenantName: profile ? `${profile.firstName} ${profile.lastName}` : 'Tenant',
-          companyName:
-            landlord?.name || (tx.type === 'RENT' ? 'Property Management' : 'Upward Savings'),
-          companyLogo: landlord?.bankName ? '' : '', // Could use landlord logic here if they had logos
+          companyName: tx.narration || landlord?.name || (tx.type === 'RENT' ? 'Property Management' : 'Upward Savings'),
+          companyLogo: landlord?.bankName ? '' : '',
           paymentType: tx.paymentType || breakdownDesc,
-          propertyAddress: tx.propertyAddress || tx.narration || profile?.address || 'Payment via Upward',
+          propertyAddress: tx.propertyAddress || profile?.address || 'Payment via Upward',
           amount: tx.amount,
-          currency: 'NGN',
+          currency: tx.currency || 'NGN',
           channel: 'Paystack',
           paystackReference: tx.reference,
           type: tx.type === 'SAVINGS' ? 'credit' : 'debit',
@@ -73,9 +77,7 @@ export default function ReceiptsPage() {
                   amount: item.amount,
                   category: item.category || 'Package',
                 }))
-              : tx.type === 'RENT'
-                ? [{ label: 'Rent Payment', amount: tx.amount, category: 'Home' }]
-                : [],
+              : [{ label: isFutureCredit ? (tx.narration || 'Future Credit') : 'Rent Payment', amount: tx.amount, category: 'Home' }],
         }
         setReceipt(data)
       }

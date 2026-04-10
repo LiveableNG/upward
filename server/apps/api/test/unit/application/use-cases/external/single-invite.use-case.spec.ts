@@ -187,6 +187,7 @@ describe('SingleInviteUseCase', () => {
     locationRepository = {
       findById: jest.fn(),
       findByUuid: jest.fn(),
+      findByAddress: jest.fn(),
       save: jest.fn(),
     } as any
 
@@ -273,17 +274,17 @@ describe('SingleInviteUseCase', () => {
       )
     })
 
-    it('should find EXISTING company by id when provided', async () => {
+    it('should find EXISTING company by uuid when provided', async () => {
       setupHappyPath()
-      const existingCompany = makeCompany({ id: 10 })
-      companyRepository.findById.mockResolvedValue(existingCompany as any)
-
+      const existingCompany = makeCompany({ uuid: 'company-uuid-001' })
+      companyRepository.findByUuid.mockResolvedValue(existingCompany as any)
+ 
       const payload: InviteRequest = { ...validInviteRequest() }
-      payload.company = { id: 10 }
-
+      payload.company = { uuid: 'company-uuid-001' }
+ 
       await useCase.setupInviteContext(payload)
-
-      expect(companyRepository.findById).toHaveBeenCalledWith(10)
+ 
+      expect(companyRepository.findByUuid).toHaveBeenCalledWith('company-uuid-001')
       expect(companyRepository.save).not.toHaveBeenCalled()
     })
 
@@ -378,17 +379,17 @@ describe('SingleInviteUseCase', () => {
       )
     })
 
-    it('should find EXISTING manager by id when provided', async () => {
+    it('should find EXISTING manager by uuid when provided', async () => {
       setupCompany()
       setupUser()
-      managerRepository.findById.mockResolvedValue(makeManager() as any)
-
+      managerRepository.findByUuid.mockResolvedValue(makeManager() as any)
+ 
       const payload = validInviteRequest()
-      payload.invite.property.manager = { id: 20 }
-
+      payload.invite.property.manager = { uuid: 'manager-uuid-001' }
+ 
       await useCase.setupInviteContext(payload)
-
-      expect(managerRepository.findById).toHaveBeenCalledWith(20)
+ 
+      expect(managerRepository.findByUuid).toHaveBeenCalledWith('manager-uuid-001')
       expect(managerRepository.save).not.toHaveBeenCalled()
     })
 

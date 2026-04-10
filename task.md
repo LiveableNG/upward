@@ -1,4 +1,4 @@
-curl -X POST https://upward-dev.vercel.app/api/v1/platform/get-key \
+curl -X POST http://localhost:4000/api/v1/platform/get-key \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Liveable Platform",
@@ -10,7 +10,7 @@ curl -X POST https://upward-dev.vercel.app/api/v1/platform/get-key \
 
 curl -X POST http://localhost:4000/api/v1/single/invite \
   -H "Content-Type: application/json" \
-  -H "x-api-key: up_sk_live_097829064d9c769ef566fc42 \
+  -H "x-api-key: up_sk_live_9b4e3854fef0d191558cadb8" \
   -d '{
     "company": {
       "name": "Global Properties LTD",
@@ -44,7 +44,7 @@ curl -X POST http://localhost:4000/api/v1/single/invite \
     }
   }'
 
-"http://localhost:3000/invite/b7a71853-2d7a-4399-af09-115a6c1406ce
+"http://localhost:3000/invite/2ec933f3-4bf5-4abd-b78b-c2dfc2c0f38f
 
 
 curl -X POST http://localhost:4000/api/v1/platform/get-key \
@@ -59,7 +59,7 @@ curl -X POST http://localhost:4000/api/v1/platform/get-key \
 
   curl -X POST http://localhost:4000/api/v1/single/invite \
   -H "Content-Type: application/json" \
-  -H "x-api-key: up_sk_live_e1f7b01642560ba4fa0b68c0" \
+  -H "x-api-key: up_sk_live_a8bf7381b4c2c580b5f36f29" \
   -d '{
     "company": {
       "name": "Prime Estates Nigeria",
@@ -89,7 +89,7 @@ curl -X POST http://localhost:4000/api/v1/platform/get-key \
 
   curl -X POST http://localhost:4000/api/v1/single/invite \
   -H "Content-Type: application/json" \
-  -H "x-api-key: up_sk_live_e1f7b01642560ba4fa0b68c0" \
+  -H "x-api-key: up_sk_live_a8bf7381b4c2c580b5f36f29" \
   -d '{
     "company": {
       "name": "Prime Estates Nigeria",
@@ -127,10 +127,53 @@ curl -X POST http://localhost:4000/api/v1/platform/get-key \
 
   curl -X POST http://localhost:4000/api/v1/payment-request \
   -H "Content-Type: application/json" \
-  -H "x-api-key: up_sk_live_e1f7b01642560ba4fa0b68c0" \
+  -H "x-api-key: up_sk_live_9b4e3854fef0d191558cadb8" \
   -d '{
-    "userPropertyUuid": "5cab404a-df37-4408-826b-e8b820e26fac",
-    "dueDate": "2027-12-31T23:59:59Z"
+    "userPropertyUuid": "a7f2827e-43a6-4c82-8a1f-3cb20b92a964",
+    "dueDate": "2027-12-31T23:59:59Z",
+    "acceptPartial": true,
+    "minPartialAmount": 100000,
+    "lineItems": [
+      {
+        "label": "Rent",
+        "amount": 100000
+      },
+      {
+        "label": "Service Charge",
+        "amount": 50000
+      }
+    ]
+  }'
+
+curl -X POST http://localhost:4000/api/v1/payment-request \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: up_sk_live_9b4e3854fef0d191558cadb8" \
+  -d '{
+    "userPropertyUuid": "a7f2827e-43a6-4c82-8a1f-3cb20b92a964",
+    "dueDate": "2027-12-31T23:59:59Z",
+    "description": "Housing Package - 2027",
+    "bankCode": "058",
+    "accountNumber": "2001234567",
+    "allowPartial": true,
+    "minAmount": 100000,
+    "lineItems": [
+      {
+        "label": "Annual Rent",
+        "amount": 2500000
+      },
+      {
+        "label": "Security Deposit",
+        "amount": 500000
+      },
+      {
+        "label": "Service Charge",
+        "amount": 150000
+      },
+      {
+        "label": "Legal & Agreement",
+        "amount": 100000
+      }
+    ]
   }'
 
 
@@ -177,3 +220,21 @@ curl -X POST http://localhost:4000/api/v1/external/payment-request \
 
 one thing i can't get off my mind is what if user has already signed up and we try to make an invite to them won't that overrid their own signup data? 
 DEPLOYED  up_sk_live_7e266528891511580dcaf224
+
+curl -X POST http://localhost:4000/api/v1/payment-request \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: up_sk_live_097829064d9c769ef566fc42" \
+  -d '{
+    "userPropertyUuid": "f4f8d0a3-b485-419a-89e4-9685275975bf",
+    "amount": 250000,
+    "currency": "NGN",
+    "description": "Partial payment for March rent",
+    "lineItems": [
+      { "label": "Rent Balance", "amount": 200000 },
+      { "label": "Surcharge", "amount": 50000 }
+    ],
+    "dueDate": "2026-05-30T00:00:00.000Z",
+    "bankCode": "044",
+    "accountNumber": "0690000031",
+    "allowPartial": true
+  }'

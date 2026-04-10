@@ -8,7 +8,9 @@ import {
   PrismaPaymentRequestRepository,
   PrismaSubaccountRepository,
   PrismaWebhookRepository,
+  PrismaOverpaymentRepository,
 } from './repositories/prisma-payments.repository'
+import { PrismaPaymentLineItemRepository } from './repositories/prisma-payment-line-item.repository'
 import {
   PrismaCompanyRepository,
   PrismaCompanyUserRepository,
@@ -31,6 +33,8 @@ import {
   PAYMENT_REQUEST_REPOSITORY,
   SUBACCOUNT_REPOSITORY,
   WEBHOOK_REPOSITORY,
+  OVERPAYMENT_REPOSITORY,
+  PAYMENT_LINE_ITEM_REPOSITORY,
 } from '../../../domains/payments/payment.repository'
 import {
   COMPANY_REPOSITORY,
@@ -114,12 +118,20 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       useClass: PrismaWebhookRepository,
     },
     {
+      provide: OVERPAYMENT_REPOSITORY,
+      useClass: PrismaOverpaymentRepository,
+    },
+    {
       provide: CONTRACT_REPOSITORY,
       useClass: PrismaContractRepository,
     },
     {
       provide: SUPPORT_TICKET_REPOSITORY,
       useClass: PrismaSupportTicketRepository,
+    },
+    {
+      provide: PAYMENT_LINE_ITEM_REPOSITORY,
+      useClass: PrismaPaymentLineItemRepository,
     },
   ],
   exports: [
@@ -140,8 +152,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     LOCATION_REPOSITORY,
     SUBACCOUNT_REPOSITORY,
     WEBHOOK_REPOSITORY,
+    OVERPAYMENT_REPOSITORY,
     CONTRACT_REPOSITORY,
     SUPPORT_TICKET_REPOSITORY,
+    PAYMENT_LINE_ITEM_REPOSITORY,
   ],
 })
 export class PrismaModule {}

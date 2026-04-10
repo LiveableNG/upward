@@ -3,15 +3,20 @@ import { type UserProfile } from '@/features/auth/types'
 export type { UserProfile }
 
 export interface PendingPayment {
+  id: number
   uuid: string
   total_amount: number
+  amountPaid: number
   currency: string
   status: string
   payment_link_token: string
   invoice_number: string
-  notes: string
-  company_name: string
-  company_logo: string
+  description: string
+  company_name?: string
+  company_logo?: string
+  allowPartial?: boolean
+  property_address?: string
+  lineItemRecords?: any[]
 }
 
 export interface CompletedPayment {
@@ -24,6 +29,9 @@ export interface CompletedPayment {
   paystack_reference: string
   company_name: string
   type?: 'debit' | 'credit'
+  transactionType?: 'PAYMENT' | 'FUTURE_CREDIT'
+  property_address?: string
+  lineItems?: any[]
 }
 
 export interface SavedLandlord {

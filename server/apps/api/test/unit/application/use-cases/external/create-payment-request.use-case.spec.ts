@@ -10,6 +10,7 @@ import {
   IPaymentRequestRepository,
   IPaymentGateway,
   PaystackSubaccount,
+  IPaymentLineItemRepository,
 } from '@domains/payments/payment.repository'
 import { NotificationRepository } from '@domains/notifications/notification.repository'
 
@@ -112,6 +113,7 @@ describe('CreateExternalPaymentRequestUseCase', () => {
   let paymentRequestRepository: jest.Mocked<IPaymentRequestRepository>
   let notificationRepository: jest.Mocked<NotificationRepository>
   let paymentGateway: jest.Mocked<IPaymentGateway>
+  let lineItemRepository: jest.Mocked<IPaymentLineItemRepository>
 
   const validBankDetails = {
     bankCode: '058',
@@ -169,6 +171,14 @@ describe('CreateExternalPaymentRequestUseCase', () => {
       findOrCreateSubaccount: jest.fn(),
     } as any
 
+    lineItemRepository = {
+      create: jest.fn(),
+      bulkCreate: jest.fn(),
+      update: jest.fn(),
+      findById: jest.fn(),
+      findByPaymentRequestId: jest.fn(),
+    } as any
+
     useCase = new CreateExternalPaymentRequestUseCase(
       singleInviteUseCase as any,
       userRepository,
@@ -176,6 +186,7 @@ describe('CreateExternalPaymentRequestUseCase', () => {
       paymentRequestRepository,
       notificationRepository,
       paymentGateway,
+      lineItemRepository,
     )
   })
 

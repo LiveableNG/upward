@@ -19,7 +19,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
 import { randomUUID } from 'crypto'
 
 export interface CompanyInfo {
-  id?: number
+  uuid?: string
   name?: string
   address?: string
 }
@@ -46,7 +46,7 @@ export interface RentInfo {
 }
 
 export interface ManagerInfo {
-  id?: number
+  uuid?: string
   firstName?: string
   lastName?: string
   email?: string
@@ -107,8 +107,8 @@ export class SingleInviteUseCase {
     const { company: companyData, invite } = payload
 
     // 1. Find or Create Company
-    let company = companyData.id 
-      ? await this.companyRepository.findById(companyData.id)
+    let company = companyData.uuid 
+      ? await this.companyRepository.findByUuid(companyData.uuid)
       : (companyData.name ? await this.companyRepository.findByName(companyData.name) : null)
 
     if (!company) {
@@ -135,8 +135,8 @@ export class SingleInviteUseCase {
 
     // 2. Find or Create Manager
     const managerData = invite.property.manager
-    let manager = managerData.id
-      ? await this.managerRepository.findById(managerData.id)
+    let manager = managerData.uuid
+      ? await this.managerRepository.findByUuid(managerData.uuid)
       : (managerData.email ? await this.managerRepository.findByEmail(managerData.email) : null)
 
     if (!manager) {
@@ -202,22 +202,16 @@ export class SingleInviteUseCase {
       throw new BadRequestException('Rent amount and rent end date are compulsory for invitation');
     }
 
-    const existingProperties = await this.propertyRepository.findByUserId(user.id!)
-    let property = existingProperties.find((p: any) => p.companyId === company.id!)
-    let location: any
+    // 4. Find or Create Location
+    let location = await this.locationRepository.findByAddress(
+      locData.address || '',
+      locData.area || '',
+      locData.state || '',
+      locData.country || 'Nigeria'
+    )
 
-    if (property) {
-      if (property.locationId) {
-        location = await this.locationRepository.findById(property.locationId)
-      }
-      // If we need to update property rent amount, we could do it here
-      if (property.rentAmount !== rentData.rentAmount) {
-        property = await this.propertyRepository.update(property.id!, { rentAmount: rentData.rentAmount })
-      }
-    }
-
-    if (!property || !location) {
-      location = location || await this.locationRepository.save({
+    if (!location) {
+      location = await this.locationRepository.save({
         uuid: randomUUID(),
         country: locData.country || 'Nigeria',
         state: locData.state || '',
@@ -227,22 +221,37 @@ export class SingleInviteUseCase {
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any)
+    }
 
-      if (!property) {
-        property = await this.propertyRepository.save({
-          uuid: randomUUID(),
-          userId: user.id!,
-          companyId: company.id!,
-          managerId: manager.id!,
-          locationId: location.id!,
+    // 5. Find or Create Property (Scoped to User + Company + Location)
+    const existingProperties = await this.propertyRepository.findByUserId(user.id!)
+    let property = existingProperties.find((p: any) => 
+      p.companyId === company.id! && p.locationId === location!.id!
+    )
+
+    if (property) {
+      if (property.rentAmount !== rentData.rentAmount) {
+        property = await this.propertyRepository.update(property.id!, { 
           rentAmount: rentData.rentAmount,
+          managerId: manager.id, // Update manager if changed
           rentEndDate: new Date(rentData.rentEndDate),
-          rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : undefined,
-          currency: (rentData as any).currency || 'NGN',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        } as any)
+          rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : property.rentStartDate
+        })
       }
+    } else {
+      property = await this.propertyRepository.save({
+        uuid: randomUUID(),
+        userId: user.id!,
+        companyId: company.id!,
+        managerId: manager.id!,
+        locationId: location.id!,
+        rentAmount: rentData.rentAmount,
+        rentEndDate: new Date(rentData.rentEndDate),
+        rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : undefined,
+        currency: (rentData as any).currency || 'NGN',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
     }
 
     return { user, company, manager, property, location }

@@ -12,6 +12,8 @@ import {
   IWebhookRepository,
   WebhookLog,
   WEBHOOK_REPOSITORY,
+  IOverpaymentRepository,
+  Overpayment,
 } from '../../../../domains/payments/payment.repository'
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service'
 
@@ -139,7 +141,6 @@ export class PrismaTransactionRepository implements ITransactionRepository {
         paymentType: data.paymentType,
         propertyAddress: data.propertyAddress,
         paymentRequestId: data.paymentRequestId,
-        lineItems: data.lineItems || undefined,
         currency: data.currency || 'NGN',
       },
     })
@@ -149,7 +150,6 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       landlordId: res.landlordId ?? undefined,
       paymentType: res.paymentType ?? undefined,
       propertyAddress: res.propertyAddress ?? undefined,
-      lineItems: res.lineItems || undefined,
 
     } as unknown as Transaction
   }
@@ -165,7 +165,6 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       landlordId: r.landlordId ?? undefined,
       paymentType: r.paymentType ?? undefined,
       propertyAddress: r.propertyAddress ?? undefined,
-      lineItems: r.lineItems || undefined,
     })) as unknown as Transaction[]
   }
 
@@ -180,7 +179,6 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       landlordId: res.landlordId ?? undefined,
       paymentType: res.paymentType ?? undefined,
       propertyAddress: res.propertyAddress ?? undefined,
-      lineItems: res.lineItems || undefined,
     } as unknown as Transaction
   }
 
@@ -195,7 +193,6 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       landlordId: res.landlordId ?? undefined,
       paymentType: res.paymentType ?? undefined,
       propertyAddress: res.propertyAddress ?? undefined,
-      lineItems: res.lineItems || undefined,
     } as unknown as Transaction
   }
 
@@ -210,7 +207,6 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       landlordId: res.landlordId ?? undefined,
       paymentType: res.paymentType ?? undefined,
       propertyAddress: res.propertyAddress ?? undefined,
-      lineItems: res.lineItems || undefined,
     } as unknown as Transaction
   }
 
@@ -225,7 +221,6 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       landlordId: res.landlordId ?? undefined,
       paymentType: res.paymentType ?? undefined,
       propertyAddress: res.propertyAddress ?? undefined,
-      lineItems: res.lineItems || undefined,
     } as unknown as Transaction
   }
 
@@ -243,7 +238,6 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       landlordId: res.landlordId ?? undefined,
       paymentType: res.paymentType ?? undefined,
       propertyAddress: res.propertyAddress ?? undefined,
-      lineItems: res.lineItems || undefined,
     } as unknown as Transaction
   }
 }
@@ -265,9 +259,11 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
         amount: data.amount,
         currency: data.currency,
         description: data.description,
-        lineItems: data.lineItems || undefined,
         dueDate: data.dueDate,
         status: data.status,
+        amountPaid: data.amountPaid || 0,
+        allowPartial: data.allowPartial ?? false,
+        minAmount: data.minAmount,
         reference: data.reference,
         subaccountId: data.subaccountId,
       },
@@ -277,7 +273,6 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       description: res.description ?? undefined,
       reference: res.reference ?? undefined,
       userPropertyId: res.userPropertyId ?? undefined,
-      lineItems: res.lineItems || undefined,
       subaccountId: res.subaccountId ?? undefined,
     } as unknown as PaymentRequest
   }
@@ -295,7 +290,6 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       description: res.description ? (res.description.includes(':') ? this.encryption.decrypt(res.description) : res.description) : res.description,
       reference: res.reference ?? undefined,
       userPropertyId: res.userPropertyId ?? undefined,
-      lineItems: res.lineItems || undefined,
       subaccountId: res.subaccountId ?? undefined,
       subaccount: res.subaccount as unknown as PaystackSubaccount,
     } as unknown as PaymentRequest
@@ -323,7 +317,6 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       description: res.description ? (res.description.includes(':') ? this.encryption.decrypt(res.description) : res.description) : res.description,
       reference: res.reference ?? undefined,
       userPropertyId: res.userPropertyId ?? undefined,
-      lineItems: res.lineItems || undefined,
       subaccountId: res.subaccountId ?? undefined,
       subaccount: res.subaccount as unknown as PaystackSubaccount,
       webhookUrl: (res.userProperty as any)?.company?.platform?.webhookUrl,
@@ -352,7 +345,6 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       description: r.description ? (r.description.includes(':') ? this.encryption.decrypt(r.description) : r.description) : r.description,
       reference: r.reference ?? undefined,
       userPropertyId: r.userPropertyId ?? undefined,
-      lineItems: r.lineItems || undefined,
       companyName: (r.userProperty as any)?.company?.name
         ? ((r.userProperty as any).company.name.includes(':') ? this.encryption.decrypt((r.userProperty as any).company.name) : (r.userProperty as any).company.name)
         : undefined,
@@ -387,7 +379,6 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       description: r.description ? (r.description.includes(':') ? this.encryption.decrypt(r.description) : r.description) : r.description,
       reference: r.reference ?? undefined,
       userPropertyId: r.userPropertyId ?? undefined,
-      lineItems: r.lineItems || undefined,
       companyName: (r.userProperty as any)?.company?.name
         ? ((r.userProperty as any).company.name.includes(':') ? this.encryption.decrypt((r.userProperty as any).company.name) : (r.userProperty as any).company.name)
         : undefined,
@@ -412,8 +403,10 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
         amount: data.amount,
         currency: data.currency,
         description: data.description,
-        lineItems: data.lineItems || undefined,
         dueDate: data.dueDate,
+        amountPaid: data.amountPaid,
+        allowPartial: data.allowPartial,
+        minAmount: data.minAmount,
       },
     })
     return {
@@ -421,7 +414,6 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       description: res.description ?? undefined,
       reference: res.reference ?? undefined,
       userPropertyId: res.userPropertyId ?? undefined,
-      lineItems: res.lineItems || undefined,
       subaccountId: res.subaccountId ?? undefined,
     } as unknown as PaymentRequest
   }
@@ -500,5 +492,32 @@ export class PrismaWebhookRepository implements IWebhookRepository {
       orderBy: { createdAt: 'asc' },
     })
     return res as unknown as WebhookLog[]
+  }
+}
+
+@Injectable()
+export class PrismaOverpaymentRepository implements IOverpaymentRepository {
+  constructor(private prisma: PrismaService) {}
+
+  async create(data: Omit<Overpayment, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<Overpayment> {
+    const res = await this.prisma.upward_overpayment.create({
+      data: {
+        userId: data.userId,
+        amount: data.amount,
+        currency: data.currency,
+        transactionId: data.transactionId,
+        paymentRequestId: data.paymentRequestId,
+        status: data.status,
+      },
+    })
+    return res as unknown as Overpayment
+  }
+
+  async findByUserId(userId: number): Promise<Overpayment[]> {
+    const res = await this.prisma.upward_overpayment.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    })
+    return res as unknown as Overpayment[]
   }
 }
