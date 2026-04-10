@@ -37,6 +37,7 @@ export const api = {
   getMyDocuments: documentService.getMyDocuments,
   getContracts: documentService.getContracts,
   uploadContract: documentService.uploadContract,
+  deleteContract: documentService.removeContract,
 
   // Notifications & Announcements
   getNotifications: notificationService.getNotifications,

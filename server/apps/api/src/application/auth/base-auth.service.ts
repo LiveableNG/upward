@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
+import * as crypto from 'crypto'
 
 @Injectable()
 export class BaseAuthService {
@@ -10,26 +10,36 @@ export class BaseAuthService {
     protected readonly configService: ConfigService,
   ) {}
 
+  hashToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex')
+  }
+
   generateRefreshToken(
-    payload: string | { sub: string; [key: string]: any },
+    payload: string | { sub: string; sid: string; [key: string]: any },
     secretKeyName: string = 'JWT_REFRESH_SECRET',
   ): string {
     const secret = this.configService.get<string>(secretKeyName, 'super-refresh-secret-key')
     const sub = typeof payload === 'string' ? payload : payload.sub
-    return this.jwtService.sign({ sub, type: 'refresh' }, { secret, expiresIn: '7d' })
+    const sid = typeof payload === 'object' ? payload.sid : undefined
+    
+    return this.jwtService.sign(
+      { sub, sid, type: 'refresh' }, 
+      { secret, expiresIn: '7d' }
+    )
   }
 
   generateAccessToken(payload: any): string {
-    return this.jwtService.sign(payload)
+    // Shorter TTL for access tokens (15 minutes)
+    return this.jwtService.sign(payload, { expiresIn: '15m' })
   }
 
   async verifyRefreshToken(
     token: string,
     secretKeyName: string = 'JWT_REFRESH_SECRET',
-  ): Promise<{ sub: string; type: string }> {
+  ): Promise<{ sub: string; sid?: string; type: string }> {
     const secret = this.configService.get<string>(secretKeyName, 'super-refresh-secret-key')
     try {
-      const decoded = this.jwtService.verify(token, { secret }) as { sub: string; type: string }
+      const decoded = this.jwtService.verify(token, { secret }) as { sub: string; sid?: string; type: string }
       if (decoded.type !== 'refresh') {
         throw new UnauthorizedException('Invalid token type')
       }

@@ -179,7 +179,7 @@ describe('SingleInviteUseCase', () => {
     propertyRepository = {
       findById: jest.fn(),
       findByUuid: jest.fn(),
-      findByUserId: jest.fn(),
+      findByUserId: jest.fn().mockResolvedValue([]),
       save: jest.fn(),
       update: jest.fn(),
     } as any
@@ -219,15 +219,14 @@ describe('SingleInviteUseCase', () => {
 
       const result = await useCase.execute(validInviteRequest(), 99)
 
-      expect(result).toHaveLength(1)
-      expect(result[0]).toMatchObject({
+      expect(result).toMatchObject({
         userId: 'user-uuid-001',
         managerId: 'manager-uuid-001',
         companyId: 'company-uuid-001',
         userPropertyUuid: 'property-uuid-001',
         email: 'john.doe@example.com',
       })
-      expect(result[0].inviteLink).toContain('/invite/user-uuid-001')
+      expect(result.inviteLink).toContain('/invite/user-uuid-001')
     })
 
     it('should work without a platformId', async () => {
@@ -244,7 +243,7 @@ describe('SingleInviteUseCase', () => {
 
       const result = await useCase.execute(validInviteRequest())
 
-      expect(result[0].userId).toBe('user-uuid-001')
+      expect(result.userId).toBe('user-uuid-001')
     })
   })
 

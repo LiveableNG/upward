@@ -95,6 +95,10 @@ import {
   ResolveSubaccountUseCase,
 } from './use-cases/payments/payment.use-cases'
 
+import { UploadContractUseCase } from './use-cases/contracts/upload-contract.use-case'
+import { GetContractsUseCase } from './use-cases/contracts/get-contracts.use-case'
+import { DeleteContractUseCase } from './use-cases/contracts/delete-contract.use-case'
+
 
 const UseCases = [
   DeleteAdminUseCase,
@@ -173,6 +177,10 @@ const UseCases = [
   ConfirmExternalPaymentUseCase,
   GetPendingPaymentsUseCase,
   ResolveSubaccountUseCase,
+
+  UploadContractUseCase,
+  GetContractsUseCase,
+  DeleteContractUseCase,
 ]
 
 @Module({

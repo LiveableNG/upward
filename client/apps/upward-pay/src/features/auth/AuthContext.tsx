@@ -2,8 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { type UserProfile } from './types'
-import { getMe, logout as authLogout } from './services/authService'
+import { getMe, logout as authLogout, refreshToken as authRefresh } from './services/authService'
 import { useRouter } from 'next/navigation'
+import { setAccessToken } from '@/lib/auth-token'
 
 interface AuthContextType {
   user: UserProfile | null
@@ -26,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const profile = await getMe()
       setUser(profile)
     } catch {
+      setAccessToken(null)
       setUser(null)
     } finally {
       setLoading(false)
@@ -47,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('app_banner_dismissed')
       }
     } finally {
+      setAccessToken(null)
       setUser(null)
       router.push('/login')
     }

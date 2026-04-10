@@ -42,7 +42,8 @@ function setUserAuthCookies(reply: FastifyReply, accessToken: string, refreshTok
     secure: isProd,
     sameSite: isProd ? 'none' : 'lax',
     path: '/',
-    maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+    partitioned: isProd, // CHIPS support for cross-site mobile
   })
 
   reply.setCookie(ACCESS_COOKIE_NAME, accessToken, {
@@ -50,7 +51,8 @@ function setUserAuthCookies(reply: FastifyReply, accessToken: string, refreshTok
     secure: isProd,
     sameSite: isProd ? 'none' : 'lax',
     path: '/',
-    maxAge: 3600,
+    maxAge: 900, // 15 minutes
+    partitioned: isProd,
   })
 }
 
@@ -130,7 +132,11 @@ export class UserController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(@Res({ passthrough: false }) reply: FastifyReply) {
+  async logout(@Req() req: FastifyRequest, @Res({ passthrough: false }) reply: FastifyReply) {
+    const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME]
+    if (refreshToken) {
+      await this.userAuthService.revokeSession(refreshToken)
+    }
     reply.clearCookie(REFRESH_COOKIE_NAME, { path: '/' })
     reply.clearCookie(ACCESS_COOKIE_NAME, { path: '/' })
     reply.status(HttpStatus.OK).send({ message: 'Logged out' })

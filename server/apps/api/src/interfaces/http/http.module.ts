@@ -13,6 +13,7 @@ import { UserController } from './user/user.controller'
 import { PaymentsController } from './public/payments.controller'
 import { AdminAnnouncementsController } from './admin/announcements.controller'
 import { UserNotificationsController } from './user/notifications.controller'
+import { ContractController } from './user/contract.controller'
 import { PublicProfileController } from './public/public-profile.controller'
 import { ExternalInviteController } from './external/external-invite.controller'
 import { InviteController } from './public/invite.controller'
@@ -33,6 +34,7 @@ import { ExternalPaymentController } from './external/external-payment.controlle
     PaymentsController,
     AdminAnnouncementsController,
     UserNotificationsController,
+    ContractController,
     PublicProfileController,
     ExternalInviteController,
     InviteController,

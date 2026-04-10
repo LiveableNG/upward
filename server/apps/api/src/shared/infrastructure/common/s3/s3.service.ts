@@ -72,4 +72,24 @@ export class S3Service {
       throw new InternalServerErrorException('Could not upload file to storage')
     }
   }
+
+  async deleteObject(keyOrUrl: string) {
+    if (!keyOrUrl) return
+
+    const key = keyOrUrl.includes('amazonaws.com/') ? keyOrUrl.split('amazonaws.com/')[1] : keyOrUrl
+
+    try {
+      const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')
+      const command = new DeleteObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      })
+
+      await this.s3Client.send(command)
+    } catch (error) {
+      console.error('Error deleting object from S3:', error)
+      // We don't throw here to avoid failing the DB delete if S3 delete fails for some reason
+      // but ideally we should have a cleanup job.
+    }
+  }
 }

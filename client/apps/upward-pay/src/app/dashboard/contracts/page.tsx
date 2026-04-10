@@ -1,19 +1,19 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { FileText, Download, Eye, FileBadge, Upload } from 'lucide-react'
+import { FileText, Download, FileBadge, Upload, Trash2 } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
 import { formatDate } from '@/lib/utils'
 
 interface Contract {
-  id: string
-  name: string
-  url: string
+  uuid: string
+  fileName: string
+  fileUrl: string
   createdAt: string
-  size: number
-  type: string
+  fileSize: number
+  fileType: string
   propertyName?: string
   leaseEnd?: string
 }
@@ -44,20 +44,20 @@ export default function ContractsPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // 5MB limit
-    if (file.size > 5 * 1024 * 1024) {
-      error('File size must be less than 5MB')
+    // 10MB limit (aligned with backend)
+    if (file.size > 10 * 1024 * 1024) {
+      error('File size must be less than 10MB')
       return
     }
 
-    // PDF or DOCX
+    // PDF or Images
     const allowedTypes = [
       'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/msword',
+      'image/jpeg',
+      'image/png',
     ]
     if (!allowedTypes.includes(file.type)) {
-      error('Only PDF or DOCX files are allowed')
+      error('Only PDF or JPG/PNG images are allowed')
       return
     }
 
@@ -73,6 +73,18 @@ export default function ContractsPage() {
       error('Failed to upload contract')
     } finally {
       setUploading(false)
+    }
+  }
+
+  const handleDelete = async (uuid: string) => {
+    if (!confirm('Are you sure you want to remove this document?')) return
+
+    try {
+      await api.deleteContract(uuid)
+      setContracts((prev) => prev.filter((c) => c.uuid !== uuid))
+      success('Document removed successfully')
+    } catch {
+      error('Failed to remove document')
     }
   }
 
@@ -98,8 +110,8 @@ export default function ContractsPage() {
           {/* Upload Section */}
           <div className="upload-card theme-card">
             <div className="upload-card__header">
-              <h3 className="upload-card__title">Upload New Contract</h3>
-              <p className="upload-card__sub">PDF or DOCX (Max 5MB)</p>
+              <h3 className="upload-card__title">Upload New Document</h3>
+              <p className="upload-card__sub">PDF, JPG, or PNG (Max 10MB)</p>
             </div>
 
             <label className={`upload-zone ${uploading ? 'is-uploading' : ''}`}>
@@ -107,7 +119,7 @@ export default function ContractsPage() {
                 type="file"
                 className="upload-zone__input"
                 onChange={handleFileUpload}
-                accept=".pdf,.doc,.docx"
+                accept=".pdf,.jpg,.jpeg,.png"
                 disabled={uploading}
               />
               <div className="upload-zone__content">
@@ -130,7 +142,7 @@ export default function ContractsPage() {
 
           {/* List Section */}
           <div className="contracts-list-header">
-            <h3 className="contracts-list-header__title">Active Documents</h3>
+            <h3 className="contracts-list-header__title">My Documents</h3>
           </div>
 
           <div className="contracts-list">
@@ -141,38 +153,37 @@ export default function ContractsPage() {
             ) : contracts.length === 0 ? (
               <div className="empty-state">
                 <FileBadge size={48} color="var(--border-solid)" />
-                <p>No contracts uploaded yet</p>
+                <p>No documents uploaded yet</p>
               </div>
             ) : (
               contracts.map((contract) => (
-                <div key={contract.id} className="contract-item theme-card">
+                <div key={contract.uuid} className="contract-item theme-card">
                   <div className="contract-item__info">
                     <div className="contract-item__icon">
                       <FileText size={20} />
                     </div>
                     <div className="contract-item__details">
-                      <span className="contract-item__name">{contract.name}</span>
+                      <span className="contract-item__name">{contract.fileName}</span>
                       <span className="contract-item__meta">
-                        {formatDate(contract.createdAt)} • {formatFileSize(contract.size)}
+                        {formatDate(contract.createdAt)} • {formatFileSize(contract.fileSize)}
                       </span>
                     </div>
                   </div>
                   <div className="contract-item__actions">
                     <button
                       className="action-btn"
-                      onClick={() => window.open(contract.url, '_blank')}
-                      title="View"
-                    >
-                      <Eye size={18} />
-                    </button>
-                    <a
-                      href={contract.url}
-                      download={contract.name}
-                      className="action-btn"
+                      onClick={() => window.open(contract.fileUrl, '_blank')}
                       title="Download"
                     >
                       <Download size={18} />
-                    </a>
+                    </button>
+                    <button
+                      className="action-btn action-btn--danger"
+                      onClick={() => handleDelete(contract.uuid)}
+                      title="Delete"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 </div>
               ))
@@ -330,6 +341,11 @@ export default function ContractsPage() {
         .action-btn:hover {
           background: var(--surface2);
           color: var(--text);
+        }
+        .action-btn--danger:hover {
+          color: #ef4444;
+          background: #fef2f2;
+          border-color: #fee2e2;
         }
 
         .spinner {
