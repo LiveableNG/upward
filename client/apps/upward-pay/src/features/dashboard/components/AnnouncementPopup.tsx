@@ -9,6 +9,7 @@ interface AnnouncementPopupProps {
   title: string
   message: string
   iconType: string
+  url?: string
   onClose: () => void
 }
 
@@ -20,7 +21,14 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   info: <Info size={28} />,
 }
 
-export function AnnouncementPopup({ title, message, iconType, onClose }: AnnouncementPopupProps) {
+export function AnnouncementPopup({ title, message, iconType, url, onClose }: AnnouncementPopupProps) {
+  const handleAction = () => {
+    onClose()
+    if (url) {
+      window.open(url, '_blank')
+    }
+  }
+
   return (
     <div className="announcement-popup">
       <div className="announcement-popup__content">
@@ -35,8 +43,8 @@ export function AnnouncementPopup({ title, message, iconType, onClose }: Announc
         <h3 className="announcement-popup__title">{title}</h3>
         <p className="announcement-popup__message">{message}</p>
 
-        <button className="announcement-popup__action" onClick={onClose}>
-          Got it
+        <button className="announcement-popup__action" onClick={handleAction}>
+          {url ? 'Learn More' : 'Got it'}
         </button>
       </div>
     </div>

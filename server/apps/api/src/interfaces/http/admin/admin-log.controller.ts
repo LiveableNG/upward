@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Query, UseGuards, Req } from '@nestjs/common'
-import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
+import { AdminJwtAuthGuard } from '../../../application/auth/guards/admin-jwt-auth.guard'
 import { RolesGuard } from '../../../application/auth/guards/roles.guard'
 import { Roles } from '../../../application/auth/decorators/roles.decorator'
 import { AdminRole } from '@upward/shared-types'
@@ -17,7 +17,7 @@ interface AuthenticatedRequest {
 }
 
 @Controller('admin/logs')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(AdminJwtAuthGuard, RolesGuard)
 export class AdminLogController {
   constructor(
     private readonly getLogsUseCase: GetAdminLogsUseCase,

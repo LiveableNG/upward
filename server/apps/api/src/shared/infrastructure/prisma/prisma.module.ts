@@ -20,6 +20,7 @@ import {
   PrismaLocationRepository,
 } from './repositories/prisma-property.repository'
 import { PrismaContractRepository } from './repositories/prisma-contract.repository'
+import { PrismaSupportTicketRepository } from './repositories/prisma-support.repository'
 import { PaystackGateway } from '../../../domains/payments/paystack.gateway'
 import { WAITLIST_REPOSITORY } from '../../../domains/waitlist/waitlist.repository'
 import { USER_REPOSITORY } from '../../../domains/users/user.repository'
@@ -44,6 +45,7 @@ import {
 import { PrismaNotificationRepository } from './repositories/prisma-notification.repository'
 import { NOTIFICATION_REPOSITORY } from '../../../domains/notifications/notification.repository'
 import { CONTRACT_REPOSITORY } from '../../../domains/contracts/contract.repository'
+import { SUPPORT_TICKET_REPOSITORY } from '../../../domains/support/support.repository'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Global()
@@ -115,6 +117,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: CONTRACT_REPOSITORY,
       useClass: PrismaContractRepository,
     },
+    {
+      provide: SUPPORT_TICKET_REPOSITORY,
+      useClass: PrismaSupportTicketRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -135,6 +141,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     SUBACCOUNT_REPOSITORY,
     WEBHOOK_REPOSITORY,
     CONTRACT_REPOSITORY,
+    SUPPORT_TICKET_REPOSITORY,
   ],
 })
 export class PrismaModule {}

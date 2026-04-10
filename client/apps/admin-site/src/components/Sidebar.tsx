@@ -12,6 +12,7 @@ import {
   CalendarClock,
   History,
   Megaphone,
+  LifeBuoy
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -31,6 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     { name: 'Campaigns', path: '/campaigns', icon: CalendarClock },
     { name: 'Sessions', path: '/sessions', icon: Calendar },
     { name: 'Announcements', path: '/announcements', icon: Megaphone },
+    { name: 'Help Center & Support', path: '/support', icon: LifeBuoy },
     { name: 'Email Logs', path: '/email-logs', icon: History },
     { name: 'Fairness Stories', path: '/stories', icon: ShieldCheck },
   ]
@@ -58,7 +60,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
         top: 'var(--header-height)',
         left: 0,
         zIndex: 1001,
-        overflow: 'hidden',
+        overflowY: 'auto',
+        overflowX: 'hidden',
         transform: isMobileOpen
           ? 'translateX(0)'
           : window.innerWidth <= 768

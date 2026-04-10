@@ -5,6 +5,7 @@ import * as paymentService from '@/features/payments/services/paymentService'
 import * as documentService from '@/features/documents/services/documentService'
 import * as notificationService from '@/features/notifications/services/notificationService'
 import * as financeService from '@/features/finance/services/financeService'
+import * as supportService from '@/features/support/services/supportService'
 
 export const api = {
   // Auth & Profile
@@ -50,6 +51,10 @@ export const api = {
   getSavingsGoals: financeService.getSavingsGoals,
   createSavingsGoal: financeService.createSavingsGoal,
   updateSavingsGoal: financeService.updateSavingsGoal,
+
+  // Support Tickets
+  createSupportTicket: supportService.createSupportTicket,
+  getMyTickets: supportService.getMyTickets,
 
   // Public (Leaving as raw for now)
   getPublicProfile: (slug: string) =>

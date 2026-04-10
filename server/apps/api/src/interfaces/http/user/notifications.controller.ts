@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Patch,
+  Post,
+  Delete,
   Body,
   UseGuards,
   Req,
@@ -16,6 +18,10 @@ import {
   UpdateAnnouncementStateUseCase,
   MarkNotificationReadUseCase,
 } from '../../../application/use-cases/notifications/notification.use-cases'
+import {
+  RegisterDeviceTokenUseCase,
+  UnregisterDeviceTokenUseCase,
+} from '../../../application/use-cases/push/push.use-cases'
 import { UpdateAnnouncementStateDto } from '../dto/announcements.dto'
 
 interface FastifyRequest {
@@ -33,13 +39,13 @@ export class UserNotificationsController {
     private readonly getUserNotificationsUseCase: GetUserNotificationsUseCase,
     private readonly updateAnnouncementStateUseCase: UpdateAnnouncementStateUseCase,
     private readonly markNotificationReadUseCase: MarkNotificationReadUseCase,
+    private readonly registerDeviceTokenUseCase: RegisterDeviceTokenUseCase,
+    private readonly unregisterDeviceTokenUseCase: UnregisterDeviceTokenUseCase,
   ) {}
 
   @Get()
   async getNotifications(@Req() req: FastifyRequest) {
-    if (!req.user?.id) {
-      throw new UnauthorizedException()
-    }
+    if (!req.user?.id) throw new UnauthorizedException()
     return { data: await this.getUserNotificationsUseCase.execute(req.user.id) }
   }
 
@@ -49,9 +55,7 @@ export class UserNotificationsController {
     @Req() req: FastifyRequest,
     @Body() dto: UpdateAnnouncementStateDto,
   ) {
-    if (!req.user?.id) {
-      throw new UnauthorizedException()
-    }
+    if (!req.user?.id) throw new UnauthorizedException()
     return {
       data: await this.updateAnnouncementStateUseCase.execute({
         ...dto,
@@ -63,9 +67,30 @@ export class UserNotificationsController {
   @Patch(':id/read')
   @HttpCode(HttpStatus.OK)
   async markAsRead(@Req() req: FastifyRequest, @Param('id') id: string) {
-    if (!req.user?.id) {
-      throw new UnauthorizedException()
-    }
+    if (!req.user?.id) throw new UnauthorizedException()
     return { data: await this.markNotificationReadUseCase.execute(id) }
   }
+
+  /** Register a device push token (called on app launch after permission granted) */
+  @Post('device-token')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async registerToken(
+    @Req() req: FastifyRequest,
+    @Body() body: { token: string; platform: string },
+  ) {
+    if (!req.user?.id) throw new UnauthorizedException()
+    await this.registerDeviceTokenUseCase.execute(req.user.id, body.token, body.platform)
+  }
+
+  /** Unregister a device token (called on logout) */
+  @Delete('device-token')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async unregisterToken(
+    @Req() req: FastifyRequest,
+    @Body() body: { token: string },
+  ) {
+    if (!req.user?.id) throw new UnauthorizedException()
+    await this.unregisterDeviceTokenUseCase.execute(req.user.id, body.token)
+  }
 }
+

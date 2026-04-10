@@ -231,9 +231,41 @@ model upward_user {
   properties   upward_user_property[]
   contracts    upward_user_contract[]
   authSessions upward_auth_session[]
+  supportTickets upward_support_ticket[]
+  deviceTokens upward_device_token[]
 
   @@index([email])
   @@index([createdAt])
+}
+
+model upward_device_token {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   // FCM / APNs token
+  platform  String   // android | ios | web
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, token])
+  @@index([userId])
+}
+
+model upward_support_ticket {
+  id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid())
+  userId    Int
+  message   String   @db.Text
+  status    String   @default("OPEN") // OPEN, RESOLVED
+  resolvedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
 }
 
 model upward_saved_landlord {
@@ -287,6 +319,7 @@ model upward_announcement {
   title     String
   message   String   @db.Text
   iconType  String   @default("sparkles") // sparkles, clock, target, etc.
+  url       String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

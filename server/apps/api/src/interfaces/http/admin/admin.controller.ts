@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common'
 import { CreateWaitlistEntryDto, AdminRole } from '@upward/shared-types'
 import { AuthenticatedRequest } from '../../../application/auth/interfaces/authenticated-request.interface'
-import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
+import { AdminJwtAuthGuard } from '../../../application/auth/guards/admin-jwt-auth.guard'
 import { RolesGuard } from '../../../application/auth/guards/roles.guard'
 import { Roles } from '../../../application/auth/decorators/roles.decorator'
 
@@ -23,6 +23,7 @@ import { DeleteAdminUseCase } from '../../../application/use-cases/admin/delete-
 import { PromoteAdminUseCase } from '../../../application/use-cases/admin/promote-admin.use-case'
 import { DemoteAdminUseCase } from '../../../application/use-cases/admin/demote-admin.use-case'
 import { ChangeAdminPasswordUseCase } from '../../../application/use-cases/admin/change-admin-password.use-case'
+import { SearchUsersUseCase } from '../../../application/use-cases/admin/search-users.use-case'
 
 import { GetWaitlistUseCase } from '../../../application/use-cases/waitlist/get-waitlist.use-case'
 import { UpdateWaitlistUserUseCase } from '../../../application/use-cases/waitlist/update-waitlist-user.use-case'
@@ -54,7 +55,7 @@ import { ResolveErrorUseCase } from '../../../application/use-cases/system/resol
 import { ClearErrorLogsUseCase } from '../../../application/use-cases/system/clear-error-logs.use-case'
 
 @Controller('admin')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(AdminJwtAuthGuard, RolesGuard)
 export class AdminController {
   constructor(
     private readonly getAdminsUseCase: GetAdminsUseCase,
@@ -87,7 +88,13 @@ export class AdminController {
     private readonly getErrorLogsUseCase: GetErrorLogsUseCase,
     private readonly resolveErrorUseCase: ResolveErrorUseCase,
     private readonly clearErrorLogsUseCase: ClearErrorLogsUseCase,
+    private readonly searchUsersUseCase: SearchUsersUseCase,
   ) {}
+
+  @Get('users/search')
+  async searchUsers(@Query('q') query: string) {
+    return { data: await this.searchUsersUseCase.execute(query) }
+  }
 
   @Get('users')
   async getAllUsers(

@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { HelpCircle, Send, Mail, Clock } from 'lucide-react'
+import { HelpCircle, Send, CheckCircle2 } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
+import { api } from '@/lib/api'
 
 type Tab = 'faq' | 'issue'
 
@@ -11,14 +12,26 @@ export function HelpContent() {
   const [issueText, setIssueText] = useState('')
   const [submitted, setSubmitted] = useState(false)
 
-  const handleIssueSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleIssueSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!issueText.trim()) return
-    setSubmitted(true)
-    setTimeout(() => {
-      setSubmitted(false)
-      setIssueText('')
-    }, 3000)
+    if (!issueText.trim() || isSubmitting) return
+    
+    setIsSubmitting(true)
+    try {
+      await api.createSupportTicket(issueText)
+      
+      setSubmitted(true)
+      setTimeout(() => {
+        setSubmitted(false)
+        setIssueText('')
+      }, 3000)
+    } catch (error) {
+      console.error('Failed to submit ticket:', error)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const faqs = [
@@ -243,4 +256,3 @@ export function HelpContent() {
     </div>
   )
 }
-import { CheckCircle2 } from 'lucide-react'

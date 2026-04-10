@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsBoolean } from 'class-validator'
+import { IsNotEmpty, IsString, IsOptional, IsBoolean, IsNumber } from 'class-validator'
 
 export class CreateAnnouncementDto {
   @IsString()
@@ -12,12 +12,16 @@ export class CreateAnnouncementDto {
   @IsString()
   @IsOptional()
   iconType?: string = 'sparkles'
+
+  @IsString()
+  @IsOptional()
+  url?: string
 }
 
 export class UpdateAnnouncementStateDto {
-  @IsString()
+  @IsNumber()
   @IsNotEmpty()
-  announcementId!: string
+  announcementId!: number
 
   @IsBoolean()
   @IsOptional()

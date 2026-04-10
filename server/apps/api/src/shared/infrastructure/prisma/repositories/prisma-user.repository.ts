@@ -60,6 +60,11 @@ export class PrismaUserRepository implements UserRepository {
     return record ? this.toDomain(record) : null
   }
 
+  async findAll(): Promise<User[]> {
+    const records = await this.prisma.upward_user.findMany()
+    return records.map((record) => this.toDomain(record))
+  }
+
   async save(user: User): Promise<User> {
     const record = await this.prisma.upward_user.create({
       data: {

@@ -4,6 +4,7 @@ export interface Announcement {
   title: string
   message: string
   iconType: string
+  url?: string
   isActive: boolean
   createdAt: Date
   updatedAt: Date
@@ -41,6 +42,7 @@ export interface NotificationRepository {
     title: string
     message: string
     iconType: string
+    url?: string
   }): Promise<Announcement>
   findActiveAnnouncement(): Promise<Announcement | null>
   findAllAnnouncements(): Promise<Announcement[]>
