@@ -16,12 +16,14 @@ export class PrismaNotificationRepository implements NotificationRepository {
     title: string
     message: string
     iconType: string
+    url?: string
   }): Promise<Announcement> {
     const record = await this.prisma.upward_announcement.create({
       data: {
         title: data.title,
         message: data.message,
         iconType: data.iconType,
+        url: data.url,
         isActive: true,
       },
     })

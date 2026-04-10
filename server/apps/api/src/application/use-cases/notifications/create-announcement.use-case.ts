@@ -11,7 +11,7 @@ export class CreateAnnouncementUseCase {
     private readonly notificationRepository: NotificationRepository,
   ) {}
 
-  async execute(data: { title: string; message: string; iconType: string }) {
+  async execute(data: { title: string; message: string; iconType: string; url?: string }) {
     // 1. Deactivate all existing announcements
     await this.notificationRepository.deactivateAllAnnouncements()
 

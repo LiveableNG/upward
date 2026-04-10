@@ -4,6 +4,7 @@ import {
   NotificationRepository,
 } from '../../../domains/notifications/notification.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import { SendPushToUserUseCase } from '../push/push.use-cases'
 
 @Injectable()
 export class GetAdminAnnouncementsUseCase {
@@ -24,16 +25,26 @@ export class SendNotificationUseCase {
     private readonly notificationRepository: NotificationRepository,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepository,
+    private readonly sendPushToUser: SendPushToUserUseCase,
   ) {}
 
   async execute(data: { userId: string; title: string; message: string; type: string }) {
     const user = await this.userRepository.findByUuid(data.userId)
     if (!user) throw new Error('User not found')
 
-    return this.notificationRepository.createNotification({
+    const notification = await this.notificationRepository.createNotification({
       ...data,
       userId: user.id!,
     })
+
+    // Fire-and-forget push notification
+    this.sendPushToUser.execute(user.id!, {
+      title: data.title,
+      body: data.message,
+      data: { type: data.type, notificationId: String(notification.id) },
+    }).catch(() => { /* silent – push is best-effort */ })
+
+    return notification
   }
 }
 
@@ -102,7 +113,7 @@ export class UpdateAnnouncementStateUseCase {
 
   async execute(data: {
     userId: string
-    announcementId: string
+    announcementId: number
     seenPopup?: boolean
     interactedPopup?: boolean
     seenBanner?: boolean
@@ -114,7 +125,7 @@ export class UpdateAnnouncementStateUseCase {
     return this.notificationRepository.upsertAnnouncementState({
       ...data,
       userId: user.id!,
-      announcementId: Number(data.announcementId),
+      announcementId: data.announcementId,
     })
   }
 }

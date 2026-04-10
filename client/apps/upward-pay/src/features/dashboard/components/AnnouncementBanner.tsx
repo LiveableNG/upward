@@ -42,12 +42,26 @@ export function AnnouncementBanner() {
 
   return (
     <div className="dashboard__announcement-row">
-      <div
-        className="dashboard__announcement-content"
-        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-      >
-        {ICON_MAP[announcement.iconType] || <Info size={14} color="var(--clay)" />}
-        <p style={{ margin: 0 }}>{announcement.title}</p>
+      <div className="dashboard__announcement-content">
+        {announcement.url ? (
+          <a
+            href={announcement.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'inherit' }}
+            onClick={() => {
+              dismissMutation.mutate({ announcementId: announcement.id, interactedBanner: true })
+            }}
+          >
+            {ICON_MAP[announcement.iconType] || <Info size={14} color="var(--clay)" />}
+            <p style={{ margin: 0, textDecoration: 'underline' }}>{announcement.title}</p>
+          </a>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {ICON_MAP[announcement.iconType] || <Info size={14} color="var(--clay)" />}
+            <p style={{ margin: 0 }}>{announcement.title}</p>
+          </div>
+        )}
       </div>
       <button className="dashboard__announcement-close" onClick={handleDismiss}>
         <X size={14} />

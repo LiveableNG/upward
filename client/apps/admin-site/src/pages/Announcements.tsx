@@ -8,6 +8,7 @@ interface Announcement {
   title: string
   message: string
   iconType: string
+  url?: string
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -27,18 +28,40 @@ const Announcements: React.FC<AnnouncementsProps> = ({ token }) => {
     title: '',
     message: '',
     iconType: 'sparkles',
+    url: '',
   })
 
   const [directNotification, setDirectNotification] = useState({
-    tenantId: '',
+    userId: '',
     title: '',
     message: '',
     type: 'SYSTEM',
   })
 
+  // User search states
+  const [userSearchQuery, setUserSearchQuery] = useState('')
+  const [userSearchResults, setUserSearchResults] = useState<{id: string, name: string, email: string}[]>([])
+
   useEffect(() => {
     fetchAnnouncements()
   }, [token])
+
+  const handleUserSearch = async (query: string) => {
+    setUserSearchQuery(query)
+    setDirectNotification(prev => ({ ...prev, userId: '' })) // Clear selection if typing
+    
+    if (query.length < 2) {
+      setUserSearchResults([])
+      return
+    }
+
+    try {
+      const result = await apiService.get(`/admin/users/search?q=${encodeURIComponent(query)}`, token)
+      setUserSearchResults(result.data || [])
+    } catch (err) {
+      console.error('User search failed', err)
+    }
+  }
 
   const fetchAnnouncements = async () => {
     try {
@@ -58,7 +81,7 @@ const Announcements: React.FC<AnnouncementsProps> = ({ token }) => {
       await apiService.post('/admin/notifications/announcements', newAnnouncement, token)
       fetchAnnouncements()
       setShowCreateModal(false)
-      setNewAnnouncement({ title: '', message: '', iconType: 'sparkles' })
+      setNewAnnouncement({ title: '', message: '', iconType: 'sparkles', url: '' })
       showToast('Announcement broadcasted successfully!')
     } catch (err) {
       console.error(err)
@@ -71,7 +94,9 @@ const Announcements: React.FC<AnnouncementsProps> = ({ token }) => {
     try {
       await apiService.post('/admin/notifications/direct', directNotification, token)
       setShowDirectModal(false)
-      setDirectNotification({ tenantId: '', title: '', message: '', type: 'SYSTEM' })
+      setDirectNotification({ userId: '', title: '', message: '', type: 'SYSTEM' })
+      setUserSearchQuery('')
+      setUserSearchResults([])
       showToast('Direct notification sent!')
     } catch (err) {
       console.error(err)
@@ -282,6 +307,22 @@ const Announcements: React.FC<AnnouncementsProps> = ({ token }) => {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)' }}>
+                    Action URL (Optional)
+                  </label>
+                  <input
+                    type="url"
+                    value={newAnnouncement.url || ''}
+                    onChange={(e) =>
+                      setNewAnnouncement({ ...newAnnouncement, url: e.target.value })
+                    }
+                    placeholder="https://example.com"
+                    className="input"
+                    style={{ width: '100%', padding: '12px', borderRadius: '10px' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)' }}>
                     Message Content
                   </label>
                   <textarea
@@ -401,7 +442,7 @@ const Announcements: React.FC<AnnouncementsProps> = ({ token }) => {
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)' }}>
-                    Tenant ID
+                    Recipient Tenant
                   </label>
                   <div style={{ position: 'relative' }}>
                     <Search
@@ -417,18 +458,56 @@ const Announcements: React.FC<AnnouncementsProps> = ({ token }) => {
                     <input
                       required
                       type="text"
-                      value={directNotification.tenantId}
-                      onChange={(e) =>
-                        setDirectNotification({ ...directNotification, tenantId: e.target.value })
-                      }
-                      placeholder="Paste User/Tenant ID here"
+                      value={userSearchQuery}
+                      onChange={(e) => handleUserSearch(e.target.value)}
+                      placeholder="Search by name or email..."
                       className="input"
                       style={{
                         width: '100%',
                         padding: '12px 12px 12px 38px',
                         borderRadius: '10px',
+                        borderColor: directNotification.userId ? 'var(--success)' : 'var(--border)'
                       }}
                     />
+                    
+                    {userSearchResults.length > 0 && (
+                      <div style={{ 
+                        position: 'absolute', 
+                        top: '100%', 
+                        left: 0, 
+                        right: 0, 
+                        backgroundColor: 'white', 
+                        border: '1px solid var(--border)', 
+                        borderRadius: '10px', 
+                        marginTop: '4px', 
+                        boxShadow: 'var(--shadow-lg)', 
+                        zIndex: 10,
+                        maxHeight: '200px',
+                        overflowY: 'auto'
+                      }}>
+                        {userSearchResults.map(user => (
+                          <div 
+                            key={user.id} 
+                            onClick={() => {
+                              setDirectNotification({ ...directNotification, userId: user.id })
+                              setUserSearchQuery(`${user.name} (${user.email})`)
+                              setUserSearchResults([])
+                            }}
+                            style={{ 
+                              padding: '12px', 
+                              cursor: 'pointer', 
+                              borderBottom: '1px solid var(--border)',
+                              transition: 'var(--transition)'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--surface)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <div style={{ fontWeight: 600, fontSize: '14px' }}>{user.name}</div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{user.email}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 

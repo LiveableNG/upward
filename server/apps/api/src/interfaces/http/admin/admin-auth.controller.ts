@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common'
 import { AdminAuthService } from '../../../application/auth/admin-auth.service'
 import { AdminLogService } from '../../../shared/infrastructure/admin-log/admin-log.service'
-import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
+import { AdminJwtAuthGuard } from '../../../application/auth/guards/admin-jwt-auth.guard'
 import { AdminRole } from '@upward/shared-types'
 
 // Fastify request/reply types (lightweight inline)
@@ -103,7 +103,7 @@ export class AdminAuthController {
   }
 
   @Post('logout')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminJwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async logout(@Req() req: AuthenticatedRequest, @Res({ passthrough: false }) reply: FastifyReply) {
     await this.adminLogService.logAction(

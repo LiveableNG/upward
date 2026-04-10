@@ -13,6 +13,7 @@ import { CreateAdminUseCase } from './use-cases/admin/create-admin.use-case'
 import { DemoteAdminUseCase } from './use-cases/admin/demote-admin.use-case'
 import { PromoteAdminUseCase } from './use-cases/admin/promote-admin.use-case'
 import { ChangeAdminPasswordUseCase } from './use-cases/admin/change-admin-password.use-case'
+import { SearchUsersUseCase } from './use-cases/admin/search-users.use-case'
 
 import { JoinWaitlistUseCase } from './use-cases/waitlist/join-waitlist.use-case'
 import { GetWaitlistUseCase } from './use-cases/waitlist/get-waitlist.use-case'
@@ -99,6 +100,14 @@ import { UploadContractUseCase } from './use-cases/contracts/upload-contract.use
 import { GetContractsUseCase } from './use-cases/contracts/get-contracts.use-case'
 import { DeleteContractUseCase } from './use-cases/contracts/delete-contract.use-case'
 
+import { CreateSupportTicketUseCase } from './use-cases/support/create-support-ticket.use-case'
+import { GetUserTicketsUseCase } from './use-cases/support/get-user-tickets.use-case'
+import { GetAllTicketsUseCase } from './use-cases/support/get-all-tickets.use-case'
+import { ResolveTicketUseCase } from './use-cases/support/resolve-ticket.use-case'
+import { RegisterDeviceTokenUseCase, UnregisterDeviceTokenUseCase, SendPushToUserUseCase } from './use-cases/push/push.use-cases'
+import { PushNotificationService } from '../shared/infrastructure/common/push-notification.service'
+import { PrismaDeviceTokenRepository } from '../shared/infrastructure/prisma/repositories/prisma-device-token.repository'
+
 
 const UseCases = [
   DeleteAdminUseCase,
@@ -107,6 +116,7 @@ const UseCases = [
   DemoteAdminUseCase,
   PromoteAdminUseCase,
   ChangeAdminPasswordUseCase,
+  SearchUsersUseCase,
   JoinWaitlistUseCase,
   GetWaitlistUseCase,
   UpdateWaitlistUserUseCase,
@@ -181,6 +191,15 @@ const UseCases = [
   UploadContractUseCase,
   GetContractsUseCase,
   DeleteContractUseCase,
+
+  CreateSupportTicketUseCase,
+  GetUserTicketsUseCase,
+  GetAllTicketsUseCase,
+  ResolveTicketUseCase,
+
+  RegisterDeviceTokenUseCase,
+  UnregisterDeviceTokenUseCase,
+  SendPushToUserUseCase,
 ]
 
 @Module({
@@ -190,8 +209,10 @@ const UseCases = [
     EmailLogEventHandler,
     InteractionHandler,
     WebhookService,
+    PushNotificationService,
+    PrismaDeviceTokenRepository,
     ...UseCases,
   ],
-  exports: [WebhookService, ...UseCases],
+  exports: [WebhookService, PushNotificationService, PrismaDeviceTokenRepository, ...UseCases],
 })
 export class ApplicationModule { }

@@ -15,6 +15,8 @@ import { AdminAnnouncementsController } from './admin/announcements.controller'
 import { UserNotificationsController } from './user/notifications.controller'
 import { ContractController } from './user/contract.controller'
 import { PublicProfileController } from './public/public-profile.controller'
+import { UserSupportController } from './user/support.controller'
+import { AdminSupportController } from './admin/support.controller'
 import { ExternalInviteController } from './external/external-invite.controller'
 import { InviteController } from './public/invite.controller'
 import { PlatformAdminController } from './external/platform-invite.controller'
@@ -40,6 +42,8 @@ import { ExternalPaymentController } from './external/external-payment.controlle
     InviteController,
     PlatformAdminController,
     ExternalPaymentController,
+    UserSupportController,
+    AdminSupportController,
   ],
 })
 export class HttpModule {}

@@ -60,6 +60,7 @@ export function AnnouncementManager() {
       title={activeAnnouncement.title}
       message={activeAnnouncement.message}
       iconType={activeAnnouncement.iconType}
+      url={activeAnnouncement.url}
       onClose={handleClosePopup}
     />
   )
