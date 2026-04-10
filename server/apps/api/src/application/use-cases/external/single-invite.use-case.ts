@@ -87,16 +87,14 @@ export class SingleInviteUseCase {
   async execute(payload: InviteRequest, platformId?: number): Promise<any> {
     const result = await this.setupInviteContext(payload, platformId);
     
-    return [
-      {
-        userId: result.user.uuid,
-        managerId: result.manager.uuid,
-        companyId: result.company.uuid,
-        userPropertyUuid: result.property.uuid,
-        email: result.user.email,
-        inviteLink: urls[0] + `/invite/${result.user.uuid}`
-      }
-    ]
+    return {
+      userId: result.user.uuid,
+      managerId: result.manager.uuid,
+      companyId: result.company.uuid,
+      userPropertyUuid: result.property.uuid,
+      email: result.user.email,
+      inviteLink: urls[0] + `/invite/${result.user.uuid}`
+    }
   }
 
   async setupInviteContext(payload: InviteRequest, platformId?: number): Promise<{
@@ -185,7 +183,6 @@ export class SingleInviteUseCase {
       } as any)
     }
 
-    // 4. Link User to Company
     const existingLink = await this.companyUserRepository.findByCompanyAndUser(company.id!, user.id!)
 
     if (!existingLink) {
@@ -198,7 +195,6 @@ export class SingleInviteUseCase {
       await this.companyUserRepository.update(existingLink.id!, { invitedAt: new Date() })
     }
 
-    // 5. Create Location and Property
     const locData = invite.property.location
     const rentData = invite.property.rent
 
@@ -206,30 +202,48 @@ export class SingleInviteUseCase {
       throw new BadRequestException('Rent amount and rent end date are compulsory for invitation');
     }
 
-    const location = await this.locationRepository.save({
-      uuid: randomUUID(),
-      country: locData.country || 'Nigeria',
-      state: locData.state || '',
-      area: locData.area || '',
-      subarea: locData.subarea || '',
-      address: locData.address || '',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as any)
+    const existingProperties = await this.propertyRepository.findByUserId(user.id!)
+    let property = existingProperties.find((p: any) => p.companyId === company.id!)
+    let location: any
 
-    const property = await this.propertyRepository.save({
-      uuid: randomUUID(),
-      userId: user.id!,
-      companyId: company.id!,
-      managerId: manager.id!,
-      locationId: location.id!,
-      rentAmount: rentData.rentAmount,
-      rentEndDate: new Date(rentData.rentEndDate),
-      rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : undefined,
-      currency: (rentData as any).currency || 'NGN',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as any)
+    if (property) {
+      if (property.locationId) {
+        location = await this.locationRepository.findById(property.locationId)
+      }
+      // If we need to update property rent amount, we could do it here
+      if (property.rentAmount !== rentData.rentAmount) {
+        property = await this.propertyRepository.update(property.id!, { rentAmount: rentData.rentAmount })
+      }
+    }
+
+    if (!property || !location) {
+      location = location || await this.locationRepository.save({
+        uuid: randomUUID(),
+        country: locData.country || 'Nigeria',
+        state: locData.state || '',
+        area: locData.area || '',
+        subarea: locData.subarea || '',
+        address: locData.address || '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+
+      if (!property) {
+        property = await this.propertyRepository.save({
+          uuid: randomUUID(),
+          userId: user.id!,
+          companyId: company.id!,
+          managerId: manager.id!,
+          locationId: location.id!,
+          rentAmount: rentData.rentAmount,
+          rentEndDate: new Date(rentData.rentEndDate),
+          rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : undefined,
+          currency: (rentData as any).currency || 'NGN',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        } as any)
+      }
+    }
 
     return { user, company, manager, property, location }
   }

@@ -19,6 +19,7 @@ import {
   PrismaPropertyRepository,
   PrismaLocationRepository,
 } from './repositories/prisma-property.repository'
+import { PrismaContractRepository } from './repositories/prisma-contract.repository'
 import { PaystackGateway } from '../../../domains/payments/paystack.gateway'
 import { WAITLIST_REPOSITORY } from '../../../domains/waitlist/waitlist.repository'
 import { USER_REPOSITORY } from '../../../domains/users/user.repository'
@@ -42,6 +43,7 @@ import {
 } from '../../../domains/companies/property.repository'
 import { PrismaNotificationRepository } from './repositories/prisma-notification.repository'
 import { NOTIFICATION_REPOSITORY } from '../../../domains/notifications/notification.repository'
+import { CONTRACT_REPOSITORY } from '../../../domains/contracts/contract.repository'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Global()
@@ -109,6 +111,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: WEBHOOK_REPOSITORY,
       useClass: PrismaWebhookRepository,
     },
+    {
+      provide: CONTRACT_REPOSITORY,
+      useClass: PrismaContractRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -128,6 +134,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     LOCATION_REPOSITORY,
     SUBACCOUNT_REPOSITORY,
     WEBHOOK_REPOSITORY,
+    CONTRACT_REPOSITORY,
   ],
 })
 export class PrismaModule {}

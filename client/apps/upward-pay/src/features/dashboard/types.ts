@@ -38,12 +38,12 @@ export interface SavedLandlord {
 }
 
 export interface ContractData {
-  id: string
-  name: string
-  url: string
+  uuid: string
+  fileName: string
+  fileUrl: string
   createdAt: string
-  size: number
-  type: string
+  fileSize: number
+  fileType: string
   propertyName?: string
   leaseEnd?: string
 }

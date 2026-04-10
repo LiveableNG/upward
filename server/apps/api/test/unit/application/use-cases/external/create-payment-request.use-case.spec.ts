@@ -144,7 +144,7 @@ describe('CreateExternalPaymentRequestUseCase', () => {
       findById: jest.fn(),
       findByUuid: jest.fn(),
       findByUserId: jest.fn(),
-      findByUserIdAndStatus: jest.fn(),
+      findByUserIdAndStatus: jest.fn().mockResolvedValue([]),
       update: jest.fn(),
     } as any
 
@@ -442,7 +442,7 @@ describe('CreateExternalPaymentRequestUseCase', () => {
   // ─── Return Value ──────────────────────────────────────────────────────────
 
   describe('Return value', () => {
-    it('should return success=true with paymentUuid and paymentLink', async () => {
+    it('should return paymentUuid and paymentLink', async () => {
       propertyRepository.findByUuid.mockResolvedValue(makeProperty())
       paymentRequestRepository.create.mockResolvedValue(makePaymentRequest())
       userRepository.findById.mockResolvedValue(makeUser())
@@ -454,10 +454,7 @@ describe('CreateExternalPaymentRequestUseCase', () => {
       )
 
       expect(result).toMatchObject({
-        success: true,
-        data: {
-          paymentUuid: 'pay-req-uuid-001',
-        },
+        paymentUuid: 'pay-req-uuid-001',
       })
     })
   })

@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service'
 import * as bcrypt from 'bcrypt'
+import * as crypto from 'crypto'
 import { AdminRole, AdminJwtPayload, AdminAuthResponse } from '@upward/shared-types'
 import { BaseAuthService } from './base-auth.service'
 
@@ -41,7 +42,8 @@ export class AdminAuthService extends BaseAuthService {
     }
 
     const accessToken = this.jwtService.sign(payload)
-    const refreshToken = this.generateRefreshToken(payload)
+    const sid = crypto.randomUUID()
+    const refreshToken = this.generateRefreshToken({ ...payload, sub: String(admin.id), sid })
 
     return {
       accessToken,
@@ -78,7 +80,8 @@ export class AdminAuthService extends BaseAuthService {
     }
 
     const newAccessToken = this.generateAccessToken(payload)
-    const newRefreshToken = this.generateRefreshToken(payload)
+    const sid = decoded.sid || crypto.randomUUID()
+    const newRefreshToken = this.generateRefreshToken({ ...payload, sub: String(admin.id), sid })
 
     return {
       accessToken: newAccessToken,

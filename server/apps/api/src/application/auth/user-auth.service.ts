@@ -20,6 +20,56 @@ export class UserAuthService extends BaseAuthService {
     super(jwtService, configService)
   }
 
+  async generateFullAuthResponse(user: User): Promise<UserAuthResponse & { refreshToken: string }> {
+    const payload = {
+      sub: user.uuid,
+      email: user.email,
+    }
+
+    const accessToken = this.generateAccessToken(payload)
+    // Cleanup expired sessions for this user
+    await this.prisma.upward_auth_session.deleteMany({
+      where: {
+        userId: user.id!,
+        expiresAt: { lt: new Date() },
+      },
+    })
+
+    // Limit active sessions to 5
+    const activeSessions = await this.prisma.upward_auth_session.findMany({
+      where: { userId: user.id! },
+      orderBy: { expiresAt: 'desc' },
+      select: { id: true },
+    })
+
+    if (activeSessions.length >= 5) {
+      const sessionsToDelete = activeSessions.slice(4).map(s => s.id)
+      await this.prisma.upward_auth_session.deleteMany({
+        where: { id: { in: sessionsToDelete } },
+      })
+    }
+
+    // Create New Session
+    const sid = crypto.randomUUID()
+    const refreshToken = this.generateRefreshToken({ sub: user.uuid, sid })
+    await this.prisma.upward_auth_session.create({
+      data: {
+        id: sid,
+        userId: user.id!,
+        refreshTokenHash: this.hashToken(refreshToken),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      }
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash: _, ...userNoPass } = user
+    return {
+      accessToken,
+      refreshToken,
+      user: userNoPass as any,
+    }
+  }
+
   async signup(dto: {
     email: string
     password: string
@@ -71,28 +121,11 @@ export class UserAuthService extends BaseAuthService {
     }
 
     const accessToken = this.generateAccessToken(payload)
-    const refreshToken = this.generateRefreshToken(user.uuid)
-
-    const { passwordHash: _, ...userNoPass } = user
-
-    // Create/Sync properties
-    const propertyList = dto.properties || []
-    if (dto.address || dto.rentEndDate) {
-      propertyList.push({
-        address: dto.address || '',
-        rentEndDate: dto.rentEndDate || '',
-      })
+    if (dto.properties && dto.properties.length > 0) {
+      await this.syncProperties(user.id!, dto.properties)
     }
 
-    if (propertyList.length > 0) {
-      await this.syncProperties(user.id!, propertyList)
-    }
-
-    return {
-      accessToken,
-      refreshToken,
-      user: userNoPass as any,
-    }
+    return this.generateFullAuthResponse(user)
   }
 
   async login(
@@ -115,41 +148,74 @@ export class UserAuthService extends BaseAuthService {
       email: user.email,
     }
 
-    const accessToken = this.generateAccessToken(payload)
-    const refreshToken = this.generateRefreshToken(user.uuid)
-
-    const { passwordHash: _, ...userNoPass } = user
-    return {
-      accessToken,
-      refreshToken,
-      user: userNoPass as any,
-    }
+    return this.generateFullAuthResponse(user)
   }
 
   async refreshAccessToken(
     refreshToken: string,
   ): Promise<UserAuthResponse & { refreshToken: string }> {
     const decoded = await this.verifyRefreshToken(refreshToken)
+    const sid = decoded.sid
+
+    if (!sid) {
+      throw new UnauthorizedException('Invalid token structure')
+    }
+
+    const session = await this.prisma.upward_auth_session.findUnique({
+      where: { id: sid },
+    })
+
+    if (!session || session.isRevoked) {
+      throw new UnauthorizedException('Session expired or revoked')
+    }
+
+    // REUSE DETECTION
+    const incomingHash = this.hashToken(refreshToken)
+    if (session.refreshTokenHash !== incomingHash) {
+      // Token reused! Revoke the entire session for safety
+      await this.prisma.upward_auth_session.update({
+        where: { id: sid },
+        data: { isRevoked: true },
+      })
+      throw new UnauthorizedException('Token reuse detected')
+    }
 
     const user = await this.userRepository.findByUuid(decoded.sub)
-
     if (!user) {
       throw new UnauthorizedException('User not found')
     }
 
-    const payload = {
-      sub: user.uuid,
-      email: user.email,
-    }
-
-    const newAccessToken = this.generateAccessToken(payload)
-    const newRefreshToken = this.generateRefreshToken(user.uuid)
+    // Rotate the token
+    const newAccessToken = this.generateAccessToken({ sub: user.uuid, email: user.email })
+    const newRefreshToken = this.generateRefreshToken({ sub: user.uuid, sid })
+    
+    await this.prisma.upward_auth_session.update({
+      where: { id: sid },
+      data: {
+        refreshTokenHash: this.hashToken(newRefreshToken),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      }
+    })
 
     const { passwordHash: _, ...userNoPass } = user
     return {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,
       user: userNoPass as any,
+    }
+  }
+
+  async revokeSession(refreshToken: string): Promise<void> {
+    try {
+      const decoded = await this.verifyRefreshToken(refreshToken)
+      if (decoded.sid) {
+        await this.prisma.upward_auth_session.update({
+          where: { id: decoded.sid },
+          data: { isRevoked: true },
+        })
+      }
+    } catch {
+      // Ignore errors during logout
     }
   }
 

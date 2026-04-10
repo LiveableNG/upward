@@ -3,8 +3,7 @@ import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.serv
 import { UserRepository, USER_REPOSITORY, User } from '../../../domains/users/user.repository'
 import { WAITLIST_REPOSITORY, WaitlistRepository } from '../../../domains/waitlist/waitlist.repository'
 import * as bcrypt from 'bcrypt'
-import { JwtService } from '@nestjs/jwt'
-import { ConfigService } from '@nestjs/config'
+import { UserAuthService } from '../../../application/auth/user-auth.service'
 import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
 
 @Injectable()
@@ -13,8 +12,7 @@ export class CompleteUserProfileUseCase {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    private readonly userAuthService: UserAuthService,
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(WAITLIST_REPOSITORY) private readonly waitlistRepository: WaitlistRepository,
@@ -103,24 +101,8 @@ export class CompleteUserProfileUseCase {
       await this.syncProperties(user.id!, properties)
     }
 
-    const payload = { sub: user.uuid, email: user.email }
-    const accessToken = this.jwtService.sign(payload, {
-      secret: this.configService.get('JWT_SECRET', 'super-secret-key'),
-      expiresIn: '1h',
-    })
-    const refreshToken = this.jwtService.sign(
-      { sub: user.id!, type: 'refresh' },
-      {
-        secret: this.configService.get('JWT_REFRESH_SECRET', 'super-refresh-secret-key'),
-        expiresIn: '7d',
-      },
-    )
-
-    return {
-      accessToken,
-      refreshToken,
-      user,
-    }
+    // Reuse UserAuthService login logic to create session and tokens
+    return this.userAuthService.generateFullAuthResponse(user)
   }
 
   private async syncProperties(userId: number, properties: Array<{

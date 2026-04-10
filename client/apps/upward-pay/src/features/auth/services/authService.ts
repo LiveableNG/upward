@@ -29,7 +29,11 @@ export async function login(data: { email: string; password: string }) {
 }
 
 export async function logout() {
-  return request<{ message: string }>('/user/auth/logout', { method: 'POST' })
+  return request<{ message: string }>('/user/auth/logout', { method: 'POST', body: JSON.stringify({}) })
+}
+
+export async function refreshToken() {
+  return request<AuthResponse>('/user/auth/refresh', { method: 'POST', body: JSON.stringify({}) })
 }
 
 export async function getMe() {

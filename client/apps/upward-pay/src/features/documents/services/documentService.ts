@@ -5,13 +5,21 @@ export async function getMyDocuments() {
 }
 
 export async function getContracts() {
-  return request<any[]>('/user/contracts', { method: 'GET' })
+  const res = await request<{ success: boolean; contracts: any[] }>('/user/contracts', { method: 'GET' })
+  return res.contracts || []
 }
 
 export async function uploadContract(formData: FormData) {
-  return request<any>('/user/contracts/upload', {
+  const res = await request<{ success: boolean; contract: any }>('/user/contracts/upload', {
     method: 'POST',
     body: formData,
     headers: {}, // Browser set boundary
+  })
+  return res.contract
+}
+
+export async function removeContract(uuid: string) {
+  return request<{ success: boolean; message: string }>(`/user/contracts/${uuid}`, {
+    method: 'DELETE',
   })
 }

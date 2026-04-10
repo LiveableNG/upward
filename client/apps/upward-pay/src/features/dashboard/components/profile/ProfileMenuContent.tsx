@@ -59,12 +59,12 @@ export function ProfileMenuContent() {
 
 
   async function loadDocuments() {
-    // try {
-    //   const data = await api.get('/user/contracts')
-    //   setContracts(data || [])
-    // } catch (err) {
-    //   console.error('Failed to load documents', err)
-    // }
+    try {
+      const data = await api.getContracts()
+      setContracts(data || [])
+    } catch (err) {
+      console.error('Failed to load documents', err)
+    }
   }
 
   async function handleSave() {
@@ -326,18 +326,18 @@ export function ProfileMenuContent() {
                   </div>
                   <div>
                     <h4 className="profile-hero__tenancy-title">Active Tenancy</h4>
-                    <p className="profile-hero__tenancy-property">{contracts[0].propertyName}</p>
+                    <p className="profile-hero__tenancy-property">{contracts[0].fileName}</p>
                   </div>
                 </div>
                 <div className="profile-hero__tenancy-footer">
                   <span className="profile-hero__tenancy-expiry">
-                    Expires {formatDate(contracts[0].leaseEnd || '')}
+                    Uploaded {formatDate(contracts[0].createdAt)}
                   </span>
                   <button
                     className="btn btn--secondary btn--sm"
                     onClick={() => router.push('/dashboard/contracts')}
                   >
-                    View & Download
+                    View & Manage
                   </button>
                 </div>
               </div>

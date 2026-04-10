@@ -229,6 +229,8 @@ model upward_user {
 
   companyUsers upward_company_user[]
   properties   upward_user_property[]
+  contracts    upward_user_contract[]
+  authSessions upward_auth_session[]
 
   @@index([email])
   @@index([createdAt])
@@ -464,6 +466,7 @@ model upward_user_property {
   location        upward_location?         @relation(fields: [locationId], references: [id])
 
   paymentRequests upward_payment_request[]
+  contracts       upward_user_contract[]
 }
 
 model upward_paystack_subaccount {
@@ -474,7 +477,7 @@ model upward_paystack_subaccount {
   subaccountCode  String   @unique
   businessName    String?
   createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+   updatedAt       DateTime @updatedAt
 
   @@unique([accountNumber, bankCode])
   @@index([accountNumber, bankCode])
@@ -502,4 +505,41 @@ model upward_webhook_log {
   @@index([platformId])
   @@index([status])
   @@index([createdAt])
+}
+
+model upward_user_contract {
+  id              Int      @id @default(autoincrement())
+  uuid            String   @unique @default(uuid())
+  userId          Int
+  userPropertyId  Int?
+  fileName        String
+  fileUrl         String   // The S3 Key
+  fileType        String   // mime type
+  fileSize        Int      // in bytes
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user         upward_user           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProperty upward_user_property? @relation(fields: [userPropertyId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userPropertyId])
+}
+
+model upward_auth_session {
+  id               String   @id @default(uuid())
+  userId           Int
+  refreshTokenHash String   @unique
+  userAgent        String?
+  ipAddress        String?
+  deviceId         String?
+  isRevoked        Boolean  @default(false)
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshTokenHash])
 }

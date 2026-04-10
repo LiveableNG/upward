@@ -70,29 +70,38 @@ export class CreateExternalPaymentRequestUseCase {
       }
     }
 
-    const paymentRequest = await this.paymentRequestRepository.create({
-      userId: property.userId,
-      userPropertyId: property.id,
-      amount: amount,
-      currency: currency,
-      description: payload.description,
-      lineItems: payload.lineItems || undefined,
-      dueDate: new Date(payload.dueDate),
-      status: 'PENDING',
-      reference: `EXT_${randomUUID()}_${Date.now()}`,
-      subaccountId: subaccountId,
-    })
+    const userPendingRequests = await this.paymentRequestRepository.findByUserIdAndStatus(property.userId, 'PENDING')
+    let paymentRequest = userPendingRequests.find(pr => 
+      pr.userPropertyId === property.id && 
+      pr.amount === amount &&
+      new Date(pr.dueDate).getTime() === new Date(payload.dueDate).getTime()
+    )
 
-    const user = await this.userRepository.findById(property.userId)
-    
-    if (user && user.passwordHash !== 'INVITED') {
-      await this.notificationRepository.createNotification({
-        userId: user.id!,
-        title: 'New Payment Request',
-        message: `You have a new payment request for ${paymentRequest.currency} ${paymentRequest.amount.toLocaleString()}. Description: ${paymentRequest.description || 'N/A'}`,
-        type: 'PAYMENT',
-        url: `/pay/${paymentRequest.uuid}`
+    if (!paymentRequest) {
+      paymentRequest = await this.paymentRequestRepository.create({
+        userId: property.userId,
+        userPropertyId: property.id,
+        amount: amount,
+        currency: currency,
+        description: payload.description,
+        lineItems: payload.lineItems || undefined,
+        dueDate: new Date(payload.dueDate),
+        status: 'PENDING',
+        reference: `EXT_${randomUUID()}_${Date.now()}`,
+        subaccountId: subaccountId,
       })
+
+      const user = await this.userRepository.findById(property.userId)
+      
+      if (user && user.passwordHash !== 'INVITED') {
+        await this.notificationRepository.createNotification({
+          userId: user.id!,
+          title: 'New Payment Request',
+          message: `You have a new payment request for ${paymentRequest.currency} ${paymentRequest.amount.toLocaleString()}. Description: ${paymentRequest.description || 'N/A'}`,
+          type: 'PAYMENT',
+          url: `/pay/${paymentRequest.uuid}`
+        })
+      }
     }
 
     return {

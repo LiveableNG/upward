@@ -6,6 +6,7 @@ import { Camera, Briefcase, Users, ArrowRight, SkipForward, Phone } from 'lucide
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { completeProfile } from '@/features/auth/services/authService'
 import { useAuth } from '@/features/auth/AuthContext'
+import { setAccessToken } from '@/lib/auth-token'
 
 export function CompleteProfileStep() {
   const router = useRouter()
@@ -37,6 +38,9 @@ export function CompleteProfileStep() {
         phone,
         profilePic,
       })
+      if (response.accessToken) {
+        setAccessToken(response.accessToken)
+      }
       
       updateAuthUser(response.user)
       router.push('/dashboard')
