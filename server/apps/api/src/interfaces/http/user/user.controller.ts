@@ -14,6 +14,7 @@ import {
 import { UserAuthService } from '../../../application/auth/user-auth.service'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import { CompleteUserProfileUseCase } from '../../../application/use-cases/user/complete-user-profile.use-case'
+import { CalculateRentScoreUseCase } from '../../../application/use-cases/user/calculate-rent-score.use-case'
 
 interface FastifyReply {
   setCookie(name: string, value: string, options: Record<string, unknown>): FastifyReply
@@ -61,6 +62,7 @@ export class UserController {
   constructor(
     private readonly userAuthService: UserAuthService,
     private readonly completeUserProfile: CompleteUserProfileUseCase,
+    private readonly calculateRentScore: CalculateRentScoreUseCase,
   ) { }
 
   @Post('signup')
@@ -150,6 +152,16 @@ export class UserController {
       throw new UnauthorizedException('No user in request')
     }
     return this.userAuthService.getProfile(req.user.id)
+  }
+
+  @Get('score-profile')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getScoreProfile(@Req() req: FastifyRequest) {
+    if (!req.user?.id) {
+      throw new UnauthorizedException('No user in request')
+    }
+    return this.calculateRentScore.execute(req.user.id)
   }
 
   @Patch('profile')
