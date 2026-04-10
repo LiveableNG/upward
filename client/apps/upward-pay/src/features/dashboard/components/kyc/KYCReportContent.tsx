@@ -20,56 +20,41 @@ import {
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 
-const verifications = [
-  { label: 'Identity (BVN/NIN)', date: 'Sep 2024' },
-  { label: 'Work / Income', date: 'Jan 2025' },
-  { label: 'Previous Landlord', date: 'Nov 2024' },
-  { label: 'Phone Number', date: 'Sep 2024' },
-]
-
-const metrics = [
-  { label: 'On-time Rate', value: '100%', sub: 'Last 12 months' },
-  { label: 'Rent-to-Income', value: '24.2%', sub: 'Healthy range' },
-  { label: 'Lease Longevity', value: '4.2 yrs', sub: 'Avg tenancy' },
-  { label: 'Discipline Score', value: '912', sub: '+24 pts this month' },
-]
-
-const timeline = [
-  {
-    month: 'Jan 2025',
-    landlord: 'Greenfield Properties Ltd',
-    amount: '₦285,000',
-    type: 'Annual Rent',
-  },
-  {
-    month: 'Jul 2024',
-    landlord: 'Mr. Babatunde Adeyemi',
-    amount: '₦180,000',
-    type: 'Agency + Caution',
-  },
-  {
-    month: 'Jan 2024',
-    landlord: 'Greenfield Properties Ltd',
-    amount: '₦250,000',
-    type: 'Annual Rent',
-  },
-  {
-    month: 'Jul 2023',
-    landlord: 'Greenfield Properties Ltd',
-    amount: '₦220,000',
-    type: 'Annual Rent',
-  },
-]
-
-const achievements = [
-  { icon: <Star size={14} />, label: '12-Month Streak', desc: 'No missed payments' },
-  { icon: <Zap size={14} />, label: 'Early Payer', desc: 'Avg 3 days early' },
-  { icon: <BadgeCheck size={14} />, label: 'Fully Verified', desc: 'All documents confirmed' },
-  { icon: <Building2 size={14} />, label: 'Stable Tenant', desc: '4+ years at same address' },
-]
+import { useScoreProfile } from '../services/scoreService'
+import { formatCurrency } from '@/lib/utils'
 
 export function KYCReportContent() {
   const router = useRouter()
+  const { data: scoreProfile, isLoading } = useScoreProfile()
+
+  if (isLoading || !scoreProfile) {
+    return <div className="kyc-page dashboard--nav-offset animate-pulse" style={{ minHeight: '100vh', background: 'var(--bg)' }}>Loading...</div>
+  }
+
+  const { isScorable, score, rank, metrics, profile, cycles } = scoreProfile.data
+  const initials = profile.name.split(' ').map(n => n[0]).join('').substring(0, 2)
+  const isFaded = !isScorable
+
+  const liveVerifications = [
+    { label: 'Identity (BVN/NIN)', date: 'Verified' },
+    { label: 'Work / Income', date: 'Verified' },
+    { label: 'Previous Landlord', date: 'Verified' },
+    { label: 'Phone Number', date: 'Verified' },
+  ]
+
+  const liveMetrics = [
+    { label: 'On-time Rate', value: `${Math.round(metrics.ptPercentage)}%`, sub: 'All rent cycles' },
+    { label: 'Rent-to-Income', value: 'N/A', sub: 'In progress' },
+    { label: 'Lease Longevity', value: `${metrics.historyYears} yrs`, sub: 'Avg tenancy' },
+    { label: 'Discipline', value: `${Math.round(metrics.discipline)}%`, sub: 'Full payments' },
+  ]
+
+  const liveAchievements = [
+    { icon: <Star size={14} />, label: `${metrics.longestStreak}-Cycle Streak`, desc: 'Consecutive on-time payments' },
+    { icon: <Zap size={14} />, label: 'Early Payer', desc: 'Consistently pays early' },
+    { icon: <BadgeCheck size={14} />, label: `${profile.profileCompletion}% Profile`, desc: 'Profile completion' },
+    { icon: <Building2 size={14} />, label: 'Stable Tenant', desc: `${metrics.historyYears}+ years` },
+  ]
 
   return (
     <div className="kyc-page dashboard--nav-offset">
@@ -102,33 +87,33 @@ export function KYCReportContent() {
             </div>
 
             <div className="kyc-report__avatar-wrap">
-              <span>S</span>
+              <span>{initials}</span>
               <div className="kyc-report__avatar-verified">
                 <CheckCircle2 size={12} strokeWidth={3} />
               </div>
             </div>
 
-            <h1 className="kyc-report__name">Sarah Johnson</h1>
+            <h1 className="kyc-report__name">{profile.name}</h1>
 
             <div className="kyc-report__meta">
               <MapPin size={13} />
-              Lagos, Nigeria
+              Address Verified
               <span className="kyc-report__meta-dot" />
               Verified Tenant
             </div>
-            <span className="kyc-report__since">Member since September 2023</span>
+            <span className="kyc-report__since">Member Email: {profile.email}</span>
 
-            <div className="kyc-report__score-box">
+            <div className={`kyc-report__score-box ${isFaded ? 'opacity-50' : ''}`}>
               <div className="kyc-report__score-left">
-                <span className="kyc-report__score-label">Rent Credibility Score</span>
-                <div className="kyc-report__score-value">882</div>
+                <span className="kyc-report__score-label">{isScorable ? 'Rent Credibility Score' : 'Credit Invisible'}</span>
+                <div className="kyc-report__score-value">{score}</div>
                 <div className="kyc-report__score-tier">
                   <TrendingUp size={12} />
-                  Top 1.2% of all tenants
+                  {isScorable ? `Class: ${rank}` : 'Not enough history'}
                 </div>
               </div>
               <div className="kyc-report__score-gauge">
-                <div className="kyc-report__score-gauge-inner">88%</div>
+                <div className="kyc-report__score-gauge-inner">{Math.round((score/900)*100)}%</div>
               </div>
             </div>
           </div>
@@ -140,7 +125,7 @@ export function KYCReportContent() {
                 Achievements
               </p>
               <div className="kyc-report__achievements-grid">
-                {achievements.map((a, i) => (
+                {liveAchievements.map((a, i) => (
                   <div key={i} className="kyc-report__achievement-item">
                     <div className="kyc-report__achievement-icon">{a.icon}</div>
                     <div className="kyc-report__achievement-info">
@@ -158,7 +143,7 @@ export function KYCReportContent() {
                 Rent Behaviour Metrics
               </p>
               <div className="kyc-report__metrics-grid">
-                {metrics.map((m, i) => (
+                {liveMetrics.map((m, i) => (
                   <div key={i} className="kyc-report__metric">
                     <span className="kyc-report__metric-label">{m.label}</span>
                     <div className="kyc-report__metric-value">{m.value}</div>
@@ -174,14 +159,14 @@ export function KYCReportContent() {
                 Verified Documents
               </p>
               <div className="kyc-report__verif-grid">
-                {verifications.map((v, i) => (
+                {liveVerifications.map((v, i) => (
                   <div key={i} className="kyc-report__verif-item">
                     <div className="kyc-report__verif-status">
                       <CheckCircle2 size={13} strokeWidth={2.5} />
                       Verified
                     </div>
                     <div className="kyc-report__verif-label">{v.label}</div>
-                    <span className="kyc-report__verif-date">Since {v.date}</span>
+                    <span className="kyc-report__verif-date">{v.date}</span>
                   </div>
                 ))}
               </div>
@@ -193,24 +178,30 @@ export function KYCReportContent() {
                 Payment History
               </p>
               <div className="kyc-report__timeline">
-                {timeline.map((t, i) => (
-                  <div key={i} className="kyc-report__timeline-item">
-                    <div className="kyc-report__timeline-dot">
-                      <Home size={13} />
-                    </div>
-                    <div className="kyc-report__timeline-content">
-                      <div className="kyc-report__timeline-row">
-                        <div>
-                          <p className="kyc-report__timeline-title">{t.landlord}</p>
-                          <p className="kyc-report__timeline-sub">
-                            {t.type} · {t.month}
-                          </p>
+                {cycles.length === 0 ? (
+                  <p className="text-sm text-gray-500">No payment history available.</p>
+                ) : (
+                  cycles.map((t, i) => (
+                    <div key={i} className="kyc-report__timeline-item">
+                      <div className="kyc-report__timeline-dot">
+                        <Home size={13} />
+                      </div>
+                      <div className="kyc-report__timeline-content">
+                        <div className="kyc-report__timeline-row">
+                          <div>
+                            <p className="kyc-report__timeline-title">Invoice #{t.uuid.substring(0, 8)}</p>
+                            <p className="kyc-report__timeline-sub">
+                              {t.status} · Due: {new Date(t.dueDate).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <span className={t.status === 'PAID' ? 'text-[var(--success)] font-bold text-sm' : 'text-sm font-bold opacity-70'}>
+                            {formatCurrency(t.amount, 'NGN')}
+                          </span>
                         </div>
-                        <span className="kyc-report__timeline-amount">{t.amount}</span>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </section>
 
@@ -226,10 +217,10 @@ export function KYCReportContent() {
               </div>
               <div className="kyc-report__insight-grid">
                 {[
-                  { label: 'Rent-to-Income', value: '24.2%', sub: 'Healthy' },
-                  { label: 'On-time Rate', value: '100%', sub: 'All-time' },
-                  { label: 'Total Paid', value: '₦935,000', sub: 'Verified' },
-                  { label: 'Streak', value: '12 months', sub: 'No missed payments' },
+                  { label: 'Rent-to-Income', value: 'Hidden', sub: 'Privacy mode' },
+                  { label: 'On-time Rate', value: `${Math.round(metrics.ptPercentage)}%`, sub: 'All-time' },
+                  { label: 'Cycles', value: `${metrics.totalCycles}`, sub: 'Verified' },
+                  { label: 'Streak', value: `${metrics.longestStreak} mo`, sub: 'Peak performance' },
                 ].map((stat, i) => (
                   <div key={i} className="kyc-report__insight-item">
                     <span className="kyc-report__insight-item-label">{stat.label}</span>

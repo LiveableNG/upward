@@ -2,6 +2,8 @@ import { TrendingUp, FileText, Zap, ShieldCheck, Crown, Flame, Target, Share2 } 
 import { useRouter } from 'next/navigation'
 import { type UserProfile } from '@/features/auth/types'
 
+import { useScoreProfile } from '../services/scoreService'
+
 interface RentCredibilityScoreProps {
   user: UserProfile
   onShowPayRent: () => void
@@ -11,36 +13,57 @@ export function RentCredibilityScore({
   user,
 }: RentCredibilityScoreProps) {
   const router = useRouter()
-  // Mocked data as requested
-  const credScore = 750
-  const credPercentage = (credScore / 1000) * 100
-  const rank = 'A'
-  const streak = 12
-  const onTime = 100
-  const profileCompletion = user.address ? 100 : 40
+  const { data: scoreProfile, isLoading } = useScoreProfile()
+
+  if (isLoading || !scoreProfile) {
+    return <div className="credibility-hub animate-pulse" style={{ height: '300px', background: 'var(--surface)', borderRadius: '24px' }}></div>
+  }
+
+  const { isScorable, score: credScore, rank, band, metrics } = scoreProfile.data
+  const credPercentage = isScorable ? (credScore / 900) * 100 : (500 / 900) * 100
+  const streak = metrics.longestStreak
+  const onTime = Math.round(metrics.ptPercentage)
+  const profileCompletion = scoreProfile.data.profile.profileCompletion
 
   const getRankColor = () => {
-    return 'var(--clay)'
+    if (!isScorable) return 'var(--text-muted)'
+    if (rank === 'A') return 'var(--clay)' // Elite
+    if (rank === 'B') return 'var(--success)' // Strong
+    if (rank === 'C') return 'var(--info)' // Improving
+    if (rank === 'D') return 'var(--warning)' // Risky
+    return 'var(--error)' // High Risk
   }
+
+  const isFaded = !isScorable
+  const profile = scoreProfile.data.profile
+  const profileSlug = profile?.profileSlug
 
   return (
     <section className="credibility-hub">
       <div className="hub-header">
         <div className="hub-header__title">
           <h2>Rent Credibility</h2>
-          <p>Your verified payment reputation across the Upward network.</p>
+          <p>Your verified reputation across the network.</p>
         </div>
         <button 
           className="share-btn" 
-          onClick={() => router.push(`/profile/${user.profileSlug}`)}
+          onClick={() => {
+            if (profileSlug) {
+              router.push(`/profile/${profileSlug}`)
+            } else {
+              // Fallback to UUID if slug is somehow missing but they want to share
+              // Or just show a toast? For now let's just use the user uuid if available safely
+              router.push(`/profile/${user.uuid || 'me'}`)
+            }
+          }}
         >
           <Share2 size={16} />
-          <span>Public Profile</span>
+          <span>{profileSlug ? 'Public Profile' : 'Share Profile'}</span>
         </button>
       </div>
 
       <div className="hub-grid">
-        <div className="hub-main-card">
+        <div className={`hub-main-card ${isFaded ? 'is-faded' : ''}`}>
           <div className="score-display">
             <div className="score-circle">
               <svg viewBox="0 0 100 100">
@@ -48,18 +71,21 @@ export function RentCredibilityScore({
                 <circle 
                   className="score-circle__fill" 
                   cx="50" cy="50" r="45" 
-                  style={{ strokeDasharray: `${credPercentage * 2.82} 282` }}
+                  style={{ 
+                    strokeDasharray: `${credPercentage * 2.82} 282`,
+                    stroke: getRankColor()
+                  }}
                 />
               </svg>
               <div className="score-content">
                 <span className="score-val">{credScore}</span>
-                <span className="score-label">UPWARD SCORE</span>
+                <span className="score-label">{isScorable ? 'UPWARD SCORE' : 'NOT SCORE-ABLE YET'}</span>
               </div>
             </div>
             
             <div className="rank-badge" style={{ borderColor: getRankColor() }}>
-              <span className="rank-letter" style={{ color: getRankColor() }}>{rank}</span>
-              <span className="rank-tier">VERIFIED</span>
+              <span className="rank-letter">{rank}</span>
+              <span className="rank-tier">{band.toUpperCase()}</span>
             </div>
           </div>
 
@@ -106,7 +132,7 @@ export function RentCredibilityScore({
                 <span>{profileCompletion}%</span>
               </div>
               <div className="insight-progress">
-                <div className="insight-progress__fill" style={{ width: `${profileCompletion}%`, background: 'var(--green)' }} />
+                <div className="insight-progress__fill" style={{ width: `${profileCompletion}%`, background: 'var(--success)' }} />
               </div>
             </div>
           </div>
@@ -183,16 +209,37 @@ export function RentCredibilityScore({
         }
 
         .hub-main-card {
-          background: var(--dark);
+          background: #1a1a1a;
+          background: linear-gradient(135deg, #1a1a1a 0%, #111111 100%);
           color: white;
-          border-radius: 24px;
-          padding: 2rem;
+          border-radius: 28px;
+          padding: 2.5rem 2rem;
           display: flex;
           flex-direction: column;
           align-items: center;
           position: relative;
           overflow: hidden;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+          box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+          transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        :global(.theme--light) .hub-main-card {
+           background: #ffffff;
+           color: var(--text);
+           border: 1px solid var(--border-solid);
+           box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+        }
+
+        :global(.theme--light) .hub-main-card.is-faded {
+          background: var(--bg);
+        }
+
+        .hub-main-card.is-faded {
+          background: var(--surface);
+          color: var(--text);
+          box-shadow: none;
+          border: 1px solid var(--border);
         }
 
         .hub-main-card::before {
@@ -204,6 +251,10 @@ export function RentCredibilityScore({
           height: 60%;
           background: radial-gradient(circle, rgba(var(--clay-rgb), 0.15) 0%, transparent 70%);
           pointer-events: none;
+        }
+
+        .hub-main-card.is-faded::before {
+          display: none;
         }
 
         .score-display {
@@ -227,6 +278,10 @@ export function RentCredibilityScore({
           stroke-width: 8;
         }
 
+        :global(.theme--light) .score-circle__bg {
+          stroke: var(--border-solid);
+        }
+
         .score-circle__fill {
           fill: none;
           stroke: var(--clay);
@@ -248,6 +303,15 @@ export function RentCredibilityScore({
           font-size: 3.5rem;
           font-weight: 900;
           line-height: 1;
+          color: white;
+        }
+
+        :global(.theme--light) .score-val {
+          color: var(--text);
+        }
+
+        .hub-main-card.is-faded .score-val {
+          color: var(--text-muted) !important;
         }
 
         .score-label {
@@ -261,22 +325,35 @@ export function RentCredibilityScore({
           position: absolute;
           bottom: -10px;
           right: -10px;
-          background: var(--dark);
+          background: var(--dark-surface);
           border: 2px solid var(--clay);
-          width: 60px;
-          height: 60px;
-          border-radius: 20px;
+          width: 58px;
+          height: 58px;
+          border-radius: 18px;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+          box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+          z-index: 2;
+        }
+
+        :global(.theme--light) .rank-badge, 
+        :global(html:not(.theme--dark)) .rank-badge {
+          background: white;
+          box-shadow: 0 8px 16px rgba(0,0,0,0.06);
+          border-color: var(--clay);
         }
 
         .rank-letter {
           font-size: 1.8rem;
           font-weight: 900;
           line-height: 1;
+          color: var(--clay);
+        }
+
+        :global(.theme--light) .rank-letter {
+           color: var(--clay);
         }
 
         .rank-tier {
@@ -364,9 +441,17 @@ export function RentCredibilityScore({
 
         .hub-actions {
           margin-top: auto;
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        @media (min-width: 640px) {
+          .hub-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+          }
         }
 
         .hub-btn {
@@ -395,13 +480,19 @@ export function RentCredibilityScore({
 
         .hub-btn--outline {
           background: transparent;
-          border: 2px solid var(--border);
+          border: 1px solid var(--border-solid);
           color: var(--text);
         }
 
         .hub-btn--outline:hover {
+          background: rgba(var(--clay-rgb), 0.05);
           border-color: var(--clay);
           color: var(--clay);
+          transform: translateY(-2px);
+        }
+
+        :global(.theme--light) .hub-btn--outline {
+          background: #f8f9fa;
         }
 
         .text--orange { color: #FF8C00; }
