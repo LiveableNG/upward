@@ -30,7 +30,11 @@ export class ConfirmExternalPaymentUseCase {
       throw new NotFoundException('User associated with payment request not found')
     }
 
-    // Record and verify transaction
+    // Record and verify transaction.
+    // RecordTransactionUseCase now handles: 
+    // 1. Updating paymentRequest status/amountPaid
+    // 2. Firing platform webhooks
+    // 3. Creating overpayment records
     const transaction = await this.recordTransactionUseCase.execute({
       userId: user.uuid,
       amount: paymentRequest.amount,
@@ -43,34 +47,13 @@ export class ConfirmExternalPaymentUseCase {
     })
 
     if (transaction.status === 'SUCCESS') {
-      // Update Payment Request status
-      await this.paymentRequestRepository.update(paymentRequest.id!, {
-        status: 'PAID',
-        paidAt: new Date(),
-        reference: reference, // Link the final verified reference
-      })
-
-      // Send Webhook to Platform via WebhookService (Persistent + Retries)
-      if (paymentRequest.platformId) {
-        await this.webhookService.sendWebhook(paymentRequest.platformId, 'payment.confirmed', {
-          event: 'payment.confirmed',
-          data: {
-            paymentUuid: paymentRequest.uuid,
-            reference: reference,
-            amount: paymentRequest.amount,
-            currency: paymentRequest.currency,
-            description: paymentRequest.description,
-            status: 'PAID',
-            paidAt: new Date(),
-            customerEmail: user.email,
-          }
-        })
-      }
-
+      // Re-fetch or check updated status (it should be PAID since we paid the full amount)
+      const updatedPR = await this.paymentRequestRepository.findById(paymentRequest.id!)
+      
       return {
         success: true,
         transactionUuid: transaction.uuid,
-        status: 'PAID'
+        status: updatedPR?.status || 'PAID'
       }
     } else {
       throw new BadRequestException('Payment verification failed or returned non-success status')

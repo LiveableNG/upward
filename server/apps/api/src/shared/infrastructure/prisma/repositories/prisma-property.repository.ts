@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma.service'
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service'
 import {
   Property,
   Location,
@@ -9,7 +10,10 @@ import {
 
 @Injectable()
 export class PrismaPropertyRepository implements PropertyRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+  ) {}
 
   async findById(id: number): Promise<Property | null> {
     const record = await this.prisma.upward_user_property.findUnique({
@@ -21,8 +25,23 @@ export class PrismaPropertyRepository implements PropertyRepository {
   async findByUuid(uuid: string): Promise<Property | null> {
     const record = await this.prisma.upward_user_property.findUnique({
       where: { uuid },
+      include: {
+        company: true,
+        manager: true,
+      },
     })
-    return record as unknown as Property | null
+    if (!record) return null
+
+    const result = { ...record } as any
+    if (result.company) {
+      result.company.name = this.encryption.decrypt(result.company.name)
+    }
+    if (result.manager) {
+      result.manager.firstName = this.encryption.decrypt(result.manager.firstName)
+      result.manager.lastName = this.encryption.decrypt(result.manager.lastName)
+    }
+
+    return result as unknown as Property
   }
 
   async findByUserId(userId: number): Promise<Property[]> {
@@ -75,6 +94,18 @@ export class PrismaLocationRepository implements LocationRepository {
   async findByUuid(uuid: string): Promise<Location | null> {
     const record = await this.prisma.upward_location.findUnique({
       where: { uuid },
+    })
+    return record as unknown as Location | null
+  }
+
+  async findByAddress(address: string, area: string, state: string, country: string): Promise<Location | null> {
+    const record = await this.prisma.upward_location.findFirst({
+      where: {
+        address: { equals: address, mode: 'insensitive' },
+        area: { equals: area, mode: 'insensitive' },
+        state: { equals: state, mode: 'insensitive' },
+        country: { equals: country, mode: 'insensitive' },
+      },
     })
     return record as unknown as Location | null
   }

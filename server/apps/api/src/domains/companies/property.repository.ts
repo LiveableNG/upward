@@ -11,6 +11,8 @@ export interface Property {
   currency: string
   createdAt: Date
   updatedAt: Date
+  company?: { name: string }
+  manager?: { firstName: string; lastName: string }
 }
 
 export interface Location {
@@ -36,6 +38,7 @@ export interface PropertyRepository {
 export interface LocationRepository {
   findById(id: number): Promise<Location | null>
   findByUuid(uuid: string): Promise<Location | null>
+  findByAddress(address: string, area: string, state: string, country: string): Promise<Location | null>
   save(location: Location): Promise<Location>
 }
 

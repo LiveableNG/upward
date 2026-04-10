@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common'
 import { GetPublicPaymentDetailsUseCase } from '@application/use-cases/external/get-public-payment.use-case'
-import { IPaymentRequestRepository } from '@domains/payments/payment.repository'
+import { IPaymentRequestRepository, IPaymentLineItemRepository, PAYMENT_LINE_ITEM_REPOSITORY } from '@domains/payments/payment.repository'
 import { PropertyRepository } from '@domains/companies/property.repository'
 import { UserRepository } from '@domains/users/user.repository'
 import { CompanyRepository, ManagerRepository } from '@domains/companies/company.repository'
@@ -15,7 +15,7 @@ const makePaymentRequest = (overrides: Partial<any> = {}) => ({
   amount: 500000,
   currency: 'NGN',
   description: 'January rent',
-  lineItems: undefined,
+  lineItemRecords: [],
   dueDate: new Date('2026-02-01'),
   status: 'PENDING',
   subaccount: undefined,
@@ -82,6 +82,7 @@ describe('GetPublicPaymentDetailsUseCase', () => {
   let userRepository: jest.Mocked<UserRepository>
   let companyRepository: jest.Mocked<CompanyRepository>
   let managerRepository: jest.Mocked<ManagerRepository>
+  let lineItemRepository: jest.Mocked<IPaymentLineItemRepository>
 
   beforeEach(() => {
     paymentRequestRepository = {
@@ -117,8 +118,13 @@ describe('GetPublicPaymentDetailsUseCase', () => {
       findById: jest.fn(),
     } as any
 
+    lineItemRepository = {
+      findByPaymentRequestId: jest.fn().mockResolvedValue([]),
+    } as any
+
     useCase = new GetPublicPaymentDetailsUseCase(
       paymentRequestRepository,
+      lineItemRepository,
       propertyRepository,
       userRepository,
       companyRepository,

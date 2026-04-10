@@ -91,6 +91,27 @@ export interface IPaymentGateway {
   // }): Promise<{ bankName: string; accountNumber: string; bankCode?: string; accountName?: string }>
 }
 
+export interface PaymentLineItem {
+  id?: number
+  uuid?: string
+  paymentRequestId: number
+  label: string
+  totalAmount: number
+  amountPaid: number
+  status: string // PENDING, PARTIAL, PAID
+  sortOrder?: number
+  createdAt?: Date
+  updatedAt?: Date
+}
+
+export interface IPaymentLineItemRepository {
+  create(data: Omit<PaymentLineItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<PaymentLineItem>
+  findByPaymentRequestId(paymentRequestId: number): Promise<PaymentLineItem[]>
+  update(id: number, data: Partial<PaymentLineItem>): Promise<PaymentLineItem>
+  bulkCreate(items: Omit<PaymentLineItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>[]): Promise<PaymentLineItem[]>
+  deleteByPaymentRequestId(paymentRequestId: number): Promise<void>
+}
+
 export interface PaymentRequest {
   id?: number
   uuid: string
@@ -99,9 +120,11 @@ export interface PaymentRequest {
   amount: number
   currency: string
   description?: string
-  lineItems?: any
   dueDate: Date
   status: string
+  amountPaid?: number
+  allowPartial?: boolean
+  minAmount?: number
   paidAt?: Date
   reference?: string
   companyName?: string
@@ -112,6 +135,7 @@ export interface PaymentRequest {
   webhookUrl?: string
   platformName?: string
   platformId?: number
+  lineItemRecords?: PaymentLineItem[]
   createdAt: Date
   updatedAt: Date
 }
@@ -163,9 +187,29 @@ export interface IWebhookRepository {
   findToRetry(maxRetries: number): Promise<WebhookLog[]>
 }
 
+export interface Overpayment {
+  id: number
+  uuid: string
+  userId: number
+  amount: number
+  currency: string
+  transactionId?: number
+  paymentRequestId?: number
+  status: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface IOverpaymentRepository {
+  create(data: Omit<Overpayment, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<Overpayment>
+  findByUserId(userId: number): Promise<Overpayment[]>
+}
+
 export const SAVED_LANDLORD_REPOSITORY = Symbol('SAVED_LANDLORD_REPOSITORY')
 export const TRANSACTION_REPOSITORY = Symbol('TRANSACTION_REPOSITORY')
 export const PAYMENT_GATEWAY = Symbol('PAYMENT_GATEWAY')
 export const PAYMENT_REQUEST_REPOSITORY = Symbol('PAYMENT_REQUEST_REPOSITORY')
 export const SUBACCOUNT_REPOSITORY = Symbol('SUBACCOUNT_REPOSITORY')
 export const WEBHOOK_REPOSITORY = Symbol('WEBHOOK_REPOSITORY')
+export const OVERPAYMENT_REPOSITORY = Symbol('OVERPAYMENT_REPOSITORY')
+export const PAYMENT_LINE_ITEM_REPOSITORY = Symbol('PAYMENT_LINE_ITEM_REPOSITORY')

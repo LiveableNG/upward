@@ -94,9 +94,10 @@ export default function DashboardPage() {
   const shouldShowAppBanner = !isCapacitor && !localDismissedBanner
 
   // Real notif count logic - avoid double counting if backend notifications include payment alerts
-  const backendNotifCount = notifData?.notifications?.filter((n: any) => !n.read).length || 0
+  // Real notif count logic - backend unreadCount include announcements + personal notifs
+  const backendNotifCount = notifData?.unreadCount || 0
   const pendingCount = pendingPayments.length || 0
-  const notifCount = Math.max(backendNotifCount, pendingCount)
+  const notifCount = backendNotifCount + pendingCount
 
   return (
     <div className="dashboard dashboard--nav-offset">
@@ -125,7 +126,7 @@ export default function DashboardPage() {
 
           <AnnouncementBanner />
 
-          {pendingPayments.length > 0 && (
+          {(pendingPayments.length > 0 || isNewUser) && (
             <div className="activity-center">
               <div className="activity-center__header">
                 <h3 className="activity-center__title">Activity Center</h3>

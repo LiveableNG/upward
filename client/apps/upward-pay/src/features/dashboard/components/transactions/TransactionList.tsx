@@ -128,14 +128,19 @@ export function TransactionList() {
 
                       <div className="transaction-item__info">
                         <div className="transaction-item__name">{tx.company_name}</div>
+                        {tx.property_address && (
+                          <div className="transaction-item__location" style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                            {tx.property_address}
+                          </div>
+                        )}
                         <div className="transaction-item__meta">
                           <span className="transaction-item__channel">
                             {tx.channel || 'Paystack'} · {formatTime(tx.paid_at)}
                           </span>
                           <span
-                            className={`transaction-item__type-badge ${isCredit ? 'transaction-item__type-badge--credit' : 'transaction-item__type-badge--debit'}`}
+                            className={`transaction-item__type-badge ${isCredit ? 'transaction-item__type-badge--credit' : (tx.transactionType === 'FUTURE_CREDIT' ? 'transaction-item__type-badge--future' : 'transaction-item__type-badge--debit')}`}
                           >
-                            {tx.type || 'debit'}
+                            {tx.transactionType === 'FUTURE_CREDIT' ? 'Future Credit' : (tx.type || 'debit')}
                           </span>
                         </div>
                       </div>
@@ -182,6 +187,12 @@ export function TransactionList() {
           )}
         </div>
       )}
+      <style jsx>{`
+        .transaction-item__type-badge--future {
+          background: #fff8e1;
+          color: #ffa000;
+        }
+      `}</style>
     </div>
   )
 }

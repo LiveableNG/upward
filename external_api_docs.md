@@ -63,7 +63,7 @@ The request follows a nested structure to coordinate between companies, users, a
 ### Company Object
 | Field | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `id` | `number` | No | Upward Company ID (if already known). |
+| `uuid` | `string` | No | Upward Company UUID (if already known). |
 | `name` | `string` | Cond. | Required if `id` is not provided. Case-insensitive search. |
 | `address` | `string` | No | Company's physical address. |
 
@@ -107,11 +107,9 @@ The request follows a nested structure to coordinate between companies, users, a
 ### Manager Object
 | Field | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `id` | `number` | No | Upward Manager ID (if already known). |
-| `firstName` | `string` | Cond. | Required if `id` is not provided. |
-| `lastName` | `string` | Cond. | Required if `id` is not provided. |
-| `email` | `string` | Cond. | Required if `id` is not provided. |
+| `uuid` | `string` | No | Upward Manager UUID (if already known). |
 | `phone` | `string` | No | Manager's phone number. |
+| `email` | `string` | Cond. | Required if `uuid` is not provided. |
 
 ---
 
@@ -181,19 +179,24 @@ Generate a payment link for a tenant based on an existing property or by initiat
 | `currency` | `string` | No | Currency (e.g., "NGN"). Defaults to property currency. |
 | `description` | `string` | No | Narrative for the payment request. |
 | `lineItems` | `Array` | No | Breakdown of the amount (e.g., security, cleanup). |
+| `allowPartial` | `Boolean` | No | Whether to allow partial payments (Default: `false`) |
 | `dueDate` | `string` | **Yes** | ISO-8601 date. |
 | `bankCode` | `string` | **Yes** | 3-digit bank code for direct settlement (split payments). |
 | `accountNumber` | `string` | **Yes** | 10-digit NUBAN account number for settlement. |
 | `invite` | `Object` | Cond. | Full invite payload if performing a "Cold Start". |
 
+> [!NOTE]
+> **Line Item Constraint**: If `lineItems` are provided, the sum of all item amounts **must exactly match** the total `amount` provided in the request. If `amount` is not provided, the sum must match the property's default rent amount.
+
 ### Request Example (Existing Property)
 ```json
 {
   "userPropertyUuid": "5cab404a-df37-4408-826b-e8b820e26fac",
-  "dueDate": "2024-12-31T23:59:59Z",
-  "description": "Quarterly Service Charge",
+  "dueDate": "2024-04-05",
+  "description": "April 2024 Rent",
   "amount": 45000,
   "currency": "NGN",
+  "allowPartial": true,
   "bankCode": "058",
   "accountNumber": "0123456789",
   "lineItems": [
@@ -253,27 +256,74 @@ Use this if the tenant has not been invited to Upward yet. This will create the 
 3. **Mandatory Rent**: For invitations, `rentAmount`, `rentStartDate`, and `rentEndDate` must be provided.
 4. **API Security**: Raw API keys are hashed on the server.
 5. **Automated Settlement**: Providing `bankCode` and `accountNumber` in a payment request triggers automated settlement routing. Upward resolves or creates a persistent Paystack subaccount linked to those details to ensure funds are correctly routed during checkout.
+6. **Robust Property Matching**: To prevent duplicate property records, Upward matches invitations against existing records using a combination of **User + Company + Address**. If an exact match is found (even with a different manager), the existing record is updated and reused.
+7. **Partial & Overpayments**: 
+    *   **Partial**: Tenants can pay less than the requested amount. The platform will receive a `payment.updated` webhook with the `remainingAmount`.
+    *   **Overpayment**: If a tenant pays more than the total requested amount, the excess is recorded as a "Future Credit" in Upward. This credit is tracked and can be applied to future bills.
+260: 
+---
+
+## 5. Constraints & Validation Rules
+
+To ensure a smooth integration, please adhere to the following technical constraints. Requests failing these rules will return a `400 Bad Request` or `409 Conflict`.
+
+### Platform Registration
+*   **Unique Email**: Each platform must be registered with a unique contact email.
+*   **Webhook URL**: A valid, accessible HTTPS URL is required to receive asynchronous updates.
+
+### Tenant Invitations
+*   **Rent Details**: `rentAmount` and `rentEndDate` (ISO-8601) are strictly mandatory.
+*   **Identity**: The `email` field in the user object is the primary key. If a user with that email already exists, they will be linked to the new property.
+*   **Company/Manager Resolution**: 
+    *   Providing a `uuid` will attempt to link to an existing record.
+    *   If no `uuid` is provided, `name` (for companies) or `email` (for managers) is used to find or create the record. Full details are required for creation.
+
+### Payment Requests
+*   **Sum Validation**: If you provide `lineItems`, their total sum **must match** the main `amount` field. This prevents reconciliation errors.
+*   **Settlement Routing**: `bankCode` and `accountNumber` are required for every payment request. This allows Upward to route funds to the specific landlord's account automatically.
+*   **Idempotency (Upsert)**: Sending a payment request with the same `userPropertyUuid`, `amount`, and `dueDate` as a pending one will **update** the existing request rather than creating a duplicate.
 
 ---
 
 ## 4. Webhook Notifications
 Upward sends asynchronous notifications to the `webhookUrl` provided during platform registration to keep your system in sync.
 
-### Event: `payment.confirmed`
-Triggered when a tenant successfully completes a payment via the payment link.
+### Event: `payment.updated`
+Triggered whenever a payment is made towards a request. Use the `status` field to determine if the request is now fully resolved (`PAID`) or remains `PARTIAL`.
 
-#### Payload Structure
+#### Payload Structure (Full Resolution Example)
 ```json
 {
-  "event": "payment.confirmed",
+  "event": "payment.updated",
   "data": {
     "paymentUuid": "d8e9f0a1-...",
     "reference": "EXT_5cab404a...",
-    "amount": 45000,
+    "amountPaid": 45000,
+    "totalPaid": 45000,
+    "remainingAmount": 0,
+    "overpaymentAmount": 0,
     "currency": "NGN",
-    "description": "Quarterly Service Charge",
     "status": "PAID",
     "paidAt": "2024-06-15T14:30:00Z",
+    "customerEmail": "jane.doe@example.com"
+  }
+}
+```
+
+#### Payload Structure (Partial Payment Example)
+```json
+{
+  "event": "payment.updated",
+  "data": {
+    "paymentUuid": "d8e9f0a1-...",
+    "reference": "EXT_5cab404a...",
+    "amountPaid": 20000,
+    "totalPaid": 20000,
+    "remainingAmount": 25000,
+    "overpaymentAmount": 0,
+    "currency": "NGN",
+    "status": "PARTIAL",
+    "paidAt": "2024-06-15T14:45:00Z",
     "customerEmail": "jane.doe@example.com"
   }
 }

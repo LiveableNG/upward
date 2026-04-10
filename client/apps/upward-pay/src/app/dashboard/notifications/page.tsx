@@ -22,6 +22,11 @@ export default function NotificationsPage() {
     queryFn: () => api.getNotifications(),
   })
 
+  const { data: pendingData } = useQuery({
+    queryKey: ['pending-payments'],
+    queryFn: () => api.getPendingPayments(),
+  })
+
   const markReadMutation = useMutation({
     mutationFn: (id: string) => api.markNotificationRead(id),
     onSuccess: () => {
@@ -31,7 +36,23 @@ export default function NotificationsPage() {
 
   if (isLoading) return <FallbackSuspense message="Loading notifications..." />
 
-  const notifications = data?.notifications || []
+  const notifications = [...(data?.notifications || [])]
+
+  // Add pending payments as notifications
+  if (pendingData) {
+    pendingData.forEach((p: any) => {
+      // Map pending payment to notification format
+      notifications.unshift({
+        id: `payment-${p.uuid}`,
+        type: 'PAYMENT',
+        title: 'Payment Request',
+        message: `You have a pending payment of ${p.currency}${p.amount || p.total_amount} for ${p.company_name || 'Property'}`,
+        createdAt: new Date().toISOString(), // Show at top
+        read: false,
+        url: `/pay/${p.uuid}`,
+      })
+    })
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const groupedNotifications: Record<string, any[]> = {

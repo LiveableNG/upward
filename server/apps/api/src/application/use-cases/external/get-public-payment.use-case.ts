@@ -2,6 +2,8 @@ import { Injectable, Inject, NotFoundException } from '@nestjs/common'
 import { 
   PAYMENT_REQUEST_REPOSITORY, 
   IPaymentRequestRepository,
+  PAYMENT_LINE_ITEM_REPOSITORY,
+  IPaymentLineItemRepository,
 } from '../../../domains/payments/payment.repository'
 import { PROPERTY_REPOSITORY, PropertyRepository } from '../../../domains/companies/property.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
@@ -11,6 +13,7 @@ import { COMPANY_REPOSITORY, CompanyRepository, MANAGER_REPOSITORY, ManagerRepos
 export class GetPublicPaymentDetailsUseCase {
   constructor(
     @Inject(PAYMENT_REQUEST_REPOSITORY) private readonly paymentRequestRepository: IPaymentRequestRepository,
+    @Inject(PAYMENT_LINE_ITEM_REPOSITORY) private readonly lineItemRepository: IPaymentLineItemRepository,
     @Inject(PROPERTY_REPOSITORY) private readonly propertyRepository: PropertyRepository,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(COMPANY_REPOSITORY) private readonly companyRepository: CompanyRepository,
@@ -33,9 +36,9 @@ export class GetPublicPaymentDetailsUseCase {
       throw new NotFoundException('Associated user not found')
     }
 
-    const company = await this.companyRepository.findById(property.companyId!)
-    if (!company) {
-      throw new NotFoundException('Associated company not found')
+    let company = null
+    if (property.companyId) {
+      company = await this.companyRepository.findById(property.companyId)
     }
 
     let manager = null
@@ -43,18 +46,35 @@ export class GetPublicPaymentDetailsUseCase {
       manager = await this.managerRepository.findById(property.managerId)
     }
 
+    // Fetch structured line item records from DB
+    const lineItemRecords = await this.lineItemRepository.findByPaymentRequestId(paymentRequest.id!)
+
     const subaccountCode = paymentRequest.subaccount?.subaccountCode || null
+
+    // Company name: prefer company, fallback to manager full name
+    const companyName = company?.name || 
+                        (manager ? `${manager.firstName} ${manager.lastName}` : null)
+
+    // Property location address: compose from location data
+    const location = (property as any).location
+    const locationAddress = location
+      ? [location.address, location.area, location.state, location.country]
+          .filter(Boolean).join(', ')
+      : null
 
     return {
       payment: {
         uuid: paymentRequest.uuid,
         amount: paymentRequest.amount,
+        amountPaid: paymentRequest.amountPaid || 0,
         currency: paymentRequest.currency,
         description: paymentRequest.description,
-        lineItems: paymentRequest.lineItems,
         dueDate: paymentRequest.dueDate,
         status: paymentRequest.status,
         subaccountCode: subaccountCode,
+        allowPartial: paymentRequest.allowPartial || false,
+        minAmount: paymentRequest.minAmount || undefined,
+        lineItemRecords: lineItemRecords,
       },
       user: {
         firstName: user.firstName,
@@ -66,10 +86,10 @@ export class GetPublicPaymentDetailsUseCase {
         uuid: property.uuid,
         rentAmount: property.rentAmount,
         rentEndDate: property.rentEndDate,
+        locationAddress: locationAddress,
       },
       company: {
-        name: company.name,
-        address: company.address,
+        name: companyName,
       },
       manager: manager ? {
         firstName: manager.firstName,

@@ -1,0 +1,76 @@
+import { Injectable } from '@nestjs/common'
+import { PrismaService } from '../prisma.service'
+import {
+  PaymentLineItem,
+  IPaymentLineItemRepository,
+} from '../../../../domains/payments/payment.repository'
+
+@Injectable()
+export class PrismaPaymentLineItemRepository implements IPaymentLineItemRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  private map(row: any): PaymentLineItem {
+    return {
+      id: row.id,
+      uuid: row.uuid,
+      paymentRequestId: row.paymentRequestId,
+      label: row.label,
+      totalAmount: row.totalAmount,
+      amountPaid: row.amountPaid,
+      status: row.status,
+      sortOrder: row.sortOrder,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }
+  }
+
+  async create(
+    data: Omit<PaymentLineItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
+  ): Promise<PaymentLineItem> {
+    const row = await this.prisma.upward_payment_line_item.create({
+      data: {
+        paymentRequestId: data.paymentRequestId,
+        label: data.label,
+        totalAmount: data.totalAmount,
+        amountPaid: data.amountPaid ?? 0,
+        status: data.status ?? 'PENDING',
+        sortOrder: data.sortOrder ?? 0,
+      },
+    })
+    return this.map(row)
+  }
+
+  async bulkCreate(
+    items: Omit<PaymentLineItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>[],
+  ): Promise<PaymentLineItem[]> {
+    return Promise.all(items.map((item) => this.create(item)))
+  }
+
+  async findByPaymentRequestId(paymentRequestId: number): Promise<PaymentLineItem[]> {
+    const rows = await this.prisma.upward_payment_line_item.findMany({
+      where: { paymentRequestId },
+      orderBy: { sortOrder: 'asc' },
+    })
+    return rows.map(this.map)
+  }
+
+  async update(id: number, data: Partial<PaymentLineItem>): Promise<PaymentLineItem> {
+    const row = await this.prisma.upward_payment_line_item.update({
+      where: { id },
+      data: {
+        label: data.label,
+        totalAmount: data.totalAmount,
+        amountPaid: data.amountPaid,
+        status: data.status,
+        sortOrder: data.sortOrder,
+      },
+    })
+    return this.map(row)
+  }
+
+  async deleteByPaymentRequestId(paymentRequestId: number): Promise<void> {
+    await this.prisma.upward_payment_line_item.deleteMany({
+      where: { paymentRequestId },
+    })
+  }
+}
