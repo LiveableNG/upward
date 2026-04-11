@@ -20,7 +20,7 @@ import {
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 
-import { useScoreProfile } from '../services/scoreService'
+import { useScoreProfile } from '../../services/scoreService'
 import { formatCurrency } from '@/lib/utils'
 
 export function KYCReportContent() {
