@@ -13,6 +13,7 @@ import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader
 import { StatStrip } from '@/features/dashboard/components/StatStrip'
 import { AppInstallBanner } from '@/features/dashboard/components/AppInstallBanner'
 import { AnnouncementBanner } from '@/features/dashboard/components/AnnouncementBanner'
+import { UpcomingFeaturesWidget } from '@/features/dashboard/components/UpcomingFeaturesWidget'
 import { RentCredibilityScore } from '@/features/dashboard/components/RentCredibilityScore'
 import { ShareCredibility } from '@/features/dashboard/components/ShareCredibility'
 import { SavingsGoalModal } from '@/features/dashboard/components/SavingsGoalModal'
@@ -117,17 +118,10 @@ export default function DashboardPage() {
       />
 
       <div className="dashboard__main-grid">
-        <div className="dashboard__col dashboard__col--left" />
-
-        <div className="dashboard__col dashboard__col--right">
-          {shouldShowAppBanner && (
-            <AppInstallBanner onDismiss={handleDismissBanner} />
-          )}
-
-          <AnnouncementBanner />
-
+        {/* Left Column - Main Focus (Score & Activity) */}
+        <div className="dashboard__col dashboard__col--left">
           {(pendingPayments.length > 0 || isNewUser) && (
-            <div className="activity-center">
+            <div className="activity-center" style={{ marginBottom: '24px' }}>
               <div className="activity-center__header">
                 <h3 className="activity-center__title">Activity Center</h3>
                 <button
@@ -150,8 +144,19 @@ export default function DashboardPage() {
             user={user}
             onShowPayRent={() => router.push('/dashboard/pay-rent')}
           />
+        </div>
+
+        {/* Right Column - Secondary Actions & Insights */}
+        <div className="dashboard__col dashboard__col--right" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {shouldShowAppBanner && (
+            <AppInstallBanner onDismiss={handleDismissBanner} />
+          )}
+
+          <AnnouncementBanner />
 
           {!isNewUser && <ShareCredibility profileSlug={user.profileSlug} />}
+
+          <UpcomingFeaturesWidget />
         </div>
       </div>
 

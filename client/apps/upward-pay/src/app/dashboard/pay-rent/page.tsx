@@ -95,23 +95,59 @@ export default function PayRentPage() {
   const amountToDebit = payAmount
 
   return (
-    <div className="subpage dashboard dashboard--nav-offset">
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes successPop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-      `}</style>
+    <div className="pay-rent-layout dashboard--nav-offset">
+      <div className="pay-rent-container">
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+          @keyframes successPop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+          @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
-      {step !== 'checkout' && step !== 'processing' && step !== 'success' && (
-        <header className="dashboard__header" style={{ marginBottom: 20 }}>
-          <div className="dashboard__header-left">
-            <button className="dashboard__back" onClick={handleBack}>
-              <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} />
-            </button>
-            <h2 className="dashboard__title">{stepTitle[step]}</h2>
-          </div>
-        </header>
-      )}
+          /* Desktop Card Optimization */
+          @media (min-width: 1024px) {
+            .pay-rent-layout {
+              display: flex;
+              justify-content: center;
+              align-items: flex-start;
+              min-height: calc(100vh - 120px);
+              padding: 20px 40px;
+            }
+            .pay-rent-container {
+              width: 100%;
+              max-width: 520px;
+              background: var(--bg);
+              border-radius: 32px;
+              box-shadow: 0 40px 100px rgba(0, 0, 0, 0.08);
+              border: 1px solid var(--border-solid);
+              padding: 40px;
+              margin: 40px auto;
+              transition: all 0.3s ease;
+            }
+            .dashboard__header {
+              border-bottom: none !important;
+              padding: 0 !important;
+              margin-bottom: 24px !important;
+              background: transparent !important;
+            }
+            .dashboard__title {
+              font-size: 24px;
+              font-weight: 800;
+            }
+            .dashboard__back {
+              /* Ensure global desktop styles applied */
+            }
+          }
+        `}</style>
+
+        {step !== 'checkout' && step !== 'processing' && step !== 'success' && (
+          <header className="dashboard__header" style={{ marginBottom: 20 }}>
+            <div className="dashboard__header-left">
+              <button className="dashboard__back" onClick={handleBack}>
+                <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} />
+              </button>
+              <h2 className="dashboard__title">{stepTitle[step]}</h2>
+            </div>
+          </header>
+        )}
 
       {step === 'select' && (
         <StepSelect
@@ -255,6 +291,7 @@ export default function PayRentPage() {
           router={router}
         />
       )}
+      </div>
     </div>
   )
 }

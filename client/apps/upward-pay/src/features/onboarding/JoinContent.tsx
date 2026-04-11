@@ -45,10 +45,10 @@ export default function JoinContent({ initialInvitation, token, email }: JoinCon
 
   if (!isDeepLinkTimedOut && token) {
     return (
-      <div className="onboarding h-screen items-center justify-center bg-[var(--bg)]">
-        <div className="text-center space-y-6 animate-pulse">
-          <UpwardLogo size={48} />
-          <p className="text-[var(--text-muted)] font-medium tracking-wide">
+      <div className="onboarding onboarding--loading">
+        <div className="onboarding__splash">
+          <UpwardLogo size={48} className="onboarding__pulse-logo" />
+          <p className="onboarding__splash-text">
             Opening Upward App...
           </p>
         </div>
@@ -59,8 +59,8 @@ export default function JoinContent({ initialInvitation, token, email }: JoinCon
   return (
     <div className="onboarding animate-fade-up">
       <div className="onboarding__content">
-        <div className="pt-8 mb-4">
-          <UpwardLogo size={32} className="mx-auto" />
+        <div className="onboarding__header">
+          <UpwardLogo size={32} />
         </div>
 
         {initialInvitation ? (
@@ -69,19 +69,19 @@ export default function JoinContent({ initialInvitation, token, email }: JoinCon
             logo={initialInvitation.companyLogo}
           />
         ) : email ? (
-          <div className="text-center py-8 space-y-3">
-            <div className="w-16 h-16 bg-[var(--success-bg)] text-[var(--success)] rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+          <div className="onboarding__welcome">
+            <div className="onboarding__welcome-icon">
               <Zap size={32} />
             </div>
-            <h2 className="text-3xl font-extrabold tracking-tight">We've Launched!</h2>
-            <p className="text-[var(--text-muted)] font-medium">
+            <h2 className="onboarding__title">We've Launched!</h2>
+            <p className="onboarding__subtitle">
               Welcome back, your waitlist entry is ready.
             </p>
           </div>
         ) : (
-          <div className="text-center py-8 space-y-2">
-            <h2 className="text-3xl font-extrabold tracking-tight">Welcome to Upward</h2>
-            <p className="text-[var(--text-muted)] font-medium">
+          <div className="onboarding__welcome">
+            <h2 className="onboarding__title">Welcome to Upward</h2>
+            <p className="onboarding__subtitle">
               Secure your spot and build your rent credit.
             </p>
           </div>
@@ -126,13 +126,13 @@ export default function JoinContent({ initialInvitation, token, email }: JoinCon
 
           <div className="onboarding__actions">
             <button onClick={handleJoin} className="onboarding__button">
-              <span className="tracking-wide">
+              <span>
                 {initialInvitation || email ? 'Get Started' : 'Join Now'}
               </span>
               <ArrowRight size={20} />
             </button>
             {(token || email) && (
-              <p className="text-[var(--text-muted)] text-[10px] text-center mt-2 uppercase tracking-widest font-bold opacity-50">
+              <p className="onboarding__secured-note">
                 Secured by Upward Protocol — Token Active
               </p>
             )}

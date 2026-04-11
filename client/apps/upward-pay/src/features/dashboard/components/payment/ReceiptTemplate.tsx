@@ -78,14 +78,13 @@ export default function ReceiptTemplate({
     (receipt.lineItems.length === 1 && receipt.lineItems[0].label !== 'Rent Payment')
 
   return (
-    <div
-      className="receipt-overlay"
-      style={{ background: 'var(--bg)', minHeight: '100vh', padding: '16px' }}
-    >
-      <div
-        className="receipt-actions no-print"
-        style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}
-      >
+    <>
+      <div className="receipt-overlay">
+        <div className="receipt-container">
+          <div
+            className="receipt-actions no-print"
+            style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}
+          >
         <button
           className="btn btn--secondary btn--sm"
           style={{ padding: '8px 12px', flexShrink: 0 }}
@@ -482,6 +481,48 @@ export default function ReceiptTemplate({
           </p>
         </div>
       </div>
-    </div>
+        </div>
+      </div>
+
+      <style jsx>{`
+        .receipt-overlay {
+          background: var(--bg);
+          min-height: 100vh;
+          padding: 16px;
+        }
+
+        .receipt-container {
+          width: 100%;
+          max-width: 480px;
+          margin: 0 auto;
+        }
+
+        @media (min-width: 1024px) {
+          .receipt-overlay {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            padding: 40px;
+          }
+
+          .receipt-container {
+            background: var(--bg);
+            padding: 32px;
+            border-radius: 24px;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+          }
+
+          #receipt-printable {
+            border: none !important;
+            padding: 0 !important;
+            background: transparent !important;
+          }
+        }
+      `}</style>
+    </>
   )
 }

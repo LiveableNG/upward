@@ -408,6 +408,13 @@ export function ProfileMenuContent() {
       </div>
 
       <style jsx>{`
+        /* Core Colors using App Variables */
+        :global(.profile-page), :global(.profile-menu-page) {
+          --local-border: var(--border-solid);
+          --local-surface: var(--surface);
+          --local-surface2: var(--surface2);
+        }
+
         .profile-hero {
           display: flex;
           flex-direction: column;
@@ -415,12 +422,15 @@ export function ProfileMenuContent() {
           padding: 2.5rem 1.5rem;
           text-align: center;
           margin-bottom: 24px;
+          border-radius: 24px;
         }
+
         .profile-hero__avatar-wrap {
           position: relative;
           margin-bottom: 1.5rem;
           cursor: pointer;
         }
+
         .profile-hero__avatar-edit {
           position: absolute;
           bottom: 0;
@@ -433,36 +443,41 @@ export function ProfileMenuContent() {
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 3px solid var(--surface);
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          border: 3px solid var(--bg);
+          box-shadow: var(--shadow-sm);
         }
+
         .profile-hero__name {
           font-size: 1.5rem;
           font-weight: 700;
           color: var(--text);
           margin-bottom: 0.25rem;
         }
+
         .profile-hero__email {
           font-size: 0.95rem;
           color: var(--text-muted);
           margin-bottom: 2rem;
         }
+
         .profile-hero__tenancy {
           width: 100%;
-          background: var(--surface2);
+          background: var(--local-surface2);
           border-radius: 16px;
-          padding: 1rem;
+          padding: 1.25rem;
           text-align: left;
         }
+
         .profile-hero__tenancy-header {
           display: flex;
           gap: 0.75rem;
           margin-bottom: 1rem;
         }
+
         .profile-hero__tenancy-icon {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
           background: var(--clay-faint);
           color: var(--clay);
           display: flex;
@@ -470,37 +485,42 @@ export function ProfileMenuContent() {
           justify-content: center;
           flex-shrink: 0;
         }
+
         .profile-hero__tenancy-title {
           font-size: 0.8rem;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           color: var(--text-muted);
-          margin-bottom: 0.1rem;
+          margin-bottom: 0.2rem;
         }
+
         .profile-hero__tenancy-property {
-          font-size: 0.95rem;
+          font-size: 1rem;
           font-weight: 600;
           color: var(--text);
         }
+
         .profile-hero__tenancy-footer {
           display: flex;
           align-items: center;
           justify-content: space-between;
           padding-top: 1rem;
-          border-top: 1px solid var(--border);
+          border-top: 1px solid var(--local-border);
         }
+
         .profile-hero__tenancy-expiry {
           font-size: 0.8rem;
           color: var(--text-muted);
         }
 
         .profile-menu-list {
-          background: var(--surface);
-          border-radius: 20px;
-          border: 1px solid var(--border);
+          background: var(--local-surface);
+          border-radius: 24px;
+          border: 1px solid var(--local-border);
           overflow: hidden;
         }
+
         .profile-menu-item {
           display: flex;
           align-items: center;
@@ -508,19 +528,23 @@ export function ProfileMenuContent() {
           padding: 1.25rem 1rem;
           cursor: pointer;
           transition: background 0.2s;
-          border-bottom: 1px solid var(--border);
+          border-bottom: 1px solid var(--local-border);
         }
+
         .profile-menu-item:last-child {
           border-bottom: none;
         }
+
         .profile-menu-item:active {
-          background: var(--surface2);
+          background: var(--local-surface2);
         }
+
         .profile-menu-item__left {
           display: flex;
           align-items: center;
           gap: 1rem;
         }
+
         .profile-menu-item__icon-wrap {
           width: 36px;
           height: 36px;
@@ -530,10 +554,13 @@ export function ProfileMenuContent() {
           align-items: center;
           justify-content: center;
         }
+
         .profile-menu-item__title {
           font-size: 1rem;
           font-weight: 600;
+          color: var(--text);
         }
+
         .profile-menu-item__right {
           display: flex;
           align-items: center;
@@ -541,36 +568,64 @@ export function ProfileMenuContent() {
         }
 
         .profile-menu-item--logout {
-          border-top: 1px solid var(--border);
-          color: #ef4444;
-        }
-        .profile-menu-item__icon-wrap--logout {
-          background: #fee2e2 !important;
-          color: #ef4444;
+          border-top: 1px solid var(--local-border);
+          transition: all 0.2s;
         }
 
+        .profile-menu-item--logout .profile-menu-item__title {
+          color: var(--text);
+          transition: color 0.2s;
+        }
+
+        .profile-menu-item--logout:hover {
+          background: rgba(239, 68, 68, 0.04);
+        }
+
+        .profile-menu-item--logout:hover .profile-menu-item__title {
+          color: var(--danger, #ef4444);
+        }
+
+        .profile-menu-item__icon-wrap--logout {
+          background: var(--surface2) !important;
+          color: var(--text-muted);
+          transition: all 0.2s;
+        }
+
+        .profile-menu-item--logout:hover .profile-menu-item__icon-wrap--logout {
+          background: rgba(239, 68, 68, 0.1) !important;
+          color: var(--danger, #ef4444);
+        }
+
+        /* Property Cards (Mobile & Desktop Clean Up) */
         .properties-section {
-          padding-top: 1rem;
+          padding-top: 1.5rem;
+          padding-bottom: 1rem;
         }
+
         .property-card {
-          background: white;
+          background: var(--local-surface);
           border-radius: 20px;
-          border: 1px solid var(--border);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+          border: 1px solid var(--local-border);
+          box-shadow: var(--shadow-sm);
           transition: transform 0.2s, box-shadow 0.2s;
+          margin-bottom: 1.5rem;
         }
+
         .property-card:hover {
           transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+          box-shadow: var(--shadow-md);
         }
+
         .property-card__header {
           display: flex;
           align-items: center;
           justify-content: space-between;
           padding: 1.25rem 1.5rem;
-          background: #fcfdfe;
-          border-bottom: 1px solid #f1f5f9;
+          background: var(--local-surface2);
+          border-bottom: 1px solid var(--local-border);
+          border-radius: 20px 20px 0 0;
         }
+
         .property-card__index {
           width: 24px;
           height: 24px;
@@ -583,31 +638,40 @@ export function ProfileMenuContent() {
           font-size: 12px;
           font-weight: 700;
         }
+
         .property-card__title {
           font-size: 0.95rem;
           font-weight: 700;
           color: var(--text);
+          margin: 0;
         }
+
         .property-card__body {
           padding: 0.5rem 0;
         }
+
+        /* Responsive Buttons */
         .btn-remove {
           font-size: 0.75rem;
           font-weight: 700;
-          color: #ef4444;
-          background: #fee2e2;
+          color: var(--danger, #ef4444);
+          background: rgba(239, 68, 68, 0.1);
           padding: 6px 12px;
           border-radius: 8px;
           transition: all 0.2s;
+          border: none;
+          cursor: pointer;
         }
+
         .btn-remove:hover {
-          background: #fecaca;
+          background: rgba(239, 68, 68, 0.2);
         }
+
         .btn-add-property {
           width: 100%;
           padding: 1.25rem;
           border-radius: 20px;
-          border: 2px dashed var(--border);
+          border: 2px dashed var(--local-border);
           background: transparent;
           color: var(--text-muted);
           font-weight: 600;
@@ -619,31 +683,37 @@ export function ProfileMenuContent() {
           justify-content: center;
           gap: 10px;
         }
+
         .btn-add-property span {
-          background: var(--border);
+          background: var(--local-border);
           width: 24px;
           height: 24px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: white;
+          color: var(--text-muted);
           font-size: 18px;
         }
+
         .btn-add-property:hover {
           border-color: var(--clay);
           color: var(--clay);
           background: var(--clay-faint);
         }
+
         .btn-add-property:hover span {
           background: var(--clay);
+          color: white;
         }
+
         .badge {
           padding: 6px 12px;
           border-radius: 30px;
           font-size: 0.75rem;
           font-weight: 700;
         }
+
         .badge--clay {
           background: var(--clay-faint);
           color: var(--clay);
@@ -651,12 +721,51 @@ export function ProfileMenuContent() {
         
         .profile-details-actions {
           padding: 1.5rem;
-          border-top: 1px solid var(--border);
+          border-top: 1px solid var(--local-border);
+          margin-top: 1rem;
         }
+
         .profile-edit-buttons {
           display: grid;
           grid-template-columns: 1fr 2fr;
           gap: 1rem;
+        }
+
+        /* Large Screen Desktop View Logic */
+        @media (min-width: 1024px) {
+          .profile-page, .profile-menu-page {
+            max-width: 860px;
+            margin: 0 auto;
+            padding-top: 2rem;
+          }
+
+          .dashboard__main-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .dashboard__col--left {
+            margin: 0 auto;
+            width: 100%;
+          }
+
+          /* Elevate the content to look like a robust Settings Center */
+          .profile-menu-list, .profile-hero, .dashboard__card {
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-solid);
+          }
+
+          .property-card__header {
+            padding: 1.5rem 2rem;
+          }
+
+          .profile-details-list {
+            padding: 1rem 2rem;
+          }
+
+          .btn-add-property {
+            max-width: 400px;
+            margin: 0 auto;
+          }
         }
       `}</style>
     </div>

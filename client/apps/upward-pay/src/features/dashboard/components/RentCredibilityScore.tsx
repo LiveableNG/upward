@@ -325,7 +325,7 @@ export function RentCredibilityScore({
           position: absolute;
           bottom: -10px;
           right: -10px;
-          background: var(--dark-surface);
+          background: var(--bg);
           border: 2px solid var(--clay);
           width: 58px;
           height: 58px;
@@ -334,15 +334,8 @@ export function RentCredibilityScore({
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+          box-shadow: 0 10px 20px rgba(0,0,0,0.2);
           z-index: 2;
-        }
-
-        :global(.theme--light) .rank-badge, 
-        :global(html:not(.theme--dark)) .rank-badge {
-          background: white;
-          box-shadow: 0 8px 16px rgba(0,0,0,0.06);
-          border-color: var(--clay);
         }
 
         .rank-letter {
