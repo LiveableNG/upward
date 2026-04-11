@@ -406,7 +406,7 @@ model upward_payment_line_item {
   id               Int      @id @default(autoincrement())
   uuid             String   @unique @default(uuid())
   paymentRequestId Int
-  label            String
+  name             String
   totalAmount      Float
   amountPaid       Float    @default(0)
   status           String   @default("PENDING") // PENDING, PARTIAL, PAID

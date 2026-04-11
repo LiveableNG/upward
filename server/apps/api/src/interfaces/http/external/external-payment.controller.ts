@@ -1,6 +1,7 @@
 import { Controller, Post, Get, Body, UseGuards, Req, Param } from '@nestjs/common'
 import { ApiKeyGuard } from './api-key.guard'
-import { CreateExternalPaymentRequestUseCase, ExternalPaymentRequestPayload } from '../../../application/use-cases/external/create-payment-request.use-case'
+import { CreateExternalPaymentRequestUseCase } from '../../../application/use-cases/external/create-payment-request.use-case'
+import { ExternalPaymentRequestPayloadDto } from '../../../application/use-cases/external/create-payment-request.dto'
 import { GetPublicPaymentDetailsUseCase } from '../../../application/use-cases/external/get-public-payment.use-case'
 import { ConfirmExternalPaymentUseCase } from '../../../application/use-cases/external/confirm-payment.use-case'
 
@@ -14,7 +15,7 @@ export class ExternalPaymentController {
 
   @Post()
   @UseGuards(ApiKeyGuard)
-  async createPaymentRequest(@Body() payload: ExternalPaymentRequestPayload, @Req() req: any) {
+  async createPaymentRequest(@Body() payload: ExternalPaymentRequestPayloadDto, @Req() req: any) {
     const platformId = req.platformId
     const result = await this.createPaymentRequestUseCase.execute(payload, platformId)
     return {

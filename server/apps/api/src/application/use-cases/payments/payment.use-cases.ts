@@ -72,7 +72,7 @@ export class GetSavedLandlordsUseCase {
 export interface LineItemPayment {
   id: number
   amountPaid: number
-  label?: string // editable label (used for Future Credit items)
+  name?: string // editable name (used for Future Credit items)
 }
 
 @Injectable()
@@ -100,7 +100,7 @@ export class RecordTransactionUseCase {
     data: Omit<Transaction, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'userId'> & {
       userId: string
       lineItemPayments?: LineItemPayment[]
-      futureCreditLabel?: string
+      futureCreditName?: string
     }
   ) {
     try {
@@ -117,11 +117,18 @@ export class RecordTransactionUseCase {
       }
 
       // Verification
-      let isVerified = false
+      let verifiedData: any = { status: false }
       try {
-        isVerified = await this.gateway.verifyTransaction(data.reference)
+        verifiedData = await this.gateway.verifyTransaction(data.reference)
       } catch (e) {
         this.logger.error(`Gateway verification failed for ${data.reference}:`, e)
+      }
+
+      const isVerified = verifiedData.status
+      if (isVerified && verifiedData.amount !== undefined) {
+        // Essential: use the actual verified amount from the gateway 
+        // to prevent recording original request amount if a partial/different amount was paid
+        data.amount = verifiedData.amount
       }
 
       let pr: any = null
@@ -131,7 +138,7 @@ export class RecordTransactionUseCase {
       if (isVerified && data.paymentRequestId) {
         pr = await this.paymentRequestRepo.findById(data.paymentRequestId)
         if (pr) {
-          remaining = pr.amount - (pr.amountPaid || 0)
+          remaining = Math.max(0, pr.amount - (pr.amountPaid || 0))
           excess = Math.max(0, data.amount - remaining)
         }
       }
@@ -171,7 +178,7 @@ export class RecordTransactionUseCase {
                   newItemPaid > 0 ? 'PARTIAL' : 'PENDING'
 
                 await this.lineItemRepo.update(lip.id, {
-                  label: lip.label || existingItem.label,
+                  name: lip.name || existingItem.name,
                   amountPaid: Math.min(newItemPaid, existingItem.totalAmount),
                   status: itemStatus,
                 })
@@ -185,7 +192,7 @@ export class RecordTransactionUseCase {
             const existingFc = await this.txRepo.findByReference(futureCreditRef)
 
             if (!existingFc) {
-              const futureCreditLabel = data.futureCreditLabel || 'Future Credit'
+              const futureCreditName = data.futureCreditName || 'Future Credit'
               await this.txRepo.create({
                 userId: user.id!,
                 type: data.type || 'RENT',
@@ -193,10 +200,10 @@ export class RecordTransactionUseCase {
                 amount: excess,
                 currency: data.currency || 'NGN',
                 reference: futureCreditRef,
-                narration: futureCreditLabel,
+                narration: futureCreditName,
                 paymentRequestId: pr.id,
                 propertyAddress: data.propertyAddress,
-                lineItems: [{ label: futureCreditLabel, amount: excess }],
+                lineItems: [{ name: futureCreditName, amount: excess }],
               } as any)
 
               await this.overpaymentRepo.create({

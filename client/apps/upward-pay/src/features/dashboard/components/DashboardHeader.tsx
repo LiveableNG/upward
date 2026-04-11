@@ -31,11 +31,7 @@ export function DashboardHeader({ firstName, notifCount, profilePic }: Dashboard
   return (
     <>
       <header className="dashboard__header">
-        {/* Desktop Logo (Hidden on mobile) */}
-        <div className="dashboard__header-brand">
-          <UpwardLogo size={24} color="var(--clay)" />
-          <span className="dashboard__header-logo-text">Upward</span>
-        </div>
+
 
         {/* Mobile User Block (Hidden on desktop) */}
         <div className="dashboard__header-left">

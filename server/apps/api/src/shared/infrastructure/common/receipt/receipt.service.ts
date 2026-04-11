@@ -15,7 +15,7 @@ export interface ReceiptPdfData {
   reference: string
   channel: string
   type: string
-  lineItems?: Array<{ label: string; amount: number }>
+  lineItems?: Array<{ name: string; amount: number }>
 }
 
 @Injectable()
@@ -166,7 +166,7 @@ export class ReceiptService {
       const hasBreakdown = data.lineItems && data.lineItems.length > 0
       const breakdownDesc = hasBreakdown
         ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          `${data.lineItems!.map((item: any) => `${item.label} (N${item.amount.toLocaleString()})`).join(', ')}`
+          `${data.lineItems!.map((item: any) => `${item.name} (N${item.amount.toLocaleString()})`).join(', ')}`
         : data.propertyName || data.propertyAddress || 'Rent Payment'
 
       if (data.type === 'RENT') {
@@ -231,7 +231,7 @@ export class ReceiptService {
             .font('Helvetica')
             .fontSize(10)
             .fillColor(textSecondary)
-            .text(item.label, CARD_X + 22, itemY)
+            .text(item.name, CARD_X + 22, itemY)
           doc
             .font('Helvetica-Bold')
             .fontSize(10)

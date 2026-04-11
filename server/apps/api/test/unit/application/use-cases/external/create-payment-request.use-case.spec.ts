@@ -1,8 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common'
-import {
-  CreateExternalPaymentRequestUseCase,
-  ExternalPaymentRequestPayload,
-} from '@application/use-cases/external/create-payment-request.use-case'
+import { CreateExternalPaymentRequestUseCase } from '@application/use-cases/external/create-payment-request.use-case'
+import { ExternalPaymentRequestPayloadDto as ExternalPaymentRequestPayload } from '@application/use-cases/external/create-payment-request.dto'
 import { SingleInviteUseCase, InviteRequest } from '@application/use-cases/external/single-invite.use-case'
 import { UserRepository } from '@domains/users/user.repository'
 import { PropertyRepository } from '@domains/companies/property.repository'

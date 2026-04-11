@@ -29,7 +29,7 @@ type PayStep = 'loading' | 'invoice' | 'checkout' | 'processing' | 'success' | '
 
 interface LineItemRecord {
   id: number
-  label: string
+  name: string
   totalAmount: number
   amountPaid: number
   status: 'PENDING' | 'PARTIAL' | 'PAID'
@@ -37,7 +37,7 @@ interface LineItemRecord {
 
 interface LineItemAllocation {
   id: number
-  label: string
+  name: string
   totalAmount: number
   amountPaid: number
   allocated: number
@@ -50,7 +50,7 @@ function distributeAmount(amount: number, items: LineItemRecord[], totalOwed: nu
 
   const allocs: LineItemAllocation[] = items.map(i => ({
     id: i.id,
-    label: i.label,
+    name: i.name,
     totalAmount: i.totalAmount,
     amountPaid: i.amountPaid,
     remaining: Math.max(0, i.totalAmount - i.amountPaid),
@@ -61,7 +61,7 @@ function distributeAmount(amount: number, items: LineItemRecord[], totalOwed: nu
   if (discrepancy > 0) {
     allocs.push({
       id: -1, // Use -1 as virtual ID
-      label: 'Invoice Balance',
+      name: 'Invoice Balance',
       totalAmount: discrepancy,
       amountPaid: 0,
       remaining: discrepancy,
@@ -99,7 +99,7 @@ export default function UnifiedPayPage() {
   const [manualMode, setManualMode] = useState(false)
   const [manualAllocs, setManualAllocs] = useState<Record<number, number>>({})
   const [futureCreditAmount, setFutureCreditAmount] = useState(0)
-  const [futureCreditLabel, setFutureCreditLabel] = useState('Future Credit')
+  const [futureCreditName, setFutureCreditName] = useState('Future Credit')
   const [overpayConfirmed, setOverpayConfirmed] = useState(false)
 
   const [formData, setFormData] = useState({
@@ -173,7 +173,7 @@ export default function UnifiedPayPage() {
 
   const finalLineItemPayments = effectiveAllocs
     .filter(a => a.allocated > 0 && a.id !== -1)
-    .map(a => ({ id: a.id, amountPaid: a.allocated, label: a.label }))
+    .map(a => ({ id: a.id, amountPaid: a.allocated, name: a.name }))
 
   const progressPct = totalOwed > 0
     ? Math.min(100, (Math.min(parsedAmount, totalOwed) / totalOwed) * 100)
@@ -205,7 +205,7 @@ export default function UnifiedPayPage() {
         reference,
         lineItemPayments: finalLineItemPayments,
         futureCreditAmount: futureCreditAmount > 0 ? futureCreditAmount : undefined,
-        futureCreditLabel: futureCreditAmount > 0 ? futureCreditLabel : undefined
+        futureCreditName: futureCreditAmount > 0 ? futureCreditName : undefined
       })
       if (res.success) {
         success('Payment successful!')
@@ -318,19 +318,10 @@ export default function UnifiedPayPage() {
 
                 {/* Desktop Trust View (Hidden on mobile) */}
                 <div className="pay-trust pay-trust--desktop">
-                  <div className="secure-badge">
-                      <Lock size={11} className="text-success" />
-                      <span className="secure-badge__text">Secure &amp; Encrypted</span>
-                  </div>
                   <p className="pay-footer__disclaimer">
                       All payments are processed securely via Paystack. By continuing, you agree to our 
                       <a href="#" className="link--dark">Terms of Service</a> and <a href="#" className="link--dark">Privacy Policy</a>.
                   </p>
-                  <div className="pci-badges">
-                      <div className="pci-badge">PCI Protected</div>
-                      <div className="pci-dot" />
-                      <div className="pci-badge">SSL Encrypted</div>
-                  </div>
                 </div>
               </div>
 
@@ -364,8 +355,8 @@ export default function UnifiedPayPage() {
                       lineItems={lineItems}
                       overpayConfirmed={overpayConfirmed}
                       futureCreditAmount={futureCreditAmount}
-                      futureCreditLabel={futureCreditLabel}
-                      setFutureCreditLabel={setFutureCreditLabel}
+                      futureCreditName={futureCreditName}
+                      setFutureCreditName={setFutureCreditName}
                       manualAllocs={manualAllocs}
                       setManualAllocs={setManualAllocs}
                       onEnterManualMode={enterManualMode}
@@ -394,23 +385,12 @@ export default function UnifiedPayPage() {
                   )}
                   
                   <div className="pay-footer pay-trust--mobile">
-                    <div className="secure-badge">
-                        <Lock size={11} className="text-success" />
-                        <span className="secure-badge__text">Secure &amp; Encrypted</span>
-                    </div>
-                    
                     <p className="pay-footer__disclaimer">
                         All payments are processed securely via Paystack. By continuing, you agree to our 
                         <a href="#" className="link--dark">Terms of Service</a> 
                         and 
                         <a href="#" className="link--dark">Privacy Policy</a>.
                     </p>
-
-                    <div className="pci-badges">
-                        <div className="pci-badge">PCI Protected</div>
-                        <div className="pci-dot" />
-                        <div className="pci-badge">SSL Encrypted</div>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -446,6 +426,7 @@ export default function UnifiedPayPage() {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            transition: max-width 0.4s ease;
           }
           .pay-header__dashboard-btn {
             display: flex;
@@ -475,10 +456,10 @@ export default function UnifiedPayPage() {
           }
 
           .pay-main {
-            padding-top: 84px;
-            padding-bottom: 80px;
+            padding-top: 72px;
+            padding-bottom: 60px;
             min-height: 100vh;
-            background: var(--oat-dim);
+            background: radial-gradient(circle at 100% 0%, var(--clay-faint), transparent 400px), var(--oat-dim);
           }
 
           .pay-container {
@@ -487,19 +468,24 @@ export default function UnifiedPayPage() {
             margin: 0 auto;
             background: var(--bg);
             border-radius: 40px;
-            padding: 64px 40px;
+            padding: 48px 40px;
             box-shadow: 0 40px 100px rgba(0,0,0,0.06), 0 10px 40px rgba(0,0,0,0.02);
             border: 1px solid var(--border-solid);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+          }
+          .pay-container:hover {
+            box-shadow: 0 60px 120px rgba(0,0,0,0.08), 0 15px 50px rgba(0,0,0,0.03);
           }
 
-          .pay-actions {
-            margin-top: 40px;
+          .pay-layout {
+            display: flex;
+            flex-direction: column;
           }
           .btn--pay {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 64px;
+            height: 60px;
             font-size: 15px;
             font-weight: 800;
             text-transform: uppercase;
@@ -545,22 +531,7 @@ export default function UnifiedPayPage() {
             padding-top: 32px;
             border-top: 1px solid var(--border-solid);
           }
-          .secure-badge {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 16px;
-            border-radius: 100px;
-            background: var(--success-bg);
-            border: 1px solid rgba(34, 197, 94, 0.1);
-          }
-          .secure-badge__text {
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: var(--success);
-          }
+
           .pay-footer__disclaimer {
             font-size: 11px;
             font-weight: 500;
@@ -577,31 +548,12 @@ export default function UnifiedPayPage() {
             text-underline-offset: 3px;
             text-decoration-color: var(--border-solid);
           }
-          .pci-badges {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            opacity: 0.4;
-          }
-          .pci-badge {
-            font-size: 9px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            color: var(--text);
-          }
-          .pci-dot {
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: var(--text);
-            opacity: 0.2;
-          }
+
 
           @media (max-width: 520px) {
             .pay-container {
               border-radius: 0;
-              padding: 64px 24px;
+              padding: 24px;
               border: none;
               box-shadow: none;
               background: transparent;
@@ -615,26 +567,40 @@ export default function UnifiedPayPage() {
           /* Desktop Scale/Split Screen Overrides */
           @media (min-width: 1024px) {
             .pay-container {
-              max-width: 960px;
-              padding: 48px;
+              max-width: 1100px;
+              padding: 64px;
               border-radius: 48px;
-              align-self: flex-start;
-              margin-top: 40px;
+              align-self: center;
+              margin-top: 60px;
             }
             .pay-layout {
               flex-direction: row;
-              align-items: flex-start;
-              gap: 64px;
+              align-items: stretch;
+              gap: 80px;
             }
             .pay-layout__left {
-              flex: 1.1;
+              flex: 1;
               position: sticky;
               top: 100px;
+              display: flex;
+              flex-direction: column;
+              justify-content: flex-start;
+              gap: 32px;
             }
             .pay-layout__right {
-              flex: 1.3;
-              padding-left: 64px;
+              flex: 1.2;
+              padding-left: 80px;
               border-left: 1px solid var(--border-solid);
+              display: flex;
+              flex-direction: column;
+              justify-content: flex-start;
+            }
+            .pay-header__content {
+              max-width: 1100px;
+              padding: 0 64px;
+            }
+            .pay-main {
+              padding-top: 100px;
             }
             .pay-trust--mobile {
               display: none;
@@ -671,7 +637,7 @@ export default function UnifiedPayPage() {
             subaccount={paymentData.payment.subaccountCode}
             onSuccess={handlePaymentSuccess}
             onClose={() => setStep('invoice')}
-            lineItems={finalLineItemPayments.map(p => ({ label: p.label, amount: p.amountPaid }))}
+            lineItems={finalLineItemPayments.map(p => ({ name: p.name, amount: p.amountPaid }))}
           />
         </div>
       </div>
@@ -697,7 +663,7 @@ export default function UnifiedPayPage() {
       <SuccessStep 
         finalAmount={finalAmount}
         futureCreditAmount={futureCreditAmount}
-        futureCreditLabel={futureCreditLabel}
+        futureCreditName={futureCreditName}
         currency={currency}
         companyName={paymentData.company.name}
         onDone={() => router.push('/dashboard')}

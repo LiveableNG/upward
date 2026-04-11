@@ -14,8 +14,8 @@ interface AllocationBreakdownProps {
   lineItems: any[]
   overpayConfirmed: boolean
   futureCreditAmount: number
-  futureCreditLabel: string
-  setFutureCreditLabel: (val: string) => void
+  futureCreditName: string
+  setFutureCreditName: (val: string) => void
   manualAllocs: Record<number, number>
   setManualAllocs: (val: any) => void
   onEnterManualMode: () => void
@@ -31,8 +31,8 @@ export function AllocationBreakdown({
   lineItems,
   overpayConfirmed,
   futureCreditAmount,
-  futureCreditLabel,
-  setFutureCreditLabel,
+  futureCreditName,
+  setFutureCreditName,
   manualAllocs,
   setManualAllocs,
   onEnterManualMode
@@ -64,7 +64,7 @@ export function AllocationBreakdown({
                 <div key={alloc.id} className="pay-breakdown-item">
                   <div className="pay-breakdown-item__row">
                     <div className="pay-breakdown-item__info">
-                      <span className="pay-breakdown-item__name">{alloc.label}</span>
+                      <span className="pay-breakdown-item__name">{alloc.name}</span>
                       <span className="pay-breakdown-item__stats">
                         {formatCurrency(alloc.amountPaid, currency)} of {formatCurrency(alloc.totalAmount, currency)} paid
                       </span>
@@ -98,8 +98,8 @@ export function AllocationBreakdown({
                   <div className="pay-breakdown-item__info">
                     <input
                       className="pay-breakdown-item__label-input"
-                      value={futureCreditLabel}
-                      onChange={e => setFutureCreditLabel(e.target.value)}
+                      value={futureCreditName}
+                      onChange={e => setFutureCreditName(e.target.value)}
                       placeholder="Name this credit..."
                     />
                     <span className="pay-breakdown-item__stats">Balance stored as future credit</span>
@@ -134,7 +134,7 @@ export function AllocationBreakdown({
 
       <style jsx>{`
         .pay-breakdown {
-          margin-top: 32px;
+          margin-top: 24px;
         }
         .pay-breakdown__header {
           display: flex;
@@ -166,9 +166,9 @@ export function AllocationBreakdown({
           border-radius: 100px;
         }
         .pay-breakdown__badge.is-auto {
-          background: var(--success-bg);
-          color: var(--success);
-          border: 1px solid rgba(34, 197, 94, 0.15);
+          background: var(--surface);
+          color: var(--text-muted);
+          border: 1px solid var(--border-solid);
         }
         .pay-breakdown__badge.is-manual {
           background: var(--clay-faint);
@@ -202,7 +202,7 @@ export function AllocationBreakdown({
           flex-direction: column;
         }
         .pay-breakdown-item {
-          padding: 20px;
+          padding: 16px;
           border-bottom: 1px solid var(--border-solid);
           transition: background 0.2s;
         }

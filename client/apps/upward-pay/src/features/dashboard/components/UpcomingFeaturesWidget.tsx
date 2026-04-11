@@ -34,11 +34,11 @@ export function UpcomingFeaturesWidget() {
     <div className="upcoming-widget" onClick={() => router.push('/dashboard/coming-soon')}>
       <div className="upcoming-widget__header">
         <div className="upcoming-widget__title">
-          <Sparkles size={16} className="text--clay" />
+          <Sparkles size={18} className="text--clay" />
           <h3>Coming Soon</h3>
         </div>
         <button className="upcoming-widget__btn">
-          <ArrowRight size={16} />
+          <ArrowRight size={18} />
         </button>
       </div>
 
@@ -46,7 +46,7 @@ export function UpcomingFeaturesWidget() {
         {features.map((item, i) => (
           <div key={i} className="upcoming-item">
             <div className="upcoming-item__icon" style={{ backgroundColor: item.bg, color: item.color }}>
-              <item.icon size={16} />
+              <item.icon size={18} />
             </div>
             <div className="upcoming-item__info">
               <h4>{item.title}</h4>
@@ -59,39 +59,39 @@ export function UpcomingFeaturesWidget() {
       <style jsx>{`
         .upcoming-widget {
           background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 20px;
-          padding: 20px;
+          border: 1px solid var(--border-solid);
+          border-radius: 24px;
+          padding: 24px;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .upcoming-widget:hover {
           border-color: var(--clay);
-          box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-          transform: translateY(-2px);
+          box-shadow: 0 12px 32px rgba(0,0,0,0.06);
+          transform: translateY(-4px);
         }
 
         :global(.theme--dark) .upcoming-widget:hover {
-          box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+          box-shadow: 0 12px 32px rgba(0,0,0,0.2);
         }
 
         .upcoming-widget__header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 20px;
+          margin-bottom: 24px;
         }
 
         .upcoming-widget__title {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
         }
 
         .upcoming-widget__title h3 {
-          font-size: 15px;
-          font-weight: 700;
+          font-size: 16px;
+          font-weight: 800;
           color: var(--text);
           margin: 0;
         }
@@ -118,19 +118,19 @@ export function UpcomingFeaturesWidget() {
         .upcoming-widget__list {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 20px;
         }
 
         .upcoming-item {
           display: flex;
           align-items: center;
-          gap: 14px;
+          gap: 16px;
         }
 
         .upcoming-item__icon {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
+          width: 42px;
+          height: 42px;
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -138,14 +138,14 @@ export function UpcomingFeaturesWidget() {
         }
 
         .upcoming-item__info h4 {
-          font-size: 13px;
+          font-size: 14px;
           font-weight: 700;
           color: var(--text);
-          margin: 0 0 2px;
+          margin: 0 0 4px;
         }
 
         .upcoming-item__info p {
-          font-size: 11px;
+          font-size: 12px;
           color: var(--text-muted);
           margin: 0;
         }

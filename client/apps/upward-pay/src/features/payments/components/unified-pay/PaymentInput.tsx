@@ -138,7 +138,7 @@ export function PaymentInput({
 
       <style jsx>{`
         .pay-input-section {
-          margin-bottom: 32px;
+          margin-bottom: 24px;
         }
         .pay-input-notice {
           display: flex;
@@ -148,7 +148,7 @@ export function PaymentInput({
           border: 1px solid var(--border-solid);
           padding: 14px 18px;
           border-radius: 18px;
-          margin-bottom: 24px;
+          margin-bottom: 16px;
         }
         .pay-input-notice__icon {
           color: var(--text-muted);
@@ -179,7 +179,7 @@ export function PaymentInput({
           border-radius: 20px;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           overflow: hidden;
-          height: 68px;
+          height: 60px;
           box-shadow: 0 4px 12px rgba(0,0,0,0.02);
         }
         .pay-amount-field__container:focus-within {
@@ -189,7 +189,7 @@ export function PaymentInput({
         }
         .pay-amount-field__container.is-error { border-color: var(--error); background: rgba(239, 68, 68, 0.02); }
         .pay-amount-field__container.is-warn { border-color: var(--warning); }
-        .pay-amount-field__container.is-valid { border-color: var(--success); }
+        .pay-amount-field__container.is-valid { border-color: var(--clay); }
 
         .pay-amount-field__currency {
           padding: 0 24px;
@@ -218,14 +218,14 @@ export function PaymentInput({
         .pay-amount-field__fixed-badge {
           margin-right: 16px;
           padding: 4px 12px;
-          background: var(--success-bg);
-          border: 1px solid rgba(34, 197, 94, 0.2);
+          background: var(--surface);
+          border: 1px solid var(--border-solid);
           border-radius: 100px;
         }
         .pay-amount-field__fixed-text {
           font-size: 10px;
           font-weight: 800;
-          color: var(--success);
+          color: var(--text-muted);
           text-transform: uppercase;
           letter-spacing: 0.1em;
         }
@@ -241,7 +241,7 @@ export function PaymentInput({
           color: var(--text-muted);
         }
         .pay-input-feedback.is-error { color: var(--error); }
-        .pay-input-feedback.is-success { color: var(--success); }
+        .pay-input-feedback.is-success { color: var(--clay); }
 
         .pay-overpay-confirm {
           margin-top: 24px;
@@ -310,9 +310,9 @@ export function PaymentInput({
           gap: 10px;
           padding: 14px;
           border-radius: 14px;
-          background: var(--success-bg);
-          border: 1px solid rgba(34, 197, 94, 0.2);
-          color: var(--success);
+          background: var(--clay-faint);
+          border: 1px solid rgba(217, 119, 87, 0.1);
+          color: var(--clay);
           font-size: 11px;
           font-weight: 800;
           text-transform: uppercase;
@@ -340,6 +340,7 @@ export function PaymentInput({
           color: var(--text);
           border-color: var(--text-muted);
         }
+
         .pay-quick-select__btn.is-active {
           background: var(--clay);
           color: #fff;

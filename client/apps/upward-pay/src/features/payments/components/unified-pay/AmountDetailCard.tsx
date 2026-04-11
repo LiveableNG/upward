@@ -49,10 +49,10 @@ export function AmountDetailCard({
         .pay-amount-card {
           background: var(--bg);
           border: 1px solid var(--border-solid);
-          padding: 40px 32px;
+          padding: 24px;
           border-radius: 32px;
           text-align: center;
-          margin-bottom: 40px;
+          margin-bottom: 24px;
           box-shadow: 0 12px 48px rgba(0,0,0,0.04);
           position: relative;
           overflow: hidden;
@@ -71,10 +71,10 @@ export function AmountDetailCard({
           margin-bottom: 12px;
         }
         .pay-amount-card__value {
-          font-size: 42px;
+          font-size: 32px;
           font-weight: 950;
           color: var(--text);
-          margin-bottom: 16px;
+          margin-bottom: 12px;
           letter-spacing: -0.05em;
           line-height: 1;
         }
@@ -91,8 +91,8 @@ export function AmountDetailCard({
           border: 1px solid var(--border-solid);
         }
         .pay-amount-card__progress {
-          margin-top: 40px;
-          padding-top: 32px;
+          margin-top: 24px;
+          padding-top: 24px;
           border-top: 1px solid var(--border-solid);
         }
         .pay-amount-card__progress-info {

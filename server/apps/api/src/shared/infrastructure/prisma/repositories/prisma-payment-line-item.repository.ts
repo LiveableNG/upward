@@ -14,7 +14,7 @@ export class PrismaPaymentLineItemRepository implements IPaymentLineItemReposito
       id: row.id,
       uuid: row.uuid,
       paymentRequestId: row.paymentRequestId,
-      label: row.label,
+      name: row.name,
       totalAmount: row.totalAmount,
       amountPaid: row.amountPaid,
       status: row.status,
@@ -30,7 +30,7 @@ export class PrismaPaymentLineItemRepository implements IPaymentLineItemReposito
     const row = await this.prisma.upward_payment_line_item.create({
       data: {
         paymentRequestId: data.paymentRequestId,
-        label: data.label,
+        name: data.name,
         totalAmount: data.totalAmount,
         amountPaid: data.amountPaid ?? 0,
         status: data.status ?? 'PENDING',
@@ -58,7 +58,7 @@ export class PrismaPaymentLineItemRepository implements IPaymentLineItemReposito
     const row = await this.prisma.upward_payment_line_item.update({
       where: { id },
       data: {
-        label: data.label,
+        name: data.name,
         totalAmount: data.totalAmount,
         amountPaid: data.amountPaid,
         status: data.status,

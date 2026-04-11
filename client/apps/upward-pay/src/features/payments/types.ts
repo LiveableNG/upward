@@ -27,7 +27,7 @@ export interface PaymentRequestData {
   } | null
   lineItems: {
     uuid: string
-    label: string
+    name: string
     category: string
     amount: number
   }[]

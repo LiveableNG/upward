@@ -5,7 +5,8 @@
 .dashboard {
   min-height: 100vh;
   min-height: 100dvh;
-  max-width: 480px;
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
   padding: var(--space-5);
 }
@@ -16,6 +17,25 @@
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* ── Main Grid (mobile single col) ── */
+.dashboard__main-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.dashboard__col {
+  display: contents;
+}
+
+.right-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+}
+
 
 .dashboard__header {
   display: flex;
@@ -1081,31 +1101,36 @@
   flex-direction: column;
 }
 
-/* ── Main Grid (mobile single col) ── */
-.dashboard__main-grid {
-  display: flex;
-  flex-direction: column;
-}
+/* Redundant definitions removed */
+
 
 .dashboard__col {
   display: contents;
 }
 
-.dashboard__section--pending,
-.dashboard__section--success {
-  order: 1;
-}
+/* Reordering for Mobile Views */
+@media (max-width: 1023px) {
+  .dashboard__announcement-row {
+    order: -2 !important;
+    margin: 0 0 16px 0 !important;
+  }
 
-.dashboard__quick-access {
-  order: 2;
-}
+  .app-install-banner {
+    order: -1 !important;
+    margin-bottom: 16px !important;
+  }
 
-.dashboard__section--transactions {
-  order: 3;
-}
+  .activity-center {
+    order: 0;
+  }
 
-.dashboard__section--adverts {
-  order: 4;
+  .credibility-hub {
+    order: 1;
+  }
+
+  .share-cred {
+    order: 2;
+  }
 }
 
 /* ── Stat Strip (hidden mobile) ── */
@@ -1136,12 +1161,14 @@
   }
 
   .dashboard {
-    max-width: 100%;
-    padding: 0;
+    width: 100%;
+    max-width: none;
   }
 
+
   .dashboard__col {
-    display: block;
+    display: flex;
+    flex-direction: column;
   }
 
   /* Only hide mobile header on the main dashboard page where we have the Top Nav */
@@ -1208,7 +1235,8 @@
   }
 
   .dashboard__header {
-    max-width: 1100px;
+    width: 100%;
+    max-width: none;
     margin: 0 auto;
   }
 
@@ -1272,7 +1300,8 @@
     gap: 16px;
     padding: 24px 32px;
     border-bottom: 1px solid var(--border);
-    max-width: 1100px;
+    width: 100%;
+    max-width: none;
     margin: 0 auto;
   }
 
@@ -1347,25 +1376,11 @@
     font-weight: 500;
   }
 
-  .dashboard__main-grid {
-    display: grid;
-    grid-template-columns: 1fr 380px;
-    gap: 0;
-    padding: 28px 32px;
-    align-items: start;
-    min-height: calc(100vh - 180px);
-    max-width: 1100px;
-    margin: 0 auto;
-  }
+  /* Main grid handled in base layout */
 
-  .dashboard__col--left {
-    padding-right: 28px;
-    border-right: 1px solid var(--border);
-  }
 
-  .dashboard__col--right {
-    padding-left: 28px;
-  }
+  /* Column padding handled in base layout */
+
 
   .dashboard__col--left .dashboard__success-card {
     margin: 0 0 24px 0;
@@ -1444,18 +1459,13 @@
   }
 }
 
-@media (min-width: 1280px) {
+/* 1280px Overrides handled in definitive block below */
+
+
+@media (min-width: 1440px) {
   .dashboard__main-grid {
-    grid-template-columns: 1fr 420px;
-    padding: 32px 0;
-  }
-
-  .dashboard__stat-strip {
-    padding: 24px 0;
-  }
-
-  .dashboard__header--desktop {
-    padding: 20px 0;
+    grid-template-columns: minmax(0, 2.8fr) minmax(360px, 1fr);
+    gap: 40px;
   }
 }
 
@@ -3031,121 +3041,6 @@
   text-align: center;
 }
 
-/* ── Savings Goal Modal Extensions ── */
-.savings-presets {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.savings-preset {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid var(--border-solid);
-  background: var(--surface);
-  color: var(--text-secondary);
-  transition: all 0.2s;
-}
-
-.savings-preset--active {
-  border-color: var(--clay);
-  background: var(--clay-faint);
-  color: var(--clay);
-}
-
-.savings-input {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.savings-input__symbol {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-muted);
-}
-
-.savings-input__field {
-  flex: 1;
-  background: var(--surface);
-  border: 1px solid var(--border-solid);
-  border-radius: 12px;
-  padding: 14px 16px;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text);
-  outline: none;
-}
-
-.savings-input__field:focus {
-  border-color: var(--clay);
-}
-
-.autosave-toggle {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px;
-  background: var(--surface);
-  border: 1px solid var(--border-solid);
-  border-radius: 14px;
-  cursor: pointer;
-  margin-bottom: 24px;
-  transition: all 0.2s;
-}
-
-.autosave-toggle--on {
-  background: var(--clay-faint);
-  border-color: var(--clay);
-}
-
-.autosave-toggle__check {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  border: 2px solid var(--border-solid);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.autosave-toggle__check--on {
-  background: var(--clay);
-  border-color: var(--clay);
-}
-
-.autosave-toggle__info {
-  flex: 1;
-}
-
-.autosave-toggle__title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 2px;
-}
-
-.autosave-toggle__sub {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.autosave-toggle__icon {
-  color: var(--text-muted);
-  transition: color 0.2s;
-}
-
-.autosave-toggle__icon--on {
-  color: var(--clay);
-}
-
 @keyframes alertBeam {
   0%,
   100% {
@@ -3597,7 +3492,6 @@
    DASHBOARD DESKTOP LAYOUT OVERRIDES
 ══════════════════════════════════════════ */
 @media (min-width: 1024px) {
-  /* 1. Scale max-width up to desktop grid limits, remove mobile bottom padding */
   .dashboard {
     max-width: var(--max-width-desktop, 1440px);
     padding: var(--space-5) var(--space-8);
@@ -3607,12 +3501,7 @@
     padding-bottom: var(--space-5);
   }
 
-  /* 2. Hide Mobile Bottom Nav */
-  .bottom-nav {
-    display: none !important;
-  }
-
-  /* 3. Setup Top Header */
+  /* Setup Top Header */
   .dashboard__header {
     display: flex;
     align-items: center;
@@ -3623,6 +3512,33 @@
     border-bottom: none;
   }
   
+  .dashboard__header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  /* 2-Zone Content Grid Setup */
+  .dashboard__main-grid {
+    display: grid;
+    /* Clean proportion: Left gets 65%, Right gets 35% with a minimum width */
+    grid-template-columns: minmax(0, 1.8fr) minmax(340px, 1fr);
+    gap: var(--space-8);
+    align-items: start;
+    width: 100%;
+  }
+  
+  /* Reset bounds to expand naturally without borders slicing content */
+  .dashboard__col--left,
+  .dashboard__col--right {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    width: 100%;
+    padding: 0;
+    border-right: none;
+  }
+
   .dashboard__header-brand {
     display: flex;
     align-items: center;
@@ -3636,12 +3552,7 @@
     font-family: var(--font);
     color: var(--text);
   }
-  
-  .dashboard__header-left {
-    display: none; /* Hide mobile user info block */
-  }
 
-  /* 4. Display Desktop Top Navigation Bar (Centered) */
   .dashboard__header-nav {
     display: flex;
     align-items: center;
@@ -3691,36 +3602,46 @@
     transform: scale(1.05);
   }
 
-  /* 5. 2-Zone Content Grid Setup */
-  .dashboard__main-grid {
-    display: grid;
-    grid-template-columns: 2fr 1.1fr;
-    gap: var(--space-8);
-    align-items: start;
-  }
-  
-  /* Reset max-width bounds on children inside desktop grid to expand naturally */
-  .dashboard__col--left,
-  .dashboard__col--right {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-6);
-    width: 100%;
-  }
-
   .stat-strip {
     margin-bottom: var(--space-8);
   }
 }
 
-/* Base definitions for new header components hiding on mobile */
-@media (max-width: 1023px) {
-  .dashboard__header-brand,
-  .dashboard__header-nav,
-  .dashboard__desktop-avatar {
-    display: none;
+
+@media (min-width: 1280px) {
+  .dashboard__main-grid {
+    /* Widen slightly for ultrawides */
+    grid-template-columns: minmax(0, 2fr) minmax(380px, 1fr);
+    gap: 48px;
+  }
+
+  .right-stack {
+    gap: 32px;
+    width: 100%; /* Fixed the previous 20% bug here */
+    height: auto;
   }
 }
+
+/* Hide mobile specific elements on desktop */
+@media (min-width: 1024px) {
+  .bottom-nav,
+  .dashboard__header--mobile,
+  .dashboard__section--mobile-only {
+    display: none !important;
+  }
+  .desktop-only {
+    display: flex !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .desktop-only,
+  .dashboard__header-nav,
+  .dashboard__desktop-avatar {
+    display: none !important;
+  }
+}
+
 
 /* ══════════════════════════════════════════
    NOTIFICATION PANEL (SLIDE-OVER)
