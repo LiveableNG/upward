@@ -55,8 +55,29 @@ function SignupPageContent() {
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={<FallbackSuspense message="Loading…" />}>
-      <SignupPageContent />
-    </Suspense>
+    <div className="auth-layout">
+      {/* Desktop Visual Panel - Hidden on Mobile */}
+      <div className="auth-layout__visual">
+        <div className="auth-layout__visual-content">
+          <div className="auth-layout__graphic">
+            {/* We can use CSS shapes/patterns for this graphic */}
+            <div className="auth-layout__circle"></div>
+            <div className="auth-layout__card-mock"></div>
+          </div>
+          <h1>The new standard of renting.</h1>
+          <p>
+            Build your credit score, earn rewards for on-time payments, and 
+            verify your tenancy history effortlessly with Good Tenant.
+          </p>
+        </div>
+      </div>
+
+      {/* Form Panel - Contains the existing auth flows */}
+      <div className="auth-layout__form">
+        <Suspense fallback={<FallbackSuspense message="Loading…" />}>
+          <SignupPageContent />
+        </Suspense>
+      </div>
+    </div>
   )
 }

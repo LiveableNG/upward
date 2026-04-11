@@ -53,7 +53,7 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
       actionLabel: 'Verify Now',
       action: () => router.push('/dashboard/kyc'),
       icon: <AlertTriangle size={20} color="#eab308" />,
-      bg: '#fefce8',
+      bg: 'rgba(234, 179, 8, 0.1)',
     })
   }
 

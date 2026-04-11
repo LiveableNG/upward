@@ -128,3 +128,41 @@
 .coming-soon__item:nth-child(3) {
   animation-delay: 0.2s;
 }
+
+/* Large Screen Desktop Optimization */
+@media (min-width: 1024px) {
+  .coming-soon {
+    max-width: 1000px;
+    padding: var(--space-12) var(--space-8);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .coming-soon__title {
+    font-size: 42px;
+    margin-bottom: var(--space-4);
+  }
+
+  .coming-soon__desc {
+    font-size: 18px;
+    max-width: 500px;
+    margin-bottom: var(--space-12);
+  }
+
+  .coming-soon__grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-6);
+  }
+
+  .coming-soon__item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--space-8) var(--space-6);
+    text-align: left;
+  }
+
+  .coming-soon__icon-wrapper {
+    margin-bottom: var(--space-4);
+  }
+}

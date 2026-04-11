@@ -300,29 +300,86 @@ export default function SettingsPage() {
         }
 
         .password-form {
-          padding: 16px;
+          padding: 20px;
           background: var(--bg);
           border-top: 1px solid var(--border);
         }
 
+        .settings-item--logout {
+          transition: all 0.2s;
+        }
         .settings-item--logout .settings-item__title {
-          color: #ef4444;
+          color: var(--text);
+          transition: color 0.2s;
         }
         .settings-item__icon-wrap--logout {
-          background: #fee2e2;
+          background: var(--surface2);
+          transition: all 0.2s;
+        }
+        .settings-item__icon-wrap--logout :global(svg) {
+          color: var(--text-muted) !important;
+          transition: all 0.2s;
+        }
+
+        .settings-item--logout:hover {
+          background: rgba(239, 68, 68, 0.04);
+        }
+        .settings-item--logout:hover .settings-item__title {
+          color: var(--danger, #ef4444);
+        }
+        .settings-item--logout:hover .settings-item__icon-wrap--logout {
+          background: rgba(239, 68, 68, 0.1);
+        }
+        .settings-item--logout:hover .settings-item__icon-wrap--logout :global(svg) {
+          color: var(--danger, #ef4444) !important;
         }
 
         .animate-fade-in {
           animation: fadeIn 0.3s ease-out;
         }
         @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-5px);
+          from { opacity: 0; transform: translateY(-5px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Large Screen Desktop View Logic */
+        @media (min-width: 1024px) {
+          .settings-page {
+            max-width: 860px;
+            margin: 0 auto;
+            padding-top: 2rem;
           }
-          to {
-            opacity: 1;
-            transform: translateY(0);
+          
+          .dashboard__main-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .dashboard__col--left {
+            margin: 0 auto;
+            width: 100%;
+          }
+
+          .settings-section {
+            padding: 0;
+            margin-bottom: 40px;
+          }
+
+          .theme-selector {
+            box-shadow: var(--shadow-sm);
+            padding: 12px;
+            border-radius: 20px;
+          }
+
+          .theme-option {
+            padding: 16px;
+          }
+
+          .settings-list {
+            box-shadow: var(--shadow-sm);
+          }
+          
+          .settings-item {
+            padding: 20px;
           }
         }
       `}</style>

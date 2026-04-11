@@ -299,95 +299,120 @@ export default function UnifiedPayPage() {
 
         <main className="pay-main">
           <div className="pay-container">
-            <InvoiceHeader 
-              companyName={paymentData.company?.name} 
-              description={paymentData.payment?.description || 'Housing Invoice'} 
-              logo={paymentData.company?.logo}
-            />
+            <div className="pay-layout">
+              {/* Left Column: Context, Amount, and Trust (for Desktop) */}
+              <div className="pay-layout__left">
+                <InvoiceHeader 
+                  companyName={paymentData.company?.name} 
+                  description={paymentData.payment?.description || 'Housing Invoice'} 
+                  logo={paymentData.company?.logo}
+                />
 
-            <AmountDetailCard 
-              totalOwed={totalOwed}
-              currency={currency}
-              dueDate={paymentData.payment.dueDate}
-              parsedAmount={parsedAmount}
-              progressPct={progressPct}
-            />
+                <AmountDetailCard 
+                  totalOwed={totalOwed}
+                  currency={currency}
+                  dueDate={paymentData.payment.dueDate}
+                  parsedAmount={parsedAmount}
+                  progressPct={progressPct}
+                />
 
-            {showAmountEntry && (
-              <>
-                {authUser && (
-                  <PaymentInput 
-                    canPayPartial={canPayPartial}
-                    isBelowMin={isBelowMin}
-                    isOverpaying={isOverpaying}
-                    amountInput={amountInput}
-                    currency={currency}
-                    totalOwed={totalOwed}
-                    minRequired={minRequired}
-                    futureCreditAmount={futureCreditAmount}
-                    overpayConfirmed={overpayConfirmed}
-                    onAmountChange={handleAmountChange}
-                    onConfirmOverpay={() => setOverpayConfirmed(true)}
-                  />
+                {/* Desktop Trust View (Hidden on mobile) */}
+                <div className="pay-trust pay-trust--desktop">
+                  <div className="secure-badge">
+                      <Lock size={11} className="text-success" />
+                      <span className="secure-badge__text">Secure &amp; Encrypted</span>
+                  </div>
+                  <p className="pay-footer__disclaimer">
+                      All payments are processed securely via Paystack. By continuing, you agree to our 
+                      <a href="#" className="link--dark">Terms of Service</a> and <a href="#" className="link--dark">Privacy Policy</a>.
+                  </p>
+                  <div className="pci-badges">
+                      <div className="pci-badge">PCI Protected</div>
+                      <div className="pci-dot" />
+                      <div className="pci-badge">SSL Encrypted</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Interaction Form */}
+              <div className="pay-layout__right">
+                {showAmountEntry && (
+                  <>
+                    {authUser && (
+                      <PaymentInput 
+                        canPayPartial={canPayPartial}
+                        isBelowMin={isBelowMin}
+                        isOverpaying={isOverpaying}
+                        amountInput={amountInput}
+                        currency={currency}
+                        totalOwed={totalOwed}
+                        minRequired={minRequired}
+                        futureCreditAmount={futureCreditAmount}
+                        overpayConfirmed={overpayConfirmed}
+                        onAmountChange={handleAmountChange}
+                        onConfirmOverpay={() => setOverpayConfirmed(true)}
+                      />
+                    )}
+
+                    <AllocationBreakdown 
+                      showBreakdown={showBreakdown}
+                      setShowBreakdown={setShowBreakdown}
+                      manualMode={manualMode}
+                      setManualMode={setManualMode}
+                      effectiveAllocs={effectiveAllocs}
+                      currency={currency}
+                      lineItems={lineItems}
+                      overpayConfirmed={overpayConfirmed}
+                      futureCreditAmount={futureCreditAmount}
+                      futureCreditLabel={futureCreditLabel}
+                      setFutureCreditLabel={setFutureCreditLabel}
+                      manualAllocs={manualAllocs}
+                      setManualAllocs={setManualAllocs}
+                      onEnterManualMode={enterManualMode}
+                    />
+                  </>
                 )}
 
-                <AllocationBreakdown 
-                  showBreakdown={showBreakdown}
-                  setShowBreakdown={setShowBreakdown}
-                  manualMode={manualMode}
-                  setManualMode={setManualMode}
-                  effectiveAllocs={effectiveAllocs}
-                  currency={currency}
-                  lineItems={lineItems}
-                  overpayConfirmed={overpayConfirmed}
-                  futureCreditAmount={futureCreditAmount}
-                  futureCreditLabel={futureCreditLabel}
-                  setFutureCreditLabel={setFutureCreditLabel}
-                  manualAllocs={manualAllocs}
-                  setManualAllocs={setManualAllocs}
-                  onEnterManualMode={enterManualMode}
-                />
-              </>
-            )}
+                <div className="pay-actions">
+                  {loginRequired ? (
+                    <div className="login-prompt">
+                      <p className="login-prompt__text">This request is linked to an account. Login to pay.</p>
+                      <button className="btn btn--primary btn--full btn--pill" onClick={() => router.push(`/login?redirect=/pay/${uuid}`)}>
+                        <Lock size={16} className="mr-2" /> Login to Pay
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="btn btn--primary btn--full btn--pay btn--pill"
+                      onClick={() => setStep('checkout')}
+                      disabled={!isValidAmount}
+                    >
+                      <CreditCard size={18} className="icon--left" />
+                      <span>{ctaLabel()}</span>
+                      {isValidAmount && <ArrowRight size={18} className="icon--right" />}
+                    </button>
+                  )}
+                  
+                  <div className="pay-footer pay-trust--mobile">
+                    <div className="secure-badge">
+                        <Lock size={11} className="text-success" />
+                        <span className="secure-badge__text">Secure &amp; Encrypted</span>
+                    </div>
+                    
+                    <p className="pay-footer__disclaimer">
+                        All payments are processed securely via Paystack. By continuing, you agree to our 
+                        <a href="#" className="link--dark">Terms of Service</a> 
+                        and 
+                        <a href="#" className="link--dark">Privacy Policy</a>.
+                    </p>
 
-            <div className="pay-actions">
-              {loginRequired ? (
-                <div className="login-prompt">
-                  <p className="login-prompt__text">This request is linked to an account. Login to pay.</p>
-                  <button className="btn btn--primary btn--full btn--pill" onClick={() => router.push(`/login?redirect=/pay/${uuid}`)}>
-                    <Lock size={16} className="mr-2" /> Login to Pay
-                  </button>
+                    <div className="pci-badges">
+                        <div className="pci-badge">PCI Protected</div>
+                        <div className="pci-dot" />
+                        <div className="pci-badge">SSL Encrypted</div>
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <button
-                  className="btn btn--primary btn--full btn--pay btn--pill"
-                  onClick={() => setStep('checkout')}
-                  disabled={!isValidAmount}
-                >
-                  <CreditCard size={18} className="icon--left" />
-                  <span>{ctaLabel()}</span>
-                  {isValidAmount && <ArrowRight size={18} className="icon--right" />}
-                </button>
-              )}
-              
-              <div className="pay-footer">
-                 <div className="secure-badge">
-                    <Lock size={11} className="text-success" />
-                    <span className="secure-badge__text">Secure &amp; Encrypted</span>
-                 </div>
-                 
-                 <p className="pay-footer__disclaimer">
-                    All payments are processed securely via Paystack. By continuing, you agree to our 
-                    <a href="#" className="link--dark">Terms of Service</a> 
-                    and 
-                    <a href="#" className="link--dark">Privacy Policy</a>.
-                 </p>
-
-                 <div className="pci-badges">
-                    <div className="pci-badge">PCI Protected</div>
-                    <div className="pci-dot" />
-                    <div className="pci-badge">SSL Encrypted</div>
-                 </div>
               </div>
             </div>
           </div>
@@ -584,6 +609,47 @@ export default function UnifiedPayPage() {
             .pay-main {
               background: var(--bg);
               padding-top: 64px;
+            }
+          }
+
+          /* Desktop Scale/Split Screen Overrides */
+          @media (min-width: 1024px) {
+            .pay-container {
+              max-width: 960px;
+              padding: 48px;
+              border-radius: 48px;
+              align-self: flex-start;
+              margin-top: 40px;
+            }
+            .pay-layout {
+              flex-direction: row;
+              align-items: flex-start;
+              gap: 64px;
+            }
+            .pay-layout__left {
+              flex: 1.1;
+              position: sticky;
+              top: 100px;
+            }
+            .pay-layout__right {
+              flex: 1.3;
+              padding-left: 64px;
+              border-left: 1px solid var(--border-solid);
+            }
+            .pay-trust--mobile {
+              display: none;
+            }
+            .pay-trust--desktop {
+              display: flex;
+              align-items: flex-start;
+              text-align: left;
+              margin-top: 48px;
+              padding-top: 48px;
+              border-top: 1px solid var(--border-solid);
+            }
+            .pay-trust--desktop .pay-footer__disclaimer {
+              text-align: left;
+              max-width: 100%;
             }
           }
         `}</style>

@@ -252,6 +252,39 @@ export function HelpContent() {
           outline: none;
           border-color: var(--clay);
         }
+
+        /* Large Screen Desktop View Logic */
+        @media (min-width: 1024px) {
+          .help-page {
+            max-width: 860px;
+            margin: 0 auto;
+            padding-top: 2rem;
+          }
+          
+          .help-section {
+            padding: 0;
+            margin-top: 2rem;
+          }
+
+          .faq-item {
+            box-shadow: var(--shadow-sm);
+            padding: 1.5rem 2rem;
+          }
+
+          .issue-report {
+            background: var(--surface);
+            padding: 40px;
+            border-radius: 24px;
+            border: 1px solid var(--border-solid);
+            box-shadow: var(--shadow-sm);
+            margin-top: 20px;
+          }
+          
+          .help-tabs {
+            max-width: 400px;
+            margin: 0 auto 2.5rem;
+          }
+        }
       `}</style>
     </div>
   )

@@ -112,172 +112,204 @@ export default function InvitePage() {
   }
 
   if (loading) return (
-    <div className="auth-shell auth-shell--signup flex-center">
-      <div className="loading-spinner" />
-      <style jsx>{`
-        .flex-center {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-        }
-        .loading-spinner {
-          width: 32px;
-          height: 32px;
-          border: 3px solid var(--surface2);
-          border-top-color: var(--clay);
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+    <div className="auth-layout">
+      <div className="auth-layout__visual">
+        <div className="auth-layout__visual-content">
+          <div className="auth-layout__graphic">
+            <div className="auth-layout__circle" style={{ background: 'rgba(255,255,255,0.04)' }}></div>
+            <div className="auth-layout__card-mock" style={{ backdropFilter: 'blur(8px)' }}></div>
+          </div>
+          <h1>Preparing your invite.</h1>
+          <p>Securing your data and loading your personalized invitation...</p>
+        </div>
+      </div>
+      <div className="auth-layout__form flex-center">
+        <div className="loading-spinner" />
+        <style jsx>{`
+          .flex-center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            min-height: 100vh;
+          }
+          .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--surface2);
+            border-top-color: var(--clay);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+          }
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
     </div>
   )
 
   const companyName = inviteData?.company?.name || 'Your Landlord'
 
   return (
-    <div className="auth-shell auth-shell--signup">
-      <div className="auth-shell__brand">
-        <UpwardLogo size={28} color="var(--clay)" />
-      </div>
-
-      <div className="auth-stage">
-        <div className="auth-stage__header">
-          <h1 className="auth-stage__title">Activate your account</h1>
-          <p className="auth-stage__subtitle">
-            You&apos;ve been invited by <strong>{companyName}</strong> to join Upward and start building your payment credibility.
+    <div className="auth-layout">
+      {/* Desktop Visual Panel - Hidden on Mobile */}
+      <div className="auth-layout__visual">
+        <div className="auth-layout__visual-content">
+          <div className="auth-layout__graphic">
+            <div className="auth-layout__circle"></div>
+            <div className="auth-layout__card-mock"></div>
+          </div>
+          <h1>Join {companyName}.</h1>
+          <p>
+            You've been invited to Upward. Accept your invitation to start
+            building your rental credibility effortlessly.
           </p>
         </div>
-
-        <form className="auth-form" onSubmit={handleSubmit}>
-          {localError && <div className="auth-form__error">{localError}</div>}
-          
-          <div className="auth-form__row">
-            <div className="auth-form__field">
-              <label>First Name</label>
-              <div className="input-with-icon">
-                <User size={17} />
-                <input
-                  type="text"
-                  value={formData.firstName}
-                  onChange={e => setFormData({ ...formData, firstName: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-            <div className="auth-form__field">
-              <label>Last Name</label>
-              <div className="input-with-icon">
-                <User size={17} />
-                <input
-                  type="text"
-                  value={formData.lastName}
-                  onChange={e => setFormData({ ...formData, lastName: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="auth-form__field mt-1">
-            <label>Email Address</label>
-            <div className="input-with-icon">
-              <Mail size={17} />
-              <input 
-                type="email" 
-                value={formData.email} 
-                disabled 
-                className="disabled-input" 
-              />
-            </div>
-          </div>
-
-          <div className="auth-form__row mt-1">
-            <div className="auth-form__field">
-              <label>Set Password</label>
-              <div className="input-with-icon">
-                <Lock size={17} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={e => setFormData({ ...formData, password: e.target.value })}
-                  required
-                  minLength={8}
-                  placeholder="Min. 8 characters"
-                />
-              </div>
-            </div>
-            <div className="auth-form__field">
-              <label>Confirm Password</label>
-              <div className="input-with-icon">
-                <Lock size={17} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.confirmPassword}
-                  onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  required
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="form-info-box mt-4">
-            <ShieldCheck size={18} color="var(--success)" strokeWidth={2.5} />
-            <p>Direct invitation from <strong>{companyName}</strong>. Your data is secure and verified.</p>
-          </div>
-
-          <button className="btn btn--primary btn--full btn--pay mt-6" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Activating account…' : 'Accept Invitation'}
-            {!isSubmitting && <ArrowRight size={17} />}
-          </button>
-        </form>
       </div>
 
-      <style jsx>{`
-        .auth-form__row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-        .mt-1 {
-          margin-top: 12px;
-        }
-        .disabled-input {
-          cursor: not-allowed;
-          opacity: 0.7;
-          background: var(--surface2) !important;
-        }
-        .form-info-box {
-          background: var(--surface);
-          border: 1px solid var(--border-solid);
-          padding: 12px;
-          border-radius: var(--radius-md);
-          display: flex;
-          gap: 10px;
-          align-items: center;
-        }
-        .form-info-box p {
-          font-size: 13px;
-          color: var(--text-secondary);
-          line-height: 1.4;
-          margin: 0;
-        }
-        @media (max-width: 480px) {
-          .auth-form__row {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
+      <div className="auth-layout__form">
+        <div className="auth-shell auth-shell--signup">
+          <div className="auth-shell__brand">
+            <UpwardLogo size={28} color="var(--clay)" />
+          </div>
+
+          <div className="auth-stage">
+            <div className="auth-stage__header">
+              <h1 className="auth-stage__title">Activate your account</h1>
+              <p className="auth-stage__subtitle">
+                You&apos;ve been invited by <strong>{companyName}</strong> to join Upward and start building your payment credibility.
+              </p>
+            </div>
+
+            <form className="auth-form" onSubmit={handleSubmit}>
+              {localError && <div className="auth-form__error">{localError}</div>}
+              
+              <div className="auth-form__row">
+                <div className="auth-form__field">
+                  <label>First Name</label>
+                  <div className="input-with-icon">
+                    <User size={17} />
+                    <input
+                      type="text"
+                      value={formData.firstName}
+                      onChange={e => setFormData({ ...formData, firstName: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="auth-form__field">
+                  <label>Last Name</label>
+                  <div className="input-with-icon">
+                    <User size={17} />
+                    <input
+                      type="text"
+                      value={formData.lastName}
+                      onChange={e => setFormData({ ...formData, lastName: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="auth-form__field mt-1">
+                <label>Email Address</label>
+                <div className="input-with-icon">
+                  <Mail size={17} />
+                  <input 
+                    type="email" 
+                    value={formData.email} 
+                    disabled 
+                    className="disabled-input" 
+                  />
+                </div>
+              </div>
+
+              <div className="auth-form__row mt-1">
+                <div className="auth-form__field">
+                  <label>Set Password</label>
+                  <div className="input-with-icon">
+                    <Lock size={17} />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={e => setFormData({ ...formData, password: e.target.value })}
+                      required
+                      minLength={8}
+                      placeholder="Min. 8 characters"
+                    />
+                  </div>
+                </div>
+                <div className="auth-form__field">
+                  <label>Confirm Password</label>
+                  <div className="input-with-icon">
+                    <Lock size={17} />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.confirmPassword}
+                      onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-info-box mt-4">
+                <ShieldCheck size={18} color="var(--success)" strokeWidth={2.5} />
+                <p>Direct invitation from <strong>{companyName}</strong>. Your data is secure and verified.</p>
+              </div>
+
+              <button className="btn btn--primary btn--full btn--pay mt-6" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Activating account…' : 'Accept Invitation'}
+                {!isSubmitting && <ArrowRight size={17} />}
+              </button>
+            </form>
+          </div>
+
+          <style jsx>{`
+            .auth-form__row {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 12px;
+            }
+            .mt-1 {
+              margin-top: 12px;
+            }
+            .disabled-input {
+              cursor: not-allowed;
+              opacity: 0.7;
+              background: var(--surface2) !important;
+            }
+            .form-info-box {
+              background: var(--surface);
+              border: 1px solid var(--border-solid);
+              padding: 12px;
+              border-radius: var(--radius-md);
+              display: flex;
+              gap: 10px;
+              align-items: center;
+            }
+            .form-info-box p {
+              font-size: 13px;
+              color: var(--text-secondary);
+              line-height: 1.4;
+              margin: 0;
+            }
+            @media (max-width: 480px) {
+              .auth-form__row {
+                grid-template-columns: 1fr;
+              }
+            }
+          `}</style>
+        </div>
+      </div>
     </div>
   )
 }

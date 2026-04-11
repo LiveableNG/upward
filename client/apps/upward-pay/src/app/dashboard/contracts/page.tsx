@@ -372,6 +372,35 @@ export default function ContractsPage() {
           gap: 1rem;
           text-align: center;
         }
+
+        /* Desktop Optimization */
+        @media (min-width: 1024px) {
+          .contracts-page {
+            max-width: 860px;
+            margin: 0 auto;
+            padding-top: 2rem;
+          }
+          .dashboard__main-grid {
+            grid-template-columns: 1fr;
+          }
+          .dashboard__col--left {
+            margin: 0 auto;
+            width: 100%;
+          }
+          .upload-card {
+            margin: 0 0 2rem 0;
+            box-shadow: var(--shadow-sm);
+          }
+          .contracts-list-header {
+            padding: 0;
+          }
+          .contracts-list {
+            padding: 0;
+          }
+          .contract-item {
+            box-shadow: var(--shadow-sm);
+          }
+        }
       `}</style>
     </div>
   )
