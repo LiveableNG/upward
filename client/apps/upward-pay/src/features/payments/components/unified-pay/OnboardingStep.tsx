@@ -87,13 +87,13 @@ export function OnboardingStep({
         .success-icon {
           width: 56px;
           height: 56px;
-          background: var(--success);
+          background: var(--clay);
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           margin: 0 auto;
-          box-shadow: 0 0 20px var(--success-glow);
+          box-shadow: 0 0 20px var(--clay-glow);
         }
         .auth-stage__header { text-align: center; }
         .auth-stage__title { font-size: 22px; font-weight: 800; margin-top: 16px; color: var(--dark); }

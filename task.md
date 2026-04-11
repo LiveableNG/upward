@@ -10,7 +10,7 @@ curl -X POST http://localhost:4000/api/v1/platform/get-key \
 
 curl -X POST http://localhost:4000/api/v1/single/invite \
   -H "Content-Type: application/json" \
-  -H "x-api-key: up_sk_live_9b4e3854fef0d191558cadb8" \
+  -H "x-api-key: api_key" \
   -d '{
     "company": {
       "name": "Global Properties LTD",

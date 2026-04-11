@@ -66,10 +66,16 @@ export interface AccountVerification {
   bankCode: string
 }
 
+export interface TransactionVerification {
+  status: boolean
+  amount?: number
+  currency?: string
+}
+
 export interface IPaymentGateway {
   getBanks(): Promise<Bank[]>
   verifyAccountNumber(accountNumber: string, bankCode: string): Promise<AccountVerification>
-  verifyTransaction(reference: string): Promise<boolean>
+  verifyTransaction(reference: string): Promise<TransactionVerification>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   initializeTransaction(data: {
     email: string
@@ -95,7 +101,7 @@ export interface PaymentLineItem {
   id?: number
   uuid?: string
   paymentRequestId: number
-  label: string
+  name: string
   totalAmount: number
   amountPaid: number
   status: string // PENDING, PARTIAL, PAID

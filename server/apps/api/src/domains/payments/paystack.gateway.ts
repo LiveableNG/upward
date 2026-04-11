@@ -4,6 +4,7 @@ import {
   IPaymentGateway, 
   Bank, 
   AccountVerification,
+  TransactionVerification,
   SUBACCOUNT_REPOSITORY,
   ISubaccountRepository,
   PaystackSubaccount
@@ -104,7 +105,7 @@ export class PaystackGateway implements IPaymentGateway {
     }
   }
 
-  async verifyTransaction(reference: string): Promise<boolean> {
+  async verifyTransaction(reference: string): Promise<TransactionVerification> {
     try {
       this.logger.log(`Verifying transaction: ${reference}`)
       const res = await fetch(`${this.baseUrl}/transaction/verify/${reference}`, {
@@ -117,24 +118,28 @@ export class PaystackGateway implements IPaymentGateway {
         this.logger.warn(
           `Transaction verification failed for ${reference}: ${res.status} - ${errorBody}`,
         )
-        return false
+        return { status: false }
       }
 
       const data = await res.json()
       const isSuccess = data.status && data.data && data.data.status === 'success'
 
       if (isSuccess) {
-        this.logger.log(`Transaction ${reference} verified successfully`)
+        this.logger.log(`Transaction ${reference} verified successfully. Amount: ${data.data.amount}`)
+        return {
+          status: true,
+          amount: data.data.amount / 100, // Paystack returns kobo
+          currency: data.data.currency,
+        }
       } else {
         this.logger.warn(
           `Transaction ${reference} verification returned non-success status: ${data.data?.status}`,
         )
+        return { status: false }
       }
-
-      return !!isSuccess
     } catch (error) {
       this.logger.error(`Error verifying transaction ${reference}:`, error)
-      return false
+      return { status: false }
     }
   }
 

@@ -20,7 +20,7 @@ interface PaystackEmbeddedProps {
   onClose: () => void
   //eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: any
-  lineItems?: Array<{ label: string; amount: number }>
+  lineItems?: Array<{ name: string; amount: number }>
 }
 
 const PAYSTACK_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || ''
@@ -45,7 +45,7 @@ export default function PaystackEmbeddedCheckout({
   const config = React.useMemo(() => {
     const description =
       lineItems.length > 0
-        ? `Breakdown: ${lineItems.map((item) => `${item.label} (N${item.amount.toLocaleString()})`).join(', ')}`
+        ? `Breakdown: ${lineItems.map((item) => `${item.name} (N${item.amount.toLocaleString()})`).join(', ')}`
         : `${paymentType || 'Rent payment'} for ${propertyAddress || companyName}`
 
     return {

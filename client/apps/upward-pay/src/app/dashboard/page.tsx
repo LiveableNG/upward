@@ -1,24 +1,21 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle } from 'lucide-react'
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
-
 import { StatStrip } from '@/features/dashboard/components/StatStrip'
 import { AppInstallBanner } from '@/features/dashboard/components/AppInstallBanner'
 import { AnnouncementBanner } from '@/features/dashboard/components/AnnouncementBanner'
 import { UpcomingFeaturesWidget } from '@/features/dashboard/components/UpcomingFeaturesWidget'
 import { RentCredibilityScore } from '@/features/dashboard/components/RentCredibilityScore'
 import { ShareCredibility } from '@/features/dashboard/components/ShareCredibility'
-import { SavingsGoalModal } from '@/features/dashboard/components/SavingsGoalModal'
-import { RentSavingsCard } from '@/features/dashboard/components/RentSavingsCard'
 import { ActionCarousel } from '@/features/dashboard/components/ActionCarousel'
+import { RecentActivityWidget } from '@/features/dashboard/components/RecentActivityWidget'
 import { CompleteProfilePopup } from '@/features/dashboard/components/CompleteProfilePopup'
 import FallbackSuspense from '@/components/FallbackSuspense'
 
@@ -30,10 +27,8 @@ export default function DashboardPage() {
     queryFn: () => api.getNotifications(),
   })
 
-  const [_showPayRent, setShowPayRent] = useState(false)
   const [localDismissedBanner, setLocalDismissedBanner] = useState(false)
 
-  // Initialize dismissal state from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const dismissed = localStorage.getItem('app_banner_dismissed') === 'true'
@@ -48,7 +43,6 @@ export default function DashboardPage() {
     }
   }
 
-  // Handle auth errors (expired token, etc.) by redirecting to landing
   useEffect(() => {
     if (
       error &&
@@ -63,8 +57,7 @@ export default function DashboardPage() {
   }
 
   if (error || !data) {
-    // If it's an auth error, hide UI and show loader while redirecting
-    if (error.toLowerCase().includes('expired') || error.toLowerCase().includes('auth')) {
+    if (error?.toLowerCase().includes('expired') || error?.toLowerCase().includes('auth')) {
       return <FallbackSuspense message="Session expired. Redirecting..." />
     }
 
@@ -94,16 +87,12 @@ export default function DashboardPage() {
   const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor?.isNative
   const shouldShowAppBanner = !isCapacitor && !localDismissedBanner
 
-  // Real notif count logic - avoid double counting if backend notifications include payment alerts
-  // Real notif count logic - backend unreadCount include announcements + personal notifs
   const backendNotifCount = notifData?.unreadCount || 0
   const pendingCount = pendingPayments.length || 0
   const notifCount = backendNotifCount + pendingCount
 
   return (
     <div className="dashboard dashboard--nav-offset">
-
-
       <DashboardHeader
         firstName={firstName}
         notifCount={notifCount}
@@ -147,16 +136,20 @@ export default function DashboardPage() {
         </div>
 
         {/* Right Column - Secondary Actions & Insights */}
-        <div className="dashboard__col dashboard__col--right" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {shouldShowAppBanner && (
-            <AppInstallBanner onDismiss={handleDismissBanner} />
-          )}
+        <div className="dashboard__col dashboard__col--right">
+          <div className="right-stack">
+            <AnnouncementBanner />
 
-          <AnnouncementBanner />
+            <RecentActivityWidget payments={completedPayments} />
 
-          {!isNewUser && <ShareCredibility profileSlug={user.profileSlug} />}
+            {shouldShowAppBanner && (
+              <AppInstallBanner onDismiss={handleDismissBanner} />
+            )}
 
-          <UpcomingFeaturesWidget />
+            {!isNewUser && <ShareCredibility profileSlug={user.profileSlug} />}
+
+            <UpcomingFeaturesWidget />
+          </div>
         </div>
       </div>
 

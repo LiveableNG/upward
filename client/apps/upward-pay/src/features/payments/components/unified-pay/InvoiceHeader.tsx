@@ -30,15 +30,15 @@ export function InvoiceHeader({ companyName, description, logo }: InvoiceHeaderP
       <style jsx>{`
         .pay-invoice-header {
           text-align: center;
-          margin-bottom: 40px;
+          margin-bottom: 24px;
           display: flex;
           flex-direction: column;
           align-items: center;
         }
         .pay-invoice-header__brand {
-          width: 72px;
-          height: 72px;
-          margin-bottom: 24px;
+          width: 64px;
+          height: 64px;
+          margin-bottom: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -79,7 +79,7 @@ export function InvoiceHeader({ companyName, description, logo }: InvoiceHeaderP
           border: 1px solid rgba(217, 119, 87, 0.1);
         }
         .pay-invoice-header__title {
-          font-size: 24px;
+          font-size: 20px;
           font-weight: 900;
           letter-spacing: -0.03em;
           margin: 0;

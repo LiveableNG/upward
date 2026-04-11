@@ -10,19 +10,7 @@ import { NOTIFICATION_REPOSITORY, NotificationRepository } from '../../../domain
 import { SingleInviteUseCase, InviteRequest } from './single-invite.use-case'
 import { randomUUID } from 'crypto'
 
-export interface ExternalPaymentRequestPayload {
-  userPropertyUuid?: string
-  amount?: number
-  currency?: string
-  description?: string
-  lineItems?: Array<{ label: string; amount: number }>
-  dueDate: string
-  bankCode?: string
-  accountNumber?: string
-  invite?: InviteRequest
-  allowPartial?: boolean
-  minAmount?: number
-}
+import { ExternalPaymentRequestPayloadDto as ExternalPaymentRequestPayload } from './create-payment-request.dto'
 
 const frontendUrl = process.env['FRONTEND_URL']
 const urls = frontendUrl
@@ -94,6 +82,8 @@ export class CreateExternalPaymentRequestUseCase {
       })
       if (subaccount) {
         subaccountId = subaccount.id
+      } else {
+        throw new BadRequestException('Could not resolve or create settlement subaccount. Please verify bank details.')
       }
     }
 
@@ -119,7 +109,7 @@ export class CreateExternalPaymentRequestUseCase {
         await this.lineItemRepository.bulkCreate(
           payload.lineItems.map((item, idx) => ({
             paymentRequestId: paymentRequest!.id!,
-            label: item.label,
+            name: item.name || payload.description || 'Invoice Item',
             totalAmount: item.amount,
             amountPaid: 0,
             status: 'PENDING',
@@ -148,7 +138,7 @@ export class CreateExternalPaymentRequestUseCase {
         await this.lineItemRepository.bulkCreate(
           payload.lineItems.map((item, idx) => ({
             paymentRequestId: paymentRequest!.id!,
-            label: item.label,
+            name: item.name || payload.description || 'Invoice Item',
             totalAmount: item.amount,
             amountPaid: 0,
             status: 'PENDING',
