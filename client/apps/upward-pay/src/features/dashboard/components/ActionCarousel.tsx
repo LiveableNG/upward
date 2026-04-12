@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Clock, AlertTriangle, Bell, ArrowRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, MapPin, Bell, ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { type PendingPayment } from '../types'
@@ -43,17 +43,17 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
     })
   })
 
-  // KYC Alert
+  // Property Verification Alert
   if (showKYC) {
     slides.push({
       type: 'kyc',
       id: 'kyc-alert',
       title: 'Complete Your Profile',
-      desc: 'Verify your ID and income to unlock your Rent Credibility Score.',
-      actionLabel: 'Verify Now',
-      action: () => router.push('/dashboard/kyc'),
-      icon: <AlertTriangle size={20} color="#eab308" />,
-      bg: 'rgba(234, 179, 8, 0.1)',
+      desc: 'Add your property details and rent due date to build your credibility score.',
+      actionLabel: 'Add Property',
+      action: () => router.push('/dashboard/me?view=personal'),
+      icon: <MapPin size={20} color="var(--clay)" />,
+      bg: 'var(--clay-faint)',
     })
   }
 

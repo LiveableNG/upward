@@ -9,7 +9,7 @@ curl -X POST http://localhost:4000/api/v1/platform/get-key \
 
 curl -X POST http://localhost:4000/api/v1/single/invite \
   -H "Content-Type: application/json" \
-  -H "x-api-key: up_sk_live_e78e42ab8cb2633b1e5d5a82" \
+  -H "x-api-key: up_sk_live_e5bcd4606bc0529e89a6895d" \
   -d '{
     "company": {
       "name": "Prime Estates Nigeria",
@@ -42,38 +42,47 @@ curl -X POST http://localhost:4000/api/v1/single/invite \
       }
     }
   }'
-{"success":true,"message":"Created","data":{"userId":"16457a02-c662-431a-833c-aa066ab5c309","managerId":"be8cd3c2-5854-458a-8e69-366cb44bc5ac","companyId":"5978e8ad-ab06-433b-a113-
-c7c321e69af5","userPropertyUuid":"56b6ad64-86e6-47f6-9729-e1bfa925e072","email":"tenant1@gmail.com","inviteLink":"http://localhost:3000/invite/16457a02-c662-431a-833c-aa066ab5c309"
+
+
+{"success":true,"message":"Created","data":{"userId":"d92cb612-80b5-44e9-b584-d6e9a7ff6479","managerId":"07dceb68-ce95-440d-b1d1-ef0f25264c82","companyId":"c0d51a2b-1f42-4943-8cfc-
+864ac03f6c7b","userPropertyUuid":"e4e52697-522a-4da9-8b1f-3dc7d8e59320","email":"tenant1@gmail.com","inviteLink":"http://localhost:3000/invite/d92cb612-80b5-44e9-b584-d6e9a7ff6479"
 }}
 
 curl -X POST http://localhost:4000/api/v1/payment-request \
   -H "Content-Type: application/json" \
-  -H "x-api-key: up_sk_test_standard" \
+  -H "x-api-key: up_sk_live_e5bcd4606bc0529e89a6895d" \
   -d '{
-    "userPropertyUuid": "d3b07384-9c4f-4b2a-9c9f-2fbb8c2c1123",
+    "userPropertyUuid": "e4e52697-522a-4da9-8b1f-3dc7d8e59320",
     "dueDate": "2026-12-31T23:59:59Z",
     "allowPartial": true,
+    "amount": 1000000,
     "minAmount": 100000,
     "lineItems": [
-      { "label": "Rent", "amount": 800000 },
-      { "label": "Service Charge", "amount": 200000 }
+      { "name": "Rent", "amount": 800000 },
+      { "name": "Service Charge", "amount": 200000 }
     ],
     "currency": "NGN",
     "description": "Annual rent payment",
     "bankCode": "058",
-    "accountNumber": "0123456789",
+    "accountNumber": "0123456789"
   }'
+{"success":true,"data":{"success":true,"data":{"paymentUuid":"cfc4fa92-0579-4c35-8c3b-0c08314ce174","paymentLink":"http://localhost:3000/pay/cfc4fa92-0579-4c35-8c3b-0c08314ce174"}}
+}
+
 
 curl -X POST http://localhost:4000/api/v1/payment-request \
   -H "Content-Type: application/json" \
-  -H "x-api-key: up_sk_flat_amount" \
+  -H "x-api-key: up_sk_live_e5bcd4606bc0529e89a6895d" \
   -d '{
-    "userPropertyUuid": "bb2f1c9e-2d8a-4f12-91a7-1a2c44b6ef55",
+    "userPropertyUuid": "e4e52697-522a-4da9-8b1f-3dc7d8e59320",
     "amount": 500000,
     "currency": "NGN",
     "description": "One-time payment",
     "dueDate": "2026-08-01T00:00:00Z",
     "allowPartial": false,
     "bankCode": "058",
-    "accountNumber": "0123456789",
+    "accountNumber": "0123456789"
   }'
+
+{"success":true,"data":{"success":true,"data":{"paymentUuid":"db4966ad-76fd-4f0e-b68e-b2643dc1bc2e","paymentLink":"http://localhost:3000/pay/db4966ad-76fd-4f0e-b68e-b2643dc1bc2e"}}
+}

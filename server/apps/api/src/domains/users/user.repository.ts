@@ -11,7 +11,6 @@ export interface User {
   phoneHash?: string | null
   passwordHash: string
   occupation?: string | null
-  rentEndDate?: Date | null
   gender?: string | null
   dateOfBirth?: string | null
   isFromWaitlist: boolean
@@ -20,6 +19,9 @@ export interface User {
   profileSlug?: string | null
   bio?: string | null
   
+  properties?: any[] // Joined properties
+  companyUsers?: any[] // Joined company associations
+
   resetPasswordOTP?: string | null
   resetPasswordExpires?: Date | null
 

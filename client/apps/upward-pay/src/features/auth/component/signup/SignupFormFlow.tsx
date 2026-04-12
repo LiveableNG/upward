@@ -27,7 +27,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [rentEndDate, setrentEndDate] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [localError, setLocalError] = useState('')
 
@@ -45,7 +44,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
       password, 
       firstName,
       lastName,
-      rentEndDate,
     })
   }
 
@@ -119,16 +117,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
             </div>
           </div>
 
-          <div className="auth-form__field mt-1">
-            <DateInput 
-              id="rent-anniversary"
-              label="Rent Anniversary"
-              value={rentEndDate}
-              onChange={setrentEndDate}
-              required
-            />
-          </div>
-
           <div className="auth-form__row mt-1">
             <div className="auth-form__field">
               <label htmlFor="signup-password">Create Password</label>
@@ -171,7 +159,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
             id="signup-submit"
             className="btn btn--primary btn--full btn--pay mt-4"
             type="submit"
-            disabled={!firstName || !lastName || !email || !password || !confirmPassword || !rentEndDate || signupLoading}
+            disabled={!firstName || !lastName || !email || !password || !confirmPassword || signupLoading}
           >
             {signupLoading ? 'Creating account…' : 'Create account'} <ArrowRight size={17} />
           </button>

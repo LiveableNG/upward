@@ -7,13 +7,16 @@ export async function signup(data: {
   firstName: string
   lastName: string
   phone?: string
-  rentEndDate?: string
   address?: string
   isFromWaitlist?: boolean
   isFromInvite?: boolean
   properties?: Array<{
+    uuid?: string;
     address: string;
-    rentEndDate: string;
+    subarea?: string;
+    state?: string;
+    country?: string;
+    rentDueDate?: string;
     companyName?: string;
     managerName?: string;
   }>
@@ -47,6 +50,13 @@ export async function updateProfile(data: Partial<UserProfile>) {
   })
 }
 
+export async function getAvatarUploadUrl(contentType: string, filename: string) {
+  return request<{ key: string; uploadUrl: string; publicUrl: string }>('/user/auth/avatar-upload-url', {
+    method: 'POST',
+    body: JSON.stringify({ contentType, filename }),
+  })
+}
+
 export async function completeProfile(data: {
   email: string
   password?: string
@@ -61,8 +71,12 @@ export async function completeProfile(data: {
   address?: string
   profilePic?: string
   properties?: Array<{
+    uuid?: string;
     address: string;
-    rentEndDate: string;
+    subarea?: string;
+    state?: string;
+    country?: string;
+    rentDueDate?: string;
     companyName?: string;
     managerName?: string;
   }>

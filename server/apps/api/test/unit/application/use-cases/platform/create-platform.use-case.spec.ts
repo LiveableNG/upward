@@ -25,6 +25,7 @@ describe('CreatePlatformUseCase', () => {
       findById: jest.fn(),
       findByApiKey: jest.fn(),
       findByEmail: jest.fn(),
+      findByName: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
     }

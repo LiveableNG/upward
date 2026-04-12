@@ -15,6 +15,7 @@ import { UserAuthService } from '../../../application/auth/user-auth.service'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import { CompleteUserProfileUseCase } from '../../../application/use-cases/user/complete-user-profile.use-case'
 import { CalculateRentScoreUseCase } from '../../../application/use-cases/user/calculate-rent-score.use-case'
+import { GetAvatarUploadUrlUseCase } from '../../../application/use-cases/user/get-avatar-upload-url.use-case'
 
 interface FastifyReply {
   setCookie(name: string, value: string, options: Record<string, unknown>): FastifyReply
@@ -63,6 +64,7 @@ export class UserController {
     private readonly userAuthService: UserAuthService,
     private readonly completeUserProfile: CompleteUserProfileUseCase,
     private readonly calculateRentScore: CalculateRentScoreUseCase,
+    private readonly getAvatarUploadUrl: GetAvatarUploadUrlUseCase,
   ) { }
 
   @Post('signup')
@@ -174,6 +176,19 @@ export class UserController {
     }
     const user = await this.userAuthService.updateProfile(req.user.id, body)
     return { success: true, user }
+  }
+
+  @Post('avatar-upload-url')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getAvatarUploadUrlRequest(
+    @Req() req: FastifyRequest,
+    @Body() body: { contentType: string; filename: string },
+  ) {
+    if (!req.user?.id) {
+      throw new UnauthorizedException('No user in request')
+    }
+    return this.getAvatarUploadUrl.execute(req.user.id, body.contentType, body.filename)
   }
 
   @Post('change-password')

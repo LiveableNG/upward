@@ -173,7 +173,7 @@ export class ReceiptService {
         rows.push({ label: 'Property', value: data.propertyAddress || breakdownDesc })
       }
       if (data.type === 'RENT' && data.landlordName) {
-        rows.push({ label: 'Landlord', value: data.landlordName })
+        rows.push({ label: 'Recipient', value: data.landlordName })
       }
       if (data.propertyAddress && !hasBreakdown) {
         rows.push({ label: 'Address', value: data.propertyAddress })

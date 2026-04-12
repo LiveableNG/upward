@@ -1,5 +1,5 @@
 import React from 'react'
-import { User, Mail, Phone, MapPin } from 'lucide-react'
+import { User, Mail, Phone } from 'lucide-react'
 
 interface OnboardingFieldsProps {
   formData: {
@@ -7,7 +7,6 @@ interface OnboardingFieldsProps {
     lastName: string
     email: string
     phone: string
-    address: string
   }
   setFormData: (data: any) => void
   disabled?: boolean
@@ -62,32 +61,17 @@ export function OnboardingFields({ formData, setFormData, disabled = false }: On
         </div>
       </div>
 
-      <div className="auth-form__row mt-3">
-        <div className="auth-form__field">
-          <label>Phone Number</label>
-          <div className="input-with-icon">
-            <Phone size={17} />
-            <input
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => handleChange('phone', e.target.value)}
-              placeholder="e.g. +234..."
-              disabled={disabled}
-            />
-          </div>
-        </div>
-        <div className="auth-form__field">
-          <label>Home Address</label>
-          <div className="input-with-icon">
-            <MapPin size={17} />
-            <input
-              type="text"
-              value={formData.address}
-              onChange={(e) => handleChange('address', e.target.value)}
-              placeholder="Current address"
-              disabled={disabled}
-            />
-          </div>
+      <div className="auth-form__field mt-3">
+        <label>Phone Number</label>
+        <div className="input-with-icon">
+          <Phone size={17} />
+          <input
+            type="tel"
+            value={formData.phone}
+            onChange={(e) => handleChange('phone', e.target.value)}
+            placeholder="e.g. +234..."
+            disabled={disabled}
+          />
         </div>
       </div>
 

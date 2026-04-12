@@ -58,8 +58,6 @@ export class CompleteUserProfileUseCase {
       gender: dto.gender,
       dateOfBirth: dto.dateOfBirth,
       profilePic: dto.profilePic || '',
-      rentEndDate: dto.rentEndDate ? new Date(dto.rentEndDate) : null,
-      address: dto.address || '',
       isFromWaitlist: !!waitlistEntry,
       isFromInvite: false,
     }
@@ -111,6 +109,11 @@ export class CompleteUserProfileUseCase {
     rentEndDate: string;
     companyName?: string;
     managerName?: string;
+    location?: {
+      country?: string;
+      state?: string;
+      area?: string;
+    }
   }>) {
     for (const prop of properties) {
       let locationId: number | undefined
@@ -127,16 +130,20 @@ export class CompleteUserProfileUseCase {
       if (existingProperty?.locationId) {
         await this.prisma.upward_location.update({
           where: { id: existingProperty.locationId },
-          data: { area: prop.address || '' }
+          data: { 
+            area: prop.address || prop.location?.area || '',
+            state: prop.location?.state || '',
+            country: prop.location?.country || ''
+          }
         })
         locationId = existingProperty.locationId
       } else {
         const location = await this.prisma.upward_location.create({
           data: {
-            area: prop.address || '',
+            area: prop.address || prop.location?.area || '',
             subarea: '',
-            country: 'Nigeria',
-            state: 'Lagos'
+            country: prop.location?.country || '',
+            state: prop.location?.state || ''
           }
         })
         locationId = location.id

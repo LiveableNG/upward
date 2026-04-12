@@ -20,6 +20,13 @@ export interface UserProfile {
     rentAmount?: number;
     companyName?: string;
     managerName?: string;
+    location?: {
+      area?: string;
+      subarea?: string;
+      address?: string;
+      state?: string;
+      country?: string;
+    }
   }>
   isFromWaitlist: boolean
   isFromInvite: boolean

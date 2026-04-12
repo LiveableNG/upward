@@ -16,6 +16,7 @@ interface PaymentInputProps {
   overpayConfirmed: boolean
   onAmountChange: (val: string) => void
   onConfirmOverpay: () => void
+  isGuest?: boolean
 }
 
 export function PaymentInput({
@@ -29,13 +30,14 @@ export function PaymentInput({
   futureCreditAmount,
   overpayConfirmed,
   onAmountChange,
-  onConfirmOverpay
+  onConfirmOverpay,
+  isGuest
 }: PaymentInputProps) {
   const amountNum = parseFloat(amountInput) || 0
 
   return (
     <div className="pay-input-section">
-      {canPayPartial && (
+      {canPayPartial && !isGuest && (
         <div className="pay-input-notice">
           <Info size={14} className="pay-input-notice__icon" />
           <span className="pay-input-notice__text">Partial payments accepted — surplus is recorded as credit.</span>
@@ -44,7 +46,7 @@ export function PaymentInput({
 
       <div className="pay-amount-field">
         <label className="pay-amount-field__label">
-          {canPayPartial ? 'Payment Amount' : 'Confirmed Amount'}
+          {isGuest ? 'Total Amount' : canPayPartial ? 'Payment Amount' : 'Confirmed Amount'}
         </label>
         
         <div className={`pay-amount-field__container ${isBelowMin ? 'is-error' : isOverpaying ? 'is-warn' : amountNum > 0 ? 'is-valid' : ''}`}>
@@ -55,13 +57,13 @@ export function PaymentInput({
             type="number"
             className="pay-amount-field__input"
             value={amountInput}
-            onChange={e => onAmountChange(e.target.value)}
+            onChange={e => !isGuest && onAmountChange(e.target.value)}
             placeholder="0.00"
             min={0}
-            autoFocus={canPayPartial}
-            readOnly={!canPayPartial}
+            autoFocus={canPayPartial && !isGuest}
+            readOnly={isGuest || !canPayPartial}
           />
-          {!canPayPartial && (
+          {(isGuest || !canPayPartial) && (
             <div className="pay-amount-field__fixed-badge">
                <span className="pay-amount-field__fixed-text">Fixed</span>
             </div>
@@ -75,7 +77,7 @@ export function PaymentInput({
           </div>
         )}
 
-        {!isBelowMin && amountNum > 0 && amountNum < totalOwed && (
+        {!isBelowMin && amountNum > 0 && amountNum < totalOwed && !isGuest && (
           <div className="pay-input-feedback">
             <Info size={14} />
             <span>Balance after payment: {formatCurrency(totalOwed - amountNum, currency)}</span>
@@ -89,7 +91,7 @@ export function PaymentInput({
           </div>
         )}
 
-        {isOverpaying && (
+        {isOverpaying && !isGuest && (
           <div className="pay-overpay-confirm">
             <div className="pay-overpay-confirm__header">
               <div className="pay-overpay-confirm__icon-box">
@@ -116,7 +118,7 @@ export function PaymentInput({
           </div>
         )}
 
-        {canPayPartial && (
+        {canPayPartial && !isGuest && (
           <div className="pay-quick-select">
             {[
               { label: '25%', value: Math.round(totalOwed * 0.25) },

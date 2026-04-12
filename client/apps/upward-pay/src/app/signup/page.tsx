@@ -7,9 +7,8 @@ import FallbackSuspense from '@/components/FallbackSuspense'
 import { BenefitsStep } from '@/features/auth/component/signup/BenefitsStep'
 import { LoginFormFlow } from '@/features/auth/component/signup/LoginFormFlow'
 import { SignupFormFlow } from '@/features/auth/component/signup/SignupFormFlow'
-import { CompleteProfileStep } from '@/features/auth/component/signup/CompleteProfileStep'
 
-type Mode = 'welcome' | 'signup' | 'login' | 'complete'
+type Mode = 'welcome' | 'signup' | 'login'
 
 function SignupPageContent() {
   const router = useRouter()
@@ -20,11 +19,10 @@ function SignupPageContent() {
   const [mode, setMode] = useState<Mode>(initialMode)
 
   useEffect(() => {
-    // Only redirect if not on completing profile
-    if (!loading && isLoggedIn && mode !== 'complete') {
+    if (!loading && isLoggedIn) {
       router.push('/dashboard')
     }
-  }, [isLoggedIn, loading, mode, router])
+  }, [isLoggedIn, loading, router])
 
   if (loading) return <FallbackSuspense message="Getting ready…" />
 
@@ -41,14 +39,10 @@ function SignupPageContent() {
     return <LoginFormFlow onBackToWelcome={() => setMode('welcome')} />
   }
 
-  if (mode === 'complete') {
-    return <CompleteProfileStep />
-  }
-
   return (
     <SignupFormFlow 
       onBackToWelcome={() => setMode('welcome')} 
-      onSignupSuccess={() => setMode('complete')}
+      onSignupSuccess={() => router.push('/dashboard')}
     />
   )
 }

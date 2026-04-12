@@ -23,6 +23,7 @@ import {
   Transaction,
 } from '../../../domains/payments/payment.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 @Injectable()
 export class SaveLandlordUseCase {
@@ -305,13 +306,60 @@ export class VerifyAccountUseCase {
     return this.gateway.verifyAccountNumber(accountNumber, bankCode)
   }
 }
+
 @Injectable()
 export class GenerateReceiptPdfUseCase {
-  constructor(private readonly receiptService: ReceiptService) {}
+  constructor(
+    private readonly receiptService: ReceiptService,
+    private readonly prisma: PrismaService,
+  ) {}
 
-  async execute(data: ReceiptPdfData): Promise<string> {
+  async execute(data: ReceiptPdfData & { userPropertyId?: number; companyName?: string; managerName?: string }): Promise<string> {
     if (data.paidAt && typeof data.paidAt === 'string') {
       data.paidAt = new Date(data.paidAt)
+    }
+
+    // 1. Resolve Property Details
+    if (data.userPropertyId) {
+      const prop = await this.prisma.upward_user_property.findUnique({
+        where: { id: Number(data.userPropertyId) },
+        include: {
+          location: true,
+          company: true,
+          manager: true
+        }
+      })
+
+      if (prop) {
+        // Concatenated location string
+        const loc = prop.location
+        const addressParts = [
+          loc?.address || loc?.area,
+          loc?.state,
+          loc?.country
+        ].filter(Boolean)
+        
+        data.propertyAddress = addressParts.join(', ')
+
+        // Resolve Recipient (Landlord Name)
+        // If company exists, use company, else manager
+        if (prop.company) {
+          data.landlordName = prop.company.name
+        } else if (prop.manager) {
+          data.landlordName = `${prop.manager.firstName} ${prop.manager.lastName}`
+        } else if (data.companyName) {
+           data.landlordName = data.companyName
+        } else if (data.managerName) {
+           data.landlordName = data.managerName
+        }
+      }
+    } else {
+       // Manual payment Case: if no userPropertyId, use provided names
+       if (data.companyName) {
+         data.landlordName = data.companyName
+       } else if (data.managerName) {
+         data.landlordName = data.managerName
+       }
     }
 
     const buffer = await this.receiptService.generateReceiptPdf(data)

@@ -30,20 +30,7 @@ export function AmountDetailCard({
         </div>
       </div>
 
-      {parsedAmount > 0 && (
-        <div className="pay-amount-card__progress">
-          <div className="pay-amount-card__progress-info">
-             <div className="pay-amount-card__allocation">
-                <span className="pay-amount-card__allocation-label">Payment Allocation</span>
-                <span className="pay-amount-card__allocation-value">{formatCurrency(Math.min(parsedAmount, totalOwed), currency)}</span>
-             </div>
-             <span className="pay-amount-card__percentage">{Math.round(progressPct)}%</span>
-          </div>
-          <div className="pay-amount-card__track">
-            <div className="pay-amount-card__bar" style={{ width: `${progressPct}%` }} />
-          </div>
-        </div>
-      )}
+
 
       <style jsx>{`
         .pay-amount-card {

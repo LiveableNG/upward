@@ -31,6 +31,28 @@ export class PrismaUserRepository implements UserRepository {
       profilePic: model.profilePic,
       profileSlug: model.profileSlug,
       bio: model.bio,
+      properties: model.properties ? model.properties.map((p: any) => ({
+        uuid: p.uuid,
+        rentEndDate: p.rentEndDate,
+        location: p.location,
+        company: p.company ? {
+          ...p.company,
+          name: p.company.name ? this.encryption.decrypt(p.company.name) : undefined
+        } : undefined,
+        manager: p.manager ? {
+          ...p.manager,
+          firstName: p.manager.firstName ? this.encryption.decrypt(p.manager.firstName) : undefined,
+          lastName: p.manager.lastName ? this.encryption.decrypt(p.manager.lastName) : undefined,
+        } : undefined
+      })) : [],
+      companyUsers: model.companyUsers ? model.companyUsers.map((cu: any) => ({
+        id: cu.id,
+        company: cu.company ? {
+          ...cu.company,
+          name: cu.company.name ? this.encryption.decrypt(cu.company.name) : undefined
+        } : undefined,
+        invitedAt: cu.invitedAt,
+      })) : [],
       resetPasswordOTP: model.resetPasswordOTP,
       resetPasswordExpires: model.resetPasswordExpires,
       createdAt: model.createdAt,
@@ -42,6 +64,20 @@ export class PrismaUserRepository implements UserRepository {
     const emailHash = this.encryption.hash(email)
     const record = await this.prisma.upward_user.findUnique({
       where: { emailHash },
+      include: {
+        properties: {
+          include: {
+            location: true,
+            company: true,
+            manager: true
+          }
+        },
+        companyUsers: {
+          include: {
+            company: true
+          }
+        }
+      }
     })
     return record ? this.toDomain(record) : null
   }
@@ -49,6 +85,13 @@ export class PrismaUserRepository implements UserRepository {
   async findById(id: number): Promise<User | null> {
     const record = await this.prisma.upward_user.findUnique({
       where: { id },
+      include: {
+        companyUsers: {
+          include: {
+            company: true
+          }
+        }
+      }
     })
     return record ? this.toDomain(record) : null
   }
@@ -56,6 +99,20 @@ export class PrismaUserRepository implements UserRepository {
   async findByUuid(uuid: string): Promise<User | null> {
     const record = await this.prisma.upward_user.findUnique({
       where: { uuid },
+      include: {
+        properties: {
+          include: {
+            location: true,
+            company: true,
+            manager: true
+          }
+        },
+        companyUsers: {
+          include: {
+            company: true
+          }
+        }
+      }
     })
     return record ? this.toDomain(record) : null
   }
@@ -94,8 +151,21 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   async update(id: number, data: Partial<User>): Promise<User> {
-    const updateData: any = { ...data }
+    const updateData: any = {}
     
+    // Pick direct scalar fields
+    const scalarFields = [
+      'passwordHash', 'occupation', 'gender', 'dateOfBirth', 
+      'isFromWaitlist', 'isFromInvite', 'profilePic', 'profileSlug', 
+      'bio', 'resetPasswordOTP', 'resetPasswordExpires'
+    ]
+
+    for (const field of scalarFields) {
+      if ((data as any)[field] !== undefined) {
+        updateData[field] = (data as any)[field]
+      }
+    }
+
     if (data.email) {
       updateData.email = this.encryption.encrypt(data.email)
       updateData.emailHash = this.encryption.hash(data.email)
@@ -116,6 +186,20 @@ export class PrismaUserRepository implements UserRepository {
     const record = await this.prisma.upward_user.update({
       where: { id },
       data: updateData,
+      include: {
+        properties: {
+          include: {
+            location: true,
+            company: true,
+            manager: true
+          }
+        },
+        companyUsers: {
+          include: {
+            company: true
+          }
+        }
+      }
     })
     return this.toDomain(record)
   }

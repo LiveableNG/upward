@@ -79,7 +79,18 @@ export default function DashboardPage() {
 
   const { user, pendingPayments, completedPayments } = data
   const firstName = user.firstName || 'User'
-  const isNewUser = !user.address
+  
+  // A profile is complete if they have at least one property with address, state, country and rentEndDate
+  const hasProperties = user.properties && user.properties.length > 0
+  const firstProp = hasProperties ? user?.properties[0] : null
+  const isProfileComplete = hasProperties && 
+                           firstProp?.location?.area && 
+                           firstProp?.location?.state && 
+                           firstProp?.location?.country && 
+                           firstProp?.rentEndDate;
+
+  const isNewUser = !isProfileComplete
+
   const totalPaid = completedPayments.reduce((sum, p) => sum + p.amount, 0)
   const currency = completedPayments[0]?.currency || 'NGN'
 
@@ -148,12 +159,13 @@ export default function DashboardPage() {
 
             {!isNewUser && <ShareCredibility profileSlug={user.profileSlug} />}
 
-            <UpcomingFeaturesWidget />
+            <div className="desktop-only">
+              <UpcomingFeaturesWidget />
+            </div>
           </div>
         </div>
       </div>
 
-      {isNewUser && <CompleteProfilePopup />}
     </div>
   )
 }

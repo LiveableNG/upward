@@ -143,6 +143,14 @@ export class PrismaPlatformRepository implements PlatformRepository {
     return record ? this.toDomain(record) : null
   }
 
+  async findByName(name: string): Promise<Platform | null> {
+    const nameHash = this.encryption.hash(name)
+    const record = await this.prisma.upward_platform.findFirst({
+      where: { nameHash },
+    })
+    return record ? this.toDomain(record) : null
+  }
+
   async save(platform: Platform): Promise<Platform> {
     const data = {
       apiKey: platform.apiKey,

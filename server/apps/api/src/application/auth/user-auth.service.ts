@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, Inject } from '@nestjs/common'
+import { Injectable, UnauthorizedException, ConflictException, Inject, ForbiddenException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import { UserRepository, USER_REPOSITORY, User } from '../../domains/users/user.repository'
@@ -7,6 +7,7 @@ import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service
 import * as bcrypt from 'bcrypt'
 import { UserAuthResponse } from '@upward/shared-types'
 import { BaseAuthService } from './base-auth.service'
+import { EncryptionService } from '../../shared/infrastructure/common/encryption.service'
 
 @Injectable()
 export class UserAuthService extends BaseAuthService {
@@ -14,6 +15,7 @@ export class UserAuthService extends BaseAuthService {
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly encryption: EncryptionService,
     jwtService: JwtService,
     configService: ConfigService,
   ) {
@@ -76,11 +78,13 @@ export class UserAuthService extends BaseAuthService {
     firstName: string
     lastName: string
     phone?: string
-    rentEndDate?: string
-    address?: string
     properties?: Array<{
+      uuid?: string;
       address: string;
-      rentEndDate: string;
+      subarea?: string;
+      state?: string;
+      country?: string;
+      rentDueDate?: string;
       companyName?: string;
       managerName?: string;
     }>
@@ -90,6 +94,25 @@ export class UserAuthService extends BaseAuthService {
     const existing = await this.userRepository.findByEmail(dto.email)
 
     if (existing) {
+      if (existing.passwordHash === 'INVITED' || !existing.passwordHash) {
+        const passwordHash = await bcrypt.hash(dto.password, 10)
+        await this.userRepository.update(existing.id!, {
+          passwordHash,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          phone: dto.phone,
+          firstNameHash: (this.userRepository as any).encryption.hash(dto.firstName),
+          lastNameHash: (this.userRepository as any).encryption.hash(dto.lastName),
+          phoneHash: dto.phone ? (this.userRepository as any).encryption.hash(dto.phone) : null,
+        })
+        const user = await this.userRepository.findByEmail(dto.email)
+        if (!user) throw new Error('Failed to update user after invite conversion')
+        
+        if (dto.properties && dto.properties.length > 0) {
+          await this.syncProperties(user.id!, dto.properties)
+        }
+        return this.generateFullAuthResponse(user)
+      }
       throw new ConflictException('User with this email already exists')
     }
 
@@ -105,7 +128,6 @@ export class UserAuthService extends BaseAuthService {
       lastNameHash: (this.userRepository as any).encryption.hash(dto.lastName),
       phone: dto.phone,
       phoneHash: dto.phone ? (this.userRepository as any).encryption.hash(dto.phone) : null,
-      rentEndDate: dto.rentEndDate ? new Date(dto.rentEndDate) : undefined,
       isFromWaitlist: dto.isFromWaitlist ?? false,
       isFromInvite: dto.isFromInvite ?? false,
     }
@@ -136,6 +158,14 @@ export class UserAuthService extends BaseAuthService {
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials')
+    }
+
+    if (user.passwordHash === 'INVITED') {
+      throw new ForbiddenException({
+        message: 'Your account was invited by a property manager. Complete your profile to login.',
+        code: 'INVITE_PENDING',
+        userId: user.uuid
+      })
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash)
@@ -238,14 +268,8 @@ export class UserAuthService extends BaseAuthService {
 
     await this.userRepository.update(user.id!, data as any)
 
-    // Sync Location and Property logic
+    // Sync Property logic
     const propertyList = (data as any).properties || []
-    if ((data as any).address || (data as any).rentEndDate) {
-      propertyList.push({
-        address: (data as any).address || '',
-        rentEndDate: (data as any).rentEndDate || '',
-      })
-    }
 
     if (propertyList.length > 0) {
       await this.syncProperties(user.id!, propertyList)
@@ -257,15 +281,24 @@ export class UserAuthService extends BaseAuthService {
   private async syncProperties(userId: number, properties: Array<{
     uuid?: string;
     address: string;
-    rentEndDate: string;
+    subarea?: string;
+    state?: string;
+    country?: string;
+    rentDueDate?: string;
     companyName?: string;
     managerName?: string;
+    location?: {
+      country?: string;
+      state?: string;
+      area?: string;
+      subarea?: string;
+      address?: string;
+    }
   }>) {
     for (const prop of properties) {
       let locationId: number | undefined
       let companyId: number | undefined
       let managerId: number | undefined
-      let propertyId: number | undefined
 
       // 1. Check if we're updating an existing property
       let existingProperty = null
@@ -276,32 +309,39 @@ export class UserAuthService extends BaseAuthService {
       }
 
       // 2. Handle Location
+      const locationData = {
+        area: prop.location?.area || prop.address || '',
+        subarea: prop.location?.subarea || prop.subarea || '',
+        address: prop.location?.address || '',
+        state: prop.location?.state || prop.state || '',
+        country: prop.location?.country || prop.country || ''
+      }
+
       if (existingProperty?.locationId) {
         await this.prisma.upward_location.update({
           where: { id: existingProperty.locationId },
-          data: { area: prop.address || '' }
+          data: locationData
         })
         locationId = existingProperty.locationId
       } else {
         const location = await this.prisma.upward_location.create({
-          data: {
-            area: prop.address || '',
-            subarea: '',
-            country: 'Nigeria',
-            state: 'Lagos'
-          }
+          data: locationData
         })
         locationId = location.id
       }
 
       // 3. Handle Company
       if (prop.companyName) {
+        const nameHash = this.encryption.hash(prop.companyName)
         let company = await this.prisma.upward_company.findFirst({
-          where: { name: prop.companyName }
+          where: { nameHash }
         })
         if (!company) {
           company = await this.prisma.upward_company.create({
-            data: { name: prop.companyName }
+            data: { 
+              name: this.encryption.encrypt(prop.companyName),
+              nameHash 
+            }
           })
         }
         companyId = company.id
@@ -309,12 +349,17 @@ export class UserAuthService extends BaseAuthService {
 
       // 4. Handle Manager
       if (prop.managerName && companyId) {
+        const firstNameHash = this.encryption.hash(prop.managerName)
         let manager = await this.prisma.upward_manager.findFirst({
-          where: { firstName: prop.managerName, companyId }
+          where: { firstNameHash, companyId }
         })
         if (!manager) {
           manager = await this.prisma.upward_manager.create({
-            data: { firstName: prop.managerName, companyId }
+            data: { 
+              firstName: this.encryption.encrypt(prop.managerName),
+              firstNameHash,
+              companyId 
+            }
           })
         }
         managerId = manager.id
@@ -326,7 +371,7 @@ export class UserAuthService extends BaseAuthService {
         locationId,
         companyId,
         managerId,
-        rentEndDate: prop.rentEndDate ? new Date(prop.rentEndDate) : null,
+        rentEndDate: prop.rentDueDate ? new Date(prop.rentDueDate) : (prop as any).rentEndDate ? new Date((prop as any).rentEndDate) : null,
       }
 
       if (existingProperty) {

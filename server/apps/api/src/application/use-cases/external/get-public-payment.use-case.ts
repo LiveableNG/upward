@@ -77,6 +77,7 @@ export class GetPublicPaymentDetailsUseCase {
         lineItemRecords: lineItemRecords,
       },
       user: {
+        uuid: user.uuid,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,

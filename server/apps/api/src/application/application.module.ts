@@ -69,6 +69,7 @@ import { GetCitiesUseCase } from './use-cases/location/get-cities.use-case'
 import { CompleteUserProfileUseCase } from './use-cases/user/complete-user-profile.use-case'
 import { GetPublicProfileUseCase } from './use-cases/user/get-public-profile.use-case'
 import { CalculateRentScoreUseCase } from './use-cases/user/calculate-rent-score.use-case'
+import { GetAvatarUploadUrlUseCase } from './use-cases/user/get-avatar-upload-url.use-case'
 import { SingleInviteUseCase } from './use-cases/external/single-invite.use-case'
 import { CreatePlatformUseCase } from './use-cases/platform/create-platform.use-case'
 import { CreateExternalPaymentRequestUseCase } from './use-cases/external/create-payment-request.use-case'
@@ -167,6 +168,7 @@ const UseCases = [
   CompleteUserProfileUseCase,
   GetPublicProfileUseCase,
   CalculateRentScoreUseCase,
+  GetAvatarUploadUrlUseCase,
   SaveLandlordUseCase,
   GetSavedLandlordsUseCase,
   RecordTransactionUseCase,
