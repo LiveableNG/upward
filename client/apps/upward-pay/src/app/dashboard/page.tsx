@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, ArrowRight, TrendingUp, Flame, ShieldCheck, Zap, Receipt, ArrowDownRight, ArrowUpRight, Smartphone, X, ChevronRight, ChevronLeft } from 'lucide-react'
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -18,6 +18,8 @@ import { ActionCarousel } from '@/features/dashboard/components/ActionCarousel'
 import { RecentActivityWidget } from '@/features/dashboard/components/RecentActivityWidget'
 import { CompleteProfilePopup } from '@/features/dashboard/components/CompleteProfilePopup'
 import FallbackSuspense from '@/components/FallbackSuspense'
+import { useScoreProfile } from '@/features/dashboard/services/scoreService'
+import { formatCurrency, formatTime } from '@/lib/utils'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -26,8 +28,10 @@ export default function DashboardPage() {
     queryKey: ['notifications'],
     queryFn: () => api.getNotifications(),
   })
+  const { data: scoreProfile } = useScoreProfile()
 
   const [localDismissedBanner, setLocalDismissedBanner] = useState(false)
+  const [heroSlideIndex, setHeroSlideIndex] = useState(0)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -44,34 +48,24 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    if (
-      error &&
-      (error.toLowerCase().includes('expired') || error.toLowerCase().includes('auth'))
-    ) {
+    if (error && (error.toLowerCase().includes('expired') || error.toLowerCase().includes('auth'))) {
       router.push('/')
     }
   }, [error, router])
 
-  if (loading) {
-    return <FallbackSuspense message="Loading dashboard…" />
-  }
+  if (loading) return <FallbackSuspense message="Loading dashboard…" />
 
   if (error || !data) {
     if (error?.toLowerCase().includes('expired') || error?.toLowerCase().includes('auth')) {
       return <FallbackSuspense message="Session expired. Redirecting..." />
     }
-
     return (
       <div className="dashboard dashboard--error">
         <div className="pay-page__error">
-          <div className="pay-page__error-icon">
-            <AlertTriangle size={32} />
-          </div>
+          <div className="pay-page__error-icon"><AlertTriangle size={32} /></div>
           <h2>Error loading dashboard</h2>
           <p>{error}</p>
-          <button className="btn btn--secondary" onClick={reload}>
-            Retry
-          </button>
+          <button className="btn btn--secondary" onClick={reload}>Retry</button>
         </div>
       </div>
     )
@@ -79,28 +73,47 @@ export default function DashboardPage() {
 
   const { user, pendingPayments, completedPayments } = data
   const firstName = user.firstName || 'User'
-  
-  // A profile is complete if they have at least one property with address, state, country and rentEndDate
+
   const hasProperties = user.properties && user.properties.length > 0
-  const firstProp = hasProperties ? user?.properties[0] : null
-  const isProfileComplete = hasProperties && 
-                           firstProp?.location?.area && 
-                           firstProp?.location?.state && 
-                           firstProp?.location?.country && 
-                           firstProp?.rentEndDate;
+  const firstProp = hasProperties ? user?.properties?.[0] : null
+  const isProfileComplete = hasProperties &&
+    firstProp?.location?.area &&
+    firstProp?.location?.state &&
+    firstProp?.location?.country &&
+    firstProp?.rentEndDate
 
   const isNewUser = !isProfileComplete
-
-  const totalPaid = completedPayments.reduce((sum, p) => sum + p.amount, 0)
+  const totalPaid = completedPayments.reduce((sum: number, p: any) => sum + p.amount, 0)
   const currency = completedPayments[0]?.currency || 'NGN'
 
-  // App Install Banner visibility logic
   const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor?.isNative
   const shouldShowAppBanner = !isCapacitor && !localDismissedBanner
 
   const backendNotifCount = notifData?.unreadCount || 0
   const pendingCount = pendingPayments.length || 0
   const notifCount = backendNotifCount + pendingCount
+
+  const scoreData = scoreProfile?.data
+  const credScore = scoreData?.score || 0
+  const rank = scoreData?.rank || 'N/A'
+  const band = scoreData?.band || 'unranked'
+  const isScorable = scoreData?.isScorable || false
+  const onTime = Math.round(scoreData?.metrics?.ptPercentage || 0)
+  const streak = scoreData?.metrics?.longestStreak || 0
+  const profileCompletion = scoreData?.profile?.profileCompletion || 0
+  const credPercentage = isScorable ? (credScore / 900) * 100 : (500 / 900) * 100
+
+  const getRankColor = () => {
+    if (!isScorable) return 'var(--text-muted)'
+    if (rank === 'A') return 'var(--clay)'
+    if (rank === 'B') return 'var(--success)'
+    if (rank === 'C') return 'var(--info)'
+    if (rank === 'D') return 'var(--warning)'
+    return 'var(--error)'
+  }
+
+  const recentThree = completedPayments.slice(0, 3)
+  const firstPending = pendingPayments[0]
 
   return (
     <div className="dashboard dashboard--nav-offset">
@@ -117,55 +130,922 @@ export default function DashboardPage() {
         pendingCount={pendingPayments.length}
       />
 
-      <div className="dashboard__main-grid">
-        {/* Left Column - Main Focus (Score & Activity) */}
-        <div className="dashboard__col dashboard__col--left">
-          {(pendingPayments.length > 0 || isNewUser) && (
-            <div className="activity-center" style={{ marginBottom: '24px' }}>
-              <div className="activity-center__header">
-                <h3 className="activity-center__title">Activity Center</h3>
-                <button
-                  className="activity-center__see-all"
-                  onClick={() => router.push('/dashboard/notifications')}
-                >
-                  See all{' '}
-                  {notifCount > 0 && <span className="activity-center__badge">{notifCount}</span>}
-                </button>
+      {/* ── MOBILE LAYOUT (unchanged) ── */}
+      <div className="dash-mobile">
+        <div className="dashboard__main-grid">
+          <div className="dashboard__col dashboard__col--left">
+            {(pendingPayments.length > 0 || isNewUser) && (
+              <div className="activity-center" style={{ marginBottom: '24px' }}>
+                <div className="activity-center__header">
+                  <h3 className="activity-center__title">Activity Center</h3>
+                  <button className="activity-center__see-all" onClick={() => router.push('/dashboard/notifications')}>
+                    See all {notifCount > 0 && <span className="activity-center__badge">{notifCount}</span>}
+                  </button>
+                </div>
+                <ActionCarousel pendingPayments={pendingPayments} showKYC={isNewUser} rentReminders={[]} />
               </div>
-              <ActionCarousel
-                pendingPayments={pendingPayments}
-                showKYC={isNewUser}
-                rentReminders={[]}
-              />
-            </div>
-          )}
-
-          <RentCredibilityScore
-            user={user}
-            onShowPayRent={() => router.push('/dashboard/pay-rent')}
-          />
-        </div>
-
-        {/* Right Column - Secondary Actions & Insights */}
-        <div className="dashboard__col dashboard__col--right">
-          <div className="right-stack">
-            <AnnouncementBanner />
-
-            <RecentActivityWidget payments={completedPayments} />
-
-            {shouldShowAppBanner && (
-              <AppInstallBanner onDismiss={handleDismissBanner} />
             )}
-
-            {!isNewUser && <ShareCredibility profileSlug={user.profileSlug} />}
-
-            <div className="desktop-only">
-              <UpcomingFeaturesWidget />
+            <RentCredibilityScore user={user} onShowPayRent={() => router.push('/dashboard/pay-rent')} />
+          </div>
+          <div className="dashboard__col dashboard__col--right">
+            <div className="right-stack">
+              <AnnouncementBanner />
+              <RecentActivityWidget payments={completedPayments} />
+              {shouldShowAppBanner && <AppInstallBanner onDismiss={handleDismissBanner} />}
+              {!isNewUser && <ShareCredibility profileSlug={user.profileSlug} />}
+              <div className="desktop-only"><UpcomingFeaturesWidget /></div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* ── DESKTOP BENTO LAYOUT ── */}
+      <div className="dash-desktop">
+        <div className="bento-grid">
+
+          {/* CELL 1: Hero — Pending Payment or Score Hero */}
+          <div className="bento-cell bento-cell--hero">
+            {pendingPayments.length > 0 ? (() => {
+              const p = pendingPayments[heroSlideIndex % pendingPayments.length]
+              const remaining = p.total_amount - (p.amountPaid || 0)
+              const isPartial = (p.amountPaid || 0) > 0
+
+              return (
+                <div className="bento-hero-pending">
+                  <div className="bento-hero-pending__top">
+                    <div className="bento-hero-pending__badge">
+                      <span className="bento-hero-pending__badge-dot" />
+                      {isPartial ? 'Partial Payment' : 'Payment Pending'}
+                    </div>
+                    
+                    {pendingPayments.length > 1 && (
+                      <div className="bento-hero-nav">
+                        <button 
+                          className="bento-hero-nav-btn" 
+                          onClick={() => setHeroSlideIndex(prev => (prev - 1 + pendingPayments.length) % pendingPayments.length)}
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        <span className="bento-hero-nav-info">{heroSlideIndex + 1} / {pendingPayments.length}</span>
+                        <button 
+                          className="bento-hero-nav-btn" 
+                          onClick={() => setHeroSlideIndex(prev => (prev + 1) % pendingPayments.length)}
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <h2 className="bento-hero-pending__title">
+                    Your rent is due <br />
+                    <span className="bento-hero-pending__accent">
+                      {p.property_address || p.company_name || 'soon'}
+                    </span>
+                  </h2>
+                  <div className="bento-hero-pending__amount">
+                    {formatCurrency(remaining, p.currency)}
+                    {isPartial && <span className="bento-hero-pending__total"> of {formatCurrency(p.total_amount, p.currency)}</span>}
+                  </div>
+                  <p className="bento-hero-pending__desc">
+                    {isPartial 
+                      ? `Balance payment for your rent at ${p.property_address || p.company_name}.`
+                      : `A new invoice has been generated for your rent at ${p.property_address || p.company_name}.`
+                    }
+                  </p>
+                  <div className="bento-hero-pending__actions">
+                    <button
+                      className="btn btn--primary bento-hero-btn"
+                      onClick={() => router.push(`/pay/${p.uuid}`)}
+                    >
+                      Pay Now <ArrowRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              )
+            })() : isNewUser ? (
+              <div className="bento-hero-score">
+                 <div className="bento-hero-score__label" style={{ color: 'var(--clay)' }}>Setup Required</div>
+                 <h2 className="bento-hero-score__title">Complete your<br />Profile</h2>
+                 <p className="bento-hero-score__desc">Add your property details to start building your credibility score.</p>
+                 <button className="btn btn--primary bento-hero-btn" onClick={() => router.push('/dashboard/me?view=personal')}>
+                   Get Started <ArrowRight size={16} />
+                 </button>
+              </div>
+            ) : (
+              <div className="bento-hero-score">
+                <div className="bento-hero-score__label">All Payments Up to Date</div>
+                <h2 className="bento-hero-score__title">Great standing,<br /><span style={{ color: 'var(--clay)' }}>{firstName}</span></h2>
+                <p className="bento-hero-score__desc">Keep paying on time to maintain your credibility score.</p>
+                <button className="btn btn--primary bento-hero-btn" onClick={() => router.push('/dashboard/pay-rent')}>
+                  Pay Rent <ArrowRight size={16} />
+                </button>
+              </div>
+            )}
+
+            {/* Score Circle overlay */}
+            <div className="bento-hero-score-widget">
+              <svg viewBox="0 0 100 100" className="bento-score-svg">
+                <circle className="bento-score-bg" cx="50" cy="50" r="42" />
+                <circle
+                  className="bento-score-fill"
+                  cx="50" cy="50" r="42"
+                  style={{
+                    strokeDasharray: `${credPercentage * 2.639} 263.9`,
+                    stroke: getRankColor(),
+                  }}
+                />
+              </svg>
+              <div className="bento-score-inner">
+                <span className="bento-score-num">{credScore}</span>
+                <span className="bento-score-lbl">UPWARD SCORE</span>
+              </div>
+              <div className="bento-score-rank" style={{ borderColor: getRankColor() }}>
+                <span className="bento-score-rank-letter" style={{ color: getRankColor() }}>{rank}</span>
+                <span className="bento-score-rank-band">{band.toUpperCase()}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* CELL 2: Reliability Rating */}
+          <div className="bento-cell bento-cell--metric">
+            <div className="bento-metric">
+              <div className="bento-metric__icon bento-metric__icon--clay">
+                <ShieldCheck size={20} />
+              </div>
+              <div className="bento-metric__pct">{onTime}%</div>
+              <div className="bento-metric__title">Reliability Rating</div>
+              <div className="bento-metric__desc">Based on on-time payments</div>
+              <div className="bento-metric__bar">
+                <div className="bento-metric__bar-fill" style={{ width: `${onTime}%`, background: 'var(--clay)' }} />
+              </div>
+              <button className="bento-metric__link" onClick={() => router.push('/dashboard/pay-rent')}>
+                Boost Your Score <ArrowRight size={13} />
+              </button>
+            </div>
+          </div>
+
+          {/* CELL 3: Profile Completion */}
+          <div className="bento-cell bento-cell--metric">
+            <div className="bento-metric">
+              <div className="bento-metric__icon bento-metric__icon--green">
+                <Zap size={20} />
+              </div>
+              <div className="bento-metric__pct" style={{ color: profileCompletion >= 80 ? 'var(--success)' : 'var(--warning)' }}>
+                {profileCompletion}%
+              </div>
+              <div className="bento-metric__title">Profile Completion</div>
+              <div className="bento-metric__desc">Verify identity for better rates</div>
+              <div className="bento-metric__bar">
+                <div className="bento-metric__bar-fill" style={{ width: `${profileCompletion}%`, background: 'var(--success)' }} />
+              </div>
+              <button className="bento-metric__link" style={{ color: 'var(--success)' }} onClick={() => router.push('/dashboard/me?view=personal')}>
+                Complete Profile <ArrowRight size={13} />
+              </button>
+            </div>
+          </div>
+
+          {/* CELL 4: Recent Activity */}
+          <div className="bento-cell bento-cell--activity">
+            <div className="bento-section-header">
+              <div className="bento-section-header__left">
+                <Receipt size={15} className="bento-section-header__icon" />
+                <h3 className="bento-section-header__title">Recent Activity</h3>
+              </div>
+              <button className="bento-see-all" onClick={() => router.push('/dashboard/transactions')}>
+                View All <ArrowRight size={13} />
+              </button>
+            </div>
+            <div className="bento-activity-list">
+              {recentThree.length === 0 ? (
+                <div className="bento-empty">No transactions yet</div>
+              ) : (
+                recentThree.map((tx: any) => {
+                  const isCredit = tx.type === 'credit'
+                  return (
+                    <div
+                      key={tx.uuid}
+                      className="bento-tx-item"
+                      onClick={() => router.push(`/dashboard/receipts?id=${tx.uuid}`)}
+                    >
+                      <div className={`bento-tx-item__icon ${isCredit ? 'bento-tx-item__icon--credit' : 'bento-tx-item__icon--debit'}`}>
+                        {isCredit ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                      </div>
+                      <div className="bento-tx-item__info">
+                        <span className="bento-tx-item__name">{tx.company_name}</span>
+                        <span className="bento-tx-item__meta">{tx.channel || 'Paystack'} · {formatTime(tx.paid_at)}</span>
+                      </div>
+                      <span className={`bento-tx-item__amount ${isCredit ? 'bento-tx-item__amount--credit' : ''}`}>
+                        {isCredit ? '+' : '-'}{formatCurrency(tx.amount, tx.currency)}
+                      </span>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+
+          {/* CELL 5: Streak Stat */}
+          <div className="bento-cell bento-cell--streak">
+            <div className="bento-streak">
+              <Flame size={28} className={streak > 0 ? 'bento-streak__icon--active' : 'bento-streak__icon--muted'} />
+              <div className="bento-streak__num">{streak}</div>
+              <div className="bento-streak__label">Payment Streak</div>
+              <div className="bento-streak__sub">Consecutive on-time payments</div>
+            </div>
+          </div>
+
+          {/* CELL 6: App Install Banner (Fixed on desktop) */}
+          <div className="bento-cell bento-cell--app">
+            <div className="bento-app-banner">
+              <div className="bento-app-banner__icon">
+                <Smartphone size={22} />
+              </div>
+              <h4 className="bento-app-banner__title">Get the Upward App</h4>
+              <p className="bento-app-banner__desc">Manage your lease and build credit on the go. Available for iOS and Android.</p>
+              <div className="bento-app-banner__btns">
+                <button className="bento-app-btn">App Store<br /><strong>Download</strong></button>
+                <button className="bento-app-btn">Play Store<br /><strong>Download</strong></button>
+              </div>
+            </div>
+          </div>
+
+          {/* CELL 7: Upcoming Features */}
+          <div className="bento-cell bento-cell--upcoming">
+            <UpcomingFeaturesWidget />
+          </div>
+
+        </div>
+      </div>
+
+      <style jsx>{`
+        /* Show/hide zones */
+        .dash-mobile { display: block; }
+        .dash-desktop { display: none; }
+
+        @media (min-width: 1024px) {
+          .dash-mobile { display: none; }
+          .dash-desktop { display: block; }
+        }
+
+        /* ── BENTO GRID ── */
+        .bento-grid {
+          display: grid;
+          grid-template-columns: 1.8fr 1fr 1fr;
+          grid-template-rows: auto auto auto;
+          gap: 16px;
+          width: 100%;
+        }
+
+        /* Cell base */
+        .bento-cell {
+          background: var(--surface);
+          border: 1px solid var(--border-solid);
+          border-radius: 24px;
+          overflow: hidden;
+          transition: border-color 0.2s ease;
+        }
+
+        .bento-cell:hover {
+          border-color: rgba(217, 119, 87, 0.25);
+        }
+
+        /* Grid placement */
+        .bento-cell--hero {
+          grid-column: 1;
+          grid-row: 1 / 3;
+          background: var(--bg);
+          position: relative;
+          min-height: 360px;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+          padding: 2rem;
+          overflow: visible;
+        }
+
+        .bento-cell--metric {
+          grid-row: span 1;
+          padding: 1.5rem;
+        }
+
+        .bento-cell--activity {
+          grid-column: 1;
+          grid-row: 3;
+          padding: 1.5rem;
+        }
+
+        .bento-cell--streak {
+          grid-column: 2;
+          grid-row: 2;
+          padding: 1.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .bento-cell--app {
+          grid-column: 3;
+          grid-row: 2;
+          background: var(--surface);
+          border-color: var(--border-solid);
+        }
+
+        .bento-cell--upcoming {
+          grid-column: 2 / 4;
+          grid-row: 3;
+        }
+
+        /* ── Hero Cell ── */
+        .bento-hero-pending,
+        .bento-hero-score {
+          position: relative;
+          z-index: 2;
+        }
+
+        .bento-cell--hero::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(160deg, var(--surface) 0%, var(--bg) 60%);
+          border-radius: 24px;
+          z-index: 0;
+        }
+
+        .bento-hero-pending__badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          background: var(--clay);
+          color: white;
+          font-size: 11px;
+          font-weight: 800;
+          padding: 5px 12px;
+          border-radius: 100px;
+          letter-spacing: 0.03em;
+        }
+
+        .bento-hero-pending__top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1rem;
+        }
+
+        .bento-hero-nav {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: var(--surface);
+          padding: 4px 8px;
+          border-radius: 100px;
+          border: 1px solid var(--border-solid);
+        }
+
+        .bento-hero-nav-btn {
+          background: none;
+          border: none;
+          color: var(--text-muted);
+          cursor: pointer;
+          padding: 2px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: color 0.2s;
+        }
+
+        .bento-hero-nav-btn:hover {
+          color: var(--clay);
+        }
+
+        .bento-hero-nav-info {
+          font-size: 10px;
+          font-weight: 700;
+          color: var(--text-muted);
+          min-width: 30px;
+          text-align: center;
+        }
+
+        .bento-hero-pending__badge-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: white;
+          animation: pulseDot 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulseDot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.7); }
+        }
+
+        .bento-hero-pending__title {
+          font-size: 2rem;
+          font-weight: 900;
+          color: var(--text);
+          line-height: 1.1;
+          margin: 0 0 0.75rem;
+          letter-spacing: -0.03em;
+        }
+
+        .bento-hero-pending__accent {
+          color: var(--clay);
+        }
+        
+        .bento-hero-pending__amount {
+          font-size: 1.5rem;
+          font-weight: 800;
+          color: var(--text);
+          margin-bottom: 0.5rem;
+          letter-spacing: -0.02em;
+          display: flex;
+          align-items: baseline;
+          gap: 6px;
+        }
+
+        .bento-hero-pending__total {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: var(--text-muted);
+          opacity: 0.6;
+        }
+
+        .bento-hero-pending__desc {
+          font-size: 0.875rem;
+          color: var(--text-muted);
+          line-height: 1.5;
+          margin-bottom: 1.5rem;
+          max-width: 300px;
+        }
+
+        .bento-hero-score__label {
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: var(--success);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 0.5rem;
+        }
+
+        .bento-hero-score__title {
+          font-size: 2rem;
+          font-weight: 900;
+          color: var(--text);
+          line-height: 1.1;
+          margin: 0 0 0.75rem;
+          letter-spacing: -0.03em;
+        }
+
+        .bento-hero-score__desc {
+          font-size: 0.875rem;
+          color: var(--text-muted);
+          margin-bottom: 1.5rem;
+          max-width: 280px;
+        }
+
+        .bento-hero-pending__actions {
+          display: flex;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+        }
+
+        .bento-hero-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.875rem;
+        }
+
+        /* Score widget top-right of hero */
+        .bento-hero-score-widget {
+          position: absolute;
+          top: 1.75rem;
+          right: 1.75rem;
+          width: 130px;
+          height: 130px;
+          z-index: 3;
+        }
+
+        .bento-score-svg {
+          width: 100%;
+          height: 100%;
+          transform: rotate(-90deg);
+        }
+
+        .bento-score-bg {
+          fill: none;
+          stroke: var(--border-solid);
+          stroke-width: 7;
+        }
+
+        .bento-score-fill {
+          fill: none;
+          stroke-width: 7;
+          stroke-linecap: round;
+          transition: stroke-dasharray 1.2s ease;
+        }
+
+        .bento-score-inner {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          text-align: center;
+          pointer-events: none;
+        }
+
+        .bento-score-num {
+          display: block;
+          font-size: 1.75rem;
+          font-weight: 900;
+          color: var(--text);
+          line-height: 1;
+        }
+
+        .bento-score-lbl {
+          display: block;
+          font-size: 0.45rem;
+          font-weight: 800;
+          color: var(--text-muted);
+          letter-spacing: 0.08em;
+          margin-top: 2px;
+        }
+
+        .bento-score-rank {
+          position: absolute;
+          bottom: -4px;
+          right: -4px;
+          width: 38px;
+          height: 38px;
+          background: var(--bg);
+          border: 2px solid;
+          border-radius: 10px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .bento-score-rank-letter {
+          font-size: 1.1rem;
+          font-weight: 900;
+          line-height: 1;
+        }
+
+        .bento-score-rank-band {
+          font-size: 0.35rem;
+          font-weight: 800;
+          color: var(--text-muted);
+          letter-spacing: 0.05em;
+        }
+
+        /* ── Metric Cells ── */
+        .bento-metric__icon {
+          width: 38px;
+          height: 38px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 1rem;
+        }
+
+        .bento-metric__icon--clay {
+          background: var(--clay-faint);
+          color: var(--clay);
+        }
+
+        .bento-metric__icon--green {
+          background: rgba(34, 197, 94, 0.1);
+          color: var(--success, #22c55e);
+        }
+
+        .bento-metric__pct {
+          font-size: 2.25rem;
+          font-weight: 900;
+          color: var(--clay);
+          line-height: 1;
+          margin-bottom: 0.35rem;
+          letter-spacing: -0.03em;
+        }
+
+        .bento-metric__title {
+          font-size: 0.9rem;
+          font-weight: 700;
+          color: var(--text);
+          margin-bottom: 0.2rem;
+        }
+
+        .bento-metric__desc {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          margin-bottom: 1rem;
+          line-height: 1.4;
+        }
+
+        .bento-metric__bar {
+          height: 6px;
+          background: var(--border-solid);
+          border-radius: 3px;
+          overflow: hidden;
+          margin-bottom: 1rem;
+        }
+
+        .bento-metric__bar-fill {
+          height: 100%;
+          border-radius: 3px;
+          transition: width 1s ease;
+        }
+
+        .bento-metric__link {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: var(--clay);
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+          transition: gap 0.2s ease;
+        }
+
+        .bento-metric__link:hover {
+          gap: 7px;
+        }
+
+        /* ── Activity Cell ── */
+        .bento-section-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 1rem;
+        }
+
+        .bento-section-header__left {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .bento-section-header__icon {
+          color: var(--clay);
+        }
+
+        .bento-section-header__title {
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: var(--text);
+          margin: 0;
+        }
+
+        .bento-see-all {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: var(--clay);
+          background: none;
+          border: none;
+          cursor: pointer;
+          transition: gap 0.2s;
+        }
+
+        .bento-see-all:hover { gap: 7px; }
+
+        .bento-activity-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .bento-empty {
+          font-size: 0.85rem;
+          color: var(--text-muted);
+          text-align: center;
+          padding: 1.5rem 0;
+        }
+
+        .bento-tx-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 10px;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: background 0.15s ease;
+        }
+
+        .bento-tx-item:hover {
+          background: var(--surface2);
+        }
+
+        .bento-tx-item__icon {
+          width: 30px;
+          height: 30px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .bento-tx-item__icon--credit {
+          background: rgba(34, 197, 94, 0.1);
+          color: var(--success, #22c55e);
+        }
+
+        .bento-tx-item__icon--debit {
+          background: var(--clay-faint);
+          color: var(--clay);
+        }
+
+        .bento-tx-item__info {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+        }
+
+        .bento-tx-item__name {
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: var(--text);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .bento-tx-item__meta {
+          font-size: 0.7rem;
+          color: var(--text-muted);
+        }
+
+        .bento-tx-item__amount {
+          font-size: 0.8rem;
+          font-weight: 800;
+          color: var(--text);
+          white-space: nowrap;
+        }
+
+        .bento-tx-item__amount--credit {
+          color: var(--success, #22c55e);
+        }
+
+        /* ── Streak Cell ── */
+        .bento-streak {
+          text-align: center;
+        }
+
+        .bento-streak__icon--active {
+          color: #FF8C00;
+          margin-bottom: 0.5rem;
+        }
+
+        .bento-streak__icon--muted {
+          color: var(--text-muted);
+          margin-bottom: 0.5rem;
+        }
+
+        .bento-streak__num {
+          font-size: 3rem;
+          font-weight: 900;
+          color: var(--text);
+          line-height: 1;
+          margin-bottom: 0.25rem;
+          letter-spacing: -0.04em;
+        }
+
+        .bento-streak__label {
+          font-size: 0.9rem;
+          font-weight: 700;
+          color: var(--text);
+          margin-bottom: 0.2rem;
+        }
+
+        .bento-streak__sub {
+          font-size: 0.72rem;
+          color: var(--text-muted);
+        }
+
+        /* ── App Banner Cell ── */
+        .bento-app-banner {
+          padding: 1.5rem;
+          position: relative;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .bento-app-banner__icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 14px;
+          background: var(--clay-faint);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--clay);
+          margin-bottom: 1rem;
+        }
+
+        .bento-app-banner__title {
+          font-size: 1rem;
+          font-weight: 800;
+          color: var(--text);
+          margin: 0 0 0.4rem;
+        }
+
+        .bento-app-banner__desc {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          line-height: 1.5;
+          margin-bottom: 1.25rem;
+          flex: 1;
+        }
+
+        .bento-app-banner__btns {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+
+        .bento-app-btn {
+          background: var(--bg);
+          border: 1px solid var(--border-solid);
+          color: var(--text);
+          border-radius: 10px;
+          padding: 8px 10px;
+          font-size: 0.7rem;
+          line-height: 1.5;
+          cursor: pointer;
+          text-align: center;
+          transition: all 0.2s ease;
+        }
+
+        .bento-app-btn strong {
+          display: block;
+          font-size: 0.8rem;
+          font-weight: 800;
+          color: var(--clay);
+        }
+
+        .bento-app-btn:hover {
+          background: var(--clay-faint);
+          border-color: var(--clay);
+        }
+
+        .bento-app-banner__close {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          width: 26px;
+          height: 26px;
+          border-radius: 50%;
+          background: var(--surface2);
+          border: none;
+          color: var(--text-muted);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .bento-app-banner__close:hover {
+          background: var(--border);
+          color: var(--text);
+        }
+
+        /* ── Upcoming Cell ── */
+        .bento-cell--upcoming {
+          padding: 0;
+          overflow: hidden;
+        }
+
+        /* Fix upcoming widget to fill cell */
+        .bento-cell--upcoming :global(.upcoming-widget),
+        .bento-cell--upcoming :global(> *) {
+          border-radius: 0;
+          border: none;
+          height: 100%;
+        }
+
+        /* ── 1280px wider grid ── */
+        @media (min-width: 1280px) {
+          .bento-grid {
+            gap: 20px;
+          }
+          .bento-hero-pending__title,
+          .bento-hero-score__title {
+            font-size: 2.4rem;
+          }
+        }
+      `}</style>
     </div>
   )
 }

@@ -1,10 +1,15 @@
 import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common'
 import { ApiKeyGuard } from './api-key.guard'
 import { SingleInviteUseCase, InviteRequest } from '../../../application/use-cases/external/single-invite.use-case'
+import { AddPropertyUseCase } from '../../../application/use-cases/external/add-property.use-case'
+import { Param } from '@nestjs/common'
 
 @Controller('single/invite')
 export class ExternalInviteController {
-  constructor(private readonly singleInviteUseCase: SingleInviteUseCase) { }
+  constructor(
+    private readonly singleInviteUseCase: SingleInviteUseCase,
+    private readonly addPropertyUseCase: AddPropertyUseCase
+  ) { }
 
   @Post()
   @UseGuards(ApiKeyGuard)
@@ -16,6 +21,21 @@ export class ExternalInviteController {
     return {
       success: true,
       message: 'Created',
+      data: result
+    }
+  }
+
+  @Post(':userUuid/properties')
+  @UseGuards(ApiKeyGuard)
+  async addProperties(@Param('userUuid') userUuid: string, @Body() data: any) {
+    const result = await this.addPropertyUseCase.execute({
+      ...data,
+      userUuid
+    })
+
+    return {
+      success: true,
+      message: 'Properties added',
       data: result
     }
   }

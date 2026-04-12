@@ -71,7 +71,7 @@ The request follows a nested structure to coordinate between companies, users, a
 | Field | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
 | `user` | `Object` | **Yes** | The tenant being invited. |
-| `property` | `Object` | **Yes** | Lease and location details. |
+| `properties` | `Array<Object>` | **Yes** | List of lease and location details (one or more units). |
 
 ### User Object
 | Field | Type | Required | Description |
@@ -86,7 +86,7 @@ The request follows a nested structure to coordinate between companies, users, a
 | :--- | :--- | :--- | :--- |
 | `location` | `Object` | **Yes** | Physical location of the unit. |
 | `rent` | `Object` | **Yes** | Financial terms of the lease. |
-| `manager` | `Object` | **Yes** | The manager responsible for this unit. |
+| `manager` | `Object` | No | The manager responsible (Optional). |
 
 ### Location Object
 | Field | Type | Required | Description |
@@ -127,25 +127,70 @@ The request follows a nested structure to coordinate between companies, users, a
       "lastName": "Doe",
       "phone": "+2348001112222"
     },
-    "property": {
-      "location": {
-        "country": "Nigeria",
-        "state": "Lagos",
-        "area": "Ikoyi",
-        "address": "Bourdillon Road"
-      },
-      "rent": {
-        "rentAmount": 5000000,
-        "rentStartDate": "2024-01-01T00:00:00Z",
-        "rentEndDate": "2025-01-01T00:00:00Z"
-      },
-      "manager": {
-        "firstName": "Bisi",
-        "lastName": "Manager",
-        "email": "bisi@globalprop.ng"
+    "properties": [
+      {
+        "location": {
+          "country": "Nigeria",
+          "state": "Lagos",
+          "area": "Ikoyi",
+          "address": "Bourdillon Road"
+        },
+        "rent": {
+          "rentAmount": 5000000,
+          "rentStartDate": "2024-01-01T00:00:00Z",
+          "rentEndDate": "2025-01-01T00:00:00Z"
+        },
+        "manager": {
+          "firstName": "Bisi",
+          "lastName": "Manager",
+          "email": "bisi@globalprop.ng"
+        }
       }
-    }
+    ]
   }
+}
+```
+
+{
+  "success": true,
+  "message": "Created",
+  "data": {
+    "userId": "b7a71853-2d7a-4399-af09-115a6c1406ce",
+    "companyId": "a1b2c3d4-...",
+    "email": "john.doe@gmail.com",
+    "inviteLink": "http://localhost:3000/invite/b7a71853-...",
+    "properties": [
+      { "uuid": "5cab404a-...", "address": "Bourdillon Road", "managerUuid": "f1c2d3e4-..." }
+    ]
+  }
+}
+```
+
+---
+
+## 3. Adding More Properties
+If a user is already registered or has been invited, you can add more properties to their profile under a specific company.
+
+**Method**: `POST`  
+**Endpoint**: `/api/v1/single/invite/:userUuid/properties`
+
+#### Request Body Schema
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `companyUuid` | `string` | **Yes** | The UUID of the company managing the new property. |
+| `properties` | `Array<Object>` | **Yes** | List of property objects (same schema as section 2). |
+
+### Request Example
+```json
+{
+  "companyUuid": "a1b2c3d4-...",
+  "properties": [
+    {
+      "location": { "country": "Nigeria", "state": "Lagos", "area": "Surulere", "address": "Stadium Road" },
+      "rent": { "rentAmount": 150000, "rentEndDate": "2025-06-01" },
+      "manager": { "firstName": "Sola", "lastName": "Adebayo", "email": "sola@luxuryliving.com" }
+    }
+  ]
 }
 ```
 
@@ -153,19 +198,21 @@ The request follows a nested structure to coordinate between companies, users, a
 ```json
 {
   "success": true,
-  "message": "Created",
+  "message": "Properties added",
   "data": {
-    "userId": "b7a71853-2d7a-4399-af09-115a6c1406ce",
-    "managerId": "f1c2d3e4-...",
+    "userId": "b7a71853-...",
     "companyId": "a1b2c3d4-...",
-    "userPropertyUuid": "5cab404a-df37-4408-826b-e8b820e26fac",
     "email": "john.doe@gmail.com",
-    "inviteLink": "http://localhost:3000/invite/b7a71853-2d7a-4399-af09-115a6c1406ce"
+    "properties": [
+      { "uuid": "new-prop-uuid-...", "address": "Stadium Road", "managerUuid": "..." }
+    ]
   }
 }
 ```
 
-## 3. Payment Requests
+---
+
+## 4. Payment Requests
 Generate a payment link for a tenant based on an existing property or by initiating an auto-invite.
 
 **Method**: `POST`  
@@ -219,14 +266,16 @@ Use this if the tenant has not been invited to Upward yet. This will create the 
         "firstName": "Jane",
         "lastName": "Doe"
       },
-      "property": {
-        "location": { "country": "Nigeria", "state": "Lagos", "area": "Ikoyi" },
-        "rent": {
-          "rentAmount": 5000000,
-          "rentEndDate": "2025-01-01T00:00:00Z"
-        },
-        "manager": { "firstName": "Bisi", "lastName": "Manager", "email": "bisi@globalprop.ng" }
-      }
+      "properties": [
+        {
+          "location": { "country": "Nigeria", "state": "Lagos", "area": "Ikoyi" },
+          "rent": {
+            "rentAmount": 5000000,
+            "rentEndDate": "2025-01-01T00:00:00Z"
+          },
+          "manager": { "firstName": "Bisi", "lastName": "Manager", "email": "bisi@globalprop.ng" }
+        }
+      ]
     }
   },
   "dueDate": "2024-06-15T00:00:00Z",
@@ -255,37 +304,16 @@ Use this if the tenant has not been invited to Upward yet. This will create the 
 2. **Entity Persistence**: If a company or manager with the same details exists, Upward will link to the existing record.
 3. **Mandatory Rent**: For invitations, `rentAmount`, `rentStartDate`, and `rentEndDate` must be provided.
 4. **API Security**: Raw API keys are hashed on the server.
-5. **Automated Settlement**: Providing `bankCode` and `accountNumber` in a payment request triggers automated settlement routing. Upward resolves or creates a persistent Paystack subaccount linked to those details to ensure funds are correctly routed during checkout.
+5. **Automated Settlement**: Providing `bankCode` and `accountNumber` in a payment request triggers automated settlement routing. Upward resolves or creates a persistent Paystack subaccount linked (via business name) to the **Company** (or its **Manager** if no company info is available).
 6. **Robust Property Matching**: To prevent duplicate property records, Upward matches invitations against existing records using a combination of **User + Company + Address**. If an exact match is found (even with a different manager), the existing record is updated and reused.
-7. **Partial & Overpayments**: 
+7. **Optional Managers**: If a property is managed directly by a company without a specific assigned staff member, the `manager` object in invitations/add-property can be omitted.
+8. **Partial & Overpayments**: 
     *   **Partial**: Tenants can pay less than the requested amount. The platform will receive a `payment.updated` webhook with the `remainingAmount`.
     *   **Overpayment**: If a tenant pays more than the total requested amount, the excess is recorded as a "Future Credit" in Upward. This credit is tracked and can be applied to future bills.
-260: 
----
-
-## 5. Constraints & Validation Rules
-
-To ensure a smooth integration, please adhere to the following technical constraints. Requests failing these rules will return a `400 Bad Request` or `409 Conflict`.
-
-### Platform Registration
-*   **Unique Email**: Each platform must be registered with a unique contact email.
-*   **Webhook URL**: A valid, accessible HTTPS URL is required to receive asynchronous updates.
-
-### Tenant Invitations
-*   **Rent Details**: `rentAmount` and `rentEndDate` (ISO-8601) are strictly mandatory.
-*   **Identity**: The `email` field in the user object is the primary key. If a user with that email already exists, they will be linked to the new property.
-*   **Company/Manager Resolution**: 
-    *   Providing a `uuid` will attempt to link to an existing record.
-    *   If no `uuid` is provided, `name` (for companies) or `email` (for managers) is used to find or create the record. Full details are required for creation.
-
-### Payment Requests
-*   **Sum Validation**: If you provide `lineItems`, their total sum **must match** the main `amount` field. This prevents reconciliation errors.
-*   **Settlement Routing**: `bankCode` and `accountNumber` are required for every payment request. This allows Upward to route funds to the specific landlord's account automatically.
-*   **Idempotency (Upsert)**: Sending a payment request with the same `userPropertyUuid`, `amount`, and `dueDate` as a pending one will **update** the existing request rather than creating a duplicate.
 
 ---
 
-## 4. Webhook Notifications
+## 6. Webhook Notifications
 Upward sends asynchronous notifications to the `webhookUrl` provided during platform registration to keep your system in sync.
 
 ### Event: `payment.updated`
@@ -346,7 +374,32 @@ Triggered when a tenant successfully signs up and activates their account via th
 }
 ```
 
-### Delivery Details
+---
+
+## 7. Constraints & Validation Rules
+
+To ensure a smooth integration, please adhere to the following technical constraints. Requests failing these rules will return a `400 Bad Request` or `409 Conflict`.
+
+### Platform Registration
+*   **Unique Email**: Each platform must be registered with a unique contact email.
+*   **Webhook URL**: A valid, accessible HTTPS URL is required to receive asynchronous updates.
+
+### Tenant Invitations & Adding Properties
+*   **Rent Details**: `rentAmount` and `rentEndDate` (ISO-8601) are strictly mandatory.
+*   **Identity**: The `email` field in the user object is the primary key. If a user with that email already exists, they will be linked to the new property.
+*   **Company/Manager Resolution**: 
+    *   Providing a `uuid` will attempt to link to an existing record.
+    *   If no `uuid` is provided, `name` (for companies) or `email` (for managers) is used to find or create the record. Full details are required for creation.
+    *   **Properties Managed by Company Only**: If the `manager` object is omitted, the property is linked directly to the company, and settlement routing falls back to the company's business name.
+
+### Payment Requests
+*   **Sum Validation**: If you provide `lineItems`, their total sum **must match** the main `amount` field. This prevents reconciliation errors.
+*   **Settlement Routing**: `bankCode` and `accountNumber` are required for every payment request. This allows Upward to route funds to the specific landlord's account automatically.
+*   **Idempotency (Upsert)**: Sending a payment request with the same `userPropertyUuid`, `amount`, and `dueDate` as a pending one will **update** the existing request rather than creating a duplicate.
+
+---
+
+## 8. Webhook Delivery Details
 1. **Method**: `POST`
 2. **Content-Type**: `application/json`
 3. **Expectation**: Your server should return a `200 OK` response within 5 seconds.

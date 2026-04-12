@@ -64,7 +64,12 @@ export function StepAmount({
   onContinue: (amount: number, narration: string, propertyAddress: string, propertyName: string, lineItems?: LineItem[], propertyId?: number) => void
   onBack?: () => void
 }) {
-  const [amount, setAmount] = useState(landlord.lastAmount > 0 ? String(landlord.lastAmount) : '')
+  const remainingBalance = Math.max(0, requestedAmount - totalPaidAlready)
+  const [amount, setAmount] = useState(
+    requestedAmount > 0 
+      ? String(remainingBalance) 
+      : (landlord.lastAmount > 0 ? String(landlord.lastAmount) : '')
+  )
   const [narration, setNarration] = useState('')
   const [propertyAddress, setPropertyAddress] = useState(initialPropertyAddress)
   const [selectedPropId, setSelectedPropId] = useState<number | null>(null)
@@ -72,10 +77,13 @@ export function StepAmount({
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [showOverpaymentDialog, setShowOverpaymentDialog] = useState(false)
   const [lineItems, setLineItems] = useState<LineItem[]>([
-    { label: 'Rent', amount: landlord.lastAmount > 0 ? landlord.lastAmount : 0 },
+    { 
+      label: 'Rent', 
+      amount: requestedAmount > 0 
+        ? remainingBalance 
+        : (landlord.lastAmount > 0 ? landlord.lastAmount : 0) 
+    },
   ])
-
-  const remainingBalance = Math.max(0, requestedAmount - totalPaidAlready)
 
   useEffect(() => {
     // If a balance remains, default to that amount

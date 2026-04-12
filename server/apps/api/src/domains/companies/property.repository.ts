@@ -9,6 +9,7 @@ export interface Property {
   rentStartDate?: Date
   rentEndDate?: Date
   currency: string
+  isVerified?: boolean
   createdAt: Date
   updatedAt: Date
   company?: { name: string }

@@ -12,6 +12,7 @@ interface DetailOrEditProps {
   onChange?: (v: string) => void
   type?: 'text' | 'select' | 'date'
   options?: { value: string; label: string }[]
+  isCritical?: boolean
 }
 
 export function DetailOrEdit({
@@ -24,13 +25,14 @@ export function DetailOrEdit({
   onChange,
   type = 'text',
   options,
+  isCritical = false,
 }: DetailOrEditProps) {
   const isMissing = !value || value === ''
 
   if (!isEditing && isMissing) return null
 
   return (
-    <div className={`detail-item ${isEditing ? 'detail-item--editing' : ''} ${isMissing ? 'detail-item--missing' : ''}`}>
+    <div className={`detail-item ${isEditing ? 'detail-item--editing' : ''} ${isMissing ? 'detail-item--missing' : ''} ${isCritical ? 'detail-item--critical' : ''}`}>
       <div className="detail-item__left">
         <div className="detail-item__icon-container">
           <Icon size={18} />
@@ -134,6 +136,16 @@ export function DetailOrEdit({
           color: var(--text-muted);
           text-transform: uppercase;
           letter-spacing: 0.05em;
+          transition: color 0.2s ease;
+        }
+
+        .detail-item--critical .detail-item__label {
+          color: var(--clay);
+        }
+
+        .detail-item--critical .detail-item__icon-container {
+          color: var(--clay);
+          background: var(--clay-faint);
         }
 
         .detail-item__value {

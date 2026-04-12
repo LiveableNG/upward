@@ -162,17 +162,7 @@ export function TransactionList() {
                             {isCredit ? '+' : '-'}
                             {formatCurrency(tx.amount, tx.currency)}
                           </span>
-                            <button
-                              className="transaction-item__download-btn desktop-only"
-                              title="Download Receipt PDF"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                router.push(`/dashboard/receipts?id=${tx.uuid}`)
-                              }}
-                            >
-                              <Download size={15} />
-                              <span>Download PDF</span>
-                            </button>
+
                             <button
                               className="transaction-item__receipt-btn mobile-only"
                               onClick={(e) => {
@@ -286,7 +276,7 @@ export function TransactionList() {
           }
 
           .dashboard__header {
-            margin-bottom: 32px;
+            margin-bottom: 12px;
             padding: 0;
             border-bottom: none;
           }

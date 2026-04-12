@@ -18,6 +18,7 @@ export interface UserProfile {
     address: string;
     rentEndDate: string;
     rentAmount?: number;
+    isManaged?: boolean;
     companyName?: string;
     managerName?: string;
     location?: {

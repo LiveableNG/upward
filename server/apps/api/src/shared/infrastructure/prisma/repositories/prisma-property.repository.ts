@@ -53,6 +53,7 @@ export class PrismaPropertyRepository implements PropertyRepository {
 
   async save(property: Property): Promise<Property> {
     const data = {
+      uuid: property.uuid,
       userId: property.userId,
       companyId: property.companyId,
       managerId: property.managerId,
@@ -61,6 +62,7 @@ export class PrismaPropertyRepository implements PropertyRepository {
       currency: property.currency,
       rentStartDate: property.rentStartDate,
       rentEndDate: property.rentEndDate,
+      isVerified: property.isVerified,
     }
     const record = property.id
       ? await this.prisma.upward_user_property.update({

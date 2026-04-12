@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Body, UseGuards, Req, Param } from '@nestjs/common'
 import { ApiKeyGuard } from './api-key.guard'
 import { CreateExternalPaymentRequestUseCase } from '../../../application/use-cases/external/create-payment-request.use-case'
-import { ExternalPaymentRequestPayloadDto } from '../../../application/use-cases/external/create-payment-request.dto'
+import { ExternalPaymentRequestPayloadDto } from '../../../application/use-cases/external/external-api.dto'
 import { GetPublicPaymentDetailsUseCase } from '../../../application/use-cases/external/get-public-payment.use-case'
 import { ConfirmExternalPaymentUseCase } from '../../../application/use-cases/external/confirm-payment.use-case'
 
