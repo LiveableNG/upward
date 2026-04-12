@@ -1110,6 +1110,10 @@
 
 /* Reordering for Mobile Views */
 @media (max-width: 1023px) {
+  .right-stack {
+    display: contents;
+  }
+
   .dashboard__announcement-row {
     order: -2 !important;
     margin: 0 0 16px 0 !important;

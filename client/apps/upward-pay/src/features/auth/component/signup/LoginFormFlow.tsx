@@ -49,7 +49,24 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
         </div>
         
         <form className="auth-form" onSubmit={handleSubmit}>
-          {loginError && <div className="auth-form__error">{loginError}</div>}
+          {loginError && (
+            <div className={`auth-form__error ${loginError.code === 'INVITE_PENDING' ? 'is-warning' : ''}`}>
+              {loginError.code === 'INVITE_PENDING' ? (
+                <div className="invite-pending-notice">
+                  <p>{loginError.message}</p>
+                  <button 
+                    type="button" 
+                    className="btn btn--clay btn--small mt-2" 
+                    onClick={() => router.push(`/invite/${loginError.data.userId}`)}
+                  >
+                    Complete Profile
+                  </button>
+                </div>
+              ) : (
+                loginError.message
+              )}
+            </div>
+          )}
           
           <div className="auth-form__field">
             <label htmlFor="login-email">Email Address</label>

@@ -40,12 +40,8 @@ export default function InvitePage() {
   const [localError, setLocalError] = useState('')
 
   useEffect(() => {
-    if (user) {
-      router.push('/dashboard')
-      return
-    }
     fetchInviteData()
-  }, [uuid, user])
+  }, [uuid])
 
   async function fetchInviteData() {
     try {

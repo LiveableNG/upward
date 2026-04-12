@@ -7,8 +7,6 @@ import { formatCurrency } from '@/lib/utils'
 interface AllocationBreakdownProps {
   showBreakdown: boolean
   setShowBreakdown: (val: boolean | ((prev: boolean) => boolean)) => void
-  manualMode: boolean
-  setManualMode: (val: boolean) => void
   effectiveAllocs: any[]
   currency: string
   lineItems: any[]
@@ -16,16 +14,11 @@ interface AllocationBreakdownProps {
   futureCreditAmount: number
   futureCreditName: string
   setFutureCreditName: (val: string) => void
-  manualAllocs: Record<number, number>
-  setManualAllocs: (val: any) => void
-  onEnterManualMode: () => void
 }
 
 export function AllocationBreakdown({
   showBreakdown,
   setShowBreakdown,
-  manualMode,
-  setManualMode,
   effectiveAllocs,
   currency,
   lineItems,
@@ -33,9 +26,6 @@ export function AllocationBreakdown({
   futureCreditAmount,
   futureCreditName,
   setFutureCreditName,
-  manualAllocs,
-  setManualAllocs,
-  onEnterManualMode
 }: AllocationBreakdownProps) {
   return (
     <div className="pay-breakdown">
@@ -44,10 +34,7 @@ export function AllocationBreakdown({
         onClick={() => setShowBreakdown(v => !v)}
       >
         <div className="pay-breakdown__header-left">
-           <span className="pay-breakdown__label">Payment Allocation</span>
-           <div className={`pay-breakdown__badge ${manualMode ? 'is-manual' : 'is-auto'}`}>
-              {manualMode ? 'Manual' : 'Auto'}
-           </div>
+           <span className="pay-breakdown__label">Invoice Breakdown</span>
         </div>
         <ChevronDown size={14} className={`pay-breakdown__chevron ${showBreakdown ? 'is-open' : ''}`} />
       </div>
@@ -66,24 +53,12 @@ export function AllocationBreakdown({
                     <div className="pay-breakdown-item__info">
                       <span className="pay-breakdown-item__name">{alloc.name}</span>
                       <span className="pay-breakdown-item__stats">
-                        {formatCurrency(alloc.amountPaid, currency)} of {formatCurrency(alloc.totalAmount, currency)} paid
+                        {alloc.allocated >= alloc.remaining ? 'Full Settlement' : 'Partial Payment'}
                       </span>
                     </div>
-                    {manualMode ? (
-                      <div className="pay-breakdown-item__input-wrapper">
-                        <span className="pay-breakdown-item__currency">{currency}</span>
-                        <input
-                          type="number"
-                          value={manualAllocs[alloc.id] ?? alloc.allocated}
-                          onChange={e => setManualAllocs((prev: any) => ({ ...prev, [alloc.id]: parseFloat(e.target.value) || 0 }))}
-                          className="pay-breakdown-item__input"
-                        />
-                      </div>
-                    ) : (
-                      <span className="pay-breakdown-item__amount">
-                        {alloc.allocated > 0 ? formatCurrency(alloc.allocated, currency) : '—'}
-                      </span>
-                    )}
+                    <span className="pay-breakdown-item__amount">
+                      {alloc.allocated > 0 ? formatCurrency(alloc.allocated, currency) : '—'}
+                    </span>
                   </div>
                   <div className="pay-breakdown-item__progress">
                     <div className="pay-breakdown-item__bar" style={{ width: `${pct}%` }} />
@@ -112,23 +87,7 @@ export function AllocationBreakdown({
             )}
           </div>
 
-          <div className="pay-breakdown__actions">
-            {!manualMode ? (
-              <button 
-                className="pay-breakdown__mode-btn"
-                onClick={onEnterManualMode}
-              >
-                Customize Amounts
-              </button>
-            ) : (
-              <button 
-                className="pay-breakdown__mode-btn is-active"
-                onClick={() => setManualMode(false)}
-              >
-                Reset to Automatic
-              </button>
-            )}
-          </div>
+
         </div>
       )}
 

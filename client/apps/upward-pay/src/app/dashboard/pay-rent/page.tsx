@@ -29,6 +29,8 @@ export default function PayRentPage() {
   const [paymentRequestId, setPaymentRequestId] = useState<number | null>(null)
   const [requestedAmount, setRequestedAmount] = useState(0)
   const [totalPaidAlready, setTotalPaidAlready] = useState(0)
+  const [userProperties, setUserProperties] = useState<any[]>([])
+  const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null)
 
   const [pendingPayments, setPendingPayments] = useState<any[]>([])
   
@@ -39,6 +41,7 @@ export default function PayRentPage() {
         setSavedLandlords(landlords)
         if (profile?.email) setUserEmail(profile.email)
         if (profile?.address) setPropertyAddress(profile.address)
+        if (profile?.properties) setUserProperties(profile.properties)
         setPendingPayments(pending || [])
       })
       .catch(() => {})
@@ -82,6 +85,7 @@ export default function PayRentPage() {
         lineItems: lineItems.length > 0 ? lineItems : undefined,
         paymentType,
         propertyAddress,
+        userPropertyId: selectedPropertyId || undefined,
       })
       if (res?.uuid) {
         setLastTxId(res.uuid)
@@ -201,11 +205,13 @@ export default function PayRentPage() {
               initialPaymentType={paymentType}
               requestedAmount={requestedAmount}
               totalPaidAlready={totalPaidAlready}
-              onContinue={(amt, nar, addr, name, items) => {
+              userProperties={userProperties}
+              onContinue={(amt, nar, addr, name, items, propertyId) => {
                 setPayAmount(amt)
                 setNarration(nar)
                 setPropertyAddress(addr)
                 setpaymentType(name)
+                setSelectedPropertyId(propertyId || null)
                 if (items) setLineItems(items)
               }}
               onBack={() => {

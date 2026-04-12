@@ -25,6 +25,6 @@ export function useLogin(redirect: string) {
   return {
     login: (email: string, password: string) => loginMutation.mutate({ email, password }),
     loading: loginMutation.isPending,
-    error: loginMutation.error instanceof Error ? loginMutation.error.message : '',
+    error: loginMutation.error as any,
   }
 }

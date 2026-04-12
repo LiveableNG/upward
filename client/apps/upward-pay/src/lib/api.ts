@@ -14,6 +14,7 @@ export const api = {
   logout: authService.logout,
   getProfile: authService.getMe,
   updateProfile: authService.updateProfile,
+  getAvatarUploadUrl: authService.getAvatarUploadUrl,
   completeProfile: authService.completeProfile,
   forgotPassword: authService.forgotPassword,
   resetPassword: (email: string, otp: string, newPass: string) =>

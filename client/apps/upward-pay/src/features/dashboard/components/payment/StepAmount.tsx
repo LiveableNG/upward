@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { LandlordAvatar } from './LandlordAvatar'
 import { type Landlord, type LineItem } from './types'
 import { formatCurrency } from '@/lib/utils'
-import { Plus, Trash2, Info } from 'lucide-react'
+import { Plus, Trash2, Info, ChevronRight } from 'lucide-react'
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
@@ -46,6 +46,7 @@ const COMMON_LABELS = [
 
 export function StepAmount({
   landlord,
+  userProperties = [],
   initialPaymentType = 'Rent Payment',
   initialPropertyAddress = '',
   requestedAmount = 0,
@@ -55,16 +56,18 @@ export function StepAmount({
   onBack,
 }: {
   landlord: Landlord
+  userProperties?: any[]
   initialPaymentType?: string
   initialPropertyAddress?: string
   requestedAmount?: number
   totalPaidAlready?: number
-  onContinue: (amount: number, narration: string, propertyAddress: string, propertyName: string, lineItems?: LineItem[]) => void
+  onContinue: (amount: number, narration: string, propertyAddress: string, propertyName: string, lineItems?: LineItem[], propertyId?: number) => void
   onBack?: () => void
 }) {
   const [amount, setAmount] = useState(landlord.lastAmount > 0 ? String(landlord.lastAmount) : '')
   const [narration, setNarration] = useState('')
   const [propertyAddress, setPropertyAddress] = useState(initialPropertyAddress)
+  const [selectedPropId, setSelectedPropId] = useState<number | null>(null)
   const [paymentType, setPaymentType] = useState(initialPaymentType)
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [showOverpaymentDialog, setShowOverpaymentDialog] = useState(false)
@@ -360,31 +363,66 @@ export function StepAmount({
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div>
-          <label style={labelStyle}>Payment Type</label>
-          <div style={inputWrapStyle}>
-            <input
-              type="text"
-              placeholder="e.g. Rent Payment"
-              value={paymentType}
-              onChange={(e) => setPaymentType(e.target.value)}
-              style={inputStyle}
-            />
+      <div style={{ marginBottom: 24 }}>
+        <label style={labelStyle}>Select Property or Type Manually</label>
+        <div style={{ position: 'relative' }}>
+          <select
+            style={{ 
+              ...inputStyle, 
+              ...inputWrapStyle, 
+              appearance: 'none',
+              cursor: 'pointer'
+            }}
+            value={selectedPropId || ''}
+            onChange={(e) => {
+              const val = e.target.value
+              if (val === '') {
+                setSelectedPropId(null)
+              } else if (val === 'manual') {
+                setSelectedPropId(-1 as any) // flag for manual
+              } else {
+                const pid = Number(val)
+                setSelectedPropId(pid)
+                const prop = userProperties.find(p => p.id === pid)
+                if (prop) {
+                   const loc = prop.location
+                   const fullAddr = [prop.address || loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
+                   setPropertyAddress(fullAddr)
+                }
+              }
+            }}
+          >
+            <option value="">Choose a property...</option>
+            {userProperties.map(p => {
+               const loc = p.location
+               const label = [p.address || loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
+               return <option key={p.id} value={p.id}>{label}</option>
+            })}
+            <option value="manual">+ Type Address Manually</option>
+          </select>
+          <div style={{ 
+            position: 'absolute', 
+            right: 16, 
+            top: '50%', 
+            transform: 'translateY(-50%)', 
+            pointerEvents: 'none',
+            color: 'var(--text-muted)'
+          }}>
+            <ChevronRight size={16} style={{ transform: 'rotate(90deg)' }} />
           </div>
         </div>
-        <div>
-          <label style={labelStyle}>Property Address</label>
-          <div style={inputWrapStyle}>
+
+        {(selectedPropId === (-1 as any) || !selectedPropId) && (
+          <div style={{ ...inputWrapStyle, marginTop: 12 }}>
             <input
               type="text"
-              placeholder="Fetched from profile"
+              placeholder="e.g. 123 Main St, Lagos"
               value={propertyAddress}
               onChange={(e) => setPropertyAddress(e.target.value)}
               style={inputStyle}
             />
           </div>
-        </div>
+        )}
       </div>
 
       <div style={{ marginBottom: 28 }}>
@@ -408,7 +446,7 @@ export function StepAmount({
           if (requestedAmount > 0 && Number(amount) > remainingBalance) {
             setShowOverpaymentDialog(true)
           } else {
-            onContinue(Number(amount), narration, propertyAddress, paymentType, showBreakdown ? lineItems : undefined)
+            onContinue(Number(amount), narration, propertyAddress, paymentType, showBreakdown ? lineItems : undefined, (selectedPropId && selectedPropId !== -1) ? selectedPropId : undefined)
           }
         }}
         className="btn btn--primary btn--full"

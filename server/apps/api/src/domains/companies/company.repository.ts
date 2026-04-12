@@ -63,6 +63,7 @@ export interface PlatformRepository {
   findById(id: number): Promise<Platform | null>
   findByApiKey(apiKey: string): Promise<Platform | null>
   findByEmail(email: string): Promise<Platform | null>
+  findByName(name: string): Promise<Platform | null>
   save(platform: Platform): Promise<Platform>
   update(id: number, data: Partial<Platform>): Promise<Platform>
 }
