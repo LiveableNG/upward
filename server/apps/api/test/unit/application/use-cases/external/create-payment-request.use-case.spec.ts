@@ -1,6 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { CreateExternalPaymentRequestUseCase } from '@application/use-cases/external/create-payment-request.use-case'
-import { ExternalPaymentRequestPayloadDto as ExternalPaymentRequestPayload } from '@application/use-cases/external/create-payment-request.dto'
+import { ExternalPaymentRequestPayloadDto as ExternalPaymentRequestPayload } from '@application/use-cases/external/external-api.dto'
 import { SingleInviteUseCase, InviteRequest } from '@application/use-cases/external/single-invite.use-case'
 import { UserRepository } from '@domains/users/user.repository'
 import { PropertyRepository } from '@domains/companies/property.repository'
@@ -89,15 +89,15 @@ const makeNotification = (overrides: Partial<any> = {}) => ({
   ...overrides,
 })
 
-const validInviteRequest = (): InviteRequest => ({
+const validInviteRequest = (): any => ({
   company: { name: 'Acme Properties', address: '123 VI' },
   invite: {
     user: { email: 'tenant@example.com', firstName: 'Ada', lastName: 'Obi' },
-    property: {
+    properties: [{
       location: { country: 'Nigeria', state: 'Lagos', area: 'Lekki' },
       rent: { rentAmount: 500000, rentStartDate: '2026-01-01', rentEndDate: '2026-12-31' },
       manager: { firstName: 'Grace', lastName: 'Adams', email: 'grace@acme.com' },
-    },
+    }],
   },
 })
 
@@ -226,7 +226,7 @@ describe('CreateExternalPaymentRequestUseCase', () => {
         user: makeUser(),
         company: { id: 10, uuid: 'company-uuid-001', name: 'Acme' },
         manager: { id: 20, uuid: 'mgr-uuid', email: 'mgr@acme.com' },
-        property: makeProperty(),
+        properties: [makeProperty()],
         location: { id: 40, uuid: 'loc-uuid', country: 'Nigeria' },
       }
       singleInviteUseCase.setupInviteContext.mockResolvedValue(mockContext as any)

@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { api } from '@/lib/api'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatCurrency } from '@/lib/utils'
 import { DetailOrEdit } from './DetailOrEdit'
 import { type UserProfile, type ContractData } from '../../types'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -153,15 +153,32 @@ function ProfileMenuContentInner() {
 
   const isProfileComplete = useMemo(() => {
     if (!profile) return false
+    
+    // Core details
+    const hasCore = !!(
+      profile.firstName && 
+      profile.lastName && 
+      profile.email && 
+      profile.gender && 
+      profile.gender !== 'Prefer not to say'
+    )
+    if (!hasCore) return false
+
+    // Property details
     const hasProperties = profile.properties && profile.properties.length > 0
     if (!hasProperties) return false
+
     const firstProp = profile.properties![0]
-    return !!(
+    const hasManagement = !!(firstProp.companyName || firstProp.managerName)
+    const hasLocation = !!(
       (firstProp.location?.area || firstProp.location?.address) &&
       firstProp.location?.state &&
-      firstProp.location?.country &&
-      firstProp.rentEndDate
+      firstProp.location?.country
     )
+    const hasDates = !!firstProp.rentEndDate
+    const hasAmount = !!firstProp.rentAmount
+
+    return hasManagement && hasLocation && hasDates && hasAmount
   }, [profile])
 
   if (!profile) return null
@@ -204,6 +221,7 @@ function ProfileMenuContentInner() {
                     isEditing={isEditing}
                     icon={User}
                     label="First Name"
+                    isCritical={true}
                     value={formData.firstName || ''}
                     onChange={(v) => setFormData({ ...formData, firstName: v })}
                   />
@@ -211,6 +229,7 @@ function ProfileMenuContentInner() {
                     isEditing={isEditing}
                     icon={User}
                     label="Last Name"
+                    isCritical={true}
                     value={formData.lastName || ''}
                     onChange={(v) => setFormData({ ...formData, lastName: v })}
                   />
@@ -218,6 +237,7 @@ function ProfileMenuContentInner() {
                     isEditing={false}
                     icon={Mail}
                     label="Email Address"
+                    isCritical={true}
                     value={profile.email}
                   />
                   <DetailOrEdit
@@ -281,7 +301,7 @@ function ProfileMenuContentInner() {
                     onClick={() => {
                       const newProps = [
                         ...(formData.properties || []),
-                        { address: '', rentEndDate: '', location: { country: '', state: '', area: '' } },
+                        { address: '', rentEndDate: '', isManaged: false, location: { country: '', state: '', area: '' } },
                       ]
                       setFormData({ ...formData, properties: newProps })
                     }}
@@ -303,24 +323,38 @@ function ProfileMenuContentInner() {
                             : prop.location?.area || 'New Property'}
                         </h4>
                       </div>
-                      {isEditing && (formData.properties || []).length > 1 && (
-                        <button
-                          className="property-card-v2__remove"
-                          onClick={() => {
-                            const newProps = [...(formData.properties || [])]
-                            newProps.splice(idx, 1)
-                            setFormData({ ...formData, properties: newProps })
-                          }}
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {prop.isManaged && (
+                          <div className="managed-badge">
+                            <Shield size={10} />
+                            <span>Verified Management</span>
+                          </div>
+                        )}
+                        {isEditing && !prop.isManaged && (formData.properties || []).length > 1 && (
+                          <button
+                            className="property-card-v2__remove"
+                            onClick={() => {
+                              const newProps = [...(formData.properties || [])]
+                              newProps.splice(idx, 1)
+                              setFormData({ ...formData, properties: newProps })
+                            }}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="property-card-v2__body">
+                      {isEditing && prop.isManaged && (
+                        <div className="managed-notice">
+                          <AlertCircle size={14} />
+                          <span>This property is managed by {prop.company?.name || prop.companyName}. Contact them to request changes.</span>
+                        </div>
+                      )}
                       <div className="form-group-row">
                         <DetailOrEdit
-                          isEditing={isEditing}
+                          isEditing={isEditing && !prop.isManaged}
                           icon={MapPin}
                           label="Street Address"
                           placeholder="e.g. 12 Adeola Odeku"
@@ -331,7 +365,7 @@ function ProfileMenuContentInner() {
 
                       <div className="form-group-grid">
                         <DetailOrEdit
-                          isEditing={isEditing}
+                          isEditing={isEditing && !prop.isManaged}
                           icon={MapPin}
                           label="Subarea / Estate"
                           placeholder="e.g. Victoria Island"
@@ -339,7 +373,7 @@ function ProfileMenuContentInner() {
                           onChange={(v) => handlePropUpdate(idx, 'location.subarea', v)}
                         />
                         <DetailOrEdit
-                          isEditing={isEditing}
+                          isEditing={isEditing && !prop.isManaged}
                           icon={MapPin}
                           label="Area / Neighborhood"
                           placeholder="e.g. Lekki"
@@ -350,19 +384,21 @@ function ProfileMenuContentInner() {
 
                       <div className="form-group-grid">
                         <DetailOrEdit
-                          isEditing={isEditing}
+                          isEditing={isEditing && !prop.isManaged}
                           icon={Shield}
                           label="Country"
                           type="select"
+                          isCritical={true}
                           options={COUNTRIES.map((c) => ({ value: c.code, label: c.name }))}
                           value={prop.location?.country || ''}
                           onChange={(v) => handlePropUpdate(idx, 'location.country', v)}
                         />
                         <DetailOrEdit
-                          isEditing={isEditing}
+                          isEditing={isEditing && !prop.isManaged}
                           icon={MapPin}
                           label="State"
                           type="select"
+                          isCritical={true}
                           options={
                             STATES[prop.location?.country || 'NG']?.map((s) => ({ value: s, label: s })) || []
                           }
@@ -371,30 +407,42 @@ function ProfileMenuContentInner() {
                         />
                       </div>
 
-                      <div className="form-group-row form-group-row--bordered">
+                      <div className="form-group-grid form-group-row--bordered">
                         <DetailOrEdit
-                          isEditing={isEditing}
+                          isEditing={isEditing && !prop.isManaged}
                           icon={Calendar}
                           label="Rent Due Date"
                           type="date"
+                          isCritical={true}
                           value={prop.rentEndDate || ''}
                           displayValue={prop.rentEndDate ? formatDate(prop.rentEndDate) : ''}
                           onChange={(v) => handlePropUpdate(idx, 'rentEndDate', v)}
+                        />
+                        <DetailOrEdit
+                          isEditing={isEditing && !prop.isManaged}
+                          icon={Building}
+                          label="Rent Amount"
+                          isCritical={true}
+                          value={prop.rentAmount?.toString() || ''}
+                          displayValue={prop.rentAmount ? formatCurrency(prop.rentAmount, prop.currency || 'NGN') : ''}
+                          onChange={(v) => handlePropUpdate(idx, 'rentAmount', parseFloat(v) || 0)}
                         />
                       </div>
 
                       <div className="form-group-grid">
                         <DetailOrEdit
-                          isEditing={isEditing}
+                          isEditing={isEditing && !prop.isManaged}
                           icon={Building}
                           label="Management Company"
+                          isCritical={true}
                           value={prop.company?.name || prop.companyName || ''}
                           onChange={(v) => handlePropUpdate(idx, 'companyName', v)}
                         />
                         <DetailOrEdit
-                          isEditing={isEditing}
+                          isEditing={isEditing && !prop.isManaged}
                           icon={UserCheck}
                           label="Property Manager"
+                          isCritical={true}
                           value={prop.manager?.firstName || prop.managerName || ''}
                           onChange={(v) => handlePropUpdate(idx, 'managerName', v)}
                         />
@@ -404,34 +452,36 @@ function ProfileMenuContentInner() {
                 ))}
               </div>
 
-              <div className="profile-sticky-actions">
-                {!isEditing ? (
-                  <button
-                    className="btn btn--primary btn--full"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    <Edit2 size={15} className="mr-2" /> Complete &amp; Edit Profile
-                  </button>
-                ) : (
-                  <div className="profile-edit-buttons">
-                    <button
-                      className="btn btn--outline"
-                      onClick={() => {
-                        setIsEditing(false)
-                        setFormData({ ...(profile as any), properties: (user as any).properties || [] })
-                      }}
-                      disabled={saving}
-                    >
-                      Cancel
-                    </button>
-                    <button className="btn btn--primary" onClick={handleSave} disabled={saving}>
-                      {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                  </div>
-                )}
-              </div>
+              {/* Fixed actions moved to bottom of page */}
             </main>
           </div>
+        </div>
+
+        <div className="profile-fixed-actions">
+          {!isEditing ? (
+            <button
+              className="btn btn--primary btn--full"
+              onClick={() => setIsEditing(true)}
+            >
+              <Edit2 size={15} className="mr-2" /> Complete &amp; Edit Profile
+            </button>
+          ) : (
+            <div className="profile-edit-buttons">
+              <button
+                className="btn btn--outline"
+                onClick={() => {
+                  setIsEditing(false)
+                  setFormData({ ...(profile as any), properties: (user as any).properties || [] })
+                }}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+              <button className="btn btn--primary" onClick={handleSave} disabled={saving}>
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          )}
         </div>
 
         <style jsx>{`
@@ -448,11 +498,21 @@ function ProfileMenuContentInner() {
             padding: 2rem 1.5rem 8rem;
           }
 
-          .personal-grid {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 2rem;
-            align-items: start;
+          @media (min-width: 1024px) {
+            .profile-page {
+              max-width: 860px;
+              margin: 0 auto;
+              padding-top: 2rem;
+            }
+            .personal-grid {
+              grid-template-columns: 1fr;
+              gap: 2rem;
+            }
+            .personal-grid__sidebar {
+              max-width: 400px;
+              margin: 0 auto;
+              width: 100%;
+            }
           }
 
           .personal-card {
@@ -615,6 +675,34 @@ function ProfileMenuContentInner() {
             color: white;
           }
 
+          .managed-badge {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(var(--clay-rgb, 107, 78, 255), 0.1);
+            color: var(--clay);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            border: 1px solid rgba(var(--clay-rgb, 107, 78, 255), 0.2);
+          }
+
+          .managed-notice {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--local-surface2);
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 1.25rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            border-left: 3px solid var(--clay);
+          }
+
           .property-card-v2__body {
             padding: 1.25rem;
           }
@@ -636,24 +724,50 @@ function ProfileMenuContentInner() {
             margin-top: 0.25rem;
           }
 
-          .profile-sticky-actions {
-            position: sticky;
-            bottom: 24px;
-            margin-top: 2.5rem;
-            z-index: 50;
+          .profile-fixed-actions {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1.25rem 1.5rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+            background: var(--bg);
+            border-top: 1px solid var(--local-border);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+          }
+
+          @media (min-width: 1024px) {
+            .profile-fixed-actions {
+              position: sticky;
+              bottom: 24px;
+              background: none;
+              border: none;
+              box-shadow: none;
+              padding: 2rem 0;
+              margin-top: 1rem;
+              z-index: 50;
+            }
           }
 
           .profile-edit-buttons {
             display: flex;
             gap: 0.75rem;
-            background: var(--bg);
-            padding: 0.875rem 1rem;
-            border-radius: 16px;
-            border: 1px solid var(--local-border);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            width: 100%;
+            max-width: 480px;
             justify-content: center;
-            max-width: 360px;
-            margin: 0 auto;
+          }
+
+          @media (min-width: 1024px) {
+            .profile-edit-buttons {
+              background: var(--bg);
+              padding: 0.875rem 1rem;
+              border-radius: 16px;
+              border: 1px solid var(--local-border);
+              box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+              max-width: 360px;
+            }
           }
 
           .hidden { display: none; }
@@ -664,7 +778,7 @@ function ProfileMenuContentInner() {
               gap: 1.5rem;
             }
             .profile-content-scroll {
-              padding: 1rem 1rem 8rem;
+              padding: 1rem 1rem 10rem;
             }
             .personal-grid__sidebar {
               order: 2;
@@ -681,15 +795,12 @@ function ProfileMenuContentInner() {
 
           @media (max-width: 640px) {
             .form-group-grid {
-              grid-template-columns: 1fr;
+              grid-template-columns: 1fr !important;
               gap: 0;
             }
             .profile-edit-buttons {
               flex-direction: column;
               max-width: 100%;
-            }
-            .profile-sticky-actions {
-              bottom: 12px;
             }
           }
         `}</style>
@@ -801,7 +912,7 @@ function ProfileMenuContentInner() {
           </div>
         </div>
 
-        <div className="dashboard__col--right dashboard__col--desktop-only">
+        <div className="dashboard__col--right">
           <div className="dashboard__card support-card">
             <h3 className="support-card__title">Need Help?</h3>
             <p className="support-card__text">
@@ -817,12 +928,52 @@ function ProfileMenuContentInner() {
         </div>
       </div>
 
+      <div className="profile-fixed-actions">
+        <button
+          className="btn btn--primary btn--full"
+          onClick={() => {
+            setView('personal')
+            setIsEditing(true)
+          }}
+        >
+          <Edit2 size={15} className="mr-2" /> Complete &amp; Edit Profile
+        </button>
+      </div>
+
       <style jsx>{`
         .profile-menu-page {
           --local-border: var(--border-solid);
           --local-surface: var(--surface);
           --local-surface2: var(--surface2);
           --card-radius: 20px;
+          padding-bottom: 8rem;
+        }
+
+        .profile-fixed-actions {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          padding: 1.25rem 1.5rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+          background: var(--bg);
+          border-top: 1px solid var(--local-border);
+          z-index: 100;
+          display: flex;
+          justify-content: center;
+          box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        @media (min-width: 1024px) {
+          .profile-fixed-actions {
+            position: sticky;
+            bottom: 24px;
+            background: none;
+            border: none;
+            box-shadow: none;
+            padding: 2rem 0;
+            margin-top: 1rem;
+            z-index: 50;
+          }
         }
 
         .hidden { display: none; }
@@ -834,6 +985,31 @@ function ProfileMenuContentInner() {
           padding: 2.5rem 1.75rem 1.75rem;
           text-align: center;
           margin-bottom: 1rem;
+        }
+
+        @media (min-width: 1024px) {
+          .profile-menu-page {
+            max-width: 860px;
+            margin: 0 auto;
+            padding-top: 2rem;
+          }
+
+          .dashboard__main-grid {
+            display: flex !important;
+            flex-direction: column !important;
+            grid-template-columns: 1fr !important;
+            gap: 1.5rem;
+          }
+
+          .profile-hero {
+            padding: 3.5rem 2rem 2.5rem;
+          }
+
+          .support-card {
+            margin-top: 1rem;
+            text-align: center;
+            background: var(--local-surface);
+          }
         }
 
         .profile-hero__avatar-wrap {

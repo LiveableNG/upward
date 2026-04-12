@@ -24,10 +24,12 @@ export function AmountDetailCard({
       <div className="pay-amount-card__main">
         <span className="pay-amount-card__label">Amount Outstanding</span>
         <div className="pay-amount-card__value">{formatCurrency(totalOwed, currency)}</div>
-        <div className="pay-amount-card__due">
-          <Calendar size={12} />
-          <span>Due by {new Date(dueDate).toLocaleDateString()}</span>
-        </div>
+        {dueDate && !isNaN(new Date(dueDate).getTime()) && (
+          <div className="pay-amount-card__due">
+            <Calendar size={12} />
+            <span>Due by {new Date(dueDate).toLocaleDateString()}</span>
+          </div>
+        )}
       </div>
 
 

@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Bell, Settings } from 'lucide-react'
 import { UserAvatar } from '@/components/common/UserAvatar'
-import { UpwardLogo } from '@/components/PoweredByUpward'
+
 import { NotificationPanel } from './NotificationPanel'
 
 interface DashboardHeaderProps {
@@ -68,10 +68,7 @@ export function DashboardHeader({ firstName, notifCount, profilePic }: Dashboard
             {notifCount > 0 && <span className="dashboard__notif-badge">{notifCount}</span>}
           </button>
 
-          {/* Desktop User Avatar (Hidden on mobile) */}
-          <div className="dashboard__desktop-avatar" onClick={() => router.push('/dashboard/me')}>
-            <UserAvatar src={profilePic} size={36} />
-          </div>
+
         </div>
       </header>
       

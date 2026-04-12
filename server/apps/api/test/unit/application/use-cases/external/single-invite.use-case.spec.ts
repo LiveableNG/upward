@@ -94,7 +94,7 @@ const makeCompanyUser = (overrides: Partial<any> = {}) => ({
   ...overrides,
 })
 
-const validInviteRequest = (): InviteRequest => ({
+const validInviteRequest = (): any => ({
   company: {
     name: 'Acme Properties',
     address: '123 Victoria Island',
@@ -106,7 +106,7 @@ const validInviteRequest = (): InviteRequest => ({
       lastName: 'Doe',
       phone: '08012345678',
     },
-    property: {
+    properties: [{
       location: {
         country: 'Nigeria',
         state: 'Lagos',
@@ -125,7 +125,7 @@ const validInviteRequest = (): InviteRequest => ({
         email: 'grace@acme.com',
         phone: '08099887766',
       },
-    },
+    }],
   },
 })
 
@@ -385,7 +385,7 @@ describe('SingleInviteUseCase', () => {
       managerRepository.findByUuid.mockResolvedValue(makeManager() as any)
  
       const payload = validInviteRequest()
-      payload.invite.property.manager = { uuid: 'manager-uuid-001' }
+      payload.invite.properties[0].manager = { uuid: 'manager-uuid-001' }
  
       await useCase.setupInviteContext(payload)
  
@@ -423,7 +423,7 @@ describe('SingleInviteUseCase', () => {
       managerRepository.findByEmail.mockResolvedValue(null)
 
       const payload = validInviteRequest()
-      payload.invite.property.manager = { email: 'missing@fields.com' } 
+      payload.invite.properties[0].manager = { email: 'missing@fields.com' } 
 
       await expect(useCase.setupInviteContext(payload)).rejects.toThrow(BadRequestException)
     })
@@ -561,7 +561,7 @@ describe('SingleInviteUseCase', () => {
       propertyRepository.save.mockResolvedValue(makeProperty() as any)
 
       const payload = validInviteRequest()
-      payload.invite.property.location = { country: '', state: 'Abuja', area: 'Wuse' } as any
+      payload.invite.properties[0].location = { country: '', state: 'Abuja', area: 'Wuse' } as any
 
       await useCase.setupInviteContext(payload)
 
@@ -617,7 +617,7 @@ describe('SingleInviteUseCase', () => {
       propertyRepository.save.mockResolvedValue(makeProperty() as any)
 
       const payload = validInviteRequest()
-      payload.invite.property.rent.rentStartDate = ''
+      payload.invite.properties[0].rent.rentStartDate = ''
 
       await useCase.setupInviteContext(payload)
 
@@ -629,7 +629,7 @@ describe('SingleInviteUseCase', () => {
       setupPre()
 
       const payload = validInviteRequest()
-      ;(payload.invite.property.rent as any).rentAmount = 0
+      ;(payload.invite.properties[0].rent as any).rentAmount = 0
 
       await expect(useCase.setupInviteContext(payload)).rejects.toThrow(BadRequestException)
     })
@@ -638,7 +638,7 @@ describe('SingleInviteUseCase', () => {
       setupPre()
 
       const payload = validInviteRequest()
-      payload.invite.property.rent.rentEndDate = ''
+      payload.invite.properties[0].rent.rentEndDate = ''
 
       await expect(useCase.setupInviteContext(payload)).rejects.toThrow(BadRequestException)
     })

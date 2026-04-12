@@ -34,7 +34,10 @@ export class PrismaUserRepository implements UserRepository {
       properties: model.properties ? model.properties.map((p: any) => ({
         uuid: p.uuid,
         rentEndDate: p.rentEndDate,
+        rentAmount: p.rentAmount,
+        currency: p.currency,
         location: p.location,
+        isManaged: p.isVerified,
         company: p.company ? {
           ...p.company,
           name: p.company.name ? this.encryption.decrypt(p.company.name) : undefined
@@ -86,6 +89,13 @@ export class PrismaUserRepository implements UserRepository {
     const record = await this.prisma.upward_user.findUnique({
       where: { id },
       include: {
+        properties: {
+          include: {
+            location: true,
+            company: true,
+            manager: true
+          }
+        },
         companyUsers: {
           include: {
             company: true
@@ -118,7 +128,22 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   async findAll(): Promise<User[]> {
-    const records = await this.prisma.upward_user.findMany()
+    const records = await this.prisma.upward_user.findMany({
+      include: {
+        properties: {
+          include: {
+            location: true,
+            company: true,
+            manager: true
+          }
+        },
+        companyUsers: {
+          include: {
+            company: true
+          }
+        }
+      }
+    })
     return records.map((record) => this.toDomain(record))
   }
 

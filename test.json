@@ -1,0 +1,30 @@
+{
+  "scenarios": {
+    "1_platform_registration": {
+      "description": "Register your platform to get an API Key",
+      "curl": "curl -X POST http://localhost:4000/api/v1/platform/get-key -H 'Content-Type: application/json' -d '{\"name\": \"Cool Property Manager\", \"email\": \"api@coolprop.ng\", \"webhookUrl\": \"https://your-webhook.com/upward\"}'"
+    },
+    "2_single_invite_multi_prop": {
+      "description": "Invite a new tenant with multiple properties in one go",
+      "curl": "curl -X POST http://localhost:4000/api/v1/single/invite -H 'x-api-key: YOUR_API_KEY' -H 'Content-Type: application/json' -d '{\"company\": {\"name\": \"Global Living Ltd\"}, \"invite\": {\"user\": {\"email\": \"tenant_new@example.com\", \"firstName\": \"Jane\", \"lastName\": \"Doe\"}, \"properties\": [{\"location\": {\"country\": \"Nigeria\", \"state\": \"Lagos\", \"area\": \"Ikoyi\", \"address\": \"10 Bourdillon\"}, \"rent\": {\"rentAmount\": 5000000, \"rentEndDate\": \"2025-12-31\"}, \"manager\": {\"firstName\": \"Bisi\", \"lastName\": \"Staff\", \"email\": \"bisi@global.com\"}}, {\"location\": {\"country\": \"Nigeria\", \"state\": \"Lagos\", \"area\": \"Lekki\", \"address\": \"Unit 5, Royal Estate\"}, \"rent\": {\"rentAmount\": 2500000, \"rentEndDate\": \"2025-06-30\"}}]}}'"
+    },
+    "3_add_properties_to_existing": {
+      "description": "Add more properties to an existing user (Requires User UUID and Company UUID)",
+      "curl": "curl -X POST http://localhost:4000/api/v1/single/invite/USER_UUID_HERE/properties -H 'x-api-key: YOUR_API_KEY' -H 'Content-Type: application/json' -d '{\"companyUuid\": \"COMPANY_UUID_HERE\", \"properties\": [{\"location\": {\"country\": \"Nigeria\", \"state\": \"Lagos\", \"area\": \"Surulere\", \"address\": \"Stadium Road\"}, \"rent\": {\"rentAmount\": 1500000, \"rentEndDate\": \"2025-08-15\"}}]}'"
+    },
+    "4_payment_request_standard": {
+      "description": "Create a payment request for an existing verified property (Requires Property UUID)",
+      "curl": "curl -X POST http://localhost:4000/api/v1/payment-request -H 'x-api-key: YOUR_API_KEY' -H 'Content-Type: application/json' -d '{\"userPropertyUuid\": \"PROPERTY_UUID_HERE\", \"dueDate\": \"2024-12-31\", \"amount\": 50000, \"description\": \"Maintenance Fee Dec 2024\", \"bankCode\": \"058\", \"accountNumber\": \"0123456789\"}'"
+    },
+    "5_atomic_payment_and_invite": {
+      "description": "Invite a user and issue a payment request in a single atomic call (Cold Start)",
+      "curl": "curl -X POST http://localhost:4000/api/v1/payment-request -H 'x-api-key: YOUR_API_KEY' -H 'Content-Type: application/json' -d '{\"dueDate\": \"2024-12-25\", \"amount\": 120000, \"bankCode\": \"011\", \"accountNumber\": \"9876543210\", \"description\": \"Initial Move-in Deposit\", \"invite\": {\"company\": {\"name\": \"Premium Property Group\"}, \"invite\": {\"user\": {\"email\": \"user_atomic@example.com\", \"firstName\": \"Sam\", \"lastName\": \"Smith\"}, \"properties\": [{\"location\": {\"country\": \"Nigeria\", \"state\": \"Lagos\", \"area\": \"Victoria Island\", \"address\": \"Adetokunbo Ademola St\"}, \"rent\": {\"rentAmount\": 8000000, \"rentEndDate\": \"2026-01-01\"}}]}}}'"
+    }
+  },
+  "notes": [
+    "1. Start by registering your platform to get an 'apiKey'.",
+    "2. Subtitute 'YOUR_API_KEY' in subsequent requests.",
+    "3. Use Section 2 or 5 to create a user and get their UUID, then try Section 3 or 4.",
+    "4. 'isVerified' is set to true for all properties created via these APIs, protecting them from manual user edits."
+  ]
+}

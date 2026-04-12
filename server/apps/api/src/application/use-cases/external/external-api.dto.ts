@@ -7,7 +7,8 @@ import {
   IsBoolean, 
   IsDateString, 
   IsNotEmpty,
-  IsEmail
+  IsEmail,
+  IsUUID
 } from 'class-validator'
 import { Type } from 'class-transformer'
 
@@ -68,8 +69,9 @@ export class RentInfoDto {
   @IsNumber()
   rentAmount!: number
 
+  @IsOptional()
   @IsDateString()
-  rentStartDate!: string
+  rentStartDate?: string
 
   @IsDateString()
   rentEndDate!: string
@@ -106,9 +108,10 @@ export class UserPropertyContextDto {
   @Type(() => RentInfoDto)
   rent!: RentInfoDto
 
+  @IsOptional()
   @ValidateNested()
   @Type(() => ManagerInfoDto)
-  manager!: ManagerInfoDto
+  manager?: ManagerInfoDto
 }
 
 export class InviteContextDto {
@@ -116,9 +119,10 @@ export class InviteContextDto {
   @Type(() => UserInfoDto)
   user!: UserInfoDto
 
-  @ValidateNested()
+  @IsArray()
+  @ValidateNested({ each: true })
   @Type(() => UserPropertyContextDto)
-  property!: UserPropertyContextDto
+  properties!: UserPropertyContextDto[]
 }
 
 export class InviteRequestDto {
@@ -186,4 +190,19 @@ export class ExternalPaymentRequestPayloadDto {
   @IsOptional()
   @IsNumber()
   minAmount?: number
+}
+
+export class AddPropertyPayloadDto {
+  @IsUUID()
+  @IsNotEmpty()
+  userUuid!: string
+
+  @IsUUID()
+  @IsNotEmpty()
+  companyUuid!: string
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UserPropertyContextDto)
+  properties!: UserPropertyContextDto[]
 }

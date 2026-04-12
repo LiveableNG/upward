@@ -79,22 +79,24 @@ export function StepSelect({
                   {new Intl.NumberFormat('en-NG', {
                     style: 'currency',
                     currency: p.currency || 'NGN',
-                  }).format(p.total_amount || p.amount)}
+                  }).format((p.total_amount || p.amount || 0) - (p.amountPaid || 0))}
                 </div>
               </div>
               <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: 'var(--clay)',
-                    background: '#fff',
-                    padding: '2px 8px',
-                    borderRadius: 4,
-                  }}
-                >
-                  DUE {new Date(p.due_date || p.dueDate).toLocaleDateString()}
-                </div>
+                { (p.due_date || p.dueDate) && (
+                  <div
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: 'var(--clay)',
+                      background: '#fff',
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                    }}
+                  >
+                    DUE {new Date(p.due_date || p.dueDate).toLocaleDateString()}
+                  </div>
+                )}
               </div>
             </div>
           ))}

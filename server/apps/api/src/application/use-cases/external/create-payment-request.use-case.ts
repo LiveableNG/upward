@@ -10,7 +10,7 @@ import { NOTIFICATION_REPOSITORY, NotificationRepository } from '../../../domain
 import { SingleInviteUseCase, InviteRequest } from './single-invite.use-case'
 import { randomUUID } from 'crypto'
 
-import { ExternalPaymentRequestPayloadDto as ExternalPaymentRequestPayload } from './create-payment-request.dto'
+import { ExternalPaymentRequestPayloadDto as ExternalPaymentRequestPayload } from './external-api.dto'
 
 const frontendUrl = process.env['FRONTEND_URL']
 const urls = frontendUrl
@@ -40,8 +40,8 @@ export class CreateExternalPaymentRequestUseCase {
         throw new NotFoundException(`Property with UUID ${payload.userPropertyUuid} not found`)
       }
     } else if (payload.invite) {
-      const context = await this.singleInviteUseCase.setupInviteContext(payload.invite, platformId)
-      property = context.property
+      const context = await this.singleInviteUseCase.setupInviteContext(payload.invite as InviteRequest, platformId)
+      property = context.properties[0]
     } else {
       throw new BadRequestException('Either userPropertyUuid or invite data must be provided')
     }

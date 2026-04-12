@@ -75,6 +75,7 @@ import { CreatePlatformUseCase } from './use-cases/platform/create-platform.use-
 import { CreateExternalPaymentRequestUseCase } from './use-cases/external/create-payment-request.use-case'
 import { GetPublicPaymentDetailsUseCase } from './use-cases/external/get-public-payment.use-case'
 import { ConfirmExternalPaymentUseCase } from './use-cases/external/confirm-payment.use-case'
+import { AddPropertyUseCase } from './use-cases/external/add-property.use-case'
 import { AuthModule } from './auth/auth.module'
 import { CreateAnnouncementUseCase } from './use-cases/notifications/create-announcement.use-case'
 import {
@@ -190,6 +191,7 @@ const UseCases = [
   CreateExternalPaymentRequestUseCase,
   GetPublicPaymentDetailsUseCase,
   ConfirmExternalPaymentUseCase,
+  AddPropertyUseCase,
   GetPendingPaymentsUseCase,
   ResolveSubaccountUseCase,
 
