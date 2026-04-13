@@ -106,16 +106,25 @@ export class AdminAuthController {
   @UseGuards(AdminJwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async logout(@Req() req: AuthenticatedRequest, @Res({ passthrough: false }) reply: FastifyReply) {
+    const isProd = process.env['NODE_ENV'] === 'production' || !!process.env['VERCEL']
+
     await this.adminLogService.logAction(
       req.user.id,
       'LOGOUT',
       `Admin logged out: ${req.user.email}`,
       req.ip,
-      req.headers['user-agent'],
+      req.headers['user-agent'] as any,
     )
 
-    reply.clearCookie(REFRESH_COOKIE_NAME, { path: '/' })
-    reply.clearCookie(ACCESS_COOKIE_NAME, { path: '/' })
+    const options = {
+      path: '/',
+      httpOnly: true,
+      secure: isProd,
+      sameSite: (isProd ? 'none' : 'lax') as any,
+    }
+
+    reply.clearCookie(REFRESH_COOKIE_NAME, options)
+    reply.clearCookie(ACCESS_COOKIE_NAME, options)
     reply.status(200).send({ message: 'Logged out' })
   }
 

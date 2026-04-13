@@ -161,11 +161,8 @@ export class CreateExternalPaymentRequestUseCase {
     }
 
     return {
-      success: true,
-      data: {
-        paymentUuid: paymentRequest.uuid,
-        paymentLink: `${urls[0]}/pay/${paymentRequest.uuid}`
-      }
+      paymentUuid: paymentRequest.uuid,
+      paymentLink: `${urls[0]}/pay/${paymentRequest.uuid}`
     }
   }
 }
