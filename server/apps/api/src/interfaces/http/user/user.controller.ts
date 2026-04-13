@@ -137,12 +137,22 @@ export class UserController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async logout(@Req() req: FastifyRequest, @Res({ passthrough: false }) reply: FastifyReply) {
+    const isProd = process.env['NODE_ENV'] === 'production' || !!process.env['VERCEL']
     const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME]
     if (refreshToken) {
       await this.userAuthService.revokeSession(refreshToken)
     }
-    reply.clearCookie(REFRESH_COOKIE_NAME, { path: '/' })
-    reply.clearCookie(ACCESS_COOKIE_NAME, { path: '/' })
+
+    const options = {
+      path: '/',
+      httpOnly: true,
+      secure: isProd,
+      sameSite: (isProd ? 'none' : 'lax') as any,
+      partitioned: isProd,
+    }
+
+    reply.clearCookie(REFRESH_COOKIE_NAME, options)
+    reply.clearCookie(ACCESS_COOKIE_NAME, options)
     reply.status(HttpStatus.OK).send({ message: 'Logged out' })
   }
 
