@@ -290,6 +290,7 @@ export function CompleteProfileStep() {
 
                             <div className="auth-form__field mt-3">
                               <DateInput 
+                                id={`rent-due-date-${idx}`}
                                 label="Rent Due Date"
                                 value={prop.rentDueDate || (prop.rentEndDate ? prop.rentEndDate.split('T')[0] : '')}
                                 onChange={(val) => updateProperty(idx, 'rentDueDate', val)}
