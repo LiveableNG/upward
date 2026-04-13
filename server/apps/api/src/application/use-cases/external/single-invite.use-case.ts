@@ -180,7 +180,7 @@ export class SingleInviteUseCase {
           country: locData.country || 'Nigeria',
           state: locData.state || '',
           area: locData.area || '',
-          subarea: locData.subarea || '',
+          subarea: locData.subArea || locData.subarea || '',
           address: locData.address || '',
           createdAt: new Date(),
           updatedAt: new Date(),

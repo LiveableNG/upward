@@ -119,18 +119,10 @@ export class InviteController {
     const updatedUser = await this.userRepository.findById(user.id!)
     if (!updatedUser) throw new Error('Failed to update user')
 
-    // Generate tokens for direct login
-    const payload = {
-      sub: updatedUser.uuid,
-      email: updatedUser.email,
-    }
-
-    const accessToken = (this.userAuthService as any).generateAccessToken(payload)
-    const refreshToken = (this.userAuthService as any).generateRefreshToken(updatedUser.uuid)
-
+    // Generate tokens and create a database session
+    const { accessToken, refreshToken, user: userNoPass } = await this.userAuthService.generateFullAuthResponse(updatedUser)
+    
     setUserAuthCookies(reply, accessToken, refreshToken)
-
-    const { passwordHash: _, ...userNoPass } = updatedUser
 
     const companyUser = user.companyUsers?.[0]
     const platformId = companyUser?.company?.platformId

@@ -62,6 +62,10 @@ export class LocationInfoDto {
 
   @IsOptional()
   @IsString()
+  subArea?: string
+
+  @IsOptional()
+  @IsString()
   address?: string
 }
 
