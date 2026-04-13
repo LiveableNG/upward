@@ -10,10 +10,6 @@ interface AllocationBreakdownProps {
   effectiveAllocs: any[]
   currency: string
   lineItems: any[]
-  overpayConfirmed: boolean
-  futureCreditAmount: number
-  futureCreditName: string
-  setFutureCreditName: (val: string) => void
 }
 
 export function AllocationBreakdown({
@@ -22,16 +18,16 @@ export function AllocationBreakdown({
   effectiveAllocs,
   currency,
   lineItems,
-  overpayConfirmed,
-  futureCreditAmount,
-  futureCreditName,
-  setFutureCreditName,
 }: AllocationBreakdownProps) {
   return (
     <div className="pay-breakdown">
       <div 
         className="pay-breakdown__header"
-        onClick={() => setShowBreakdown(v => !v)}
+        onClick={() => {
+          if (window.innerWidth < 1024) {
+            setShowBreakdown(v => !v)
+          }
+        }}
       >
         <div className="pay-breakdown__header-left">
            <span className="pay-breakdown__label">Invoice Breakdown</span>
@@ -39,57 +35,35 @@ export function AllocationBreakdown({
         <ChevronDown size={14} className={`pay-breakdown__chevron ${showBreakdown ? 'is-open' : ''}`} />
       </div>
 
-      {showBreakdown && (
-        <div className="pay-breakdown__content">
-          <div className="pay-breakdown__list">
-            {effectiveAllocs.map(alloc => {
-              const isPaid = lineItems.find(i => i.id === alloc.id)?.status === 'PAID'
-              if (isPaid) return null
-              const pct = alloc.remaining > 0 ? Math.min(100, ((alloc.amountPaid + alloc.allocated) / alloc.totalAmount) * 100) : 100
+      <div className={`pay-breakdown__content ${showBreakdown ? 'is-open' : ''}`}>
+        <div className="pay-breakdown__list">
+          {effectiveAllocs.map(alloc => {
+            const isPaid = lineItems.find(i => i.id === alloc.id)?.status === 'PAID'
+            if (isPaid) return null
+            const pct = alloc.remaining > 0 ? Math.min(100, ((alloc.amountPaid + alloc.allocated) / alloc.totalAmount) * 100) : 100
 
-              return (
-                <div key={alloc.id} className="pay-breakdown-item">
-                  <div className="pay-breakdown-item__row">
-                    <div className="pay-breakdown-item__info">
-                      <span className="pay-breakdown-item__name">{alloc.name}</span>
-                      <span className="pay-breakdown-item__stats">
-                        {alloc.allocated >= alloc.remaining ? 'Full Settlement' : 'Partial Payment'}
-                      </span>
-                    </div>
-                    <span className="pay-breakdown-item__amount">
-                      {alloc.allocated > 0 ? formatCurrency(alloc.allocated, currency) : '—'}
-                    </span>
-                  </div>
-                  <div className="pay-breakdown-item__progress">
-                    <div className="pay-breakdown-item__bar" style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-              )
-            })}
-
-            {overpayConfirmed && futureCreditAmount > 0 && (
-              <div className="pay-breakdown-item is-credit">
+            return (
+              <div key={alloc.id} className="pay-breakdown-item">
                 <div className="pay-breakdown-item__row">
                   <div className="pay-breakdown-item__info">
-                    <input
-                      className="pay-breakdown-item__label-input"
-                      value={futureCreditName}
-                      onChange={e => setFutureCreditName(e.target.value)}
-                      placeholder="Name this credit..."
-                    />
-                    <span className="pay-breakdown-item__stats">Balance stored as future credit</span>
+                    <span className="pay-breakdown-item__name">{alloc.name}</span>
+                    <span className="pay-breakdown-item__stats">
+                      {alloc.allocated >= alloc.remaining ? 'Full Settlement' : 'Partial Payment'}
+                    </span>
                   </div>
-                  <span className="pay-breakdown-item__amount is-highlight">
-                    {formatCurrency(futureCreditAmount, currency)}
+                  <span className="pay-breakdown-item__amount">
+                    {alloc.allocated > 0 ? formatCurrency(alloc.allocated, currency) : '—'}
                   </span>
                 </div>
+                <div className="pay-breakdown-item__progress">
+                  <div className="pay-breakdown-item__bar" style={{ width: `${pct}%` }} />
+                </div>
               </div>
-            )}
-          </div>
-
+            )
+          })}
 
         </div>
-      )}
+      </div>
 
       <style jsx>{`
         .pay-breakdown {
@@ -116,24 +90,6 @@ export function AllocationBreakdown({
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
-        .pay-breakdown__badge {
-          font-size: 9px;
-          font-weight: 850;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          padding: 3px 10px;
-          border-radius: 100px;
-        }
-        .pay-breakdown__badge.is-auto {
-          background: var(--surface);
-          color: var(--text-muted);
-          border: 1px solid var(--border-solid);
-        }
-        .pay-breakdown__badge.is-manual {
-          background: var(--clay-faint);
-          color: var(--clay);
-          border: 1px solid rgba(217, 119, 87, 0.15);
-        }
         .pay-breakdown__chevron {
           color: var(--text-muted);
           transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -149,8 +105,35 @@ export function AllocationBreakdown({
           border-radius: 24px;
           overflow: hidden;
           box-shadow: 0 8px 32px rgba(0,0,0,0.03);
+          display: none;
+        }
+        .pay-breakdown__content.is-open {
+          display: block;
           animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
+
+        @media (min-width: 1024px) {
+          .pay-breakdown__header {
+            cursor: default;
+          }
+          .pay-breakdown__chevron {
+            display: none;
+          }
+          .pay-breakdown__content {
+            display: block !important;
+            border: none;
+            background: var(--surface);
+            box-shadow: none;
+            border-radius: 20px;
+          }
+          .pay-breakdown-item:hover {
+            background: rgba(0,0,0,0.02);
+          }
+          .pay-breakdown-item {
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+          }
+        }
+
         @keyframes slideDown {
           from { opacity: 0; transform: translateY(-10px); }
           to { opacity: 1; transform: translateY(0); }
@@ -199,36 +182,6 @@ export function AllocationBreakdown({
         }
         .pay-breakdown-item__amount.is-highlight { color: var(--clay); }
 
-        .pay-breakdown-item__input-wrapper {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background: var(--bg);
-          border: 1px solid var(--border-solid);
-          border-radius: 10px;
-          padding: 0 12px;
-          height: 36px;
-          transition: border-color 0.2s;
-        }
-        .pay-breakdown-item__input-wrapper:focus-within { border-color: var(--clay); }
-        .pay-breakdown-item__currency {
-          font-size: 10px;
-          font-weight: 800;
-          color: var(--text-muted);
-          text-transform: uppercase;
-        }
-        .pay-breakdown-item__input {
-          width: 72px;
-          border: none;
-          background: none;
-          text-align: right;
-          font-size: 13px;
-          font-weight: 850;
-          color: var(--text);
-          outline: none;
-          padding: 0;
-        }
-
         .pay-breakdown-item__progress {
           height: 4px;
           background: var(--surface);
@@ -254,38 +207,6 @@ export function AllocationBreakdown({
           width: 100%;
         }
         .pay-breakdown-item__label-input::placeholder { color: rgba(217, 119, 87, 0.3); }
-
-        .pay-breakdown__actions {
-          padding: 16px;
-          background: var(--surface);
-          display: flex;
-          justify-content: center;
-        }
-        .pay-breakdown__mode-btn {
-          padding: 8px 18px;
-          border-radius: 100px;
-          background: var(--bg);
-          border: 1px solid var(--border-solid);
-          font-size: 10px;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: var(--text-secondary);
-          cursor: pointer;
-          transition: all 0.2s;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-        .pay-breakdown__mode-btn:hover {
-          background: var(--surface);
-          color: var(--text);
-          border-color: var(--text-muted);
-        }
-        .pay-breakdown__mode-btn.is-active {
-          background: var(--clay);
-          color: #fff;
-          border-color: var(--clay);
-          box-shadow: 0 4px 12px var(--clay-glow);
-        }
       `}</style>
     </div>
   )

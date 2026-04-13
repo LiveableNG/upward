@@ -17,6 +17,8 @@ export interface PendingPayment {
   allowPartial?: boolean
   property_address?: string
   lineItemRecords?: any[]
+  due_date?: string | Date
+  dueDate?: string | Date
 }
 
 export interface CompletedPayment {

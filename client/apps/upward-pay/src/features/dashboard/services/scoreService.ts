@@ -33,6 +33,7 @@ export interface ScoreProfile {
       status: string
       ptValue: number
     }>
+    properties: any[]
   }
 }
 
@@ -44,5 +45,13 @@ export function useScoreProfile() {
   return useQuery<ScoreProfile>({
     queryKey: ['scoreProfile'],
     queryFn: fetchScoreProfile,
+  })
+}
+
+export function usePublicScoreProfile(slug: string) {
+  return useQuery<ScoreProfile>({
+    queryKey: ['publicScoreProfile', slug],
+    queryFn: () => request<ScoreProfile>(`/public/profile/${slug}`, { method: 'GET' }),
+    enabled: !!slug,
   })
 }

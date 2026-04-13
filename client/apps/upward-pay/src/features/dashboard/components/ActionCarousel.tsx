@@ -16,8 +16,6 @@ interface ActionCarouselProps {
 export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: ActionCarouselProps) {
   const router = useRouter()
   const [index, setIndex] = useState(0)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [renttReminders, setRentReminders] = useState(rentReminders)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const slides: any[] = []
@@ -29,17 +27,35 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
       const remaining = p.total_amount - (p.amountPaid || 0)
       const isPartial = (p.amountPaid || 0) > 0
 
+    const dateStr = p.due_date || p.dueDate
+    const isOverdue = dateStr ? new Date(dateStr) < new Date() : false
+
     slides.push({
       type: 'pending',
       id: p.uuid,
-      title: isPartial ? 'Partial Payment Pending' : 'Payment Pending',
+      title: isPartial 
+        ? (isOverdue ? 'Immediate: Partial Balance Due' : 'Partial Payment Pending') 
+        : (isOverdue ? 'Urgent: Rent Payment Due' : 'Rent Payment Pending'),
       desc: isPartial 
-        ? `Balance: ${formatCurrency(remaining, p.currency)} to ${p.company_name}${p.property_address ? ` for ${p.property_address}` : ''}.`
-        : `Invoice for ${formatCurrency(p.total_amount, p.currency)} from ${p.company_name}${p.property_address ? ` for ${p.property_address}` : ''}.`,
+        ? (isOverdue 
+            ? `Settle your balance of ${formatCurrency(remaining, p.currency)} immediately.` 
+            : `Balance: ${formatCurrency(remaining, p.currency)} is due for ${p.company_name}.`)
+        : (isOverdue 
+            ? `An invoice for ${formatCurrency(p.total_amount, p.currency)} is awaiting payment.` 
+            : `New invoice from ${p.company_name} for ${formatCurrency(p.total_amount, p.currency)}.`),
       actionLabel: 'Pay Now',
       action: () => router.push(`/pay/${p.uuid}`),
-      icon: <Clock size={20} color="var(--clay)" />,
-      bg: 'var(--clay-faint)',
+      icon: <Clock size={20} color={isOverdue ? "white" : "var(--clay)"} />,
+      bg: isOverdue ? 'var(--error)' : 'var(--clay-faint)',
+      isCritical: isOverdue,
+    })
+  })
+
+  // Rent Reminders (from properties)
+  rentReminders.forEach((r) => {
+    slides.push({
+      ...r,
+      icon: <Bell size={20} color={r.isCritical ? "white" : "var(--clay)"} />,
     })
   })
 
@@ -79,7 +95,7 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
   return (
     <div className="action-carousel">
       <div 
-        className="action-carousel__slide" 
+        className={`action-carousel__slide ${current.isCritical ? 'is-critical' : ''}`} 
         style={{ background: current.bg, cursor: 'pointer' }}
         onClick={current.action}
       >
@@ -93,6 +109,21 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
           </button>
         </div>
       </div>
+
+      <style jsx>{`
+        .action-carousel__slide.is-critical .action-carousel__title,
+        .action-carousel__slide.is-critical .action-carousel__desc {
+          color: white;
+        }
+        .action-carousel__slide.is-critical .action-carousel__icon-wrap {
+          background: rgba(255, 255, 255, 0.2);
+          box-shadow: none;
+        }
+        .action-carousel__slide.is-critical .action-carousel__btn {
+          background: white;
+          color: var(--error);
+        }
+      `}</style>
 
       {slides.length > 1 && (
         <div className="action-carousel__nav">

@@ -2,12 +2,11 @@ curl -X POST http://localhost:4000/api/v1/platform/get-key \
   -H 'Content-Type: application/json' \
   -d '{"name": "Global Property Group", "email": "api@global.ng", "webhookUrl": "https://hooks.example.com/upward"}'
 
-{"message":"Platform created successfully","id":"aede4e52-16b7-42f4-96da-13a462cb0d43","apiKey":"up_sk_live_3a47269bb98d224b72f2dff0","name":"Global Property Group","email":"api@gl
+{"message":"Platform created successfully","id":"a844a78b-f7fc-4037-b8fc-f3e1277c0660","apiKey":"up_sk_live_a254e77ee582264cecfcb6c1","name":"Global Property Group","email":"api@gl
 obal.ng"}
 
-
 curl -X POST http://localhost:4000/api/v1/single/invite \
-  -H 'x-api-key: up_sk_live_3a47269bb98d224b72f2dff0' \
+  -H 'x-api-key: up_sk_live_a254e77ee582264cecfcb6c1' \
   -H 'Content-Type: application/json' \
   -d '{
     "company": {"name": "Prime Living"},
@@ -26,16 +25,16 @@ curl -X POST http://localhost:4000/api/v1/single/invite \
       ]
     }
   }'
-{"success":true,"message":"Created","data":{"userId":"e5b518b6-f8b1-4785-ac88-f28b34ef5152","companyId":"fba5aefa-dea5-4dc8-9a95-d93c713c9978","email":"tenant@example.com","inviteL
-ink":"http://localhost:3000/invite/e5b518b6-f8b1-4785-ac88-f28b34ef5152","properties":[{"uuid":"ba356121-8abd-42bb-b43a-0fb14c7172a3","address":"10 Bourdillon"},{"uuid":"a953127a-4
-7ee-4de6-99e7-92112d73076e","address":"Apt 402, Highrise","managerId":"90bac261-21f7-466a-aa96-754c42265258"}]}}
+{"success":true,"message":"Created","data":{"userId":"1d64c3df-611d-45d4-99df-3bccc310999f","companyId":"edd48518-fc0b-4081-8a7a-67ead4c26f0b","email":"tenant@example.com","inviteL
+ink":"http://localhost:3000/invite/1d64c3df-611d-45d4-99df-3bccc310999f","properties":[{"uuid":"aab1cbbe-e821-4cb0-8af6-0d7f64b17ef8","address":"10 Bourdillon"},{"uuid":"c28b26b9-5
+42d-4b4e-a36e-d8812c318c61","address":"Apt 402, Highrise","managerId":"0406174a-cb95-4ddf-b4d5-14794b4e283c"}]}}
 
 
 curl -X POST http://localhost:4000/api/v1/payment-request \
-  -H 'x-api-key: up_sk_live_3a47269bb98d224b72f2dff0' \
+  -H 'x-api-key: up_sk_live_a254e77ee582264cecfcb6c1' \
   -H 'Content-Type: application/json' \
   -d '{
-    "userPropertyUuid": "ba356121-8abd-42bb-b43a-0fb14c7172a3",
+    "userPropertyUuid": "aab1cbbe-e821-4cb0-8af6-0d7f64b17ef8",
     "amount": 1000000,
     "currency": "NGN",
     "description": "Rent + Service Charge",
@@ -49,16 +48,16 @@ curl -X POST http://localhost:4000/api/v1/payment-request \
     "bankCode": "058",
     "accountNumber": "0123456789"
   }'
-
-{"success":true,"data":{"success":true,"data":{"paymentUuid":"ac7c6bfb-80fa-436d-acb4-139eb5df7074","paymentLink":"http://localhost:3000/pay/ac7c6bfb-80fa-436d-acb4-139eb5df7074"}}
+{"success":true,"data":{"success":true,"data":{"paymentUuid":"a088288f-8f30-4dd8-a039-3281733af756","paymentLink":"http://localhost:3000/pay/a088288f-8f30-4dd8-a039-3281733af756"}}
 }
+Abd
 
 
 curl -X POST http://localhost:4000/api/v1/payment-request \
-  -H 'x-api-key: up_sk_live_3a47269bb98d224b72f2dff0' \
+  -H 'x-api-key: up_sk_live_a254e77ee582264cecfcb6c1' \
   -H 'Content-Type: application/json' \
   -d '{
-    "userPropertyUuid": "a953127a-47ee-4de6-99e7-92112d73076e",
+    "userPropertyUuid": "c28b26b9-542d-4b4e-a36e-d8812c318c61",
     "currency": "NGN",
     "description": "One-time payment",
     "dueDate": "2026-08-01",
@@ -67,15 +66,14 @@ curl -X POST http://localhost:4000/api/v1/payment-request \
     "accountNumber": "0123456789"
   }'
 
-{"success":true,"data":{"success":true,"data":{"paymentUuid":"3ecef665-7897-4819-8366-b96c53e81c8d","paymentLink":"http://localhost:3000/pay/3ecef665-7897-4819-8366-b96c53e81c8d"}}
+{"success":true,"data":{"success":true,"data":{"paymentUuid":"7ba8fe2b-668a-4104-8a8e-912059b740e1","paymentLink":"http://localhost:3000/pay/7ba8fe2b-668a-4104-8a8e-912059b740e1"}}
 }
 
-
-curl -X POST http://localhost:4000/api/v1/single/invite/e5b518b6-f8b1-4785-ac88-f28b34ef5152/properties \
-  -H 'x-api-key: up_sk_live_3a47269bb98d224b72f2dff0' \
+curl -X POST http://localhost:4000/api/v1/single/invite/1d64c3df-611d-45d4-99df-3bccc310999f/properties \
+  -H 'x-api-key: up_sk_live_a254e77ee582264cecfcb6c1' \
   -H 'Content-Type: application/json' \
   -d '{
-    "companyUuid": "fba5aefa-dea5-4dc8-9a95-d93c713c9978",
+    "companyUuid": "edd48518-fc0b-4081-8a7a-67ead4c26f0b",
     "properties": [
       {
         "location": {"country": "Nigeria", "state": "Lagos", "area": "Surulere", "address": "Stadium Road"},
@@ -84,5 +82,6 @@ curl -X POST http://localhost:4000/api/v1/single/invite/e5b518b6-f8b1-4785-ac88-
     ]
   }'
 
-{"success":true,"message":"Properties added","data":{"userId":"e5b518b6-f8b1-4785-ac88-f28b34ef5152","companyId":"fba5aefa-dea5-4dc8-9a95-d93c713c9978","email":"tenant@example.com"
-,"properties":[{"uuid":"4ccfa09d-76fd-4a8b-a0e9-db2b3964e16d","address":"Stadium Road"}]}}
+{"success":true,"message":"Properties added","data":{"userId":"1d64c3df-611d-45d4-99df-3bccc310999f","companyId":"edd48518-fc0b-4081-8a7a-67ead4c26f0b","email":"tenant@example.com"
+,"properties":[{"uuid":"d6048471-d94e-46f2-a20d-1e607ee44018","address":"Stadium Road"}]}}
+Abdulsalam@DESKTOP-ND5KOGF MINGW64 ~

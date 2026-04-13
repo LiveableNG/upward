@@ -95,9 +95,6 @@ export default function UnifiedPayPage() {
   
   const [amountInput, setAmountInput] = useState('')
   const [showBreakdown, setShowBreakdown] = useState(false)
-  const [futureCreditAmount, setFutureCreditAmount] = useState(0)
-  const [futureCreditName, setFutureCreditName] = useState('Future Credit')
-  const [overpayConfirmed, setOverpayConfirmed] = useState(false)
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -150,14 +147,13 @@ export default function UnifiedPayPage() {
     return Math.max(0, paymentData.payment.amount - (paymentData.payment.amountPaid || 0))
   }, [paymentData])
 
-  const canPayPartial = !!(authUser && paymentData?.payment?.allowPartial)
+  const canPayPartial = !!paymentData?.payment?.allowPartial
   const minRequired = paymentData?.payment?.minAmount || 0
   const currency = paymentData?.payment?.currency || 'NGN'
 
   const parsedAmount = parseFloat(amountInput) || 0
-  const isOverpaying = parsedAmount > totalOwed
   const isBelowMin = minRequired > 0 && parsedAmount > 0 && parsedAmount < minRequired
-  const isValidAmount = parsedAmount > 0 && !isBelowMin && (isOverpaying ? overpayConfirmed : true)
+  const isValidAmount = parsedAmount > 0 && !isBelowMin && parsedAmount <= totalOwed
 
   const autoAllocs = useMemo(() =>
     distributeAmount(Math.min(parsedAmount, totalOwed), lineItems, totalOwed)
@@ -178,10 +174,13 @@ export default function UnifiedPayPage() {
     : 0
 
   const handleAmountChange = (val: string) => {
-    setAmountInput(val)
-    setOverpayConfirmed(false)
-    const n = parseFloat(val) || 0
-    setFutureCreditAmount(n > totalOwed ? n - totalOwed : 0)
+    let n = parseFloat(val) || 0
+    if (n > totalOwed) {
+      n = totalOwed
+      setAmountInput(totalOwed.toString())
+    } else {
+      setAmountInput(val)
+    }
   }
 
   const handlePaymentSuccess = async (reference: string) => {
@@ -189,9 +188,7 @@ export default function UnifiedPayPage() {
     try {
       const res = await api.post(`/payment-request/${uuid}/confirm`, {
         reference,
-        lineItemPayments: finalLineItemPayments,
-        futureCreditAmount: futureCreditAmount > 0 ? futureCreditAmount : undefined,
-        futureCreditName: futureCreditAmount > 0 ? futureCreditName : undefined
+        lineItemPayments: finalLineItemPayments
       })
       if (res.success) {
         success('Payment successful!')
@@ -256,14 +253,12 @@ export default function UnifiedPayPage() {
     const isLoggedIn = !!authUser
 
     const ctaLabel = () => {
-      if (isGuest) return `Pay ${formatCurrency(totalOwed, currency)} now`
       if (parsedAmount === 0) return 'Enter amount to continue'
       if (isBelowMin) return `Minimum is ${formatCurrency(minRequired, currency)}`
-      if (isOverpaying && !overpayConfirmed) return 'Confirm overpayment'
       return `Pay ${formatCurrency(finalAmount, currency)} now`
     }
 
-    const ctaDisabled = isGuest ? totalOwed <= 0 : !isValidAmount
+    const ctaDisabled = !isValidAmount
 
     return (
       <div className="auth-shell auth-shell--pay">
@@ -313,15 +308,11 @@ export default function UnifiedPayPage() {
                     <PaymentInput 
                       canPayPartial={canPayPartial}
                       isBelowMin={isBelowMin}
-                      isOverpaying={isOverpaying}
                       amountInput={amountInput}
                       currency={currency}
                       totalOwed={totalOwed}
                       minRequired={minRequired}
-                      futureCreditAmount={futureCreditAmount}
-                      overpayConfirmed={overpayConfirmed}
                       onAmountChange={handleAmountChange}
-                      onConfirmOverpay={() => setOverpayConfirmed(true)}
                       isGuest={false}
                     />
                     <AllocationBreakdown 
@@ -330,26 +321,32 @@ export default function UnifiedPayPage() {
                       effectiveAllocs={effectiveAllocs}
                       currency={currency}
                       lineItems={lineItems}
-                      overpayConfirmed={overpayConfirmed}
-                      futureCreditAmount={futureCreditAmount}
-                      futureCreditName={futureCreditName}
-                      setFutureCreditName={setFutureCreditName}
                     />
                   </>
                 )}
 
                 {isGuest && (
+                  <>
+                    {canPayPartial && (
+                      <PaymentInput 
+                        canPayPartial={canPayPartial}
+                        isBelowMin={isBelowMin}
+                        amountInput={amountInput}
+                        currency={currency}
+                        totalOwed={totalOwed}
+                        minRequired={minRequired}
+                        onAmountChange={handleAmountChange}
+                        isGuest={true}
+                      />
+                    )}
                     <AllocationBreakdown 
                       showBreakdown={showBreakdown}
                       setShowBreakdown={setShowBreakdown}
                       effectiveAllocs={effectiveAllocs}
                       currency={currency}
                       lineItems={lineItems}
-                      overpayConfirmed={false}
-                      futureCreditAmount={0}
-                      futureCreditName=""
-                      setFutureCreditName={() => {}}
                     />
+                  </>
                 )}
 
                 {!loginRequired && (
@@ -668,6 +665,8 @@ export default function UnifiedPayPage() {
         companyName={paymentData.company?.name || 'Upward Platform'}
         handleActivation={handleActivation}
         type={paymentData.payment?.amount === paymentData.payment?.amountPaid ? 'invite' : 'payment'}
+        remainingBalance={totalOwed - finalAmount}
+        currency={currency}
       />
     )
   }
@@ -691,8 +690,6 @@ export default function UnifiedPayPage() {
     return (
       <SuccessStep 
         finalAmount={finalAmount}
-        futureCreditAmount={futureCreditAmount}
-        futureCreditName={futureCreditName}
         currency={currency}
         companyName={paymentData.company.name}
         onDone={() => router.push('/dashboard')}

@@ -33,6 +33,7 @@ export interface UserRepository {
   findByEmail(email: string): Promise<User | null>
   findById(id: number): Promise<User | null>
   findByUuid(uuid: string): Promise<User | null>
+  findBySlug(slug: string): Promise<User | null>
   findAll(): Promise<User[]>
   save(user: User): Promise<User>
   update(id: number, data: Partial<User>): Promise<User>

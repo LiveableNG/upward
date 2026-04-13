@@ -1,30 +1,26 @@
-import { Injectable, Logger } from '@nestjs/common'
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { Injectable, Logger, Inject, NotFoundException } from '@nestjs/common'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import { CalculateRentScoreUseCase } from './calculate-rent-score.use-case'
 
 @Injectable()
 export class GetPublicProfileUseCase {
   private readonly logger = new Logger(GetPublicProfileUseCase.name)
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
+    private readonly calculateRentScore: CalculateRentScoreUseCase,
+  ) {}
 
   async execute(slug: string) {
-    this.logger.log(`Fetching public profile for slug: ${slug}`)
+    this.logger.log(`Fetching public score profile for slug: ${slug}`)
 
-    const user = await this.prisma.upward_user.findUnique({
-      where: { profileSlug: slug },
-      select: {
-        firstName: true,
-        lastName: true,
-        bio: true,
-        createdAt: true,
-        profilePic: true,
-      },
-    })
+    const user = await this.userRepository.findBySlug(slug)
 
     if (!user) {
-      return null
+      throw new NotFoundException(`Profile with slug "${slug}" not found`)
     }
 
-    return user
+    // Reuse the existing scoring logic but with the user found by slug
+    return this.calculateRentScore.execute(user.uuid)
   }
 }

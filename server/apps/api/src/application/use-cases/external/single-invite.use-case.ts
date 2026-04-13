@@ -124,7 +124,8 @@ export class SingleInviteUseCase {
       await this.companyUserRepository.update(existingLink.id!, { invitedAt: new Date() })
     }
 
-    const createdProperties = await this.processProperties(user, company, invite.properties)
+    const propertiesToProcess = invite.properties || (invite.property ? [invite.property] : [])
+    const createdProperties = await this.processProperties(user, company, propertiesToProcess)
     return { user, company, properties: createdProperties }
   }
 

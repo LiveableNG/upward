@@ -119,10 +119,16 @@ export class InviteContextDto {
   @Type(() => UserInfoDto)
   user!: UserInfoDto
 
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UserPropertyContextDto)
-  properties!: UserPropertyContextDto[]
+  properties?: UserPropertyContextDto[]
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UserPropertyContextDto)
+  property?: UserPropertyContextDto
 }
 
 export class InviteRequestDto {

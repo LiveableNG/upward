@@ -149,9 +149,13 @@ export class CalculateRentScoreUseCase {
           name: `${user.firstName} ${user.lastName}`,
           email: user.email,
           phone: user.phone,
+          occupation: user.occupation,
+          bio: user.bio,
           profilePic: user.profilePic,
+          profileSlug: user.profileSlug,
           profileCompletion: this.calculateProfileCompletion(user)
         },
+        properties: user.properties || [],
         cycles: cycleDetails
       }
     }
@@ -224,9 +228,13 @@ export class CalculateRentScoreUseCase {
           name: `${user.firstName} ${user.lastName}`,
           email: user.email,
           phone: user.phone,
+          occupation: user.occupation,
+          bio: user.bio,
           profilePic: user.profilePic,
+          profileSlug: user.profileSlug,
           profileCompletion: this.calculateProfileCompletion(user)
         },
+        properties: user.properties || [],
         cycles: []
       }
     }
