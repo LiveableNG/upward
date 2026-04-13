@@ -115,8 +115,8 @@
 
 @media (max-width: 480px) {
   .toast-container {
-    top: auto;
-    bottom: 20px;
+    top: 20px;
+    bottom: auto;
     right: 20px;
     left: 20px;
   }
