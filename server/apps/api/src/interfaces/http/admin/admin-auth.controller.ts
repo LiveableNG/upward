@@ -57,7 +57,7 @@ function setAuthCookies(reply: FastifyReply, accessToken: string, refreshToken: 
     secure: isProd,
     sameSite: isProd ? 'none' : 'lax',
     path: '/',
-    maxAge: 3600, // 1 hour in seconds
+    maxAge: 7 * 24 * 60 * 60, // 7 days
   })
 }
 

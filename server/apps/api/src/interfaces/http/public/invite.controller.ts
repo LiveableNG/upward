@@ -32,7 +32,7 @@ function setUserAuthCookies(reply: FastifyReply, accessToken: string, refreshTok
     secure: isProd,
     sameSite: isProd ? 'none' : 'lax',
     path: '/',
-    maxAge: 3600,
+    maxAge: 7 * 24 * 60 * 60, // 7 days
   })
 }
 

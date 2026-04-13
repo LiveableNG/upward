@@ -204,6 +204,7 @@ function ProfileMenuContentInner() {
         <PageHeader
           title={isEditing ? 'Edit Profile' : 'Personal Details'}
           showBack
+          backLabel="Back to Profile"
           showSettings={true}
           rightElement={
             isEditing ? (
