@@ -46,10 +46,13 @@ export class SingleInviteUseCase {
 
   async execute(payload: InviteRequest, platformId?: number): Promise<any> {
     const result = await this.setupInviteContext(payload, platformId);
+    const firstProp = result.properties[0]
 
     return {
       userId: result.user.uuid,
       companyId: result.company.uuid,
+      managerId: firstProp?.managerUuid || null,
+      userPropertyUuid: firstProp?.uuid || null,
       email: result.user.email,
       inviteLink: urls[0] + `/invite/${result.user.uuid}`,
       properties: result.properties.map(p => ({
@@ -196,7 +199,7 @@ export class SingleInviteUseCase {
       if (property) {
         property = await this.propertyRepository.update(property.id!, {
           rentAmount: rentData.rentAmount,
-          managerId: manager?.id,
+          managerId: manager?.id || property.managerId, // Use existing if not provided
           rentEndDate: new Date(rentData.rentEndDate),
           rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : property.rentStartDate,
           isVerified: true
@@ -218,12 +221,15 @@ export class SingleInviteUseCase {
         } as any)
       }
 
+      // Ensure we have the latest manager info for the response
+      const finalManager = (manager || property.manager) as any
+
       createdProperties.push({
         ...property,
         company,
-        manager,
+        manager: finalManager,
         address: locData.address || locData.area,
-        managerUuid: manager?.uuid
+        managerUuid: finalManager?.uuid || (property.manager as any)?.uuid
       })
     }
 
