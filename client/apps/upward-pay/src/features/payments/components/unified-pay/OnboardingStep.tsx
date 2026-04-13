@@ -4,6 +4,7 @@ import React from 'react'
 import { Check, Lock, EyeOff, Eye, ArrowRight } from 'lucide-react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { OnboardingFields } from '@/features/auth/components/OnboardingFields'
+import { formatCurrency } from '@/lib/utils'
 
 interface OnboardingStepProps {
   formData: any
@@ -14,6 +15,8 @@ interface OnboardingStepProps {
   companyName: string
   handleActivation: (e: React.FormEvent) => void
   type?: 'payment' | 'invite'
+  remainingBalance?: number
+  currency?: string
 }
 
 export function OnboardingStep({
@@ -24,7 +27,9 @@ export function OnboardingStep({
   isSubmitting,
   companyName,
   handleActivation,
-  type = 'payment'
+  type = 'payment',
+  remainingBalance = 0,
+  currency = 'NGN'
 }: OnboardingStepProps) {
   return (
     <div className="auth-layout">
@@ -62,7 +67,16 @@ export function OnboardingStep({
               </h1>
               <p className="auth-stage__subtitle">
                 {type === 'payment' ? (
-                  <>Your payment to <strong>{companyName}</strong> is complete. Now, set up your profile to track your rent credibility and scores.</>
+                  <>
+                    Your payment to <strong>{companyName}</strong> is complete.
+                    {remainingBalance > 0 && (
+                      <div className="balance-notice">
+                        Remaining balance: <strong>{formatCurrency(remainingBalance, currency)}</strong>.
+                        We advise paying your balance on time to maintain a strong rent credibility score.
+                      </div>
+                    )}
+                    Now, set up your profile to track your rent credibility and scores.
+                  </>
                 ) : (
                   <>Set a secure password to activate your account and access your property details and rent dashboard.</>
                 )}
@@ -157,6 +171,20 @@ export function OnboardingStep({
               display: flex;
             }
             .btn--pill { border-radius: 100px; padding: 14px; }
+            .balance-notice {
+              margin: 16px 0;
+              padding: 12px;
+              background: var(--clay-faint);
+              border-radius: 12px;
+              color: var(--clay);
+              font-weight: 500;
+              font-size: 13px;
+              border: 1px solid rgba(217, 119, 87, 0.1);
+            }
+            .balance-notice strong {
+              color: var(--dark);
+              font-weight: 700;
+            }
             @media (max-width: 480px) {
               .auth-form__row { grid-template-columns: 1fr; }
             }

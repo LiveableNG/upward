@@ -1833,11 +1833,10 @@
 
 /* ── Share Credibility ── */
 .share-cred {
-  margin-top: 24px;
-  padding: 24px;
-  background: var(--surface);
+  padding: var(--space-6);
+  background: var(--bg);
   border: 1px solid var(--border-solid);
-  border-radius: 16px;
+  border-radius: 20px;
   animation: fadeInUp 0.8s ease-out;
 }
 
@@ -3009,6 +3008,12 @@
 /* ── Activity Center ── */
 .activity-center {
   margin-bottom: 24px;
+}
+
+.activity-center--critical .activity-center__title {
+  color: var(--error);
+  font-weight: 900;
+  letter-spacing: 0.02em;
 }
 
 .activity-center__header {

@@ -23,6 +23,8 @@ import {
   Trash2,
   Building,
   UserCheck,
+  Pencil,
+  Share2,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { api } from '@/lib/api'
@@ -57,6 +59,7 @@ function ProfileMenuContentInner() {
   const [formData, setFormData] = useState<Partial<UserProfile>>({})
   const [saving, setSaving] = useState(false)
   const [contracts, setContracts] = useState<ContractData[]>([])
+  const [expandedProps, setExpandedProps] = useState<Record<number, boolean>>({})
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -201,8 +204,30 @@ function ProfileMenuContentInner() {
         <PageHeader
           title={isEditing ? 'Edit Profile' : 'Personal Details'}
           showBack
-          showSettings={!isEditing}
-          onBack={() => {
+          showSettings={true}
+          rightElement={
+            isEditing ? (
+              <button 
+                className="btn btn--primary btn--sm btn--pill" 
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving ? '...' : 'Save'}
+              </button>
+            ) : (
+              <button 
+                className="dashboard__icon-btn" 
+                onClick={() => setIsEditing(true)}
+                title="Edit Profile"
+              >
+                <Pencil size={18} />
+              </button>
+            )
+          }
+          onBack={isEditing ? () => {
+            setIsEditing(false)
+            setFormData({ ...(profile as any), properties: (user as any).properties || [] })
+          } : () => {
             setView('menu')
             setIsEditing(false)
           }}
@@ -313,15 +338,27 @@ function ProfileMenuContentInner() {
 
               <div className="properties-grid">
                 {(formData.properties || []).map((prop: any, idx: number) => (
-                  <div key={idx} className="property-card-v2">
-                    <div className="property-card-v2__header">
+                  <div key={idx} className={`property-card-v2${expandedProps[idx] ? ' property-card-v2--open' : ''}`}>
+                    <div 
+                      className="property-card-v2__header"
+                      onClick={() => setExpandedProps(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <div className="flex items-center gap-3">
                         <div className="property-card-v2__index">{idx + 1}</div>
-                        <h4 className="property-card-v2__name">
-                          {prop.location?.address 
-                            ? `${prop.location.address}${prop.location.area ? `, ${prop.location.area}` : ''}`
-                            : prop.location?.area || 'New Property'}
-                        </h4>
+                        <div className="property-card-v2__header-info">
+                          <h4 className="property-card-v2__name">
+                            {prop.location?.address 
+                              ? `${prop.location.address}${prop.location.area ? `, ${prop.location.area}` : ''}`
+                              : prop.location?.area || 'New Property'}
+                          </h4>
+                          {!expandedProps[idx] && (
+                            <p className="property-card-v2__summary">
+                              {[prop.location?.state, prop.location?.country].filter(Boolean).join(', ')}
+                              {prop.rentEndDate ? ` · Due ${formatDate(prop.rentEndDate)}` : ''}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         {prop.isManaged && (
@@ -333,7 +370,8 @@ function ProfileMenuContentInner() {
                         {isEditing && !prop.isManaged && (formData.properties || []).length > 1 && (
                           <button
                             className="property-card-v2__remove"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation()
                               const newProps = [...(formData.properties || [])]
                               newProps.splice(idx, 1)
                               setFormData({ ...formData, properties: newProps })
@@ -342,10 +380,13 @@ function ProfileMenuContentInner() {
                             <Trash2 size={15} />
                           </button>
                         )}
+                        <div className={`property-card-v2__chevron${expandedProps[idx] ? ' property-card-v2__chevron--open' : ''}`}>
+                          <ChevronRight size={16} />
+                        </div>
                       </div>
                     </div>
 
-                    <div className="property-card-v2__body">
+                    <div className={`property-card-v2__body${expandedProps[idx] ? ' property-card-v2__body--visible' : ''}`}>
                       {isEditing && prop.isManaged && (
                         <div className="managed-notice">
                           <AlertCircle size={14} />
@@ -452,36 +493,25 @@ function ProfileMenuContentInner() {
                 ))}
               </div>
 
-              {/* Fixed actions moved to bottom of page */}
+              {isEditing && (
+                <div className="profile-form-footer">
+                  <button
+                    className="btn btn--outline btn--full"
+                    onClick={() => {
+                      setIsEditing(false)
+                      setFormData({ ...(profile as any), properties: (user as any).properties || [] })
+                    }}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </button>
+                  <button className="btn btn--primary btn--full" onClick={handleSave} disabled={saving}>
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              )}
             </main>
           </div>
-        </div>
-
-        <div className="profile-fixed-actions">
-          {!isEditing ? (
-            <button
-              className="btn btn--primary btn--full"
-              onClick={() => setIsEditing(true)}
-            >
-              <Edit2 size={15} className="mr-2" /> Complete &amp; Edit Profile
-            </button>
-          ) : (
-            <div className="profile-edit-buttons">
-              <button
-                className="btn btn--outline"
-                onClick={() => {
-                  setIsEditing(false)
-                  setFormData({ ...(profile as any), properties: (user as any).properties || [] })
-                }}
-                disabled={saving}
-              >
-                Cancel
-              </button>
-              <button className="btn btn--primary" onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          )}
         </div>
 
         <style jsx>{`
@@ -508,11 +538,6 @@ function ProfileMenuContentInner() {
               grid-template-columns: 1fr;
               gap: 2rem;
             }
-            .personal-grid__sidebar {
-              max-width: 400px;
-              margin: 0 auto;
-              width: 100%;
-            }
           }
 
           .personal-card {
@@ -530,16 +555,13 @@ function ProfileMenuContentInner() {
           .personal-card__title {
             font-size: 0.95rem;
             font-weight: 700;
-            color: var(--text);
             margin: 0 0 0.2rem;
-            letter-spacing: -0.01em;
           }
 
           .personal-card__subtitle {
             font-size: 0.8rem;
             color: var(--text-muted);
             margin: 0;
-            line-height: 1.4;
           }
 
           .personal-card__body {
@@ -574,14 +596,6 @@ function ProfileMenuContentInner() {
             border: 1px solid rgba(234, 179, 8, 0.2);
           }
 
-          .status-badge__dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: currentColor;
-            flex-shrink: 0;
-          }
-
           .section-header-row {
             display: flex;
             justify-content: space-between;
@@ -594,16 +608,7 @@ function ProfileMenuContentInner() {
           .section-title {
             font-size: 1.25rem;
             font-weight: 800;
-            color: var(--text);
             margin: 0 0 0.3rem;
-            letter-spacing: -0.02em;
-            line-height: 1.2;
-          }
-
-          .section-subtitle {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin: 0;
           }
 
           .properties-grid {
@@ -617,12 +622,11 @@ function ProfileMenuContentInner() {
             border: 1px solid var(--local-border);
             border-radius: var(--card-radius);
             overflow: hidden;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            transition: border-color 0.2s ease;
           }
 
           .property-card-v2:hover {
             border-color: var(--clay);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
           }
 
           .property-card-v2__header {
@@ -645,34 +649,12 @@ function ProfileMenuContentInner() {
             justify-content: center;
             font-size: 0.8rem;
             font-weight: 800;
-            flex-shrink: 0;
           }
 
           .property-card-v2__name {
             font-size: 0.95rem;
             font-weight: 700;
-            color: var(--text);
             margin: 0;
-          }
-
-          .property-card-v2__remove {
-            color: var(--error);
-            background: var(--error-bg);
-            width: 32px;
-            height: 32px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            cursor: pointer;
-            transition: background 0.2s ease, color 0.2s ease;
-            flex-shrink: 0;
-          }
-
-          .property-card-v2__remove:hover {
-            background: var(--error);
-            color: white;
           }
 
           .managed-badge {
@@ -686,8 +668,6 @@ function ProfileMenuContentInner() {
             font-size: 0.7rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.02em;
-            border: 1px solid rgba(var(--clay-rgb, 107, 78, 255), 0.2);
           }
 
           .managed-notice {
@@ -703,8 +683,48 @@ function ProfileMenuContentInner() {
             border-left: 3px solid var(--clay);
           }
 
+          /* Accordion body — collapsed by default on mobile */
           .property-card-v2__body {
+            display: none;
             padding: 1.25rem;
+          }
+
+          .property-card-v2__body--visible {
+            display: block;
+          }
+
+          /* On desktop, always show body */
+          @media (min-width: 768px) {
+            .property-card-v2__body {
+              display: block !important;
+            }
+            .property-card-v2__chevron {
+              display: none;
+            }
+          }
+
+          .property-card-v2__header-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+          }
+
+          .property-card-v2__summary {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin: 0;
+          }
+
+          .property-card-v2__chevron {
+            display: flex;
+            align-items: center;
+            color: var(--text-muted);
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+          }
+
+          .property-card-v2__chevron--open {
+            transform: rotate(90deg);
           }
 
           .form-group-grid {
@@ -724,53 +744,13 @@ function ProfileMenuContentInner() {
             margin-top: 0.25rem;
           }
 
-          .profile-fixed-actions {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 1.25rem 1.5rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
-            background: var(--bg);
+          .profile-form-footer {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 2rem;
             border-top: 1px solid var(--local-border);
-            z-index: 100;
-            display: flex;
-            justify-content: center;
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
           }
-
-          @media (min-width: 1024px) {
-            .profile-fixed-actions {
-              position: sticky;
-              bottom: 24px;
-              background: none;
-              border: none;
-              box-shadow: none;
-              padding: 2rem 0;
-              margin-top: 1rem;
-              z-index: 50;
-            }
-          }
-
-          .profile-edit-buttons {
-            display: flex;
-            gap: 0.75rem;
-            width: 100%;
-            max-width: 480px;
-            justify-content: center;
-          }
-
-          @media (min-width: 1024px) {
-            .profile-edit-buttons {
-              background: var(--bg);
-              padding: 0.875rem 1rem;
-              border-radius: 16px;
-              border: 1px solid var(--local-border);
-              box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-              max-width: 360px;
-            }
-          }
-
-          .hidden { display: none; }
 
           @media (max-width: 1024px) {
             .personal-grid {
@@ -779,12 +759,6 @@ function ProfileMenuContentInner() {
             }
             .profile-content-scroll {
               padding: 1rem 1rem 10rem;
-            }
-            .personal-grid__sidebar {
-              order: 2;
-            }
-            .personal-grid__main {
-              order: 1;
             }
             .section-header-row {
               flex-direction: column;
@@ -798,19 +772,26 @@ function ProfileMenuContentInner() {
               grid-template-columns: 1fr !important;
               gap: 0;
             }
-            .profile-edit-buttons {
+            .profile-form-footer {
               flex-direction: column;
-              max-width: 100%;
             }
           }
         `}</style>
       </div>
     )
   }
-
   return (
     <div className="profile-menu-page dashboard--nav-offset">
-      <PageHeader title="Profile" showBack backPath="/dashboard" />
+      <PageHeader 
+        title="Profile" 
+        showBack 
+        backPath="/dashboard" 
+        rightIcon={<Pencil size={18} />}
+        onRightClick={() => {
+          setView('personal')
+          setIsEditing(true)
+        }}
+      />
 
       <div className="dashboard__main-grid">
         <div className="dashboard__col--left">
@@ -838,6 +819,14 @@ function ProfileMenuContentInner() {
               {profile.firstName} {profile.lastName}
             </h2>
             <p className="profile-hero__email">{profile.email}</p>
+
+            <button 
+              className="btn btn--primary btn--sm btn--pill mb-6 shadow-sm"
+              onClick={() => router.push('/dashboard/kyc')}
+              style={{ paddingLeft: '1.25rem', paddingRight: '1.25rem' }}
+            >
+              <Share2 size={14} className="mr-2" /> Share Credibility Profile
+            </button>
 
             {contracts.length > 0 && (
               <div className="profile-hero__tenancy">
@@ -928,17 +917,7 @@ function ProfileMenuContentInner() {
         </div>
       </div>
 
-      <div className="profile-fixed-actions">
-        <button
-          className="btn btn--primary btn--full"
-          onClick={() => {
-            setView('personal')
-            setIsEditing(true)
-          }}
-        >
-          <Edit2 size={15} className="mr-2" /> Complete &amp; Edit Profile
-        </button>
-      </div>
+      {/* Fixed action button removed as per user request to integrate into personal details page header */}
 
       <style jsx>{`
         .profile-menu-page {
@@ -946,7 +925,7 @@ function ProfileMenuContentInner() {
           --local-surface: var(--surface);
           --local-surface2: var(--surface2);
           --card-radius: 20px;
-          padding-bottom: 8rem;
+          padding-bottom: 4rem;
         }
 
         .profile-fixed-actions {
@@ -977,6 +956,10 @@ function ProfileMenuContentInner() {
         }
 
         .hidden { display: none; }
+        /* Show and style back button for desktop parity */
+        .dashboard__back {
+          /* Inherits from global dashboard.css */
+        }
 
         .profile-hero {
           background: var(--bg);

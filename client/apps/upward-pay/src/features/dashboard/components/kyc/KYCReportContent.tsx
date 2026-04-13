@@ -20,60 +20,78 @@ import {
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 
-import { useScoreProfile } from '../../services/scoreService'
+import { useScoreProfile, usePublicScoreProfile } from '../../services/scoreService'
 import { formatCurrency } from '@/lib/utils'
 
-export function KYCReportContent() {
+interface KYCReportContentProps {
+  isPublic?: boolean
+  publicSlug?: string
+}
+
+export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportContentProps) {
   const router = useRouter()
-  const { data: scoreProfile, isLoading } = useScoreProfile()
+  
+  // Conditionally fetch based on whether we are in public or private view
+  const privateProfile = useScoreProfile()
+  const publicProfile = usePublicScoreProfile(publicSlug || '')
+  
+  const { data: scoreProfile, isLoading } = isPublic ? publicProfile : privateProfile
 
   if (isLoading || !scoreProfile) {
-    return <div className="kyc-page dashboard--nav-offset animate-pulse" style={{ minHeight: '100vh', background: 'var(--bg)' }}>Loading...</div>
+    return (
+      <div className="kyc-page dashboard--nav-offset animate-pulse" style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+        <div className="flex items-center justify-center h-full">Loading Credibility Profile...</div>
+      </div>
+    )
   }
 
-  const { isScorable, score, rank, metrics, profile, cycles } = scoreProfile.data
-  const initials = profile.name.split(' ').map(n => n[0]).join('').substring(0, 2)
+  const { isScorable, score, rank, band, metrics, profile, cycles, properties = [] } = scoreProfile.data
+  const initials = profile.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)
   const isFaded = !isScorable
 
   const liveVerifications = [
-    { label: 'Identity (BVN/NIN)', date: 'Verified' },
-    { label: 'Work / Income', date: 'Verified' },
-    { label: 'Previous Landlord', date: 'Verified' },
+    { label: 'Identity Verified', date: 'Official' },
+    { label: 'Work / Income', date: profile.occupation || 'Status Checked' },
+    { label: 'Account Created', date: 'Member' },
     { label: 'Phone Number', date: 'Verified' },
   ]
 
   const liveMetrics = [
-    { label: 'On-time Rate', value: `${Math.round(metrics.ptPercentage)}%`, sub: 'All rent cycles' },
-    { label: 'Rent-to-Income', value: 'N/A', sub: 'In progress' },
-    { label: 'Lease Longevity', value: `${metrics.historyYears} yrs`, sub: 'Avg tenancy' },
+    { label: 'On-time Rate', value: `${Math.round(metrics.ptPercentage)}%`, sub: 'Payment reliability' },
+    { label: 'Streak', value: `${metrics.longestStreak} mo`, sub: 'Current streak' },
+    { label: 'History', value: `${metrics.historyYears} yrs`, sub: 'Tenancy with us' },
     { label: 'Discipline', value: `${Math.round(metrics.discipline)}%`, sub: 'Full payments' },
   ]
 
-  const liveAchievements = [
-    { icon: <Star size={14} />, label: `${metrics.longestStreak}-Cycle Streak`, desc: 'Consecutive on-time payments' },
-    { icon: <Zap size={14} />, label: 'Early Payer', desc: 'Consistently pays early' },
-    { icon: <BadgeCheck size={14} />, label: `${profile.profileCompletion}% Profile`, desc: 'Profile completion' },
-    { icon: <Building2 size={14} />, label: 'Stable Tenant', desc: `${metrics.historyYears}+ years` },
-  ]
-
   return (
-    <div className="kyc-page dashboard--nav-offset">
-      <header className="dashboard__header">
-        <div className="dashboard__header-left">
-          <button className="dashboard__icon-btn" onClick={() => router.push('/dashboard')}>
-            <ArrowLeft size={20} />
-          </button>
-          <h2 className="kyc-page__header-title">Credibility Profile</h2>
+    <div className={`kyc-page ${!isPublic ? 'dashboard--nav-offset' : 'public-cv'}`}>
+      {!isPublic && (
+        <header className="dashboard__header">
+          <div className="dashboard__header-left">
+            <button className="dashboard__icon-btn" onClick={() => router.push('/dashboard')}>
+              <ArrowLeft size={20} />
+            </button>
+            <h2 className="kyc-page__header-title">Credibility Profile</h2>
+          </div>
+          <div className="dashboard__header-right">
+            <button className="btn btn--secondary btn--sm kyc-page__action-btn">
+              <Download size={14} /> PDF
+            </button>
+            <button className="btn btn--primary btn--sm kyc-page__action-btn">
+              <Share2 size={14} /> Share
+            </button>
+          </div>
+        </header>
+      )}
+
+      {isPublic && (
+        <div className="public-header">
+           <UpwardLogo size={100} color="var(--clay)" />
+           <button className="btn btn--primary btn--sm px-6" onClick={() => window.open('https://upward.ng', '_blank')}>
+              Join Upward
+           </button>
         </div>
-        <div className="dashboard__header-right">
-          <button className="btn btn--secondary btn--sm kyc-page__action-btn">
-            <Download size={14} /> PDF
-          </button>
-          <button className="btn btn--primary btn--sm kyc-page__action-btn">
-            <Share2 size={14} /> Share
-          </button>
-        </div>
-      </header>
+      )}
 
       <div className="kyc-report-container">
         <div className="kyc-report">
@@ -87,29 +105,42 @@ export function KYCReportContent() {
             </div>
 
             <div className="kyc-report__avatar-wrap">
-              <span>{initials}</span>
+              {profile.profilePic ? (
+                 <img src={profile.profilePic} alt={profile.name} className="kyc-report__avatar-img" />
+              ) : (
+                <span>{initials}</span>
+              )}
               <div className="kyc-report__avatar-verified">
                 <CheckCircle2 size={12} strokeWidth={3} />
               </div>
             </div>
 
             <h1 className="kyc-report__name">{profile.name}</h1>
+            
+            {profile.occupation && (
+                <div className="kyc-report__occupation">
+                    <Award size={13} /> {profile.occupation}
+                </div>
+            )}
 
             <div className="kyc-report__meta">
               <MapPin size={13} />
-              Address Verified
-              <span className="kyc-report__meta-dot" />
               Verified Tenant
+              <span className="kyc-report__meta-dot" />
+              Credibility Rating
             </div>
-            <span className="kyc-report__since">Member Email: {profile.email}</span>
+            
+            {profile.bio && (
+                <p className="kyc-report__bio">{profile.bio}</p>
+            )}
 
             <div className={`kyc-report__score-box ${isFaded ? 'opacity-50' : ''}`}>
               <div className="kyc-report__score-left">
-                <span className="kyc-report__score-label">{isScorable ? 'Rent Credibility Score' : 'Credit Invisible'}</span>
+                <span className="kyc-report__score-label">{isScorable ? 'Rent Credibility Score' : 'Score Building'}</span>
                 <div className="kyc-report__score-value">{score}</div>
                 <div className="kyc-report__score-tier">
                   <TrendingUp size={12} />
-                  {isScorable ? `Class: ${rank}` : 'Not enough history'}
+                  {isScorable ? `Tier: ${rank} (${band})` : 'New profile building history'}
                 </div>
               </div>
               <div className="kyc-report__score-gauge">
@@ -119,21 +150,32 @@ export function KYCReportContent() {
           </div>
 
           <div className="kyc-report__body">
+            {/* Real Properties Listing */}
             <section className="kyc-report__section">
               <p className="kyc-report__section-title">
-                <Award size={14} color="var(--clay)" />
-                Achievements
+                <Home size={14} color="var(--clay)" />
+                Verified Properties
               </p>
-              <div className="kyc-report__achievements-grid">
-                {liveAchievements.map((a, i) => (
-                  <div key={i} className="kyc-report__achievement-item">
-                    <div className="kyc-report__achievement-icon">{a.icon}</div>
-                    <div className="kyc-report__achievement-info">
-                      <p className="kyc-report__achievement-label">{a.label}</p>
-                      <p className="kyc-report__achievement-desc">{a.desc}</p>
+              <div className="kyc-report__properties-list">
+                {properties.length === 0 ? (
+                  <div className="kyc-report__property-empty">No verified properties linked yet.</div>
+                ) : (
+                  properties.map((p: any, i: number) => (
+                    <div key={i} className="kyc-report__property-item">
+                       <div className="kyc-report__property-head">
+                          <span className="kyc-report__property-addr">{p.location?.address}, {p.location?.area}</span>
+                          {p.isManaged && (
+                             <span className="kyc-report__property-badge">Verified</span>
+                          )}
+                       </div>
+                       <div className="kyc-report__property-meta">
+                          <span>{p.location?.state}, {p.location?.country}</span>
+                          <span className="kyc-report__meta-dot" />
+                          <span>Since {p.rentStartDate ? new Date(p.rentStartDate).getFullYear() : 'N/A'}</span>
+                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </section>
 
@@ -155,8 +197,8 @@ export function KYCReportContent() {
 
             <section className="kyc-report__section">
               <p className="kyc-report__section-title">
-                <Lock size={14} color="var(--clay)" />
-                Verified Documents
+                <BadgeCheck size={14} color="var(--clay)" />
+                Security & Verification
               </p>
               <div className="kyc-report__verif-grid">
                 {liveVerifications.map((v, i) => (
@@ -175,13 +217,13 @@ export function KYCReportContent() {
             <section className="kyc-report__section">
               <p className="kyc-report__section-title">
                 <Clock size={14} color="var(--clay)" />
-                Payment History
+                Recent Observations
               </p>
               <div className="kyc-report__timeline">
                 {cycles.length === 0 ? (
-                  <p className="text-sm text-gray-500">No payment history available.</p>
+                  <p className="text-sm opacity-50 italic">No recent payment history observed on this profile.</p>
                 ) : (
-                  cycles.map((t, i) => (
+                  cycles.slice(0, 5).map((t: any, i: number) => (
                     <div key={i} className="kyc-report__timeline-item">
                       <div className="kyc-report__timeline-dot">
                         <Home size={13} />
@@ -189,13 +231,13 @@ export function KYCReportContent() {
                       <div className="kyc-report__timeline-content">
                         <div className="kyc-report__timeline-row">
                           <div>
-                            <p className="kyc-report__timeline-title">Invoice #{t.uuid.substring(0, 8)}</p>
+                            <p className="kyc-report__timeline-title">Performance: {t.status}</p>
                             <p className="kyc-report__timeline-sub">
-                              {t.status} · Due: {new Date(t.dueDate).toLocaleDateString()}
+                              Period Ended: {new Date(t.dueDate).toLocaleDateString()}
                             </p>
                           </div>
-                          <span className={t.status === 'PAID' ? 'text-[var(--success)] font-bold text-sm' : 'text-sm font-bold opacity-70'}>
-                            {formatCurrency(t.amount, 'NGN')}
+                          <span className={`${t.ptValue >= 1 ? 'text-[var(--success)]' : 'text-gray-500'} font-bold text-sm`}>
+                            {t.ptValue >= 1 ? 'On Time' : 'Late / Missed'}
                           </span>
                         </div>
                       </div>
@@ -204,70 +246,159 @@ export function KYCReportContent() {
                 )}
               </div>
             </section>
-
-            <div className="kyc-report__insight-card">
-              <div className="kyc-report__insight-header">
-                <div className="kyc-report__insight-icon">
-                  <Award size={18} />
-                </div>
-                <div>
-                  <p className="kyc-report__insight-title">Tenant Legacy Summary</p>
-                  <p className="kyc-report__insight-sub">Auto-generated · Updated monthly</p>
-                </div>
-              </div>
-              <div className="kyc-report__insight-grid">
-                {[
-                  { label: 'Rent-to-Income', value: 'Hidden', sub: 'Privacy mode' },
-                  { label: 'On-time Rate', value: `${Math.round(metrics.ptPercentage)}%`, sub: 'All-time' },
-                  { label: 'Cycles', value: `${metrics.totalCycles}`, sub: 'Verified' },
-                  { label: 'Streak', value: `${metrics.longestStreak} mo`, sub: 'Peak performance' },
-                ].map((stat, i) => (
-                  <div key={i} className="kyc-report__insight-item">
-                    <span className="kyc-report__insight-item-label">{stat.label}</span>
-                    <span className="kyc-report__insight-item-value">
-                      {stat.value}{' '}
-                      <span className="kyc-report__insight-item-sub">({stat.sub})</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
           <div className="kyc-report__footer">
             <div className="kyc-report__brand">
               <UpwardLogo size={14} color="var(--clay)" />
-              <span>Powered by Upward Verified</span>
+              <span>Verified Portolio by Upward</span>
             </div>
             <p className="kyc-report__ref">
-              Report Date: April 2, 2026 · Ref: UPW-882-SJ · Valid for 30 days
+              Updated: {new Date().toLocaleDateString()} · Ref: UPW-{profile.profileSlug || 'CORE'}
             </p>
           </div>
         </div>
 
-        <div className="kyc-report-actions">
-          <button className="btn btn--primary btn--full kyc-report-actions__share">
-            <Share2 size={18} />
-            Share with Landlord / Property Manager
-          </button>
-          <div className="kyc-report-actions__row">
-            <button className="btn btn--secondary kyc-report-actions__btn">
-              <Download size={16} /> Download PDF
-            </button>
-            <button
-              className="btn btn--secondary kyc-report-actions__btn"
-              onClick={() => router.push('/dashboard')}
-            >
-              <Home size={16} /> Dashboard
-            </button>
-          </div>
-        </div>
+        {!isPublic && (
+            <div className="kyc-report-actions">
+              <button className="btn btn--primary btn--full kyc-report-actions__share" onClick={() => {
+                  if (profile.profileSlug) {
+                    const url = `${window.location.origin}/profile/${profile.profileSlug}`
+                    navigator.clipboard.writeText(url)
+                    alert('Public portfolio link copied to clipboard!')
+                  }
+              }}>
+                <Share2 size={18} />
+                Share Credibility Portfolio Link
+              </button>
+              <div className="kyc-report-actions__row">
+                <button className="btn btn--secondary kyc-report-actions__btn">
+                  <Download size={16} /> Download CV
+                </button>
+                <button
+                  className="btn btn--secondary kyc-report-actions__btn"
+                  onClick={() => router.push('/dashboard')}
+                >
+                  <Home size={16} /> Dashboard
+                </button>
+              </div>
+            </div>
+        )}
 
-        <p className="kyc-report-legal">
-          Sharing grants 7-day read-only access to your verified credentials.{' '}
-          <span className="kyc-report-legal__manage">Manage access →</span>
-        </p>
+        {isPublic && (
+            <div className="kyc-report-legal text-center mt-12 mb-8">
+              <p className="text-sm opacity-60 mb-4">You are viewing a verified tenant credibility portfolio.</p>
+              <button 
+                className="btn btn--primary btn--pill px-8 py-3" 
+                onClick={() => window.open('https://upward.ng', '_blank')}
+              >
+                 Create Your Own Portfolio
+              </button>
+            </div>
+        )}
       </div>
+
+      <style jsx>{`
+        .public-cv {
+            background: var(--bg);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+        .public-header {
+            max-width: 800px;
+            margin: 0 auto 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1rem;
+        }
+        .kyc-report__avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        .kyc-report__occupation {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--clay);
+            margin: 0.5rem 0;
+            text-transform: uppercase;
+        }
+        .kyc-report__bio {
+            max-width: 460px;
+            margin: 1rem auto;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+            text-align: center;
+        }
+        .kyc-report__properties-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .kyc-report__property-item {
+            background: var(--surface2);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-solid);
+        }
+        .kyc-report__property-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .kyc-report__property-addr {
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+        .kyc-report__property-badge {
+            background: var(--success);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .kyc-report__property-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .kyc-report__property-empty {
+            text-align: center;
+            padding: 2rem;
+            border: 1px dashed var(--border-solid);
+            border-radius: 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        
+        @media (max-width: 640px) {
+            .kyc-report-container {
+                padding: 0;
+            }
+            .kyc-report {
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
+            }
+            .public-header {
+                flex-direction: column;
+                gap: 1.5rem;
+                text-align: center;
+            }
+        }
+      `}</style>
     </div>
   )
 }

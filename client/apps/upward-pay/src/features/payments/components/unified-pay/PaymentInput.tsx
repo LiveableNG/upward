@@ -7,40 +7,32 @@ import { formatCurrency } from '@/lib/utils'
 interface PaymentInputProps {
   canPayPartial: boolean
   isBelowMin: boolean
-  isOverpaying: boolean
   amountInput: string
   currency: string
   totalOwed: number
   minRequired: number
-  futureCreditAmount: number
-  overpayConfirmed: boolean
   onAmountChange: (val: string) => void
-  onConfirmOverpay: () => void
   isGuest?: boolean
 }
 
 export function PaymentInput({
   canPayPartial,
   isBelowMin,
-  isOverpaying,
   amountInput,
   currency,
   totalOwed,
   minRequired,
-  futureCreditAmount,
-  overpayConfirmed,
   onAmountChange,
-  onConfirmOverpay,
   isGuest
 }: PaymentInputProps) {
   const amountNum = parseFloat(amountInput) || 0
 
   return (
     <div className="pay-input-section">
-      {canPayPartial && !isGuest && (
+      {canPayPartial && (
         <div className="pay-input-notice">
           <Info size={14} className="pay-input-notice__icon" />
-          <span className="pay-input-notice__text">Partial payments accepted — surplus is recorded as credit.</span>
+          <span className="pay-input-notice__text">Partial payments are accepted for this invoice.</span>
         </div>
       )}
 
@@ -49,7 +41,7 @@ export function PaymentInput({
           {isGuest ? 'Total Amount' : canPayPartial ? 'Payment Amount' : 'Confirmed Amount'}
         </label>
         
-        <div className={`pay-amount-field__container ${isBelowMin ? 'is-error' : isOverpaying ? 'is-warn' : amountNum > 0 ? 'is-valid' : ''}`}>
+        <div className={`pay-amount-field__container ${isBelowMin ? 'is-error' : amountNum > 0 ? 'is-valid' : ''}`}>
           <div className="pay-amount-field__currency">
             {currency}
           </div>
@@ -57,13 +49,13 @@ export function PaymentInput({
             type="number"
             className="pay-amount-field__input"
             value={amountInput}
-            onChange={e => !isGuest && onAmountChange(e.target.value)}
+            onChange={e => onAmountChange(e.target.value)}
             placeholder="0.00"
             min={0}
-            autoFocus={canPayPartial && !isGuest}
-            readOnly={isGuest || !canPayPartial}
+            autoFocus={canPayPartial}
+            readOnly={!canPayPartial}
           />
-          {(isGuest || !canPayPartial) && (
+          {!canPayPartial && (
             <div className="pay-amount-field__fixed-badge">
                <span className="pay-amount-field__fixed-text">Fixed</span>
             </div>
@@ -77,7 +69,7 @@ export function PaymentInput({
           </div>
         )}
 
-        {!isBelowMin && amountNum > 0 && amountNum < totalOwed && !isGuest && (
+        {!isBelowMin && amountNum > 0 && amountNum < totalOwed && (
           <div className="pay-input-feedback">
             <Info size={14} />
             <span>Balance after payment: {formatCurrency(totalOwed - amountNum, currency)}</span>
@@ -91,34 +83,8 @@ export function PaymentInput({
           </div>
         )}
 
-        {isOverpaying && !isGuest && (
-          <div className="pay-overpay-confirm">
-            <div className="pay-overpay-confirm__header">
-              <div className="pay-overpay-confirm__icon-box">
-                 <AlertCircle size={11} />
-              </div>
-              <span className="pay-overpay-confirm__title">Overpayment Detected</span>
-            </div>
-            <p className="pay-overpay-confirm__text">
-              You are paying <span className="highlight">{formatCurrency(futureCreditAmount, currency)}</span> extra. This surplus will be vaulted as future credit.
-            </p>
-            {!overpayConfirmed ? (
-              <button 
-                className="pay-overpay-confirm__btn" 
-                onClick={onConfirmOverpay}
-              >
-                Confirm Surplus Allocation
-              </button>
-            ) : (
-              <div className="pay-overpay-confirm__status">
-                <Check size={14} />
-                <span>Allocation Confirmed</span>
-              </div>
-            )}
-          </div>
-        )}
 
-        {canPayPartial && !isGuest && (
+        {canPayPartial && (
           <div className="pay-quick-select">
             {[
               { label: '25%', value: Math.round(totalOwed * 0.25) },

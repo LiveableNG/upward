@@ -6,8 +6,6 @@ import { formatCurrency } from '@/lib/utils'
 
 interface SuccessStepProps {
   finalAmount: number
-  futureCreditAmount: number
-  futureCreditName: string
   currency: string
   companyName: string
   onDone: () => void
@@ -15,8 +13,6 @@ interface SuccessStepProps {
 
 export function SuccessStep({
   finalAmount,
-  futureCreditAmount,
-  futureCreditName,
   currency,
   companyName,
   onDone
@@ -33,18 +29,8 @@ export function SuccessStep({
         </p>
 
         <div className="pay-receipt">
-          <div className="pay-receipt-row">
-            <span className="pay-receipt-label">Amount paid</span>
-            <span className="pay-receipt-value">{formatCurrency(finalAmount - futureCreditAmount, currency)}</span>
-          </div>
-          {futureCreditAmount > 0 && (
-            <div className="pay-receipt-row is-credit">
-              <span className="pay-receipt-label">{futureCreditName}</span>
-              <span className="pay-receipt-value">+{formatCurrency(futureCreditAmount, currency)}</span>
-            </div>
-          )}
           <div className="pay-receipt-row is-total">
-            <span className="pay-receipt-label">Total charged</span>
+            <span className="pay-receipt-label">Amount paid</span>
             <span className="pay-receipt-value">{formatCurrency(finalAmount, currency)}</span>
           </div>
         </div>

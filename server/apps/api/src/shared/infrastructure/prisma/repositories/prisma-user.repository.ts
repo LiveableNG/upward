@@ -127,6 +127,27 @@ export class PrismaUserRepository implements UserRepository {
     return record ? this.toDomain(record) : null
   }
 
+  async findBySlug(profileSlug: string): Promise<User | null> {
+    const record = await this.prisma.upward_user.findUnique({
+      where: { profileSlug },
+      include: {
+        properties: {
+          include: {
+            location: true,
+            company: true,
+            manager: true
+          }
+        },
+        companyUsers: {
+          include: {
+            company: true
+          }
+        }
+      }
+    })
+    return record ? this.toDomain(record) : null
+  }
+
   async findAll(): Promise<User[]> {
     const records = await this.prisma.upward_user.findMany({
       include: {

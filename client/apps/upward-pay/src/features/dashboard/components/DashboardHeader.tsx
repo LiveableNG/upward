@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Bell, Settings } from 'lucide-react'
+import { Bell, Settings, Share2 } from 'lucide-react'
 import { UserAvatar } from '@/components/common/UserAvatar'
 
 import { NotificationPanel } from './NotificationPanel'
@@ -57,6 +57,13 @@ export function DashboardHeader({ firstName, notifCount, profilePic }: Dashboard
         </nav>
 
         <div className="dashboard__header-right">
+          <button 
+            className="dashboard__icon-btn" 
+            onClick={() => router.push('/dashboard/kyc')}
+            title="Share Page"
+          >
+            <Share2 size={18} />
+          </button>
           <button className="dashboard__icon-btn" onClick={() => router.push('/dashboard/settings')}>
             <Settings size={18} />
           </button>
