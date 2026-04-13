@@ -53,7 +53,7 @@ function setUserAuthCookies(reply: FastifyReply, accessToken: string, refreshTok
     secure: isProd,
     sameSite: isProd ? 'none' : 'lax',
     path: '/',
-    maxAge: 900, // 15 minutes
+    maxAge: 7 * 24 * 60 * 60, // 7 days (keep alive for middleware)
     partitioned: isProd,
   })
 }

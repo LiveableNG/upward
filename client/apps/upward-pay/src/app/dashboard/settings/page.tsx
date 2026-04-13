@@ -53,7 +53,7 @@ export default function SettingsPage() {
 
   return (
     <div className="settings-page dashboard--nav-offset">
-      <PageHeader title="Settings" showBack backPath="/dashboard/me" showSettings={false} />
+      <PageHeader title="Settings" showBack backPath="/dashboard" showSettings={false} />
 
       <div className="dashboard__main-grid">
         <div className="dashboard__col--left">

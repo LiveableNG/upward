@@ -101,7 +101,7 @@ export default function ContractsPage() {
       <PageHeader
         title="Tenancy Agreement"
         showBack
-        backPath="/dashboard/me"
+        backPath="/dashboard"
         showSettings={false}
       />
 

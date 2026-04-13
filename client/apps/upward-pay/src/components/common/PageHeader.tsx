@@ -8,6 +8,7 @@ interface PageHeaderProps {
   title: string
   showBack?: boolean
   backPath?: string
+  backLabel?: string
   onBack?: () => void
   showSettings?: boolean
   rightIcon?: React.ReactNode
@@ -19,6 +20,7 @@ export function PageHeader({
   title,
   showBack = false,
   backPath,
+  backLabel,
   onBack,
   showSettings = true,
   rightIcon,
@@ -45,12 +47,20 @@ export function PageHeader({
     }
   }
 
+  // Determine the default back label if none provided
+  const effectiveBackLabel = backLabel || (backPath === '/dashboard' ? 'Back to Dashboard' : 'Back')
+
   return (
-    <header className="dashboard__header dashboard__header--mobile">
+    <header className="dashboard__header">
       <div className="dashboard__header-left">
         {showBack && (
-          <button className="dashboard__back" onClick={handleBack} type="button">
-            <ArrowLeft size={22} />
+          <button 
+            className="dashboard__back" 
+            onClick={handleBack} 
+            type="button"
+            data-back-label={effectiveBackLabel}
+          >
+            <ArrowLeft size={20} />
           </button>
         )}
         <h1 className="dashboard__title">{title}</h1>

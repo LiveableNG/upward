@@ -1223,7 +1223,7 @@
   }
 
   .dashboard__back::after {
-    content: 'Back to Dashboard';
+    content: attr(data-back-label);
     white-space: nowrap;
   }
 
