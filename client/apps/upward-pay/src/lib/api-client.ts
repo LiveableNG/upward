@@ -1,4 +1,7 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
+const isServer = typeof window === 'undefined'
+const API_BASE = isServer 
+  ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1') 
+  : '/api/v1'
 
 import { getAccessToken, setAccessToken } from './auth-token'
 

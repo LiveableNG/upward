@@ -37,7 +37,7 @@ const REFRESH_COOKIE_NAME = 'user_refresh'
 const ACCESS_COOKIE_NAME = 'access_token'
 
 function setUserAuthCookies(reply: FastifyReply, accessToken: string, refreshToken: string) {
-  const isProd = process.env['NODE_ENV'] === 'production'
+  const isProd = process.env['NODE_ENV'] === 'production' || !!process.env['VERCEL']
 
   reply.setCookie(REFRESH_COOKIE_NAME, refreshToken, {
     httpOnly: true,
