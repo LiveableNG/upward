@@ -21,6 +21,7 @@
   --oat-dim: #f0efe8;
 
   --bg: #ffffff;
+  --bg-rgb: 255, 255, 255;
   --surface: #f7f5f2;
   --surface2: #edeae4;
   --border: rgba(0, 0, 0, 0.06);
@@ -87,6 +88,7 @@
 /* Explicit Dark Theme and System Dark (when not forced to light) */
 :root.theme--dark {
   --bg: #0e0e0d;
+  --bg-rgb: 14, 14, 13;
   --surface: #181716;
   --surface2: #22201e;
   --border: rgba(255, 255, 255, 0.05);
@@ -110,6 +112,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not(.theme--light) {
     --bg: #0e0e0d;
+    --bg-rgb: 14, 14, 13;
     --surface: #181716;
     --surface2: #22201e;
     --border: rgba(255, 255, 255, 0.05);

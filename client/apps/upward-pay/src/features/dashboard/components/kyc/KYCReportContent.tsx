@@ -19,7 +19,9 @@ import {
   Building2,
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
+import { useAuth } from '@/features/auth/AuthContext'
 
+import { useToast } from '@/components/common/Toast'
 import { useScoreProfile, usePublicScoreProfile } from '../../services/scoreService'
 import { formatCurrency } from '@/lib/utils'
 
@@ -30,12 +32,25 @@ interface KYCReportContentProps {
 
 export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportContentProps) {
   const router = useRouter()
+  const { isLoggedIn } = useAuth()
+  const { success, error: toastError } = useToast()
   
   // Conditionally fetch based on whether we are in public or private view
   const privateProfile = useScoreProfile()
   const publicProfile = usePublicScoreProfile(publicSlug || '')
   
   const { data: scoreProfile, isLoading } = isPublic ? publicProfile : privateProfile
+  
+  const handleShare = () => {
+    const p = scoreProfile?.data?.profile
+    if (p?.profileSlug) {
+      const url = `https://upward-pay.vercel.app/profile/${p.profileSlug}`
+      navigator.clipboard.writeText(url)
+      success('Portfolio link copied to clipboard!')
+    } else {
+      toastError('Profile slug not found. Ensure your profile is complete.')
+    }
+  }
 
   if (isLoading || !scoreProfile) {
     return (
@@ -77,7 +92,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             <button className="btn btn--secondary btn--sm kyc-page__action-btn">
               <Download size={14} /> PDF
             </button>
-            <button className="btn btn--primary btn--sm kyc-page__action-btn">
+            <button className="btn btn--primary btn--sm kyc-page__action-btn" onClick={handleShare}>
               <Share2 size={14} /> Share
             </button>
           </div>
@@ -87,9 +102,15 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
       {isPublic && (
         <div className="public-header">
            <UpwardLogo size={100} color="var(--clay)" />
-           <button className="btn btn--primary btn--sm px-6" onClick={() => window.open('https://upward.ng', '_blank')}>
-              Join Upward
-           </button>
+           {isLoggedIn ? (
+              <button className="btn btn--secondary btn--sm px-6" onClick={() => router.push('/dashboard')}>
+                Back to Dashboard
+              </button>
+           ) : (
+              <button className="btn btn--primary btn--sm px-6" onClick={() => router.push('/signup')}>
+                Join Upward
+              </button>
+           )}
         </div>
       )}
 
@@ -261,25 +282,19 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
         {!isPublic && (
             <div className="kyc-report-actions">
-              <button className="btn btn--primary btn--full kyc-report-actions__share" onClick={() => {
-                  if (profile.profileSlug) {
-                    const url = `${window.location.origin}/profile/${profile.profileSlug}`
-                    navigator.clipboard.writeText(url)
-                    alert('Public portfolio link copied to clipboard!')
-                  }
-              }}>
+              <button className="btn btn--primary btn--full kyc-report-actions__share" onClick={handleShare}>
                 <Share2 size={18} />
-                Share Credibility Portfolio Link
+                Share Verified Portfolio Link
               </button>
               <div className="kyc-report-actions__row">
                 <button className="btn btn--secondary kyc-report-actions__btn">
-                  <Download size={16} /> Download CV
+                  <Download size={16} /> Download
                 </button>
                 <button
                   className="btn btn--secondary kyc-report-actions__btn"
                   onClick={() => router.push('/dashboard')}
                 >
-                  <Home size={16} /> Dashboard
+                  <Home size={16} /> Finish
                 </button>
               </div>
             </div>
@@ -287,13 +302,41 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
         {isPublic && (
             <div className="kyc-report-legal text-center mt-12 mb-8">
-              <p className="text-sm opacity-60 mb-4">You are viewing a verified tenant credibility portfolio.</p>
-              <button 
-                className="btn btn--primary btn--pill px-8 py-3" 
-                onClick={() => window.open('https://upward.ng', '_blank')}
-              >
-                 Create Your Own Portfolio
-              </button>
+              {!isLoggedIn ? (
+                <div className="public-benefits animate-slide-up">
+                  <h3 className="public-benefits__title">Why join Upward?</h3>
+                  <div className="public-benefits__grid">
+                    <div className="public-benefits__item">
+                      <div className="public-benefits__icon"><TrendingUp size={16} /></div>
+                      <p>Build your rent<br/>credibility score</p>
+                    </div>
+                    <div className="public-benefits__item">
+                      <div className="public-benefits__icon"><BadgeCheck size={16} /></div>
+                      <p>Verified tenant<br/>portfolio</p>
+                    </div>
+                    <div className="public-benefits__item">
+                      <div className="public-benefits__icon"><Zap size={16} /></div>
+                      <p>Unlock better<br/>leasing deals</p>
+                    </div>
+                  </div>
+                  <button 
+                    className="btn btn--primary btn--pill px-10 py-4 font-bold text-lg shadow-clay" 
+                    onClick={() => router.push('/signup')}
+                  >
+                     Create Your Own Portfolio
+                  </button>
+                </div>
+              ) : (
+                <div className="logged-in-footer">
+                  <p className="text-sm opacity-60 mb-4">Viewing verified profile: <strong>{profile.name}</strong></p>
+                  <button 
+                    className="btn btn--outline btn--pill px-8" 
+                    onClick={() => router.push('/dashboard')}
+                  >
+                     Return to My Dashboard
+                  </button>
+                </div>
+              )}
             </div>
         )}
       </div>
@@ -397,6 +440,56 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                 gap: 1.5rem;
                 text-align: center;
             }
+        }
+
+        .public-benefits {
+            background: var(--surface);
+            border: 1px solid var(--border-solid);
+            padding: 2.5rem 2rem;
+            border-radius: 32px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .public-benefits__title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+            color: var(--text);
+        }
+        .public-benefits__grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+        .public-benefits__item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        .public-benefits__item p {
+            font-size: 0.75rem;
+            font-weight: 700;
+            line-height: 1.3;
+            color: var(--text-secondary);
+        }
+        .public-benefits__icon {
+            width: 42px;
+            height: 42px;
+            background: var(--clay-faint);
+            color: var(--clay);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .animate-slide-up {
+            animation: slideUp 0.5s ease-out;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>

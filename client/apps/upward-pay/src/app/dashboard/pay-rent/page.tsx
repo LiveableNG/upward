@@ -13,8 +13,11 @@ import { StepAmount } from '@/features/dashboard/components/payment/StepAmount'
 import { StepConfirm } from '@/features/dashboard/components/payment/StepConfirm'
 import { StepSuccess } from '@/features/dashboard/components/payment/StepSuccess'
 
+import { PayRentSkeleton } from '@/features/dashboard/components/payment/PayRentSkeleton'
+
 export default function PayRentPage() {
   const router = useRouter()
+  const [loading, setLoading] = useState(true)
   const [step, setStep] = useState<PayRentStep>('select')
   const [savedLandlords, setSavedLandlords] = useState<Landlord[]>([])
   const [selectedLandlord, setSelectedLandlord] = useState<Landlord | null>(null)
@@ -36,6 +39,7 @@ export default function PayRentPage() {
   
   useEffect(() => {
     // Fetch user, saved landlords and pending payments
+    setLoading(true)
     Promise.all([api.getSavedLandlords(), api.getProfile(), api.getPendingPayments()])
       .then(([landlords, profile, pending]) => {
         setSavedLandlords(landlords)
@@ -45,7 +49,10 @@ export default function PayRentPage() {
         setPendingPayments(pending || [])
       })
       .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
+
+  if (loading) return <PayRentSkeleton />
 
   const handleSelectPending = (p: any) => {
     router.push(`/pay/${p.uuid}`)

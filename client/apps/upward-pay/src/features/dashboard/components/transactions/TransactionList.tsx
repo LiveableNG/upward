@@ -13,6 +13,7 @@ import {
   X,
   Download,
 } from 'lucide-react'
+import { TransactionSkeleton } from './TransactionSkeleton'
 import { useDashboard } from '../../hooks/useDashboard'
 import { formatCurrency, groupTransactionsByDate, formatTime } from '@/lib/utils'
 import { type CompletedPayment } from '../../types'
@@ -32,7 +33,7 @@ export function TransactionList() {
     }
   }
 
-  if (loading) return null // Handled by page-level suspense or initial loading state
+  if (loading) return <TransactionSkeleton />
   if (error || !data)
     return (
       <div className="dashboard dashboard--error">

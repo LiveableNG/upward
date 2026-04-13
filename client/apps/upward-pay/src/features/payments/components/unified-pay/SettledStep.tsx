@@ -80,11 +80,6 @@ export function SettledStep({
             </button>
           )}
         </div>
-
-        <p className="footer">
-          Need help?{' '}
-          <a href="mailto:support@upward.ng">support@upward.ng</a>
-        </p>
       </div>
 
       <style jsx>{`
