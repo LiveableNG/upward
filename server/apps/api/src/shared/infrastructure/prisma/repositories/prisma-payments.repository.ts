@@ -282,6 +282,15 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       where: { id },
       include: {
         subaccount: true,
+        userProperty: {
+          include: {
+            company: {
+              include: {
+                platform: true,
+              },
+            },
+          },
+        },
       },
     })
     if (!res) return null
@@ -292,6 +301,9 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       userPropertyId: res.userPropertyId ?? undefined,
       subaccountId: res.subaccountId ?? undefined,
       subaccount: res.subaccount as unknown as PaystackSubaccount,
+      webhookUrl: (res.userProperty as any)?.company?.platform?.webhookUrl,
+      platformName: (res.userProperty as any)?.company?.platform?.name,
+      platformId: (res.userProperty as any)?.company?.platform?.id,
     } as unknown as PaymentRequest
   }
 
