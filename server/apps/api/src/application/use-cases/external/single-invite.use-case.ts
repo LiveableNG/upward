@@ -102,6 +102,9 @@ export class SingleInviteUseCase {
     let user = await this.userRepository.findByEmail(userData.email)
 
     if (!user) {
+      if (!userData.firstName || !userData.lastName) {
+        throw new BadRequestException('firstName and lastName are required for new users')
+      }
       user = await this.userRepository.save({
         uuid: randomUUID(),
         email: userData.email,
