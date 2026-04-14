@@ -102,7 +102,6 @@ export class UserController {
       phone: body.phone,
       rentEndDate: body.rentEndDate,
       address: body.address,
-      occupation: body.occupation,
       gender: body.gender,
       dateOfBirth: body.dateOfBirth,
       profilePic: body.profilePic,

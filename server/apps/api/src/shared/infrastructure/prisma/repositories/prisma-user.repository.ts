@@ -181,7 +181,6 @@ export class PrismaUserRepository implements UserRepository {
         phone: user.phone ? this.encryption.encrypt(user.phone) : null,
         phoneHash: user.phone ? this.encryption.hash(user.phone) : null,
         passwordHash: user.passwordHash,
-        occupation: user.occupation,
         gender: user.gender,
         dateOfBirth: user.dateOfBirth,
         isFromWaitlist: user.isFromWaitlist,
@@ -201,7 +200,7 @@ export class PrismaUserRepository implements UserRepository {
     
     // Pick direct scalar fields
     const scalarFields = [
-      'passwordHash', 'occupation', 'gender', 'dateOfBirth', 
+      'passwordHash', 'gender', 'dateOfBirth', 
       'isFromWaitlist', 'isFromInvite', 'profilePic', 'profileSlug', 
       'bio', 'resetPasswordOTP', 'resetPasswordExpires'
     ]

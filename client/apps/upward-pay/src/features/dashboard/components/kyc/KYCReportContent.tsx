@@ -43,13 +43,10 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   
   const handleShare = () => {
     const p = scoreProfile?.data?.profile
-    if (p?.profileSlug) {
-      const url = `https://upward-pay.vercel.app/profile/${p.profileSlug}`
+      const slug = p?.profileSlug || `${p?.name?.split(' ').join('-')}-${scoreProfile?.data.profile.email.split('@')[0]}`.toLowerCase()
+      const url = `https://upward-pay.vercel.app/profile/${slug}`
       navigator.clipboard.writeText(url)
       success('Portfolio link copied to clipboard!')
-    } else {
-      toastError('Profile slug not found. Ensure your profile is complete.')
-    }
   }
 
   if (isLoading || !scoreProfile) {
@@ -66,7 +63,6 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
   const liveVerifications = [
     { label: 'Identity Verified', date: 'Official' },
-    { label: 'Work / Income', date: profile.occupation || 'Status Checked' },
     { label: 'Account Created', date: 'Member' },
     { label: 'Phone Number', date: 'Verified' },
   ]
@@ -138,11 +134,6 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
             <h1 className="kyc-report__name">{profile.name}</h1>
             
-            {profile.occupation && (
-                <div className="kyc-report__occupation">
-                    <Award size={13} /> {profile.occupation}
-                </div>
-            )}
 
             <div className="kyc-report__meta">
               <MapPin size={13} />
@@ -175,7 +166,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             <section className="kyc-report__section">
               <p className="kyc-report__section-title">
                 <Home size={14} color="var(--clay)" />
-                Verified Properties
+                Tenancy History
               </p>
               <div className="kyc-report__properties-list">
                 {properties.length === 0 ? (
@@ -216,24 +207,6 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
               </div>
             </section>
 
-            <section className="kyc-report__section">
-              <p className="kyc-report__section-title">
-                <BadgeCheck size={14} color="var(--clay)" />
-                Security & Verification
-              </p>
-              <div className="kyc-report__verif-grid">
-                {liveVerifications.map((v, i) => (
-                  <div key={i} className="kyc-report__verif-item">
-                    <div className="kyc-report__verif-status">
-                      <CheckCircle2 size={13} strokeWidth={2.5} />
-                      Verified
-                    </div>
-                    <div className="kyc-report__verif-label">{v.label}</div>
-                    <span className="kyc-report__verif-date">{v.date}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
 
             <section className="kyc-report__section">
               <p className="kyc-report__section-title">

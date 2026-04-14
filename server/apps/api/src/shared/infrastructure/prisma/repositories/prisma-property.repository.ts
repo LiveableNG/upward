@@ -18,6 +18,7 @@ export class PrismaPropertyRepository implements PropertyRepository {
   async findById(id: number): Promise<Property | null> {
     const record = await this.prisma.upward_user_property.findUnique({
       where: { id },
+      include: { location: true }
     })
     return record as unknown as Property | null
   }
@@ -28,6 +29,7 @@ export class PrismaPropertyRepository implements PropertyRepository {
       include: {
         company: true,
         manager: true,
+        location: true,
       },
     })
     if (!record) return null
@@ -47,6 +49,7 @@ export class PrismaPropertyRepository implements PropertyRepository {
   async findByUserId(userId: number): Promise<Property[]> {
     const records = await this.prisma.upward_user_property.findMany({
       where: { userId },
+      include: { location: true }
     })
     return records as unknown as Property[]
   }

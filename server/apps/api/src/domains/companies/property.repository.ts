@@ -14,6 +14,7 @@ export interface Property {
   updatedAt: Date
   company?: { name: string }
   manager?: { firstName: string; lastName: string }
+  location?: Location
 }
 
 export interface Location {

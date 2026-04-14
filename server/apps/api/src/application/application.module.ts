@@ -98,6 +98,7 @@ import {
   GenerateReceiptPdfUseCase,
   GetPendingPaymentsUseCase,
   ResolveSubaccountUseCase,
+  GetPropertyBalanceUseCase,
 } from './use-cases/payments/payment.use-cases'
 
 import { UploadContractUseCase } from './use-cases/contracts/upload-contract.use-case'
@@ -194,6 +195,7 @@ const UseCases = [
   AddPropertyUseCase,
   GetPendingPaymentsUseCase,
   ResolveSubaccountUseCase,
+  GetPropertyBalanceUseCase,
 
   UploadContractUseCase,
   GetContractsUseCase,

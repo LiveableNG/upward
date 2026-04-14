@@ -295,13 +295,7 @@ function ProfileMenuContentInner() {
                     value={formData.gender || ''}
                     onChange={(v) => setFormData({ ...formData, gender: v })}
                   />
-                  <DetailOrEdit
-                    isEditing={isEditing}
-                    icon={Briefcase}
-                    label="Occupation"
-                    value={formData.occupation || ''}
-                    onChange={(v) => setFormData({ ...formData, occupation: v })}
-                  />
+
                 </div>
               </div>
 

@@ -32,9 +32,7 @@ export function CompleteProfileStep() {
   const [error, setError] = useState('')
   
   // Personal Info
-  const [occupation, setOccupation] = useState(user?.occupation || '')
   const [gender, setGender] = useState(user?.gender || '')
-  const [phone, setPhone] = useState(user?.phone || '')
   const [profilePic, setProfilePic] = useState(user?.profilePic || '')
 
   // Property Info
@@ -82,9 +80,7 @@ export function CompleteProfileStep() {
       const response = await completeProfile({
         email: user.email,
         fullName: `${user.firstName} ${user.lastName}`.trim(),
-        occupation,
         gender,
-        phone,
         profilePic,
         properties: properties.map(p => ({
           uuid: p.uuid,
@@ -174,31 +170,7 @@ export function CompleteProfileStep() {
                 </div>
 
                 <div className="auth-form">
-                  <div className="auth-form__field">
-                    <label>Phone Number</label>
-                    <div className="input-with-icon">
-                      <Phone size={17} />
-                      <input
-                        type="tel"
-                        placeholder="+234 800 000 0000"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                      />
-                    </div>
-                  </div>
 
-                  <div className="auth-form__field mt-4">
-                    <label>Occupation</label>
-                    <div className="input-with-icon">
-                      <Briefcase size={17} />
-                      <input
-                        type="text"
-                        placeholder="e.g. Architect"
-                        value={occupation}
-                        onChange={(e) => setOccupation(e.target.value)}
-                      />
-                    </div>
-                  </div>
 
                   <div className="auth-form__field mt-4">
                     <label>Gender</label>

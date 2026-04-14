@@ -23,7 +23,6 @@ export interface ScoreProfile {
       profilePic: string
       profileSlug: string | null
       profileCompletion: number
-      occupation?: string
       bio?: string
       gender?: string
     }

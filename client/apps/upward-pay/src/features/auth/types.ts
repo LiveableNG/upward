@@ -7,7 +7,6 @@ export interface UserProfile {
   phone?: string | null
   dateOfBirth?: string
   gender?: string
-  occupation?: string
   address?: string
   rentEndDate?: string
   profilePic?: string

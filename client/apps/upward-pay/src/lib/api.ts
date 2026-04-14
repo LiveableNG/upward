@@ -34,6 +34,7 @@ export const api = {
   getBanks: paymentService.getBanks,
   resolveAccount: paymentService.resolveAccount,
   resolveSubaccount: paymentService.resolveSubaccount,
+  getPropertyBalance: paymentService.getPropertyBalance,
 
   // Documents
   getMyDocuments: documentService.getMyDocuments,
