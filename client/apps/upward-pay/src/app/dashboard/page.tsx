@@ -132,7 +132,7 @@ export default function DashboardPage() {
         title: isOverdue ? 'Urgent: Rent Overdue' : 'Upcoming Rent Due',
         desc: `Rent for ${prop.location?.address || prop.location?.area || 'your property'} was due on ${formatDate(prop.rentEndDate!)}.`,
         actionLabel: 'Update Status',
-        action: () => router.push('/dashboard/me?view=personal'),
+        action: () => router.push(`/dashboard/pay-rent?propertyUuid=${prop.uuid}`),
         isCritical: isOverdue,
         bg: isOverdue ? 'var(--error)' : 'var(--clay-faint)'
       }

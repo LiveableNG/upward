@@ -23,7 +23,6 @@ export class CompleteUserProfileUseCase {
     passwordPlain: string
     fullName: string
     phone?: string
-    occupation?: string
     gender?: string
     dateOfBirth?: string
     profilePic?: string
@@ -54,12 +53,16 @@ export class CompleteUserProfileUseCase {
       firstName,
       lastName,
       phone: dto.phone,
-      occupation: dto.occupation,
       gender: dto.gender,
       dateOfBirth: dto.dateOfBirth,
       profilePic: dto.profilePic || '',
       isFromWaitlist: !!waitlistEntry,
       isFromInvite: false,
+    }
+
+    if (!user?.profileSlug) {
+      const slugBase = (firstName + '-' + lastName).toLowerCase().replace(/[^a-z0-9]/g, '-')
+      userData.profileSlug = `${slugBase}-${Math.floor(1000 + Math.random() * 9000)}`
     }
 
     const properties = dto.properties || []

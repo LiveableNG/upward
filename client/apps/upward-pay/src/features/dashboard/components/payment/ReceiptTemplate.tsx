@@ -75,7 +75,7 @@ export default function ReceiptTemplate({
   const isCredit = receipt.type === 'credit'
   const isActualBreakdown =
     receipt.lineItems.length > 1 ||
-    (receipt.lineItems.length === 1 && receipt.lineItems[0].label !== 'Rent Payment')
+    (receipt.lineItems.length === 1 && !['Rent Payment', 'Savings Deposit'].includes(receipt.lineItems[0].label))
 
   return (
     <>

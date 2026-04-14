@@ -10,7 +10,6 @@ export interface User {
   phone?: string | null
   phoneHash?: string | null
   passwordHash: string
-  occupation?: string | null
   gender?: string | null
   dateOfBirth?: string | null
   isFromWaitlist: boolean

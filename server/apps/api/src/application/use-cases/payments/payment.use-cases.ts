@@ -23,7 +23,9 @@ import {
   Transaction,
 } from '../../../domains/payments/payment.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import { PROPERTY_REPOSITORY, PropertyRepository } from '../../../domains/companies/property.repository'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { randomUUID } from 'crypto'
 
 @Injectable()
 export class SaveLandlordUseCase {
@@ -93,6 +95,8 @@ export class RecordTransactionUseCase {
     private readonly overpaymentRepo: IOverpaymentRepository,
     @Inject(PAYMENT_LINE_ITEM_REPOSITORY)
     private readonly lineItemRepo: IPaymentLineItemRepository,
+    @Inject(PROPERTY_REPOSITORY)
+    private readonly propertyRepo: PropertyRepository,
     @Inject(EVENT_BUS)
     private readonly eventBus: EventBus,
   ) {}
@@ -100,6 +104,7 @@ export class RecordTransactionUseCase {
   async execute(
     data: Omit<Transaction, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'userId'> & {
       userId: string
+      userPropertyUuid?: string
       lineItemPayments?: LineItemPayment[]
       futureCreditName?: string
     }
@@ -146,6 +151,36 @@ export class RecordTransactionUseCase {
 
       // Main PAYMENT transaction — amount capped at remaining balance
       const paymentAmount = pr ? Math.min(data.amount, remaining) : data.amount
+
+      // If this is a manual RENT payment for a property and NO paymentRequestId was provided
+      if (isVerified && data.type === 'RENT' && !data.paymentRequestId && data.userPropertyUuid) {
+        const prop = await this.propertyRepo.findByUuid(data.userPropertyUuid)
+        if (prop) {
+           // Look for any PENDING or PARTIAL payment request for this property
+           const prs = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PENDING')
+           const partials = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PARTIAL')
+           const allPrs = [...prs, ...partials].filter(p => p.userPropertyId === prop.id)
+           
+           if (allPrs.length > 0) {
+              // Sort by due date (soonest first)
+              allPrs.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+              data.paymentRequestId = allPrs[0]?.id
+           } else {
+              // Auto-create a payment request for this period
+              const newPr = await this.paymentRequestRepo.create({
+                userId: user.id!,
+                userPropertyId: prop.id!,
+                amount: prop.rentAmount || data.amount, // Default to prop rent amount
+                currency: data.currency || prop.currency || 'NGN',
+                description: `Rent Payment - ${prop.location?.address || prop.location?.area || 'Property'}`,
+                dueDate: prop.rentEndDate ? new Date(prop.rentEndDate) : new Date(),
+                status: 'PENDING',
+                reference: `AUTO_${randomUUID()}_${Date.now()}`,
+              } as any)
+              data.paymentRequestId = newPr.id
+           }
+        }
+      }
 
       const result = await this.txRepo.create({
         ...data,
@@ -241,6 +276,25 @@ export class RecordTransactionUseCase {
                 }
               }
             ))
+          }
+          // Check for Property Settlement and Annual Increment
+          if (newStatus === 'PAID' && pr.userPropertyId) {
+             const allPending = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PENDING')
+             const allPartial = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PARTIAL')
+             const remainingForProp = [...allPending, ...allPartial].filter(p => p.userPropertyId === pr.userPropertyId)
+             
+             if (remainingForProp.length === 0) {
+                // Property is fully settled! Increment rentEndDate by 1 year.
+                const prop = await this.propertyRepo.findById(pr.userPropertyId!)
+                if (prop && prop.rentEndDate) {
+                   const oldDate = new Date(prop.rentEndDate)
+                   const newDate = new Date(oldDate.setFullYear(oldDate.getFullYear() + 1))
+                   await this.propertyRepo.update(prop.id!, {
+                      rentEndDate: newDate
+                   })
+                   this.logger.log(`Property ${prop.uuid} fully settled. Rent due date moved to ${newDate.toISOString()}`)
+                }
+             }
           }
         } catch (e) {
           this.logger.error(`Failed to update payment request ${data.paymentRequestId}:`, e)
@@ -430,6 +484,40 @@ export class ResolveSubaccountUseCase {
     })
     return {
       subaccountCode: subaccount?.subaccountCode,
+    }
+  }
+}
+@Injectable()
+export class GetPropertyBalanceUseCase {
+  constructor(
+    @Inject(PROPERTY_REPOSITORY)
+    private readonly propertyRepo: PropertyRepository,
+    @Inject(PAYMENT_REQUEST_REPOSITORY)
+    private readonly paymentRequestRepo: IPaymentRequestRepository,
+  ) {}
+
+  async execute(propertyUuid: string) {
+    const prop = await this.propertyRepo.findByUuid(propertyUuid)
+    if (!prop) throw new Error('Property not found')
+
+    const allPending = await this.paymentRequestRepo.findByUserIdAndStatus(prop.userId, 'PENDING')
+    const allPartial = await this.paymentRequestRepo.findByUserIdAndStatus(prop.userId, 'PARTIAL')
+    
+    const propRequests = [...allPending, ...allPartial].filter(p => p.userPropertyId === prop.id)
+    
+    const totalAmount = propRequests.reduce((sum, pr) => sum + pr.amount, 0)
+    const amountPaid = propRequests.reduce((sum, pr) => sum + (pr.amountPaid || 0), 0)
+    
+    return {
+      propertyUuid: prop.uuid,
+      address: [prop.location?.address, prop.location?.area, prop.location?.state, prop.location?.country].filter(Boolean).join(', '),
+      rentAmount: prop.rentAmount || totalAmount,
+      totalOwed: totalAmount || prop.rentAmount || 0,
+      amountPaid: amountPaid,
+      remainingBalance: Math.max(0, (totalAmount || prop.rentAmount || 0) - amountPaid),
+      currency: prop.currency || 'NGN',
+      dueDate: prop.rentEndDate,
+      hasActiveRequest: propRequests.length > 0
     }
   }
 }

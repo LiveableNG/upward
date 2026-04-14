@@ -97,3 +97,7 @@ export async function resolveSubaccount(accountNumber: string, bankCode: string,
   if (businessName) url += `&businessName=${encodeURIComponent(businessName)}`
   return request<{ subaccountCode: string }>(url, { method: 'GET' })
 }
+
+export async function getPropertyBalance(propertyUuid: string) {
+  return request<any>(`/payments/property-balance/${propertyUuid}`, { method: 'GET' })
+}

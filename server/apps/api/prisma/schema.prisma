@@ -211,7 +211,7 @@ model upward_user {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  occupation           String?
+  // occupation           String?
   gender               String?
   dateOfBirth          String?
   isFromWaitlist       Boolean   @default(false)

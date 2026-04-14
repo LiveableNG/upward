@@ -84,7 +84,11 @@ export class CalculateRentScoreUseCase {
       totalPTScore += ptValue
 
       if (cycle.status === 'PARTIAL') {
-        partialCyclesCount++
+        // Only penalize if it's late (either the payment was late, or it's still partial past the due date)
+        const isLate = paidDate ? (paidDate > dueDate) : (now > dueDate)
+        if (isLate) {
+          partialCyclesCount++
+        }
       }
 
       return {
@@ -149,10 +153,9 @@ export class CalculateRentScoreUseCase {
           name: `${user.firstName} ${user.lastName}`,
           email: user.email,
           phone: user.phone,
-          occupation: user.occupation,
           bio: user.bio,
           profilePic: user.profilePic,
-          profileSlug: user.profileSlug,
+          profileSlug: user.profileSlug || `${user.firstName}-${user.lastName}-${user.uuid.split('-')[0]}`.toLowerCase(),
           profileCompletion: this.calculateProfileCompletion(user)
         },
         properties: user.properties || [],
@@ -163,15 +166,13 @@ export class CalculateRentScoreUseCase {
 
   private calculateProfileCompletion(user: any): number {
     let fields = 0
-    let total = 13
+    let total = 11
 
     // 1-6: Basic details (User Repo decodes these)
     if (user.firstName) fields++
     if (user.lastName) fields++
     if (user.email) fields++
-    if (user.phone) fields++
     if (user.dateOfBirth) fields++
-    if (user.occupation) fields++
     
     // 7: Gender
     if (user.gender && user.gender !== 'Prefer not to say') fields++
@@ -228,10 +229,9 @@ export class CalculateRentScoreUseCase {
           name: `${user.firstName} ${user.lastName}`,
           email: user.email,
           phone: user.phone,
-          occupation: user.occupation,
           bio: user.bio,
           profilePic: user.profilePic,
-          profileSlug: user.profileSlug,
+          profileSlug: user.profileSlug || `${user.firstName}-${user.lastName}-${user.uuid.split('-')[0]}`.toLowerCase(),
           profileCompletion: this.calculateProfileCompletion(user)
         },
         properties: user.properties || [],

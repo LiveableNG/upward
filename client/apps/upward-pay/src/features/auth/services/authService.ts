@@ -63,7 +63,6 @@ export async function completeProfile(data: {
   fullName: string
   phone?: string
   dateOfBirth?: string
-  occupation?: string
   gender?: string
   invitedByCompanyId?: string
   invitedByCompanyName?: string

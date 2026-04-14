@@ -24,6 +24,7 @@ import {
   GenerateReceiptPdfUseCase,
   GetPendingPaymentsUseCase,
   ResolveSubaccountUseCase,
+  GetPropertyBalanceUseCase,
 } from '../../../application/use-cases/payments/payment.use-cases'
 
 @Controller('payments')
@@ -39,6 +40,7 @@ export class PaymentsController {
     private readonly generateReceiptPdfUc: GenerateReceiptPdfUseCase,
     private readonly getPendingPaymentsUc: GetPendingPaymentsUseCase,
     private readonly resolveSubaccountUc: ResolveSubaccountUseCase,
+    private readonly getPropertyBalanceUc: GetPropertyBalanceUseCase,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -53,6 +55,12 @@ export class PaymentsController {
   async getUserTransactions(@Req() req: any) {
     const userId = req.user.id
     return this.getUserTxsUc.execute(userId)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('property-balance/:propertyUuid')
+  async getPropertyBalance(@Param('propertyUuid') propertyUuid: string) {
+    return this.getPropertyBalanceUc.execute(propertyUuid)
   }
 
 
@@ -94,6 +102,7 @@ export class PaymentsController {
       lineItems: body.lineItems,
       paymentType: body.paymentType,
       propertyAddress: body.propertyAddress,
+      userPropertyUuid: body.userPropertyUuid,
       currency: body.currency || 'NGN',
     })
   }

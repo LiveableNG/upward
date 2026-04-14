@@ -33,7 +33,18 @@ export default function PayRentPage() {
   const [requestedAmount, setRequestedAmount] = useState(0)
   const [totalPaidAlready, setTotalPaidAlready] = useState(0)
   const [userProperties, setUserProperties] = useState<any[]>([])
-  const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null)
+  const [selectedPropertyUuid, setSelectedPropertyUuid] = useState<string | null>(null)
+  const [propertyBalance, setPropertyBalance] = useState<any>(null)
+
+  useEffect(() => {
+    if (selectedPropertyUuid) {
+      api.getPropertyBalance(selectedPropertyUuid)
+        .then(res => setPropertyBalance(res))
+        .catch(err => console.error('Failed to fetch balance:', err))
+    } else {
+      setPropertyBalance(null)
+    }
+  }, [selectedPropertyUuid])
 
   const [pendingPayments, setPendingPayments] = useState<any[]>([])
   
@@ -44,8 +55,25 @@ export default function PayRentPage() {
       .then(([landlords, profile, pending]) => {
         setSavedLandlords(landlords)
         if (profile?.email) setUserEmail(profile.email)
-        if (profile?.address) setPropertyAddress(profile.address)
-        if (profile?.properties) setUserProperties(profile.properties)
+        
+        const props = profile?.properties || []
+        setUserProperties(props)
+
+        // Check for propertyUuid in URL
+        const searchParams = new URLSearchParams(window.location.search)
+        const pUuid = searchParams.get('propertyUuid')
+        if (pUuid) {
+          setSelectedPropertyUuid(pUuid)
+          const prop = props.find((p: any) => p.uuid === pUuid)
+          if (prop) {
+            const loc = prop.location
+            const fullAddr = [prop.address, loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
+            setPropertyAddress(fullAddr)
+          }
+        } else if (profile?.address) {
+          setPropertyAddress(profile.address)
+        }
+        
         setPendingPayments(pending || [])
       })
       .catch(() => {})
@@ -92,7 +120,7 @@ export default function PayRentPage() {
         lineItems: lineItems.length > 0 ? lineItems : undefined,
         paymentType,
         propertyAddress,
-        userPropertyId: selectedPropertyId || undefined,
+        userPropertyUuid: selectedPropertyUuid || undefined,
       })
       if (res?.uuid) {
         setLastTxId(res.uuid)
@@ -209,16 +237,18 @@ export default function PayRentPage() {
             <StepAmount
               landlord={selectedLandlord}
               initialPropertyAddress={propertyAddress}
+              initialPropertyUuid={selectedPropertyUuid}
+              propertyBalance={propertyBalance}
               initialPaymentType={paymentType}
               requestedAmount={requestedAmount}
               totalPaidAlready={totalPaidAlready}
               userProperties={userProperties}
-              onContinue={(amt, nar, addr, name, items, propertyId) => {
+              onContinue={(amt, nar, addr, name, items, propertyUuid) => {
                 setPayAmount(amt)
                 setNarration(nar)
                 setPropertyAddress(addr)
                 setpaymentType(name)
-                setSelectedPropertyId(propertyId || null)
+                setSelectedPropertyUuid(propertyUuid || null)
                 if (items) setLineItems(items)
               }}
               onBack={() => {

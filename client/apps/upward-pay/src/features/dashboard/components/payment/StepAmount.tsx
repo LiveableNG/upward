@@ -49,6 +49,8 @@ export function StepAmount({
   userProperties = [],
   initialPaymentType = 'Rent Payment',
   initialPropertyAddress = '',
+  initialPropertyUuid = null,
+  propertyBalance = null,
   requestedAmount = 0,
   totalPaidAlready = 0,
   onContinue,
@@ -59,9 +61,17 @@ export function StepAmount({
   userProperties?: any[]
   initialPaymentType?: string
   initialPropertyAddress?: string
+  initialPropertyUuid?: string | null
+  propertyBalance?: {
+    totalOwed: number
+    amountPaid: number
+    remainingBalance: number
+    currency: string
+    hasActiveRequest: boolean
+  } | null
   requestedAmount?: number
   totalPaidAlready?: number
-  onContinue: (amount: number, narration: string, propertyAddress: string, propertyName: string, lineItems?: LineItem[], propertyId?: number) => void
+  onContinue: (amount: number, narration: string, propertyAddress: string, propertyName: string, lineItems?: LineItem[], propertyUuid?: string) => void
   onBack?: () => void
 }) {
   const remainingBalance = Math.max(0, requestedAmount - totalPaidAlready)
@@ -72,7 +82,22 @@ export function StepAmount({
   )
   const [narration, setNarration] = useState('')
   const [propertyAddress, setPropertyAddress] = useState(initialPropertyAddress)
-  const [selectedPropId, setSelectedPropId] = useState<number | null>(null)
+  const [selectedPropUuid, setSelectedPropUuid] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (userProperties.length > 0 && initialPropertyUuid) {
+      const prop = userProperties.find(p => p.uuid === initialPropertyUuid)
+      if (prop) {
+        setSelectedPropUuid(initialPropertyUuid)
+      }
+    }
+  }, [userProperties, initialPropertyUuid])
+
+  useEffect(() => {
+    if (propertyBalance && propertyBalance.remainingBalance > 0) {
+      setAmount(String(propertyBalance.remainingBalance))
+    }
+  }, [propertyBalance])
   const [paymentType, setPaymentType] = useState(initialPaymentType)
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [showOverpaymentDialog, setShowOverpaymentDialog] = useState(false)
@@ -200,26 +225,53 @@ export function StepAmount({
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-            {presets.map((p) => (
-              <button
-                key={p}
-                onClick={() => setAmount(String(p))}
-                style={{
-                  padding: '7px 14px',
-                  borderRadius: 20,
-                  border: `1px solid ${amount === String(p) ? 'var(--clay)' : 'var(--border-solid)'}`,
-                  background: amount === String(p) ? 'var(--clay-faint)' : 'var(--surface)',
-                  color: amount === String(p) ? 'var(--clay)' : 'var(--text-secondary)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font)',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {formatCurrency(p)}
-              </button>
-            ))}
+            {(requestedAmount > 0 || (propertyBalance && propertyBalance.remainingBalance > 0)) ? (
+              [
+                { label: '25%', val: Math.round((requestedAmount || (propertyBalance?.remainingBalance || 0)) * 0.25) },
+                { label: '50%', val: Math.round((requestedAmount || (propertyBalance?.remainingBalance || 0)) * 0.5) },
+                { label: 'Full', val: (requestedAmount || (propertyBalance?.remainingBalance || 0)) },
+              ].map(opt => (
+                <button
+                  key={opt.label}
+                  onClick={() => setAmount(String(opt.val))}
+                  style={{
+                    padding: '7px 14px',
+                    borderRadius: 20,
+                    border: `1px solid ${amount === String(opt.val) ? 'var(--clay)' : 'var(--border-solid)'}`,
+                    background: amount === String(opt.val) ? 'var(--clay-faint)' : 'var(--surface)',
+                    color: amount === String(opt.val) ? 'var(--clay)' : 'var(--text-secondary)',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {opt.label} ({formatCurrency(opt.val)})
+                </button>
+              ))
+            ) : (
+              presets.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setAmount(String(p))}
+                  style={{
+                    padding: '7px 14px',
+                    borderRadius: 20,
+                    border: `1px solid ${amount === String(p) ? 'var(--clay)' : 'var(--border-solid)'}`,
+                    background: amount === String(p) ? 'var(--clay-faint)' : 'var(--surface)',
+                    color: amount === String(p) ? 'var(--clay)' : 'var(--text-secondary)',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {formatCurrency(p)}
+                </button>
+              ))
+            )}
           </div>
         </>
       ) : (
@@ -381,20 +433,19 @@ export function StepAmount({
               appearance: 'none',
               cursor: 'pointer'
             }}
-            value={selectedPropId || ''}
+            value={selectedPropUuid || ''}
             onChange={(e) => {
               const val = e.target.value
               if (val === '') {
-                setSelectedPropId(null)
+                setSelectedPropUuid(null)
               } else if (val === 'manual') {
-                setSelectedPropId(-1 as any) // flag for manual
+                setSelectedPropUuid('manual') // flag for manual
               } else {
-                const pid = Number(val)
-                setSelectedPropId(pid)
-                const prop = userProperties.find(p => p.id === pid)
+                setSelectedPropUuid(val)
+                const prop = userProperties.find(p => p.uuid === val)
                 if (prop) {
                    const loc = prop.location
-                   const fullAddr = [prop.address || loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
+                   const fullAddr = [prop.address, loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
                    setPropertyAddress(fullAddr)
                 }
               }
@@ -403,8 +454,8 @@ export function StepAmount({
             <option value="">Choose a property...</option>
             {userProperties.map(p => {
                const loc = p.location
-               const label = [p.address || loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
-               return <option key={p.id} value={p.id}>{label}</option>
+               const label = [p.address, loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
+               return <option key={p.uuid} value={p.uuid}>{label}</option>
             })}
             <option value="manual">+ Type Address Manually</option>
           </select>
@@ -418,18 +469,55 @@ export function StepAmount({
           }}>
             <ChevronRight size={16} style={{ transform: 'rotate(90deg)' }} />
           </div>
+          {/* Manual Address Warning / Balance Notice */}
+        {propertyBalance && (
+          <div className="manual-address-info" style={{ background: 'var(--clay-faint)', border: '1px solid rgba(217,119,87,0.1)', padding: '12px', borderRadius: '8px', marginTop: '12px' }}>
+            <Info size={16} style={{ color: 'var(--clay)', float: 'left', marginRight: '8px' }} />
+            <div className="manual-address-info__text">
+              <span className="manual-address-info__title" style={{ color: 'var(--clay)', marginBottom: '4px', display: 'block', fontWeight: 600, fontSize: '12px' }}>Outstanding Balance Found</span>
+              <p style={{ fontSize: '12px', margin: 0 }}>
+                Total Rent: <strong>{formatCurrency(propertyBalance.totalOwed, propertyBalance.currency)}</strong> | 
+                Paid: <strong style={{ color: 'var(--clay)' }}>{formatCurrency(propertyBalance.amountPaid, propertyBalance.currency)}</strong>
+              </p>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Remaining Balance: <strong>{formatCurrency(propertyBalance.remainingBalance, propertyBalance.currency)}</strong>
+              </p>
+            </div>
+          </div>
+        )}
         </div>
 
-        {(selectedPropId === (-1 as any) || !selectedPropId) && (
-          <div style={{ ...inputWrapStyle, marginTop: 12 }}>
-            <input
-              type="text"
-              placeholder="e.g. 123 Main St, Lagos"
-              value={propertyAddress}
-              onChange={(e) => setPropertyAddress(e.target.value)}
-              style={inputStyle}
-            />
-          </div>
+        {(selectedPropUuid === 'manual' || !selectedPropUuid) && (
+          <>
+            <div style={{ ...inputWrapStyle, marginTop: 12 }}>
+              <input
+                type="text"
+                placeholder="e.g. 123 Main St, Lagos"
+                value={propertyAddress}
+                onChange={(e) => setPropertyAddress(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+            {propertyAddress && !selectedPropUuid && (
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 8, 
+                  marginTop: 8, 
+                  padding: '8px 12px', 
+                  background: 'var(--surface)', 
+                  borderRadius: 10,
+                  border: '1px solid var(--border-solid)'
+                }}
+              >
+                <Info size={14} color="var(--clay)" />
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>
+                  Consider adding this property to your <strong>profile</strong> for better credit scoring.
+                </span>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -454,7 +542,7 @@ export function StepAmount({
           if (requestedAmount > 0 && Number(amount) > remainingBalance) {
             setShowOverpaymentDialog(true)
           } else {
-            onContinue(Number(amount), narration, propertyAddress, paymentType, showBreakdown ? lineItems : undefined, (selectedPropId && selectedPropId !== -1) ? selectedPropId : undefined)
+            onContinue(Number(amount), narration, propertyAddress, paymentType, showBreakdown ? lineItems : undefined, (selectedPropUuid && selectedPropUuid !== 'manual') ? selectedPropUuid : undefined)
           }
         }}
         className="btn btn--primary btn--full"
@@ -516,7 +604,7 @@ export function StepAmount({
                 className="btn btn--primary btn--full" 
                 onClick={() => {
                   setShowOverpaymentDialog(false)
-                  onContinue(Number(amount), narration, propertyAddress, paymentType, showBreakdown ? lineItems : undefined)
+                  onContinue(Number(amount), narration, propertyAddress, paymentType, showBreakdown ? lineItems : undefined, (selectedPropUuid && selectedPropUuid !== 'manual') ? selectedPropUuid : undefined)
                 }}
                 style={{ height: 48 }}
               >
