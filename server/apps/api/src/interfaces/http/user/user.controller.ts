@@ -58,6 +58,21 @@ function setUserAuthCookies(reply: FastifyReply, accessToken: string, refreshTok
   })
 }
 
+function clearUserAuthCookies(reply: FastifyReply) {
+  const isProd = process.env['NODE_ENV'] === 'production' || !!process.env['VERCEL']
+  const options = {
+    path: '/',
+    httpOnly: true,
+    secure: isProd,
+    sameSite: (isProd ? 'none' : 'lax') as any,
+    partitioned: isProd,
+  }
+
+  reply.clearCookie(REFRESH_COOKIE_NAME, options)
+  reply.clearCookie(ACCESS_COOKIE_NAME, options)
+}
+
+
 @Controller('user/auth')
 export class UserController {
   constructor(
@@ -126,32 +141,29 @@ export class UserController {
   async refresh(@Req() req: FastifyRequest, @Res({ passthrough: false }) reply: FastifyReply) {
     const token = req.cookies?.[REFRESH_COOKIE_NAME]
     if (!token) {
+      clearUserAuthCookies(reply)
       throw new UnauthorizedException('No refresh token')
     }
-    const { refreshToken, ...rest } = await this.userAuthService.refreshAccessToken(token)
-    setUserAuthCookies(reply, rest.accessToken, refreshToken)
-    reply.status(HttpStatus.OK).send(rest)
+
+    try {
+      const { refreshToken, ...rest } = await this.userAuthService.refreshAccessToken(token)
+      setUserAuthCookies(reply, rest.accessToken, refreshToken)
+      reply.status(HttpStatus.OK).send(rest)
+    } catch (err) {
+      clearUserAuthCookies(reply)
+      throw err
+    }
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async logout(@Req() req: FastifyRequest, @Res({ passthrough: false }) reply: FastifyReply) {
-    const isProd = process.env['NODE_ENV'] === 'production' || !!process.env['VERCEL']
     const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME]
     if (refreshToken) {
       await this.userAuthService.revokeSession(refreshToken)
     }
 
-    const options = {
-      path: '/',
-      httpOnly: true,
-      secure: isProd,
-      sameSite: (isProd ? 'none' : 'lax') as any,
-      partitioned: isProd,
-    }
-
-    reply.clearCookie(REFRESH_COOKIE_NAME, options)
-    reply.clearCookie(ACCESS_COOKIE_NAME, options)
+    clearUserAuthCookies(reply)
     reply.status(HttpStatus.OK).send({ message: 'Logged out' })
   }
 

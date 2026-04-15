@@ -1,14 +1,26 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+function isTokenExpired(token: string): boolean {
+  try {
+    const payloadBase64 = token.split('.')[1]
+    if (!payloadBase64) return true
+    
+    const payload = JSON.parse(atob(payloadBase64))
+    const now = Math.floor(Date.now() / 1000)
+    
+    return payload.exp < now
+  } catch {
+    return true
+  }
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const hasToken = request.cookies.has('access_token')
+  const tokenCookie = request.cookies.get('access_token')
+  const hasToken = !!tokenCookie
+  const tokenValue = tokenCookie?.value
 
-  // 1. PUBLIC ROUTES - ALWAYS ALLOW
-  // (e.g. static assets, images, etc. handled by matcher)
-
-  // 2. AUTH-ONLY ROUTES (Must NOT be logged in)
   const isAuthPage = pathname.startsWith('/login') || 
                      pathname.startsWith('/signup') || 
                      pathname.startsWith('/invite') || 
@@ -16,12 +28,10 @@ export function middleware(request: NextRequest) {
                      pathname.startsWith('/reset-password')
 
   if (isAuthPage && hasToken) {
-    // If user is already logged in, don't let them see login/signup/invite pages
-    // Redirect them straight to the dashboard to avoid flickering
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    if (tokenValue && !isTokenExpired(tokenValue)) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
   }
-
-  // 3. PROTECTED ROUTES (Must BE logged in)
   const isProtectedPage = pathname.startsWith('/dashboard') || 
                           pathname.startsWith('/profile') || 
                           pathname.startsWith('/settings') ||
@@ -29,20 +39,13 @@ export function middleware(request: NextRequest) {
                           pathname.startsWith('/transactions')
 
   if (isProtectedPage && !hasToken) {
-    // Force them to login if they try to access protected content
     const url = new URL('/login', request.url)
     url.searchParams.set('redirect', pathname)
     return NextResponse.redirect(url)
   }
 
-  // 4. HYBRID ROUTES (e.g. /pay/[token])
-  // These are allowed for both guests and authenticated users.
-  // No redirect logic needed here for now.
-
   return NextResponse.next()
 }
-
-// Optimization: Ensure matcher covers all relevant paths
 export const config = {
   matcher: [
     '/dashboard/:path*', 

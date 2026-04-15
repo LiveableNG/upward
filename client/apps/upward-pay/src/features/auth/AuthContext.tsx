@@ -30,9 +30,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const profile = await getMe()
       setUser(profile)
-    } catch {
-      setAccessToken(null)
-      setUser(null)
+    } catch (err) {
+      console.error('Initial auth check failed or session expired:', err)
+      await logout()
     } finally {
       setLoading(false)
     }
