@@ -55,7 +55,7 @@ export function PageHeader({
       <div className="dashboard__header-left">
         {showBack && (
           <button 
-            className="dashboard__back" 
+            className="dashboard__back mobile-only" 
             onClick={handleBack} 
             type="button"
             data-back-label={effectiveBackLabel}

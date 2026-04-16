@@ -16,6 +16,7 @@ export interface PendingPayment {
   company_logo?: string
   allowPartial?: boolean
   property_address?: string
+  userPropertyUuid?: string
   lineItemRecords?: any[]
   due_date?: string | Date
   dueDate?: string | Date

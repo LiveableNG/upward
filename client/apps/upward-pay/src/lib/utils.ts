@@ -8,8 +8,20 @@ export function formatCurrency(amount: number | undefined | null, currency = 'NG
   }).format(val)
 }
 
-export function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-NG', {
+export function formatDate(date: string | number | Date | undefined | null): string {
+  if (!date) return 'N/A'
+  
+  let d: Date
+  // Handle numeric strings (timestamps)
+  if (typeof date === 'string' && /^\d+$/.test(date)) {
+    d = new Date(parseInt(date, 10))
+  } else {
+    d = new Date(date)
+  }
+
+  if (isNaN(d.getTime())) return 'Invalid Date'
+  
+  return d.toLocaleDateString('en-NG', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
