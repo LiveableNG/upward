@@ -3,21 +3,51 @@
 import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Bell, Settings, Share2 } from 'lucide-react'
+import { Bell, Settings, Share2, LucideIcon } from 'lucide-react'
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { UpwardLogo } from '@/components/PoweredByUpward'
 
 import { NotificationPanel } from './NotificationPanel'
 
+import { useAuth } from '@/features/auth/AuthContext'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/lib/api'
+
 interface DashboardHeaderProps {
-  firstName: string
-  notifCount: number
+  // Now optional as we'll use hooks if not provided
+  firstName?: string
+  notifCount?: number
   profilePic?: string
 }
 
-export function DashboardHeader({ firstName, notifCount, profilePic }: DashboardHeaderProps) {
+export function DashboardHeader({ 
+  firstName: propFirstName, 
+  notifCount: propNotifCount, 
+  profilePic: propProfilePic 
+}: DashboardHeaderProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const { user } = useAuth()
   const [isNotifOpen, setIsNotifOpen] = useState(false)
+
+  const { data: notifData } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => api.getNotifications(),
+    enabled: !!user,
+  })
+
+  const { data: dashboardData } = useQuery({
+    queryKey: ['dashboard-counts'],
+    queryFn: () => api.getPendingPayments(),
+    enabled: !!user,
+  })
+
+  // Prioritize props, then hooks
+  const firstName = propFirstName || user?.firstName || 'User'
+  const profilePic = propProfilePic || user?.profilePic
+  const notifCount = propNotifCount ?? ((notifData?.unreadCount || 0) + (dashboardData?.length || 0))
+
+  const isHome = pathname === '/dashboard'
 
   const handleNotifClick = () => {
     // Desktop: Open Slide Panel | Mobile: Direct route to page
@@ -30,7 +60,7 @@ export function DashboardHeader({ firstName, notifCount, profilePic }: Dashboard
 
   return (
     <>
-      <header className="dashboard__header">
+      <header className={`dashboard__header ${typeof window !== 'undefined' && window.innerWidth >= 1024 ? 'dashboard__header--desktop' : 'dashboard__header--mobile'}`}>
 
 
         {/* Mobile User Block (Hidden on desktop) */}
@@ -60,21 +90,21 @@ export function DashboardHeader({ firstName, notifCount, profilePic }: Dashboard
           <button 
             className="dashboard__icon-btn" 
             onClick={() => router.push('/dashboard/kyc')}
-            title="Share Page"
+            title="Identity Verification"
           >
             <Share2 size={18} />
           </button>
-          <button className="dashboard__icon-btn" onClick={() => router.push('/dashboard/settings')}>
+          <button className="dashboard__icon-btn" onClick={() => router.push('/dashboard/settings')} title="Settings">
             <Settings size={18} />
           </button>
           <button
             className="dashboard__icon-btn dashboard__icon-btn--notif"
             onClick={handleNotifClick}
+            title="Notifications"
           >
             <Bell size={18} />
             {notifCount > 0 && <span className="dashboard__notif-badge">{notifCount}</span>}
           </button>
-
 
         </div>
       </header>

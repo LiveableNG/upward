@@ -178,9 +178,9 @@ export default function PayRentPage() {
         `}</style>
 
         {step !== 'checkout' && step !== 'processing' && step !== 'success' && (
-          <header className="dashboard__header" style={{ marginBottom: 20 }}>
+          <header className="dashboard__header" style={{ marginBottom: 32 }}>
             <div className="dashboard__header-left">
-              <button className="dashboard__back" onClick={handleBack}>
+              <button className="dashboard__back mobile-only" onClick={handleBack}>
                 <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} />
               </button>
               <h2 className="dashboard__title">{stepTitle[step]}</h2>

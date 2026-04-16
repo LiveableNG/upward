@@ -17,7 +17,7 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
   }
 
   const { isScorable, score: credScore, rank, band, metrics } = scoreProfile.data
-  const credPercentage = isScorable ? (credScore / 900) * 100 : (500 / 900) * 100
+  const credPercentage = isScorable ? (credScore / 800) * 100 : (400 / 800) * 100
   const streak = metrics.longestStreak
   const onTime = Math.round(metrics.ptPercentage)
   const profileCompletion = scoreProfile.data.profile.profileCompletion
@@ -329,8 +329,9 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
           right: -10px;
           background: var(--bg);
           border: 2px solid var(--clay);
-          width: 58px;
-          height: 58px;
+          min-width: 58px;
+          padding: 6px 8px;
+          height: 62px;
           border-radius: 18px;
           display: flex;
           flex-direction: column;

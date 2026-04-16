@@ -7,6 +7,7 @@ import FallbackSuspense from '@/components/FallbackSuspense'
 
 import { BottomNav } from '@/features/dashboard/components/BottomNav'
 import { AnnouncementManager } from '@/features/dashboard/components/AnnouncementManager'
+import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -29,6 +30,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="dashboard-layout">
+      {/* Desktop Global Header */}
+      <div className="desktop-only">
+        <DashboardHeader />
+      </div>
+
       <AnnouncementManager />
       <main className="dashboard-layout__content">
         <Suspense fallback={<FallbackSuspense message="Loading..." />}>{children}</Suspense>
@@ -37,3 +43,4 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </div>
   )
 }
+

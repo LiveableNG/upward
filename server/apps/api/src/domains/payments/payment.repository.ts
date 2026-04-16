@@ -142,6 +142,7 @@ export interface PaymentRequest {
   platformName?: string
   platformId?: number
   lineItemRecords?: PaymentLineItem[]
+  userPropertyUuid?: string
   createdAt: Date
   updatedAt: Date
 }

@@ -29,6 +29,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     company_name: p.company_name || p.manager_name || 'Unmanaged Property',
     manager_name: p.manager_name || null,
     property_address: p.property_address || null,
+    userPropertyUuid: p.userPropertyUuid || null,
     description: p.description,
     due_date: p.due_date,
     payment_link_token: p.uuid,

@@ -463,6 +463,7 @@ export class GetPendingPaymentsUseCase {
         company_name: p.companyName,
         manager_name: p.managerName,
         property_address: p.propertyLocation,
+        userPropertyUuid: p.userPropertyUuid,
         lineItemRecords,
       }
     }))

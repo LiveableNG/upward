@@ -70,9 +70,9 @@ export function TransactionList() {
 
   return (
     <div className="transactions-list-page dashboard--nav-offset">
-      <header className="dashboard__header">
+      <header className="dashboard__header" style={{ marginBottom: 32 }}>
         <div className="dashboard__header-left">
-          <button className="dashboard__back" onClick={() => router.push('/dashboard')}>
+          <button className="dashboard__back mobile-only" onClick={() => router.push('/dashboard')}>
             <ArrowLeft size={20} />
           </button>
           <h2 className="dashboard__title">Transactions</h2>

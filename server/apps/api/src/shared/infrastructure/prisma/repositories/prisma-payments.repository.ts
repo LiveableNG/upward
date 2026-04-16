@@ -301,9 +301,8 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       userPropertyId: res.userPropertyId ?? undefined,
       subaccountId: res.subaccountId ?? undefined,
       subaccount: res.subaccount as unknown as PaystackSubaccount,
-      webhookUrl: (res.userProperty as any)?.company?.platform?.webhookUrl,
-      platformName: (res.userProperty as any)?.company?.platform?.name,
       platformId: (res.userProperty as any)?.company?.platform?.id,
+      userPropertyUuid: res.userProperty?.uuid,
     } as unknown as PaymentRequest
   }
 
@@ -331,9 +330,8 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       userPropertyId: res.userPropertyId ?? undefined,
       subaccountId: res.subaccountId ?? undefined,
       subaccount: res.subaccount as unknown as PaystackSubaccount,
-      webhookUrl: (res.userProperty as any)?.company?.platform?.webhookUrl,
-      platformName: (res.userProperty as any)?.company?.platform?.name,
       platformId: (res.userProperty as any)?.company?.platform?.id,
+      userPropertyUuid: res.userProperty?.uuid,
     } as unknown as PaymentRequest
   }
 
@@ -368,6 +366,7 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       propertyLocation: (r.userProperty as any)?.location?.address,
       subaccountId: r.subaccountId ?? undefined,
       subaccount: r.subaccount as unknown as PaystackSubaccount,
+      userPropertyUuid: (r.userProperty as any)?.uuid,
     })) as unknown as PaymentRequest[]
   }
 
@@ -402,6 +401,7 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       propertyLocation: (r.userProperty as any)?.location?.address,
       subaccountId: r.subaccountId ?? undefined,
       subaccount: r.subaccount as unknown as PaystackSubaccount,
+      userPropertyUuid: (r.userProperty as any)?.uuid,
     })) as unknown as PaymentRequest[]
   }
 

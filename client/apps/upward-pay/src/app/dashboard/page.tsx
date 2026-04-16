@@ -32,6 +32,7 @@ export default function DashboardPage() {
   const [localDismissedBanner, setLocalDismissedBanner] = useState(false)
   const [heroSlideIndex, setHeroSlideIndex] = useState(0)
 
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const dismissed = localStorage.getItem('app_banner_dismissed') === 'true'
@@ -110,10 +111,15 @@ export default function DashboardPage() {
   const onTime = Math.round(scoreData?.metrics?.ptPercentage || 0)
   const streak = scoreData?.metrics?.longestStreak || 0
   const profileCompletion = scoreData?.profile?.profileCompletion || 0
-  const credPercentage = isScorable ? (credScore / 900) * 100 : (500 / 900) * 100
+  const credPercentage = isScorable ? (credScore / 800) * 100 : (400 / 800) * 100
   
   const propertyReminders = (user.properties || [])
     .filter(prop => !!prop.rentEndDate)
+    .filter(prop => {
+      // Deduplicate: If there's an active pending payment for this property, don't show the generic reminder
+      const hasPending = pendingPayments.some((p: any) => p.userPropertyUuid === prop.uuid)
+      return !hasPending
+    })
     .map(prop => {
       const d = new Date(prop.rentEndDate!)
       const now = new Date()
@@ -129,9 +135,13 @@ export default function DashboardPage() {
       return {
         type: 'rent_reminder',
         id: prop.uuid,
-        title: isOverdue ? 'Urgent: Rent Overdue' : 'Upcoming Rent Due',
-        desc: `Rent for ${prop.location?.address || prop.location?.area || 'your property'} was due on ${formatDate(prop.rentEndDate!)}.`,
-        actionLabel: 'Update Status',
+        title: isOverdue ? 'Rent Overdue' : 'Rent Due soon',
+        property_address: prop.location?.address || prop.location?.area,
+        rentEndDate: prop.rentEndDate,
+        desc: isOverdue 
+          ? `Rent for ${prop.location?.address || prop.location?.area || 'your property'} was due on ${formatDate(prop.rentEndDate!)}.`
+          : `Your next rent payment for ${prop.location?.address || prop.location?.area || 'your property'} is due on ${formatDate(prop.rentEndDate!)}.`,
+        actionLabel: isOverdue ? 'Pay Overdue Rent' : 'Pay Rent Now',
         action: () => router.push(`/dashboard/pay-rent?propertyUuid=${prop.uuid}`),
         isCritical: isOverdue,
         bg: isOverdue ? 'var(--error)' : 'var(--clay-faint)'
@@ -158,11 +168,14 @@ export default function DashboardPage() {
 
   return (
     <div className="dashboard dashboard--nav-offset">
-      <DashboardHeader
-        firstName={firstName}
-        notifCount={notifCount}
-        profilePic={user.profilePic}
-      />
+      <div className="mobile-only">
+        <DashboardHeader
+          firstName={firstName}
+          notifCount={notifCount}
+          profilePic={user.profilePic}
+        />
+        {shouldShowAppBanner && <AppInstallBanner onDismiss={handleDismissBanner} />}
+      </div>
 
       <StatStrip
         completedPaymentsCount={completedPayments.length}
@@ -194,7 +207,6 @@ export default function DashboardPage() {
             <div className="right-stack">
               <AnnouncementBanner />
               <RecentActivityWidget payments={completedPayments} />
-              {shouldShowAppBanner && <AppInstallBanner onDismiss={handleDismissBanner} />}
               <ShareCredibility profileSlug={user.profileSlug} />
               <div className="desktop-only"><UpcomingFeaturesWidget /></div>
             </div>
@@ -212,126 +224,152 @@ export default function DashboardPage() {
               ...pendingPayments.map(p => ({ ...p, type: 'payment' })),
               ...propertyReminders.map(r => ({ ...r, type: 'property' }))
             ].sort((a: any, b: any) => {
+              // Priority 1: Payments vs Reminders
+              if (a.type !== b.type) return a.type === 'payment' ? -1 : 1
+              
               const aCritical = a.isCritical || (a.due_date && new Date(a.due_date) < new Date()) ? 1 : 0
               const bCritical = b.isCritical || (b.due_date && new Date(b.due_date) < new Date()) ? 1 : 0
-              return bCritical - aCritical
+              if (aCritical !== bCritical) return bCritical - aCritical
+              return 0
             })
 
             const hasSlides = heroSlides.length > 0
-            const currentHero = hasSlides ? heroSlides[heroSlideIndex % heroSlides.length] : null
+            const currentIdx = heroSlideIndex % heroSlides.length
+            const currentHero = hasSlides ? heroSlides[currentIdx] : null
             const heroItem = currentHero as any
             const isOverdue = heroItem?.isCritical || (heroItem?.due_date && new Date(heroItem.due_date) < new Date())
+            
+            const targetPaymentIdx = heroSlides.findIndex((s: any) => s.type === 'payment')
+            const shouldBeamPrev = heroItem.type === 'property' && targetPaymentIdx !== -1 && targetPaymentIdx < currentIdx
+            const shouldBeamNext = heroItem.type === 'property' && targetPaymentIdx !== -1 && targetPaymentIdx > currentIdx
+
+            // Calculate days for wording
+            const d = new Date(heroItem?.due_date || heroItem?.rentEndDate || Date.now())
+            const diff = d.getTime() - new Date().getTime()
+            const daysLeft = Math.ceil(diff / (1000 * 60 * 60 * 24))
 
             return (
               <div className={`bento-cell bento-cell--hero ${isOverdue ? 'is-overdue' : ''}`}>
-                {hasSlides ? (
-                  <div className="bento-hero-pending">
-                    <div className="bento-hero-pending__top">
-                      <div className="bento-hero-pending__badge">
-                        {isOverdue 
-                          ? (heroItem.type === 'payment' && (heroItem.amountPaid || 0) > 0 ? 'URGENT: PARTIAL PAID' : 'PAYMENT OVERDUE')
-                          : (heroItem.type === 'payment' && (heroItem.amountPaid || 0) > 0 ? 'PARTIAL PAYMENT' : 'PAYMENT PENDING')
-                        }
-                      </div>
-                      
-                      {heroSlides.length > 1 && (
-                        <div className="bento-hero-nav">
-                          <button 
-                            className="bento-hero-nav-btn" 
-                            onClick={() => setHeroSlideIndex(prev => (prev - 1 + heroSlides.length) % heroSlides.length)}
-                          >
-                            <ChevronLeft size={16} />
-                          </button>
-                          <span className="bento-hero-nav-info">{heroSlideIndex + 1} / {heroSlides.length}</span>
-                          <button 
-                            className="bento-hero-nav-btn" 
-                            onClick={() => setHeroSlideIndex(prev => (prev + 1) % heroSlides.length)}
-                          >
-                            <ChevronRight size={16} />
-                          </button>
-                        </div>
-                      )}
+                {hasSlides && (
+                  <div className="bento-hero-pending__top">
+                    <div className="bento-hero-pending__badge">
+                      {isOverdue 
+                        ? (heroItem.type === 'payment' 
+                            ? ((heroItem.amountPaid || 0) > 0 ? 'URGENT: BALANCE DUE' : 'PAYMENT OVERDUE') 
+                            : 'RENT OVERDUE')
+                        : (heroItem.type === 'payment' 
+                            ? ((heroItem.amountPaid || 0) > 0 ? 'PARTIAL PAYMENT' : 'PAYMENT DUE SOON') 
+                            : 'RENT DUE SOON')
+                      }
                     </div>
-
-                    <h2 className="bento-hero-pending__title">
-                      {isOverdue ? 'Action Required' : 'Upcoming Rent'} <br />
-                      <span className="bento-hero-pending__accent">
-                        {heroItem.property_address || heroItem.company_name || heroItem.title || 'Soon'}
-                      </span>
-                    </h2>
-
-                    {heroItem.type === 'payment' ? (
-                      <>
-                        <div className="bento-hero-pending__amount">
-                          {formatCurrency(heroItem.total_amount - (heroItem.amountPaid || 0), heroItem.currency)}
-                          {(heroItem.amountPaid || 0) > 0 && <span className="bento-hero-pending__total"> of {formatCurrency(heroItem.total_amount, heroItem.currency)}</span>}
-                        </div>
-                        <p className="bento-hero-pending__desc">
-                          {(heroItem.amountPaid || 0) > 0
-                            ? `Balance payment for your rent at ${heroItem.property_address || heroItem.company_name}.`
-                            : `A new invoice has been generated for your rent at ${heroItem.property_address || heroItem.company_name}.`
-                          }
-                        </p>
-                        <div className="bento-hero-pending__actions">
-                          <button
-                            className="btn btn--primary bento-hero-btn"
-                            onClick={() => router.push(`/pay/${heroItem.uuid}`)}
-                          >
-                            Pay Now <ArrowRight size={16} />
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <p className="bento-hero-pending__desc" style={{ fontSize: '1.1rem', marginTop: '0.5rem' }}>
-                          {heroItem.desc}
-                        </p>
-                        <div className="bento-hero-pending__actions">
-                          <button
-                            className="btn btn--primary bento-hero-btn"
-                            onClick={heroItem.action}
-                          >
-                            {heroItem.actionLabel} <ArrowRight size={16} />
-                          </button>
-                        </div>
-                      </>
+                    
+                    {heroSlides.length > 1 && (
+                      <div className="bento-hero-nav">
+                        <button 
+                          className={`bento-hero-nav-btn ${shouldBeamPrev ? 'bento-hero-nav-btn--beam' : ''}`} 
+                          onClick={(e) => { e.stopPropagation(); setHeroSlideIndex(prev => (prev - 1 + heroSlides.length) % heroSlides.length); }}
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        <span className="bento-hero-nav-info">{currentIdx + 1} / {heroSlides.length}</span>
+                        <button 
+                          className={`bento-hero-nav-btn ${shouldBeamNext ? 'bento-hero-nav-btn--beam' : ''}`} 
+                          onClick={(e) => { e.stopPropagation(); setHeroSlideIndex(prev => (prev + 1) % heroSlides.length); }}
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
                     )}
-                  </div>
-                ) : isNewUser ? (
-                  <div className="bento-hero-score">
-                     <div className="bento-hero-score__label" style={{ color: 'var(--clay)' }}>Setup Required</div>
-                     <h2 className="bento-hero-score__title">Complete your<br />Profile</h2>
-                     <p className="bento-hero-score__desc">Add your property details to start building your credibility score.</p>
-                     <button className="btn btn--primary bento-hero-btn" onClick={() => router.push('/dashboard/me?view=personal')}>
-                       Get Started <ArrowRight size={16} />
-                     </button>
-                  </div>
-                ) : (
-                  <div className="bento-hero-score">
-                    <div className="bento-hero-score__label">All Payments Up to Date</div>
-                    <h2 className="bento-hero-score__title">Great standing,<br /><span style={{ color: 'var(--clay)' }}>{firstName}</span></h2>
-                    <p className="bento-hero-score__desc">Keep paying on time to maintain your credibility score.</p>
-                    <button className="btn btn--primary bento-hero-btn" onClick={() => router.push('/dashboard/pay-rent')}>
-                      Pay Rent <ArrowRight size={16} />
-                    </button>
                   </div>
                 )}
 
-                {/* Score Circle overlay */}
+                <div className="bento-hero-main">
+                  {hasSlides ? (
+                    <div className="bento-hero-pending">
+                      <h2 className="bento-hero-pending__title">
+                        {isOverdue ? 'Action Required' : (daysLeft <= 7 ? 'Payment Due' : 'Rent Payment')} <br />
+                        <span className="bento-hero-pending__accent">
+                          {heroItem.property_address || heroItem.company_name || heroItem.title || 'Soon'}
+                        </span>
+                      </h2>
+
+                      {heroItem.type === 'payment' ? (
+                        <>
+                          <div className="bento-hero-pending__amount">
+                            {formatCurrency(heroItem.total_amount - (heroItem.amountPaid || 0), heroItem.currency)}
+                            {(heroItem.amountPaid || 0) > 0 && <span className="bento-hero-pending__total"> of {formatCurrency(heroItem.total_amount, heroItem.currency)}</span>}
+                          </div>
+                          <p className="bento-hero-pending__desc">
+                            {(heroItem.amountPaid || 0) > 0
+                              ? `Balance payment for your rent at ${heroItem.property_address || heroItem.company_name}.`
+                              : `A new invoice has been generated for your rent at ${heroItem.property_address || heroItem.company_name}.`
+                            }
+                          </p>
+                          <div className="bento-hero-pending__actions">
+                            <button
+                              className="btn btn--primary bento-hero-btn"
+                              onClick={() => router.push(`/pay/${heroItem.uuid}`)}
+                            >
+                              Pay Now <ArrowRight size={16} />
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p className="bento-hero-pending__desc">
+                            {heroItem.type === 'property' && isOverdue ? (
+                              <>
+                                Rent for {heroItem.property_address || 'your property'} was due on{' '}
+                                <span className="bento-hero-date-hl">{formatDate(heroItem.rentEndDate!)}</span>.
+                              </>
+                            ) : heroItem.desc}
+                          </p>
+                          <div className="bento-hero-pending__actions">
+                            <button
+                              className="btn btn--primary bento-hero-btn"
+                              onClick={heroItem.action}
+                            >
+                              {heroItem.actionLabel} <ArrowRight size={16} />
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ) : isNewUser ? (
+                    <div className="bento-hero-score">
+                       <div className="bento-hero-score__label" style={{ color: 'var(--clay)' }}>Setup Required</div>
+                       <h2 className="bento-hero-score__title">Complete your<br />Profile</h2>
+                       <p className="bento-hero-score__desc">Add your property details to start building your credibility score.</p>
+                       <button className="btn btn--primary bento-hero-btn" onClick={() => router.push('/dashboard/me?view=personal')}>
+                         Get Started <ArrowRight size={16} />
+                       </button>
+                    </div>
+                  ) : (
+                    <div className="bento-hero-score">
+                      <div className="bento-hero-score__label">All Payments Up to Date</div>
+                      <h2 className="bento-hero-score__title">Great standing,<br /><span style={{ color: 'var(--clay)' }}>{firstName}</span></h2>
+                      <p className="bento-hero-score__desc">Keep paying on time to maintain your credibility score.</p>
+                      <button className="btn btn--primary bento-hero-btn" onClick={() => router.push('/dashboard/pay-rent')}>
+                        Pay Rent <ArrowRight size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <div className="bento-hero-score-widget">
-                  <svg viewBox="0 0 100 100" className="bento-score-svg">
-                    <circle className="bento-score-bg" cx="50" cy="50" r="42" />
-                    <circle
-                      className="bento-score-fill"
-                      cx="50" cy="50" r="42"
-                      style={{
-                        strokeDasharray: `${credPercentage * 2.639} 263.9`,
-                        stroke: getRankColor(),
-                      }}
+                  <svg className="bento-score-svg" viewBox="0 0 100 100">
+                    <circle className="bento-score-bg" cx="50" cy="50" r="45" />
+                    <circle 
+                      className="bento-score-fill" 
+                      cx="50" cy="50" r="45" 
+                      style={{ 
+                        strokeDasharray: `${credPercentage * 2.83} 283`,
+                        stroke: getRankColor()
+                      }} 
                     />
                   </svg>
                   <div className="bento-score-inner">
-                    <span className="bento-score-num">{credScore}</span>
+                    <span className="bento-score-num" style={{ color: getRankColor() }}>{credScore}</span>
                     <span className="bento-score-lbl">UPWARD SCORE</span>
                   </div>
                   <div className="bento-score-rank" style={{ borderColor: getRankColor() }}>
@@ -499,9 +537,36 @@ export default function DashboardPage() {
           min-height: 360px;
           display: flex;
           flex-direction: column;
-          justify-content: flex-end;
+          justify-content: flex-start;
           padding: 2rem;
           overflow: visible;
+        }
+
+        .bento-hero-main {
+          margin-top: auto;
+          flex-grow: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+        }
+
+        .bento-hero-date-hl {
+          border-bottom: 2px dashed rgba(255,255,255,0.4);
+          padding-bottom: 2px;
+          font-weight: 700;
+        }
+
+        .bento-hero-nav-btn--beam {
+          animation: navBeam 1.5s infinite;
+          background: white !important;
+          color: var(--error) !important;
+          box-shadow: 0 0 20px rgba(255,255,255,0.8);
+          border-color: white !important;
+        }
+
+        @keyframes navBeam {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.25); opacity: 0.8; }
         }
 
         .bento-cell--metric {
@@ -644,9 +709,41 @@ export default function DashboardPage() {
 
         .bento-hero-pending__top {
           display: flex;
-          justify-content: space-between;
+          justify-content: flex-start;
           align-items: center;
-          margin-bottom: 1rem;
+          gap: 12px;
+          margin-bottom: 2rem;
+          position: relative;
+          z-index: 10;
+        }
+
+        .bento-hero-main {
+          margin-top: auto;
+          flex-grow: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+          position: relative;
+          z-index: 2;
+        }
+
+        .bento-hero-date-hl {
+          border-bottom: 2px dashed rgba(255,255,255,0.4);
+          padding-bottom: 2px;
+          font-weight: 700;
+        }
+
+        .bento-hero-nav-btn--beam {
+          animation: navBeam 1.5s infinite;
+          background: white !important;
+          color: var(--error) !important;
+          box-shadow: 0 0 20px rgba(255,255,255,0.8);
+          border-color: white !important;
+        }
+
+        @keyframes navBeam {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.25); opacity: 0.8; }
         }
 
         .bento-hero-nav {
@@ -832,16 +929,18 @@ export default function DashboardPage() {
           position: absolute;
           bottom: -4px;
           right: -4px;
-          width: 38px;
-          height: 38px;
+          min-width: 44px;
+          height: 44px;
+          padding: 4px 6px;
           background: var(--bg);
           border: 2px solid;
-          border-radius: 10px;
+          border-radius: 12px;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
           box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          z-index: 4;
         }
 
         .bento-score-rank-letter {
