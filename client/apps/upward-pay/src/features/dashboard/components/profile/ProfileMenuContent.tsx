@@ -869,7 +869,7 @@ function ProfileMenuContentInner() {
                 >
                   <div className="profile-menu-item__left">
                     <div className="profile-menu-item__icon-wrap">
-                      <Icon size={17} color="var(--clay)" />
+                      <Icon size={17} />
                     </div>
                     <span className="profile-menu-item__title">{s.title}</span>
                   </div>
@@ -893,21 +893,6 @@ function ProfileMenuContentInner() {
                 <span className="profile-menu-item__title">Sign Out</span>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div className="dashboard__col--right">
-          <div className="dashboard__card support-card">
-            <h3 className="support-card__title">Need Help?</h3>
-            <p className="support-card__text">
-              Having issues with your account or need to update restricted information?
-            </p>
-            <button
-              className="btn btn--secondary btn--full"
-              onClick={() => router.push('/dashboard/help')}
-            >
-              Contact Support
-            </button>
           </div>
         </div>
       </div>
@@ -1091,24 +1076,25 @@ function ProfileMenuContentInner() {
           background: var(--bg);
           border-radius: var(--card-radius);
           border: 1px solid var(--local-border);
-          padding: 0.5rem;
+          padding: 0.75rem;
           display: flex;
           flex-direction: column;
-          gap: 0.125rem;
+          gap: 0.5rem;
         }
 
         .profile-menu-item {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 0.875rem 1rem;
+          padding: 1rem 1.1rem;
           border-radius: 14px;
           cursor: pointer;
-          transition: background 0.15s ease;
+          transition: background 0.15s ease, transform 0.1s ease;
         }
 
         .profile-menu-item:hover {
           background: var(--local-surface);
+          transform: translateY(-1px);
         }
 
         .profile-menu-item__left {
@@ -1139,10 +1125,18 @@ function ProfileMenuContentInner() {
           background: var(--clay);
         }
 
-        .profile-menu-item:hover .profile-menu-item__icon-wrap :global(svg) {
-          color: white !important;
+        .profile-menu-item__icon-wrap :global(svg) {
+          stroke: var(--clay);
+          transition: stroke 0.15s ease;
         }
 
+        .profile-menu-item:hover .profile-menu-item__icon-wrap {
+          background: var(--clay);
+        }
+
+        .profile-menu-item:hover .profile-menu-item__icon-wrap :global(svg) {
+          stroke: white;
+        }
         .profile-menu-item__title {
           font-weight: 600;
           color: var(--text);

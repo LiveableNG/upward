@@ -13,6 +13,26 @@
   }
 }
 
+@keyframes textZoomOut {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes textZoomOutSubtle {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+}
+
 @keyframes shimmer {
   0% {
     transform: translateX(-100%);
@@ -200,6 +220,16 @@
 
 .animate-beam-red {
   animation: alertBeamRed 2s ease-in-out infinite;
+}
+
+.animate-text-zoom {
+  animation: textZoomOut 1.5s ease-in-out infinite;
+  display: inline-block;
+}
+
+.animate-text-zoom-subtle {
+  animation: textZoomOutSubtle 2s ease-in-out infinite;
+  display: inline-block;
 }
 
 .animate-fadeIn {

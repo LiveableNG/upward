@@ -13,6 +13,40 @@ interface ActionCarouselProps {
   rentReminders: any[]
 }
 
+const buildPaymentMessage = (p: PendingPayment) => {
+  const remaining = p.total_amount - (p.amountPaid || 0)
+  const isPartial = (p.amountPaid || 0) > 0
+
+  const dateStr = p.due_date || p.dueDate
+  const isOverdue = dateStr ? new Date(dateStr) < new Date() : false
+
+  if (isOverdue && isPartial) {
+    return {
+      title: 'Overdue Balance',
+      desc: `${p.company_name} is awaiting ${formatCurrency(remaining, p.currency)}. This payment is past due. Settle now to avoid further impact.`
+    }
+  }
+
+  if (isOverdue) {
+    return {
+      title: 'Payment Overdue',
+      desc: `${p.company_name} issued an invoice of ${formatCurrency(p.total_amount, p.currency)} which is now past due. Immediate payment is required.`
+    }
+  }
+
+  if (isPartial) {
+    return {
+      title: 'Balance Remaining',
+      desc: `${formatCurrency(remaining, p.currency)} is still pending for ${p.company_name}. Complete payment before the deadline.`
+    }
+  }
+
+  return {
+    title: 'New Invoice',
+    desc: `${p.company_name} requested ${formatCurrency(p.total_amount, p.currency)}. Review and complete payment before the due date.`
+  }
+}
+
 export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: ActionCarouselProps) {
   const router = useRouter()
   const [index, setIndex] = useState(0)
@@ -33,16 +67,7 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
     slides.push({
       type: 'pending',
       id: p.uuid,
-      title: isPartial 
-        ? (isOverdue ? 'Immediate: Partial Balance Due' : 'Partial Payment Pending') 
-        : (isOverdue ? 'Urgent: Rent Payment Due' : 'Rent Payment Pending'),
-      desc: isPartial 
-        ? (isOverdue 
-            ? `Settle your balance of ${formatCurrency(remaining, p.currency)} for ${p.company_name} immediately. Late payments affect your credibility score.` 
-            : `Balance: ${formatCurrency(remaining, p.currency)} is due for ${p.company_name}.`)
-        : (isOverdue 
-            ? `${p.company_name} is awaiting payment of ${formatCurrency(p.total_amount, p.currency)}. Late payments affect your credibility score.` 
-            : `New invoice from ${p.company_name} for ${formatCurrency(p.total_amount, p.currency)}.`),
+      ...buildPaymentMessage(p),
       actionLabel: 'Pay Now',
       action: () => router.push(`/pay/${p.uuid}`),
       icon: <Clock size={20} color={isOverdue ? "white" : "var(--clay)"} />,
@@ -109,8 +134,8 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
       >
         <div className="action-carousel__icon-wrap">{current.icon}</div>
         <div className="action-carousel__content">
-          <h4 className="action-carousel__title">{current.title}</h4>
-          <p className="action-carousel__desc">{current.desc}</p>
+          <h4 className={`action-carousel__title ${current.isCritical && current.type === 'pending' ? 'animate-text-zoom' : ''}`}>{current.title}</h4>
+          <p className={`action-carousel__desc ${current.isCritical && current.type === 'pending' ? 'animate-text-zoom-subtle' : ''}`}>{current.desc}</p>
           <button className="action-carousel__btn" onClick={(e) => { e.stopPropagation(); current.action(); }}>
             <span>{current.actionLabel}</span>
             <ArrowRight size={14} />
