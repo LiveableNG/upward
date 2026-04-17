@@ -31,7 +31,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     property_address: p.property_address || null,
     userPropertyUuid: p.userPropertyUuid || null,
     description: p.description,
-    due_date: p.due_date,
+    due_date: p.due_date || p.dueDate,
     payment_link_token: p.uuid,
     invoice_number: p.invoice_number || p.uuid.slice(0, 8),
     notes: p.description,

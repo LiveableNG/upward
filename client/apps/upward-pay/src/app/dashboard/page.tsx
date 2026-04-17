@@ -49,9 +49,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (error && (error.toLowerCase().includes('expired') || error.toLowerCase().includes('auth'))) {
-      router.push('/')
+      router.push('/login')
     }
   }, [error, router])
+
 
   if (loading) return <FallbackSuspense message="Loading dashboard…" />
 
@@ -136,7 +137,7 @@ export default function DashboardPage() {
         type: 'rent_reminder',
         id: prop.uuid,
         title: 'Rent Overdue',
-        property_address: prop.location?.address || prop.location?.area,
+        property_address: prop.location ? [prop.location.address, prop.location.area, prop.location.state, prop.location.country].filter(Boolean).join(', ') : (prop.address || 'Property'),
         rentEndDate: prop.rentEndDate,
         desc: `Rent for ${prop.location?.address || prop.location?.area || 'your property'} was due on ${formatDate(prop.rentEndDate!)}.`,
         actionLabel: 'Pay Overdue Rent',
@@ -231,24 +232,28 @@ export default function DashboardPage() {
               // Priority 1: Payments vs Reminders
               if (a.type !== b.type) return a.type === 'payment' ? -1 : 1
               
-              const aCritical = a.isCritical || (a.due_date && new Date(a.due_date) < new Date()) ? 1 : 0
-              const bCritical = b.isCritical || (b.due_date && new Date(b.due_date) < new Date()) ? 1 : 0
+              const aDate = a.due_date || a.dueDate
+              const bDate = b.due_date || b.dueDate
+              const aCritical = a.isCritical || (aDate && new Date(aDate) < new Date()) ? 1 : 0
+              const bCritical = b.isCritical || (bDate && new Date(bDate) < new Date()) ? 1 : 0
               if (aCritical !== bCritical) return bCritical - aCritical
               return 0
             })
 
             const hasSlides = heroSlides.length > 0
-            const currentIdx = heroSlideIndex % heroSlides.length
+            const currentIdx = hasSlides ? heroSlideIndex % heroSlides.length : 0
             const currentHero = hasSlides ? heroSlides[currentIdx] : null
             const heroItem = currentHero as any
-            const isOverdue = heroItem?.isCritical || (heroItem?.due_date && new Date(heroItem.due_date) < new Date())
+            const heroDate = heroItem?.due_date || heroItem?.dueDate
+            const isOverdue = heroItem?.isCritical || (heroDate && new Date(heroDate) < new Date())
             
             const targetPaymentIdx = heroSlides.findIndex((s: any) => s.type === 'payment')
-            const shouldBeamPrev = heroItem.type === 'property' && targetPaymentIdx !== -1 && targetPaymentIdx < currentIdx
-            const shouldBeamNext = heroItem.type === 'property' && targetPaymentIdx !== -1 && targetPaymentIdx > currentIdx
+            const shouldBeamPrev = heroItem?.type === 'property' && targetPaymentIdx !== -1 && targetPaymentIdx < currentIdx
+            const shouldBeamNext = heroItem?.type === 'property' && targetPaymentIdx !== -1 && targetPaymentIdx > currentIdx
+
 
             // Calculate days for wording
-            const d = new Date(heroItem?.due_date || heroItem?.rentEndDate || Date.now())
+            const d = new Date(heroItem?.due_date || heroItem?.dueDate || heroItem?.rentEndDate || Date.now())
             const diff = d.getTime() - new Date().getTime()
             const daysLeft = Math.ceil(diff / (1000 * 60 * 60 * 24))
 
@@ -261,10 +266,10 @@ export default function DashboardPage() {
                     <div className="bento-hero-pending__badge">
                       {isOverdue 
                         ? (heroItem.type === 'payment' 
-                            ? ((heroItem.amountPaid || 0) > 0 ? 'URGENT: BALANCE DUE' : 'PAYMENT OVERDUE') 
+                            ? 'ACTION REQUIRED' 
                             : 'RENT OVERDUE')
                         : (heroItem.type === 'payment' 
-                            ? ((heroItem.amountPaid || 0) > 0 ? 'PARTIAL PAYMENT' : 'PAYMENT DUE SOON') 
+                            ? ((heroItem.amountPaid || 0) > 0 ? 'PARTIAL PAYMENT' : 'PAYMENT REQUEST') 
                             : 'RENT DUE SOON')
                       }
                     </div>
@@ -293,7 +298,7 @@ export default function DashboardPage() {
                   {hasSlides ? (
                     <div className="bento-hero-pending">
                       
-                      <h2 className="bento-hero-pending__title">
+                      <h2 className={`bento-hero-pending__title ${isOverdue && heroItem.type === 'payment' ? 'animate-text-zoom' : ''}`}>
                         {isOverdue ? 'Action Required' : (daysLeft <= 7 ? 'Payment Due' : 'Rent Payment')} <br />
                         <span className="bento-hero-pending__accent">
                           {heroItem.company_name || heroItem.property_address || heroItem.title || 'Soon'}
@@ -306,10 +311,12 @@ export default function DashboardPage() {
                             {formatCurrency(heroItem.total_amount - (heroItem.amountPaid || 0), heroItem.currency)}
                             {(heroItem.amountPaid || 0) > 0 && <span className="bento-hero-pending__total"> of {formatCurrency(heroItem.total_amount, heroItem.currency)}</span>}
                           </div>
-                          <p className="bento-hero-pending__desc">
-                            {(heroItem.amountPaid || 0) > 0
-                              ? `Settling balance for ${heroItem.property_address || 'your property'}. ${isOverdue ? 'Late payments affect your score.' : ''}`
-                              : `Invoice generated by ${heroItem.company_name || 'your manager'} for ${heroItem.property_address || 'your property'}. ${isOverdue ? 'Late payments affect your score.' : ''}`
+                          <p className={`bento-hero-pending__desc ${isOverdue && heroItem.type === 'payment' ? 'animate-text-zoom-subtle' : ''}`}>
+                            {isOverdue
+                              ? `Your credit standing is currently being affected. Pay immediately to protect your credibility score.`
+                              : ((heroItem.amountPaid || 0) > 0
+                                  ? `Settling balance for ${heroItem.property_address || 'your property'}.`
+                                  : `Invoice generated by ${heroItem.company_name || 'your manager'} for ${heroItem.property_address || 'your property'}.`)
                             }
                           </p>
                           <div className="bento-hero-pending__actions">
