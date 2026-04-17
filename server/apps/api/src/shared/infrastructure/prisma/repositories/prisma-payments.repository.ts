@@ -289,6 +289,7 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
                 platform: true,
               },
             },
+            location: true,
           },
         },
       },
@@ -303,6 +304,16 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       subaccount: res.subaccount as unknown as PaystackSubaccount,
       platformId: (res.userProperty as any)?.company?.platform?.id,
       userPropertyUuid: res.userProperty?.uuid,
+      propertyLocation: res.userProperty?.location
+        ? [
+            res.userProperty.location.address,
+            res.userProperty.location.area,
+            res.userProperty.location.state,
+            res.userProperty.location.country,
+          ]
+            .filter(Boolean)
+            .join(', ')
+        : undefined,
     } as unknown as PaymentRequest
   }
 
@@ -318,6 +329,7 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
                 platform: true,
               },
             },
+            location: true,
           },
         },
       },
@@ -332,6 +344,16 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       subaccount: res.subaccount as unknown as PaystackSubaccount,
       platformId: (res.userProperty as any)?.company?.platform?.id,
       userPropertyUuid: res.userProperty?.uuid,
+      propertyLocation: res.userProperty?.location
+        ? [
+            res.userProperty.location.address,
+            res.userProperty.location.area,
+            res.userProperty.location.state,
+            res.userProperty.location.country,
+          ]
+            .filter(Boolean)
+            .join(', ')
+        : undefined,
     } as unknown as PaymentRequest
   }
 
@@ -363,7 +385,16 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
           ' ' +
           this.encryption.decrypt((r.userProperty as any).manager.lastName))
         : undefined,
-      propertyLocation: (r.userProperty as any)?.location?.address,
+      propertyLocation: (r.userProperty as any)?.location
+        ? [
+            (r.userProperty as any).location.address,
+            (r.userProperty as any).location.area,
+            (r.userProperty as any).location.state,
+            (r.userProperty as any).location.country,
+          ]
+            .filter(Boolean)
+            .join(', ')
+        : undefined,
       subaccountId: r.subaccountId ?? undefined,
       subaccount: r.subaccount as unknown as PaystackSubaccount,
       userPropertyUuid: (r.userProperty as any)?.uuid,
@@ -398,7 +429,16 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
           ' ' +
           this.encryption.decrypt((r.userProperty as any).manager.lastName))
         : undefined,
-      propertyLocation: (r.userProperty as any)?.location?.address,
+      propertyLocation: (r.userProperty as any)?.location
+        ? [
+            (r.userProperty as any).location.address,
+            (r.userProperty as any).location.area,
+            (r.userProperty as any).location.state,
+            (r.userProperty as any).location.country,
+          ]
+            .filter(Boolean)
+            .join(', ')
+        : undefined,
       subaccountId: r.subaccountId ?? undefined,
       subaccount: r.subaccount as unknown as PaystackSubaccount,
       userPropertyUuid: (r.userProperty as any)?.uuid,

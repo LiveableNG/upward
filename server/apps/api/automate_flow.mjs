@@ -37,84 +37,83 @@ async function callApi(endpoint, method, body, apiKey = null) {
 
 async function run() {
   try {
+    const getFutureDate = (days) => {
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      return d.toISOString().split('T')[0];
+    };
+
     // 1. Get Platform Key
     console.log('--- Step 1: Get Platform Key ---');
     const platformData = await callApi('/platform/get-key', 'POST', {
-      name: 'Global Property Group',
-      email: 'api@global.ng',
-      webhookUrl: 'https://hooks.example.com/upward'
+      name: 'Upward Property Mgmt',
+      email: 'alerts@upward.ng',
+      webhookUrl: 'https://hooks.upward.ng/simulate'
     });
     const apiKey = platformData.apiKey;
     console.log(`API Key acquired: ${apiKey}`);
 
-    // 2. Single Invite
-    console.log('\n--- Step 2: Single Invite ---');
+    // 2. Setup Test User with multiple Rent Scenarios
+    console.log('\n--- Step 2: Creating Test User with Urgency Matrix ---');
+    const scenarios = [
+      { address: '14-Day Notice House', amount: 1200000, date: getFutureDate(14) },
+      { address: '7-Day Warning Apt', amount: 850000, date: getFutureDate(7) },
+      { address: '3-Day Critical Suite', amount: 3200000, date: getFutureDate(3) },
+      { address: 'Due Today Highrise', amount: 450000, date: getFutureDate(0) },
+      { address: 'Overdue Bungalow', amount: 200000, date: getFutureDate(-2) },
+    ];
+
     const inviteData = await callApi('/single/invite', 'POST', {
-      company: { name: 'Prime Living' },
+      company: { name: 'Upward Premium' },
       invite: {
-        user: { email: 'tenant@example.com', firstName: 'John', lastName: 'Doe' },
-        properties: [
-          {
-            location: { country: 'Nigeria', state: 'Lagos', area: 'Ikoyi', address: '10 Bourdillon' },
-            rent: { rentAmount: 5000000, rentEndDate: '2025-12-31' }
-          },
-          {
-            location: { country: 'Nigeria', state: 'Lagos', area: 'Lekki', address: 'Apt 402, Highrise' },
-            rent: { rentAmount: 2500000, rentEndDate: '2025-06-30' },
-            manager: { firstName: 'Bisi', lastName: 'Staff', email: 'bisi@prime.com' }
-          }
-        ]
+        user: { 
+          email: `test-tenant-${Date.now()}@upward.ng`, 
+          firstName: 'Simulated', 
+          lastName: 'User' 
+        },
+        properties: scenarios.map(s => ({
+          location: { country: 'Nigeria', state: 'Lagos', area: 'Scenario', address: s.address },
+          rent: { rentAmount: s.amount, rentEndDate: s.date }
+        }))
       }
     }, apiKey);
 
     const userId = inviteData.data.userId;
-    const companyId = inviteData.data.companyId;
-    const property1Uuid = inviteData.data.properties[0].uuid;
-    const property2Uuid = inviteData.data.properties[1].uuid;
+    const responseProps = inviteData.data.properties;
+    
+    // Map response UUIDs back to our scenario dates
+    const propMap = responseProps.map((p, i) => ({
+        ...p,
+        dueDate: scenarios[i].date,
+        amount: scenarios[i].amount
+    }));
 
-    // 3. Payment Request 1
-    console.log('\n--- Step 3: Payment Request for Property 1 ---');
+    console.log(`\nCreated ${propMap.length} property scenarios for User ID: ${userId}`);
+    propMap.forEach((p, i) => {
+        console.log(`- Property ${i+1}: ${p.uuid} (Due: ${p.dueDate})`);
+    });
+
+    // 3. Create a Payment Request for the Overdue property
+    console.log('\n--- Step 3: Triggering Hero Card for Overdue Property ---');
+    const overdueProp = propMap[4];
     await callApi('/payment-request', 'POST', {
-      userPropertyUuid: property1Uuid,
-      amount: 1000000,
+      userPropertyUuid: overdueProp.uuid,
+      amount: overdueProp.amount,
       currency: 'NGN',
-      description: 'Rent + Service Charge',
-      dueDate: '2026-04-01', // OVERDUE
+      description: 'Overdue Rent Payment',
+      dueDate: overdueProp.dueDate, // NOW VALID
       allowPartial: true,
-      minAmount: 100000,
-      lineItems: [
-        { name: 'Rent', amount: 800000 },
-        { name: 'Service Charge', amount: 200000 }
-      ],
       bankCode: '058',
-      accountNumber: '0123456789'
+      accountNumber: '0011223344'
     }, apiKey);
 
-    // 4. Payment Request 2
-    console.log('\n--- Step 4: Payment Request for Property 2 ---');
-    await callApi('/payment-request', 'POST', {
-      userPropertyUuid: property2Uuid,
-      currency: 'NGN',
-      description: 'One-time payment',
-      dueDate: '2026-08-01',
-      allowPartial: false,
-      bankCode: '058',
-      accountNumber: '0123456789'
-    }, apiKey);
+    console.log('\n--- Flow Simulation Ready! ---');
+    console.log('1. The Daily Cron will now pick these up for Notifications/Email.');
+    console.log('2. Dashboard will show Banners/Popups for the 7, 3, 0, and -2 day cases.');
+    console.log('3. Activity Center will prioritize the Overdue invoice.');
 
-    // 5. Add more properties
-    console.log('\n--- Step 5: Add more properties ---');
-    await callApi(`/single/invite/${userId}/properties`, 'POST', {
-      companyUuid: companyId,
-      properties: [
-        {
-          location: { country: 'Nigeria', state: 'Lagos', area: 'Surulere', address: 'Stadium Road' },
-          rent: { rentAmount: 1500000, rentEndDate: '2025-08-15' }
-        }
-      ]
-    }, apiKey);
+    console.log('\nCompleted simulation setup! 🚀');
 
-    console.log('\nCompleted all steps successfully! 🚀');
   } catch (error) {
     console.error('\nFlow aborted due to error:', error.message);
     process.exit(1);

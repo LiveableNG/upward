@@ -6,7 +6,7 @@ export async function getNotifications() {
 }
 
 export async function updateAnnouncementState(data: {
-  announcementId: string
+  announcementId: number | string
   seenPopup?: boolean
   interactedPopup?: boolean
   seenBanner?: boolean

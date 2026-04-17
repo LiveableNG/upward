@@ -51,7 +51,7 @@ export function PageHeader({
   const effectiveBackLabel = backLabel || (backPath === '/dashboard' ? 'Back to Dashboard' : 'Back')
 
   return (
-    <header className="dashboard__header">
+    <header className="dashboard__header page-header-sticky">
       <div className="dashboard__header-left">
         {showBack && (
           <button 

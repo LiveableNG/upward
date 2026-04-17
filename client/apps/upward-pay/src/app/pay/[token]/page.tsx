@@ -283,6 +283,7 @@ export default function UnifiedPayPage() {
                   companyName={paymentData.company?.name} 
                   description={paymentData.payment?.description || 'Housing Invoice'} 
                   logo={paymentData.company?.logo}
+                  propertyAddress={paymentData.payment?.property_address}
                 />
                 <AmountDetailCard 
                   totalOwed={totalOwed}

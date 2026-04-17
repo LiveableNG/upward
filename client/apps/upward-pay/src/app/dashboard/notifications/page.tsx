@@ -46,7 +46,7 @@ export default function NotificationsPage() {
         id: `payment-${p.uuid}`,
         type: 'PAYMENT',
         title: 'Payment Request',
-        message: `You have a pending payment of ${p.currency}${p.amount || p.total_amount} for ${p.company_name || 'Property'}`,
+        message: `${p.company_name || 'Your manager'} has requested a payment of ${p.currency}${p.amount || p.total_amount} for ${p.property_address || 'your property'}.`,
         createdAt: new Date().toISOString(), // Show at top
         read: false,
         url: `/pay/${p.uuid}`,

@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { X, Sparkles, Megaphone, Target, Clock, Info } from 'lucide-react'
 
 export type IconType = 'sparkles' | 'megaphone' | 'target' | 'clock' | 'info'
@@ -22,6 +22,11 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 }
 
 export function AnnouncementPopup({ title, message, iconType, url, onClose }: AnnouncementPopupProps) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   const handleAction = () => {
     onClose()
     if (url) {

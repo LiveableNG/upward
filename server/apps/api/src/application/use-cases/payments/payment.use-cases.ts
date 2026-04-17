@@ -99,6 +99,7 @@ export class RecordTransactionUseCase {
     private readonly propertyRepo: PropertyRepository,
     @Inject(EVENT_BUS)
     private readonly eventBus: EventBus,
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(
@@ -289,12 +290,30 @@ export class RecordTransactionUseCase {
                 if (prop && prop.rentEndDate) {
                    const oldDate = new Date(prop.rentEndDate)
                    const newDate = new Date(oldDate.setFullYear(oldDate.getFullYear() + 1))
-                   await this.propertyRepo.update(prop.id!, {
-                      rentEndDate: newDate
-                   })
-                   this.logger.log(`Property ${prop.uuid} fully settled. Rent due date moved to ${newDate.toISOString()}`)
-                }
-             }
+                    await this.propertyRepo.update(prop.id!, {
+                       rentEndDate: newDate
+                    })
+                    this.logger.log(`Property ${prop.uuid} fully settled. Rent due date moved to ${newDate.toISOString()}`)
+
+                    // CLEANUP: Resolve all rent-related notifications and alerts
+                    await this.prisma.upward_notification.updateMany({
+                      where: {
+                        userId: user.id!,
+                        type: 'RENT_REMINDER',
+                        message: { contains: prop.uuid }
+                      },
+                      data: { isRead: true }
+                    })
+
+                    // CLEANUP: Resolve virtual announcement state so banner/popup disappears
+                    const virtualId = 1000000 + prop.id!
+                    await this.prisma.upward_user_announcement_state.upsert({
+                      where: { userId_announcementId: { userId: user.id!, announcementId: virtualId } },
+                      create: { userId: user.id!, announcementId: virtualId, interactedBanner: true, interactedPopup: true },
+                      update: { interactedBanner: true, interactedPopup: true }
+                    }).catch(() => {})
+                 }
+              }
           }
         } catch (e) {
           this.logger.error(`Failed to update payment request ${data.paymentRequestId}:`, e)
