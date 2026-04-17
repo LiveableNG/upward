@@ -70,7 +70,7 @@ export function TransactionList() {
 
   return (
     <div className="transactions-list-page dashboard--nav-offset">
-      <header className="dashboard__header" style={{ marginBottom: 32 }}>
+      <div className="transactions-list__header">
         <div className="dashboard__header-left">
           <button className="dashboard__back mobile-only" onClick={() => router.push('/dashboard')}>
             <ArrowLeft size={20} />
@@ -90,7 +90,7 @@ export function TransactionList() {
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
       <div className="transaction-search">
         <div className="transaction-search__input-wrap">
@@ -262,7 +262,7 @@ export function TransactionList() {
         @media (min-width: 1024px) {
           .transactions-list-page {
             max-width: 800px;
-            margin: 40px auto;
+            margin: 20px auto;
             background: var(--bg);
             border-radius: 24px;
             border: 1px solid var(--border-solid);
@@ -276,8 +276,11 @@ export function TransactionList() {
             /* Inherits from global dashboard.css */
           }
 
-          .dashboard__header {
-            margin-bottom: 12px;
+          .transactions-list__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
             padding: 0;
             border-bottom: none;
           }

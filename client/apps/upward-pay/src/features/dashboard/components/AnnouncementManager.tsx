@@ -47,7 +47,7 @@ export function AnnouncementManager() {
     setShowPopup(false)
     if (activeAnnouncement) {
       updateStateMutation.mutate({
-        announcementId: activeAnnouncement.id,
+        announcementId: activeAnnouncement.id as number,
         interactedPopup: true,
       })
     }

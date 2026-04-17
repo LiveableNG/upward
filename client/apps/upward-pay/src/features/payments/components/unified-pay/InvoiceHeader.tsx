@@ -1,15 +1,16 @@
 'use client'
 
 import React from 'react'
-import { Building2 } from 'lucide-react'
+import { Building2, MapPin } from 'lucide-react'
 
 interface InvoiceHeaderProps {
   companyName: string
   description: string
   logo?: string
+  propertyAddress?: string
 }
 
-export function InvoiceHeader({ companyName, description, logo }: InvoiceHeaderProps) {
+export function InvoiceHeader({ companyName, description, logo, propertyAddress }: InvoiceHeaderProps) {
   return (
     <header className="pay-invoice-header">
       <div className="pay-invoice-header__brand">
@@ -24,6 +25,14 @@ export function InvoiceHeader({ companyName, description, logo }: InvoiceHeaderP
       <div className="pay-invoice-header__info">
         <span className="pay-invoice-header__tag">Secure Invoice</span>
         <h1 className="pay-invoice-header__title">{companyName}</h1>
+        
+        {propertyAddress && (
+          <div className="pay-invoice-header__address">
+            <MapPin size={14} className="icon-clay" />
+            <span>{propertyAddress}</span>
+          </div>
+        )}
+
         <p className="pay-invoice-header__subtitle">{description}</p>
       </div>
       
@@ -86,11 +95,26 @@ export function InvoiceHeader({ companyName, description, logo }: InvoiceHeaderP
           color: var(--text);
           line-height: 1.2;
         }
+        .pay-invoice-header__address {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: var(--text-muted);
+          font-size: 13px;
+          font-weight: 600;
+          margin-top: 2px;
+          background: var(--surface);
+          padding: 4px 14px;
+          border-radius: 100px;
+          border: 1px solid var(--border-solid);
+        }
+        .icon-clay { color: var(--clay); }
         .pay-invoice-header__subtitle {
           color: var(--text-muted);
           font-size: 14px;
           font-weight: 600;
           letter-spacing: -0.01em;
+          opacity: 0.8;
         }
       `}</style>
     </header>

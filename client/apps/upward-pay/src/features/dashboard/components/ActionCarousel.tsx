@@ -38,53 +38,58 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
         : (isOverdue ? 'Urgent: Rent Payment Due' : 'Rent Payment Pending'),
       desc: isPartial 
         ? (isOverdue 
-            ? `Settle your balance of ${formatCurrency(remaining, p.currency)} immediately.` 
+            ? `Settle your balance of ${formatCurrency(remaining, p.currency)} for ${p.company_name} immediately. Late payments affect your credibility score.` 
             : `Balance: ${formatCurrency(remaining, p.currency)} is due for ${p.company_name}.`)
         : (isOverdue 
-            ? `An invoice for ${formatCurrency(p.total_amount, p.currency)} is awaiting payment.` 
+            ? `${p.company_name} is awaiting payment of ${formatCurrency(p.total_amount, p.currency)}. Late payments affect your credibility score.` 
             : `New invoice from ${p.company_name} for ${formatCurrency(p.total_amount, p.currency)}.`),
       actionLabel: 'Pay Now',
       action: () => router.push(`/pay/${p.uuid}`),
       icon: <Clock size={20} color={isOverdue ? "white" : "var(--clay)"} />,
       bg: isOverdue ? 'var(--error)' : 'var(--clay-faint)',
       isCritical: isOverdue,
+      beamClass: isOverdue ? 'animate-beam-red' : 'animate-beam-clay',
     })
   })
 
-  // Rent Reminders (from properties)
-  rentReminders.forEach((r) => {
-    slides.push({
-      ...r,
-      icon: <Bell size={20} color={r.isCritical ? "white" : "var(--clay)"} />,
+  // Rent Reminders (Only if overdue)
+  rentReminders
+    .filter(r => r.urgency === 'overdue' || r.isCritical)
+    .forEach((r) => {
+      slides.push({
+        ...r,
+        icon: <Bell size={20} color={r.isCritical ? "white" : "var(--clay)"} />,
+        beamClass: r.urgency === 'overdue' ? 'animate-beam-red' : (r.isCritical ? 'animate-beam-clay' : ''),
+      })
     })
-  })
 
-  // Property Verification Alert
-  if (showKYC) {
-    slides.push({
-      type: 'kyc',
-      id: 'kyc-alert',
-      title: 'Complete Your Profile',
-      desc: 'Add your property details and rent due date to build your credibility score.',
-      actionLabel: 'Add Property',
-      action: () => router.push('/dashboard/me?view=personal'),
-      icon: <MapPin size={20} color="var(--clay)" />,
-      bg: 'var(--clay-faint)',
-    })
-  }
-
-  // Fallback if no slides
+  // Fallbacks if no action items
   if (slides.length === 0) {
-    slides.push({
-      type: 'welcome',
-      id: 'welcome',
-      title: 'Dashboard Active',
-      desc: 'Your rent tracking and credibility building are now active.',
-      actionLabel: 'View Profile',
-      action: () => router.push('/dashboard/me'),
-      icon: <Bell size={20} color="var(--clay)" />,
-      bg: 'var(--surface2)',
-    })
+    if (showKYC) {
+      slides.push({
+        type: 'kyc',
+        id: 'kyc-alert',
+        title: 'Complete Your Profile',
+        desc: 'Add your property details and rent due date to build your credibility score.',
+        actionLabel: 'Add Property',
+        action: () => router.push('/dashboard/me?view=personal'),
+        icon: <MapPin size={20} color="var(--clay)" />,
+        bg: 'var(--clay-faint)',
+        beamClass: 'animate-beam-clay',
+      })
+    } else {
+      slides.push({
+        type: 'welcome',
+        id: 'welcome',
+        title: 'Dashboard Active',
+        desc: 'Your rent tracking and credibility building are now active.',
+        actionLabel: 'View Profile',
+        action: () => router.push('/dashboard/me'),
+        icon: <Bell size={20} color="var(--clay)" />,
+        bg: 'var(--surface2)',
+        beamClass: '',
+      })
+    }
   }
 
   const current = slides[index]
@@ -95,8 +100,11 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
   return (
     <div className="action-carousel">
       <div 
-        className={`action-carousel__slide ${current.isCritical ? 'is-critical' : ''}`} 
-        style={{ background: current.bg, cursor: 'pointer' }}
+        className={`action-carousel__slide ${current.isCritical ? 'is-critical' : ''} ${current.type === 'pending' ? 'is-pending' : ''} ${current.beamClass || ''}`} 
+        style={{ 
+          cursor: 'pointer', 
+          background: current.type === 'pending' && !current.isCritical ? undefined : current.bg 
+        }}
         onClick={current.action}
       >
         <div className="action-carousel__icon-wrap">{current.icon}</div>
@@ -111,6 +119,61 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
       </div>
 
       <style jsx>{`
+        /* Non-critical pending slide - Theme Aware */
+        .action-carousel__slide.is-pending:not(.is-critical) {
+          background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+          border: 1.5px solid rgba(245, 158, 11, 0.35);
+          box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.1), 0 4px 20px rgba(245, 158, 11, 0.15);
+          animation: pendingBeam 2.5s ease-in-out infinite;
+          position: relative;
+          overflow: hidden;
+        }
+
+        :global(.theme--dark) .action-carousel__slide.is-pending:not(.is-critical),
+        @media (prefers-color-scheme: dark) {
+          :global(:not(.theme--light)) .action-carousel__slide.is-pending:not(.is-critical) {
+            background: linear-gradient(135deg, #1c1400 0%, #241a00 100%) !important;
+            border-color: rgba(245, 158, 11, 0.4);
+            box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.05), 0 4px 20px rgba(0, 0, 0, 0.3);
+          }
+        }
+
+        .action-carousel__slide.is-pending:not(.is-critical)::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 60%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.08), transparent);
+          animation: pendingShimmer 2.5s ease-in-out infinite;
+          pointer-events: none;
+        }
+
+        .action-carousel__slide.is-pending:not(.is-critical) .action-carousel__title {
+          color: #92400e;
+        }
+        
+        .action-carousel__slide.is-pending:not(.is-critical) .action-carousel__desc {
+          color: #b45309;
+        }
+
+        .action-carousel__slide.is-pending:not(.is-critical) .action-carousel__btn {
+          background: linear-gradient(135deg, #f59e0b, #d97706);
+          color: white;
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        :global(.theme--dark) .action-carousel__slide.is-pending:not(.is-critical) .action-carousel__title,
+        @media (prefers-color-scheme: dark) {
+          :global(:not(.theme--light)) .action-carousel__slide.is-pending:not(.is-critical) .action-carousel__title {
+            color: #fcd34d;
+          }
+          :global(:not(.theme--light)) .action-carousel__slide.is-pending:not(.is-critical) .action-carousel__desc {
+            color: #d97706;
+          }
+        }
+
         .action-carousel__slide.is-critical .action-carousel__title,
         .action-carousel__slide.is-critical .action-carousel__desc {
           color: white;
@@ -122,6 +185,22 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
         .action-carousel__slide.is-critical .action-carousel__btn {
           background: white;
           color: var(--error);
+        }
+
+        @keyframes pendingBeam {
+          0%, 100% {
+            box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.1), 0 4px 16px rgba(245, 158, 11, 0.12);
+            border-color: rgba(245, 158, 11, 0.3);
+          }
+          50% {
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25), 0 6px 24px rgba(245, 158, 11, 0.2);
+            border-color: rgba(245, 158, 11, 0.5);
+          }
+        }
+
+        @keyframes pendingShimmer {
+          0% { left: -60%; }
+          100% { left: 160%; }
         }
       `}</style>
 

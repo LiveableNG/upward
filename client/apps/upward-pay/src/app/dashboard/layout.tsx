@@ -7,6 +7,7 @@ import FallbackSuspense from '@/components/FallbackSuspense'
 
 import { BottomNav } from '@/features/dashboard/components/BottomNav'
 import { AnnouncementManager } from '@/features/dashboard/components/AnnouncementManager'
+import { RentReminderManager } from '@/features/dashboard/components/RentReminderManager'
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -36,6 +37,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       <AnnouncementManager />
+      <RentReminderManager />
       <main className="dashboard-layout__content">
         <Suspense fallback={<FallbackSuspense message="Loading..." />}>{children}</Suspense>
       </main>

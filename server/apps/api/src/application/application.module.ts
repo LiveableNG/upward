@@ -85,6 +85,7 @@ import {
   UpdateAnnouncementStateUseCase,
   MarkNotificationReadUseCase,
 } from './use-cases/notifications/notification.use-cases'
+import { RentReminderWorkflowUseCase } from './use-cases/notifications/rent-reminder-workflow.use-case'
 
 // Payments
 import {
@@ -196,6 +197,7 @@ const UseCases = [
   GetPendingPaymentsUseCase,
   ResolveSubaccountUseCase,
   GetPropertyBalanceUseCase,
+  RentReminderWorkflowUseCase,
 
   UploadContractUseCase,
   GetContractsUseCase,

@@ -148,7 +148,7 @@ export default function PayRentPage() {
               justify-content: center;
               align-items: flex-start;
               min-height: calc(100vh - 120px);
-              padding: 20px 40px;
+              padding: 0px 40px;
             }
             .pay-rent-container {
               width: 100%;
@@ -158,7 +158,7 @@ export default function PayRentPage() {
               box-shadow: 0 40px 100px rgba(0, 0, 0, 0.08);
               border: 1px solid var(--border-solid);
               padding: 40px;
-              margin: 40px auto;
+              margin: 10px auto; /* Reduced from 20px */
               transition: all 0.3s ease;
             }
             .dashboard__header {
@@ -170,6 +170,7 @@ export default function PayRentPage() {
             .dashboard__title {
               font-size: 24px;
               font-weight: 800;
+              margin-bottom: 24px;
             }
             .dashboard__back {
               /* Ensure global desktop styles applied */
@@ -178,14 +179,14 @@ export default function PayRentPage() {
         `}</style>
 
         {step !== 'checkout' && step !== 'processing' && step !== 'success' && (
-          <header className="dashboard__header" style={{ marginBottom: 32 }}>
+          <div className="pay-rent__header">
             <div className="dashboard__header-left">
               <button className="dashboard__back mobile-only" onClick={handleBack}>
                 <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} />
               </button>
               <h2 className="dashboard__title">{stepTitle[step]}</h2>
             </div>
-          </header>
+          </div>
         )}
 
       {step === 'select' && (

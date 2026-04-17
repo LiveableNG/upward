@@ -139,12 +139,24 @@
 @keyframes alertBeam {
   0%,
   100% {
-    box-shadow: 0 8px 25px rgba(217, 119, 87, 0.3);
+    box-shadow: 0 8px 15px rgba(217, 119, 87, 0.2);
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 40px rgba(217, 119, 87, 0.6);
-    transform: scale(1.02);
+    box-shadow: 0 0 25px rgba(217, 119, 87, 0.5);
+    transform: scale(1.01);
+  }
+}
+
+@keyframes alertBeamRed {
+  0%,
+  100% {
+    box-shadow: 0 8px 15px rgba(220, 38, 38, 0.2);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(220, 38, 38, 0.5);
+    transform: scale(1.01);
   }
 }
 
@@ -180,6 +192,14 @@
 
 .animate-breathe {
   animation: breathe 2.5s ease-in-out infinite;
+}
+
+.animate-beam-clay {
+  animation: alertBeam 2s ease-in-out infinite;
+}
+
+.animate-beam-red {
+  animation: alertBeamRed 2s ease-in-out infinite;
 }
 
 .animate-fadeIn {
