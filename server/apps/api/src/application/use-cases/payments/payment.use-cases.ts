@@ -133,14 +133,26 @@ export class RecordTransactionUseCase {
 
       const isVerified = verifiedData.status
       if (isVerified && verifiedData.amount !== undefined) {
-        // Essential: use the actual verified amount from the gateway 
-        // to prevent recording original request amount if a partial/different amount was paid
         data.amount = verifiedData.amount
       }
 
       let pr: any = null
       let excess = 0
       let remaining = 0
+
+      if (isVerified && data.type === 'RENT' && !data.paymentRequestId && data.userPropertyUuid) {
+        const prop = await this.propertyRepo.findByUuid(data.userPropertyUuid)
+        if (prop) {
+           const existingPending = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PENDING');
+           const existingPartial = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PARTIAL');
+           const matchingPRs = [...existingPending, ...existingPartial].filter(p => p.userPropertyId === prop.id);
+           
+           if (matchingPRs.length > 0) {
+              data.paymentRequestId = matchingPRs[0]?.id;
+              this.logger.log(`Linked manual rent payment to existing payment request: ${data.paymentRequestId}`);
+           }
+        }
+      }
 
       if (isVerified && data.paymentRequestId) {
         pr = await this.paymentRequestRepo.findById(data.paymentRequestId)
@@ -150,36 +162,14 @@ export class RecordTransactionUseCase {
         }
       }
 
-      // Main PAYMENT transaction — amount capped at remaining balance
-      const paymentAmount = pr ? Math.min(data.amount, remaining) : data.amount
+      let paymentAmount = pr ? Math.min(data.amount, remaining) : data.amount
 
-      // If this is a manual RENT payment for a property and NO paymentRequestId was provided
-      if (isVerified && data.type === 'RENT' && !data.paymentRequestId && data.userPropertyUuid) {
+      let userPropertyIdToSettle: number | null = pr?.userPropertyId || null;
+
+      if (isVerified && data.type === 'RENT' && !pr && data.userPropertyUuid) {
         const prop = await this.propertyRepo.findByUuid(data.userPropertyUuid)
         if (prop) {
-           // Look for any PENDING or PARTIAL payment request for this property
-           const prs = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PENDING')
-           const partials = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PARTIAL')
-           const allPrs = [...prs, ...partials].filter(p => p.userPropertyId === prop.id)
-           
-           if (allPrs.length > 0) {
-              // Sort by due date (soonest first)
-              allPrs.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-              data.paymentRequestId = allPrs[0]?.id
-           } else {
-              // Auto-create a payment request for this period
-              const newPr = await this.paymentRequestRepo.create({
-                userId: user.id!,
-                userPropertyId: prop.id!,
-                amount: prop.rentAmount || data.amount, // Default to prop rent amount
-                currency: data.currency || prop.currency || 'NGN',
-                description: `Rent Payment - ${prop.location?.address || prop.location?.area || 'Property'}`,
-                dueDate: prop.rentEndDate ? new Date(prop.rentEndDate) : new Date(),
-                status: 'PENDING',
-                reference: `AUTO_${randomUUID()}_${Date.now()}`,
-              } as any)
-              data.paymentRequestId = newPr.id
-           }
+           userPropertyIdToSettle = prop.id!;
         }
       }
 
@@ -191,139 +181,170 @@ export class RecordTransactionUseCase {
       } as any)
       this.logger.log(`Transaction recorded successfully with ID: ${result.id}`)
 
-      if (isVerified && pr) {
+      if (isVerified && result.status === 'SUCCESS') {
         try {
-          const newAmountPaid = (pr.amountPaid || 0) + paymentAmount
-          const newStatus = newAmountPaid >= pr.amount ? 'PAID' : 'PARTIAL'
+          let rentPortion = paymentAmount;
 
-          await this.paymentRequestRepo.update(pr.id!, {
-            amountPaid: Math.min(newAmountPaid, pr.amount),
-            status: newStatus,
-            paidAt: newStatus === 'PAID' ? new Date() : undefined,
-          })
+          if (pr) {
+            const newAmountPaid = (pr.amountPaid || 0) + paymentAmount
+            const newStatus = newAmountPaid >= pr.amount ? 'PAID' : 'PARTIAL'
 
-          // Update individual line item paid amounts
-          if (data.lineItemPayments && data.lineItemPayments.length > 0) {
-            const allItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!)
+            await this.paymentRequestRepo.update(pr.id!, {
+              amountPaid: Math.min(newAmountPaid, pr.amount),
+              status: newStatus,
+              paidAt: newStatus === 'PAID' ? new Date() : undefined,
+            })
 
-            for (const lip of data.lineItemPayments) {
-              const existingItem = allItems.find(i => i.id === lip.id)
-              if (existingItem) {
-                const newItemPaid = (existingItem.amountPaid || 0) + lip.amountPaid
-                const itemStatus =
-                  newItemPaid >= existingItem.totalAmount ? 'PAID' :
-                  newItemPaid > 0 ? 'PARTIAL' : 'PENDING'
-
-                await this.lineItemRepo.update(lip.id, {
-                  name: lip.name || existingItem.name,
-                  amountPaid: Math.min(newItemPaid, existingItem.totalAmount),
-                  status: itemStatus,
-                })
+            if (data.lineItems && Array.isArray(data.lineItems)) {
+              const existingItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!)
+              if (existingItems.length === 0) {
+                 await this.lineItemRepo.bulkCreate(data.lineItems.map(li => ({
+                    paymentRequestId: pr.id!,
+                    name: li.label || li.name,
+                    totalAmount: li.amount,
+                    amountPaid: 0,
+                    status: 'PENDING'
+                 })))
               }
-            }
-          }
 
-          // Overpayment: separate FUTURE_CREDIT transaction
-          if (excess > 0) {
-            const futureCreditRef = `FC_${data.reference}`
-            const existingFc = await this.txRepo.findByReference(futureCreditRef)
+              const currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!)
+              rentPortion = 0;
 
-            if (!existingFc) {
-              const futureCreditName = data.futureCreditName || 'Future Credit'
-              await this.txRepo.create({
-                userId: user.id!,
-                type: data.type || 'RENT',
-                status: 'SUCCESS',
-                amount: excess,
-                currency: data.currency || 'NGN',
-                reference: futureCreditRef,
-                narration: futureCreditName,
-                paymentRequestId: pr.id,
-                propertyAddress: data.propertyAddress,
-                lineItems: [{ name: futureCreditName, amount: excess }],
-              } as any)
+              let remainingPayment = paymentAmount
+              for (const item of currentItems) {
+                 if (remainingPayment <= 0) break;
+                 const need = item.totalAmount - item.amountPaid
+                 const paymentToItem = Math.min(remainingPayment, need)
+                 
+                 const newItemPaid = item.amountPaid + paymentToItem
+                 await this.lineItemRepo.update(item.id!, {
+                    amountPaid: newItemPaid,
+                    status: newItemPaid >= item.totalAmount ? 'PAID' : 'PARTIAL'
+                 })
 
-              await this.overpaymentRepo.create({
-                userId: user.id!,
-                amount: excess,
-                currency: data.currency || 'NGN',
-                transactionId: result.id,
-                paymentRequestId: pr.id,
-                status: 'AVAILABLE',
-              })
-              this.logger.log(`Overpayment of ${excess} recorded as Future Credit for user ${user.id}`)
-            }
-          }
-
-          // Dispatch Webhook Asynchronously
-          if (pr.platformId) {
-            this.eventBus.publish(new PaymentUpdatedEvent(
-              pr.platformId,
-              'payment.updated',
-              {
-                event: 'payment.updated',
-                data: {
-                  paymentUuid: pr.uuid,
-                  reference: data.reference,
-                  amountPaid: paymentAmount,
-                  totalPaid: Math.min(newAmountPaid, pr.amount),
-                  remainingAmount: Math.max(0, pr.amount - newAmountPaid),
-                  overpaymentAmount: excess > 0 ? excess : 0,
-                  currency: pr.currency,
-                  description: pr.description,
-                  status: newStatus,
-                  paidAt: new Date(),
-                  customerEmail: user.email,
-                }
-              }
-            ))
-          }
-          // Check for Property Settlement and Annual Increment
-          if (newStatus === 'PAID' && pr.userPropertyId) {
-             const allPending = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PENDING')
-             const allPartial = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PARTIAL')
-             const remainingForProp = [...allPending, ...allPartial].filter(p => p.userPropertyId === pr.userPropertyId)
-             
-             if (remainingForProp.length === 0) {
-                // Property is fully settled! Increment rentEndDate by 1 year.
-                const prop = await this.propertyRepo.findById(pr.userPropertyId!)
-                if (prop && prop.rentEndDate) {
-                   const oldDate = new Date(prop.rentEndDate)
-                   const newDate = new Date(oldDate.setFullYear(oldDate.getFullYear() + 1))
-                    await this.propertyRepo.update(prop.id!, {
-                       rentEndDate: newDate
-                    })
-                    this.logger.log(`Property ${prop.uuid} fully settled. Rent due date moved to ${newDate.toISOString()}`)
-
-                    // CLEANUP: Resolve all rent-related notifications and alerts
-                    await this.prisma.upward_notification.updateMany({
-                      where: {
-                        userId: user.id!,
-                        type: 'RENT_REMINDER',
-                        message: { contains: prop.uuid }
-                      },
-                      data: { isRead: true }
-                    })
-
-                    // CLEANUP: Resolve virtual announcement state so banner/popup disappears
-                    const virtualId = 1000000 + prop.id!
-                    await this.prisma.upward_user_announcement_state.upsert({
-                      where: { userId_announcementId: { userId: user.id!, announcementId: virtualId } },
-                      create: { userId: user.id!, announcementId: virtualId, interactedBanner: true, interactedPopup: true },
-                      update: { interactedBanner: true, interactedPopup: true }
-                    }).catch(() => {})
+                 if (item.name.toLowerCase().includes('rent')) {
+                    rentPortion += paymentToItem
                  }
+
+                 remainingPayment -= paymentToItem
               }
+            }
+
+            if (excess > 0) {
+              const futureCreditRef = `FC_${data.reference}`
+              const existingFc = await this.txRepo.findByReference(futureCreditRef)
+              if (!existingFc) {
+                const futureCreditName = data.futureCreditName || 'Future Credit'
+                await this.txRepo.create({
+                  userId: user.id!,
+                  type: data.type || 'RENT',
+                  status: 'SUCCESS',
+                  amount: excess,
+                  currency: data.currency || 'NGN',
+                  reference: futureCreditRef,
+                  narration: futureCreditName,
+                  paymentRequestId: pr.id,
+                  propertyAddress: data.propertyAddress,
+                  lineItems: [{ name: futureCreditName, amount: excess }],
+                } as any)
+
+                await this.overpaymentRepo.create({
+                  userId: user.id!,
+                  amount: excess,
+                  currency: data.currency || 'NGN',
+                  transactionId: result.id,
+                  paymentRequestId: pr.id,
+                  status: 'AVAILABLE',
+                })
+                this.logger.log(`Overpayment of ${excess} recorded as Future Credit for user ${user.id}`)
+              }
+            }
+          } else {
+             if (data.lineItems && Array.isArray(data.lineItems) && data.lineItems.length > 0) {
+                 rentPortion = 0;
+                 let remainingPayment = paymentAmount;
+                 for (const item of data.lineItems) {
+                    if (remainingPayment <= 0) break;
+                    const itemName = (item.label || item.name || '').toLowerCase()
+                    const itemTotal = Number(item.amount || 0);
+                    const paymentToItem = Math.min(remainingPayment, itemTotal);
+
+                    if (itemName.includes('rent')) {
+                       rentPortion += paymentToItem;
+                    }
+
+                    remainingPayment -= paymentToItem;
+                 }
+             }
+          }
+
+
+          if (userPropertyIdToSettle && data.type === 'RENT') {
+            const prop = await this.propertyRepo.findById(userPropertyIdToSettle)
+            if (prop) {
+               const totalRentPaidForProp = (prop.amountPaid || 0) + rentPortion
+               const totalOwedForProp = prop.rentAmount || (pr ? pr.amount : 0)
+               const newRemaining = Math.max(0, totalOwedForProp - totalRentPaidForProp)
+
+               const updateData: any = {
+                  amountPaid: totalRentPaidForProp,
+                  amountRemaining: newRemaining
+               }
+
+                if (newRemaining === 0 && totalRentPaidForProp >= totalOwedForProp && totalOwedForProp > 0) {
+                   const overpayment = totalRentPaidForProp - totalOwedForProp;
+                   
+                   if (prop.rentEndDate) {
+                      const newDate = new Date(prop.rentEndDate)
+                      newDate.setFullYear(newDate.getFullYear() + 1)
+                      updateData.rentEndDate = newDate
+                      
+                      const nextYearRent = prop.rentAmount || totalOwedForProp;
+                      updateData.amountPaid = overpayment;
+                      updateData.amountRemaining = Math.max(0, nextYearRent - overpayment);
+
+                      this.logger.log(`Property ${prop.uuid} fully settled. Rent due date moved to ${newDate.toISOString()}. Resetting for next cycle with ${overpayment} overpayment carried over.`)
+                   }
+
+                  await this.prisma.upward_notification.create({
+                    data: {
+                      userId: user.id!,
+                      title: 'Credit Score Boost!',
+                      message: `Congratulations! Your full rent payment for ${data.propertyAddress || 'your property'} has boosted your credit health.`,
+                      type: 'PAYMENT'
+                    }
+                  })
+
+                  this.logger.log(`Triggered credit score boost for user ${user.id} on property ${prop.uuid}`)
+                  
+                  await this.prisma.upward_notification.updateMany({
+                    where: {
+                      userId: user.id!,
+                      type: 'RENT_REMINDER',
+                      message: { contains: prop.uuid }
+                    },
+                    data: { isRead: true }
+                  })
+
+                  const virtualId = 1000000 + prop.id!
+                  await this.prisma.upward_user_announcement_state.upsert({
+                    where: { userId_announcementId: { userId: user.id!, announcementId: virtualId } },
+                    create: { userId: user.id!, announcementId: virtualId, interactedBanner: true, interactedPopup: true },
+                    update: { interactedBanner: true, interactedPopup: true }
+                  }).catch(() => {})
+               }
+
+               await this.propertyRepo.update(prop.id!, updateData)
+            }
           }
         } catch (e) {
-          this.logger.error(`Failed to update payment request ${data.paymentRequestId}:`, e)
+           this.logger.error(`Error in settlement logic: ${e}`)
         }
       }
-
-      return result
-    } catch (error) {
-      this.logger.error(`Failed to record transaction ${data.reference}:`, error)
-      throw error
+      return result;
+    } catch (e) {
+      this.logger.error(`Failed to handle transaction: ${e}`)
+      throw e;
     }
   }
 }
@@ -523,18 +544,24 @@ export class GetPropertyBalanceUseCase {
     const allPending = await this.paymentRequestRepo.findByUserIdAndStatus(prop.userId, 'PENDING')
     const allPartial = await this.paymentRequestRepo.findByUserIdAndStatus(prop.userId, 'PARTIAL')
     
+    // We still find active requests to flag 'hasActiveRequest'
     const propRequests = [...allPending, ...allPartial].filter(p => p.userPropertyId === prop.id)
-    
-    const totalAmount = propRequests.reduce((sum, pr) => sum + pr.amount, 0)
-    const amountPaid = propRequests.reduce((sum, pr) => sum + (pr.amountPaid || 0), 0)
+    const requestTotal = propRequests.reduce((sum, pr) => sum + pr.amount, 0)
+
+    // Source of Truth: The property record fields themselves (settled by RecordTransactionUseCase)
+    const totalOwed = prop.rentAmount || requestTotal || 0
+    const amountPaid = prop.amountPaid || 0
+    const remainingBalance = prop.amountRemaining !== null && prop.amountRemaining !== undefined
+       ? prop.amountRemaining
+       : Math.max(0, totalOwed - amountPaid)
     
     return {
       propertyUuid: prop.uuid,
       address: [prop.location?.address, prop.location?.area, prop.location?.state, prop.location?.country].filter(Boolean).join(', '),
-      rentAmount: prop.rentAmount || totalAmount,
-      totalOwed: totalAmount || prop.rentAmount || 0,
+      rentAmount: totalOwed,
+      totalOwed: totalOwed,
       amountPaid: amountPaid,
-      remainingBalance: Math.max(0, (totalAmount || prop.rentAmount || 0) - amountPaid),
+      remainingBalance: remainingBalance,
       currency: prop.currency || 'NGN',
       dueDate: prop.rentEndDate,
       hasActiveRequest: propRequests.length > 0

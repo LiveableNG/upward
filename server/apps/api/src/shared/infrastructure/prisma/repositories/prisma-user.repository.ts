@@ -32,12 +32,17 @@ export class PrismaUserRepository implements UserRepository {
       profileSlug: model.profileSlug,
       bio: model.bio,
       properties: model.properties ? model.properties.map((p: any) => ({
+        id: p.id,
         uuid: p.uuid,
+        rentStartDate: p.rentStartDate,
         rentEndDate: p.rentEndDate,
         rentAmount: p.rentAmount,
+        amountPaid: p.amountPaid,
+        amountRemaining: p.amountRemaining,
         currency: p.currency,
         location: p.location,
         isManaged: p.isVerified,
+        updatedAt: p.updatedAt,
         company: p.company ? {
           ...p.company,
           name: p.company.name ? this.encryption.decrypt(p.company.name) : undefined

@@ -50,6 +50,8 @@ const makeProperty = (overrides: Partial<any> = {}) => ({
   managerId: 20,
   locationId: 40,
   rentAmount: 500000,
+  amountPaid: 0,
+  amountRemaining: 0,
   currency: 'NGN',
   rentEndDate: new Date(),
   createdAt: new Date(),

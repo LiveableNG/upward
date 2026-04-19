@@ -56,23 +56,19 @@ async function run() {
     // 2. Setup Test User with multiple Rent Scenarios
     console.log('\n--- Step 2: Creating Test User with Urgency Matrix ---');
     const scenarios = [
-      { address: '14-Day Notice House', amount: 1200000, date: getFutureDate(14) },
-      { address: '7-Day Warning Apt', amount: 850000, date: getFutureDate(7) },
-      { address: '3-Day Critical Suite', amount: 3200000, date: getFutureDate(3) },
-      { address: 'Due Today Highrise', amount: 450000, date: getFutureDate(0) },
-      { address: 'Overdue Bungalow', amount: 200000, date: getFutureDate(-2) },
+      { address: 'Ajah estate Ikeja', amount: 1200000, date: getFutureDate(14) },
     ];
 
     const inviteData = await callApi('/single/invite', 'POST', {
       company: { name: 'Upward Premium' },
       invite: {
         user: { 
-          email: `test-tenant-${Date.now()}@upward.ng`, 
-          firstName: 'Simulated', 
-          lastName: 'User' 
+          email: `ayeleru1234@gmail.com`, 
+          firstName: 'Abdulsalam', 
+          lastName: 'Ayeleru' 
         },
         properties: scenarios.map(s => ({
-          location: { country: 'Nigeria', state: 'Lagos', area: 'Scenario', address: s.address },
+          location: { country: 'Nigeria', state: 'Lagos', area: 'Shomolu', address: s.address },
           rent: { rentAmount: s.amount, rentEndDate: s.date }
         }))
       }
@@ -95,16 +91,19 @@ async function run() {
 
     // 3. Create a Payment Request for the Overdue property
     console.log('\n--- Step 3: Triggering Hero Card for Overdue Property ---');
-    const overdueProp = propMap[4];
+    const overdueProp = propMap[0];
     await callApi('/payment-request', 'POST', {
       userPropertyUuid: overdueProp.uuid,
-      amount: overdueProp.amount,
       currency: 'NGN',
-      description: 'Overdue Rent Payment',
+      description: 'Rent Payment',
       dueDate: overdueProp.dueDate, // NOW VALID
       allowPartial: true,
       bankCode: '058',
-      accountNumber: '0011223344'
+      accountNumber: '0011223344',
+      lineItems: [
+        { amount: 1000000, name: 'Rent' },
+        { amount: 200000, name: 'Service Charge' }
+      ]
     }, apiKey);
 
     console.log('\n--- Flow Simulation Ready! ---');

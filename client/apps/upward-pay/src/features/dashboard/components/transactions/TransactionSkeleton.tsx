@@ -57,6 +57,32 @@ export function TransactionSkeleton() {
           0%, 100% { opacity: 1; }
           50% { opacity: .5; }
         }
+
+        /* Essential Layout Parity with TransactionList */
+        @media (min-width: 1024px) {
+          .transactions-list-page {
+            max-width: 800px;
+            margin: 20px auto;
+            background: var(--bg);
+            border-radius: 24px;
+            border: 1px solid var(--border-solid);
+            box-shadow: var(--shadow-md);
+            padding: 32px 40px;
+          }
+
+          .dashboard__header {
+            border-bottom: none;
+            padding: 0;
+            margin-bottom: 24px;
+          }
+
+          .transaction-item {
+            padding: 20px 24px;
+            border-radius: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border-solid);
+          }
+        }
       `}</style>
     </div>
   )

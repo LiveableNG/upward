@@ -5,6 +5,7 @@ import { WAITLIST_REPOSITORY, WaitlistRepository } from '../../../domains/waitli
 import * as bcrypt from 'bcrypt'
 import { UserAuthService } from '../../../application/auth/user-auth.service'
 import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Injectable()
 export class CompleteUserProfileUseCase {
@@ -13,6 +14,7 @@ export class CompleteUserProfileUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userAuthService: UserAuthService,
+    private readonly encryption: EncryptionService,
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(WAITLIST_REPOSITORY) private readonly waitlistRepository: WaitlistRepository,
@@ -27,10 +29,12 @@ export class CompleteUserProfileUseCase {
     dateOfBirth?: string
     profilePic?: string
     rentEndDate?: string
+    rentAmount?: number
     address?: string
     properties?: Array<{
       address: string;
       rentEndDate: string;
+      rentAmount?: number;
       companyName?: string;
       managerName?: string;
     }>
@@ -110,6 +114,8 @@ export class CompleteUserProfileUseCase {
     uuid?: string;
     address: string;
     rentEndDate: string;
+    rentStartDate?: string;
+    rentAmount?: number;
     companyName?: string;
     managerName?: string;
     location?: {
@@ -152,36 +158,93 @@ export class CompleteUserProfileUseCase {
         locationId = location.id
       }
 
-      if (prop.companyName) {
-        let company = await this.prisma.upward_company.findFirst({
-          where: { name: prop.companyName }
-        })
-        if (!company) {
-          company = await this.prisma.upward_company.create({
-            data: { name: prop.companyName }
-          })
+      // 3. Handle Company
+      let propertyCompanyId: number | null | undefined = undefined;
+      if (prop.companyName !== undefined) {
+        if (prop.companyName && prop.companyName.trim() !== '') {
+          const nameHash = this.encryption.hash(prop.companyName);
+          let company = await this.prisma.upward_company.findFirst({
+            where: { nameHash }
+          });
+          if (!company) {
+            company = await this.prisma.upward_company.create({
+              data: { 
+                name: this.encryption.encrypt(prop.companyName),
+                nameHash 
+              }
+            });
+          }
+          companyId = company.id;
+          propertyCompanyId = companyId;
+        } else {
+          propertyCompanyId = null;
         }
-        companyId = company.id
+      } else if (existingProperty?.companyId) {
+        companyId = existingProperty.companyId;
+        propertyCompanyId = companyId;
       }
 
-      if (prop.managerName && companyId) {
-        let manager = await this.prisma.upward_manager.findFirst({
-          where: { firstName: prop.managerName, companyId }
-        })
-        if (!manager) {
-          manager = await this.prisma.upward_manager.create({
-            data: { firstName: prop.managerName, companyId }
-          })
+      // 4. Handle Manager
+      let propertyManagerId: number | null | undefined = undefined;
+      if (prop.managerName !== undefined) {
+        if (prop.managerName && prop.managerName.trim() !== '') {
+          let managerCompanyId = companyId;
+          
+          if (!managerCompanyId) {
+            const fallbackCompanyName = "Independent Management";
+            const fallbackNameHash = this.encryption.hash(fallbackCompanyName);
+            let fallbackCompany = await this.prisma.upward_company.findFirst({
+              where: { nameHash: fallbackNameHash }
+            });
+            if (!fallbackCompany) {
+              fallbackCompany = await this.prisma.upward_company.create({
+                data: {
+                  name: this.encryption.encrypt(fallbackCompanyName),
+                  nameHash: fallbackNameHash
+                }
+              });
+            }
+            managerCompanyId = fallbackCompany.id;
+          }
+
+          const firstNameHash = this.encryption.hash(prop.managerName);
+          let manager = await this.prisma.upward_manager.findFirst({
+            where: { firstNameHash, companyId: managerCompanyId }
+          });
+          if (!manager) {
+            manager = await this.prisma.upward_manager.create({
+              data: { 
+                firstName: this.encryption.encrypt(prop.managerName),
+                firstNameHash,
+                companyId: managerCompanyId 
+              }
+            });
+          }
+          managerId = manager.id;
+          propertyManagerId = managerId;
+        } else {
+          propertyManagerId = null;
         }
-        managerId = manager.id
+      } else if (existingProperty?.managerId) {
+        managerId = existingProperty.managerId;
+        propertyManagerId = managerId;
       }
 
-      const propertyData = {
+      const propertyData: any = {
         userId,
         locationId,
-        companyId,
-        managerId,
+        companyId: propertyCompanyId,
+        managerId: propertyManagerId,
+        rentAmount: prop.rentAmount || 0,
         rentEndDate: prop.rentEndDate ? new Date(prop.rentEndDate) : null,
+      }
+
+      if (prop.rentStartDate) {
+        propertyData.rentStartDate = new Date(prop.rentStartDate)
+      }
+      if (prop.rentAmount !== undefined) {
+         const paid = existingProperty?.amountPaid || 0;
+         propertyData.amountRemaining = Math.max(0, prop.rentAmount - Number(paid));
       }
 
       if (existingProperty) {

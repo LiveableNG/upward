@@ -511,6 +511,8 @@ model upward_user_property {
   managerId     Int?
   locationId    Int?
   rentAmount    Float     @default(0)
+  amountPaid    Float     @default(0)
+  amountRemaining Float   @default(0)
   currency      String    @default("NGN")
   rentStartDate DateTime?
   rentEndDate   DateTime?

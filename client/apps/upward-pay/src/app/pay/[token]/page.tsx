@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { 
-  Lock, 
-  CreditCard, 
+import {
+  Lock,
+  CreditCard,
   ArrowRight,
   ChevronRight
 } from 'lucide-react'
@@ -92,7 +92,7 @@ export default function UnifiedPayPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+
   const [amountInput, setAmountInput] = useState('')
   const [showBreakdown, setShowBreakdown] = useState(false)
 
@@ -118,7 +118,7 @@ export default function UnifiedPayPage() {
         const items = (res.data.payment.lineItemRecords || []) as LineItemRecord[]
         setLineItems(items)
         const due = res.data.payment.amount - (res.data.payment.amountPaid || 0)
-        
+
         if (res.data.payment.status === 'PAID' || due <= 0) {
           setStep('already-paid')
         } else {
@@ -157,7 +157,7 @@ export default function UnifiedPayPage() {
 
   const autoAllocs = useMemo(() =>
     distributeAmount(Math.min(parsedAmount, totalOwed), lineItems, totalOwed)
-  , [parsedAmount, lineItems, totalOwed])
+    , [parsedAmount, lineItems, totalOwed])
 
   const effectiveAllocs: LineItemAllocation[] = useMemo(() => {
     return autoAllocs
@@ -279,13 +279,13 @@ export default function UnifiedPayPage() {
             <div className="pay-layout">
 
               <div className="pay-layout__left">
-                <InvoiceHeader 
-                  companyName={paymentData.company?.name} 
-                  description={paymentData.payment?.description || 'Housing Invoice'} 
+                <InvoiceHeader
+                  companyName={paymentData.company?.name}
+                  description={paymentData.payment?.description || 'Housing Invoice'}
                   logo={paymentData.company?.logo}
                   propertyAddress={paymentData.property?.locationAddress || paymentData.payment?.property_address || paymentData.property?.address || paymentData.payment?.propertyAddress}
                 />
-                <AmountDetailCard 
+                <AmountDetailCard
                   totalOwed={totalOwed}
                   currency={currency}
                   dueDate={paymentData.payment.dueDate}
@@ -306,7 +306,7 @@ export default function UnifiedPayPage() {
 
                 {!loginRequired && isLoggedIn && (
                   <>
-                    <PaymentInput 
+                    <PaymentInput
                       canPayPartial={canPayPartial}
                       isBelowMin={isBelowMin}
                       amountInput={amountInput}
@@ -316,7 +316,7 @@ export default function UnifiedPayPage() {
                       onAmountChange={handleAmountChange}
                       isGuest={false}
                     />
-                    <AllocationBreakdown 
+                    <AllocationBreakdown
                       showBreakdown={showBreakdown}
                       setShowBreakdown={setShowBreakdown}
                       effectiveAllocs={effectiveAllocs}
@@ -329,7 +329,7 @@ export default function UnifiedPayPage() {
                 {isGuest && (
                   <>
                     {canPayPartial && (
-                      <PaymentInput 
+                      <PaymentInput
                         canPayPartial={canPayPartial}
                         isBelowMin={isBelowMin}
                         amountInput={amountInput}
@@ -340,7 +340,7 @@ export default function UnifiedPayPage() {
                         isGuest={true}
                       />
                     )}
-                    <AllocationBreakdown 
+                    <AllocationBreakdown
                       showBreakdown={showBreakdown}
                       setShowBreakdown={setShowBreakdown}
                       effectiveAllocs={effectiveAllocs}
@@ -351,17 +351,17 @@ export default function UnifiedPayPage() {
                 )}
 
                 {!loginRequired && (
-                    <div className="pay-cta">
-                      <button
-                        className="btn btn--primary btn--full btn--pay btn--pill"
-                        onClick={() => setStep('checkout')}
-                        disabled={ctaDisabled}
-                      >
-                        <CreditCard size={18} className="icon--left" />
-                        <span>{ctaLabel()}</span>
-                        {!ctaDisabled && <ArrowRight size={18} className="icon--right" />}
-                      </button>
-                    </div>
+                  <div className="pay-cta">
+                    <button
+                      className="btn btn--primary btn--full btn--pay btn--pill"
+                      onClick={() => setStep('checkout')}
+                      disabled={ctaDisabled}
+                    >
+                      <CreditCard size={18} className="icon--left" />
+                      <span>{ctaLabel()}</span>
+                      {!ctaDisabled && <ArrowRight size={18} className="icon--right" />}
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -657,7 +657,7 @@ export default function UnifiedPayPage() {
 
   if (step === 'onboarding') {
     return (
-      <OnboardingStep 
+      <OnboardingStep
         formData={formData}
         setFormData={setFormData}
         showPassword={showPassword}
@@ -674,7 +674,7 @@ export default function UnifiedPayPage() {
 
   if (step === 'already-paid') {
     return (
-      <SettledStep 
+      <SettledStep
         amountPaid={paymentData.payment.amountPaid}
         currency={currency}
         companyName={paymentData.company?.name || 'Upward Platform'}
@@ -689,7 +689,7 @@ export default function UnifiedPayPage() {
 
   if (step === 'success') {
     return (
-      <SuccessStep 
+      <SuccessStep
         finalAmount={finalAmount}
         currency={currency}
         companyName={paymentData.company.name}

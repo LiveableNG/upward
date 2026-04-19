@@ -85,6 +85,7 @@ export class UserAuthService extends BaseAuthService {
       state?: string;
       country?: string;
       rentDueDate?: string;
+      rentAmount?: number;
       companyName?: string;
       managerName?: string;
     }>
@@ -285,6 +286,8 @@ export class UserAuthService extends BaseAuthService {
     state?: string;
     country?: string;
     rentDueDate?: string;
+    rentStartDate?: string;
+    rentAmount?: number;
     companyName?: string;
     managerName?: string;
     location?: {
@@ -331,47 +334,99 @@ export class UserAuthService extends BaseAuthService {
       }
 
       // 3. Handle Company
-      if (prop.companyName) {
-        const nameHash = this.encryption.hash(prop.companyName)
-        let company = await this.prisma.upward_company.findFirst({
-          where: { nameHash }
-        })
-        if (!company) {
-          company = await this.prisma.upward_company.create({
-            data: { 
-              name: this.encryption.encrypt(prop.companyName),
-              nameHash 
-            }
+      let propertyCompanyId: number | null | undefined = undefined;
+      
+      if (prop.companyName !== undefined) {
+        if (prop.companyName && prop.companyName.trim() !== '') {
+          const nameHash = this.encryption.hash(prop.companyName)
+          let company = await this.prisma.upward_company.findFirst({
+            where: { nameHash }
           })
+          if (!company) {
+            company = await this.prisma.upward_company.create({
+              data: { 
+                name: this.encryption.encrypt(prop.companyName),
+                nameHash 
+              }
+            })
+          }
+          companyId = company.id
+          propertyCompanyId = companyId
+        } else {
+          propertyCompanyId = null; // Clear company if empty string provided
         }
-        companyId = company.id
+      } else if (existingProperty?.companyId) {
+        companyId = existingProperty.companyId
+        propertyCompanyId = companyId
       }
 
       // 4. Handle Manager
-      if (prop.managerName && companyId) {
-        const firstNameHash = this.encryption.hash(prop.managerName)
-        let manager = await this.prisma.upward_manager.findFirst({
-          where: { firstNameHash, companyId }
-        })
-        if (!manager) {
-          manager = await this.prisma.upward_manager.create({
-            data: { 
-              firstName: this.encryption.encrypt(prop.managerName),
-              firstNameHash,
-              companyId 
+      let propertyManagerId: number | null | undefined = undefined;
+
+      if (prop.managerName !== undefined) {
+        if (prop.managerName && prop.managerName.trim() !== '') {
+          let managerCompanyId = companyId;
+          
+          if (!managerCompanyId) {
+            const fallbackCompanyName = "Independent Management";
+            const fallbackNameHash = this.encryption.hash(fallbackCompanyName);
+            
+            let fallbackCompany = await this.prisma.upward_company.findFirst({
+              where: { nameHash: fallbackNameHash }
+            });
+            
+            if (!fallbackCompany) {
+              fallbackCompany = await this.prisma.upward_company.create({
+                data: {
+                  name: this.encryption.encrypt(fallbackCompanyName),
+                  nameHash: fallbackNameHash
+                }
+              });
             }
+            managerCompanyId = fallbackCompany.id;
+          }
+
+          const firstNameHash = this.encryption.hash(prop.managerName)
+          let manager = await this.prisma.upward_manager.findFirst({
+            where: { firstNameHash, companyId: managerCompanyId }
           })
+          if (!manager) {
+            manager = await this.prisma.upward_manager.create({
+              data: { 
+                firstName: this.encryption.encrypt(prop.managerName),
+                firstNameHash,
+                companyId: managerCompanyId 
+              }
+            })
+          }
+          managerId = manager.id
+          propertyManagerId = managerId
+        } else {
+          propertyManagerId = null; // Clear manager if empty string provided
         }
-        managerId = manager.id
+      } else if (existingProperty?.managerId) {
+        managerId = existingProperty.managerId
+        propertyManagerId = managerId
       }
 
       // 5. Create or Update Property
-      const propertyData = {
+      const propertyData: any = {
         userId,
         locationId,
-        companyId,
-        managerId,
+        companyId: propertyCompanyId, // Link property to company ONLY if name was provided
+        managerId: propertyManagerId,
+        rentAmount: prop.rentAmount || (prop as any).rentAmount || 0,
         rentEndDate: prop.rentDueDate ? new Date(prop.rentDueDate) : (prop as any).rentEndDate ? new Date((prop as any).rentEndDate) : null,
+      }
+
+      // Only update rentStartDate if provided (avoid overwriting existing value with null)
+      if (prop.rentStartDate || (prop as any).rentStartDate) {
+        propertyData.rentStartDate = new Date(prop.rentStartDate || (prop as any).rentStartDate)
+      } else if (!existingProperty && propertyData.rentEndDate) {
+        // Automatically default rentStartDate to 1 year before rentEndDate if brand new
+        const defaultStart = new Date(propertyData.rentEndDate)
+        defaultStart.setFullYear(defaultStart.getFullYear() - 1)
+        propertyData.rentStartDate = defaultStart
       }
 
       if (existingProperty) {

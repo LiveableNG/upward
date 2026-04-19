@@ -25,14 +25,67 @@ export class CalculateRentScoreUseCase {
     const now = new Date()
     const missedRequests = pendingRequests.filter(pr => new Date(pr.dueDate) < now)
 
-    const allRelevantCycles = [...paymentRequests, ...partialRequests, ...missedRequests].sort((a, b) => 
+    const allRelevantCycles = [...paymentRequests, ...partialRequests, ...missedRequests]
+    
+    const userProperties = user.properties || []
+    for (const prop of userProperties) {
+       // Case 1: Property is currently fully settled in this cycle
+       const isFullyPaid = prop.amountRemaining === 0 && (prop.amountPaid || 0) > 0;
+
+       let hasRolledOver = false;
+       if (prop.rentEndDate) {
+          const startDate = prop.rentStartDate ? new Date(prop.rentStartDate) : new Date(prop.createdAt || new Date())
+          const endDate = new Date(prop.rentEndDate)
+          const spanDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+          hasRolledOver = spanDays > 400 // More than ~13 months = at least one completed cycle
+       }
+
+       if (isFullyPaid || hasRolledOver) {
+          const hasAnyPR = [...paymentRequests, ...partialRequests, ...pendingRequests]
+            .some(pr => pr.userPropertyId === prop.id)
+          if (!hasAnyPR) {
+             const currentDue = prop.rentEndDate ? new Date(prop.rentEndDate) : new Date()
+             const cycleDueDate = new Date(currentDue)
+             cycleDueDate.setFullYear(cycleDueDate.getFullYear() - 1)
+             allRelevantCycles.push({
+                id: -(prop.id || 999), 
+                uuid: prop.uuid,
+                amount: prop.rentAmount || prop.amountPaid,
+                dueDate: cycleDueDate, 
+                paidAt: prop.updatedAt || new Date(), 
+                status: 'PAID',
+                description: 'Manual Settlement'
+             } as any)
+          }
+       }
+    }
+
+    for (const prop of userProperties) {
+       if (prop.amountRemaining > 0 && prop.rentEndDate && new Date(prop.rentEndDate) < now) {
+          const hasAnyPR = [...paymentRequests, ...partialRequests, ...pendingRequests]
+            .some(pr => pr.userPropertyId === prop.id)
+          if (!hasAnyPR) {
+             allRelevantCycles.push({
+                id: -(prop.id || 999) - 1000,
+                uuid: prop.uuid,
+                amount: prop.amountRemaining,
+                dueDate: prop.rentEndDate,
+                paidAt: null,
+                status: 'PENDING',
+                description: 'Overdue Rent'
+             } as any)
+          }
+       }
+    }
+
+    allRelevantCycles.sort((a, b) => 
       new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
     )
 
     const totalCycles = allRelevantCycles.length
 
     // Condition to be scorable
-    const hasSuccessfulPayments = paymentRequests.length > 0 || partialRequests.length > 0
+    const hasSuccessfulPayments = allRelevantCycles.some(c => c.status === 'PAID' || c.status === 'PARTIAL')
     let isScorable = hasSuccessfulPayments
 
     if (!isScorable) {
@@ -48,8 +101,22 @@ export class CalculateRentScoreUseCase {
       const dueDate = new Date(cycle.dueDate)
       const isPaidOut = cycle.status === 'PAID' || cycle.status === 'PARTIAL'
       const paidDate = cycle.paidAt ? new Date(cycle.paidAt) : null
+      const isBeforeDueDate = dueDate > now
 
       let ptValue = 0 // default missed
+
+      if (cycle.status === 'PARTIAL' && isBeforeDueDate) {
+        return {
+          id: cycle.id,
+          uuid: cycle.uuid,
+          amount: cycle.amount,
+          dueDate: dueDate,
+          paidDate: paidDate,
+          status: cycle.status,
+          ptValue: -1, 
+          excluded: true
+        }
+      }
 
       if (isPaidOut && paidDate) {
         if (paidDate <= dueDate) {
@@ -57,14 +124,12 @@ export class CalculateRentScoreUseCase {
           currentStreak++
           if (currentStreak > longestStreak) longestStreak = currentStreak
         } else {
-          // Reset streak
           currentStreak = 0
           
           const diffTime = Math.abs(paidDate.getTime() - dueDate.getTime())
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
           if (diffDays <= 30) {
-            // Linear scale between 0.5 and 0.7
             if (diffDays === 1) {
               ptValue = 0.7
             } else if (diffDays === 30) {
@@ -73,20 +138,28 @@ export class CalculateRentScoreUseCase {
               ptValue = 0.7 - ((diffDays - 1) / 29) * 0.2
             }
           } else {
-            ptValue = 0.3 // Late > 1 month
+            ptValue = 0.3 
           }
         }
+      } else if (isBeforeDueDate) {
+        return {
+          id: cycle.id,
+          uuid: cycle.uuid,
+          amount: cycle.amount,
+          dueDate: dueDate,
+          paidDate: paidDate,
+          status: cycle.status,
+          ptValue: -1,
+          excluded: true
+        }
       } else {
-        // Missed
         currentStreak = 0
       }
 
       totalPTScore += ptValue
 
       if (cycle.status === 'PARTIAL') {
-        // Only penalize if it's late (either the payment was late, or it's still partial past the due date)
-        const isLate = paidDate ? (paidDate > dueDate) : (now > dueDate)
-        if (isLate) {
+        if (!isBeforeDueDate) {
           partialCyclesCount++
         }
       }
@@ -102,11 +175,18 @@ export class CalculateRentScoreUseCase {
       }
     })
 
+    const scoredCycles = cycleDetails.filter((c: any) => !c.excluded)
+    const scoredCount = scoredCycles.length
+
+    if (scoredCount === 0) {
+      return this.defaultUnscorableState(user)
+    }
+
     // Calculate A: PT
-    const PT = totalCycles > 0 ? (totalPTScore / totalCycles) : 0
+    const PT = scoredCount > 0 ? (totalPTScore / scoredCount) : 0
 
     // Calculate B: PS (Streak / Total)
-    const PS = totalCycles > 0 ? (longestStreak / totalCycles) : 0
+    const PS = scoredCount > 0 ? (longestStreak / scoredCount) : 0
 
     // Calculate C: T (Tenure)
     // Years of history using first successful payment cycle
@@ -120,7 +200,7 @@ export class CalculateRentScoreUseCase {
     const T = Math.min(1, yearsOfHistory / 3)
 
     // Calculate D: Discipline
-    const D = totalCycles > 0 ? (1 - (partialCyclesCount / totalCycles)) : 0
+    const D = scoredCount > 0 ? (1 - (partialCyclesCount / scoredCount)) : 1
 
     const CoreScore = 300 + (PT * 200) + (PS * 150) + (T * 50) + (D * 100)
     const SavingsBonus = 0 // Coming soon feature
@@ -143,7 +223,7 @@ export class CalculateRentScoreUseCase {
         band,
         rank,
         metrics: {
-          ptPercentage: (totalCycles > 0 ? (cycleDetails.filter(c => c.ptValue === 1).length / totalCycles) : 0) * 100,
+          ptPercentage: (scoredCount > 0 ? (scoredCycles.filter((c: any) => c.ptValue === 1).length / scoredCount) : 0) * 100,
           longestStreak: longestStreak,
           totalCycles: totalCycles,
           historyYears: parseFloat(yearsOfHistory.toFixed(1)),

@@ -6,6 +6,8 @@ export interface Property {
   managerId?: number
   locationId?: number
   rentAmount: number
+  amountPaid: number
+  amountRemaining: number
   rentStartDate?: Date
   rentEndDate?: Date
   currency: string

@@ -14,6 +14,7 @@ interface PageHeaderProps {
   rightIcon?: React.ReactNode
   onRightClick?: () => void
   rightElement?: React.ReactNode
+  statusBadge?: React.ReactNode
 }
 
 export function PageHeader({
@@ -26,6 +27,7 @@ export function PageHeader({
   rightIcon,
   onRightClick,
   rightElement,
+  statusBadge,
 }: PageHeaderProps) {
   const router = useRouter()
 
@@ -64,6 +66,7 @@ export function PageHeader({
           </button>
         )}
         <h1 className="dashboard__title">{title}</h1>
+        {statusBadge && <div className="page-header__badge">{statusBadge}</div>}
       </div>
       <div className="dashboard__header-right">
         {rightElement ? (

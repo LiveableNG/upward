@@ -9,6 +9,8 @@ export function StepSuccess({
   transactionId,
   onDone,
   router,
+  propertyAddress,
+  propertyBalance,
 }: {
   landlord: Landlord
   amount: number
@@ -16,6 +18,8 @@ export function StepSuccess({
   onDone: () => void
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   router: any
+  propertyAddress?: string
+  propertyBalance?: any
 }) {
   return (
     <div
@@ -23,14 +27,14 @@ export function StepSuccess({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '40px 20px 32px',
+        padding: '12px 20px 32px',
         textAlign: 'center',
       }}
     >
       <div
         style={{
-          width: 72,
-          height: 72,
+          width: 80,
+          height: 80,
           borderRadius: '50%',
           background: 'linear-gradient(135deg, var(--success) 0%, #16a34a 100%)',
           color: '#fff',
@@ -42,54 +46,73 @@ export function StepSuccess({
           animation: 'successPop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards',
         }}
       >
-        <Check size={32} />
+        <Check size={40} />
       </div>
-      <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text)', marginBottom: 8 }}>
-        Payment sent!
+
+      <h2 style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)', marginBottom: 8, letterSpacing: '-0.02em' }}>
+        Transaction Successful
       </h2>
       <p
         style={{
-          fontSize: 14,
+          fontSize: 15,
           color: 'var(--text-secondary)',
           lineHeight: 1.6,
-          marginBottom: 28,
-          maxWidth: 300,
+          marginBottom: 32,
+          maxWidth: 340,
         }}
       >
-        Your rent of <strong style={{ color: 'var(--text)' }}>{formatCurrency(amount)}</strong> has
-        been sent to <strong style={{ color: 'var(--text)' }}>{landlord.accountName}</strong>.
+        You've sent <strong style={{ color: 'var(--text)' }}>{formatCurrency(amount)}</strong> to <strong style={{ color: 'var(--text)' }}>{landlord.accountName}</strong> for <strong style={{ color: 'var(--text)' }}>{propertyAddress || 'your property'}</strong>.
       </p>
+
       <div
         style={{
           width: '100%',
-          padding: '20px',
-          background: 'linear-gradient(135deg, var(--clay-faint) 0%, transparent 100%)',
-          border: '1px solid rgba(217,119,87,0.12)',
-          borderRadius: 'var(--radius-lg)',
-          marginBottom: 24,
+          padding: '24px',
+          background: 'var(--surface2)',
+          border: '1px solid var(--border-solid)',
+          borderRadius: '24px',
+          marginBottom: 32,
           textAlign: 'left',
+          position: 'relative',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.02)'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <Star size={14} fill="currentColor" />
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
-            Rent credit recorded
+        <div style={{
+          position: 'absolute', top: 0, right: 0, width: 60, height: 60,
+          background: 'var(--clay-faint)', borderRadius: '0 24px 0 60px', pointerEvents: 'none'
+        }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--clay)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Star size={16} fill="currentColor" />
+          </div>
+          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+            Credit Score Impact
           </span>
         </div>
-        <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-          This payment contributes to your rent credit score.
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 0 }}>
+          {propertyBalance?.remainingBalance === 0 
+           ? "Full rent settled! This consistent behavior signals high reliability to credit agencies and property managers."
+           : "This partial payment has been recorded. Complete the balance on time to maximize your credit score boost."}
         </p>
       </div>
-      <button onClick={onDone} className="btn btn--primary btn--full" style={{ marginBottom: 10 }}>
-        Back to dashboard
-      </button>
-      <button
-        onClick={() => router.push(`/dashboard/receipts?id=${transactionId}`)}
-        className="btn btn--secondary btn--full"
-        disabled={!transactionId}
-      >
-        <Receipt size={20} /> View / Download receipt
-      </button>
+
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <button onClick={onDone} className="btn btn--primary btn--full" style={{ height: 56, fontSize: 16 }}>
+          Return to Dashboard
+        </button>
+        <button
+          onClick={() => router.push(`/dashboard/receipts?id=${transactionId}`)}
+          className="btn btn--secondary btn--full"
+          disabled={!transactionId}
+          style={{ height: 56, fontSize: 15, gap: 10 }}
+        >
+          <Receipt size={20} /> View Digital Receipt
+        </button>
+      </div>
+      
+      <div style={{ marginTop: 24, fontSize: 12, color: 'var(--text-muted)' }}>
+        Transaction ID: {transactionId || 'Pending...'}
+      </div>
     </div>
   )
 }

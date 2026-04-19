@@ -253,6 +253,15 @@ export function TransactionList() {
         </div>
       )}
       <style jsx>{`
+        .transactions-list__header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: var(--space-4) var(--space-5);
+          margin-bottom: var(--space-2);
+          border-bottom: 1px solid var(--border-solid);
+        }
+
         .transaction-item__type-badge--future {
           background: #fff8e1;
           color: #ffa000;

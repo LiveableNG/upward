@@ -59,7 +59,7 @@ export class CreateExternalPaymentRequestUseCase {
 
     if (payload.lineItems && payload.lineItems.length > 0) {
       const lineItemsTotal = payload.lineItems.reduce((sum, item) => sum + item.amount, 0)
-      if (Math.abs(lineItemsTotal - amount) > 0.01) {
+      if (Math.abs(lineItemsTotal - amount) !== 0) {
         throw new BadRequestException(
           `The sum of line items (${lineItemsTotal}) must equal the total amount (${amount})`
         )

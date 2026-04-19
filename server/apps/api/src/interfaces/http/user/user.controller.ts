@@ -116,6 +116,7 @@ export class UserController {
       fullName: body.fullName || body.name,
       phone: body.phone,
       rentEndDate: body.rentEndDate,
+      rentAmount: body.rentAmount,
       address: body.address,
       gender: body.gender,
       dateOfBirth: body.dateOfBirth,
