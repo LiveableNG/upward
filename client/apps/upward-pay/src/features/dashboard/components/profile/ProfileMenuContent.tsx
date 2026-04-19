@@ -24,6 +24,7 @@ import {
   Building,
   UserCheck,
   Pencil,
+  Clock,
   Share2,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -73,6 +74,13 @@ function ProfileMenuContentInner() {
           ...p,
           rentStartDate: p.rentStartDate ? p.rentStartDate.split('T')[0] : '',
           rentEndDate: p.rentEndDate ? p.rentEndDate.split('T')[0] : '',
+          isPastTenancy: !!p.isPastTenancy,
+          managerName: (p as any).manager?.firstName ? `${(p as any).manager.firstName} ${(p as any).manager.lastName || ''}`.trim() : (p as any).managerName,
+          managerEmail: (p as any).manager?.email || (p as any).managerEmail,
+          managerPhone: (p as any).manager?.phone || (p as any).managerPhone,
+          companyName: (p as any).company?.name || (p as any).companyName,
+          companyEmail: (p as any).company?.email || (p as any).companyEmail,
+          companyPhone: (p as any).company?.phone || (p as any).companyPhone,
           location: {
             ...p.location,
             country: p.location?.country || '',
@@ -320,7 +328,7 @@ function ProfileMenuContentInner() {
                     onClick={() => {
                       const newProps = [
                         ...(formData.properties || []),
-                        { address: '', rentEndDate: '', rentStartDate: '', isManaged: false, location: { country: '', state: '', area: '' } },
+                        { address: '', rentEndDate: '', rentStartDate: '', isManaged: false, isPastTenancy: false, location: { country: '', state: '', area: '' } },
                       ]
                       setFormData({ ...formData, properties: newProps })
                     }}
@@ -332,7 +340,7 @@ function ProfileMenuContentInner() {
 
               <div className="properties-list">
                 {(formData.properties || []).map((prop: any, idx: number) => (
-                  <div key={idx} className={`property-item${expandedProps[idx] ? ' property-item--open' : ''}`}>
+                  <div key={idx} className={`property-item${expandedProps[idx] ? ' property-item--open' : ''} ${prop.isPastTenancy ? 'property-item--past' : ''}`}>
                     <div 
                       className="property-item__header"
                       onClick={() => setExpandedProps(prev => ({ ...prev, [idx]: !prev[idx] }))}
@@ -357,6 +365,9 @@ function ProfileMenuContentInner() {
                           <div className="managed-indicator" title="Verified Management">
                             <Shield size={12} />
                           </div>
+                        )}
+                        {prop.isPastTenancy && (
+                          <div className="past-indicator">Past</div>
                         )}
                         <ChevronRight size={16} className={`property-item__chevron ${expandedProps[idx] ? 'rotated' : ''}`} />
                       </div>
@@ -437,6 +448,21 @@ function ProfileMenuContentInner() {
                           
                           <div className="divider-sm" />
 
+                          <div className="property-item__status-toggle">
+                            <DetailOrEdit
+                              isEditing={isEditing}
+                              icon={Clock}
+                              label="Is this a past tenancy?"
+                              type="select"
+                              options={[
+                                { value: 'false', label: 'No, I currently live here' },
+                                { value: 'true', label: 'Yes, I have moved out' },
+                              ]}
+                              value={prop.isPastTenancy ? 'true' : 'false'}
+                              onChange={(v) => handlePropUpdate(idx, 'isPastTenancy', v === 'true')}
+                            />
+                          </div>
+
                           <div className="grid-2">
                             <DetailOrEdit
                               isEditing={isEditing && !prop.isManaged}
@@ -450,7 +476,7 @@ function ProfileMenuContentInner() {
                             <DetailOrEdit
                               isEditing={isEditing && !prop.isManaged}
                               icon={Calendar}
-                              label="Rent Due Date"
+                              label={prop.isPastTenancy ? "Tenancy End Date" : "Rent Due Date"}
                               type="date"
                               value={prop.rentEndDate || ''}
                               displayValue={prop.rentEndDate ? formatDate(prop.rentEndDate) : ''}
@@ -468,20 +494,39 @@ function ProfileMenuContentInner() {
                             />
                           </div>
 
-                          <div className="grid-2">
+                           <div className="grid-2">
                             <DetailOrEdit
                               isEditing={isEditing && !prop.isManaged}
                               icon={Building}
                               label="Management Co."
-                              value={prop.company?.name || prop.companyName || ''}
+                              value={prop.companyName || ''}
                               onChange={(v) => handlePropUpdate(idx, 'companyName', v)}
                             />
                             <DetailOrEdit
                               isEditing={isEditing && !prop.isManaged}
                               icon={UserCheck}
                               label="Manager Name"
-                              value={prop.manager?.firstName || prop.managerName || ''}
+                              value={prop.managerName || ''}
                               onChange={(v) => handlePropUpdate(idx, 'managerName', v)}
+                            />
+                          </div>
+                          
+                          <div className="grid-2">
+                            <DetailOrEdit
+                              isEditing={isEditing && !prop.isManaged}
+                              icon={Phone}
+                              label="Manager Phone"
+                              placeholder="Manager's active phone"
+                              value={prop.managerPhone || ''}
+                              onChange={(v) => handlePropUpdate(idx, 'managerPhone', v)}
+                            />
+                            <DetailOrEdit
+                              isEditing={isEditing && !prop.isManaged}
+                              icon={Mail}
+                              label="Manager Email"
+                              placeholder="Manager's active email"
+                              value={prop.managerEmail || ''}
+                              onChange={(v) => handlePropUpdate(idx, 'managerEmail', v)}
                             />
                           </div>
                         </div>
@@ -519,6 +564,21 @@ function ProfileMenuContentInner() {
             --border-soft: var(--border-solid);
             --radius-main: 24px;
             --radius-item: 16px;
+          }
+
+          .property-item--past {
+            opacity: 0.65;
+            background: var(--surface2) !important;
+          }
+
+          .past-indicator {
+            background: var(--text-muted);
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 20px;
+            text-transform: uppercase;
           }
 
           .profile-content-scroll {

@@ -6,6 +6,7 @@ import * as documentService from '@/features/documents/services/documentService'
 import * as notificationService from '@/features/notifications/services/notificationService'
 import * as financeService from '@/features/finance/services/financeService'
 import * as supportService from '@/features/support/services/supportService'
+import * as credibilityService from '@/features/dashboard/services/credibilityService'
 
 export const api = {
   // Auth & Profile
@@ -57,6 +58,12 @@ export const api = {
   // Support Tickets
   createSupportTicket: supportService.createSupportTicket,
   getMyTickets: supportService.getMyTickets,
+
+  // Credibility Profile Records
+  submitRequestRecords: credibilityService.submitRequestRecords,
+  getCredibilityRequests: credibilityService.getCredibilityRequests,
+  renewProperty: (uuid: string) =>
+    request<any>(`/public/credibility/property/${uuid}/renew`, { method: 'POST' }),
 
   // Public (Leaving as raw for now)
   getPublicProfile: (slug: string) =>

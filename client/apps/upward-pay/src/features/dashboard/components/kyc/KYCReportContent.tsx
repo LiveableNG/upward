@@ -17,6 +17,8 @@ import {
   Zap,
   BadgeCheck,
   Building2,
+  Calendar,
+  Shield,
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -149,13 +151,24 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             <div className={`kyc-report__score-box ${isFaded ? 'opacity-50' : ''}`}>
               <div className="kyc-report__score-left">
                 <span className="kyc-report__score-label">{isScorable ? 'Rent Credibility Score' : 'Score Building'}</span>
-                <div className="kyc-report__score-value">{score}</div>
+                <div className="kyc-report__score-value-wrap">
+                   <div className="kyc-report__score-value">{score}</div>
+                   <div className="kyc-report__score-max">/ 900</div>
+                </div>
                 <div className="kyc-report__score-tier">
-                  <TrendingUp size={12} />
+                  <Star size={12} fill="var(--clay)" color="var(--clay)" />
                   {isScorable ? `Tier: ${rank} (${band})` : 'New profile building history'}
                 </div>
               </div>
               <div className="kyc-report__score-gauge">
+                <svg viewBox="0 0 100 100" className="kyc-report__gauge-svg">
+                  <circle className="kyc-report__gauge-bg" cx="50" cy="50" r="45" />
+                  <circle 
+                    className="kyc-report__gauge-fill" 
+                    cx="50" cy="50" r="45" 
+                    style={{ strokeDasharray: `${(score/900)*283} 283` }}
+                  />
+                </svg>
                 <div className="kyc-report__score-gauge-inner">{Math.round((score/900)*100)}%</div>
               </div>
             </div>
@@ -183,7 +196,12 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                        <div className="kyc-report__property-meta">
                           <span>{p.location?.state}, {p.location?.country}</span>
                           <span className="kyc-report__meta-dot" />
-                          <span>Since {p.rentStartDate ? new Date(p.rentStartDate).getFullYear() : 'N/A'}</span>
+                          <span>
+                            {p.rentStartDate ? new Date(p.rentStartDate).getFullYear() : 'N/A'}
+                            {p.isPastTenancy || (p.rentEndDate && new Date(p.rentEndDate) < new Date()) 
+                              ? ` — ${p.rentEndDate ? new Date(p.rentEndDate).getFullYear() : 'Present'}` 
+                              : ' — Present'}
+                          </span>
                        </div>
                     </div>
                   ))
@@ -199,9 +217,17 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
               <div className="kyc-report__metrics-grid">
                 {liveMetrics.map((m, i) => (
                   <div key={i} className="kyc-report__metric">
-                    <span className="kyc-report__metric-label">{m.label}</span>
-                    <div className="kyc-report__metric-value">{m.value}</div>
-                    <div className="kyc-report__metric-sub">{m.sub}</div>
+                    <div className="kyc-report__metric-icon-wrap">
+                       {i === 0 && <Clock size={16} />}
+                       {i === 1 && <Zap size={16} />}
+                       {i === 2 && <Calendar size={16} />}
+                       {i === 3 && <Shield size={16} />}
+                    </div>
+                    <div className="kyc-report__metric-content">
+                       <span className="kyc-report__metric-label">{m.label}</span>
+                       <div className="kyc-report__metric-value">{m.value}</div>
+                       <div className="kyc-report__metric-sub">{m.sub}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -227,11 +253,11 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                           <div>
                             <p className="kyc-report__timeline-title">Performance: {t.status}</p>
                             <p className="kyc-report__timeline-sub">
-                              Period Ended: {new Date(t.dueDate).toLocaleDateString()}
+                              Cycle Ended: {new Date(t.dueDate).toLocaleDateString()}
                             </p>
                           </div>
-                          <span className={`${t.ptValue >= 1 ? 'text-[var(--success)]' : 'text-gray-500'} font-bold text-sm`}>
-                            {t.ptValue >= 1 ? 'On Time' : 'Late / Missed'}
+                          <span className={`${t.ptValue >= 1 ? 'status-tag--perfect' : t.ptValue >= 0.7 ? 'status-tag--grace' : 'status-tag--late'} kyc-report__status-tag`}>
+                             {t.ptValue >= 1 ? 'On-Time' : t.ptValue >= 0.7 ? 'Grace' : 'Late'}
                           </span>
                         </div>
                       </div>
@@ -328,22 +354,152 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             align-items: center;
             padding: 0 1rem;
         }
+        .kyc-report {
+           position: relative;
+           overflow: hidden;
+           background: var(--surface);
+           border-radius: 40px;
+           border: 1px solid var(--border-solid);
+           box-shadow: 0 30px 60px -12px rgba(0,0,0,0.5);
+           transition: transform 0.3s ease;
+        }
+        .kyc-report__watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.03;
+            pointer-events: none;
+            animation: rotateFull 20s linear infinite;
+        }
+        @keyframes rotateFull {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .kyc-report__score-box {
+            background: linear-gradient(135deg, var(--surface2) 0%, var(--surface) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 24px;
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 2rem 0;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+        }
+        .kyc-report__score-value-wrap {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            margin: 0.5rem 0;
+        }
+        .kyc-report__score-value {
+            font-size: 4rem;
+            font-weight: 900;
+            line-height: 1;
+            background: linear-gradient(to bottom, #fff, var(--text-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .kyc-report__score-max {
+            font-size: 1.2rem;
+            font-weight: 700;
+            opacity: 0.3;
+        }
+        .kyc-report__score-gauge {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .kyc-report__gauge-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: rotate(-90deg);
+        }
+        .kyc-report__gauge-bg {
+            fill: none;
+            stroke: var(--surface2);
+            stroke-width: 8;
+        }
+        .kyc-report__gauge-fill {
+            fill: none;
+            stroke: var(--clay);
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dasharray 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .kyc-report__score-gauge-inner {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--clay);
+        }
+
+        .kyc-report__metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.2rem;
+        }
+        .kyc-report__metric {
+            background: var(--surface2);
+            padding: 1.25rem;
+            border-radius: 20px;
+            display: flex;
+            gap: 1rem;
+            border: 1px solid var(--border-solid);
+            transition: all 0.2s ease;
+        }
+        .kyc-report__metric:hover {
+            transform: translateY(-4px);
+            border-color: var(--clay);
+            background: var(--surface);
+        }
+        .kyc-report__metric-icon-wrap {
+            width: 40px;
+            height: 40px;
+            background: var(--clay-faint);
+            color: var(--clay);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .kyc-report__metric-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.5;
+        }
+        .kyc-report__metric-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-top: 2px;
+        }
+        .kyc-report__metric-sub {
+            font-size: 0.65rem;
+            opacity: 0.6;
+        }
+
+        .kyc-report__status-tag {
+            background: rgba(255,255,255,0.03);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
         .kyc-report__avatar-img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             border-radius: 50%;
-        }
-        .kyc-report__occupation {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--clay);
-            margin: 0.5rem 0;
-            text-transform: uppercase;
         }
         .kyc-report__bio {
             max-width: 460px;
@@ -363,6 +519,10 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             padding: 1rem;
             border-radius: 12px;
             border: 1px solid var(--border-solid);
+            transition: background 0.2s ease;
+        }
+        .kyc-report__property-item:hover {
+            background: var(--surface);
         }
         .kyc-report__property-head {
             display: flex;
@@ -390,28 +550,18 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             align-items: center;
             gap: 6px;
         }
-        .kyc-report__property-empty {
-            text-align: center;
-            padding: 2rem;
-            border: 1px dashed var(--border-solid);
-            border-radius: 12px;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
         
         @media (max-width: 640px) {
-            .kyc-report-container {
-                padding: 0;
+            .kyc-report__metrics-grid {
+                grid-template-columns: 1fr;
             }
-            .kyc-report {
-                border-radius: 0;
-                border-left: none;
-                border-right: none;
-            }
-            .public-header {
+            .kyc-report__score-box {
                 flex-direction: column;
-                gap: 1.5rem;
+                gap: 2rem;
                 text-align: center;
+            }
+            .kyc-report__score-value-wrap {
+                justify-content: center;
             }
         }
 

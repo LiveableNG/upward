@@ -21,6 +21,7 @@ export interface UserProfile {
     isManaged?: boolean;
     companyName?: string;
     managerName?: string;
+    isPastTenancy?: boolean;
     location?: {
       area?: string;
       subarea?: string;

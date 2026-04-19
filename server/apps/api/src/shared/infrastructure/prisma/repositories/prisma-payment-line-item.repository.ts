@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import {
   PaymentLineItem,
@@ -26,8 +27,10 @@ export class PrismaPaymentLineItemRepository implements IPaymentLineItemReposito
 
   async create(
     data: Omit<PaymentLineItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
+    tx?: Prisma.TransactionClient,
   ): Promise<PaymentLineItem> {
-    const row = await this.prisma.upward_payment_line_item.create({
+    const prisma = tx || this.prisma
+    const row = await prisma.upward_payment_line_item.create({
       data: {
         paymentRequestId: data.paymentRequestId,
         name: data.name,
@@ -42,8 +45,9 @@ export class PrismaPaymentLineItemRepository implements IPaymentLineItemReposito
 
   async bulkCreate(
     items: Omit<PaymentLineItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>[],
+    tx?: Prisma.TransactionClient,
   ): Promise<PaymentLineItem[]> {
-    return Promise.all(items.map((item) => this.create(item)))
+    return Promise.all(items.map((item) => this.create(item, tx)))
   }
 
   async findByPaymentRequestId(paymentRequestId: number): Promise<PaymentLineItem[]> {
@@ -54,8 +58,13 @@ export class PrismaPaymentLineItemRepository implements IPaymentLineItemReposito
     return rows.map(this.map)
   }
 
-  async update(id: number, data: Partial<PaymentLineItem>): Promise<PaymentLineItem> {
-    const row = await this.prisma.upward_payment_line_item.update({
+  async update(
+    id: number,
+    data: Partial<PaymentLineItem>,
+    tx?: Prisma.TransactionClient,
+  ): Promise<PaymentLineItem> {
+    const prisma = tx || this.prisma
+    const row = await prisma.upward_payment_line_item.update({
       where: { id },
       data: {
         name: data.name,
@@ -68,8 +77,12 @@ export class PrismaPaymentLineItemRepository implements IPaymentLineItemReposito
     return this.map(row)
   }
 
-  async deleteByPaymentRequestId(paymentRequestId: number): Promise<void> {
-    await this.prisma.upward_payment_line_item.deleteMany({
+  async deleteByPaymentRequestId(
+    paymentRequestId: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const prisma = tx || this.prisma
+    await prisma.upward_payment_line_item.deleteMany({
       where: { paymentRequestId },
     })
   }

@@ -24,6 +24,7 @@ import {
 } from '../../../domains/payments/payment.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { PROPERTY_REPOSITORY, PropertyRepository } from '../../../domains/companies/property.repository'
+import { RENT_CYCLE_REPOSITORY, IRentCycleRepository } from '../../../domains/scoring/rent-cycle.repository'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { randomUUID } from 'crypto'
 
@@ -97,6 +98,8 @@ export class RecordTransactionUseCase {
     private readonly lineItemRepo: IPaymentLineItemRepository,
     @Inject(PROPERTY_REPOSITORY)
     private readonly propertyRepo: PropertyRepository,
+    @Inject(RENT_CYCLE_REPOSITORY)
+    private readonly rentCycleRepo: IRentCycleRepository,
     @Inject(EVENT_BUS)
     private readonly eventBus: EventBus,
     private readonly prisma: PrismaService,
@@ -110,32 +113,34 @@ export class RecordTransactionUseCase {
       futureCreditName?: string
     }
   ) {
+    this.logger.log(`Recording transaction for reference: ${data.reference}`)
+
+    const user = await this.userRepository.findByUuid(data.userId)
+    if (!user) throw new Error('User not found')
+
+    // Idempotency check (Outside transaction is fine for initial check)
+    const existing = await this.txRepo.findByReference(data.reference)
+    if (existing) {
+      this.logger.warn(`Transaction with reference ${data.reference} already exists. Returning existing record.`)
+      return existing
+    }
+
+    // Verification (Outside transaction to avoid holding locks during HTTP call)
+    let verifiedData: any = { status: false }
     try {
-      this.logger.log(`Recording transaction for reference: ${data.reference}`)
+      verifiedData = await this.gateway.verifyTransaction(data.reference)
+    } catch (e) {
+      this.logger.error(`Gateway verification failed for ${data.reference}:`, e)
+      // Stop execution. No database write will happen.
+      throw e
+    }
 
-      const user = await this.userRepository.findByUuid(data.userId)
-      if (!user) throw new Error('User not found')
+    const isVerified = verifiedData.status
+    if (isVerified && verifiedData.amount !== undefined) {
+      data.amount = verifiedData.amount
+    }
 
-      // Idempotency check
-      const existing = await this.txRepo.findByReference(data.reference)
-      if (existing) {
-        this.logger.warn(`Transaction with reference ${data.reference} already exists. Returning existing record.`)
-        return existing
-      }
-
-      // Verification
-      let verifiedData: any = { status: false }
-      try {
-        verifiedData = await this.gateway.verifyTransaction(data.reference)
-      } catch (e) {
-        this.logger.error(`Gateway verification failed for ${data.reference}:`, e)
-      }
-
-      const isVerified = verifiedData.status
-      if (isVerified && verifiedData.amount !== undefined) {
-        data.amount = verifiedData.amount
-      }
-
+    return await this.prisma.$transaction(async (txClient) => {
       let pr: any = null
       let excess = 0
       let remaining = 0
@@ -147,12 +152,12 @@ export class RecordTransactionUseCase {
            const existingPartial = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PARTIAL');
            const matchingPRs = [...existingPending, ...existingPartial].filter(p => p.userPropertyId === prop.id);
            
-           if (matchingPRs.length > 0) {
-              data.paymentRequestId = matchingPRs[0]?.id;
-              this.logger.log(`Linked manual rent payment to existing payment request: ${data.paymentRequestId}`);
-           }
+            if (matchingPRs.length > 0) {
+              data.paymentRequestId = matchingPRs[0]?.id
+              this.logger.log(`Linked manual rent payment to existing payment request: ${data.paymentRequestId}`)
+            }
+          }
         }
-      }
 
       if (isVerified && data.paymentRequestId) {
         pr = await this.paymentRequestRepo.findById(data.paymentRequestId)
@@ -163,7 +168,6 @@ export class RecordTransactionUseCase {
       }
 
       let paymentAmount = pr ? Math.min(data.amount, remaining) : data.amount
-
       let userPropertyIdToSettle: number | null = pr?.userPropertyId || null;
 
       if (isVerified && data.type === 'RENT' && !pr && data.userPropertyUuid) {
@@ -173,179 +177,222 @@ export class RecordTransactionUseCase {
         }
       }
 
+      // 1. Create Transaction (SUCCESS or FAILED based on verification)
       const result = await this.txRepo.create({
         ...data,
         userId: user.id!,
         amount: paymentAmount,
         status: isVerified ? 'SUCCESS' : 'FAILED',
-      } as any)
+      } as any, txClient)
       this.logger.log(`Transaction recorded successfully with ID: ${result.id}`)
 
       if (isVerified && result.status === 'SUCCESS') {
-        try {
-          let rentPortion = paymentAmount;
+        let rentPortion = paymentAmount;
 
-          if (pr) {
-            const newAmountPaid = (pr.amountPaid || 0) + paymentAmount
-            const newStatus = newAmountPaid >= pr.amount ? 'PAID' : 'PARTIAL'
+        // 2. Settle Payment Request
+        if (pr) {
+          const newAmountPaid = (pr.amountPaid || 0) + paymentAmount
+          const newStatus = newAmountPaid >= pr.amount ? 'PAID' : 'PARTIAL'
 
-            await this.paymentRequestRepo.update(pr.id!, {
-              amountPaid: Math.min(newAmountPaid, pr.amount),
-              status: newStatus,
-              paidAt: newStatus === 'PAID' ? new Date() : undefined,
-            })
+          await this.paymentRequestRepo.update(pr.id!, {
+            amountPaid: Math.min(newAmountPaid, pr.amount),
+            status: newStatus,
+            paidAt: newStatus === 'PAID' ? new Date() : undefined,
+          }, txClient)
 
-            if (data.lineItems && Array.isArray(data.lineItems)) {
-              const existingItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!)
-              if (existingItems.length === 0) {
-                 await this.lineItemRepo.bulkCreate(data.lineItems.map(li => ({
-                    paymentRequestId: pr.id!,
-                    name: li.label || li.name,
-                    totalAmount: li.amount,
-                    amountPaid: 0,
-                    status: 'PENDING'
-                 })))
-              }
-
-              const currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!)
-              rentPortion = 0;
-
-              let remainingPayment = paymentAmount
-              for (const item of currentItems) {
-                 if (remainingPayment <= 0) break;
-                 const need = item.totalAmount - item.amountPaid
-                 const paymentToItem = Math.min(remainingPayment, need)
-                 
-                 const newItemPaid = item.amountPaid + paymentToItem
-                 await this.lineItemRepo.update(item.id!, {
-                    amountPaid: newItemPaid,
-                    status: newItemPaid >= item.totalAmount ? 'PAID' : 'PARTIAL'
-                 })
-
-                 if (item.name.toLowerCase().includes('rent')) {
-                    rentPortion += paymentToItem
-                 }
-
-                 remainingPayment -= paymentToItem
-              }
+          // 3. Settle Line Items
+          if (data.lineItems && Array.isArray(data.lineItems)) {
+            const existingItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!)
+            if (existingItems.length === 0) {
+                await this.lineItemRepo.bulkCreate(data.lineItems.map(li => ({
+                  paymentRequestId: pr.id!,
+                  name: li.label || li.name,
+                  totalAmount: li.amount,
+                  amountPaid: 0,
+                  status: 'PENDING'
+                })), txClient)
             }
 
-            if (excess > 0) {
-              const futureCreditRef = `FC_${data.reference}`
-              const existingFc = await this.txRepo.findByReference(futureCreditRef)
-              if (!existingFc) {
-                const futureCreditName = data.futureCreditName || 'Future Credit'
-                await this.txRepo.create({
-                  userId: user.id!,
-                  type: data.type || 'RENT',
-                  status: 'SUCCESS',
-                  amount: excess,
-                  currency: data.currency || 'NGN',
-                  reference: futureCreditRef,
-                  narration: futureCreditName,
-                  paymentRequestId: pr.id,
-                  propertyAddress: data.propertyAddress,
-                  lineItems: [{ name: futureCreditName, amount: excess }],
-                } as any)
+            const currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!)
+            rentPortion = 0;
 
-                await this.overpaymentRepo.create({
-                  userId: user.id!,
-                  amount: excess,
-                  currency: data.currency || 'NGN',
-                  transactionId: result.id,
-                  paymentRequestId: pr.id,
-                  status: 'AVAILABLE',
-                })
-                this.logger.log(`Overpayment of ${excess} recorded as Future Credit for user ${user.id}`)
-              }
+            let remainingPayment = paymentAmount
+            for (const item of currentItems) {
+                if (remainingPayment <= 0) break;
+                const need = item.totalAmount - item.amountPaid
+                const paymentToItem = Math.min(remainingPayment, need)
+                
+                const newItemPaid = item.amountPaid + paymentToItem
+                await this.lineItemRepo.update(item.id!, {
+                  amountPaid: newItemPaid,
+                  status: newItemPaid >= item.totalAmount ? 'PAID' : 'PARTIAL'
+                }, txClient)
+
+                if (item.name.toLowerCase().includes('rent')) {
+                  rentPortion += paymentToItem
+                }
+
+                remainingPayment -= paymentToItem
             }
-          } else {
-             if (data.lineItems && Array.isArray(data.lineItems) && data.lineItems.length > 0) {
-                 rentPortion = 0;
-                 let remainingPayment = paymentAmount;
-                 for (const item of data.lineItems) {
-                    if (remainingPayment <= 0) break;
-                    const itemName = (item.label || item.name || '').toLowerCase()
-                    const itemTotal = Number(item.amount || 0);
-                    const paymentToItem = Math.min(remainingPayment, itemTotal);
-
-                    if (itemName.includes('rent')) {
-                       rentPortion += paymentToItem;
-                    }
-
-                    remainingPayment -= paymentToItem;
-                 }
-             }
           }
 
+          // 4. Handle Excess as Overpayment
+          if (excess > 0) {
+            const futureCreditRef = `FC_${data.reference}`
+            const existingFc = await this.txRepo.findByReference(futureCreditRef)
+            if (!existingFc) {
+              const futureCreditName = data.futureCreditName || 'Future Credit'
+              await this.txRepo.create({
+                userId: user.id!,
+                type: data.type || 'RENT',
+                status: 'SUCCESS',
+                amount: excess,
+                currency: data.currency || 'NGN',
+                reference: futureCreditRef,
+                narration: futureCreditName,
+                paymentRequestId: pr.id,
+                propertyAddress: data.propertyAddress,
+                lineItems: [{ name: futureCreditName, amount: excess }],
+              } as any, txClient)
 
-          if (userPropertyIdToSettle && data.type === 'RENT') {
-            const prop = await this.propertyRepo.findById(userPropertyIdToSettle)
-            if (prop) {
-               const totalRentPaidForProp = (prop.amountPaid || 0) + rentPortion
-               const totalOwedForProp = prop.rentAmount || (pr ? pr.amount : 0)
-               const newRemaining = Math.max(0, totalOwedForProp - totalRentPaidForProp)
+              await this.overpaymentRepo.create({
+                userId: user.id!,
+                amount: excess,
+                currency: data.currency || 'NGN',
+                transactionId: result.id,
+                paymentRequestId: pr.id,
+                status: 'AVAILABLE',
+              }, txClient)
+              this.logger.log(`Overpayment of ${excess} recorded as Future Credit for user ${user.id}`)
+            }
+          }
+        } else {
+            if (data.lineItems && Array.isArray(data.lineItems) && data.lineItems.length > 0) {
+                rentPortion = 0;
+                let remainingPayment = paymentAmount;
+                for (const item of data.lineItems) {
+                  if (remainingPayment <= 0) break;
+                  const itemName = (item.label || item.name || '').toLowerCase()
+                  const itemTotal = Number(item.amount || 0);
+                  const paymentToItem = Math.min(remainingPayment, itemTotal);
 
-               const updateData: any = {
-                  amountPaid: totalRentPaidForProp,
-                  amountRemaining: newRemaining
-               }
+                  if (itemName.includes('rent')) {
+                      rentPortion += paymentToItem;
+                  }
 
-                if (newRemaining === 0 && totalRentPaidForProp >= totalOwedForProp && totalOwedForProp > 0) {
-                   const overpayment = totalRentPaidForProp - totalOwedForProp;
-                   
-                   if (prop.rentEndDate) {
-                      const newDate = new Date(prop.rentEndDate)
-                      newDate.setFullYear(newDate.getFullYear() + 1)
-                      updateData.rentEndDate = newDate
-                      
-                      const nextYearRent = prop.rentAmount || totalOwedForProp;
-                      updateData.amountPaid = overpayment;
-                      updateData.amountRemaining = Math.max(0, nextYearRent - overpayment);
+                  remainingPayment -= paymentToItem;
+                }
+            }
+        }
 
-                      this.logger.log(`Property ${prop.uuid} fully settled. Rent due date moved to ${newDate.toISOString()}. Resetting for next cycle with ${overpayment} overpayment carried over.`)
-                   }
+        // 5. Settle Property Balance & Rollover
+        if (userPropertyIdToSettle && data.type === 'RENT') {
+          const prop = await this.propertyRepo.findById(userPropertyIdToSettle)
+          if (prop) {
+              const totalRentPaidForProp = (prop.amountPaid || 0) + rentPortion
+              const totalOwedForProp = prop.rentAmount || (pr ? pr.amount : 0)
+              const newRemaining = Math.max(0, totalOwedForProp - totalRentPaidForProp)
 
-                  await this.prisma.upward_notification.create({
-                    data: {
-                      userId: user.id!,
-                      title: 'Credit Score Boost!',
-                      message: `Congratulations! Your full rent payment for ${data.propertyAddress || 'your property'} has boosted your credit health.`,
-                      type: 'PAYMENT'
-                    }
-                  })
+              const updateData: any = {
+                amountPaid: totalRentPaidForProp,
+                amountRemaining: newRemaining
+              }
 
-                  this.logger.log(`Triggered credit score boost for user ${user.id} on property ${prop.uuid}`)
+              if (newRemaining === 0 && totalRentPaidForProp >= totalOwedForProp && totalOwedForProp > 0) {
+                  const overpayment = totalRentPaidForProp - totalOwedForProp;
                   
-                  await this.prisma.upward_notification.updateMany({
-                    where: {
-                      userId: user.id!,
-                      type: 'RENT_REMINDER',
-                      message: { contains: prop.uuid }
-                    },
-                    data: { isRead: true }
-                  })
+                  if (prop.rentEndDate) {
+                    const newDate = new Date(prop.rentEndDate)
+                    newDate.setFullYear(newDate.getFullYear() + 1)
+                    updateData.rentEndDate = newDate
+                    updateData.isPastTenancy = false
+                    
+                    const nextYearRent = prop.rentAmount || totalOwedForProp;
+                    updateData.amountPaid = overpayment;
+                    updateData.amountRemaining = Math.max(0, nextYearRent - overpayment);
 
-                  const virtualId = 1000000 + prop.id!
-                  await this.prisma.upward_user_announcement_state.upsert({
-                    where: { userId_announcementId: { userId: user.id!, announcementId: virtualId } },
-                    create: { userId: user.id!, announcementId: virtualId, interactedBanner: true, interactedPopup: true },
-                    update: { interactedBanner: true, interactedPopup: true }
-                  }).catch(() => {})
-               }
+                    this.logger.log(`Property ${prop.uuid} fully settled. Rent due date moved to ${newDate.toISOString()}. Resetting for next cycle with ${overpayment} overpayment carried over.`)
+                  }
 
-               await this.propertyRepo.update(prop.id!, updateData)
+                await txClient.upward_notification.create({
+                  data: {
+                    userId: user.id!,
+                    title: 'Credit Score Boost!',
+                    message: `Congratulations! Your full rent payment for ${data.propertyAddress || 'your property'} has boosted your credit health.`,
+                    type: 'PAYMENT'
+                  }
+                })
+
+                await txClient.upward_notification.updateMany({
+                  where: {
+                    userId: user.id!,
+                    type: 'RENT_REMINDER',
+                    message: { contains: prop.uuid }
+                  },
+                  data: { isRead: true }
+                })
             }
+
+            // --- 6. Rent Cycle Source of Truth Update ---
+            const cycleDueDate = pr ? new Date(pr.dueDate) : (prop.rentEndDate ? new Date(prop.rentEndDate) : new Date())
+            const isPaidFull = totalRentPaidForProp >= totalOwedForProp
+            const paidAt = new Date()
+            
+            let cycleStatus: any = 'PARTIAL_ON_TIME'
+            if (isPaidFull) {
+              cycleStatus = paidAt <= cycleDueDate ? 'PAID_ON_TIME' : 'PAID_LATE'
+            } else {
+              cycleStatus = paidAt <= cycleDueDate ? 'PARTIAL_ON_TIME' : 'PARTIAL_LATE'
+            }
+
+            if (pr) {
+              await this.rentCycleRepo.upsertByPaymentRequestId(pr.id!, {
+                userId: user.id!,
+                userPropertyId: prop.id,
+                amountOwed: totalOwedForProp,
+                amountPaid: totalRentPaidForProp,
+                currency: data.currency || prop.currency || 'NGN',
+                dueDate: cycleDueDate,
+                paidAt: paidAt,
+                status: cycleStatus,
+                source: 'PAYMENT_REQUEST',
+                description: pr.description
+              }, txClient)
+            } else {
+              // Manual match based on property and due date
+              const existingCycles = await this.rentCycleRepo.findByUserPropertyId(prop.id!)
+              const existingCycle = existingCycles.find(c => 
+                new Date(c.dueDate).getTime() === cycleDueDate.getTime() && c.source === 'MANUAL'
+              )
+
+              if (existingCycle) {
+                await this.rentCycleRepo.update(existingCycle.id!, {
+                  amountPaid: totalRentPaidForProp,
+                  paidAt: paidAt,
+                  status: cycleStatus
+                }, txClient)
+              } else {
+                await this.rentCycleRepo.create({
+                  userId: user.id!,
+                  userPropertyId: prop.id,
+                  amountOwed: totalOwedForProp,
+                  amountPaid: totalRentPaidForProp,
+                  currency: data.currency || prop.currency || 'NGN',
+                  dueDate: cycleDueDate,
+                  paidAt: paidAt,
+                  status: cycleStatus,
+                  source: 'MANUAL',
+                  description: `Manual Rent Payment`
+                }, txClient)
+              }
+            }
+
+            await this.propertyRepo.update(prop.id!, updateData, txClient)
           }
-        } catch (e) {
-           this.logger.error(`Error in settlement logic: ${e}`)
         }
       }
       return result;
-    } catch (e) {
-      this.logger.error(`Failed to handle transaction: ${e}`)
-      throw e;
-    }
+    })
   }
 }
 

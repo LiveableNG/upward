@@ -1,4 +1,4 @@
-import { TrendingUp, FileText, Zap, ShieldCheck, Flame, Share2 } from 'lucide-react'
+import { TrendingUp, FileText, Zap, ShieldCheck, Flame, History } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type UserProfile } from '@/features/auth/types'
 import { useScoreProfile } from '../services/scoreService'
@@ -43,10 +43,10 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
         </div>
         <button 
           className="share-btn" 
-          onClick={() => router.push(`/profile/${profileSlug || user.uuid || 'me'}`)}
+          onClick={() => router.push(`/dashboard/request-records`)}
         >
-          <Share2 size={16} />
-          <span>{profileSlug ? 'Public Profile' : 'Share Profile'}</span>
+          <History size={16} />
+          <span>Request Records</span>
         </button>
       </div>
 
@@ -116,11 +116,11 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
             </div>
             <div className="insight-item">
               <div className="insight-item__top">
-                <span>Profile Completion</span>
-                <span>{profileCompletion}%</span>
+                <span>Score Band</span>
+                <span>{band.toUpperCase()}</span>
               </div>
               <div className="insight-progress">
-                <div className="insight-progress__fill" style={{ width: `${profileCompletion}%`, background: 'var(--success)' }} />
+                <div className="insight-progress__fill" style={{ width: `${(credScore / 900) * 100}%`, background: getRankColor() }} />
               </div>
             </div>
           </div>
@@ -130,9 +130,9 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
               <TrendingUp size={18} />
               <span>Boost Your Score</span>
             </button>
-            <button className="hub-btn hub-btn--outline" onClick={() => router.push('/dashboard/settings')}>
+            <button className="hub-btn hub-btn--outline" onClick={() => router.push('/dashboard/score-breakdown')}>
               <FileText size={18} />
-              <span>Complete Profile</span>
+              <span>View Score Breakdown</span>
             </button>
           </div>
         </div>

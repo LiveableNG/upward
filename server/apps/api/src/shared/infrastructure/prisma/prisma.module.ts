@@ -21,6 +21,7 @@ import {
   PrismaPropertyRepository,
   PrismaLocationRepository,
 } from './repositories/prisma-property.repository'
+import { PrismaRentCycleRepository } from './repositories/prisma-rent-cycle.repository'
 import { PrismaContractRepository } from './repositories/prisma-contract.repository'
 import { PrismaSupportTicketRepository } from './repositories/prisma-support.repository'
 import { PaystackGateway } from '../../../domains/payments/paystack.gateway'
@@ -46,6 +47,7 @@ import {
   PROPERTY_REPOSITORY,
   LOCATION_REPOSITORY,
 } from '../../../domains/companies/property.repository'
+import { RENT_CYCLE_REPOSITORY } from '../../../domains/scoring/rent-cycle.repository'
 import { PrismaNotificationRepository } from './repositories/prisma-notification.repository'
 import { NOTIFICATION_REPOSITORY } from '../../../domains/notifications/notification.repository'
 import { CONTRACT_REPOSITORY } from '../../../domains/contracts/contract.repository'
@@ -110,6 +112,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       useClass: PrismaLocationRepository,
     },
     {
+      provide: RENT_CYCLE_REPOSITORY,
+      useClass: PrismaRentCycleRepository,
+    },
+    {
       provide: SUBACCOUNT_REPOSITORY,
       useClass: PrismaSubaccountRepository,
     },
@@ -150,6 +156,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     MANAGER_REPOSITORY,
     PROPERTY_REPOSITORY,
     LOCATION_REPOSITORY,
+    RENT_CYCLE_REPOSITORY,
     SUBACCOUNT_REPOSITORY,
     WEBHOOK_REPOSITORY,
     OVERPAYMENT_REPOSITORY,

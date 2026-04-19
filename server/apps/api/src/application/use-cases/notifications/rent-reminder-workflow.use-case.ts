@@ -27,6 +27,7 @@ export class RentReminderWorkflowUseCase {
     const properties = await this.prisma.upward_user_property.findMany({
       where: {
         rentEndDate: { not: null },
+        isPastTenancy: false,
       },
       include: {
         user: true,

@@ -6,6 +6,7 @@ import { PaymentWebhookHandler } from './events/handlers/payment-webhook.handler
 import { S3Module } from '../shared/infrastructure/common/s3/s3.module'
 import { ReceiptModule } from '../shared/infrastructure/common/receipt/receipt.module'
 import { WebhookService } from '../shared/infrastructure/common/webhook/webhook.service'
+import { EncryptionService } from '../shared/infrastructure/common/encryption.service'
 
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
@@ -70,12 +71,18 @@ import { CompleteUserProfileUseCase } from './use-cases/user/complete-user-profi
 import { GetPublicProfileUseCase } from './use-cases/user/get-public-profile.use-case'
 import { CalculateRentScoreUseCase } from './use-cases/user/calculate-rent-score.use-case'
 import { GetAvatarUploadUrlUseCase } from './use-cases/user/get-avatar-upload-url.use-case'
+import { IngestPastRecordsUseCase } from './use-cases/user/ingest-past-records.use-case'
+import { RequestCredibilityRecordsUseCase } from './use-cases/user/request-credibility-records.use-case'
+import { GetCredibilityRequestsUseCase } from './use-cases/user/get-credibility-requests.use-case'
+import { GetCredibilityRequestDetailsUseCase } from './use-cases/external/get-credibility-request-details.use-case'
+import { FulfillCredibilityRequestUseCase } from './use-cases/external/fulfill-credibility-request.use-case'
 import { SingleInviteUseCase } from './use-cases/external/single-invite.use-case'
 import { CreatePlatformUseCase } from './use-cases/platform/create-platform.use-case'
 import { CreateExternalPaymentRequestUseCase } from './use-cases/external/create-payment-request.use-case'
 import { GetPublicPaymentDetailsUseCase } from './use-cases/external/get-public-payment.use-case'
 import { ConfirmExternalPaymentUseCase } from './use-cases/external/confirm-payment.use-case'
 import { AddPropertyUseCase } from './use-cases/external/add-property.use-case'
+import { RenewPropertyUseCase } from './use-cases/external/renew-property.use-case'
 import { AuthModule } from './auth/auth.module'
 import { CreateAnnouncementUseCase } from './use-cases/notifications/create-announcement.use-case'
 import {
@@ -172,6 +179,9 @@ const UseCases = [
   GetPublicProfileUseCase,
   CalculateRentScoreUseCase,
   GetAvatarUploadUrlUseCase,
+  IngestPastRecordsUseCase,
+  RequestCredibilityRecordsUseCase,
+  GetCredibilityRequestsUseCase,
   SaveLandlordUseCase,
   GetSavedLandlordsUseCase,
   RecordTransactionUseCase,
@@ -194,6 +204,9 @@ const UseCases = [
   GetPublicPaymentDetailsUseCase,
   ConfirmExternalPaymentUseCase,
   AddPropertyUseCase,
+  RenewPropertyUseCase,
+  GetCredibilityRequestDetailsUseCase,
+  FulfillCredibilityRequestUseCase,
   GetPendingPaymentsUseCase,
   ResolveSubaccountUseCase,
   GetPropertyBalanceUseCase,
@@ -221,10 +234,11 @@ const UseCases = [
     InteractionHandler,
     PaymentWebhookHandler,
     WebhookService,
+    EncryptionService,
     PushNotificationService,
     PrismaDeviceTokenRepository,
     ...UseCases,
   ],
-  exports: [WebhookService, PushNotificationService, PrismaDeviceTokenRepository, ...UseCases],
+  exports: [WebhookService, EncryptionService, PushNotificationService, PrismaDeviceTokenRepository, ...UseCases],
 })
 export class ApplicationModule { }

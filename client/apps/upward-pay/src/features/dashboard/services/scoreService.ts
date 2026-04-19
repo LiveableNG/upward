@@ -34,6 +34,7 @@ export interface ScoreProfile {
       paidDate: string | null
       status: string
       ptValue: number
+      source: string
     }>
     properties: any[]
   }

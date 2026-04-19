@@ -16,6 +16,9 @@ import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import { CompleteUserProfileUseCase } from '../../../application/use-cases/user/complete-user-profile.use-case'
 import { CalculateRentScoreUseCase } from '../../../application/use-cases/user/calculate-rent-score.use-case'
 import { GetAvatarUploadUrlUseCase } from '../../../application/use-cases/user/get-avatar-upload-url.use-case'
+import { IngestPastRecordsUseCase } from '../../../application/use-cases/user/ingest-past-records.use-case'
+import { RequestCredibilityRecordsUseCase } from '../../../application/use-cases/user/request-credibility-records.use-case'
+import { GetCredibilityRequestsUseCase } from '../../../application/use-cases/user/get-credibility-requests.use-case'
 
 interface FastifyReply {
   setCookie(name: string, value: string, options: Record<string, unknown>): FastifyReply
@@ -80,6 +83,9 @@ export class UserController {
     private readonly completeUserProfile: CompleteUserProfileUseCase,
     private readonly calculateRentScore: CalculateRentScoreUseCase,
     private readonly getAvatarUploadUrl: GetAvatarUploadUrlUseCase,
+    private readonly ingestPastRecords: IngestPastRecordsUseCase,
+    private readonly requestCredibilityRecords: RequestCredibilityRecordsUseCase,
+    private readonly getCredibilityRequests: GetCredibilityRequestsUseCase,
   ) { }
 
   @Post('signup')
@@ -236,5 +242,35 @@ export class UserController {
   async resetPassword(@Body() body: { email: string; otp: string; new: string }) {
     await this.userAuthService.resetPassword(body.email, body.otp, body.new)
     return { success: true, message: 'Password reset successful' }
+  }
+
+  @Post('past-records')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  async ingestRecords(
+    @Req() req: FastifyRequest,
+    @Body() body: { propertyUuid: string; records: any[] }
+  ) {
+    if (!req.user?.id) throw new UnauthorizedException('No user in request');
+    return this.ingestPastRecords.execute(req.user.id, body);
+  }
+
+  @Post('request-records')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  async submitRequestRecords(
+    @Req() req: FastifyRequest,
+    @Body() body: any
+  ) {
+    if (!req.user?.id) throw new UnauthorizedException('No user in request');
+    return this.requestCredibilityRecords.execute(req.user.id, body);
+  }
+
+  @Get('credibility-requests')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async fetchCredibilityRequests(@Req() req: FastifyRequest) {
+    if (!req.user?.id) throw new UnauthorizedException('No user in request');
+    return this.getCredibilityRequests.execute(req.user.id);
   }
 }
