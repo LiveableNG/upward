@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import {
   ISavedLandlordRepository,
@@ -128,8 +129,9 @@ export class PrismaSavedLandlordRepository implements ISavedLandlordRepository {
 export class PrismaTransactionRepository implements ITransactionRepository {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: Omit<Transaction, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<Transaction> {
-    const res = await this.prisma.upward_transaction.create({
+  async create(data: Omit<Transaction, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<Transaction> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_transaction.create({
       data: {
         userId: data.userId,
         type: data.type,
@@ -210,8 +212,9 @@ export class PrismaTransactionRepository implements ITransactionRepository {
     } as unknown as Transaction
   }
 
-  async updateStatus(id: number, status: string): Promise<Transaction> {
-    const res = await this.prisma.upward_transaction.update({
+  async updateStatus(id: number, status: string, tx?: Prisma.TransactionClient): Promise<Transaction> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_transaction.update({
       where: { id },
       data: { status },
     })
@@ -224,8 +227,9 @@ export class PrismaTransactionRepository implements ITransactionRepository {
     } as unknown as Transaction
   }
 
-  async update(id: number, data: Partial<Transaction>): Promise<Transaction> {
-    const res = await this.prisma.upward_transaction.update({
+  async update(id: number, data: Partial<Transaction>, tx?: Prisma.TransactionClient): Promise<Transaction> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_transaction.update({
       where: { id },
       data: {
         status: data.status,
@@ -251,8 +255,10 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
 
   async create(
     data: Omit<PaymentRequest, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
+    tx?: Prisma.TransactionClient,
   ): Promise<PaymentRequest> {
-    const res = await this.prisma.upward_payment_request.create({
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_payment_request.create({
       data: {
         userId: data.userId,
         userPropertyId: data.userPropertyId,
@@ -445,8 +451,13 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
     })) as unknown as PaymentRequest[]
   }
 
-  async update(id: number, data: Partial<PaymentRequest>): Promise<PaymentRequest> {
-    const res = await this.prisma.upward_payment_request.update({
+  async update(
+    id: number,
+    data: Partial<PaymentRequest>,
+    tx?: Prisma.TransactionClient,
+  ): Promise<PaymentRequest> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_payment_request.update({
       where: { id },
       data: {
         status: data.status,
@@ -469,14 +480,25 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       subaccountId: res.subaccountId ?? undefined,
     } as unknown as PaymentRequest
   }
+
+  async delete(id: number, tx?: Prisma.TransactionClient): Promise<void> {
+    const prisma = tx || this.prisma
+    await prisma.upward_payment_request.delete({
+      where: { id },
+    })
+  }
 }
 
 @Injectable()
 export class PrismaSubaccountRepository implements ISubaccountRepository {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: Omit<PaystackSubaccount, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<PaystackSubaccount> {
-    const res = await this.prisma.upward_paystack_subaccount.create({
+  async create(
+    data: Omit<PaystackSubaccount, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
+    tx?: Prisma.TransactionClient,
+  ): Promise<PaystackSubaccount> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_paystack_subaccount.create({
       data: {
         accountNumber: data.accountNumber,
         bankCode: data.bankCode,
@@ -504,8 +526,9 @@ export class PrismaSubaccountRepository implements ISubaccountRepository {
 export class PrismaWebhookRepository implements IWebhookRepository {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: Omit<WebhookLog, 'id' | 'createdAt' | 'updatedAt'>): Promise<WebhookLog> {
-    const res = await this.prisma.upward_webhook_log.create({
+  async create(data: Omit<WebhookLog, 'id' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<WebhookLog> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_webhook_log.create({
       data: {
         platformId: data.platformId,
         event: data.event,
@@ -521,8 +544,9 @@ export class PrismaWebhookRepository implements IWebhookRepository {
     return res as unknown as WebhookLog
   }
 
-  async update(id: string, data: Partial<WebhookLog>): Promise<WebhookLog> {
-    const res = await this.prisma.upward_webhook_log.update({
+  async update(id: string, data: Partial<WebhookLog>, tx?: Prisma.TransactionClient): Promise<WebhookLog> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_webhook_log.update({
       where: { id },
       data: {
         status: data.status,
@@ -551,8 +575,12 @@ export class PrismaWebhookRepository implements IWebhookRepository {
 export class PrismaOverpaymentRepository implements IOverpaymentRepository {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: Omit<Overpayment, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<Overpayment> {
-    const res = await this.prisma.upward_overpayment.create({
+  async create(
+    data: Omit<Overpayment, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Overpayment> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_overpayment.create({
       data: {
         userId: data.userId,
         amount: data.amount,

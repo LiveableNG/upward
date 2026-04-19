@@ -1,3 +1,5 @@
+import { Prisma } from '@prisma/client'
+
 export interface Property {
   id?: number
   uuid: string
@@ -12,6 +14,7 @@ export interface Property {
   rentEndDate?: Date
   currency: string
   isVerified?: boolean
+  isPastTenancy?: boolean
   createdAt: Date
   updatedAt: Date
   company?: { name: string }
@@ -35,8 +38,8 @@ export interface PropertyRepository {
   findById(id: number): Promise<Property | null>
   findByUuid(uuid: string): Promise<Property | null>
   findByUserId(userId: number): Promise<Property[]>
-  save(property: Property): Promise<Property>
-  update(id: number, data: Partial<Property>): Promise<Property>
+  save(property: Property, tx?: Prisma.TransactionClient): Promise<Property>
+  update(id: number, data: Partial<Property>, tx?: Prisma.TransactionClient): Promise<Property>
 }
 
 export interface LocationRepository {

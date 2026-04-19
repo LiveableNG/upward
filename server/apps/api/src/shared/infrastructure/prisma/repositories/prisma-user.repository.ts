@@ -42,15 +42,20 @@ export class PrismaUserRepository implements UserRepository {
         currency: p.currency,
         location: p.location,
         isManaged: p.isVerified,
+        isPastTenancy: p.isPastTenancy,
         updatedAt: p.updatedAt,
         company: p.company ? {
           ...p.company,
-          name: p.company.name ? this.encryption.decrypt(p.company.name) : undefined
+          name: p.company.name ? this.encryption.decrypt(p.company.name) : undefined,
+          email: p.company.email ? this.encryption.decrypt(p.company.email) : undefined,
+          phone: p.company.phone ? this.encryption.decrypt(p.company.phone) : undefined,
         } : undefined,
         manager: p.manager ? {
           ...p.manager,
           firstName: p.manager.firstName ? this.encryption.decrypt(p.manager.firstName) : undefined,
           lastName: p.manager.lastName ? this.encryption.decrypt(p.manager.lastName) : undefined,
+          email: p.manager.email ? this.encryption.decrypt(p.manager.email) : undefined,
+          phone: p.manager.phone ? this.encryption.decrypt(p.manager.phone) : undefined,
         } : undefined
       })) : [],
       companyUsers: model.companyUsers ? model.companyUsers.map((cu: any) => ({

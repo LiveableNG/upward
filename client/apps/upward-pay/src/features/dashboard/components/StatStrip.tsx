@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, TrendingUp, Clock, FileText, ArrowUpRight } from 'lucide-react'
+import { Check, TrendingUp, Clock, History, ArrowUpRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 
@@ -60,14 +60,14 @@ export function StatStrip({
 
       <div
         className="dashboard__stat-card dashboard__stat-card--action"
-        onClick={() => router.push('/dashboard/contracts')}
+        onClick={() => router.push('/dashboard/request-records')}
       >
         <div className="dashboard__stat-icon dashboard__stat-icon--clay">
-          <FileText size={16} />
+          <History size={16} />
         </div>
         <div>
-          <p className="dashboard__stat-value">View</p>
-          <p className="dashboard__stat-label">Lease Files</p>
+          <p className="dashboard__stat-value">Request</p>
+          <p className="dashboard__stat-label">Past Records</p>
         </div>
         <ArrowUpRight size={14} className="dashboard__stat-arrow" />
       </div>

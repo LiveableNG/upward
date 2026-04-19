@@ -88,6 +88,7 @@ export class UserAuthService extends BaseAuthService {
       rentAmount?: number;
       companyName?: string;
       managerName?: string;
+      isPastTenancy?: boolean;
     }>
     isFromWaitlist?: boolean
     isFromInvite?: boolean
@@ -290,6 +291,10 @@ export class UserAuthService extends BaseAuthService {
     rentAmount?: number;
     companyName?: string;
     managerName?: string;
+    companyEmail?: string;
+    companyPhone?: string;
+    managerEmail?: string;
+    managerPhone?: string;
     location?: {
       country?: string;
       state?: string;
@@ -297,6 +302,7 @@ export class UserAuthService extends BaseAuthService {
       subarea?: string;
       address?: string;
     }
+    isPastTenancy?: boolean;
   }>) {
     for (const prop of properties) {
       let locationId: number | undefined
@@ -346,8 +352,26 @@ export class UserAuthService extends BaseAuthService {
             company = await this.prisma.upward_company.create({
               data: { 
                 name: this.encryption.encrypt(prop.companyName),
-                nameHash 
+                nameHash,
+                email: prop.companyEmail ? this.encryption.encrypt(prop.companyEmail) : null,
+                emailHash: prop.companyEmail ? this.encryption.hash(prop.companyEmail) : null,
+                phone: prop.companyPhone ? this.encryption.encrypt(prop.companyPhone) : null,
+                phoneHash: prop.companyPhone ? this.encryption.hash(prop.companyPhone) : null
               }
+            })
+          } else if (prop.companyEmail || prop.companyPhone) {
+            const updateData: any = {}
+            if (prop.companyEmail) {
+              updateData.email = this.encryption.encrypt(prop.companyEmail)
+              updateData.emailHash = this.encryption.hash(prop.companyEmail)
+            }
+            if (prop.companyPhone) {
+              updateData.phone = this.encryption.encrypt(prop.companyPhone)
+              updateData.phoneHash = this.encryption.hash(prop.companyPhone)
+            }
+            await this.prisma.upward_company.update({
+              where: { id: company.id },
+              data: updateData
             })
           }
           companyId = company.id
@@ -395,8 +419,26 @@ export class UserAuthService extends BaseAuthService {
               data: { 
                 firstName: this.encryption.encrypt(prop.managerName),
                 firstNameHash,
-                companyId: managerCompanyId 
+                companyId: managerCompanyId,
+                email: prop.managerEmail ? this.encryption.encrypt(prop.managerEmail) : null,
+                emailHash: prop.managerEmail ? this.encryption.hash(prop.managerEmail) : null,
+                phone: prop.managerPhone ? this.encryption.encrypt(prop.managerPhone) : null,
+                phoneHash: prop.managerPhone ? this.encryption.hash(prop.managerPhone) : null
               }
+            })
+          } else if (prop.managerEmail || prop.managerPhone) {
+            const updateData: any = {}
+            if (prop.managerEmail) {
+              updateData.email = this.encryption.encrypt(prop.managerEmail)
+              updateData.emailHash = this.encryption.hash(prop.managerEmail)
+            }
+            if (prop.managerPhone) {
+              updateData.phone = this.encryption.encrypt(prop.managerPhone)
+              updateData.phoneHash = this.encryption.hash(prop.managerPhone)
+            }
+            await this.prisma.upward_manager.update({
+              where: { id: manager.id },
+              data: updateData
             })
           }
           managerId = manager.id
@@ -417,6 +459,7 @@ export class UserAuthService extends BaseAuthService {
         managerId: propertyManagerId,
         rentAmount: prop.rentAmount || (prop as any).rentAmount || 0,
         rentEndDate: prop.rentDueDate ? new Date(prop.rentDueDate) : (prop as any).rentEndDate ? new Date((prop as any).rentEndDate) : null,
+        isPastTenancy: prop.isPastTenancy ?? (prop as any).isPastTenancy ?? false,
       }
 
       // Only update rentStartDate if provided (avoid overwriting existing value with null)

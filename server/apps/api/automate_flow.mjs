@@ -69,7 +69,11 @@ async function run() {
         },
         properties: scenarios.map(s => ({
           location: { country: 'Nigeria', state: 'Lagos', area: 'Shomolu', address: s.address },
-          rent: { rentAmount: s.amount, rentEndDate: s.date }
+          rent: {
+            rentAmount: s.amount,
+            rentEndDate: s.date,
+            rentStartDate: new Date(new Date(s.date).setFullYear(new Date(s.date).getFullYear() - 1))
+          }
         }))
       }
     }, apiKey);
@@ -119,4 +123,34 @@ async function run() {
   }
 }
 
-run();
+//run();
+
+async function fulfillRequest() {
+  try {
+
+    const requestUuid = '01ac61fa-b5c2-4a8a-ba9b-0fd41dc27e5f';
+    await callApi(`/public/credibility/request/${requestUuid}/fulfill`, 'POST', {
+      records: [
+        { amount: 250000, dueDate: '2023-01-01T00:00:00.000Z', paidDate: '2023-01-28T00:00:00.000Z' }, // Late (28 days)
+        { amount: 250000, dueDate: '2023-02-01T00:00:00.000Z', paidDate: '2023-02-15T00:00:00.000Z' }, // Late (14 days)
+        { amount: 250000, dueDate: '2023-03-01T00:00:00.000Z', paidDate: '2023-02-28T00:00:00.000Z' }, // On time
+        { amount: 250000, dueDate: '2023-04-01T00:00:00.000Z', paidDate: '2023-03-31T00:00:00.000Z' }, // On time
+        { amount: 250000, dueDate: '2023-05-01T00:00:00.000Z', paidDate: '2023-05-01T00:00:00.000Z' }, // On time (same day)
+        { amount: 250000, dueDate: '2023-06-01T00:00:00.000Z', paidDate: '2023-06-05T00:00:00.000Z' }, // Late (5 days)
+        { amount: 250000, dueDate: '2023-07-01T00:00:00.000Z', paidDate: '2023-06-29T00:00:00.000Z' }, // On time
+        { amount: 250000, dueDate: '2023-08-01T00:00:00.000Z', paidDate: '2023-07-30T00:00:00.000Z' }, // On time
+        { amount: 250000, dueDate: '2023-09-01T00:00:00.000Z', paidDate: '2023-09-10T00:00:00.000Z' }, // Late (10 days)
+        { amount: 250000, dueDate: '2023-10-01T00:00:00.000Z', paidDate: '2023-09-28T00:00:00.000Z' }, // On time
+        { amount: 250000, dueDate: '2023-11-01T00:00:00.000Z', paidDate: '2023-10-31T00:00:00.000Z' }, // On time
+        { amount: 250000, dueDate: '2023-12-01T00:00:00.000Z', paidDate: '2023-11-29T00:00:00.000Z' }, // On time
+      ]
+    });
+    console.log('Request fulfilled successfully!');
+  } catch (error) {
+    console.error('Failed to fulfill request:', error.message);
+    process.exit(1);
+  }
+}
+
+fulfillRequest();
+

@@ -231,8 +231,10 @@ model upward_user {
   contracts      upward_user_contract[]
   authSessions   upward_auth_session[]
   supportTickets upward_support_ticket[]
-  deviceTokens   upward_device_token[]
-  overpayments   upward_overpayment[]
+  deviceTokens        upward_device_token[]
+  overpayments        upward_overpayment[]
+  credibilityRequests upward_credibility_request[]
+  rentCycles          upward_rent_cycle[]
 
   @@index([email])
   @@index([createdAt])
@@ -396,6 +398,7 @@ model upward_payment_request {
   userProperty upward_user_property?       @relation(fields: [userPropertyId], references: [id])
   subaccount   upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
   overpayments upward_overpayment[]
+  rentCycles   upward_rent_cycle[]
 
   @@index([userId])
   @@index([status])
@@ -517,6 +520,7 @@ model upward_user_property {
   rentStartDate DateTime?
   rentEndDate   DateTime?
   isVerified    Boolean   @default(false)
+  isPastTenancy Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -527,6 +531,41 @@ model upward_user_property {
 
   paymentRequests upward_payment_request[]
   contracts       upward_user_contract[]
+  inspections     upward_property_inspection[]
+  infractions     upward_property_infraction[]
+  rentCycles      upward_rent_cycle[]
+}
+
+model upward_property_inspection {
+  id             Int      @id @default(autoincrement())
+  uuid           String   @unique @default(uuid())
+  userPropertyId Int
+  inspectorName  String?
+  score          Float?   // 0 to 100
+  reportUrl      String?  // Link to PDF/External report
+  source         String   @default("UPWARD") // GT, MANUAL, etc.
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+
+  userProperty upward_user_property @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
+
+  @@index([userPropertyId])
+}
+
+model upward_property_infraction {
+  id             Int      @id @default(autoincrement())
+  uuid           String   @unique @default(uuid())
+  userPropertyId Int
+  description    String
+  amountOwed     Float    @default(0) // Renovation cost/debt
+  isResolved     Boolean  @default(false)
+  reportedToBureau Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  userProperty upward_user_property @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
+
+  @@index([userPropertyId])
 }
 
 model upward_paystack_subaccount {
@@ -565,6 +604,34 @@ model upward_webhook_log {
   @@index([platformId])
   @@index([status])
   @@index([createdAt])
+}
+
+model upward_rent_cycle {
+  id               Int       @id @default(autoincrement())
+  uuid             String    @unique @default(uuid())
+  userId           Int
+  userPropertyId   Int?
+  paymentRequestId Int?      // null for manual payments
+  source           String    @default("MANUAL") // MANUAL, PAYMENT_REQUEST, PAST_RECORD
+  amountOwed       Float
+  amountPaid       Float     @default(0)
+  currency         String    @default("NGN")
+  dueDate          DateTime  // rentEndDate for manual, PR.dueDate for requests
+  paidAt           DateTime? // when payment was made
+  status           String    @default("PENDING")
+  // Statuses: PENDING, PAID_ON_TIME, PAID_LATE, PARTIAL_ON_TIME, PARTIAL_LATE, MISSED
+  description      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user            upward_user              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProperty    upward_user_property?    @relation(fields: [userPropertyId], references: [id])
+  paymentRequest  upward_payment_request?  @relation(fields: [paymentRequestId], references: [id])
+
+  @@index([userId])
+  @@index([userPropertyId])
+  @@index([status])
+  @@index([dueDate])
 }
 
 model upward_user_contract {
@@ -621,4 +688,24 @@ model upward_overpayment {
   paymentRequest upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
 
   @@index([userId])
+}
+
+model upward_credibility_request {
+  id           Int      @id @default(autoincrement())
+  uuid         String   @unique @default(uuid())
+  userId       Int
+  propertyUuid String
+  companyName  String?  /// @encrypted
+  managerName  String?  /// @encrypted
+  email        String?  /// @encrypted
+  phone        String?  /// @encrypted
+  status       String   @default("PENDING") // PENDING, COMPLETED, CANCELLED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([propertyUuid])
+  @@index([status])
 }

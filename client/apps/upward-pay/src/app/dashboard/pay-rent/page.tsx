@@ -15,6 +15,7 @@ import { StepConfirm } from '@/features/dashboard/components/payment/StepConfirm
 import { StepSuccess } from '@/features/dashboard/components/payment/StepSuccess'
 import { StepPropertySelect } from '@/features/dashboard/components/payment/StepPropertySelect'
 import { PayRentSkeleton } from '@/features/dashboard/components/payment/PayRentSkeleton'
+import { RenewalModal } from '@/features/payments/components/unified-pay/RenewalModal'
 
 export default function PayRentPage() {
   const router = useRouter()
@@ -38,6 +39,8 @@ export default function PayRentPage() {
   const [selectedPropertyUuid, setSelectedPropertyUuid] = useState<string | null>(null)
   const [propertyBalance, setPropertyBalance] = useState<any>(null)
   const [pendingLandlordToSave, setPendingLandlordToSave] = useState<any>(null)
+  const [showRenewalModal, setShowRenewalModal] = useState(false)
+  const [renewalPropertyUuid, setRenewalPropertyUuid] = useState<string | null>(null)
 
   useEffect(() => {
     if (selectedPropertyUuid) {
@@ -248,6 +251,11 @@ export default function PayRentPage() {
              if (prop.company?.name || prop.companyName) {
              }
              
+             if (prop.isPastTenancy) {
+               setRenewalPropertyUuid(prop.uuid)
+               setShowRenewalModal(true)
+             }
+
              if (selectedLandlord) {
                setStep('confirm')
              } else {
@@ -386,6 +394,20 @@ export default function PayRentPage() {
           router={router}
           propertyAddress={propertyAddress}
           propertyBalance={propertyBalance}
+        />
+      )}
+      {renewalPropertyUuid && (
+        <RenewalModal
+          isOpen={showRenewalModal}
+          propertyUuid={renewalPropertyUuid}
+          onClose={() => setShowRenewalModal(false)}
+          onRenewed={() => {
+            setShowRenewalModal(false)
+            // Update local state to reflect renewal
+            setUserProperties(prev => prev.map(p => 
+              p.uuid === renewalPropertyUuid ? { ...p, isPastTenancy: false } : p
+            ))
+          }}
         />
       )}
       </div>

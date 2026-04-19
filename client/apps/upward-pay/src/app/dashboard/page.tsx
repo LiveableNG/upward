@@ -73,7 +73,11 @@ export default function DashboardPage() {
   }
 
   const { user, pendingPayments: rawPending, completedPayments } = data
-  const pendingPayments = [...(rawPending || [])].sort((a, b) => {
+  const pendingPayments = [...(rawPending || [])].filter((p: any) => {
+    if (!p.userPropertyUuid) return true;
+    const prop = user.properties?.find((prop: any) => prop.uuid === p.userPropertyUuid);
+    return !prop?.isPastTenancy;
+  }).sort((a, b) => {
     const now = new Date()
     const aDate = a.due_date || a.dueDate
     const bDate = b.due_date || b.dueDate
@@ -422,22 +426,22 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* CELL 3: Profile Completion */}
+          {/* CELL 3: Score Breakdown */}
           <div className="bento-cell bento-cell--metric">
             <div className="bento-metric">
-              <div className="bento-metric__icon bento-metric__icon--green">
-                <Zap size={20} />
+              <div className="bento-metric__icon bento-metric__icon--clay">
+                <TrendingUp size={20} />
               </div>
-              <div className="bento-metric__pct" style={{ color: profileCompletion >= 80 ? 'var(--success)' : 'var(--warning)' }}>
-                {profileCompletion}%
+              <div className="bento-metric__pct">
+                Score Detail
               </div>
-              <div className="bento-metric__title">Profile Completion</div>
-              <div className="bento-metric__desc">Verify identity for better rates</div>
+              <div className="bento-metric__title">Reputation Factors</div>
+              <div className="bento-metric__desc">View how your score is calculated</div>
               <div className="bento-metric__bar">
-                <div className="bento-metric__bar-fill" style={{ width: `${profileCompletion}%`, background: 'var(--success)' }} />
+                <div className="bento-metric__bar-fill" style={{ width: '100%', background: 'var(--clay)' }} />
               </div>
-              <button className="bento-metric__link" style={{ color: 'var(--success)' }} onClick={() => router.push('/dashboard/me?view=personal')}>
-                Complete Profile <ArrowRight size={13} />
+              <button className="bento-metric__link" onClick={() => router.push('/dashboard/score-breakdown')}>
+                View Breakdown <ArrowRight size={13} />
               </button>
             </div>
           </div>

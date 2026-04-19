@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service'
 import {
@@ -54,7 +55,8 @@ export class PrismaPropertyRepository implements PropertyRepository {
     return records as unknown as Property[]
   }
 
-  async save(property: Property): Promise<Property> {
+  async save(property: Property, tx?: Prisma.TransactionClient): Promise<Property> {
+    const prisma = tx || this.prisma
     const data = {
       uuid: property.uuid,
       userId: property.userId,
@@ -66,18 +68,20 @@ export class PrismaPropertyRepository implements PropertyRepository {
       rentStartDate: property.rentStartDate,
       rentEndDate: property.rentEndDate,
       isVerified: property.isVerified,
+      isPastTenancy: property.isPastTenancy,
     }
     const record = property.id
-      ? await this.prisma.upward_user_property.update({
+      ? await prisma.upward_user_property.update({
           where: { id: property.id },
           data,
         })
-      : await this.prisma.upward_user_property.create({ data })
+      : await prisma.upward_user_property.create({ data })
     return record as unknown as Property
   }
 
-  async update(id: number, data: Partial<Property>): Promise<Property> {
-    const record = await this.prisma.upward_user_property.update({
+  async update(id: number, data: Partial<Property>, tx?: Prisma.TransactionClient): Promise<Property> {
+    const prisma = tx || this.prisma
+    const record = await prisma.upward_user_property.update({
       where: { id },
       data: data as any,
     })

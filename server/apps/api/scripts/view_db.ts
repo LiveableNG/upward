@@ -54,6 +54,7 @@ async function main() {
       firstName: encryption.decrypt(u.firstName),
       lastName: encryption.decrypt(u.lastName),
       phone: encryption.decrypt(u.phone),
+      profile_picture: u.profilePic
     })))
 
     // 2. COMPANIES
@@ -120,7 +121,7 @@ async function main() {
     console.table(platforms.map(p => ({
         id: p.id,
         name_DEC: encryption.decrypt(p.name),
-        apiKey: p.apiKey.slice(0, 10) + '...',
+        apiKey: p.apiKey,
         webhook: p.webhookUrl
     })))
 
@@ -139,6 +140,7 @@ async function main() {
     const requests = await prisma.upward_payment_request.findMany({ take: 5 })
     console.table(requests.map(r => ({
         id: r.id,
+        uuid: r.uuid,
         userId: r.userId,
         amount: r.amount,
         status: r.status,
@@ -174,6 +176,18 @@ async function main() {
         amount: o.amount,
         status: o.status,
         createdAt: o.createdAt
+    })))
+
+    // 13. CREDIBILITY REQUESTS
+    console.log('\n\x1b[36m>>> TABLE: upward_credibility_request\x1b[0m')
+    const credRequests = await prisma.upward_credibility_request.findMany({ take: 5 })
+    console.table(credRequests.map(cr => ({
+        id: cr.id,
+        uuid: cr.uuid,
+        propertyUuid: cr.propertyUuid,
+        status: cr.status,
+        email_DEC: encryption.decrypt(cr.email) || '-',
+        createdAt: cr.createdAt.toISOString().split('T')[0]
     })))
 
   } catch (err) {

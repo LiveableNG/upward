@@ -1,5 +1,7 @@
 
 
+import { Prisma } from '@prisma/client'
+
 export interface SavedLandlord {
   id: number
   uuid: string
@@ -18,11 +20,11 @@ export interface SavedLandlord {
 }
 
 export interface ISavedLandlordRepository {
-  create(data: Omit<SavedLandlord, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<SavedLandlord>
+  create(data: Omit<SavedLandlord, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<SavedLandlord>
   findByUserId(userId: number): Promise<SavedLandlord[]>
   findById(id: number): Promise<SavedLandlord | null>
   findByUuid(uuid: string): Promise<SavedLandlord | null>
-  update(id: number, data: Partial<SavedLandlord>): Promise<SavedLandlord>
+  update(id: number, data: Partial<SavedLandlord>, tx?: Prisma.TransactionClient): Promise<SavedLandlord>
 }
 
 export interface Transaction {
@@ -46,13 +48,13 @@ export interface Transaction {
 }
 
 export interface ITransactionRepository {
-  create(data: Omit<Transaction, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<Transaction>
+  create(data: Omit<Transaction, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<Transaction>
   findByUserId(userId: number): Promise<Transaction[]>
   findById(id: number): Promise<Transaction | null>
   findByUuid(uuid: string): Promise<Transaction | null>
   findByReference(reference: string): Promise<Transaction | null>
-  updateStatus(id: number, status: string): Promise<Transaction>
-  update(id: number, data: Partial<Transaction>): Promise<Transaction>
+  updateStatus(id: number, status: string, tx?: Prisma.TransactionClient): Promise<Transaction>
+  update(id: number, data: Partial<Transaction>, tx?: Prisma.TransactionClient): Promise<Transaction>
 }
 
 export interface Bank {
@@ -111,11 +113,11 @@ export interface PaymentLineItem {
 }
 
 export interface IPaymentLineItemRepository {
-  create(data: Omit<PaymentLineItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<PaymentLineItem>
+  create(data: Omit<PaymentLineItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<PaymentLineItem>
   findByPaymentRequestId(paymentRequestId: number): Promise<PaymentLineItem[]>
-  update(id: number, data: Partial<PaymentLineItem>): Promise<PaymentLineItem>
-  bulkCreate(items: Omit<PaymentLineItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>[]): Promise<PaymentLineItem[]>
-  deleteByPaymentRequestId(paymentRequestId: number): Promise<void>
+  update(id: number, data: Partial<PaymentLineItem>, tx?: Prisma.TransactionClient): Promise<PaymentLineItem>
+  bulkCreate(items: Omit<PaymentLineItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>[], tx?: Prisma.TransactionClient): Promise<PaymentLineItem[]>
+  deleteByPaymentRequestId(paymentRequestId: number, tx?: Prisma.TransactionClient): Promise<void>
 }
 
 export interface PaymentRequest {
@@ -148,12 +150,13 @@ export interface PaymentRequest {
 }
 
 export interface IPaymentRequestRepository {
-  create(data: Omit<PaymentRequest, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<PaymentRequest>
+  create(data: Omit<PaymentRequest, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<PaymentRequest>
   findById(id: number): Promise<PaymentRequest | null>
   findByUuid(uuid: string): Promise<PaymentRequest | null>
   findByUserId(userId: number): Promise<PaymentRequest[]>
   findByUserIdAndStatus(userId: number, status: string): Promise<PaymentRequest[]>
-  update(id: number, data: Partial<PaymentRequest>): Promise<PaymentRequest>
+  update(id: number, data: Partial<PaymentRequest>, tx?: Prisma.TransactionClient): Promise<PaymentRequest>
+  delete(id: number, tx?: Prisma.TransactionClient): Promise<void>
 }
 
 export interface PaystackSubaccount {
@@ -168,7 +171,7 @@ export interface PaystackSubaccount {
 }
 
 export interface ISubaccountRepository {
-  create(data: Omit<PaystackSubaccount, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<PaystackSubaccount>
+  create(data: Omit<PaystackSubaccount, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<PaystackSubaccount>
   findByAccountInfo(accountNumber: string, bankCode: string): Promise<PaystackSubaccount | null>
 }
 
@@ -189,8 +192,8 @@ export interface WebhookLog {
 }
 
 export interface IWebhookRepository {
-  create(data: Omit<WebhookLog, 'id' | 'createdAt' | 'updatedAt'>): Promise<WebhookLog>
-  update(id: string, data: Partial<WebhookLog>): Promise<WebhookLog>
+  create(data: Omit<WebhookLog, 'id' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<WebhookLog>
+  update(id: string, data: Partial<WebhookLog>, tx?: Prisma.TransactionClient): Promise<WebhookLog>
   findToRetry(maxRetries: number): Promise<WebhookLog[]>
 }
 
@@ -208,7 +211,7 @@ export interface Overpayment {
 }
 
 export interface IOverpaymentRepository {
-  create(data: Omit<Overpayment, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<Overpayment>
+  create(data: Omit<Overpayment, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<Overpayment>
   findByUserId(userId: number): Promise<Overpayment[]>
 }
 
