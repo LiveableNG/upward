@@ -86,6 +86,8 @@ export class GetPublicPaymentDetailsUseCase {
       property: {
         uuid: property.uuid,
         rentAmount: property.rentAmount,
+        amountPaid: property.amountPaid,
+        amountRemaining: property.amountRemaining,
         rentEndDate: property.rentEndDate,
         locationAddress: locationAddress,
       },

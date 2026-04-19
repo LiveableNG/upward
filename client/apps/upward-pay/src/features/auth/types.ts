@@ -15,6 +15,7 @@ export interface UserProfile {
   properties?: Array<{
     uuid?: string;
     address: string;
+    rentStartDate?: string;
     rentEndDate: string;
     rentAmount?: number;
     isManaged?: boolean;

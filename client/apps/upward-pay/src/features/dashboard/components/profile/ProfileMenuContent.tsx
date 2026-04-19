@@ -71,6 +71,7 @@ function ProfileMenuContentInner() {
         address: user.address || '',
         properties: user.properties?.map((p) => ({
           ...p,
+          rentStartDate: p.rentStartDate ? p.rentStartDate.split('T')[0] : '',
           rentEndDate: p.rentEndDate ? p.rentEndDate.split('T')[0] : '',
           location: {
             ...p.location,
@@ -203,8 +204,16 @@ function ProfileMenuContentInner() {
       <div className="profile-page dashboard--nav-offset">
         <PageHeader
           title={isEditing ? 'Edit Profile' : 'Personal Details'}
+          statusBadge={
+            !isEditing && (
+              <div className={`status-badge ${isProfileComplete ? 'status-badge--complete' : 'status-badge--incomplete'}`}>
+                <span className="status-badge__dot" />
+                {isProfileComplete ? 'Complete' : 'Incomplete'}
+              </div>
+            )
+          }
           showBack
-          backLabel="Back to Profile"
+          backLabel="Profile"
           showSettings={true}
           rightElement={
             isEditing ? (
@@ -235,85 +244,75 @@ function ProfileMenuContentInner() {
         />
 
         <div className="profile-content-scroll">
-          <div className="personal-grid">
-            <aside className="personal-grid__sidebar">
-              <div className="personal-card">
-                <div className="personal-card__header">
-                  <h3 className="personal-card__title">Basic Information</h3>
-                  <p className="personal-card__subtitle">Your identity and contact details.</p>
-                </div>
-                <div className="personal-card__body">
-                  <DetailOrEdit
-                    isEditing={isEditing}
-                    icon={User}
-                    label="First Name"
-                    isCritical={true}
-                    value={formData.firstName || ''}
-                    onChange={(v) => setFormData({ ...formData, firstName: v })}
-                  />
-                  <DetailOrEdit
-                    isEditing={isEditing}
-                    icon={User}
-                    label="Last Name"
-                    isCritical={true}
-                    value={formData.lastName || ''}
-                    onChange={(v) => setFormData({ ...formData, lastName: v })}
-                  />
-                  <DetailOrEdit
-                    isEditing={false}
-                    icon={Mail}
-                    label="Email Address"
-                    isCritical={true}
-                    value={profile.email}
-                  />
-                  <DetailOrEdit
-                    isEditing={isEditing}
-                    icon={Phone}
-                    label="Phone Number"
-                    value={formData.phone || ''}
-                    onChange={(v) => setFormData({ ...formData, phone: v })}
-                  />
-                  <DetailOrEdit
-                    isEditing={isEditing}
-                    icon={Calendar}
-                    label="Date of Birth"
-                    type="date"
-                    value={formData.dateOfBirth || ''}
-                    onChange={(v) => setFormData({ ...formData, dateOfBirth: v })}
-                  />
-                  <DetailOrEdit
-                    isEditing={isEditing}
-                    icon={User}
-                    label="Gender"
-                    type="select"
-                    options={[
-                      { value: 'Male', label: 'Male' },
-                      { value: 'Female', label: 'Female' },
-                      { value: 'Other', label: 'Other' },
-                      { value: 'Prefer not to say', label: 'Prefer not to say' },
-                    ]}
-                    value={formData.gender || ''}
-                    onChange={(v) => setFormData({ ...formData, gender: v })}
-                  />
-
-                </div>
+          <div className="personal-sections">
+            {/* Section 1: Basic Information */}
+            <section className="profile-section">
+              <div className="profile-section__header">
+                <h3 className="profile-section__title">Identity & Contact</h3>
+                <p className="profile-section__desc">Manage your core profile details.</p>
               </div>
+              <div className="profile-section__body profile-section__body--grid">
+                <DetailOrEdit
+                  isEditing={isEditing}
+                  icon={User}
+                  label="First Name"
+                  isCritical={true}
+                  value={formData.firstName || ''}
+                  onChange={(v) => setFormData({ ...formData, firstName: v })}
+                />
+                <DetailOrEdit
+                  isEditing={isEditing}
+                  icon={User}
+                  label="Last Name"
+                  isCritical={true}
+                  value={formData.lastName || ''}
+                  onChange={(v) => setFormData({ ...formData, lastName: v })}
+                />
+                <DetailOrEdit
+                  isEditing={false}
+                  icon={Mail}
+                  label="Email Address"
+                  isCritical={true}
+                  value={profile.email}
+                />
+                <DetailOrEdit
+                  isEditing={isEditing}
+                  icon={Phone}
+                  label="Phone Number"
+                  value={formData.phone || ''}
+                  onChange={(v) => setFormData({ ...formData, phone: v })}
+                />
+                <DetailOrEdit
+                  isEditing={isEditing}
+                  icon={Calendar}
+                  label="Date of Birth"
+                  type="date"
+                  value={formData.dateOfBirth || ''}
+                  onChange={(v) => setFormData({ ...formData, dateOfBirth: v })}
+                />
+                <DetailOrEdit
+                  isEditing={isEditing}
+                  icon={User}
+                  label="Gender"
+                  type="select"
+                  options={[
+                    { value: 'Male', label: 'Male' },
+                    { value: 'Female', label: 'Female' },
+                    { value: 'Other', label: 'Other' },
+                    { value: 'Prefer not to say', label: 'Prefer not to say' },
+                  ]}
+                  value={formData.gender || ''}
+                  onChange={(v) => setFormData({ ...formData, gender: v })}
+                />
+              </div>
+            </section>
 
-              {!isEditing && (
-                <div className="profile-status-badge-wrap">
-                  <div className={`status-badge ${isProfileComplete ? 'status-badge--complete' : 'status-badge--incomplete'}`}>
-                    <span className="status-badge__dot" />
-                    {isProfileComplete ? 'Profile Complete' : 'Profile Incomplete'}
-                  </div>
-                </div>
-              )}
-            </aside>
-
-            <main className="personal-grid__main">
-              <div className="section-header-row">
+            {/* Section 2: Properties */}
+            <section className="profile-section">
+              <div className="profile-section__header flex-row">
                 <div>
-                  <h2 className="section-title">Property Management</h2>
-                  <p className="section-subtitle">Manage your residential assets and tenancy records.</p>
+                  <h3 className="profile-section__title">Property Management</h3>
+                  <p className="profile-section__desc">Your current residential assets.</p>
                 </div>
                 {isEditing && (
                   <button
@@ -321,50 +320,53 @@ function ProfileMenuContentInner() {
                     onClick={() => {
                       const newProps = [
                         ...(formData.properties || []),
-                        { address: '', rentEndDate: '', isManaged: false, location: { country: '', state: '', area: '' } },
+                        { address: '', rentEndDate: '', rentStartDate: '', isManaged: false, location: { country: '', state: '', area: '' } },
                       ]
                       setFormData({ ...formData, properties: newProps })
                     }}
                   >
-                    <Plus size={14} className="mr-1" /> Add Property
+                    <Plus size={14} className="mr-1" /> Add
                   </button>
                 )}
               </div>
 
-              <div className="properties-grid">
+              <div className="properties-list">
                 {(formData.properties || []).map((prop: any, idx: number) => (
-                  <div key={idx} className={`property-card-v2${expandedProps[idx] ? ' property-card-v2--open' : ''}`}>
+                  <div key={idx} className={`property-item${expandedProps[idx] ? ' property-item--open' : ''}`}>
                     <div 
-                      className="property-card-v2__header"
+                      className="property-item__header"
                       onClick={() => setExpandedProps(prev => ({ ...prev, [idx]: !prev[idx] }))}
-                      style={{ cursor: 'pointer' }}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="property-card-v2__index">{idx + 1}</div>
-                        <div className="property-card-v2__header-info">
-                          <h4 className="property-card-v2__name">
+                      <div className="flex items-center gap-4">
+                        <div className="property-item__index">{idx + 1}</div>
+                        <div>
+                          <h4 className="property-item__title">
                             {prop.location?.address 
                               ? `${prop.location.address}${prop.location.area ? `, ${prop.location.area}` : ''}`
                               : prop.location?.area || 'New Property'}
                           </h4>
                           {!expandedProps[idx] && (
-                            <p className="property-card-v2__summary">
+                            <p className="property-item__summary">
                               {[prop.location?.state, prop.location?.country].filter(Boolean).join(', ')}
-                              {prop.rentEndDate ? ` · Due ${formatDate(prop.rentEndDate)}` : ''}
                             </p>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         {prop.isManaged && (
-                          <div className="managed-badge">
-                            <Shield size={10} />
-                            <span>Verified Management</span>
+                          <div className="managed-indicator" title="Verified Management">
+                            <Shield size={12} />
                           </div>
                         )}
-                        {isEditing && !prop.isManaged && (formData.properties || []).length > 1 && (
+                        <ChevronRight size={16} className={`property-item__chevron ${expandedProps[idx] ? 'rotated' : ''}`} />
+                      </div>
+                    </div>
+
+                    {expandedProps[idx] && (
+                      <div className="property-item__body animate-fade-in">
+                         {isEditing && !prop.isManaged && (formData.properties || []).length > 1 && (
                           <button
-                            className="property-card-v2__remove"
+                            className="property-item__delete"
                             onClick={(e) => {
                               e.stopPropagation()
                               const newProps = [...(formData.properties || [])]
@@ -372,403 +374,532 @@ function ProfileMenuContentInner() {
                               setFormData({ ...formData, properties: newProps })
                             }}
                           >
-                            <Trash2 size={15} />
+                            <Trash2 size={14} /> Remove Property
                           </button>
                         )}
-                        <div className={`property-card-v2__chevron${expandedProps[idx] ? ' property-card-v2__chevron--open' : ''}`}>
-                          <ChevronRight size={16} />
+
+                        {isEditing && prop.isManaged && (
+                          <div className="managed-notice">
+                            <AlertCircle size={14} />
+                            <span>This property is verified by {prop.company?.name || prop.companyName}.</span>
+                          </div>
+                        )}
+
+                        <div className="property-item__form">
+                          <DetailOrEdit
+                            isEditing={isEditing && !prop.isManaged}
+                            icon={MapPin}
+                            label="Street Address"
+                            placeholder="e.g. 12 Adeola Odeku"
+                            value={prop.location?.address || ''}
+                            onChange={(v) => handlePropUpdate(idx, 'location.address', v)}
+                          />
+                          <div className="grid-2">
+                             <DetailOrEdit
+                              isEditing={isEditing && !prop.isManaged}
+                              icon={MapPin}
+                              label="Subarea"
+                              placeholder="e.g. Victoria Island"
+                              value={prop.location?.subarea || ''}
+                              onChange={(v) => handlePropUpdate(idx, 'location.subarea', v)}
+                            />
+                            <DetailOrEdit
+                              isEditing={isEditing && !prop.isManaged}
+                              icon={MapPin}
+                              label="Area"
+                              placeholder="e.g. Lekki"
+                              value={prop.location?.area || ''}
+                              onChange={(v) => handlePropUpdate(idx, 'location.area', v)}
+                            />
+                          </div>
+                          <div className="grid-2">
+                            <DetailOrEdit
+                              isEditing={isEditing && !prop.isManaged}
+                              icon={Shield}
+                              label="Country"
+                              type="select"
+                              options={COUNTRIES.map((c) => ({ value: c.code, label: c.name }))}
+                              value={prop.location?.country || ''}
+                              onChange={(v) => handlePropUpdate(idx, 'location.country', v)}
+                            />
+                            <DetailOrEdit
+                              isEditing={isEditing && !prop.isManaged}
+                              icon={MapPin}
+                              label="State"
+                              type="select"
+                              options={
+                                STATES[prop.location?.country || 'NG']?.map((s) => ({ value: s, label: s })) || []
+                              }
+                              value={prop.location?.state || ''}
+                              onChange={(v) => handlePropUpdate(idx, 'location.state', v)}
+                            />
+                          </div>
+                          
+                          <div className="divider-sm" />
+
+                          <div className="grid-2">
+                            <DetailOrEdit
+                              isEditing={isEditing && !prop.isManaged}
+                              icon={Calendar}
+                              label="Rent Start Date"
+                              type="date"
+                              value={prop.rentStartDate || ''}
+                              displayValue={prop.rentStartDate ? formatDate(prop.rentStartDate) : ''}
+                              onChange={(v) => handlePropUpdate(idx, 'rentStartDate', v)}
+                            />
+                            <DetailOrEdit
+                              isEditing={isEditing && !prop.isManaged}
+                              icon={Calendar}
+                              label="Rent Due Date"
+                              type="date"
+                              value={prop.rentEndDate || ''}
+                              displayValue={prop.rentEndDate ? formatDate(prop.rentEndDate) : ''}
+                              onChange={(v) => handlePropUpdate(idx, 'rentEndDate', v)}
+                            />
+                          </div>
+                          <div className="grid-2">
+                            <DetailOrEdit
+                              isEditing={isEditing && !prop.isManaged}
+                              icon={Building}
+                              label="Rent Amount"
+                              value={prop.rentAmount?.toString() || ''}
+                              displayValue={prop.rentAmount ? formatCurrency(prop.rentAmount, prop.currency || 'NGN') : ''}
+                              onChange={(v) => handlePropUpdate(idx, 'rentAmount', parseFloat(v) || 0)}
+                            />
+                          </div>
+
+                          <div className="grid-2">
+                            <DetailOrEdit
+                              isEditing={isEditing && !prop.isManaged}
+                              icon={Building}
+                              label="Management Co."
+                              value={prop.company?.name || prop.companyName || ''}
+                              onChange={(v) => handlePropUpdate(idx, 'companyName', v)}
+                            />
+                            <DetailOrEdit
+                              isEditing={isEditing && !prop.isManaged}
+                              icon={UserCheck}
+                              label="Manager Name"
+                              value={prop.manager?.firstName || prop.managerName || ''}
+                              onChange={(v) => handlePropUpdate(idx, 'managerName', v)}
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-
-                    <div className={`property-card-v2__body${expandedProps[idx] ? ' property-card-v2__body--visible' : ''}`}>
-                      {isEditing && prop.isManaged && (
-                        <div className="managed-notice">
-                          <AlertCircle size={14} />
-                          <span>This property is managed by {prop.company?.name || prop.companyName}. Contact them to request changes.</span>
-                        </div>
-                      )}
-                      <div className="form-group-row">
-                        <DetailOrEdit
-                          isEditing={isEditing && !prop.isManaged}
-                          icon={MapPin}
-                          label="Street Address"
-                          placeholder="e.g. 12 Adeola Odeku"
-                          value={prop.location?.address || ''}
-                          onChange={(v) => handlePropUpdate(idx, 'location.address', v)}
-                        />
-                      </div>
-
-                      <div className="form-group-grid">
-                        <DetailOrEdit
-                          isEditing={isEditing && !prop.isManaged}
-                          icon={MapPin}
-                          label="Subarea / Estate"
-                          placeholder="e.g. Victoria Island"
-                          value={prop.location?.subarea || ''}
-                          onChange={(v) => handlePropUpdate(idx, 'location.subarea', v)}
-                        />
-                        <DetailOrEdit
-                          isEditing={isEditing && !prop.isManaged}
-                          icon={MapPin}
-                          label="Area / Neighborhood"
-                          placeholder="e.g. Lekki"
-                          value={prop.location?.area || ''}
-                          onChange={(v) => handlePropUpdate(idx, 'location.area', v)}
-                        />
-                      </div>
-
-                      <div className="form-group-grid">
-                        <DetailOrEdit
-                          isEditing={isEditing && !prop.isManaged}
-                          icon={Shield}
-                          label="Country"
-                          type="select"
-                          isCritical={true}
-                          options={COUNTRIES.map((c) => ({ value: c.code, label: c.name }))}
-                          value={prop.location?.country || ''}
-                          onChange={(v) => handlePropUpdate(idx, 'location.country', v)}
-                        />
-                        <DetailOrEdit
-                          isEditing={isEditing && !prop.isManaged}
-                          icon={MapPin}
-                          label="State"
-                          type="select"
-                          isCritical={true}
-                          options={
-                            STATES[prop.location?.country || 'NG']?.map((s) => ({ value: s, label: s })) || []
-                          }
-                          value={prop.location?.state || ''}
-                          onChange={(v) => handlePropUpdate(idx, 'location.state', v)}
-                        />
-                      </div>
-
-                      <div className="form-group-grid form-group-row--bordered">
-                        <DetailOrEdit
-                          isEditing={isEditing && !prop.isManaged}
-                          icon={Calendar}
-                          label="Rent Due Date"
-                          type="date"
-                          isCritical={true}
-                          value={prop.rentEndDate || ''}
-                          displayValue={prop.rentEndDate ? formatDate(prop.rentEndDate) : ''}
-                          onChange={(v) => handlePropUpdate(idx, 'rentEndDate', v)}
-                        />
-                        <DetailOrEdit
-                          isEditing={isEditing && !prop.isManaged}
-                          icon={Building}
-                          label="Rent Amount"
-                          isCritical={true}
-                          value={prop.rentAmount?.toString() || ''}
-                          displayValue={prop.rentAmount ? formatCurrency(prop.rentAmount, prop.currency || 'NGN') : ''}
-                          onChange={(v) => handlePropUpdate(idx, 'rentAmount', parseFloat(v) || 0)}
-                        />
-                      </div>
-
-                      <div className="form-group-grid">
-                        <DetailOrEdit
-                          isEditing={isEditing && !prop.isManaged}
-                          icon={Building}
-                          label="Management Company"
-                          isCritical={true}
-                          value={prop.company?.name || prop.companyName || ''}
-                          onChange={(v) => handlePropUpdate(idx, 'companyName', v)}
-                        />
-                        <DetailOrEdit
-                          isEditing={isEditing && !prop.isManaged}
-                          icon={UserCheck}
-                          label="Property Manager"
-                          isCritical={true}
-                          value={prop.manager?.firstName || prop.managerName || ''}
-                          onChange={(v) => handlePropUpdate(idx, 'managerName', v)}
-                        />
-                      </div>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
+            </section>
 
-              {isEditing && (
-                <div className="profile-form-footer">
-                  <button
-                    className="btn btn--outline btn--full"
-                    onClick={() => {
-                      setIsEditing(false)
-                      setFormData({ ...(profile as any), properties: (user as any).properties || [] })
-                    }}
-                    disabled={saving}
-                  >
-                    Cancel
-                  </button>
-                  <button className="btn btn--primary btn--full" onClick={handleSave} disabled={saving}>
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-              )}
-            </main>
+            {isEditing && (
+              <div className="profile-actions">
+                <button
+                  className="btn btn--outline"
+                  onClick={() => {
+                    setIsEditing(false)
+                    setFormData({ ...(profile as any), properties: (user as any).properties || [] })
+                  }}
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+                <button className="btn btn--primary" onClick={handleSave} disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
         <style jsx>{`
-          .profile-page {
-            --local-border: var(--border-solid);
-            --local-surface: var(--surface);
-            --local-surface2: var(--surface2);
-            --card-radius: 20px;
+          .profile-page, .profile-menu-page {
+            --section-bg: var(--surface);
+            --item-bg: var(--bg);
+            --border-soft: var(--border-solid);
+            --radius-main: 24px;
+            --radius-item: 16px;
           }
 
           .profile-content-scroll {
-            max-width: 1100px;
+            max-width: 800px;
             margin: 0 auto;
-            padding: 2rem 1.5rem 8rem;
+            padding: 2rem 1rem 8rem;
           }
 
-          @media (min-width: 1024px) {
-            .profile-page {
-              max-width: 860px;
-              margin: 0 auto;
-              padding-top: 2rem;
-            }
-            .personal-grid {
-              grid-template-columns: 1fr;
-              gap: 2rem;
-            }
-          }
-
-          .personal-card {
-            background: var(--bg);
-            border: 1px solid var(--local-border);
-            border-radius: var(--card-radius);
-            overflow: hidden;
-          }
-
-          .personal-card__header {
-            padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid var(--local-border);
-          }
-
-          .personal-card__title {
-            font-size: 0.95rem;
-            font-weight: 700;
-            margin: 0 0 0.2rem;
-          }
-
-          .personal-card__subtitle {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin: 0;
-          }
-
-          .personal-card__body {
-            padding: 1rem 1.25rem;
-          }
-
-          .profile-status-badge-wrap {
-            margin-top: 1rem;
+          /* Profile Shell (Menu View) */
+          .profile-shell {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1.5rem;
             display: flex;
-            justify-content: center;
-          }
-
-          .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 100px;
-            font-size: 0.8rem;
-            font-weight: 600;
-          }
-
-          .status-badge--complete {
-            background: rgba(34, 197, 94, 0.1);
-            color: #16a34a;
-            border: 1px solid rgba(34, 197, 94, 0.2);
-          }
-
-          .status-badge--incomplete {
-            background: rgba(234, 179, 8, 0.1);
-            color: #ca8a04;
-            border: 1px solid rgba(234, 179, 8, 0.2);
-          }
-
-          .section-header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1.25rem;
-            border-bottom: 1px solid var(--local-border);
-          }
-
-          .section-title {
-            font-size: 1.25rem;
-            font-weight: 800;
-            margin: 0 0 0.3rem;
-          }
-
-          .properties-grid {
-            display: grid;
-            grid-template-columns: 1fr;
+            flex-direction: column;
             gap: 1.5rem;
           }
 
-          .property-card-v2 {
-            background: var(--bg);
-            border: 1px solid var(--local-border);
-            border-radius: var(--card-radius);
-            overflow: hidden;
-            transition: border-color 0.2s ease;
-          }
-
-          .property-card-v2:hover {
-            border-color: var(--clay);
-          }
-
-          .property-card-v2__header {
+          .profile-hero {
+            background: var(--section-bg);
+            border-radius: var(--radius-main);
+            padding: 3rem 2rem;
+            text-align: center;
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
             align-items: center;
-            padding: 1rem 1.25rem;
-            background: var(--local-surface);
-            border-bottom: 1px solid var(--local-border);
           }
 
-          .property-card-v2__index {
-            width: 28px;
-            height: 28px;
+          .profile-hero__avatar-wrap {
+            position: relative;
+            margin-bottom: 1.5rem;
+            cursor: pointer;
+          }
+
+          .profile-hero__avatar-edit {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
             background: var(--clay);
             color: white;
-            border-radius: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.8rem;
+            border: 3px solid var(--section-bg);
+          }
+
+          .profile-hero__name {
+            font-size: 1.5rem;
             font-weight: 800;
+            margin: 0 0 0.25rem;
+            letter-spacing: -0.02em;
           }
 
-          .property-card-v2__name {
-            font-size: 0.95rem;
-            font-weight: 700;
-            margin: 0;
-          }
-
-          .managed-badge {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            background: rgba(var(--clay-rgb, 107, 78, 255), 0.1);
-            color: var(--clay);
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-          }
-
-          .managed-notice {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--local-surface2);
-            padding: 10px 12px;
-            border-radius: 10px;
-            margin-bottom: 1.25rem;
-            font-size: 0.8rem;
+          .profile-hero__email {
+            font-size: 0.9rem;
             color: var(--text-muted);
-            border-left: 3px solid var(--clay);
+            margin: 0 0 1.5rem;
           }
 
-          /* Accordion body — collapsed by default on mobile */
-          .property-card-v2__body {
-            display: none;
+          .profile-hero__tenancy {
+            width: 100%;
+            max-width: 400px;
+            background: var(--item-bg);
             padding: 1.25rem;
+            border-radius: var(--radius-item);
+            border: 1px solid var(--border-soft);
           }
 
-          .property-card-v2__body--visible {
-            display: block;
-          }
-
-          /* On desktop, always show body */
-          @media (min-width: 768px) {
-            .property-card-v2__body {
-              display: block !important;
-            }
-            .property-card-v2__chevron {
-              display: none;
-            }
-          }
-
-          .property-card-v2__header-info {
+          .profile-hero__tenancy-header {
             display: flex;
-            flex-direction: column;
-            gap: 2px;
+            gap: 1rem;
+            margin-bottom: 1rem;
           }
 
-          .property-card-v2__summary {
+          .profile-hero__tenancy-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--clay-faint);
+            color: var(--clay);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+
+          .profile-hero__tenancy-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin: 0 0 2px;
+          }
+
+          .profile-hero__tenancy-property {
             font-size: 0.75rem;
             color: var(--text-muted);
             margin: 0;
           }
 
-          .property-card-v2__chevron {
+          .profile-hero__tenancy-footer {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            color: var(--text-muted);
-            transition: transform 0.2s ease;
-            flex-shrink: 0;
+            border-top: 1px dashed var(--border-soft);
+            padding-top: 1rem;
           }
 
-          .property-card-v2__chevron--open {
+          .profile-hero__tenancy-expiry {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+          }
+
+          /* Menu List */
+          .profile-menu-list {
+            background: var(--section-bg);
+            border-radius: var(--radius-main);
+            padding: 0.75rem;
+          }
+
+          .profile-menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.125rem 1rem;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+
+          .profile-menu-item:hover {
+            background: var(--item-bg);
+            transform: translateX(4px);
+          }
+
+          .profile-menu-item__left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+          }
+
+          .profile-menu-item__icon-wrap {
+            width: 40px;
+            height: 40px;
+            background: var(--item-bg);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            transition: all 0.2s;
+          }
+
+          .profile-menu-item:hover .profile-menu-item__icon-wrap {
+            background: var(--clay);
+            color: white;
+          }
+
+          .profile-menu-item__title {
+            font-weight: 600;
+            font-size: 0.95rem;
+          }
+
+          .profile-menu-item--logout {
+            margin-top: 0.5rem;
+            border-top: 1px solid var(--border-soft);
+            padding-top: 1rem;
+            color: var(--error);
+          }
+
+          .profile-menu-item__icon-wrap--logout {
+            background: var(--bg);
+            color: var(--error);
+          }
+
+          .profile-menu-item--logout:hover .profile-menu-item__icon-wrap--logout {
+            background: var(--error);
+            color: white;
+          }
+
+          /* Personal Sections View */
+          .personal-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+          }
+
+          .profile-section {
+            background: var(--section-bg);
+            border-radius: var(--radius-main);
+            padding: 2rem;
+          }
+
+          .profile-section__header {
+            margin-bottom: 2rem;
+          }
+          
+          .profile-section__header.flex-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+          }
+
+          .profile-section__title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            margin: 0 0 0.25rem;
+          }
+
+          .profile-section__desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0;
+          }
+
+          .profile-section__body--grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+          }
+
+          /* Property Items */
+          .properties-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+          }
+
+          .property-item {
+            background: var(--item-bg);
+            border-radius: var(--radius-item);
+            border: 1px solid var(--border-soft);
+            overflow: hidden;
+            transition: border-color 0.2s;
+          }
+
+          .property-item--open {
+            border-color: var(--clay);
+          }
+
+          .property-item__header {
+            padding: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+          }
+
+          .property-item__index {
+            width: 32px;
+            height: 32px;
+            background: var(--section-bg);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+          }
+
+          .property-item__title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin: 0;
+          }
+
+          .property-item__summary {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin: 2px 0 0;
+          }
+
+          .managed-indicator {
+            width: 24px;
+            height: 24px;
+            background: var(--clay-faint);
+            color: var(--clay);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .property-item__chevron {
+            color: var(--text-muted);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          }
+          .property-item__chevron.rotated {
             transform: rotate(90deg);
           }
 
-          .form-group-grid {
+          .property-item__body {
+            padding: 0 1.5rem 1.5rem;
+          }
+
+          .property-item__delete {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+            margin-bottom: 1.5rem;
+            background: #fff5f5;
+            color: #e53e3e;
+            border: 1px solid #fed7d7;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+          }
+
+          .property-item__form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+          }
+
+          .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+          }
+
+          .divider-sm {
+            height: 1px;
+            background: var(--border-soft);
+            margin: 0.5rem 0;
+          }
+
+          .managed-notice {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--section-bg);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+          }
+
+          .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: white;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            box-shadow: var(--shadow-sm);
+          }
+
+          .status-badge--complete { color: var(--success); }
+          .status-badge--incomplete { color: var(--warning); }
+          
+          .status-badge__dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+          }
+
+          .profile-actions {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
-            margin-bottom: 1rem;
-          }
-
-          .form-group-row {
-            margin-bottom: 1rem;
-          }
-
-          .form-group-row--bordered {
-            border-top: 1px solid var(--local-border);
-            padding-top: 1rem;
-            margin-top: 0.25rem;
-          }
-
-          .profile-form-footer {
-            display: flex;
-            gap: 1rem;
             margin-top: 2rem;
-            padding-top: 2rem;
-            border-top: 1px solid var(--local-border);
           }
 
-          @media (max-width: 1024px) {
-            .personal-grid {
+          .hidden { display: none; }
+
+          @media (max-width: 768px) {
+            .profile-section__body--grid, .grid-2, .profile-actions {
               grid-template-columns: 1fr;
-              gap: 1.5rem;
             }
-            .profile-content-scroll {
-              padding: 1rem 1rem 10rem;
-            }
-            .section-header-row {
-              flex-direction: column;
-              align-items: flex-start;
-              gap: 0.75rem;
-            }
-          }
-
-          @media (max-width: 640px) {
-            .form-group-grid {
-              grid-template-columns: 1fr !important;
-              gap: 0;
-            }
-            .profile-form-footer {
-              flex-direction: column;
+            .profile-section {
+              padding: 1.5rem;
             }
           }
         `}</style>
@@ -788,110 +919,108 @@ function ProfileMenuContentInner() {
         }}
       />
 
-      <div className="dashboard__main-grid">
-        <div className="dashboard__col--left">
-          <div className="dashboard__card profile-hero">
-            <div className="profile-hero__avatar-wrap" onClick={() => fileInputRef.current?.click()}>
-              <UserAvatar
-                src={profile.profilePic}
-                size={88}
-                className="profile-hero__avatar"
-                color="var(--bg)"
-              />
-              <div className="profile-hero__avatar-edit">
-                <Camera size={14} />
-              </div>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                accept="image/*"
-              />
+      <div className="profile-shell">
+        <div className="profile-hero">
+          <div className="profile-hero__avatar-wrap" onClick={() => fileInputRef.current?.click()}>
+            <UserAvatar
+              src={profile.profilePic}
+              size={88}
+              className="profile-hero__avatar"
+              color="var(--bg)"
+            />
+            <div className="profile-hero__avatar-edit">
+              <Camera size={14} />
             </div>
-
-            <h2 className="profile-hero__name">
-              {profile.firstName} {profile.lastName}
-            </h2>
-            <p className="profile-hero__email">{profile.email}</p>
-
-            <button 
-              className="btn btn--primary btn--sm btn--pill mb-6 shadow-sm"
-              onClick={() => router.push('/dashboard/kyc')}
-              style={{ paddingLeft: '1.25rem', paddingRight: '1.25rem' }}
-            >
-              <Share2 size={14} className="mr-2" /> Share Credibility Profile
-            </button>
-
-            {contracts.length > 0 && (
-              <div className="profile-hero__tenancy">
-                <div className="profile-hero__tenancy-header">
-                  <div className="profile-hero__tenancy-icon">
-                    <FileText size={15} />
-                  </div>
-                  <div>
-                    <h4 className="profile-hero__tenancy-title">Active Tenancy</h4>
-                    <p className="profile-hero__tenancy-property">{contracts[0].fileName}</p>
-                  </div>
-                </div>
-                <div className="profile-hero__tenancy-footer">
-                  <span className="profile-hero__tenancy-expiry">
-                    Uploaded {formatDate(contracts[0].createdAt)}
-                  </span>
-                  <button
-                    className="btn btn--secondary btn--sm"
-                    onClick={() => router.push('/dashboard/contracts')}
-                  >
-                    View &amp; Manage
-                  </button>
-                </div>
-              </div>
-            )}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept="image/*"
+            />
           </div>
 
-          <div className="profile-menu-list">
-            {sections.map((s, idx) => {
-              const Icon = s.icon
-              const isPersonal = s.id === 'personal'
-              const isContracts = s.id === 'contracts'
-              const showWarning = isPersonal && !isProfileComplete
+          <h2 className="profile-hero__name">
+            {profile.firstName} {profile.lastName}
+          </h2>
+          <p className="profile-hero__email">{profile.email}</p>
 
-              return (
-                <div
-                  key={idx}
-                  className="profile-menu-item"
-                  onClick={() => {
-                    if (isPersonal) setView('personal')
-                    else if (isContracts) router.push('/dashboard/contracts')
-                    else if (s.id === 'support') router.push('/dashboard/help')
-                    else if (s.id === 'legal') router.push('/dashboard/legal')
-                  }}
-                >
-                  <div className="profile-menu-item__left">
-                    <div className="profile-menu-item__icon-wrap">
-                      <Icon size={17} />
-                    </div>
-                    <span className="profile-menu-item__title">{s.title}</span>
-                  </div>
-                  <div className="profile-menu-item__right">
-                    {showWarning && (
-                      <div className="profile-menu-item__warning">
-                        <AlertCircle size={14} color="#eab308" />
-                      </div>
-                    )}
-                    <ChevronRight size={17} color="var(--text-muted)" />
-                  </div>
-                </div>
-              )
-            })}
+          <button 
+            className="btn btn--primary btn--sm btn--pill mb-6 shadow-sm"
+            onClick={() => router.push('/dashboard/kyc')}
+            style={{ paddingLeft: '1.25rem', paddingRight: '1.25rem' }}
+          >
+            <Share2 size={14} className="mr-2" /> Share Credibility Profile
+          </button>
 
-            <div className="profile-menu-item profile-menu-item--logout" onClick={logout}>
-              <div className="profile-menu-item__left">
-                <div className="profile-menu-item__icon-wrap profile-menu-item__icon-wrap--logout">
-                  <LogOut size={17} />
+          {contracts.length > 0 && (
+            <div className="profile-hero__tenancy">
+              <div className="profile-hero__tenancy-header">
+                <div className="profile-hero__tenancy-icon">
+                  <FileText size={15} />
                 </div>
-                <span className="profile-menu-item__title">Sign Out</span>
+                <div className="text-left">
+                  <h4 className="profile-hero__tenancy-title">Active Tenancy</h4>
+                  <p className="profile-hero__tenancy-property">{contracts[0].fileName}</p>
+                </div>
               </div>
+              <div className="profile-hero__tenancy-footer">
+                <span className="profile-hero__tenancy-expiry">
+                  Uploaded {formatDate(contracts[0].createdAt)}
+                </span>
+                <button
+                  className="btn btn--secondary btn--sm"
+                  onClick={() => router.push('/dashboard/contracts')}
+                >
+                  View &amp; Manage
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="profile-menu-list">
+          {sections.map((s, idx) => {
+            const Icon = s.icon
+            const isPersonal = s.id === 'personal'
+            const isContracts = s.id === 'contracts'
+            const showWarning = isPersonal && !isProfileComplete
+
+            return (
+              <div
+                key={idx}
+                className="profile-menu-item"
+                onClick={() => {
+                  if (isPersonal) setView('personal')
+                  else if (isContracts) router.push('/dashboard/contracts')
+                  else if (s.id === 'support') router.push('/dashboard/help')
+                  else if (s.id === 'legal') router.push('/dashboard/legal')
+                }}
+              >
+                <div className="profile-menu-item__left">
+                  <div className="profile-menu-item__icon-wrap">
+                    <Icon size={17} />
+                  </div>
+                  <span className="profile-menu-item__title">{s.title}</span>
+                </div>
+                <div className="profile-menu-item__right">
+                  {showWarning && (
+                    <div className="profile-menu-item__warning">
+                      <AlertCircle size={14} color="#eab308" />
+                    </div>
+                  )}
+                  <ChevronRight size={17} color="var(--text-muted)" />
+                </div>
+              </div>
+            )
+          })}
+
+          <div className="profile-menu-item profile-menu-item--logout" onClick={logout}>
+            <div className="profile-menu-item__left">
+              <div className="profile-menu-item__icon-wrap profile-menu-item__icon-wrap--logout">
+                <LogOut size={17} />
+              </div>
+              <span className="profile-menu-item__title">Sign Out</span>
             </div>
           </div>
         </div>

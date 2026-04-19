@@ -13,6 +13,7 @@ export interface PendingPayment {
   invoice_number: string
   description: string
   company_name?: string
+  manager_name?: string
   company_logo?: string
   allowPartial?: boolean
   property_address?: string

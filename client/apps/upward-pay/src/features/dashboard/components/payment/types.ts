@@ -15,7 +15,7 @@ export type Landlord = {
   subaccountCode?: string
 }
 
-export type PayRentStep = 'select' | 'new' | 'confirm' | 'checkout' | 'processing' | 'success'
+export type PayRentStep = 'select' | 'property-select' | 'new' | 'confirm' | 'checkout' | 'processing' | 'success'
 export interface LineItem {
   label: string
   amount: number

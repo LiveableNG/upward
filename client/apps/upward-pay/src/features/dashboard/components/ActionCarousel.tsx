@@ -23,27 +23,27 @@ const buildPaymentMessage = (p: PendingPayment) => {
   if (isOverdue && isPartial) {
     return {
       title: 'Overdue Balance',
-      desc: `${p.company_name} is awaiting ${formatCurrency(remaining, p.currency)}. This payment is past due. Settle now to avoid further impact.`
+      desc: `${p.company_name || p.manager_name || 'Your landlord'} is awaiting ${formatCurrency(remaining, p.currency)}. This payment is past due. Settle now to avoid further impact.`
     }
   }
 
   if (isOverdue) {
     return {
       title: 'Payment Overdue',
-      desc: `${p.company_name} issued an invoice of ${formatCurrency(p.total_amount, p.currency)} which is now past due. Immediate payment is required.`
+      desc: `${p.company_name || p.manager_name || 'Your landlord'} issued an invoice of ${formatCurrency(p.total_amount, p.currency)} which is now past due. Immediate payment is required.`
     }
   }
 
   if (isPartial) {
     return {
       title: 'Balance Remaining',
-      desc: `${formatCurrency(remaining, p.currency)} is still pending for ${p.company_name}. Complete payment before the deadline.`
+      desc: `${formatCurrency(remaining, p.currency)} is still pending for ${p.company_name || p.manager_name || 'your landlord'}. Complete payment before the deadline.`
     }
   }
 
   return {
     title: 'New Invoice',
-    desc: `${p.company_name} requested ${formatCurrency(p.total_amount, p.currency)}. Review and complete payment before the due date.`
+    desc: `${p.company_name || p.manager_name || 'Your landlord'} requested ${formatCurrency(p.total_amount, p.currency)}. Review and complete payment before the due date.`
   }
 }
 

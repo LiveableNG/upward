@@ -69,20 +69,7 @@ export default function InvoiceCard({
         </div>
       ))}
 
-      <div style={{ height: 1, background: 'var(--border-solid)', margin: '12px 0' }} />
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          fontSize: 15,
-          fontWeight: 700,
-        }}
-      >
-        <span>Total</span>
-        <span>{formatCurrency(totalAmount)}</span>
-      </div>
 
       {notes && (
         <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text-muted)' }}>

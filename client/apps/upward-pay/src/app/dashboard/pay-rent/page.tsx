@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
 import PaystackEmbeddedCheckout from '@/features/dashboard/components/payment/PaystackEmbeddedCheckout'
 import { api } from '@/lib/api'
+import { useAuth } from '@/features/auth/AuthContext'
 
 import { type Landlord, type PayRentStep } from '@/features/dashboard/components/payment/types'
 import { StepSelect } from '@/features/dashboard/components/payment/StepSelect'
@@ -12,11 +13,12 @@ import { StepNewLandlord } from '@/features/dashboard/components/payment/StepNew
 import { StepAmount } from '@/features/dashboard/components/payment/StepAmount'
 import { StepConfirm } from '@/features/dashboard/components/payment/StepConfirm'
 import { StepSuccess } from '@/features/dashboard/components/payment/StepSuccess'
-
+import { StepPropertySelect } from '@/features/dashboard/components/payment/StepPropertySelect'
 import { PayRentSkeleton } from '@/features/dashboard/components/payment/PayRentSkeleton'
 
 export default function PayRentPage() {
   const router = useRouter()
+  const { refreshUser } = useAuth()
   const [loading, setLoading] = useState(true)
   const [step, setStep] = useState<PayRentStep>('select')
   const [savedLandlords, setSavedLandlords] = useState<Landlord[]>([])
@@ -35,6 +37,7 @@ export default function PayRentPage() {
   const [userProperties, setUserProperties] = useState<any[]>([])
   const [selectedPropertyUuid, setSelectedPropertyUuid] = useState<string | null>(null)
   const [propertyBalance, setPropertyBalance] = useState<any>(null)
+  const [pendingLandlordToSave, setPendingLandlordToSave] = useState<any>(null)
 
   useEffect(() => {
     if (selectedPropertyUuid) {
@@ -88,6 +91,7 @@ export default function PayRentPage() {
 
   const stepTitle: Record<PayRentStep, string> = {
     select: 'Pay Rent',
+    'property-select': 'Select Property',
     new: 'New Recipient',
     confirm: 'Confirm Payment',
     checkout: 'Checkout',
@@ -96,13 +100,15 @@ export default function PayRentPage() {
   }
 
   function handleBack() {
-    if (step === 'new') setStep('select')
+    if (step === 'property-select') setStep('select')
+    else if (step === 'new') setStep('property-select')
     else if (step === 'confirm') {
-      if (selectedLandlord && selectedLandlord.id.length < 15) {
-        // IDs from 'new' step use timestamps
+      if (payAmount > 0) {
+        setPayAmount(0)
+      } else if ((selectedLandlord as any)?.isNewLocal) {
         setStep('new')
       } else {
-        setStep('select')
+        setStep('property-select')
       }
     } else router.push('/dashboard')
   }
@@ -110,11 +116,21 @@ export default function PayRentPage() {
   const handleCheckoutSuccess = async (ref: string) => {
     setStep('processing')
     try {
+      if (pendingLandlordToSave) {
+        try {
+          await api.saveLandlord(pendingLandlordToSave)
+          setPendingLandlordToSave(null)
+        } catch (e) {
+          console.error('Failed to save landlord after success:', e)
+        }
+      }
+
+      // 2. Record transaction
       const res = await api.recordTransaction({
         type: 'RENT',
         amount: payAmount,
         reference: ref,
-        narration: narration || `Rent payment to ${selectedLandlord?.name}`,
+        narration: narration || `Rent payment for ${propertyAddress}`,
         landlordId: selectedLandlord?.uuid,
         paymentRequestId: paymentRequestId || undefined,
         lineItems: lineItems.length > 0 ? lineItems : undefined,
@@ -124,6 +140,11 @@ export default function PayRentPage() {
       })
       if (res?.uuid) {
         setLastTxId(res.uuid)
+        try {
+           await refreshUser()
+        } catch (re) {
+           console.error('Failed to refresh user after payment:', re)
+        }
       }
     } catch (e) {
       console.error('Failed to record tx:', e)
@@ -181,7 +202,7 @@ export default function PayRentPage() {
         {step !== 'checkout' && step !== 'processing' && step !== 'success' && (
           <div className="pay-rent__header">
             <div className="dashboard__header-left">
-              <button className="dashboard__back mobile-only" onClick={handleBack}>
+              <button className="dashboard__back" onClick={handleBack}>
                 <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} />
               </button>
               <h2 className="dashboard__title">{stepTitle[step]}</h2>
@@ -199,23 +220,50 @@ export default function PayRentPage() {
             setSelectedLandlord(l)
             setPayAmount(0)
             setLineItems([])
-            setStep('confirm')
+            setStep('property-select')
           }}
-          onNew={() => setStep('new')}
+          onNew={() => {
+            setSelectedLandlord(null)
+            setStep('property-select')
+          }}
+        />
+      )}
+
+      {step === 'property-select' && (
+        <StepPropertySelect 
+          properties={userProperties}
+          onSelect={(prop) => {
+             const activeRequest = pendingPayments.find(p => p.userPropertyUuid === prop.uuid && (p.status === 'PENDING' || p.status === 'PARTIAL'))
+             if (activeRequest) {
+               router.push(`/pay/${activeRequest.uuid}`)
+               return
+             }
+
+             setSelectedPropertyUuid(prop.uuid)
+             const loc = prop.location
+             const fullAddr = [prop.address, loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
+             setPropertyAddress(fullAddr)
+             setpaymentType('Rent Payment')
+             
+             if (prop.company?.name || prop.companyName) {
+             }
+             
+             if (selectedLandlord) {
+               setStep('confirm')
+             } else {
+               setStep('new')
+             }
+          }}
         />
       )}
 
       {step === 'new' && (
         <StepNewLandlord
           onContinue={async (data) => {
+            setPendingLandlordToSave(data.save ? data : null)
+            
             let finalLandlord = data as Landlord
-            if (data.save) {
-              try {
-                finalLandlord = await api.saveLandlord(data)
-              } catch (e) {
-                console.error('Failed to save landlord:', e)
-              }
-            } else if (data.accountNumber && data.bankCode) {
+            if (data.accountNumber && data.bankCode) {
               try {
                 const res = await api.resolveSubaccount(data.accountNumber, data.bankCode, data.name)
                 finalLandlord = { ...data, subaccountCode: res.subaccountCode } as Landlord
@@ -228,7 +276,7 @@ export default function PayRentPage() {
             setNarration(data.narration)
             setStep('confirm')
           }}
-          onBack={() => setStep('select')}
+          onBack={() => setStep('property-select')}
         />
       )}
 
@@ -241,6 +289,8 @@ export default function PayRentPage() {
               initialPropertyUuid={selectedPropertyUuid}
               propertyBalance={propertyBalance}
               initialPaymentType={paymentType}
+              initialLineItems={lineItems}
+              initialNarration={narration}
               requestedAmount={requestedAmount}
               totalPaidAlready={totalPaidAlready}
               userProperties={userProperties}
@@ -273,6 +323,7 @@ export default function PayRentPage() {
               onEditAmount={() => setPayAmount(0)}
               onBack={handleBack}
               lineItems={lineItems}
+              propertyBalance={propertyBalance}
             />
           )}
         </>
@@ -333,6 +384,8 @@ export default function PayRentPage() {
           transactionId={lastTxId || undefined}
           onDone={() => router.push('/dashboard')}
           router={router}
+          propertyAddress={propertyAddress}
+          propertyBalance={propertyBalance}
         />
       )}
       </div>

@@ -62,7 +62,7 @@
 }
 
 .dashboard__header--mobile {
-  /* No extra margin-bottom: AppInstallBanner is a sibling in its own flow */
+  padding: var(--space-3); /* Reduced from space-5 to space-3 for more horizontal space */
 }
 
 .dashboard__header--desktop {

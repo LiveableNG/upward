@@ -358,6 +358,15 @@ export default function DashboardPage() {
                          Get Started <ArrowRight size={16} />
                        </button>
                     </div>
+                  ) : !isScorable ? (
+                    <div className="bento-hero-score">
+                      <div className="bento-hero-score__label" style={{ color: 'var(--clay)' }}>Unlock Your Score</div>
+                      <h2 className="bento-hero-score__title">Welcome,<br /><span style={{ color: 'var(--clay)' }}>{firstName}</span></h2>
+                      <p className="bento-hero-score__desc">Make your first rent payment to start boosting your credibility standing.</p>
+                      <button className="btn btn--primary bento-hero-btn" onClick={() => router.push('/dashboard/pay-rent')}>
+                        Pay Rent <ArrowRight size={16} />
+                      </button>
+                    </div>
                   ) : (
                     <div className="bento-hero-score">
                       <div className="bento-hero-score__label">All Payments Up to Date</div>
@@ -546,7 +555,7 @@ export default function DashboardPage() {
         .bento-cell--hero {
           grid-column: 1;
           grid-row: 1 / 3;
-          background: var(--bg);
+          background: var(--surface);
           position: relative;
           min-height: 360px;
           display: flex;
@@ -587,14 +596,14 @@ export default function DashboardPage() {
         .bento-cell--metric {
           grid-row: span 1;
           padding: 1.5rem;
-          background: var(--bg);
+          background: var(--surface);
         }
 
         .bento-cell--activity {
           grid-column: 1;
           grid-row: 3;
           padding: 1.5rem;
-          background: var(--bg);
+          background: var(--surface);
         }
 
         .bento-cell--streak {
@@ -621,7 +630,7 @@ export default function DashboardPage() {
         .bento-cell--share {
           grid-column: 3;
           grid-row: 3;
-          background: var(--bg);
+          background: var(--surface);
           padding: 0;
           display: flex;
           align-items: stretch;
@@ -669,7 +678,7 @@ export default function DashboardPage() {
           content: '';
           position: absolute;
           inset: 0;
-          background: linear-gradient(160deg, var(--surface) 0%, var(--bg) 60%);
+          background: linear-gradient(160deg, var(--surface) 0%, var(--surface2) 100%);
           border-radius: 24px;
           z-index: 0;
         }

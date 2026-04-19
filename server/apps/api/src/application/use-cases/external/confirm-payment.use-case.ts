@@ -30,11 +30,6 @@ export class ConfirmExternalPaymentUseCase {
       throw new NotFoundException('User associated with payment request not found')
     }
 
-    // Record and verify transaction.
-    // RecordTransactionUseCase now handles: 
-    // 1. Updating paymentRequest status/amountPaid
-    // 2. Firing platform webhooks
-    // 3. Creating overpayment records
     const transaction = await this.recordTransactionUseCase.execute({
       userId: user.uuid,
       amount: paymentRequest.amount,
@@ -45,6 +40,10 @@ export class ConfirmExternalPaymentUseCase {
       type: 'RENT',
       paymentRequestId: paymentRequest.id!,
     })
+
+    if (!transaction) {
+      throw new BadRequestException('Transaction could not be recorded')
+    }
 
     if (transaction.status === 'SUCCESS') {
       // Re-fetch or check updated status (it should be PAID since we paid the full amount)

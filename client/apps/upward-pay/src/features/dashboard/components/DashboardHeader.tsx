@@ -95,13 +95,6 @@ export function DashboardHeader({
           </nav>
 
           <div className="dashboard__header-right">
-            <button 
-              className="dashboard__icon-btn" 
-              onClick={() => router.push('/dashboard/kyc')}
-              title="Identity Verification"
-            >
-              <Share2 size={18} />
-            </button>
             <button className="dashboard__icon-btn" onClick={() => router.push('/dashboard/settings')} title="Settings">
               <Settings size={18} />
             </button>

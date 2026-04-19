@@ -20,6 +20,7 @@ export function StepConfirm({
   lineItems = [],
   requestedAmount = 0,
   totalPaidAlready = 0,
+  propertyBalance = null,
 }: {
   landlord: Landlord
   amount: number
@@ -33,6 +34,13 @@ export function StepConfirm({
   lineItems?: Array<{ label: string; amount: number }>
   requestedAmount?: number
   totalPaidAlready?: number
+  propertyBalance?: {
+    totalOwed: number
+    amountPaid: number
+    remainingBalance: number
+    currency: string
+    dueDate?: string
+  } | null
 }) {
   const remainingRequested = Math.max(0, requestedAmount - totalPaidAlready)
   const excess = requestedAmount > 0 ? Math.max(0, amount - remainingRequested) : 0
@@ -49,9 +57,6 @@ export function StepConfirm({
             <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)' }}>
               {landlord.name}
             </h3>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '2px 0 0' }}>
-              Managed by {landlord.accountName}
-            </p>
           </div>
         </div>
         {landlord.address && (
@@ -71,64 +76,46 @@ export function StepConfirm({
           </div>
         )}
       </div>
-      <div
-        style={{
-          padding: '24px 20px',
-          background: 'var(--surface)',
-          border: '1px solid var(--border-solid)',
-          borderRadius: 'var(--radius-xl)',
-          textAlign: 'center',
-          marginBottom: 24,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: 4,
-          }}
-        >
-          Amount Due
-        </span>
-        <span style={{ fontSize: 32, fontWeight: 800, color: 'var(--text)' }}>
-          {formatCurrency(amount)}
-        </span>
-        {onEditAmount && (
-          <button 
-            onClick={onEditAmount}
-            style={{ 
-              marginTop: 8, 
-              fontSize: 12, 
-              fontWeight: 600, 
-              color: 'var(--clay)', 
-              background: 'none', 
-              border: 'none', 
-              padding: '4px 8px', 
-              cursor: 'pointer' 
-            }}
-          >
-            Change Amount
-          </button>
-        )}
-      </div>
+
+
+      {propertyBalance && (
+        <div style={{ padding: '20px', background: 'var(--surface2)', border: '1px solid var(--border-solid)', borderRadius: '24px', marginBottom: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Total Rent</div>
+              <div style={{ fontSize: 15, fontWeight: 800 }}>{formatCurrency(propertyBalance.totalOwed)}</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--clay)', textTransform: 'uppercase', marginBottom: 4 }}>Remaining</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--clay)' }}>{formatCurrency(propertyBalance.remainingBalance)}</div>
+            </div>
+          </div>
+          <div style={{ paddingTop: 12, borderTop: '1px solid var(--border-solid)', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+             <div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Amount Paid</div>
+                <div style={{ fontSize: 12, fontWeight: 700 }}>{formatCurrency(propertyBalance.amountPaid)}</div>
+             </div>
+             <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Next Due Date</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--clay)' }}>
+                  {propertyBalance.dueDate ? new Date(propertyBalance.dueDate).toLocaleDateString() : 'N/A'}
+                </div>
+             </div>
+          </div>
+        </div>
+      )}
 
       {excess > 0 && (
         <div style={{
           padding: '16px',
-          background: 'var(--dark)',
+          background: 'var(--surface2)',
           borderLeft: '4px solid var(--clay)',
           borderRadius: 'var(--radius-md)',
           marginBottom: 24,
           textAlign: 'left'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Applied to request</span>
+            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Applied to Current Cycle</span>
             <span style={{ fontSize: 13, fontWeight: 700 }}>{formatCurrency(appliedToBill)}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -139,10 +126,6 @@ export function StepConfirm({
               </div>
             </span>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--clay)' }}>{formatCurrency(excess)}</span>
-          </div>
-          <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-            <Info size={12} style={{ flexShrink: 0, marginTop: 1 }} />
-            Editing this allocation will be explicitly reflected in your receipt.
           </div>
         </div>
       )}

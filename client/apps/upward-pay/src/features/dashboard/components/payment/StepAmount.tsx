@@ -50,6 +50,8 @@ export function StepAmount({
   initialPaymentType = 'Rent Payment',
   initialPropertyAddress = '',
   initialPropertyUuid = null,
+  initialNarration = '',
+  initialLineItems = [],
   propertyBalance = null,
   requestedAmount = 0,
   totalPaidAlready = 0,
@@ -62,12 +64,15 @@ export function StepAmount({
   initialPaymentType?: string
   initialPropertyAddress?: string
   initialPropertyUuid?: string | null
+  initialNarration?: string
+  initialLineItems?: LineItem[]
   propertyBalance?: {
     totalOwed: number
     amountPaid: number
     remainingBalance: number
     currency: string
     hasActiveRequest: boolean
+    dueDate?: string
   } | null
   requestedAmount?: number
   totalPaidAlready?: number
@@ -76,11 +81,13 @@ export function StepAmount({
 }) {
   const remainingBalance = Math.max(0, requestedAmount - totalPaidAlready)
   const [amount, setAmount] = useState(
-    requestedAmount > 0 
-      ? String(remainingBalance) 
-      : (landlord.lastAmount > 0 ? String(landlord.lastAmount) : '')
+    initialLineItems && initialLineItems.length > 0
+        ? String(initialLineItems.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0))
+        : requestedAmount > 0 
+          ? String(remainingBalance) 
+          : (landlord.lastAmount > 0 ? String(landlord.lastAmount) : '')
   )
-  const [narration, setNarration] = useState('')
+  const [narration, setNarration] = useState(initialNarration || '')
   const [propertyAddress, setPropertyAddress] = useState(initialPropertyAddress)
   const [selectedPropUuid, setSelectedPropUuid] = useState<string | null>(null)
 
@@ -96,47 +103,66 @@ export function StepAmount({
   useEffect(() => {
     if (propertyBalance && propertyBalance.remainingBalance > 0) {
       setAmount(String(propertyBalance.remainingBalance))
+      setLineItems(prev => {
+        const newItems = [...prev];
+        if (newItems.length > 0 && newItems[0].label === 'Rent') {
+            newItems[0].amount = propertyBalance.remainingBalance;
+        } else if (newItems.length === 0) {
+            newItems.push({ label: 'Rent', amount: propertyBalance.remainingBalance });
+        }
+        return newItems;
+      });
     }
   }, [propertyBalance])
   const [paymentType, setPaymentType] = useState(initialPaymentType)
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [showOverpaymentDialog, setShowOverpaymentDialog] = useState(false)
-  const [lineItems, setLineItems] = useState<LineItem[]>([
+  
+  const [lineItems, setLineItems] = useState<LineItem[]>(initialLineItems && initialLineItems.length > 0 ? initialLineItems : [
     { 
       label: 'Rent', 
-      amount: requestedAmount > 0 
-        ? remainingBalance 
-        : (landlord.lastAmount > 0 ? landlord.lastAmount : 0) 
+      amount: propertyBalance 
+        ? (propertyBalance.remainingBalance > 0 ? propertyBalance.remainingBalance : 0)
+        : (requestedAmount > 0 
+           ? remainingBalance 
+           : (landlord.lastAmount > 0 ? landlord.lastAmount : 0))
     },
   ])
 
+  // Sync the 'total' amount with line items
   useEffect(() => {
-    // If a balance remains, default to that amount
-    if (requestedAmount > 0 && amount === '') {
-      setAmount(String(remainingBalance))
-    }
-  }, [requestedAmount, remainingBalance, amount])
-
-  const presets = [50000, 100000, 150000, 200000]
-
-  useEffect(() => {
-    if (showBreakdown) {
-      const total = lineItems.reduce((sum, item) => sum + (item.amount || 0), 0)
-      setAmount(String(total))
-    }
-  }, [lineItems, showBreakdown])
+    const total = lineItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+    setAmount(String(total))
+  }, [lineItems])
 
   const addLineItem = () => {
     setLineItems([...lineItems, { label: '', amount: 0 }])
   }
 
   const removeLineItem = (index: number) => {
+    if (index === 0) return // Cannot remove Rent
     setLineItems(lineItems.filter((_, i) => i !== index))
   }
 
-  const updateLineItem = (index: number, updates: Partial<LineItem>) => {
+  const updateLineItem = (index: number, val: string | number, field: 'label' | 'amount') => {
     const newItems = [...lineItems]
-    newItems[index] = { ...newItems[index], ...updates }
+    
+    if (field === 'label') {
+      if (index === 0) return // Label for first item is fixed to 'Rent'
+      newItems[index].label = String(val)
+    } else {
+      let numVal = Number(val)
+      if (isNaN(numVal)) numVal = 0
+      
+      // Cap rent amount if property balance exists
+      if (index === 0 && propertyBalance && propertyBalance.remainingBalance > 0) {
+        if (numVal > propertyBalance.remainingBalance) {
+          numVal = propertyBalance.remainingBalance
+        }
+      }
+      newItems[index].amount = numVal
+    }
+
     setLineItems(newItems)
   }
 
@@ -161,374 +187,231 @@ export function StepAmount({
           size={40}
           color={landlord.source === 'pm' ? '#3b82f6' : undefined}
         />
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
             {landlord.accountName}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
             {landlord.bankName} · {landlord.accountNumber}
           </div>
         </div>
       </div>
 
-      {requestedAmount > 0 && (
+      {propertyBalance && (
         <div 
           style={{ 
-            padding: '12px 16px', 
-            background: 'var(--clay-faint)', 
-            borderRadius: 'var(--radius-lg)', 
-            marginBottom: 20,
-            border: '1px solid var(--clay-faint)',
+            padding: '24px', 
+            background: 'var(--surface2)', 
+            borderRadius: '24px', 
+            marginBottom: 24,
+            border: '1px solid var(--border-solid)',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                Total Rent
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>
+                {formatCurrency(propertyBalance.totalOwed, propertyBalance.currency)}
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--clay)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                Remaining
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--clay)' }}>
+                {formatCurrency(propertyBalance.remainingBalance, propertyBalance.currency)}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ 
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, 
+            paddingTop: 16, borderTop: '1px solid var(--border-solid)' 
+          }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 2 }}>
+                Amount Paid
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                {formatCurrency(propertyBalance.amountPaid, propertyBalance.currency)}
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 2 }}>
+                Next Due Date
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                {propertyBalance.dueDate ? new Date(propertyBalance.dueDate).toLocaleDateString() : 'N/A'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unified Line Items List */}
+      <div style={{ marginBottom: 24 }}>
+        <div
+          style={{
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center'
+            alignItems: 'center',
+            marginBottom: 16,
+          }}
+        >
+          <label style={{ ...labelStyle, marginBottom: 0 }}>Breakdown Payment</label>
+          <button
+            onClick={addLineItem}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 32,
+              height: 32,
+              borderRadius: '10px',
+              background: 'var(--clay-faint)',
+              color: 'var(--clay)',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--clay)'
+              e.currentTarget.style.color = '#fff'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'var(--clay-faint)'
+              e.currentTarget.style.color = 'var(--clay)'
+            }}
+          >
+            <Plus size={20} />
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {lineItems.map((item, idx) => (
+            <div
+              key={idx}
+              style={{ position: 'relative', display: 'flex', gap: 8, alignItems: 'center' }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ 
+                  ...inputWrapStyle, 
+                  padding: '0 12px',
+                  background: 'var(--surface)',
+                  border: idx === 0 ? '1px solid var(--clay-low)' : '1px solid var(--border-solid)',
+                  boxShadow: idx === 0 ? '0 0 4px var(--clay-glow)' : 'none'
+                }}>
+                  <input
+                    list="common-labels"
+                    placeholder="e.g. Service Charge"
+                    value={item.label}
+                    onChange={(e) => updateLineItem(idx, e.target.value, 'label')}
+                    style={{ 
+                      ...inputStyle, 
+                      padding: '14px 0', 
+                      fontSize: 13, 
+                      fontWeight: 600,
+                      opacity: idx === 0 ? 0.7 : 1 
+                    }}
+                    readOnly={idx === 0}
+                  />
+                  <div
+                    style={{
+                      height: 20,
+                      width: 1,
+                      background: 'var(--border-solid)',
+                      margin: '0 12px',
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: 'var(--text-muted)',
+                      marginRight: 4,
+                    }}
+                  >
+                    ₦
+                  </span>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={item.amount || ''}
+                    onChange={(e) => updateLineItem(idx, e.target.value, 'amount')}
+                    style={{
+                      ...inputStyle,
+                      padding: '14px 0',
+                      fontSize: 14,
+                      fontWeight: 700,
+                      width: 90,
+                      flex: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+              {idx > 0 && (
+                <button
+                  onClick={() => removeLineItem(idx)}
+                  style={{
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border-solid)',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    padding: 8,
+                    borderRadius: 10,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        <datalist id="common-labels">
+          {COMMON_LABELS.map((l) => (
+            <option key={l} value={l} />
+          ))}
+        </datalist>
+
+        {/* Dynamic Total Box */}
+        <div
+          style={{
+            marginTop: 20,
+            padding: '18px 24px',
+            background: 'var(--surface2)',
+            borderRadius: '20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            border: '1px solid var(--border-solid)',
           }}
         >
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--clay)', textTransform: 'uppercase' }}>Remaining Balance</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{formatCurrency(remainingBalance)}</div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Original Request</div>
-            <div style={{ fontSize: 12, fontWeight: 600 }}>{formatCurrency(requestedAmount)}</div>
-          </div>
-        </div>
-      )}
-
-      {!showBreakdown ? (
-        <>
-          <div style={{ marginBottom: 20 }}>
-            <label style={labelStyle}>Amount (₦)</label>
-            <div
-              style={{
-                ...inputWrapStyle,
-                borderColor: Number(amount) >= 1000 ? 'var(--clay)' : 'var(--border-solid)',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 20,
-                  fontWeight: 700,
-                  color: 'var(--text-muted)',
-                  marginRight: 10,
-                }}
-              >
-                ₦
-              </span>
-              <input
-                type="number"
-                placeholder="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                style={{ ...inputStyle, fontSize: 22, fontWeight: 700 }}
-              />
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-            {(requestedAmount > 0 || (propertyBalance && propertyBalance.remainingBalance > 0)) ? (
-              [
-                { label: '25%', val: Math.round((requestedAmount || (propertyBalance?.remainingBalance || 0)) * 0.25) },
-                { label: '50%', val: Math.round((requestedAmount || (propertyBalance?.remainingBalance || 0)) * 0.5) },
-                { label: 'Full', val: (requestedAmount || (propertyBalance?.remainingBalance || 0)) },
-              ].map(opt => (
-                <button
-                  key={opt.label}
-                  onClick={() => setAmount(String(opt.val))}
-                  style={{
-                    padding: '7px 14px',
-                    borderRadius: 20,
-                    border: `1px solid ${amount === String(opt.val) ? 'var(--clay)' : 'var(--border-solid)'}`,
-                    background: amount === String(opt.val) ? 'var(--clay-faint)' : 'var(--surface)',
-                    color: amount === String(opt.val) ? 'var(--clay)' : 'var(--text-secondary)',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font)',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {opt.label} ({formatCurrency(opt.val)})
-                </button>
-              ))
-            ) : (
-              presets.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setAmount(String(p))}
-                  style={{
-                    padding: '7px 14px',
-                    borderRadius: 20,
-                    border: `1px solid ${amount === String(p) ? 'var(--clay)' : 'var(--border-solid)'}`,
-                    background: amount === String(p) ? 'var(--clay-faint)' : 'var(--surface)',
-                    color: amount === String(p) ? 'var(--clay)' : 'var(--text-secondary)',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font)',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {formatCurrency(p)}
-                </button>
-              ))
-            )}
-          </div>
-        </>
-      ) : (
-        <div style={{ marginBottom: 24 }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 12,
-            }}
-          >
-            <label style={{ ...labelStyle, marginBottom: 0 }}>Payment Breakdown</label>
-            <button
-              onClick={addLineItem}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                fontSize: 11,
-                fontWeight: 700,
-                color: 'var(--clay)',
-                background: 'var(--clay-faint)',
-                border: 'none',
-                padding: '4px 10px',
-                borderRadius: 12,
-                cursor: 'pointer',
-              }}
-            >
-              <Plus size={14} /> Add Item
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {lineItems.map((item, idx) => (
-              <div
-                key={idx}
-                style={{ position: 'relative', display: 'flex', gap: 8, alignItems: 'flex-start' }}
-              >
-                <div style={{ flex: 1 }}>
-                  <div style={{ ...inputWrapStyle, padding: '0 12px' }}>
-                    <input
-                      list="common-labels"
-                      placeholder="e.g. Service Charge"
-                      value={item.label}
-                      onChange={(e) => updateLineItem(idx, { label: e.target.value })}
-                      style={{ ...inputStyle, padding: '10px 0', fontSize: 13 }}
-                    />
-                    <div
-                      style={{
-                        height: 20,
-                        width: 1,
-                        background: 'var(--border-solid)',
-                        margin: '0 10px',
-                      }}
-                    />
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: 'var(--text-muted)',
-                        marginRight: 4,
-                      }}
-                    >
-                      ₦
-                    </span>
-                    <input
-                      type="number"
-                      placeholder="0"
-                      value={item.amount || ''}
-                      onChange={(e) => updateLineItem(idx, { amount: Number(e.target.value) })}
-                      style={{
-                        ...inputStyle,
-                        padding: '10px 0',
-                        fontSize: 13,
-                        fontWeight: 700,
-                        width: 80,
-                        flex: 'none',
-                      }}
-                    />
-                  </div>
-                </div>
-                {lineItems.length > 1 && (
-                  <button
-                    onClick={() => removeLineItem(idx)}
-                    style={{
-                      marginTop: 8,
-                      background: 'none',
-                      border: 'none',
-                      color: '#ef4444',
-                      cursor: 'pointer',
-                      padding: 4,
-                    }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          <datalist id="common-labels">
-            {COMMON_LABELS.map((l) => (
-              <option key={l} value={l} />
-            ))}
-          </datalist>
-
-          <div
-            style={{
-              marginTop: 16,
-              padding: '12px 16px',
-              background: 'var(--dark)',
-              borderRadius: 'var(--radius-md)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
-              Total Amount
-            </span>
-            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--clay)' }}>
-              {formatCurrency(Number(amount))}
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Total to Pay
             </span>
           </div>
+          <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--clay)' }}>
+            {formatCurrency(Number(amount))}
+          </span>
         </div>
-      )}
-
-      <div style={{ marginBottom: 24 }}>
-        <button
-          onClick={() => setShowBreakdown(!showBreakdown)}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            padding: '12px',
-            background: 'none',
-            border: `1px dashed ${showBreakdown ? 'var(--clay)' : 'var(--border-solid)'}`,
-            borderRadius: 'var(--radius-md)',
-            color: showBreakdown ? 'var(--clay)' : 'var(--text-secondary)',
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-          }}
-        >
-          {showBreakdown ? 'Switch to Single Amount' : 'Breakdown Payment (Rent, Bills, etc.)'}
-        </button>
       </div>
 
-      <div style={{ marginBottom: 24 }}>
-        <label style={labelStyle}>Select Property or Type Manually</label>
-        <div style={{ position: 'relative' }}>
-          <select
-            style={{ 
-              ...inputStyle, 
-              ...inputWrapStyle, 
-              appearance: 'none',
-              cursor: 'pointer'
-            }}
-            value={selectedPropUuid || ''}
-            onChange={(e) => {
-              const val = e.target.value
-              if (val === '') {
-                setSelectedPropUuid(null)
-              } else if (val === 'manual') {
-                setSelectedPropUuid('manual') // flag for manual
-              } else {
-                setSelectedPropUuid(val)
-                const prop = userProperties.find(p => p.uuid === val)
-                if (prop) {
-                   const loc = prop.location
-                   const fullAddr = [prop.address, loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
-                   setPropertyAddress(fullAddr)
-                }
-              }
-            }}
-          >
-            <option value="">Choose a property...</option>
-            {userProperties.map(p => {
-               const loc = p.location
-               const label = [p.address, loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
-               return <option key={p.uuid} value={p.uuid}>{label}</option>
-            })}
-            <option value="manual">+ Type Address Manually</option>
-          </select>
-          <div style={{ 
-            position: 'absolute', 
-            right: 16, 
-            top: '50%', 
-            transform: 'translateY(-50%)', 
-            pointerEvents: 'none',
-            color: 'var(--text-muted)'
-          }}>
-            <ChevronRight size={16} style={{ transform: 'rotate(90deg)' }} />
-          </div>
-          {/* Manual Address Warning / Balance Notice */}
-        {propertyBalance && (
-          <div className="manual-address-info" style={{ background: 'var(--clay-faint)', border: '1px solid rgba(217,119,87,0.1)', padding: '12px', borderRadius: '8px', marginTop: '12px' }}>
-            <Info size={16} style={{ color: 'var(--clay)', float: 'left', marginRight: '8px' }} />
-            <div className="manual-address-info__text">
-              <span className="manual-address-info__title" style={{ color: 'var(--clay)', marginBottom: '4px', display: 'block', fontWeight: 600, fontSize: '12px' }}>Outstanding Balance Found</span>
-              <p style={{ fontSize: '12px', margin: 0 }}>
-                Total Rent: <strong>{formatCurrency(propertyBalance.totalOwed, propertyBalance.currency)}</strong> | 
-                Paid: <strong style={{ color: 'var(--clay)' }}>{formatCurrency(propertyBalance.amountPaid, propertyBalance.currency)}</strong>
-              </p>
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Remaining Balance: <strong>{formatCurrency(propertyBalance.remainingBalance, propertyBalance.currency)}</strong>
-              </p>
-            </div>
-          </div>
-        )}
-        </div>
-
-        {(selectedPropUuid === 'manual' || !selectedPropUuid) && (
-          <>
-            <div style={{ ...inputWrapStyle, marginTop: 12 }}>
-              <input
-                type="text"
-                placeholder="e.g. 123 Main St, Lagos"
-                value={propertyAddress}
-                onChange={(e) => setPropertyAddress(e.target.value)}
-                style={inputStyle}
-              />
-            </div>
-            {propertyAddress && !selectedPropUuid && (
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 8, 
-                  marginTop: 8, 
-                  padding: '8px 12px', 
-                  background: 'var(--surface)', 
-                  borderRadius: 10,
-                  border: '1px solid var(--border-solid)'
-                }}
-              >
-                <Info size={14} color="var(--clay)" />
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>
-                  Consider adding this property to your <strong>profile</strong> for better credit scoring.
-                </span>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      <div style={{ marginBottom: 28 }}>
+      <div style={{ marginBottom: 32 }}>
         <label style={labelStyle}>
           Narration <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span>
         </label>
         <div style={inputWrapStyle}>
           <input
             type="text"
-            placeholder="e.g. March rent"
+            placeholder="e.g. March rent & service charge"
             value={narration}
             onChange={(e) => setNarration(e.target.value)}
             style={inputStyle}
@@ -542,13 +425,20 @@ export function StepAmount({
           if (requestedAmount > 0 && Number(amount) > remainingBalance) {
             setShowOverpaymentDialog(true)
           } else {
-            onContinue(Number(amount), narration, propertyAddress, paymentType, showBreakdown ? lineItems : undefined, (selectedPropUuid && selectedPropUuid !== 'manual') ? selectedPropUuid : undefined)
+            onContinue(Number(amount), narration, propertyAddress, paymentType, lineItems, initialPropertyUuid || undefined)
           }
         }}
         className="btn btn--primary btn--full"
-        style={{ opacity: canProceed ? 1 : 0.4, marginBottom: 12, height: 52 }}
+        style={{ 
+          opacity: canProceed ? 1 : 0.4, 
+          marginBottom: 16, 
+          height: 56, 
+          fontSize: 15, 
+          fontWeight: 700,
+          borderRadius: 16
+        }}
       >
-        Continue
+        Confirm Transaction
       </button>
 
       {showOverpaymentDialog && (
@@ -558,12 +448,12 @@ export function StepAmount({
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0,0,0,0.4)',
-          backdropFilter: 'blur(4px)',
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: 20,
+          padding: 24,
           zIndex: 1000
         }}>
           <div className="modal-card" style={{
@@ -604,7 +494,7 @@ export function StepAmount({
                 className="btn btn--primary btn--full" 
                 onClick={() => {
                   setShowOverpaymentDialog(false)
-                  onContinue(Number(amount), narration, propertyAddress, paymentType, showBreakdown ? lineItems : undefined, (selectedPropUuid && selectedPropUuid !== 'manual') ? selectedPropUuid : undefined)
+                  onContinue(Number(amount), narration, propertyAddress, paymentType, lineItems, initialPropertyUuid || undefined)
                 }}
                 style={{ height: 48 }}
               >

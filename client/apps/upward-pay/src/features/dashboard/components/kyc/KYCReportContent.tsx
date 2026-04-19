@@ -214,10 +214,10 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                 Recent Observations
               </p>
               <div className="kyc-report__timeline">
-                {cycles.length === 0 ? (
+                {cycles.filter((c: any) => !c.excluded).length === 0 ? (
                   <p className="text-sm opacity-50 italic">No recent payment history observed on this profile.</p>
                 ) : (
-                  cycles.slice(0, 5).map((t: any, i: number) => (
+                  cycles.filter((c: any) => !c.excluded).slice(0, 5).map((t: any, i: number) => (
                     <div key={i} className="kyc-report__timeline-item">
                       <div className="kyc-report__timeline-dot">
                         <Home size={13} />

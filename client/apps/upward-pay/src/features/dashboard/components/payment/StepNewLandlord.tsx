@@ -66,8 +66,6 @@ export function StepNewLandlord({
     accountNumber: '',
     bankCode: '',
     accountName: '',
-    amount: '',
-    narration: '',
     save: true,
   })
 
@@ -129,32 +127,11 @@ export function StepNewLandlord({
   }, [form.accountNumber, form.bankCode])
 
   const selectedBank = banks.find((b) => b.code === form.bankCode)
-  const amountNumber = Number(form.amount)
-  const canProceed = resolved && amountNumber >= 1000
+  const canProceed = resolved
 
   return (
     <div style={{ padding: '0 20px 32px' }}>
       <style dangerouslySetInnerHTML={{ __html: spinStyle }} />
-      {/* Back Button */}
-      <div style={{ marginBottom: 16 }}>
-        <button
-          onClick={onBack}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-            fontSize: 14,
-            fontWeight: 500,
-          }}
-        >
-          <ArrowLeft size={16} />
-          Back
-        </button>
-      </div>
 
       {/* Bank Selection Trigger */}
       <div style={{ marginBottom: 24 }}>
@@ -296,45 +273,6 @@ export function StepNewLandlord({
         </div>
       )}
 
-      {/* Amount */}
-      <div style={{ marginBottom: 24 }}>
-        <label style={labelStyle}>Amount (₦)</label>
-        <div style={inputWrapStyle}>
-          <span style={{ fontSize: 18, fontWeight: 700 }}>₦</span>
-          <input
-            type="number"
-            placeholder="0"
-            value={form.amount}
-            onChange={(e) => set('amount', e.target.value)}
-            style={{ ...inputStyle, fontSize: 18, fontWeight: 700 }}
-          />
-        </div>
-
-        {amountNumber > 0 && amountNumber < 1000 && (
-          <div
-            style={{ display: 'flex', gap: 6, marginTop: 6, fontSize: 12, color: 'var(--warning)' }}
-          >
-            <AlertCircle size={16} />
-            Minimum payment is ₦1,000
-          </div>
-        )}
-      </div>
-
-      {/* Narration */}
-      <div style={{ marginBottom: 24 }}>
-        <label style={labelStyle}>
-          Narration <span style={{ fontWeight: 400 }}>(optional)</span>
-        </label>
-        <div style={inputWrapStyle}>
-          <input
-            type="text"
-            placeholder="e.g. March rent payment"
-            value={form.narration}
-            onChange={(e) => set('narration', e.target.value)}
-            style={inputStyle}
-          />
-        </div>
-      </div>
 
       {/* Save Toggle */}
       <div
@@ -387,12 +325,13 @@ export function StepNewLandlord({
             bankName: selectedBank?.name || '',
             bankCode: form.bankCode,
             avatar: form.accountName?.[0] || '?',
-            amount: amountNumber,
-            narration: form.narration,
+            amount: 0,
+            narration: '',
             lastPaid: null,
             lastAmount: 0,
             save: form.save,
-          })
+            isNewLocal: true,
+          } as any)
         }}
         className="btn btn--primary btn--full"
         style={{ opacity: canProceed ? 1 : 0.4 }}
