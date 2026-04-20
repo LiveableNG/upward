@@ -19,6 +19,7 @@ import { GetAvatarUploadUrlUseCase } from '../../../application/use-cases/user/g
 import { IngestPastRecordsUseCase } from '../../../application/use-cases/user/ingest-past-records.use-case'
 import { RequestCredibilityRecordsUseCase } from '../../../application/use-cases/user/request-credibility-records.use-case'
 import { GetCredibilityRequestsUseCase } from '../../../application/use-cases/user/get-credibility-requests.use-case'
+import { GenerateKYCReportPdfUseCase } from '../../../application/use-cases/user/generate-kyc-report-pdf.use-case'
 
 interface FastifyReply {
   setCookie(name: string, value: string, options: Record<string, unknown>): FastifyReply
@@ -86,6 +87,7 @@ export class UserController {
     private readonly ingestPastRecords: IngestPastRecordsUseCase,
     private readonly requestCredibilityRecords: RequestCredibilityRecordsUseCase,
     private readonly getCredibilityRequests: GetCredibilityRequestsUseCase,
+    private readonly generateKYCPdf: GenerateKYCReportPdfUseCase,
   ) { }
 
   @Post('signup')
@@ -272,5 +274,21 @@ export class UserController {
   async fetchCredibilityRequests(@Req() req: FastifyRequest) {
     if (!req.user?.id) throw new UnauthorizedException('No user in request');
     return this.getCredibilityRequests.execute(req.user.id);
+  }
+
+  @Get('credibility/pdf')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async downloadCredibilityPdf(
+    @Req() req: FastifyRequest,
+    @Res() reply: any
+  ) {
+    if (!req.user?.id) throw new UnauthorizedException('No user in request');
+    const buffer = await this.generateKYCPdf.execute(req.user.id);
+    
+    reply
+      .header('Content-Type', 'application/pdf')
+      .header('Content-Disposition', `attachment; filename=Credibility_Report_${req.user.id}.pdf`)
+      .send(buffer);
   }
 }

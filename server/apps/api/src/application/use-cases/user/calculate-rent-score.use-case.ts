@@ -1,12 +1,13 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { RENT_CYCLE_REPOSITORY, IRentCycleRepository } from '../../../domains/scoring/rent-cycle.repository'
-
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 @Injectable()
 export class CalculateRentScoreUseCase {
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(RENT_CYCLE_REPOSITORY) private readonly rentCycleRepo: IRentCycleRepository,
+    private readonly s3Service: S3Service,
   ) {}
 
   async execute(userId: string) {
@@ -15,12 +16,15 @@ export class CalculateRentScoreUseCase {
       throw new NotFoundException('User not found')
     }
 
-    // Fetch all rent cycles for this user - sorted by dueDate
-    const allCycles = await this.rentCycleRepo.findByUserId(user.id!)
+    // Fetch all rent cycles for this user - sorted by dueDate DESC from repo
+    const rawCycles = await this.rentCycleRepo.findByUserId(user.id!)
+    
+    // Sort ASC for streak calculation logic
+    const allCycles = [...rawCycles].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     const now = new Date()
 
     if (allCycles.length === 0) {
-      return this.defaultUnscorableState(user)
+      return await this.defaultUnscorableState(user)
     }
 
     let totalPTScore = 0
@@ -96,7 +100,7 @@ export class CalculateRentScoreUseCase {
     const scoredCount = scoredCycles.length
 
     if (scoredCount === 0) {
-      return this.defaultUnscorableState(user)
+      return await this.defaultUnscorableState(user)
     }
 
     // Calculate A: PT
@@ -148,8 +152,9 @@ export class CalculateRentScoreUseCase {
           email: user.email,
           phone: user.phone,
           bio: user.bio,
-          profilePic: user.profilePic,
+          profilePic: user.profilePic ? await this.s3Service.getDownloadUrl(user.profilePic) : null,
           profileSlug: user.profileSlug || `${user.firstName}-${user.lastName}-${user.uuid.split('-')[0]}`.toLowerCase(),
+          uuid: user.uuid,
           profileCompletion: this.calculateProfileCompletion(user)
         },
         properties: user.properties || [],
@@ -204,7 +209,7 @@ export class CalculateRentScoreUseCase {
     return Math.round((fields / total) * 100)
   }
 
-  private defaultUnscorableState(user: any) {
+  private async defaultUnscorableState(user: any) {
     return {
       success: true,
       data: {
@@ -225,7 +230,7 @@ export class CalculateRentScoreUseCase {
           email: user.email,
           phone: user.phone,
           bio: user.bio,
-          profilePic: user.profilePic,
+          profilePic: user.profilePic ? await this.s3Service.getDownloadUrl(user.profilePic) : null,
           profileSlug: user.profileSlug || `${user.firstName}-${user.lastName}-${user.uuid.split('-')[0]}`.toLowerCase(),
           profileCompletion: this.calculateProfileCompletion(user)
         },

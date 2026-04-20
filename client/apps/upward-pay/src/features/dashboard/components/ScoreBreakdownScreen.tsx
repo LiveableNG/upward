@@ -55,7 +55,8 @@ export function ScoreBreakdownScreen() {
     )
   }
 
-  const { isScorable, score, rank, band, metrics, cycles } = scoreProfile.data
+  const { isScorable, score, rank, band, metrics, cycles, properties = [] } = scoreProfile.data
+  const isVerified = properties.some((p: any) => p.isManaged)
 
   const getRankColor = () => {
     if (!isScorable) return 'var(--text-muted)'
@@ -91,10 +92,10 @@ export function ScoreBreakdownScreen() {
       <div className="sb-container">
         {/* Main Score Header */}
         <section className="sb-header">
-           <div className="sb-header__score-blob" style={{'--rank-color': getRankColor()} as any}>
+           <div className="sb-header__score-blob" style={{'--rank-color': isVerified ? getRankColor() : 'var(--text-muted)'} as any}>
               <div className="sb-header__score-circle">
-                 <span className="sb-header__val">{score}</span>
-                 <span className="sb-header__label">UPWARD SCORE</span>
+                 <span className="sb-header__val" style={{ opacity: isVerified ? 1 : 0.5 }}>{score}</span>
+                 <span className="sb-header__label">{isVerified ? 'UPWARD SCORE' : 'POTENTIAL SCORE'}</span>
               </div>
               <div className="sb-header__rank">
                  <strong>{rank}</strong>
@@ -104,6 +105,12 @@ export function ScoreBreakdownScreen() {
            
            <div className="sb-header__intro">
               <h2>How your score works</h2>
+              {!isVerified && (
+                  <div className="unverified-warning">
+                    <ShieldCheck size={16} />
+                    <span>Unverified Profile: Connect with an Upward partner landlord to finalize this score.</span>
+                  </div>
+               )}
               <p>
                 Your Upward Score is a dynamic indicator of your rental reliability. 
                 It's calculated based on four key factors that help landlords trust your discipline and consistency.
@@ -497,6 +504,20 @@ export function ScoreBreakdownScreen() {
         .text--clay { color: var(--clay); }
         .text--info { color: var(--info); }
         .text--error { color: var(--error); }
+
+        .unverified-warning {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface2);
+            color: var(--text-muted);
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            border: 1px dashed var(--border-solid);
+        }
+        .unverified-warning :global(svg) { color: var(--clay); }
 
         @media (max-width: 640px) {
           .sb-factors { margin-bottom: 2rem; }

@@ -14,13 +14,18 @@ export class GetPublicProfileUseCase {
   async execute(slug: string) {
     this.logger.log(`Fetching public score profile for slug: ${slug}`)
 
-    const user = await this.userRepository.findBySlug(slug)
+    let user = await this.userRepository.findBySlug(slug)
 
+    // Fallback: If not found by slug, try finding by UUID (in case the link used the ID)
     if (!user) {
-      throw new NotFoundException(`Profile with slug "${slug}" not found`)
+      user = await this.userRepository.findByUuid(slug)
     }
 
-    // Reuse the existing scoring logic but with the user found by slug
+    if (!user) {
+      throw new NotFoundException(`Profile with identifier "${slug}" not found`)
+    }
+
+    // Reuse the existing scoring logic but with the user found
     return this.calculateRentScore.execute(user.uuid)
   }
 }

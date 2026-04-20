@@ -54,7 +54,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="dashboard-layout__content">
         <Suspense fallback={<FallbackSuspense message="Loading..." />}>{children}</Suspense>
       </main>
-      {!pathname?.startsWith('/dashboard/notifications') && <BottomNav />}
+      {!pathname?.startsWith('/dashboard/notifications') && !pathname?.startsWith('/dashboard/kyc') && <BottomNav />}
     </div>
   )
 }

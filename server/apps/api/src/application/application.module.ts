@@ -7,6 +7,7 @@ import { S3Module } from '../shared/infrastructure/common/s3/s3.module'
 import { ReceiptModule } from '../shared/infrastructure/common/receipt/receipt.module'
 import { WebhookService } from '../shared/infrastructure/common/webhook/webhook.service'
 import { EncryptionService } from '../shared/infrastructure/common/encryption.service'
+import { KYCModule } from '../shared/infrastructure/common/kyc/kyc.module'
 
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
@@ -77,6 +78,7 @@ import { GetCredibilityRequestsUseCase } from './use-cases/user/get-credibility-
 import { GetCredibilityRequestDetailsUseCase } from './use-cases/external/get-credibility-request-details.use-case'
 import { FulfillCredibilityRequestUseCase } from './use-cases/external/fulfill-credibility-request.use-case'
 import { SingleInviteUseCase } from './use-cases/external/single-invite.use-case'
+import { GenerateKYCReportPdfUseCase } from './use-cases/user/generate-kyc-report-pdf.use-case'
 import { CreatePlatformUseCase } from './use-cases/platform/create-platform.use-case'
 import { CreateExternalPaymentRequestUseCase } from './use-cases/external/create-payment-request.use-case'
 import { GetPublicPaymentDetailsUseCase } from './use-cases/external/get-public-payment.use-case'
@@ -193,6 +195,7 @@ const UseCases = [
   GetTransactionUseCase,
   GetUserTransactionsUseCase,
   GenerateReceiptPdfUseCase,
+  GenerateKYCReportPdfUseCase,
   MarkNotificationReadUseCase,
 
   CreateAnnouncementUseCase,
@@ -232,7 +235,7 @@ const UseCases = [
 ]
 
 @Module({
-  imports: [S3Module, ReceiptModule, AuthModule],
+  imports: [S3Module, ReceiptModule, KYCModule, AuthModule],
   providers: [
     AdminAuditEventHandler,
     EmailLogEventHandler,

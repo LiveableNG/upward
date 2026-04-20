@@ -22,6 +22,7 @@ import { InviteController } from './public/invite.controller'
 import { PlatformAdminController } from './external/platform-invite.controller'
 import { ExternalPaymentController } from './external/external-payment.controller'
 import { PublicCredibilityController } from './public/credibility.controller'
+import { WellKnownController } from './public/well-known.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule],
@@ -46,6 +47,7 @@ import { PublicCredibilityController } from './public/credibility.controller'
     UserSupportController,
     AdminSupportController,
     PublicCredibilityController,
+    WellKnownController,
   ],
 })
 export class HttpModule {}

@@ -22,6 +22,7 @@ export interface ScoreProfile {
       phone: string
       profilePic: string
       profileSlug: string | null
+      uuid: string
       profileCompletion: number
       bio?: string
       gender?: string
