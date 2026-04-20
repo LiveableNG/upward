@@ -134,6 +134,24 @@ export class PrismaNotificationRepository implements NotificationRepository {
       data: { isRead: true },
     })
   }
+  
+  async markNotificationAsReadByUuid(uuid: string): Promise<void> {
+    await this.prisma.upward_notification.update({
+      where: { uuid },
+      data: { isRead: true },
+    })
+  }
+  
+  async markNotificationsByCategoryAsRead(userId: number, types: string[]): Promise<void> {
+    await this.prisma.upward_notification.updateMany({
+      where: {
+        userId,
+        type: { in: types },
+        isRead: false,
+      },
+      data: { isRead: true },
+    })
+  }
 
   async countUnreadNotifications(userId: number): Promise<number> {
     return this.prisma.upward_notification.count({

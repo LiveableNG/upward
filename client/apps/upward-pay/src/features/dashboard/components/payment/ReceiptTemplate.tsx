@@ -34,6 +34,7 @@ export interface ReceiptData {
   channel: string
   paystackReference: string
   type?: 'credit' | 'debit'
+  status?: string
   lineItems: Array<{ label: string; amount: number; category: string }>
 }
 
@@ -74,34 +75,30 @@ export default function ReceiptTemplate({
 
   const isCredit = receipt.type === 'credit'
   const isActualBreakdown =
-    receipt.lineItems.length > 1 ||
-    (receipt.lineItems.length === 1 && !['Rent Payment', 'Savings Deposit'].includes(receipt.lineItems[0].label))
+    receipt.lineItems.length > 0
 
   return (
     <>
       <div className="receipt-overlay">
         <div className="receipt-container">
-          <div
-            className="receipt-actions no-print"
-            style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}
+        <div className="receipt-actions no-print">
+          <button
+            className="btn btn--secondary btn--sm"
+            style={{ padding: '8px 12px', flexShrink: 0 }}
+            onClick={onClose}
           >
-        <button
-          className="btn btn--secondary btn--sm"
-          style={{ padding: '8px 12px', flexShrink: 0 }}
-          onClick={onClose}
-        >
-          <ArrowLeft size={18} />
-        </button>
-        <div style={{ display: 'flex', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
-          <button className="btn btn--secondary btn--sm" onClick={handleShare}>
-            Share
+            <ArrowLeft size={18} />
           </button>
-          <button className="btn btn--primary btn--sm" onClick={() => onDownload?.()}>
-            <Download size={13} style={{ marginRight: 4 }} />
-            Download
-          </button>
+          <div className="receipt-actions__right">
+            <button className="btn btn--secondary btn--sm" onClick={handleShare}>
+              Share
+            </button>
+            <button className="btn btn--primary btn--sm" onClick={() => onDownload?.()}>
+              <Download size={13} style={{ marginRight: 4 }} />
+              Download
+            </button>
+          </div>
         </div>
-      </div>
 
       <div
         id="receipt-printable"
@@ -178,21 +175,31 @@ export default function ReceiptTemplate({
           </div>
           <div
             style={{
-              background: isCredit ? 'var(--success-bg)' : 'rgba(34,197,94,0.08)',
-              color: isCredit ? 'var(--success)' : '#16a34a',
-              padding: '5px 10px',
+              background: (receipt.status || 'PAID') === 'PARTIAL' ? 'rgba(217,119,87,0.08)' : (isCredit ? 'var(--success-bg)' : 'rgba(34,197,94,0.08)'),
+              color: (receipt.status || 'PAID') === 'PARTIAL' ? 'var(--clay)' : (isCredit ? 'var(--success)' : '#16a34a'),
+              padding: '5px 12px',
               borderRadius: 100,
               fontSize: 10,
-              fontWeight: 700,
+              fontWeight: 800,
               display: 'flex',
               alignItems: 'center',
-              gap: 5,
+              gap: 6,
               flexShrink: 0,
               letterSpacing: '0.04em',
+              textTransform: 'uppercase'
             }}
           >
-            <Check size={11} />
-            {isCredit ? 'DEPOSITED' : 'PAID'}
+            {(receipt.status || 'PAID') === 'PARTIAL' ? (
+               <>
+                 <Activity size={11} />
+                 PARTIAL PAYMENT
+               </>
+            ) : (
+               <>
+                 <Check size={11} />
+                 {isCredit ? 'DEPOSITED' : 'PAID'}
+               </>
+            )}
           </div>
         </div>
 
@@ -289,20 +296,6 @@ export default function ReceiptTemplate({
             <MapPin size={13} />
           </span>
           <div style={{ minWidth: 0 }}>
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                display: 'block',
-                marginBottom: 2,
-                color: 'var(--text)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {receipt.paymentType}
-            </span>
             {isActualBreakdown && (
               <span
                 style={{
@@ -314,15 +307,19 @@ export default function ReceiptTemplate({
                   display: 'block',
                 }}
               >
-                Payment Breakdown Summary
+                Property Details
               </span>
             )}
             <span
               style={{
-                fontSize: 11,
-                color: 'var(--text-muted)',
+                fontSize: 13,
+                fontWeight: 600,
                 display: 'block',
-                lineHeight: 1.4,
+                marginBottom: 2,
+                color: 'var(--text)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
               }}
             >
               {receipt.propertyAddress || 'Manual Transfer'}
@@ -497,29 +494,54 @@ export default function ReceiptTemplate({
           margin: 0 auto;
         }
 
+        .receipt-actions {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          marginBottom: 16px;
+        }
+
+        .receipt-actions__right {
+          display: flex;
+          gap: 8px;
+          flex: 1;
+          justify-content: flex-end;
+        }
+
         @media (min-width: 1024px) {
           .receipt-overlay {
+            background: var(--bg);
+            min-height: calc(100vh - 100px);
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(8px);
-            padding: 40px;
+            padding: 40px 20px;
           }
 
           .receipt-container {
-            background: var(--bg);
-            padding: 32px;
-            border-radius: 24px;
-            box-shadow: 0 40px 100px rgba(0,0,0,0.1);
-            max-width: 500px;
+            background: var(--surface);
+            padding: 40px;
+            border-radius: 32px;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.06);
+            border: 1px solid var(--border-solid);
+            max-width: 520px;
             width: 100%;
+            animation: slideUp 0.4s ease-out;
+          }
+
+          .receipt-actions {
+            margin-bottom: 24px;
           }
 
           #receipt-printable {
             border: none !important;
             padding: 0 !important;
             background: transparent !important;
+          }
+
+          @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
           }
         }
       `}</style>

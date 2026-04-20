@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, ArrowLeft } from 'lucide-react'
 import PaystackEmbeddedCheckout from '@/features/dashboard/components/payment/PaystackEmbeddedCheckout'
 import { api } from '@/lib/api'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -185,11 +185,33 @@ export default function PayRentPage() {
               margin: 10px auto; /* Reduced from 20px */
               transition: all 0.3s ease;
             }
-            .dashboard__header {
-              border-bottom: none !important;
-              padding: 0 !important;
-              margin-bottom: 24px !important;
-              background: transparent !important;
+            .pay-rent__header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: var(--space-4) var(--space-5);
+              margin-bottom: var(--space-2);
+              border-bottom: 1px solid var(--border-solid);
+            }
+
+            .dashboard__back {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 0;
+              background: none;
+              border: none;
+              color: var(--text);
+              margin-right: var(--space-3);
+            }
+
+            @media (min-width: 1024px) {
+              .pay-rent__header {
+                border-bottom: none !important;
+                padding: 0 !important;
+                margin-bottom: 24px !important;
+                background: transparent !important;
+              }
             }
             .dashboard__title {
               font-size: 24px;
@@ -205,8 +227,8 @@ export default function PayRentPage() {
         {step !== 'checkout' && step !== 'processing' && step !== 'success' && (
           <div className="pay-rent__header">
             <div className="dashboard__header-left">
-              <button className="dashboard__back" onClick={handleBack}>
-                <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} />
+              <button className="dashboard__back mobile-only" onClick={handleBack}>
+                <ArrowLeft size={20} />
               </button>
               <h2 className="dashboard__title">{stepTitle[step]}</h2>
             </div>

@@ -46,7 +46,7 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
           onClick={() => router.push(`/dashboard/request-records`)}
         >
           <History size={16} />
-          <span>Request Records</span>
+          <span>Records</span>
         </button>
       </div>
 
@@ -182,6 +182,26 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
         .share-btn:hover {
           background: var(--clay);
           color: white;
+        }
+
+        @media (max-width: 640px) {
+          .hub-header {
+            align-items: center;
+            gap: var(--space-3);
+          }
+          .hub-header__title h2 {
+            font-size: 1.2rem;
+          }
+          .hub-header__title p {
+            font-size: 0.75rem;
+            max-width: 180px;
+          }
+          .share-btn {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+            border-radius: 10px;
+          }
         }
 
         /* Fully flexible Hub Grid */

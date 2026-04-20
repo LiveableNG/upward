@@ -144,7 +144,11 @@ export class PrismaTransactionRepository implements ITransactionRepository {
         propertyAddress: data.propertyAddress,
         paymentRequestId: data.paymentRequestId,
         currency: data.currency || 'NGN',
+        lineItems: (data as any).lineItems || undefined
       },
+      include: {
+        paymentRequest: true
+      }
     })
     return {
       ...res,
@@ -152,13 +156,14 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       landlordId: res.landlordId ?? undefined,
       paymentType: res.paymentType ?? undefined,
       propertyAddress: res.propertyAddress ?? undefined,
-
+      paymentRequest: res.paymentRequest as any
     } as unknown as Transaction
   }
 
   async findByUserId(userId: number): Promise<Transaction[]> {
     const res = await this.prisma.upward_transaction.findMany({
       where: { userId },
+      include: { paymentRequest: true },
       orderBy: { createdAt: 'desc' },
     })
     return res.map((r) => ({
@@ -173,6 +178,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
   async findById(id: number): Promise<Transaction | null> {
     const res = await this.prisma.upward_transaction.findUnique({
       where: { id },
+      include: { paymentRequest: true }
     })
     if (!res) return null
     return {
@@ -187,6 +193,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
   async findByUuid(uuid: string): Promise<Transaction | null> {
     const res = await this.prisma.upward_transaction.findUnique({
       where: { uuid },
+      include: { paymentRequest: true }
     })
     if (!res) return null
     return {
@@ -201,6 +208,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
   async findByReference(reference: string): Promise<Transaction | null> {
     const res = await this.prisma.upward_transaction.findUnique({
       where: { reference },
+      include: { paymentRequest: true }
     })
     if (!res) return null
     return {

@@ -8,6 +8,7 @@ import {
 import { PROPERTY_REPOSITORY, PropertyRepository } from '../../../domains/companies/property.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { COMPANY_REPOSITORY, CompanyRepository, MANAGER_REPOSITORY, ManagerRepository } from '../../../domains/companies/company.repository'
+import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../domains/payments/payment.repository'
 
 @Injectable()
 export class GetPublicPaymentDetailsUseCase {
@@ -18,6 +19,7 @@ export class GetPublicPaymentDetailsUseCase {
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(COMPANY_REPOSITORY) private readonly companyRepository: CompanyRepository,
     @Inject(MANAGER_REPOSITORY) private readonly managerRepository: ManagerRepository,
+    @Inject(PAYMENT_GATEWAY) private readonly gateway: IPaymentGateway,
   ) {}
 
   async execute(uuid: string): Promise<any> {
@@ -62,6 +64,20 @@ export class GetPublicPaymentDetailsUseCase {
           .filter(Boolean).join(', ')
       : null
 
+    let verifiedRecipientName = null
+    if (paymentRequest.subaccount?.accountNumber && paymentRequest.subaccount?.bankCode) {
+      try {
+        const verification = await this.gateway.verifyAccountNumber(
+          paymentRequest.subaccount.accountNumber,
+          paymentRequest.subaccount.bankCode,
+        )
+        verifiedRecipientName = verification.accountName
+      } catch (err) {
+        // Fallback to company/manager name if verification fails
+        console.error('Account verification failed silently:', err)
+      }
+    }
+
     return {
       payment: {
         uuid: paymentRequest.uuid,
@@ -75,6 +91,7 @@ export class GetPublicPaymentDetailsUseCase {
         allowPartial: paymentRequest.allowPartial || false,
         minAmount: paymentRequest.minAmount || undefined,
         lineItemRecords: lineItemRecords,
+        verifiedRecipientName: verifiedRecipientName,
       },
       user: {
         uuid: user.uuid,

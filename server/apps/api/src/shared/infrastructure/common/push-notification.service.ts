@@ -1,16 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 
-/**
- * PushNotificationService
- * 
- * Sends push notifications via Firebase Cloud Messaging (FCM) HTTP v1 API.
- * Firebase credentials are loaded from environment variables:
- *   FCM_PROJECT_ID    — Firebase project ID
- *   FCM_CLIENT_EMAIL  — Service account email
- *   FCM_PRIVATE_KEY   — Service account private key (PEM, escape \n)
- * 
- * If credentials are missing, push silently no-ops (safe for local dev).
- */
+
 @Injectable()
 export class PushNotificationService {
   private readonly logger = new Logger(PushNotificationService.name)
@@ -67,10 +57,6 @@ export class PushNotificationService {
     }
   }
 
-  /**
-   * Send a push notification to one or more device tokens.
-   * Silently no-ops if FCM credentials are not configured.
-   */
   async sendToTokens(
     tokens: string[],
     payload: { title: string; body: string; data?: Record<string, string> },

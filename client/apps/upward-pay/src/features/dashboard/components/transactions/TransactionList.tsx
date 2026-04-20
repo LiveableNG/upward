@@ -23,14 +23,8 @@ export function TransactionList() {
   const { data, loading, error, reload } = useDashboard()
   const [filterDate, setFilterDate] = useState('')
   const [search, setSearch] = useState('')
-  const [expandedTxId, setExpandedTxId] = useState<string | null>(null)
-
   const handleTxClick = (tx: CompletedPayment) => {
-    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
-      setExpandedTxId(expandedTxId === tx.uuid ? null : tx.uuid)
-    } else {
-      router.push(`/dashboard/receipts?id=${tx.uuid}`)
-    }
+    router.push(`/dashboard/receipts?id=${tx.uuid}`)
   }
 
   if (loading) return <TransactionSkeleton />
@@ -126,7 +120,7 @@ export function TransactionList() {
                 {grouped[date].map((tx: CompletedPayment) => {
                   const isCredit = tx.type === 'credit'
                   return (
-                    <div key={tx.uuid} className={`transaction-wrapper ${expandedTxId === tx.uuid ? 'is-expanded' : ''}`}>
+                    <div key={tx.uuid} className="transaction-wrapper">
                       <div
                         className={`transaction-item ${isCredit ? 'transaction-item--credit' : 'transaction-item--debit'}`}
                         onClick={() => handleTxClick(tx)}
@@ -157,76 +151,19 @@ export function TransactionList() {
                         </div>
 
                         <div className="transaction-item__right">
-                          <span
-                            className={`transaction-item__amount ${isCredit ? 'transaction-item__amount--credit' : ''}`}
-                          >
-                            {isCredit ? '+' : '-'}
-                            {formatCurrency(tx.amount, tx.currency)}
-                          </span>
-
-                            <button
-                              className="transaction-item__receipt-btn mobile-only"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                router.push(`/dashboard/receipts?id=${tx.uuid}`)
-                              }}
+                          <div className="transaction-item__amount-wrap">
+                            <span
+                              className={`transaction-item__amount ${isCredit ? 'transaction-item__amount--credit' : ''}`}
                             >
-                              View Receipt
-                            </button>
+                              {isCredit ? '+' : '-'}
+                              {formatCurrency(tx.amount, tx.currency)}
+                            </span>
+                          </div>
+                          <div className="transaction-item__action-hint">
+                            View Receipt
                           </div>
                         </div>
-
-                        {expandedTxId === tx.uuid && (
-                          <div className="transaction-inline-details desktop-only animate-fade-in">
-                          <div className="tid-receipt-header">
-                            <h5 className="tid-receipt-title">Payment Receipt Breakdown</h5>
-                            <span className="tid-receipt-number">Ref: {tx.paystack_reference || 'N/A'}</span>
-                          </div>
-
-                          <div className="tid-breakdown">
-                            {(tx.lineItems && tx.lineItems.length > 0) ? (
-                              tx.lineItems.map((item: any, idx: number) => (
-                                <div key={idx} className="tid-breakdown-row">
-                                  <span className="tid-breakdown-lbl">{item.label}</span>
-                                  <span className="tid-breakdown-val">{formatCurrency(item.amount, tx.currency)}</span>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="tid-breakdown-row">
-                                <span className="tid-breakdown-lbl">{tx.transactionType === 'FUTURE_CREDIT' ? 'Future Credit Balance' : 'Total Amount Paid'}</span>
-                                <span className="tid-breakdown-val">{formatCurrency(tx.amount, tx.currency)}</span>
-                              </div>
-                            )}
-                            <div className="tid-breakdown-divider" />
-                            <div className="tid-breakdown-row tid-breakdown-row--total">
-                              <span className="tid-breakdown-lbl">Total Verified Payment</span>
-                              <span className="tid-breakdown-val">{formatCurrency(tx.amount, tx.currency)}</span>
-                            </div>
-                          </div>
-
-                          <div className="tid-grid tid-grid--footer">
-                            <div className="tid-item">
-                              <span className="tid-lbl">Date Paid</span>
-                              <span className="tid-val">{new Date(tx.paid_at).toLocaleDateString()}</span>
-                            </div>
-                            <div className="tid-item">
-                              <span className="tid-lbl">Time</span>
-                              <span className="tid-val">{formatTime(tx.paid_at)}</span>
-                            </div>
-                            <div className="tid-item">
-                              <span className="tid-lbl">Paid To</span>
-                              <span className="tid-val">{tx.company_name}</span>
-                            </div>
-                            <div className="tid-item">
-                              <span className="tid-lbl">Status</span>
-                              <span className="tid-val" style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor' }} />
-                                Verified Verified
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      </div>
                     </div>
                   )
                 })}
@@ -329,157 +266,38 @@ export function TransactionList() {
             transition: all 0.2s;
           }
 
-          .transaction-wrapper {
-            margin-bottom: 12px;
-          }
-
-          .transaction-wrapper.is-expanded .transaction-item {
-            border-bottom-left-radius: 0;
-            border-bottom-right-radius: 0;
-            border-bottom-color: transparent;
-            background: var(--surface2);
-          }
-
-          .transaction-inline-details {
-            background: var(--surface2);
-            border: 1px solid var(--clay);
-            border-top: none;
-            border-bottom-left-radius: 16px;
-            border-bottom-right-radius: 16px;
-            padding: 24px;
-            box-shadow: var(--shadow-sm);
-          }
-
-          .tid-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-          }
-
-          .tid-grid--footer {
-            margin-top: 24px;
-            padding-top: 16px;
-            border-top: 1px dashed var(--border);
-          }
-
-          .tid-item {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-          }
-
-          .tid-receipt-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-          }
-
-          .tid-receipt-title {
-            font-size: 14px;
-            font-weight: 800;
-            color: var(--text);
-            margin: 0;
-          }
-
-          .tid-receipt-number {
-            font-size: 11px;
-            color: var(--text-muted);
-            font-family: monospace;
-          }
-
-          .tid-breakdown {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            background: var(--bg);
-            padding: 16px;
-            border-radius: 12px;
-            border: 1px solid var(--border-solid);
-          }
-
-          .tid-breakdown-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          }
-
-          .tid-breakdown-lbl {
-            font-size: 13px;
-            color: var(--text-muted);
-          }
-
-          .tid-breakdown-val {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text);
-          }
-
-          .tid-breakdown-divider {
-            height: 1px;
-            background: var(--border-solid);
-            margin: 4px 0;
-          }
-
-          .tid-breakdown-row--total .tid-breakdown-lbl {
-            font-weight: 700;
-            color: var(--text);
-          }
-
-          .tid-breakdown-row--total .tid-breakdown-val {
-            font-size: 15px;
-            color: var(--clay);
-          }
-
-          .tid-lbl {
-            font-size: 10px;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-          }
-
-          .tid-val {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text);
-          }
-
-          .transaction-item__actions-group {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-          }
-
-          .transaction-item__download-btn {
-            background: var(--clay);
-            border: none;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 12px rgba(217, 119, 87, 0.2);
-          }
-
-          .transaction-item__download-btn:hover {
-            background: var(--clay-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(217, 119, 87, 0.3);
-          }
-
-          .transaction-item__download-btn svg {
-            flex-shrink: 0;
-          }
-
           .transaction-item:hover {
             border-color: var(--clay);
             background: var(--surface2);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+          }
+
+          .transaction-item:hover .transaction-item__action-hint {
+            opacity: 1;
+            color: var(--clay);
+          }
+
+          .transaction-item__amount-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+          }
+
+          .transaction-item__action-hint {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            opacity: 0.6;
+            transition: all 0.2s;
+            margin-top: 4px;
+            text-align: right;
+          }
+
+          @media (max-width: 1023px) {
+            .transaction-item__action-hint {
+              display: none;
+            }
           }
         }
       `}</style>

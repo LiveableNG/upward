@@ -12,6 +12,7 @@ import {
 } from '@domains/companies/property.repository'
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '@shared/infrastructure/common/encryption.service'
+import { NotificationService } from '@shared/infrastructure/common/notification.service'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -143,6 +144,7 @@ describe('SingleInviteUseCase', () => {
   let companyUserRepository: jest.Mocked<CompanyUserRepository>
   let propertyRepository: jest.Mocked<PropertyRepository>
   let locationRepository: jest.Mocked<LocationRepository>
+  let notificationService: jest.Mocked<NotificationService>
 
   beforeEach(() => {
     prisma = {} as any
@@ -193,6 +195,10 @@ describe('SingleInviteUseCase', () => {
       save: jest.fn(),
     } as any
 
+    notificationService = {
+      notifyUser: jest.fn(),
+    } as any
+
     useCase = new SingleInviteUseCase(
       prisma,
       encryption,
@@ -202,6 +208,7 @@ describe('SingleInviteUseCase', () => {
       companyUserRepository,
       propertyRepository,
       locationRepository,
+      notificationService,
     )
   })
 

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useLogin } from '../hooks/useLogin'
+import { BiometricLoginButton } from './BiometricLoginButton'
 
 export default function LoginForm() {
   const searchParams = useSearchParams()
@@ -18,6 +19,12 @@ export default function LoginForm() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     login(email, password)
+  }
+
+  function handleBiometricAuth(email: string, pass: string) {
+    setEmail(email)
+    setPassword(pass)
+    login(email, pass)
   }
 
   return (
@@ -62,6 +69,8 @@ export default function LoginForm() {
         <button className="btn btn--primary btn--full" type="submit" disabled={loading}>
           {loading ? 'Signing in…' : 'Sign In'}
         </button>
+
+        <BiometricLoginButton onAuthenticated={handleBiometricAuth} />
       </form>
 
       <div className="auth-page__alt">

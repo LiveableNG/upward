@@ -1,9 +1,10 @@
 import { NotFoundException } from '@nestjs/common'
 import { GetPublicPaymentDetailsUseCase } from '@application/use-cases/external/get-public-payment.use-case'
-import { IPaymentRequestRepository, IPaymentLineItemRepository, PAYMENT_LINE_ITEM_REPOSITORY } from '@domains/payments/payment.repository'
+import { IPaymentRequestRepository, IPaymentLineItemRepository, PAYMENT_LINE_ITEM_REPOSITORY, IPaymentGateway } from '@domains/payments/payment.repository'
 import { PropertyRepository } from '@domains/companies/property.repository'
 import { UserRepository } from '@domains/users/user.repository'
 import { CompanyRepository, ManagerRepository } from '@domains/companies/company.repository'
+
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -85,6 +86,7 @@ describe('GetPublicPaymentDetailsUseCase', () => {
   let companyRepository: jest.Mocked<CompanyRepository>
   let managerRepository: jest.Mocked<ManagerRepository>
   let lineItemRepository: jest.Mocked<IPaymentLineItemRepository>
+  let gateway: jest.Mocked<IPaymentGateway>
 
   beforeEach(() => {
     paymentRequestRepository = {
@@ -124,6 +126,10 @@ describe('GetPublicPaymentDetailsUseCase', () => {
       findByPaymentRequestId: jest.fn().mockResolvedValue([]),
     } as any
 
+    gateway = {
+      verifyAccountNumber: jest.fn().mockResolvedValue({ accountName: 'Test Recipient' }),
+    } as any
+
     useCase = new GetPublicPaymentDetailsUseCase(
       paymentRequestRepository,
       lineItemRepository,
@@ -131,6 +137,7 @@ describe('GetPublicPaymentDetailsUseCase', () => {
       userRepository,
       companyRepository,
       managerRepository,
+      gateway,
     )
   })
 
@@ -187,6 +194,20 @@ describe('GetPublicPaymentDetailsUseCase', () => {
       const result = await useCase.execute('pay-req-uuid-001')
 
       expect(result.payment.subaccountCode).toBe('ACCT_123')
+    })
+
+    it('should verify account number if subaccount details are present', async () => {
+      paymentRequestRepository.findByUuid.mockResolvedValue(makePaymentRequest({
+        subaccount: { accountNumber: '1234567890', bankCode: '044' },
+      }) as any)
+      userRepository.findById.mockResolvedValue(makeUser() as any)
+      propertyRepository.findById.mockResolvedValue(makeProperty() as any)
+      gateway.verifyAccountNumber.mockResolvedValue({ accountName: 'Verified Name' } as any)
+
+      const result = await useCase.execute('pay-req-uuid-001')
+
+      expect(gateway.verifyAccountNumber).toHaveBeenCalledWith('1234567890', '044')
+      expect(result.payment.verifiedRecipientName).toBe('Verified Name')
     })
     
     it('should indicate hasPassword=false for INVITED users', async () => {

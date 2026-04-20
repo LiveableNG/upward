@@ -26,7 +26,7 @@ import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.rep
 import { PROPERTY_REPOSITORY, PropertyRepository } from '../../../domains/companies/property.repository'
 import { RENT_CYCLE_REPOSITORY, IRentCycleRepository } from '../../../domains/scoring/rent-cycle.repository'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
-import { randomUUID } from 'crypto'
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Injectable()
 export class SaveLandlordUseCase {
@@ -37,7 +37,7 @@ export class SaveLandlordUseCase {
     private readonly userRepository: UserRepository,
     @Inject(PAYMENT_GATEWAY)
     private readonly paymentGateway: IPaymentGateway,
-  ) {}
+  ) { }
 
   async execute(data: Omit<SavedLandlord, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'userId'> & { userId: string }) {
     const user = await this.userRepository.findByUuid(data.userId)
@@ -64,7 +64,7 @@ export class GetSavedLandlordsUseCase {
     private readonly landlordRepo: ISavedLandlordRepository,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepository,
-  ) {}
+  ) { }
 
   async execute(userId: string) {
     const user = await this.userRepository.findByUuid(userId)
@@ -103,7 +103,7 @@ export class RecordTransactionUseCase {
     @Inject(EVENT_BUS)
     private readonly eventBus: EventBus,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   async execute(
     data: Omit<Transaction, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'userId'> & {
@@ -148,16 +148,16 @@ export class RecordTransactionUseCase {
       if (isVerified && data.type === 'RENT' && !data.paymentRequestId && data.userPropertyUuid) {
         const prop = await this.propertyRepo.findByUuid(data.userPropertyUuid)
         if (prop) {
-           const existingPending = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PENDING');
-           const existingPartial = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PARTIAL');
-           const matchingPRs = [...existingPending, ...existingPartial].filter(p => p.userPropertyId === prop.id);
-           
-            if (matchingPRs.length > 0) {
-              data.paymentRequestId = matchingPRs[0]?.id
-              this.logger.log(`Linked manual rent payment to existing payment request: ${data.paymentRequestId}`)
-            }
+          const existingPending = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PENDING');
+          const existingPartial = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PARTIAL');
+          const matchingPRs = [...existingPending, ...existingPartial].filter(p => p.userPropertyId === prop.id);
+
+          if (matchingPRs.length > 0) {
+            data.paymentRequestId = matchingPRs[0]?.id
+            this.logger.log(`Linked manual rent payment to existing payment request: ${data.paymentRequestId}`)
           }
         }
+      }
 
       if (isVerified && data.paymentRequestId) {
         pr = await this.paymentRequestRepo.findById(data.paymentRequestId)
@@ -173,7 +173,7 @@ export class RecordTransactionUseCase {
       if (isVerified && data.type === 'RENT' && !pr && data.userPropertyUuid) {
         const prop = await this.propertyRepo.findByUuid(data.userPropertyUuid)
         if (prop) {
-           userPropertyIdToSettle = prop.id!;
+          userPropertyIdToSettle = prop.id!;
         }
       }
 
@@ -204,35 +204,54 @@ export class RecordTransactionUseCase {
           if (data.lineItems && Array.isArray(data.lineItems)) {
             const existingItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!)
             if (existingItems.length === 0) {
-                await this.lineItemRepo.bulkCreate(data.lineItems.map(li => ({
-                  paymentRequestId: pr.id!,
-                  name: li.label || li.name,
-                  totalAmount: li.amount,
-                  amountPaid: 0,
-                  status: 'PENDING'
-                })), txClient)
+              await this.lineItemRepo.bulkCreate(data.lineItems.map(li => ({
+                paymentRequestId: pr.id!,
+                name: li.label || li.name,
+                totalAmount: li.amount,
+                amountPaid: 0,
+                status: 'PENDING'
+              })), txClient)
             }
 
             const currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!)
             rentPortion = 0;
 
             let remainingPayment = paymentAmount
+            const allocatedItems: any[] = []
+
             for (const item of currentItems) {
-                if (remainingPayment <= 0) break;
-                const need = item.totalAmount - item.amountPaid
-                const paymentToItem = Math.min(remainingPayment, need)
-                
+              if (remainingPayment <= 0) break;
+              const need = item.totalAmount - item.amountPaid
+              const paymentToItem = Math.min(remainingPayment, need)
+
+              if (paymentToItem > 0) {
                 const newItemPaid = item.amountPaid + paymentToItem
                 await this.lineItemRepo.update(item.id!, {
                   amountPaid: newItemPaid,
                   status: newItemPaid >= item.totalAmount ? 'PAID' : 'PARTIAL'
                 }, txClient)
 
+                allocatedItems.push({
+                  name: item.name,
+                  label: item.name,
+                  amount: paymentToItem,
+                  category: 'Package'
+                })
+
                 if (item.name.toLowerCase().includes('rent')) {
                   rentPortion += paymentToItem
                 }
 
                 remainingPayment -= paymentToItem
+              }
+            }
+
+            // Update the transaction record with captured line items
+            if (allocatedItems.length > 0) {
+              await this.txRepo.update(result.id, {
+                lineItems: allocatedItems
+              }, txClient)
+              result.lineItems = allocatedItems
             }
           }
 
@@ -267,77 +286,80 @@ export class RecordTransactionUseCase {
             }
           }
         } else {
-            if (data.lineItems && Array.isArray(data.lineItems) && data.lineItems.length > 0) {
-                rentPortion = 0;
-                let remainingPayment = paymentAmount;
-                for (const item of data.lineItems) {
-                  if (remainingPayment <= 0) break;
-                  const itemName = (item.label || item.name || '').toLowerCase()
-                  const itemTotal = Number(item.amount || 0);
-                  const paymentToItem = Math.min(remainingPayment, itemTotal);
+          if (data.lineItems && Array.isArray(data.lineItems) && data.lineItems.length > 0) {
+            rentPortion = 0;
+            let remainingPayment = paymentAmount;
+            for (const item of data.lineItems) {
+              if (remainingPayment <= 0) break;
+              const itemName = (item.label || item.name || '').toLowerCase()
+              const itemTotal = Number(item.amount || 0);
+              const paymentToItem = Math.min(remainingPayment, itemTotal);
 
-                  if (itemName.includes('rent')) {
-                      rentPortion += paymentToItem;
-                  }
+              if (itemName.includes('rent')) {
+                rentPortion += paymentToItem;
+              }
 
-                  remainingPayment -= paymentToItem;
-                }
+              remainingPayment -= paymentToItem;
             }
+          }
         }
 
         // 5. Settle Property Balance & Rollover
         if (userPropertyIdToSettle && data.type === 'RENT') {
           const prop = await this.propertyRepo.findById(userPropertyIdToSettle)
           if (prop) {
-              const totalRentPaidForProp = (prop.amountPaid || 0) + rentPortion
-              const totalOwedForProp = prop.rentAmount || (pr ? pr.amount : 0)
-              const newRemaining = Math.max(0, totalOwedForProp - totalRentPaidForProp)
+            const totalRentPaidForProp = (prop.amountPaid || 0) + rentPortion
+            const totalOwedForProp = prop.rentAmount || (pr ? pr.amount : 0)
+            const newRemaining = Math.max(0, totalOwedForProp - totalRentPaidForProp)
 
-              const updateData: any = {
-                amountPaid: totalRentPaidForProp,
-                amountRemaining: newRemaining
+            const updateData: any = {
+              amountPaid: totalRentPaidForProp,
+              amountRemaining: newRemaining
+            }
+
+            if (newRemaining === 0 && totalRentPaidForProp >= totalOwedForProp && totalOwedForProp > 0) {
+              const overpayment = totalRentPaidForProp - totalOwedForProp;
+
+              if (prop.rentEndDate) {
+                const newDate = new Date(prop.rentEndDate)
+                newDate.setFullYear(newDate.getFullYear() + 1)
+                updateData.rentEndDate = newDate
+                updateData.isPastTenancy = false
+
+                const nextYearRent = prop.rentAmount || totalOwedForProp;
+                updateData.amountPaid = overpayment;
+                updateData.amountRemaining = Math.max(0, nextYearRent - overpayment);
+
+                this.logger.log(`Property ${prop.uuid} fully settled. Rent due date moved to ${newDate.toISOString()}. Resetting for next cycle with ${overpayment} overpayment carried over.`)
               }
 
-              if (newRemaining === 0 && totalRentPaidForProp >= totalOwedForProp && totalOwedForProp > 0) {
-                  const overpayment = totalRentPaidForProp - totalOwedForProp;
-                  
-                  if (prop.rentEndDate) {
-                    const newDate = new Date(prop.rentEndDate)
-                    newDate.setFullYear(newDate.getFullYear() + 1)
-                    updateData.rentEndDate = newDate
-                    updateData.isPastTenancy = false
-                    
-                    const nextYearRent = prop.rentAmount || totalOwedForProp;
-                    updateData.amountPaid = overpayment;
-                    updateData.amountRemaining = Math.max(0, nextYearRent - overpayment);
+              await txClient.upward_notification.create({
+                data: {
+                  userId: user.id!,
+                  title: 'Credit Score Boost!',
+                  message: `Congratulations! Your full rent payment for ${data.propertyAddress || 'your property'} has boosted your credit health.`,
+                  type: 'SYSTEM'
+                }
+              })
 
-                    this.logger.log(`Property ${prop.uuid} fully settled. Rent due date moved to ${newDate.toISOString()}. Resetting for next cycle with ${overpayment} overpayment carried over.`)
-                  }
-
-                await txClient.upward_notification.create({
-                  data: {
-                    userId: user.id!,
-                    title: 'Credit Score Boost!',
-                    message: `Congratulations! Your full rent payment for ${data.propertyAddress || 'your property'} has boosted your credit health.`,
-                    type: 'PAYMENT'
-                  }
-                })
-
-                await txClient.upward_notification.updateMany({
-                  where: {
-                    userId: user.id!,
-                    type: 'RENT_REMINDER',
-                    message: { contains: prop.uuid }
-                  },
-                  data: { isRead: true }
-                })
+              await txClient.upward_notification.updateMany({
+                where: {
+                  userId: user.id!,
+                  type: { in: ['RENT_REMINDER', 'PAYMENT'] },
+                  OR: [
+                    { message: { contains: prop.uuid } },
+                    { url: { contains: prop.uuid } }
+                  ]
+                },
+                data: { isRead: true }
+              })
             }
 
             // --- 6. Rent Cycle Source of Truth Update ---
             const cycleDueDate = pr ? new Date(pr.dueDate) : (prop.rentEndDate ? new Date(prop.rentEndDate) : new Date())
             const isPaidFull = totalRentPaidForProp >= totalOwedForProp
             const paidAt = new Date()
-            
+
             let cycleStatus: any = 'PARTIAL_ON_TIME'
             if (isPaidFull) {
               cycleStatus = paidAt <= cycleDueDate ? 'PAID_ON_TIME' : 'PAID_LATE'
@@ -361,7 +383,7 @@ export class RecordTransactionUseCase {
             } else {
               // Manual match based on property and due date
               const existingCycles = await this.rentCycleRepo.findByUserPropertyId(prop.id!)
-              const existingCycle = existingCycles.find(c => 
+              const existingCycle = existingCycles.find(c =>
                 new Date(c.dueDate).getTime() === cycleDueDate.getTime() && c.source === 'MANUAL'
               )
 
@@ -401,7 +423,7 @@ export class GetBanksUseCase {
   constructor(
     @Inject(PAYMENT_GATEWAY)
     private readonly gateway: IPaymentGateway,
-  ) {}
+  ) { }
 
   async execute() {
     return this.gateway.getBanks()
@@ -413,7 +435,7 @@ export class GetTransactionUseCase {
   constructor(
     @Inject(TRANSACTION_REPOSITORY)
     private readonly txRepo: ITransactionRepository,
-  ) {}
+  ) { }
 
   async execute(uuid: string) {
     return this.txRepo.findByUuid(uuid)
@@ -427,7 +449,7 @@ export class GetUserTransactionsUseCase {
     private readonly txRepo: ITransactionRepository,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepository,
-  ) {}
+  ) { }
 
   async execute(userId: string) {
     const user = await this.userRepository.findByUuid(userId)
@@ -441,7 +463,7 @@ export class VerifyAccountUseCase {
   constructor(
     @Inject(PAYMENT_GATEWAY)
     private readonly gateway: IPaymentGateway,
-  ) {}
+  ) { }
 
   async execute(accountNumber: string, bankCode: string) {
     return this.gateway.verifyAccountNumber(accountNumber, bankCode)
@@ -453,23 +475,23 @@ export class GenerateReceiptPdfUseCase {
   constructor(
     private readonly receiptService: ReceiptService,
     private readonly prisma: PrismaService,
-  ) {}
+    private readonly encryption: EncryptionService,
+  ) { }
 
   async execute(data: ReceiptPdfData & { userPropertyId?: number; companyName?: string; managerName?: string }): Promise<string> {
     if (data.paidAt && typeof data.paidAt === 'string') {
       data.paidAt = new Date(data.paidAt)
     }
 
-    // 1. Resolve Property Details
-    if (data.userPropertyId) {
+    if (data.userPropertyId && !data.landlordName) {
       const prop = await this.prisma.upward_user_property.findUnique({
         where: { id: Number(data.userPropertyId) },
         include: {
           location: true,
           company: true,
-          manager: true
+          manager: true,
         }
-      })
+      }) as any
 
       if (prop) {
         // Concatenated location string
@@ -479,28 +501,32 @@ export class GenerateReceiptPdfUseCase {
           loc?.state,
           loc?.country
         ].filter(Boolean)
-        
-        data.propertyAddress = addressParts.join(', ')
+
+        if (addressParts.length > 0) {
+          data.propertyAddress = addressParts.join(', ')
+        }
 
         // Resolve Recipient (Landlord Name)
-        // If company exists, use company, else manager
-        if (prop.company) {
+        if (prop.company && prop.company.name !== 'account_name') {
           data.landlordName = prop.company.name
         } else if (prop.manager) {
-          data.landlordName = `${prop.manager.firstName} ${prop.manager.lastName}`
-        } else if (data.companyName) {
-           data.landlordName = data.companyName
-        } else if (data.managerName) {
-           data.landlordName = data.managerName
+          const first = prop.manager.firstName?.includes(':') ? this.encryption.decrypt(prop.manager.firstName) : prop.manager.firstName
+          const last = prop.manager.lastName?.includes(':') ? this.encryption.decrypt(prop.manager.lastName) : prop.manager.lastName
+          if (first !== 'account_name' && last !== 'account_name') {
+            data.landlordName = `${first} ${last}`
+          }
         }
       }
-    } else {
-       // Manual payment Case: if no userPropertyId, use provided names
-       if (data.companyName) {
-         data.landlordName = data.companyName
-       } else if (data.managerName) {
-         data.landlordName = data.managerName
-       }
+    }
+
+    if (!data.landlordName || data.landlordName.toLowerCase().includes('rent payment') || data.landlordName === 'account_name') {
+      if (data.companyName && data.companyName !== 'account_name') data.landlordName = data.companyName
+      else if (data.managerName && data.managerName !== 'account_name') data.landlordName = data.managerName
+      else data.landlordName = 'Property Manager'
+    }
+
+    if (!data.propertyAddress || data.propertyAddress.toLowerCase().includes('upward')) {
+      if (data.propertyName) data.propertyAddress = data.propertyName
     }
 
     const buffer = await this.receiptService.generateReceiptPdf(data)
@@ -520,7 +546,7 @@ export class GetPendingPaymentsUseCase {
     private readonly userRepository: UserRepository,
     @Inject(PAYMENT_GATEWAY)
     private readonly gateway: IPaymentGateway,
-  ) {}
+  ) { }
 
   async execute(userId: string) {
     const user = await this.userRepository.findByUuid(userId)
@@ -562,7 +588,7 @@ export class ResolveSubaccountUseCase {
   constructor(
     @Inject(PAYMENT_GATEWAY)
     private readonly gateway: IPaymentGateway,
-  ) {}
+  ) { }
 
   async execute(accountNumber: string, bankCode: string, businessName?: string) {
     const subaccount = await this.gateway.findOrCreateSubaccount({
@@ -582,7 +608,7 @@ export class GetPropertyBalanceUseCase {
     private readonly propertyRepo: PropertyRepository,
     @Inject(PAYMENT_REQUEST_REPOSITORY)
     private readonly paymentRequestRepo: IPaymentRequestRepository,
-  ) {}
+  ) { }
 
   async execute(propertyUuid: string) {
     const prop = await this.propertyRepo.findByUuid(propertyUuid)
@@ -590,7 +616,7 @@ export class GetPropertyBalanceUseCase {
 
     const allPending = await this.paymentRequestRepo.findByUserIdAndStatus(prop.userId, 'PENDING')
     const allPartial = await this.paymentRequestRepo.findByUserIdAndStatus(prop.userId, 'PARTIAL')
-    
+
     // We still find active requests to flag 'hasActiveRequest'
     const propRequests = [...allPending, ...allPartial].filter(p => p.userPropertyId === prop.id)
     const requestTotal = propRequests.reduce((sum, pr) => sum + pr.amount, 0)
@@ -599,9 +625,9 @@ export class GetPropertyBalanceUseCase {
     const totalOwed = prop.rentAmount || requestTotal || 0
     const amountPaid = prop.amountPaid || 0
     const remainingBalance = prop.amountRemaining !== null && prop.amountRemaining !== undefined
-       ? prop.amountRemaining
-       : Math.max(0, totalOwed - amountPaid)
-    
+      ? prop.amountRemaining
+      : Math.max(0, totalOwed - amountPaid)
+
     return {
       propertyUuid: prop.uuid,
       address: [prop.location?.address, prop.location?.area, prop.location?.state, prop.location?.country].filter(Boolean).join(', '),

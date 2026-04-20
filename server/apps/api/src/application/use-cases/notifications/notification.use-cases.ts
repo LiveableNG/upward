@@ -6,6 +6,7 @@ import {
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { SendPushToUserUseCase } from '../push/push.use-cases'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository } from '../../../domains/payments/payment.repository'
 
 function formatDate(date: Date) {
   return new Date(date).toLocaleDateString('en-GB', {
@@ -64,6 +65,8 @@ export class GetUserNotificationsUseCase {
     private readonly notificationRepository: NotificationRepository,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepository,
+    @Inject(PAYMENT_REQUEST_REPOSITORY)
+    private readonly paymentRequestRepository: IPaymentRequestRepository,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -147,19 +150,39 @@ export class GetUserNotificationsUseCase {
       await this.notificationRepository.findUserNotifications(numericUserId)
 
     // 4. Get unread count
-    const unreadCount = await this.notificationRepository.countUnreadNotifications(numericUserId)
+    const unreadCountFromDb = await this.notificationRepository.countUnreadNotifications(numericUserId)
+
+    // 5. Get pending payments count
+    const pendingRequests = await this.paymentRequestRepository.findByUserIdAndStatus(numericUserId, 'PENDING')
+    const partialRequests = await this.paymentRequestRepository.findByUserIdAndStatus(numericUserId, 'PARTIAL')
+    const pendingPaymentCount = (pendingRequests?.length || 0) + (partialRequests?.length || 0)
 
     // Calculate un-interacted announcement count
     const announcementUnread =
-      activeAnnouncementWithState && !activeAnnouncementWithState.state.interactedBanner ? 1 : 0
+      activeAnnouncementWithState && 
+      !activeAnnouncementWithState.state.interactedBanner && 
+      !activeAnnouncementWithState.state.interactedPopup ? 1 : 0
       
-    const rentReminderUnread = activeRentReminder ? 1 : 0
+    const rentReminderUnread = 0
+
+    const enhancedNotifications = [...personalNotifications]
+    if (activeAnnouncementWithState) {
+      enhancedNotifications.unshift({
+        id: `announcement-${activeAnnouncementWithState.id}`,
+        title: activeAnnouncementWithState.title,
+        message: activeAnnouncementWithState.message,
+        type: 'SUPPORT', 
+        createdAt: activeAnnouncementWithState.createdAt,
+        isRead: activeAnnouncementWithState.state.interactedBanner,
+        url: activeAnnouncementWithState.url,
+      } as any)
+    }
 
     return {
       activeAnnouncement: activeAnnouncementWithState,
       activeRentReminder,
-      notifications: personalNotifications,
-      unreadCount: unreadCount + announcementUnread + rentReminderUnread,
+      notifications: enhancedNotifications,
+      unreadCount: unreadCountFromDb + announcementUnread + pendingPaymentCount + rentReminderUnread,
     }
   }
 }
@@ -197,9 +220,47 @@ export class MarkNotificationReadUseCase {
   constructor(
     @Inject(NOTIFICATION_REPOSITORY)
     private readonly notificationRepository: NotificationRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: UserRepository,
+    private readonly updateAnnouncementState: UpdateAnnouncementStateUseCase,
   ) {}
 
-  async execute(notificationId: string) {
+  async execute(userId: string, notificationId: string) {
+    if (notificationId.startsWith('announcement-')) {
+      const annId = parseInt(notificationId.replace('announcement-', ''))
+      return this.updateAnnouncementState.execute({
+        userId,
+        announcementId: annId,
+        interactedBanner: true,
+        interactedPopup: true,
+      })
+    }
+    
+    // Regular notification
     return this.notificationRepository.markNotificationAsRead(Number(notificationId))
+  }
+}
+
+@Injectable()
+export class MarkNotificationsByCategoryReadUseCase {
+  constructor(
+    @Inject(NOTIFICATION_REPOSITORY)
+    private readonly notificationRepository: NotificationRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: UserRepository,
+  ) {}
+
+  async execute(userId: string, category: string) {
+    const user = await this.userRepository.findByUuid(userId)
+    if (!user) throw new Error('User not found')
+
+    let types: string[] = []
+    if (category === 'Transactions') types = ['PAYMENT']
+    else if (category === 'Services') types = ['SUPPORT', 'SYSTEM']
+    else if (category === 'Activities') types = ['RENT_REMINDER']
+
+    if (types.length > 0) {
+      await this.notificationRepository.markNotificationsByCategoryAsRead(user.id!, types)
+    }
   }
 }

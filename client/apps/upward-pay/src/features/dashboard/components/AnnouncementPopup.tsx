@@ -46,7 +46,10 @@ export function AnnouncementPopup({ title, message, iconType, url, onClose }: An
         </div>
 
         <h3 className="announcement-popup__title">{title}</h3>
-        <p className="announcement-popup__message">{message}</p>
+        <div 
+          className="announcement-popup__message" 
+          dangerouslySetInnerHTML={{ __html: message }} 
+        />
 
         <button className="announcement-popup__action" onClick={handleAction}>
           {url ? 'Learn More' : 'Got it'}

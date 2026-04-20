@@ -14,7 +14,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
 interface DashboardHeaderProps {
-  // Now optional as we'll use hooks if not provided
+
   firstName?: string
   notifCount?: number
   profilePic?: string
@@ -31,7 +31,6 @@ export function DashboardHeader({
   const [isNotifOpen, setIsNotifOpen] = useState(false)
   const [isDesktop, setIsDesktop] = useState(false)
 
-  // Reactively track viewport width so DevTools toggling doesn't break the class
   useEffect(() => {
     const check = () => setIsDesktop(window.innerWidth >= 1024)
     check()
@@ -51,15 +50,47 @@ export function DashboardHeader({
     enabled: !!user,
   })
 
-  // Prioritize props, then hooks
+  const pendingCount = dashboardData?.length || 0
+  const unreadNotifs = notifData?.unreadCount || 0
+  
+  const totalUnread = unreadNotifs
+  
+  const [hasSeenNotifs, setHasSeenNotifs] = useState(true)
+  const [lastTotal, setLastTotal] = useState(0)
+
+  useEffect(() => {
+    if (!user) return
+    const storedTotal = localStorage.getItem(`notif_last_total_${user.id}`)
+    const storedSeen = localStorage.getItem(`notif_has_seen_${user.id}`)
+
+    if (storedTotal) setLastTotal(parseInt(storedTotal, 10))
+    if (storedSeen) setHasSeenNotifs(storedSeen === 'true')
+    else setHasSeenNotifs(false) 
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    
+    if (totalUnread > lastTotal) {
+      setHasSeenNotifs(false)
+      localStorage.setItem(`notif_has_seen_${user.id}`, 'false')
+    }
+    setLastTotal(totalUnread)
+    localStorage.setItem(`notif_last_total_${user.id}`, totalUnread.toString())
+  }, [totalUnread, lastTotal, user])
+
   const firstName = propFirstName || user?.firstName || 'User'
   const profilePic = propProfilePic || user?.profilePic
-  const notifCount = propNotifCount ?? ((notifData?.unreadCount || 0) + (dashboardData?.length || 0))
+
+  const displayCount = hasSeenNotifs ? 0 : totalUnread
 
   const isHome = pathname === '/dashboard'
 
   const handleNotifClick = () => {
-    // Desktop: Open Slide Panel | Mobile: Direct route to page
+    setHasSeenNotifs(true)
+    if (user) {
+      localStorage.setItem(`notif_has_seen_${user.id}`, 'true')
+    }
     if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
       setIsNotifOpen(!isNotifOpen)
     } else {
@@ -86,7 +117,6 @@ export function DashboardHeader({
             </div>
           </div>
 
-          {/* Desktop Navigation Links */}
           <nav className="dashboard__header-nav">
             <Link href="/dashboard" className={pathname === '/dashboard' ? 'active' : ''}>Home</Link>
             <Link href="/dashboard/pay-rent" className={pathname === '/dashboard/pay-rent' ? 'active' : ''}>Pay Rent</Link>
@@ -104,13 +134,12 @@ export function DashboardHeader({
               title="Notifications"
             >
               <Bell size={18} />
-              {notifCount > 0 && <span className="dashboard__notif-badge">{notifCount}</span>}
+              {displayCount > 0 && <span className="dashboard__notif-badge">{displayCount}</span>}
             </button>
           </div>
         </div>
       </header>
       
-      {/* Slide-over Notification Panel */}
       <NotificationPanel isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
     </>
   )

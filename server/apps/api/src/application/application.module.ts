@@ -85,12 +85,14 @@ import { AddPropertyUseCase } from './use-cases/external/add-property.use-case'
 import { RenewPropertyUseCase } from './use-cases/external/renew-property.use-case'
 import { AuthModule } from './auth/auth.module'
 import { CreateAnnouncementUseCase } from './use-cases/notifications/create-announcement.use-case'
+import { DeactivateAnnouncementsUseCase } from './use-cases/notifications/deactivate-announcements.use-case'
 import {
   GetAdminAnnouncementsUseCase,
   SendNotificationUseCase,
   GetUserNotificationsUseCase,
   UpdateAnnouncementStateUseCase,
   MarkNotificationReadUseCase,
+  MarkNotificationsByCategoryReadUseCase,
 } from './use-cases/notifications/notification.use-cases'
 import { RentReminderWorkflowUseCase } from './use-cases/notifications/rent-reminder-workflow.use-case'
 
@@ -119,6 +121,7 @@ import { GetAllTicketsUseCase } from './use-cases/support/get-all-tickets.use-ca
 import { ResolveTicketUseCase } from './use-cases/support/resolve-ticket.use-case'
 import { RegisterDeviceTokenUseCase, UnregisterDeviceTokenUseCase, SendPushToUserUseCase } from './use-cases/push/push.use-cases'
 import { PushNotificationService } from '../shared/infrastructure/common/push-notification.service'
+import { NotificationService } from '../shared/infrastructure/common/notification.service'
 import { PrismaDeviceTokenRepository } from '../shared/infrastructure/prisma/repositories/prisma-device-token.repository'
 
 
@@ -198,6 +201,7 @@ const UseCases = [
   GetUserNotificationsUseCase,
   UpdateAnnouncementStateUseCase,
   MarkNotificationReadUseCase,
+  MarkNotificationsByCategoryReadUseCase,
   SingleInviteUseCase,
   CreatePlatformUseCase,
   CreateExternalPaymentRequestUseCase,
@@ -211,6 +215,7 @@ const UseCases = [
   ResolveSubaccountUseCase,
   GetPropertyBalanceUseCase,
   RentReminderWorkflowUseCase,
+  DeactivateAnnouncementsUseCase,
 
   UploadContractUseCase,
   GetContractsUseCase,
@@ -236,9 +241,10 @@ const UseCases = [
     WebhookService,
     EncryptionService,
     PushNotificationService,
+    NotificationService,
     PrismaDeviceTokenRepository,
     ...UseCases,
   ],
-  exports: [WebhookService, EncryptionService, PushNotificationService, PrismaDeviceTokenRepository, ...UseCases],
+  exports: [WebhookService, EncryptionService, PushNotificationService, NotificationService, PrismaDeviceTokenRepository, ...UseCases],
 })
 export class ApplicationModule { }

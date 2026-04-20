@@ -5,7 +5,7 @@ import { type UserProfile } from './types'
 import { getMe, logout as authLogout, refreshToken as authRefresh } from './services/authService'
 import { useRouter } from 'next/navigation'
 import { setAccessToken } from '@/lib/auth-token'
-import { usePushNotifications, unregisterPushToken } from '@/features/notifications/services/pushNotificationService'
+import { usePushNotifications, PushNotificationService } from '@/features/notifications/services/pushNotificationService'
 
 interface AuthContextType {
   user: UserProfile | null
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await unregisterPushToken() 
+      await PushNotificationService.unregisterDevice() 
       await authLogout()
       if (typeof window !== 'undefined') {
         localStorage.removeItem('app_banner_dismissed')

@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common'
 import { SUPPORT_TICKET_REPOSITORY, ISupportTicketRepository } from '../../../domains/support/support.repository'
-import { NotificationRepository, NOTIFICATION_REPOSITORY } from '../../../domains/notifications/notification.repository'
+import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
 
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 
@@ -8,7 +8,7 @@ import { EmailService } from '../../../shared/infrastructure/email/email.service
 export class ResolveTicketUseCase {
   constructor(
     @Inject(SUPPORT_TICKET_REPOSITORY) private readonly supportRepo: ISupportTicketRepository,
-    @Inject(NOTIFICATION_REPOSITORY) private readonly notificationRepo: NotificationRepository,
+    private readonly notificationService: NotificationService,
     private readonly emailService: EmailService,
   ) {}
 
@@ -19,11 +19,11 @@ export class ResolveTicketUseCase {
     })
 
     if (responseMessage) {
-      await this.notificationRepo.createNotification({
-        userId: ticket.userId,
+      await this.notificationService.notifyUser(ticket.userId, {
         title: 'Support Ticket Resolved',
         message: responseMessage,
-        type: 'SUPPORT'
+        type: 'SUPPORT',
+        url: '/dashboard/support'
       })
 
       if (ticket.user && ticket.user.email) {

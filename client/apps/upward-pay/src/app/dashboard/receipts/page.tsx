@@ -61,23 +61,24 @@ export default function ReceiptsPage() {
           paidAt: tx.createdAt,
           generatedAt: new Date().toISOString(),
           tenantName: profile ? `${profile.firstName} ${profile.lastName}` : 'Tenant',
-          companyName: landlord?.accountName || landlord?.name || tx.narration || (tx.type === 'RENT' ? 'Property Management' : 'Upward Savings'),
+          companyName: (landlord?.accountName !== 'account_name' ? landlord?.accountName : null) || landlord?.name || tx.paymentRequest?.companyName || tx.paymentRequest?.managerName || tx.narration,
           companyLogo: '',
-          paymentType: tx.paymentType || (tx.type === 'RENT' ? 'Rent Payment' : 'Savings Deposit'),
-          propertyAddress: tx.propertyAddress || profile?.address || 'Payment via Upward',
+          paymentType: tx.paymentType || 'Rent Payment',
+          propertyAddress: tx.propertyAddress || tx.paymentRequest?.propertyLocation || profile?.address || '',
           amount: tx.amount,
           currency: tx.currency || 'NGN',
           channel: 'Paystack',
           paystackReference: tx.reference,
-          type: tx.type === 'SAVINGS' ? 'credit' : 'debit',
+          type: 'debit',
+          status: tx.paymentRequest?.status || (tx.status === 'SUCCESS' ? 'PAID' : 'PENDING'), // PARTIAL, PAID, etc.
           lineItems:
             tx.lineItems && tx.lineItems.length > 0
               ? tx.lineItems.map((item: any) => ({
-                  label: item.label,
+                  label: item.label || item.name,
                   amount: item.amount,
                   category: item.category || 'Package',
                 }))
-              : [{ label: isFutureCredit ? (tx.narration || 'Future Credit') : 'Rent Payment', amount: tx.amount, category: 'Home' }],
+              : [],
         }
         setReceipt(data)
       }
@@ -104,6 +105,7 @@ export default function ReceiptsPage() {
         reference: receipt.paystackReference,
         channel: receipt.channel,
         type: receipt.type === 'credit' ? 'SAVINGS' : 'RENT',
+        status: receipt.status,
         lineItems: receipt.lineItems,
       })
       if (res?.url) {

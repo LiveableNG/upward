@@ -5,13 +5,16 @@
 
 const BASE_URL = 'http://localhost:4000/api/v1';
 
-async function callApi(endpoint, method, body, apiKey = null) {
+async function callApi(endpoint, method, body, apiKey = null, token = null) {
   const url = `${BASE_URL}${endpoint}`;
   const headers = {
     'Content-Type': 'application/json',
   };
   if (apiKey) {
     headers['x-api-key'] = apiKey;
+  }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   console.log(`\n>> ${method} ${url}`);
@@ -152,5 +155,50 @@ async function fulfillRequest() {
   }
 }
 
-fulfillRequest();
+//fulfillRequest();
 
+
+async function pushAnnouncement(token, title, message, icon = 'sparkles', url = '/dashboard') {
+  console.log(`\n--- Pushing Global Announcement: ${title} ---`);
+  await callApi('/admin/notifications/announcements', 'POST', {
+    title,
+    message,
+    iconType: icon,
+    url
+  }, null, token);
+}
+
+async function clearAnnouncements(token) {
+  console.log('\n--- Deactivating All Announcements ---');
+  await callApi('/admin/notifications/announcements', 'DELETE', null, null, token);
+}
+
+async function loginAdmin() {
+  console.log('--- Logging in as Admin ---');
+  const data = await callApi('/admin/auth/login', 'POST', {
+    email: 'abdulsalam.ayeleru@goodtenants.africa',
+  
+  
+    password: 'Oluwaseun123'
+  });
+  return data.accessToken;
+}
+
+(async () => {
+    try {
+        const token = await loginAdmin();
+        
+        await pushAnnouncement(
+            token,
+            'Welcome to Upward! 🚀', 
+            '<p>Your rent dashboard is now <strong>officially live</strong>.</p><ul><li>Settle payments easily</li><li>Build your credit score</li><li>Unlock financial perks</li></ul><p>Visit our <a href="https://upward.ng/help">help center</a> if you have any questions.</p>', 
+            'sparkles', 
+            '/dashboard'
+        );
+
+        console.log('\n✅ All steps completed successfully!');
+    } catch (error) {
+        console.error('\n❌ Script failed:', error.message);
+        process.exit(1);
+    }
+})();

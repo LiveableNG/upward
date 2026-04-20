@@ -15,6 +15,8 @@ import {
 import { useAuth } from '@/features/auth/AuthContext'
 import { useTheme } from '@/features/dashboard/components/ThemeProvider'
 import { PageHeader } from '@/components/common/PageHeader'
+import { BiometricSwitch } from '@/features/auth/component/BiometricSwitch'
+import { NotificationSwitch } from '@/features/notifications/components/NotificationSwitch'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
 
@@ -93,11 +95,14 @@ export default function SettingsPage() {
 
 
 
-          {/* Security Section */}
+          {/* Security & Notifications Section */}
           <section className="settings-section">
-            <h3 className="settings-section__title">Security</h3>
+            <h3 className="settings-section__title">Security & Notifications</h3>
             <div className="settings-list">
 
+
+              <NotificationSwitch />
+              <BiometricSwitch />
 
               <div
                 className="settings-item"

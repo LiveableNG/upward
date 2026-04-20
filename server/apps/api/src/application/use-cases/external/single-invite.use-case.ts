@@ -16,6 +16,7 @@ import {
   LocationRepository
 } from '../../../domains/companies/property.repository'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
 import { randomUUID } from 'crypto'
 
 import { 
@@ -42,6 +43,7 @@ export class SingleInviteUseCase {
     @Inject(COMPANY_USER_REPOSITORY) private readonly companyUserRepository: CompanyUserRepository,
     @Inject(PROPERTY_REPOSITORY) private readonly propertyRepository: PropertyRepository,
     @Inject(LOCATION_REPOSITORY) private readonly locationRepository: LocationRepository,
+    private readonly notificationService: NotificationService,
   ) { }
 
   async execute(payload: InviteRequest, platformId?: number): Promise<any> {
@@ -224,7 +226,23 @@ export class SingleInviteUseCase {
         } as any)
       }
 
-      // Ensure we have the latest manager info for the response
+      const now = new Date()
+      const dueDate = new Date(rentData.rentEndDate)
+      const diff = dueDate.getTime() - now.getTime()
+      const daysUntilDue = Math.ceil(diff / (1000 * 60 * 60 * 24))
+
+      if (daysUntilDue <= 14) {
+        const amountStr = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(rentData.rentAmount)
+        const urgencyMsg = daysUntilDue < 0 ? 'is OVERDUE' : daysUntilDue === 0 ? 'is DUE TODAY' : `is due in ${daysUntilDue} days`
+        
+        await this.notificationService.notifyUser(user.id, {
+          title: 'Rent Reminder',
+          message: `Your rent for ${locData.address || locData.area} ${urgencyMsg}. Amount: ${amountStr}`,
+          type: 'RENT_REMINDER',
+          url: `/dashboard/payment?prop=${property.uuid}`
+        })
+      }
+
       const finalManager = (manager || property.manager) as any
 
       createdProperties.push({

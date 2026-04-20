@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation'
 import { login as authLogin } from '../services/authService'
 import { useAuth } from '../AuthContext'
 import { setAccessToken } from '@/lib/auth-token'
+import { BiometricsService } from '../services/biometricsService'
 
 export function useLogin(redirect: string) {
   const router = useRouter()
@@ -11,11 +12,16 @@ export function useLogin(redirect: string) {
 
   const loginMutation = useMutation({
     mutationFn: (credentials: { email: string; password: string }) => authLogin(credentials),
-    onSuccess: (result) => {
+    onSuccess: async (result, variables) => {
       if (result.accessToken) {
         setAccessToken(result.accessToken)
       }
       
+      // Save credentials for biometrics if enabled
+      if (await BiometricsService.isEnabled()) {
+        await BiometricsService.saveCredentials(variables.email, variables.password)
+      }
+
       setAuthUser(result.user)
       queryClient.setQueryData(['user'], result.user)
       router.push(redirect)

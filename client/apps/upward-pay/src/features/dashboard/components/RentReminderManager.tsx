@@ -46,7 +46,9 @@ export function RentReminderManager() {
   
   // For the popup, we'll show it once per session if there's an active reminder
   useEffect(() => {
-    if (!isLoading && isRentAlert) {
+    const isFromPush = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('from_push') === 'true'
+    
+    if (!isLoading && isRentAlert && !isFromPush) {
       const sessionKey = `popup_seen_${reminder.id}`
       if (!sessionStorage.getItem(sessionKey)) {
         setShowPopup(true)

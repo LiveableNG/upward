@@ -1,6 +1,7 @@
-import { Controller, Post, Get, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common'
+import { Controller, Post, Get, Body, UseGuards, HttpCode, HttpStatus, Delete } from '@nestjs/common'
 import { AdminJwtAuthGuard } from '../../../application/auth/guards/admin-jwt-auth.guard'
 import { CreateAnnouncementUseCase } from '../../../application/use-cases/notifications/create-announcement.use-case'
+import { DeactivateAnnouncementsUseCase } from '../../../application/use-cases/notifications/deactivate-announcements.use-case'
 import {
   GetAdminAnnouncementsUseCase,
   SendNotificationUseCase,
@@ -13,6 +14,7 @@ import { CreateNotificationDto } from '../dto/notifications.dto'
 export class AdminAnnouncementsController {
   constructor(
     private readonly createAnnouncementUseCase: CreateAnnouncementUseCase,
+    private readonly deactivateAnnouncementsUseCase: DeactivateAnnouncementsUseCase,
     private readonly getAdminAnnouncementsUseCase: GetAdminAnnouncementsUseCase,
     private readonly sendNotificationUseCase: SendNotificationUseCase,
   ) {}
@@ -31,6 +33,12 @@ export class AdminAnnouncementsController {
   @Get('announcements')
   async getAnnouncements() {
     return { data: await this.getAdminAnnouncementsUseCase.execute() }
+  }
+
+  @Delete('announcements')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deactivateAnnouncements() {
+    await this.deactivateAnnouncementsUseCase.execute()
   }
 
   @Post('direct')

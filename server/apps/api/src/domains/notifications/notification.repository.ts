@@ -72,6 +72,8 @@ export interface NotificationRepository {
   }): Promise<Notification>
   findUserNotifications(userId: number): Promise<Notification[]>
   markNotificationAsRead(notificationId: number): Promise<void>
+  markNotificationAsReadByUuid(uuid: string): Promise<void>
+  markNotificationsByCategoryAsRead(userId: number, types: string[]): Promise<void>
   countUnreadNotifications(userId: number): Promise<number>
 }
 
