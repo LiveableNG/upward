@@ -66,7 +66,7 @@ export class PrismaRentCycleRepository implements IRentCycleRepository {
   async findByUserId(userId: number): Promise<RentCycle[]> {
     const records = await this.prisma.upward_rent_cycle.findMany({
       where: { userId },
-      orderBy: { dueDate: 'asc' },
+      orderBy: { dueDate: 'desc' },
     })
     return records.map((r) => this.toDomain(r))
   }
@@ -74,7 +74,7 @@ export class PrismaRentCycleRepository implements IRentCycleRepository {
   async findByUserPropertyId(propertyId: number): Promise<RentCycle[]> {
     const records = await this.prisma.upward_rent_cycle.findMany({
       where: { userPropertyId: propertyId },
-      orderBy: { dueDate: 'asc' },
+      orderBy: { dueDate: 'desc' },
     })
     return records.map((r) => this.toDomain(r))
   }

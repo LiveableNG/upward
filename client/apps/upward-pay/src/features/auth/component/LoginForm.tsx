@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useLogin } from '../hooks/useLogin'
+import { BiometricsService } from '../services/biometricsService'
 import { BiometricLoginButton } from './BiometricLoginButton'
 
 export default function LoginForm() {
@@ -15,6 +16,35 @@ export default function LoginForm() {
   const [password, setPassword] = useState('')
 
   const { login, loading, error } = useLogin(redirect)
+  const [autoPrompted, setAutoPrompted] = useState(false)
+  
+  useEffect(() => {
+    async function triggerAutoBiometrics() {
+      if (autoPrompted) return
+      
+      const available = await BiometricsService.isAvailable()
+      const enabled = await BiometricsService.isEnabled()
+      
+      if (available && enabled && !loading) {
+        setAutoPrompted(true)
+        setTimeout(async () => {
+          try {
+            const authenticated = await BiometricsService.authenticate('Log in to Upward Pay')
+            if (authenticated) {
+              const credentials = await BiometricsService.getCredentials()
+              if (credentials) {
+                handleBiometricAuth(credentials.email, credentials.password)
+              }
+            }
+          } catch (e) {
+            console.error('Auto-biometric login failed:', e)
+          }
+        }, 500)
+      }
+    }
+    
+    triggerAutoBiometrics()
+  }, [loading, autoPrompted])
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

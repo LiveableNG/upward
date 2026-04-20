@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config'
 import { UserRepository, USER_REPOSITORY, User } from '../../domains/users/user.repository'
 import { EmailService } from '../../shared/infrastructure/email/email.service'
 import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service'
+import { S3Service } from '../../shared/infrastructure/common/s3/s3.service'
 import * as bcrypt from 'bcrypt'
 import { UserAuthResponse } from '@upward/shared-types'
 import { BaseAuthService } from './base-auth.service'
@@ -16,6 +17,7 @@ export class UserAuthService extends BaseAuthService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly encryption: EncryptionService,
+    private readonly s3Service: S3Service,
     jwtService: JwtService,
     configService: ConfigService,
   ) {
@@ -65,6 +67,9 @@ export class UserAuthService extends BaseAuthService {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash: _, ...userNoPass } = user
+    if (userNoPass.profilePic) {
+      userNoPass.profilePic = await this.s3Service.getDownloadUrl(userNoPass.profilePic)
+    }
     return {
       accessToken,
       refreshToken,
@@ -259,6 +264,10 @@ export class UserAuthService extends BaseAuthService {
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, ...profile } = user
+
+    if (profile.profilePic) {
+      profile.profilePic = await this.s3Service.getDownloadUrl(profile.profilePic)
+    }
 
     return profile
   }

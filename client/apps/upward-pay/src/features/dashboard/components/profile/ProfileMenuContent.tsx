@@ -104,13 +104,47 @@ function ProfileMenuContentInner() {
     if (!profile) return
 
     if (isEditing && formData.properties) {
-      for (const prop of formData.properties) {
-        if (!prop.location?.address && !prop.location?.area) {
-          toastError('Please provide a street address or area for all properties')
+      for (let i = 0; i < formData.properties.length; i++) {
+        const prop = formData.properties[i]
+        const propNum = i + 1
+
+        // 1. Mandatory Location Fields
+        if (!prop.location?.address || !prop.location?.area) {
+          toastError(`Property #${propNum}: Please provide a street address and area`)
           return
         }
-        if (!prop.location?.state) {
-          toastError('Please select a state for all properties')
+        if (!prop.location?.state || !prop.location?.country) {
+          toastError(`Property #${propNum}: Please select a state and country`)
+          return
+        }
+
+        // 2. Mandatory Identity Fields (Dynamic: One must exist)
+        if (!prop.companyName && !prop.managerName) {
+          toastError(`Property #${propNum}: Please provide either a Management Company or a Manager Name`)
+          return
+        }
+
+        // 3. Mandatory Dates & Positive Amount
+        if (!prop.rentStartDate || !prop.rentEndDate) {
+          toastError(`Property #${propNum}: Both Start and End dates are required`)
+          return
+        }
+        
+        if (!prop.rentAmount || prop.rentAmount <= 0) {
+          toastError(`Property #${propNum}: Please provide a valid rent amount`)
+          return
+        }
+
+        // 4. Date Logic: End must be after Start
+        const start = new Date(prop.rentStartDate)
+        const end = new Date(prop.rentEndDate)
+        
+        // Reset times for accurate dayComparison
+        start.setHours(0, 0, 0, 0)
+        end.setHours(0, 0, 0, 0)
+
+        if (end <= start) {
+          toastError(`Property #${propNum}: End Date must be at least one day after Start Date`)
           return
         }
       }
@@ -320,7 +354,7 @@ function ProfileMenuContentInner() {
               <div className="profile-section__header flex-row">
                 <div>
                   <h3 className="profile-section__title">Property Management</h3>
-                  <p className="profile-section__desc">Your current residential assets.</p>
+                  <p className="profile-section__desc">Your current or previous residential assets used to build your credibility profile.</p>
                 </div>
                 {isEditing && (
                   <button
@@ -400,7 +434,7 @@ function ProfileMenuContentInner() {
                           <DetailOrEdit
                             isEditing={isEditing && !prop.isManaged}
                             icon={MapPin}
-                            label="Street Address"
+                            label="Street Address *"
                             placeholder="e.g. 12 Adeola Odeku"
                             value={prop.location?.address || ''}
                             onChange={(v) => handlePropUpdate(idx, 'location.address', v)}
@@ -417,7 +451,7 @@ function ProfileMenuContentInner() {
                             <DetailOrEdit
                               isEditing={isEditing && !prop.isManaged}
                               icon={MapPin}
-                              label="Area"
+                              label="Area *"
                               placeholder="e.g. Lekki"
                               value={prop.location?.area || ''}
                               onChange={(v) => handlePropUpdate(idx, 'location.area', v)}
@@ -427,7 +461,7 @@ function ProfileMenuContentInner() {
                             <DetailOrEdit
                               isEditing={isEditing && !prop.isManaged}
                               icon={Shield}
-                              label="Country"
+                              label="Country *"
                               type="select"
                               options={COUNTRIES.map((c) => ({ value: c.code, label: c.name }))}
                               value={prop.location?.country || ''}
@@ -436,7 +470,7 @@ function ProfileMenuContentInner() {
                             <DetailOrEdit
                               isEditing={isEditing && !prop.isManaged}
                               icon={MapPin}
-                              label="State"
+                              label="State *"
                               type="select"
                               options={
                                 STATES[prop.location?.country || 'NG']?.map((s) => ({ value: s, label: s })) || []
@@ -467,7 +501,7 @@ function ProfileMenuContentInner() {
                             <DetailOrEdit
                               isEditing={isEditing && !prop.isManaged}
                               icon={Calendar}
-                              label="Rent Start Date"
+                              label="Rent Start Date *"
                               type="date"
                               value={prop.rentStartDate || ''}
                               displayValue={prop.rentStartDate ? formatDate(prop.rentStartDate) : ''}
@@ -476,7 +510,7 @@ function ProfileMenuContentInner() {
                             <DetailOrEdit
                               isEditing={isEditing && !prop.isManaged}
                               icon={Calendar}
-                              label={prop.isPastTenancy ? "Tenancy End Date" : "Rent Due Date"}
+                              label={`${prop.isPastTenancy ? "Tenancy End Date" : "Rent Due Date"} *`}
                               type="date"
                               value={prop.rentEndDate || ''}
                               displayValue={prop.rentEndDate ? formatDate(prop.rentEndDate) : ''}
@@ -487,7 +521,7 @@ function ProfileMenuContentInner() {
                             <DetailOrEdit
                               isEditing={isEditing && !prop.isManaged}
                               icon={Building}
-                              label="Rent Amount"
+                              label="Rent Amount *"
                               value={prop.rentAmount?.toString() || ''}
                               displayValue={prop.rentAmount ? formatCurrency(prop.rentAmount, prop.currency || 'NGN') : ''}
                               onChange={(v) => handlePropUpdate(idx, 'rentAmount', parseFloat(v) || 0)}
@@ -498,14 +532,14 @@ function ProfileMenuContentInner() {
                             <DetailOrEdit
                               isEditing={isEditing && !prop.isManaged}
                               icon={Building}
-                              label="Management Co."
+                              label={`Management Co.${!prop.managerName ? ' *' : ''}`}
                               value={prop.companyName || ''}
                               onChange={(v) => handlePropUpdate(idx, 'companyName', v)}
                             />
                             <DetailOrEdit
                               isEditing={isEditing && !prop.isManaged}
                               icon={UserCheck}
-                              label="Manager Name"
+                              label={`Manager Name${!prop.companyName ? ' *' : ''}`}
                               value={prop.managerName || ''}
                               onChange={(v) => handlePropUpdate(idx, 'managerName', v)}
                             />

@@ -65,7 +65,16 @@ export class PushNotificationService {
 
     const accessToken = await this.getAccessToken()
     if (!accessToken) {
-      this.logger.warn('FCM not configured — push notification skipped')
+      const missing = []
+      if (!this.projectId) missing.push('FCM_PROJECT_ID')
+      if (!this.clientEmail) missing.push('FCM_CLIENT_EMAIL')
+      if (!this.privateKey) missing.push('FCM_PRIVATE_KEY')
+
+      if (missing.length > 0) {
+        this.logger.error(`FCM missing environment variables: ${missing.join(', ')}`)
+      } else {
+        this.logger.warn('FCM not configured or token acquisition failed — push notification skipped')
+      }
       return
     }
 

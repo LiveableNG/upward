@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { api } from '@/lib/api'
 import { Capacitor } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
@@ -25,6 +26,9 @@ export class PushNotificationService {
 
   static async registerDevice(): Promise<void> {
     if (!Capacitor.isNativePlatform()) return
+    
+    // Clear existing listeners to prevent duplicates
+    await PushNotifications.removeAllListeners()
     
     // Add listeners before registering
     await PushNotifications.addListener('registration', async (token) => {
@@ -79,15 +83,17 @@ export class PushNotificationService {
 
 // Keep the hook for automatic setup if needed, but refactor to use the service
 export function usePushNotifications(isLoggedIn: boolean) {
-  const setup = async () => {
-    if (!isLoggedIn || !Capacitor.isNativePlatform()) return
-    
-    const status = await PushNotificationService.getPermissionStatus()
-    if (status === 'granted') {
-      await PushNotificationService.registerDevice()
+  useEffect(() => {
+    const setup = async () => {
+      if (!isLoggedIn || !Capacitor.isNativePlatform()) return
+      
+      const status = await PushNotificationService.getPermissionStatus()
+      if (status === 'granted') {
+        await PushNotificationService.registerDevice()
+      }
     }
-  }
-  
-  setup()
+    
+    setup()
+  }, [isLoggedIn])
 }
 

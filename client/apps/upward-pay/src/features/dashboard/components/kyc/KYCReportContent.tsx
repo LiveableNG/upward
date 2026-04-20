@@ -45,10 +45,24 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   
   const handleShare = () => {
     const p = scoreProfile?.data?.profile
-      const slug = p?.profileSlug || `${p?.name?.split(' ').join('-')}-${scoreProfile?.data.profile.email.split('@')[0]}`.toLowerCase()
-      const url = `https://upward-pay.vercel.app/profile/${slug}`
-      navigator.clipboard.writeText(url)
-      success('Portfolio link copied to clipboard!')
+    const u = scoreProfile?.data?.profile?.uuid || ''
+    // Prefer custom slug if set, otherwise use UUID for a stable link
+    const identifier = p?.profileSlug || (scoreProfile as any)?.data?.uuid || u || 'not-found'
+    
+    // Construct public URL
+    const url = `http://localhost:3000/profile/${identifier}`
+    
+    navigator.clipboard.writeText(url)
+    success('Public profile link copied to clipboard!')
+  }
+
+  const handleDownloadPDF = async () => {
+    try {
+      success('Preparing report...')
+      window.open('/api/user/credibility/pdf', '_blank')
+    } catch (err) {
+      toastError('Failed to download PDF')
+    }
   }
 
   if (isLoading || !scoreProfile) {
@@ -77,24 +91,24 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   ]
 
   return (
-    <div className={`kyc-page ${!isPublic ? 'dashboard--nav-offset' : 'public-cv'}`}>
+    <div className={`kyc-page ${!isPublic ? 'kyc-page--dashboard' : 'public-cv'}`}>
       {!isPublic && (
-        <header className="dashboard__header">
-          <div className="dashboard__header-left">
-            <button className="dashboard__icon-btn" onClick={() => router.push('/dashboard')}>
-              <ArrowLeft size={20} />
+        <>
+          {/* Mobile Fixed Header */}
+          <header className="mobile-header mobile-only">
+            <button className="mobile-header__back" onClick={() => router.push('/dashboard')}>
+              <ArrowLeft size={22} />
             </button>
-            <h2 className="kyc-page__header-title">Credibility Profile</h2>
-          </div>
-          <div className="dashboard__header-right">
-            <button className="btn btn--secondary btn--sm kyc-page__action-btn">
-              <Download size={14} /> PDF
-            </button>
-            <button className="btn btn--primary btn--sm kyc-page__action-btn" onClick={handleShare}>
-              <Share2 size={14} /> Share
-            </button>
-          </div>
-        </header>
+            <h2 className="mobile-header__title">Credibility Profile</h2>
+            <div className="mobile-header__actions">
+              <button className="mobile-header__icon-btn" onClick={handleShare} title="Copy Link">
+                <Share2 size={20} />
+              </button>
+            </div>
+          </header>
+
+          {/* Desktop Header removed for cleaner UI */}
+        </>
       )}
 
       {isPublic && (
@@ -136,10 +150,18 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
             <h1 className="kyc-report__name">{profile.name}</h1>
             
-
             <div className="kyc-report__meta">
-              <MapPin size={13} />
-              Verified Tenant
+              {properties.some((p: any) => p.isManaged) ? (
+                <>
+                  <ShieldCheck size={13} color="var(--success)" />
+                  Verified Tenant
+                </>
+              ) : (
+                <>
+                  <BadgeCheck size={13} color="var(--text-muted)" />
+                  Unverified Tenant
+                </>
+              )}
               <span className="kyc-report__meta-dot" />
               Credibility Rating
             </div>
@@ -283,11 +305,11 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             <div className="kyc-report-actions">
               <button className="btn btn--primary btn--full kyc-report-actions__share" onClick={handleShare}>
                 <Share2 size={18} />
-                Share Verified Portfolio Link
+                Copy Credibility Portfolio Link
               </button>
               <div className="kyc-report-actions__row">
-                <button className="btn btn--secondary kyc-report-actions__btn">
-                  <Download size={16} /> Download
+                <button className="btn btn--secondary kyc-report-actions__btn" onClick={handleDownloadPDF}>
+                  <Download size={16} /> Download PDF
                 </button>
                 <button
                   className="btn btn--secondary kyc-report-actions__btn"
@@ -341,6 +363,15 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
       </div>
 
       <style jsx>{`
+        .kyc-page--dashboard {
+            padding-top: 0;
+            padding-bottom: 2rem;
+        }
+        @media (min-width: 641px) {
+            .kyc-page--dashboard {
+                padding-top: 80px;
+            }
+        }
         .public-cv {
             background: var(--bg);
             min-height: 100vh;
@@ -399,14 +430,13 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             font-size: 4rem;
             font-weight: 900;
             line-height: 1;
-            background: linear-gradient(to bottom, #fff, var(--text-muted));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: var(--dark);
         }
         .kyc-report__score-max {
             font-size: 1.2rem;
             font-weight: 700;
-            opacity: 0.3;
+            color: var(--text-muted);
+            opacity: 0.6;
         }
         .kyc-report__score-gauge {
             position: relative;
@@ -424,13 +454,13 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
         }
         .kyc-report__gauge-bg {
             fill: none;
-            stroke: var(--surface2);
-            stroke-width: 8;
+            stroke: var(--border-solid);
+            stroke-width: 6;
         }
         .kyc-report__gauge-fill {
             fill: none;
             stroke: var(--clay);
-            stroke-width: 8;
+            stroke-width: 6;
             stroke-linecap: round;
             transition: stroke-dasharray 1s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -613,6 +643,104 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+        .mobile-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            z-index: 1000;
+            border-bottom: 1px solid var(--border-solid);
+        }
+        .mobile-header__back {
+            background: none;
+            border: none;
+            color: var(--text);
+            padding: 8px;
+            margin-left: -8px;
+            display: flex;
+            align-items: center;
+        }
+        .mobile-header__title {
+            flex: 1;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-left: 12px;
+            color: var(--text);
+        }
+        .mobile-header__actions {
+            display: flex;
+            gap: 12px;
+        }
+        .mobile-header__icon-btn {
+            background: none;
+            border: none;
+            color: var(--text);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        .mobile-header__icon-btn:active {
+            background: var(--surface2);
+        }
+
+        .kyc-report-actions {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .kyc-report-actions__row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .kyc-report-actions__btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            padding: 12px;
+            border-radius: 12px;
+        }
+        .kyc-report-actions__share {
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        @media (max-width: 640px) {
+            .kyc-report-container {
+                padding: 64px 12px 100px !important;
+            }
+            .kyc-report-actions {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: var(--bg);
+                padding: 16px 12px 24px;
+                border-top: 1px solid var(--border-solid);
+                z-index: 100;
+                max-width: 100%;
+            }
+            .kyc-report-actions__share {
+                order: 1;
+            }
+            .kyc-report-actions__row {
+                order: 2;
+                grid-template-columns: 1fr 1fr;
+            }
         }
       `}</style>
     </div>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "451444317670",
+    "project_id": "upward-by-gt",
+    "storage_bucket": "upward-by-gt.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:451444317670:android:bbdb60c9cb1040a41c0a27",
+        "android_client_info": {
+          "package_name": "com.upward.pay"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAGw4cA2hdUYCx2zNobLSNOrIGlasnoXao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

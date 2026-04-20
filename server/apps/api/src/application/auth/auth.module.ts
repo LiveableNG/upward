@@ -7,10 +7,12 @@ import { AdminAuthService } from './admin-auth.service'
 import { UserAuthService } from './user-auth.service'
 import { JwtStrategy } from './strategies/jwt.strategy'
 import { PrismaModule } from '../../shared/infrastructure/prisma/prisma.module'
+import { S3Module } from '../../shared/infrastructure/common/s3/s3.module'
 
 @Module({
   imports: [
     PrismaModule,
+    S3Module,
     PassportModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
