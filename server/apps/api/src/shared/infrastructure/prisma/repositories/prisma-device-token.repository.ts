@@ -26,4 +26,19 @@ export class PrismaDeviceTokenRepository {
     })
     return records.map((r) => r.token)
   }
+
+  async findTokensByUserIds(userIds: number[]): Promise<string[]> {
+    const records = await this.prisma.upward_device_token.findMany({
+      where: { userId: { in: userIds } },
+      select: { token: true },
+    })
+    return records.map((r) => r.token)
+  }
+
+  async findAllTokens(): Promise<string[]> {
+    const records = await this.prisma.upward_device_token.findMany({
+      select: { token: true },
+    })
+    return records.map((r) => r.token)
+  }
 }

@@ -104,11 +104,11 @@
   --oat: #1a1918;
   --oat-dim: #22211f;
 
-  --btn-primary-bg: linear-gradient(135deg, #2a2725 0%, #1e1b19 100%);
-  --btn-primary-hover: linear-gradient(135deg, #36322e 0%, #2a2725 100%);
-  --btn-primary-text: #eaddcf;
-  --btn-primary-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-  --btn-primary-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.6);
+  --btn-primary-bg: linear-gradient(135deg, #d97757 0%, #c86848 100%);
+  --btn-primary-hover: linear-gradient(135deg, #c86848 0%, #b85c3e 100%);
+  --btn-primary-text: #ffffff;
+  --btn-primary-shadow: 0 4px 14px rgba(217, 119, 87, 0.35);
+  --btn-primary-shadow-hover: 0 6px 20px rgba(217, 119, 87, 0.5);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -128,11 +128,11 @@
     --oat: #1a1918;
     --oat-dim: #22211f;
 
-    --btn-primary-bg: linear-gradient(135deg, #2a2725 0%, #1e1b19 100%);
-    --btn-primary-hover: linear-gradient(135deg, #36322e 0%, #2a2725 100%);
-    --btn-primary-text: #eaddcf;
-    --btn-primary-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-    --btn-primary-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.6);
+    --btn-primary-bg: linear-gradient(135deg, #d97757 0%, #c86848 100%);
+    --btn-primary-hover: linear-gradient(135deg, #c86848 0%, #b85c3e 100%);
+    --btn-primary-text: #ffffff;
+    --btn-primary-shadow: 0 4px 14px rgba(217, 119, 87, 0.35);
+    --btn-primary-shadow-hover: 0 6px 20px rgba(217, 119, 87, 0.5);
   }
 }
 html {

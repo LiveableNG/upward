@@ -59,14 +59,14 @@ export function StatStrip({
       </div>
 
       <div
-        className="dashboard__stat-card dashboard__stat-card--action"
+        className="dashboard__stat-card dashboard__stat-card--action dashboard__stat-card--request-cta"
         onClick={() => router.push('/dashboard/request-records')}
       >
         <div className="dashboard__stat-icon dashboard__stat-icon--clay">
           <History size={16} />
         </div>
-        <div>
-          <p className="dashboard__stat-value">Request</p>
+        <div className="dashboard__stat-info">
+          <span className="dashboard__stat-cta-label">Request</span>
           <p className="dashboard__stat-label">Past Records</p>
         </div>
         <ArrowUpRight size={14} className="dashboard__stat-arrow" />

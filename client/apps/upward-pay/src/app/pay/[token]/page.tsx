@@ -288,10 +288,11 @@ export default function UnifiedPayPage() {
 
                 <div className="pay-layout__left">
                   <InvoiceHeader
-                    companyName={paymentData.company?.name}
+                    companyName={paymentData.payment?.verifiedRecipientName || paymentData.company?.name}
                     description={paymentData.payment?.description || 'Housing Invoice'}
                     logo={paymentData.company?.logo}
                     propertyAddress={paymentData.property?.locationAddress || paymentData.payment?.property_address || paymentData.property?.address || paymentData.payment?.propertyAddress}
+                    isVerified={!!paymentData.payment?.verifiedRecipientName}
                   />
                   <AmountDetailCard
                     totalOwed={totalOwed}
@@ -652,7 +653,7 @@ export default function UnifiedPayPage() {
               amount={finalAmount}
               currency={currency}
               companyName={paymentData.company?.name}
-              reference={generateId('PAY')}
+              reference={generateId()}
               subaccount={paymentData.payment.subaccountCode}
               onSuccess={handlePaymentSuccess}
               onClose={() => setStep('invoice')}

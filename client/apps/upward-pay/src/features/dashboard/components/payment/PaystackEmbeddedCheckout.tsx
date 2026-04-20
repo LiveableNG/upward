@@ -49,7 +49,7 @@ export default function PaystackEmbeddedCheckout({
         : `${paymentType || 'Rent payment'} for ${propertyAddress || companyName}`
 
     return {
-      reference: reference || generateId('UPW'),
+      reference: reference || generateId(),
       email: email,
       amount: Math.round((amount || 0) * 100), // Paystack expects Kobo as integer
       publicKey: PAYSTACK_PUBLIC_KEY,

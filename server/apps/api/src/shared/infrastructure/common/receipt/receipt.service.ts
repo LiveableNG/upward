@@ -15,7 +15,8 @@ export interface ReceiptPdfData {
   reference: string
   channel: string
   type: string
-  lineItems?: Array<{ name: string; amount: number }>
+  status?: string
+  lineItems?: Array<{ label: string; amount: number }>
 }
 
 @Injectable()
@@ -44,7 +45,6 @@ export class ReceiptService {
       const borderSolid = '#e2ddd7'
       const white = '#ffffff'
 
-      const isSavings = data.type === 'SAVINGS'
 
       doc.rect(0, 0, W, H).fill(oat)
 
@@ -110,7 +110,9 @@ export class ReceiptService {
         .fillColor(white)
         .text(amountStr, 0, 110, { width: W, align: 'center' })
 
-      const PILL_W = 96
+      const isPartial = data.status === 'PARTIAL'
+      const statusText = isPartial ? 'Partial Payment' : 'Successful'
+      const PILL_W = isPartial ? 110 : 96
       const PILL_H = 24
       const PILL_X = (W - PILL_W) / 2
       const PILL_Y = 162
@@ -118,8 +120,8 @@ export class ReceiptService {
       doc
         .font('Helvetica-Bold')
         .fontSize(9.5)
-        .fillColor(clay)
-        .text('Successful', PILL_X, PILL_Y + 7.5, { width: PILL_W, align: 'center' })
+        .fillColor(white)
+        .text(statusText, PILL_X, PILL_Y + 7.5, { width: PILL_W, align: 'center' })
 
       const dateStr =
         data.paidAt.toLocaleDateString('en-GB', {
@@ -156,18 +158,14 @@ export class ReceiptService {
       const rows: { label: string; value: string; bold?: boolean }[] = [
         { label: 'Tenant', value: data.tenantName },
         { label: 'Receipt No.', value: data.receiptNumber },
-        {
-          label: 'Payment Type',
-          value: isSavings ? 'Savings Deposit' : data.paymentType || data.title || 'Rent Payment',
-        },
         { label: 'Channel', value: data.channel },
       ]
 
       const hasBreakdown = data.lineItems && data.lineItems.length > 0
       const breakdownDesc = hasBreakdown
         ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          `${data.lineItems!.map((item: any) => `${item.name} (N${item.amount.toLocaleString()})`).join(', ')}`
-        : data.propertyName || data.propertyAddress || 'Rent Payment'
+           `${data.lineItems!.map((item: any) => `${item.label} (N${item.amount.toLocaleString()})`).join(', ')}`
+        : data.propertyName || data.propertyAddress || ''
 
       if (data.type === 'RENT') {
         rows.push({ label: 'Property', value: data.propertyAddress || breakdownDesc })
@@ -180,7 +178,7 @@ export class ReceiptService {
       }
 
       rows.push({
-        label: isSavings ? 'Wallet Reference' : 'Paystack Reference',
+        label: 'Paystack Reference',
         value: data.reference,
         bold: true,
       })
@@ -231,7 +229,7 @@ export class ReceiptService {
             .font('Helvetica')
             .fontSize(10)
             .fillColor(textSecondary)
-            .text(item.name, CARD_X + 22, itemY)
+            .text(item.label, CARD_X + 22, itemY)
           doc
             .font('Helvetica-Bold')
             .fontSize(10)

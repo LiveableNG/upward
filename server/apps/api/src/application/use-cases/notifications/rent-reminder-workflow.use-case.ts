@@ -2,8 +2,8 @@ import { Inject, Injectable, Logger } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
-import { SendPushToUserUseCase } from '../push/push.use-cases'
-import { NOTIFICATION_REPOSITORY, NotificationRepository } from '../../../domains/notifications/notification.repository'
+import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
+
 @Injectable()
 export class RentReminderWorkflowUseCase {
   private readonly logger = new Logger(RentReminderWorkflowUseCase.name)
@@ -11,9 +11,7 @@ export class RentReminderWorkflowUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
-    private readonly sendPush: SendPushToUserUseCase,
-    @Inject(NOTIFICATION_REPOSITORY)
-    private readonly notificationRepo: NotificationRepository,
+    private readonly notificationService: NotificationService,
   ) {}
 
   // Run at 8:00 AM every day
@@ -60,8 +58,7 @@ export class RentReminderWorkflowUseCase {
 
     if (targetLevel === 0) return
 
-    // Check if there is already a PENDING payment request for this property. 
-    // If so, we might want to skip or send a payment-specific reminder.
+    // Check if there is already a PENDING payment request for this property
     const activePayment = await this.prisma.upward_payment_request.findFirst({
       where: {
         userPropertyId: prop.id,
@@ -69,23 +66,17 @@ export class RentReminderWorkflowUseCase {
       },
     })
 
-    // If there's an invoice, the Activity Center handles it. 
-    // We only send "Reminders" for properties that DON'T have an invoice yet (or we can send different wording).
-    if (activePayment) {
-        // Redundant with existing billing logic? 
-        // User wants these specifically instead of cards.
-    }
+    // Skip if there's an active manual/nudged invoice, as the Activity Center handles it
+    if (activePayment) return
 
-    // Check if we already notified for this level in this cycle
-    // In a real scenario, we'd check prop.lastNotifiedLevel or a dedicated logs table.
-    // For now, I'll check if a notification of this type exists for this property today.
+    // Deduplicate: Check if a notification for this property cycle was already sent today
     const startOfToday = new Date(today)
     const alreadyNotified = await this.prisma.upward_notification.findFirst({
         where: {
             userId: prop.userId,
             type: 'RENT_REMINDER',
             createdAt: { gte: startOfToday },
-            message: { contains: prop.uuid } // Simplified check
+            message: { contains: prop.uuid } 
         }
     })
 
@@ -106,54 +97,42 @@ export class RentReminderWorkflowUseCase {
         push: `Hi ${name}, just a friendly heads-up that rent for ${address} is due in 2 weeks.`,
         inApp: `Friendly heads-up! Your rent for ${address} is due in 2 weeks. Just letting you know so you can plan ahead.`,
         email: `Time for a check-in! Your rent for ${address} is due in two weeks. No rush, just a friendly heads-up.`,
-        category: 'NOTICE'
       },
       7: {
         title: 'Rent Due in 7 Days 🗓️',
         push: `Hi ${name}, your rent for ${address} is due in a week. Pay early to boost your Upward Score!`,
         inApp: `Your rent for ${address} is due in 7 days. Remember, every on-time payment helps your Upward Score grow!`,
         email: `Your rent for ${address} is due in one week. Start prepping your payment to keep that credit building on track!`,
-        category: 'INFO'
       },
       3: {
         title: '3 Days Until Rent Day 🔥',
         push: `Quick reminder: Rent for ${address} is due in 3 days. Let's keep that payment streak alive!`,
         inApp: `Quick reminder: Only 3 days left until rent is due for ${address}. Don't let your streak break!`,
         email: `Don't break the streak! You have 3 days left until rent is due for ${address}. Keep up the great standing!`,
-        category: 'WARNING'
       },
       1: {
         title: 'It\'s Rent Day! 🎉',
         push: `Your payment for ${address} is due today. Settle it now to stay in great standing!`,
         inApp: `It's finally here! Rent for ${address} is due today. Tap here to pay now and maintain your Upward Score.`,
         email: `Happy Rent Day! Your payment for ${address} is due today. Settle it easily through your dashboard to keep your score in the green.`,
-        category: 'URGENT'
       }
     }
 
     const tpl = templates[level]
 
-    // 1. Send In-App Notification (which also triggers Push via its UseCase)
-    await this.notificationRepo.createNotification({
-        userId: user.id,
+    // 1. Send In-App + Push via centralized NotificationService
+    await this.notificationService.notifyUser(user.id, {
         title: tpl.title,
         message: `${tpl.inApp} [Property: ${propertyUuid}]`,
         type: 'RENT_REMINDER',
-        url: payUrl
+        url: payUrl,
+        data: {
+          property_uuid: propertyUuid,
+          days_left: level.toString()
+        }
     })
 
-    // 2. Send Push Notification directly (Deep Linking)
-    await this.sendPush.execute(user.id, {
-        title: tpl.title,
-        body: tpl.push,
-        data: {
-            type: 'RENT_REMINDER',
-            propertyUuid,
-            action: 'PAY_RENT'
-        }
-    }).catch(() => {})
-
-    // 3. Send Email
+    // 2. Send Email
     await this.emailService.sendEmailWithRetry({
         userId: user.id,
         email: user.email,

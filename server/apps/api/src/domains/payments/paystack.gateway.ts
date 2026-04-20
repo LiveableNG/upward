@@ -118,7 +118,11 @@ export class PaystackGateway implements IPaymentGateway {
         this.logger.warn(
           `Transaction verification failed for ${reference}: ${res.status} - ${errorBody}`,
         )
-        return { status: false }
+        if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+          return { status: false }
+        }
+        // For 5xx or 429 or other network issues, we should throw to trigger atomicity protection
+        throw new Error(`Paystack Gateway verification error: ${res.status}`)
       }
 
       const data = await res.json()
@@ -139,7 +143,7 @@ export class PaystackGateway implements IPaymentGateway {
       }
     } catch (error) {
       this.logger.error(`Error verifying transaction ${reference}:`, error)
-      return { status: false }
+      throw error
     }
   }
 

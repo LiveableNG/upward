@@ -17,6 +17,7 @@ import {
   GetUserNotificationsUseCase,
   UpdateAnnouncementStateUseCase,
   MarkNotificationReadUseCase,
+  MarkNotificationsByCategoryReadUseCase,
 } from '../../../application/use-cases/notifications/notification.use-cases'
 import {
   RegisterDeviceTokenUseCase,
@@ -39,6 +40,7 @@ export class UserNotificationsController {
     private readonly getUserNotificationsUseCase: GetUserNotificationsUseCase,
     private readonly updateAnnouncementStateUseCase: UpdateAnnouncementStateUseCase,
     private readonly markNotificationReadUseCase: MarkNotificationReadUseCase,
+    private readonly markNotificationsByCategoryReadUseCase: MarkNotificationsByCategoryReadUseCase,
     private readonly registerDeviceTokenUseCase: RegisterDeviceTokenUseCase,
     private readonly unregisterDeviceTokenUseCase: UnregisterDeviceTokenUseCase,
   ) {}
@@ -68,10 +70,20 @@ export class UserNotificationsController {
   @HttpCode(HttpStatus.OK)
   async markAsRead(@Req() req: FastifyRequest, @Param('id') id: string) {
     if (!req.user?.id) throw new UnauthorizedException()
-    return { data: await this.markNotificationReadUseCase.execute(id) }
+    return { data: await this.markNotificationReadUseCase.execute(req.user.id, id) }
   }
 
-  /** Register a device push token (called on app launch after permission granted) */
+  @Post('mark-category-read')
+  @HttpCode(HttpStatus.OK)
+  async markCategoryRead(
+    @Req() req: FastifyRequest,
+    @Body() body: { category: string },
+  ) {
+    if (!req.user?.id) throw new UnauthorizedException()
+    await this.markNotificationsByCategoryReadUseCase.execute(req.user.id, body.category)
+    return { success: true }
+  }
+
   @Post('device-token')
   @HttpCode(HttpStatus.NO_CONTENT)
   async registerToken(
@@ -82,7 +94,6 @@ export class UserNotificationsController {
     await this.registerDeviceTokenUseCase.execute(req.user.id, body.token, body.platform)
   }
 
-  /** Unregister a device token (called on logout) */
   @Delete('device-token')
   @HttpCode(HttpStatus.NO_CONTENT)
   async unregisterToken(

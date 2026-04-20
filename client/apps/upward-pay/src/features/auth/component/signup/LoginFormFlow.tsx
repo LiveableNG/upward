@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ChevronLeft,
@@ -9,9 +9,13 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Fingerprint,
+  Loader2,
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useLogin } from '@/features/auth/hooks/useLogin'
+import { BiometricsService } from '@/features/auth/services/biometricsService'
+import { useToast } from '@/components/common/Toast'
 
 interface LoginFormFlowProps {
   onBackToWelcome: () => void
@@ -24,10 +28,44 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [biometricAvailable, setBiometricAvailable] = useState(false)
+  const [biometricLoading, setBiometricLoading] = useState(false)
+
+  const { error: toastError } = useToast()
+
+  useEffect(() => {
+    async function checkBiometrics() {
+      const available = await BiometricsService.isAvailable()
+      if (available) {
+        const enabled = await BiometricsService.isEnabled()
+        setBiometricAvailable(enabled)
+      }
+    }
+    checkBiometrics()
+  }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     doLogin(loginEmail, loginPassword)
+  }
+
+  const handleBiometricLogin = async () => {
+    setBiometricLoading(true)
+    try {
+      const authenticated = await BiometricsService.authenticate('Log in with your biometrics')
+      if (authenticated) {
+        const creds = await BiometricsService.getCredentials()
+        if (creds) {
+          doLogin(creds.email, creds.password)
+        } else {
+          toastError('No stored credentials found. Please log in manually once.')
+        }
+      }
+    } catch (err: any) {
+      toastError(err.message || 'Biometric authentication failed')
+    } finally {
+      setBiometricLoading(false)
+    }
   }
 
   return (
@@ -111,10 +149,27 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
             id="login-submit"
             className="btn btn--primary btn--full btn--pay mt-6"
             type="submit"
-            disabled={loginLoading || !loginEmail || !loginPassword}
+            disabled={loginLoading || biometricLoading || !loginEmail || !loginPassword}
           >
             {loginLoading ? 'Signing in…' : 'Sign In'} <ArrowRight size={17} />
           </button>
+
+          {biometricAvailable && (
+            <button
+              type="button"
+              className="btn btn--outline btn--full mt-3 biometric-btn"
+              onClick={handleBiometricLogin}
+              disabled={loginLoading || biometricLoading}
+            >
+              {biometricLoading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <>
+                  <Fingerprint size={18} /> Sign in with Biometrics
+                </>
+              )}
+            </button>
+          )}
           
           <button 
             type="button" 
@@ -129,6 +184,20 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
       <style jsx>{`
         .mt-1 {
           margin-top: 12px;
+        }
+        .mt-3 {
+          margin-top: 16px;
+        }
+        .biometric-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          border-color: var(--clay);
+          color: var(--clay);
+        }
+        .biometric-btn:hover {
+          background: rgba(var(--clay-rgb), 0.05);
         }
       `}</style>
     </div>

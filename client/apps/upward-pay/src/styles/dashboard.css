@@ -428,6 +428,31 @@
   margin-bottom: 28px;
 }
 
+.announcement-popup__message p {
+  margin-bottom: 12px;
+}
+
+.announcement-popup__message strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.announcement-popup__message ul {
+  margin-bottom: 16px;
+  padding-left: 20px;
+}
+
+.announcement-popup__message li {
+  margin-bottom: 6px;
+  list-style: disc;
+}
+
+.announcement-popup__message a {
+  color: var(--clay);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
 .announcement-popup__action {
   width: 100%;
   padding: 14px;
@@ -1350,6 +1375,36 @@
     transform: translateY(-1px);
   }
 
+  .dashboard__stat-card--request-cta {
+    background: var(--clay-faint);
+    border-color: var(--clay-glow);
+  }
+
+  .dashboard__stat-card--request-cta:hover {
+    background: var(--clay);
+    border-color: var(--clay);
+  }
+
+  .dashboard__stat-card--request-cta:hover .dashboard__stat-label,
+  .dashboard__stat-card--request-cta:hover .dashboard__stat-arrow,
+  .dashboard__stat-card--request-cta:hover .dashboard__stat-cta-label {
+    color: white !important;
+  }
+
+  .dashboard__stat-card--request-cta:hover .dashboard__stat-icon {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+
+  .dashboard__stat-cta-label {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--clay);
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+
   .dashboard__stat-arrow {
     position: absolute;
     top: 16px;
@@ -1623,11 +1678,22 @@
   flex-shrink: 0;
 }
 
+.app-install-btn__icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: white;
+  opacity: 0.9;
+}
+
 .app-install-banner__download {
   padding: 6px 12px;
   height: auto;
   font-size: 12px;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .app-install-banner__close {

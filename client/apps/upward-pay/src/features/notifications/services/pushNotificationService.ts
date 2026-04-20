@@ -1,93 +1,93 @@
 'use client'
 
-
-import { useEffect } from 'react'
 import { api } from '@/lib/api'
+import { Capacitor } from '@capacitor/core'
+import { PushNotifications } from '@capacitor/push-notifications'
 
 let cachedToken: string | null = null
 
-export function usePushNotifications(isLoggedIn: boolean) {
-  useEffect(() => {
-    if (!isLoggedIn) return
+export class PushNotificationService {
+  static async isAvailable(): Promise<boolean> {
+    return Capacitor.isNativePlatform()
+  }
 
-    async function setup() {
-      try {
-        const { PushNotifications } = await import('@capacitor/push-notifications')
-        const { Capacitor } = await import('@capacitor/core')
+  static async getPermissionStatus(): Promise<string> {
+    if (!Capacitor.isNativePlatform()) return 'denied'
+    const perm = await PushNotifications.checkPermissions()
+    return perm.receive
+  }
 
-        if (!Capacitor.isNativePlatform()) return // Skip on web
+  static async requestPermission(): Promise<boolean> {
+    if (!Capacitor.isNativePlatform()) return false
+    const result = await PushNotifications.requestPermissions()
+    return result.receive === 'granted'
+  }
 
-        const perm = await PushNotifications.checkPermissions()
-        let status = perm.receive
-
-        if (status === 'prompt') {
-          const result = await PushNotifications.requestPermissions()
-          status = result.receive
-        }
-
-        if (status !== 'granted') {
-          console.warn('[Push] Permission not granted:', status)
-          return
-        }
-
-        await PushNotifications.register()
-
-        PushNotifications.addListener('registration', async (token) => {
-          if (cachedToken === token.value) return
-          cachedToken = token.value
-
-          const platform = Capacitor.getPlatform() // 'android' | 'ios'
-          try {
-            await api.post('/user/notifications/device-token', {
-              token: token.value,
-              platform,
-            })
-            console.log('[Push] Token registered:', platform)
-          } catch (err) {
-            console.error('[Push] Token registration failed', err)
-          }
-        })
-
-        PushNotifications.addListener('registrationError', (err) => {
-          console.error('[Push] Registration error', err)
-        })
-
-        // Handle foreground notification taps (navigate via URL if present)
-        PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-          const url = action.notification.data?.url
-          if (url && typeof window !== 'undefined') {
-            window.location.href = url
-          }
-        })
-      } catch {
-        // Not a Capacitor environment — silently skip
-      }
-    }
-
-    setup()
-
-    return () => {
-      // Listeners are removed when the app unmounts; token stays registered
-      // until the user explicitly logs out (handled by useLogout hook)
-    }
-  }, [isLoggedIn])
-}
-
-/** Call this on logout to remove the device token from the backend */
-export async function unregisterPushToken() {
-  if (!cachedToken) return
-  try {
-    const { Capacitor } = await import('@capacitor/core')
+  static async registerDevice(): Promise<void> {
     if (!Capacitor.isNativePlatform()) return
+    
+    // Add listeners before registering
+    await PushNotifications.addListener('registration', async (token) => {
+      if (cachedToken === token.value) return
+      cachedToken = token.value
 
-    // Use the generic api.patch/delete helper — we send token in body
-    const { request } = await import('@/lib/api-client')
-    await request('/user/notifications/device-token', {
-      method: 'DELETE',
-      body: JSON.stringify({ token: cachedToken }),
+      const platform = Capacitor.getPlatform()
+      try {
+        await api.post('/user/notifications/device-token', {
+          token: token.value,
+          platform,
+        })
+        console.log('[Push] Token registered:', platform)
+      } catch (err) {
+        console.error('[Push] Token registration failed', err)
+      }
     })
-    cachedToken = null
-  } catch {
-    // Best-effort
+
+    await PushNotifications.addListener('registrationError', (err) => {
+      console.error('[Push] Registration error', err)
+    })
+
+    // Handle incoming notifications and taps
+    await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+      const url = action.notification.data?.url
+      if (url && typeof window !== 'undefined') {
+        window.location.href = url
+      }
+    })
+
+    await PushNotifications.register()
+  }
+
+  static async unregisterDevice(): Promise<void> {
+    if (!Capacitor.isNativePlatform()) return
+    
+    try {
+      if (cachedToken) {
+        const { request } = await import('@/lib/api-client')
+        await request('/user/notifications/device-token', {
+          method: 'DELETE',
+          body: JSON.stringify({ token: cachedToken }),
+        })
+        cachedToken = null
+      }
+      await PushNotifications.removeAllListeners()
+    } catch (err) {
+      console.error('[Push] Token unregistration failed', err)
+    }
   }
 }
+
+// Keep the hook for automatic setup if needed, but refactor to use the service
+export function usePushNotifications(isLoggedIn: boolean) {
+  const setup = async () => {
+    if (!isLoggedIn || !Capacitor.isNativePlatform()) return
+    
+    const status = await PushNotificationService.getPermissionStatus()
+    if (status === 'granted') {
+      await PushNotificationService.registerDevice()
+    }
+  }
+  
+  setup()
+}
+

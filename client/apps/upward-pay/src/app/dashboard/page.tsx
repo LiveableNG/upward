@@ -10,7 +10,6 @@ import { api } from '@/lib/api'
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
 import { StatStrip } from '@/features/dashboard/components/StatStrip'
 import { AppInstallBanner } from '@/features/dashboard/components/AppInstallBanner'
-import { AnnouncementBanner } from '@/features/dashboard/components/AnnouncementBanner'
 import { UpcomingFeaturesWidget } from '@/features/dashboard/components/UpcomingFeaturesWidget'
 import { RentCredibilityScore } from '@/features/dashboard/components/RentCredibilityScore'
 import { ShareCredibility } from '@/features/dashboard/components/ShareCredibility'
@@ -19,6 +18,7 @@ import { RecentActivityWidget } from '@/features/dashboard/components/RecentActi
 import FallbackSuspense from '@/components/FallbackSuspense'
 import { useScoreProfile } from '@/features/dashboard/services/scoreService'
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
+import { AppleIcon, PlayStoreIcon } from '@/components/StoreIcons'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -203,7 +203,7 @@ export default function DashboardPage() {
                   <h3 className="activity-center__title">
                     {anyOverdue ? 'CRITICAL ACTIONS' : 'Activity Center'}
                   </h3>
-                  <button className="activity-center__see-all" onClick={() => router.push('/dashboard/notifications')}>
+                  <button className="activity-center__see-all" onClick={() => router.push('/dashboard/notifications?tab=Activities')}>
                     See all {notifCount > 0 && <span className="activity-center__badge">{notifCount}</span>}
                   </button>
                 </div>
@@ -214,7 +214,6 @@ export default function DashboardPage() {
           </div>
           <div className="dashboard__col dashboard__col--right">
             <div className="right-stack">
-              <AnnouncementBanner />
               <RecentActivityWidget payments={completedPayments} />
               <ShareCredibility profileSlug={user.profileSlug} />
               <div className="desktop-only"><UpcomingFeaturesWidget /></div>
@@ -373,7 +372,7 @@ export default function DashboardPage() {
                     </div>
                   ) : (
                     <div className="bento-hero-score">
-                      <div className="bento-hero-score__label">All Payments Up to Date</div>
+                      <div className="bento-hero-score__label">Everything is up to date</div>
                       <h2 className="bento-hero-score__title">Great standing,<br /><span style={{ color: 'var(--clay)' }}>{firstName}</span></h2>
                       <p className="bento-hero-score__desc">Keep paying on time to maintain your credibility score.</p>
                       <button className="btn btn--primary bento-hero-btn" onClick={() => router.push('/dashboard/pay-rent')}>
@@ -438,7 +437,7 @@ export default function DashboardPage() {
               <div className="bento-metric__title">Reputation Factors</div>
               <div className="bento-metric__desc">View how your score is calculated</div>
               <div className="bento-metric__bar">
-                <div className="bento-metric__bar-fill" style={{ width: '100%', background: 'var(--clay)' }} />
+                <div className="bento-metric__bar-fill" style={{ width: `${(credScore / 800) * 100}%`, background: 'var(--clay)' }} />
               </div>
               <button className="bento-metric__link" onClick={() => router.push('/dashboard/score-breakdown')}>
                 View Breakdown <ArrowRight size={13} />
@@ -505,8 +504,14 @@ export default function DashboardPage() {
               <h4 className="bento-app-banner__title">Get the Upward App</h4>
               <p className="bento-app-banner__desc">Manage your lease and build credit on the go. Available for iOS and Android.</p>
               <div className="bento-app-banner__btns">
-                <button className="bento-app-btn">App Store<br /><strong>Download</strong></button>
-                <button className="bento-app-btn">Play Store<br /><strong>Download</strong></button>
+                <button className="bento-app-btn">
+                  <div className="bento-app-btn__icon"><AppleIcon size={16} /></div>
+                  <div className="bento-app-btn__text">App Store<br /><strong>Download</strong></div>
+                </button>
+                <button className="bento-app-btn">
+                  <div className="bento-app-btn__icon"><PlayStoreIcon size={16} /></div>
+                  <div className="bento-app-btn__text">Play Store<br /><strong>Download</strong></div>
+                </button>
               </div>
             </div>
           </div>
@@ -938,11 +943,11 @@ export default function DashboardPage() {
         }
 
         .bento-hero-score__label {
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           font-weight: 700;
-          color: var(--success);
+          color: var(--text-muted);
           text-transform: uppercase;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.08em;
           margin-bottom: 0.5rem;
         }
 
@@ -1083,12 +1088,12 @@ export default function DashboardPage() {
         }
 
         .bento-metric__pct {
-          font-size: 2.25rem;
-          font-weight: 900;
+          font-size: 1.8rem;
+          font-weight: 800;
           color: var(--clay);
           line-height: 1;
           margin-bottom: 0.35rem;
-          letter-spacing: -0.03em;
+          letter-spacing: -0.02em;
         }
 
         .bento-metric__title {
@@ -1335,24 +1340,32 @@ export default function DashboardPage() {
           gap: 8px;
         }
 
+        .bento-app-btn strong {
+          display: block;
+          font-size: 0.8rem;
+          font-weight: 800;
+          color: var(--clay);
+        }
+
         .bento-app-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
           background: var(--bg);
           border: 1px solid var(--border-solid);
           color: var(--text);
           border-radius: 10px;
           padding: 8px 10px;
           font-size: 0.7rem;
-          line-height: 1.5;
+          line-height: 1.2;
           cursor: pointer;
-          text-align: center;
+          text-align: left;
           transition: all 0.2s ease;
         }
 
-        .bento-app-btn strong {
-          display: block;
-          font-size: 0.8rem;
-          font-weight: 800;
-          color: var(--clay);
+        .bento-app-btn__icon {
+          color: var(--text-muted);
+          flex-shrink: 0;
         }
 
         .bento-app-btn:hover {

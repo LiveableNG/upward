@@ -23,11 +23,15 @@ export function AnnouncementManager() {
   })
 
   const activeAnnouncement = data?.activeAnnouncement
+  const activeRentReminder = data?.activeRentReminder // Priority check
   const announcementId = activeAnnouncement?.id
   const hasSeenPopup = activeAnnouncement?.state?.seenPopup
 
   useEffect(() => {
-    if (!isLoading && activeAnnouncement && !hasSeenPopup && !updateStateMutation.isPending) {
+    const isFromPush = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('from_push') === 'true'
+    
+    // Priority Rule: Don't show announcement if a rent reminder is active
+    if (!isLoading && activeAnnouncement && !hasSeenPopup && !activeRentReminder && !updateStateMutation.isPending && !isFromPush) {
       setShowPopup(true)
       // Automatically mark as seen in backend
       updateStateMutation.mutate({
@@ -39,6 +43,7 @@ export function AnnouncementManager() {
     isLoading,
     announcementId,
     hasSeenPopup,
+    activeRentReminder,
     updateStateMutation.mutate,
     updateStateMutation.isPending,
   ])
@@ -49,6 +54,7 @@ export function AnnouncementManager() {
       updateStateMutation.mutate({
         announcementId: activeAnnouncement.id as number,
         interactedPopup: true,
+        interactedBanner: true, // Also clear the red dot on the notifications tab
       })
     }
   }

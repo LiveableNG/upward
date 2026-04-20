@@ -1,16 +1,17 @@
 'use client'
 
 import React from 'react'
-import { Building2, MapPin } from 'lucide-react'
+import { Building2, MapPin, CheckCircle2 } from 'lucide-react'
 
 interface InvoiceHeaderProps {
   companyName: string
   description: string
   logo?: string
   propertyAddress?: string
+  isVerified?: boolean
 }
 
-export function InvoiceHeader({ companyName, description, logo, propertyAddress }: InvoiceHeaderProps) {
+export function InvoiceHeader({ companyName, description, logo, propertyAddress, isVerified }: InvoiceHeaderProps) {
   return (
     <header className="pay-invoice-header">
       <div className="pay-invoice-header__brand">
@@ -24,7 +25,12 @@ export function InvoiceHeader({ companyName, description, logo, propertyAddress 
       </div>
       <div className="pay-invoice-header__info">
         <span className="pay-invoice-header__tag">Secure Invoice</span>
-        <h1 className="pay-invoice-header__title">{companyName}</h1>
+        <div className="pay-invoice-header__title-container">
+          <h1 className="pay-invoice-header__title">{companyName}</h1>
+          {isVerified && (
+            <CheckCircle2 size={18} className="verified-badge" />
+          )}
+        </div>
         
         {propertyAddress && (
           <div className="pay-invoice-header__address">
@@ -109,6 +115,16 @@ export function InvoiceHeader({ companyName, description, logo, propertyAddress 
           border: 1px solid var(--border-solid);
         }
         .icon-clay { color: var(--clay); }
+        .pay-invoice-header__title-container {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          justify-content: center;
+        }
+        .verified-badge {
+          color: #3b82f6;
+          fill: #3b82f620;
+        }
         .pay-invoice-header__subtitle {
           color: var(--text-muted);
           font-size: 14px;
