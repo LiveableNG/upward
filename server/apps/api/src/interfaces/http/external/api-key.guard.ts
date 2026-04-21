@@ -5,7 +5,7 @@ import { createHash } from 'crypto'
 function maskApiKey(apiKey: string): string {
   if (!apiKey) return ''
   if (apiKey.length <= 8) return '****'
-  return ${apiKey.slice(0, 4)}...${apiKey.slice(-4)}
+  return apiKey.slice(0, 4) + '...' + apiKey.slice(-4)
 }
 
 @Injectable()
