@@ -29,20 +29,20 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     if (!Capacitor.isNativePlatform()) return
 
     const setupDeepLink = async () => {
-      await App.addListener('appUrlOpen', (event: any ) => {
-        // Handle both https://domain.com/path and upward://pay/path
-        const url = new URL(event.url)
-        let path = url.pathname
+      await App.addListener('appUrlOpen', (event: any) => {
+        try {
+          const url = new URL(event.url)
+          // Capture path + query + hash to ensure no data (like invite tokens) is lost
+          let targetPath = url.pathname + url.search + url.hash
 
-        // For custom schemes like upward://pay/dashboard, path might be empty and host is 'pay'
-        // If it's a custom scheme, we might need to adjust
-        if (url.protocol === 'upward:') {
-           // upward://pay/dashboard -> /dashboard
-           path = url.pathname || '/'
-        }
+          // For custom schemes like upward://pay/path, ensuring targetPath starts with /
+          if (!targetPath.startsWith('/')) {
+            targetPath = '/' + targetPath
+          }
 
-        if (path) {
-          router.push(path)
+          router.push(targetPath)
+        } catch (error) {
+          console.error('Deep Link Error:', error)
         }
       })
     }

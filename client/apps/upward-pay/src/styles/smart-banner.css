@@ -1,0 +1,105 @@
+/* ── Smart App Banner ── */
+.smart-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-4);
+  z-index: 2100;
+  box-shadow: var(--shadow-md);
+  animation: bannerSlideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.smart-banner__content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+.smart-banner__close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.smart-banner__close:active {
+  opacity: 0.5;
+}
+
+.smart-banner__icon {
+  width: 40px;
+  height: 40px;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.smart-banner__info {
+  display: flex;
+  flex-direction: column;
+}
+
+.smart-banner__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.smart-banner__subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.smart-banner__btn {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s;
+  box-shadow: var(--btn-primary-shadow);
+}
+
+.smart-banner__btn:active {
+  transform: scale(0.95);
+}
+
+@keyframes bannerSlideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Adjust layout when banner is present */
+body.has-smart-banner {
+  padding-top: calc(var(--safe-top) + 64px) !important;
+}
+
+body.has-smart-banner .dashboard__header-sticky {
+  top: 64px;
+}

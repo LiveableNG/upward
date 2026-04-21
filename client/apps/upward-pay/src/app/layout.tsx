@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { AuthProvider } from '@/features/auth/AuthContext'
 import Providers from './Providers'
+import { SmartAppBanner } from '@/components/common/SmartAppBanner'
 import './globals.css'
 
 const inter = Inter({
@@ -50,7 +51,10 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning>
         <Providers>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <SmartAppBanner />
+            {children}
+          </AuthProvider>
         </Providers>
       </body>
     </html>
