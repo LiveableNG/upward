@@ -11,7 +11,6 @@ import {
   PlatformRepository,
 } from '../../../domains/companies/company.repository'
 import { createHash } from 'crypto'
-import { Request } from 'express'
 
 function maskApiKey(apiKey: string): string {
   if (!apiKey) return ''
@@ -29,48 +28,40 @@ export class ApiKeyGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<Request>()
+    const request = context.switchToHttp().getRequest()
 
-    const apiKeyHeader = request.headers['x-api-key']
+    const apiKeyHeader = request.headers?.['x-api-key']
     const apiKey =
       Array.isArray(apiKeyHeader)
-        ? apiKeyHeader.find((value): value is string => typeof value === 'string')
+        ? apiKeyHeader.find((v: unknown): v is string => typeof v === 'string')
         : typeof apiKeyHeader === 'string'
         ? apiKeyHeader
         : undefined
 
     const method = String(request.method ?? 'UNKNOWN')
-    const path = String(
-      (request as any).originalUrl ?? request.url ?? 'unknown-path',
-    )
+    const path = String(request.originalUrl ?? request.url ?? 'unknown-path')
 
     const ipHeader =
-      request.ip ??
-      request.headers['x-forwarded-for'] ??
-      'unknown-ip'
+      request.ip ?? request.headers?.['x-forwarded-for'] ?? 'unknown-ip'
 
     const ip = Array.isArray(ipHeader)
       ? ipHeader.join(',')
       : String(ipHeader)
 
     if (!apiKey) {
-      this.logger.warn(
-        `[${method}] ${path} rejected: missing API key | ip=${ip}`,
-      )
+      this.logger.warn(`[${method}] ${path} rejected: missing API key | ip=${ip}`)
       throw new UnauthorizedException('Missing API key')
     }
 
-    const apiKeyHash = createHash('sha256')
-      .update(apiKey)
-      .digest('hex')
+    const apiKeyHash = createHash('sha256').update(apiKey).digest('hex')
 
     const platform = await this.platformRepository.findByApiKey(apiKeyHash)
 
     const apiKeyMasked = maskApiKey(apiKey)
     const apiKeyHashPreview = apiKeyHash.slice(0, 12)
 
-    ;(request as any).apiKeyMasked = apiKeyMasked
-    ;(request as any).apiKeyHashPreview = apiKeyHashPreview
+    request.apiKeyMasked = apiKeyMasked
+    request.apiKeyHashPreview = apiKeyHashPreview
 
     if (!platform) {
       this.logger.warn(
@@ -79,7 +70,7 @@ export class ApiKeyGuard implements CanActivate {
       throw new UnauthorizedException('Invalid API key')
     }
 
-    ;(request as any).platformId = platform.id
+    request.platformId = platform.id
 
     this.logger.log(
       `[${method}] ${path} authorized | platformId=${platform.id} key=${apiKeyMasked} hash=${apiKeyHashPreview}`,
