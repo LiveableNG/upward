@@ -33,7 +33,6 @@ export function middleware(request: NextRequest) {
     }
   }
   const isProtectedPage = pathname.startsWith('/dashboard') || 
-                          pathname.startsWith('/profile') || 
                           pathname.startsWith('/settings') ||
                           pathname.startsWith('/kyc') ||
                           pathname.startsWith('/transactions')

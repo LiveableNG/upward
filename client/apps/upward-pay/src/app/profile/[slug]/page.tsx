@@ -1,14 +1,15 @@
-'use client'
-
-import { use } from 'react'
 import { KYCReportContent } from '@/features/dashboard/components/kyc/KYCReportContent'
 
 interface PublicProfilePageProps {
   params: Promise<{ slug: string }>
 }
 
-export default function PublicProfilePage({ params }: PublicProfilePageProps) {
-  const { slug } = use(params)
+export function generateStaticParams() {
+  return [{ slug: 'placeholder' }]
+}
+
+export default async function PublicProfilePage({ params }: PublicProfilePageProps) {
+  const { slug } = await params
 
   return (
     <main className="public-profile-view">
@@ -17,13 +18,6 @@ export default function PublicProfilePage({ params }: PublicProfilePageProps) {
         Anyone with the link can view this. No authentication required.
       */}
       <KYCReportContent isPublic={true} publicSlug={slug} />
-      
-      <style jsx global>{`
-        /* Standardize some public view basics */
-        body {
-          background: var(--bg);
-        }
-      `}</style>
     </main>
   )
 }

@@ -19,6 +19,7 @@ import Link from 'next/link'
 import { useRef, useState, useEffect } from 'react'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
+import { Capacitor } from '@capacitor/core'
 
 export default function ProfileClient() {
   const params = useParams()
@@ -27,14 +28,13 @@ export default function ProfileClient() {
   const [isApp, setIsApp] = useState(false)
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (typeof window !== 'undefined' && (window as any).Capacitor?.isNative) {
+    if (Capacitor.isNativePlatform()) {
       setIsApp(true)
     }
   }, [])
 
   const {
-    data: profile,
+    data: scoreProfile,
     isLoading,
     error,
   } = useQuery({
@@ -64,12 +64,13 @@ export default function ProfileClient() {
     const pdfWidth = pdf.internal.pageSize.getWidth()
     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
     pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
-    pdf.save(`Upward_Credibility_Report_${(profile.firstName + '_' + profile.lastName).replace(/\s+/g, '_')}.pdf`)
+    const { profile: userData } = scoreProfile.data
+    pdf.save(`Upward_Credibility_Report_${(userData.name).replace(/\s+/g, '_')}.pdf`)
   }
 
   if (isLoading) return <FallbackSuspense message="Validating credentials..." />
 
-  if (error || !profile) {
+  if (error || !scoreProfile) {
     return (
       <div className="profile-error">
         <div className="error-card">
@@ -82,15 +83,25 @@ export default function ProfileClient() {
     )
   }
 
-  // Mocked metrics as requested
-  const score = 750
-  const rank = 'A'
-  const streak = 12
-  const onTime = 98
-  const savingsImpact = 5
-  const rankColor = '#d97757'
-  const rankBorderColor = '#d97757'
-  const fullName = `${profile.firstName} ${profile.lastName}`
+  const { isScorable, score, rank, band, metrics, profile: userData } = scoreProfile.data
+  const isFaded = !isScorable
+  
+  const streak = metrics.longestStreak
+  const onTime = Math.round(metrics.ptPercentage)
+  const savingsImpact = metrics.discipline
+  const fullName = userData.name
+
+  const getRankColor = () => {
+    if (!isScorable) return '#928e89'
+    if (rank === 'A') return '#d97757'
+    if (rank === 'B') return '#22c55e'
+    if (rank === 'C') return '#3b82f6'
+    if (rank === 'D') return '#f59e0b'
+    return '#ef4444'
+  }
+
+  const rankColor = getRankColor()
+  const rankBorderColor = rankColor
 
   return (
     <div className="profile-page">
@@ -108,10 +119,12 @@ export default function ProfileClient() {
               <span className="logo-tag">VERIFIED</span>
             </Link>
           </div>
-          <button className="download-btn-top" onClick={downloadPDF}>
-            <Download size={16} />
-            <span>Download Report</span>
-          </button>
+            {!isApp && (
+              <button className="download-btn-top" onClick={downloadPDF}>
+                <Download size={16} />
+                <span>Download Report</span>
+              </button>
+            )}
         </div>
       </nav>
 
@@ -130,7 +143,7 @@ export default function ProfileClient() {
               </div>
               <div className="cert-id">
                 <span className="cert-id__label">VERIFICATION ID</span>
-                <strong className="cert-id__val">UPW-{profile.firstName?.toUpperCase() || 'VALID'}</strong>
+                <strong className="cert-id__val">UPW-{userData.name?.split(' ')[0]?.toUpperCase() || 'VALID'}</strong>
               </div>
             </header>
 
@@ -138,10 +151,10 @@ export default function ProfileClient() {
               <div className="profile-section">
                 <div className="profile-top-row">
                   <div className="profile-avatar">
-                    {profile.profilePic ? (
-                      <img src={profile.profilePic} alt={fullName} />
+                    {userData.profilePic ? (
+                      <img src={userData.profilePic} alt={fullName} />
                     ) : (
-                      profile.firstName?.charAt(0)
+                      fullName.charAt(0)
                     )}
                   </div>
                   <div className="profile-info">
@@ -153,7 +166,7 @@ export default function ProfileClient() {
                       </span>
                       <span className="meta-tag">
                         <Calendar size={13} />
-                        Member since {new Date(profile.createdAt).getFullYear()}
+                        Member
                       </span>
                     </div>
                   </div>
@@ -164,8 +177,8 @@ export default function ProfileClient() {
                     <span className="score-lbl">TRUST SCORE</span>
                   </div>
                   <div className="rank-summary" style={{ borderColor: rankBorderColor }}>
-                    <span className="rank-val" style={{ color: rankColor }}>{rank}</span>
-                    <span className="rank-lbl" style={{ color: rankColor }}>RELIABILITY</span>
+                    <span className="rank-val" style={{ color: rankColor }}>{isScorable ? rank : '–'}</span>
+                    <span className="rank-lbl" style={{ color: rankColor }}>{isScorable ? band.toUpperCase() : 'PENDING'}</span>
                   </div>
                 </div>
               </div>
@@ -237,11 +250,13 @@ export default function ProfileClient() {
           </div>
         </div>
 
-        <div className="join-cta">
-          <h2>Trust is the New Currency</h2>
-          <p>Join thousands of tenants using Upward to unlock better housing and financial opportunities.</p>
-          <Link href="/signup" className="btn--premium">Build Your Reputation</Link>
-        </div>
+        {!isApp && (
+          <div className="join-cta">
+            <h2>Trust is the New Currency</h2>
+            <p>Join thousands of tenants using Upward to unlock better housing and financial opportunities.</p>
+            <Link href="/signup" className="btn--premium">Build Your Reputation</Link>
+          </div>
+        )}
       </main>
 
       <style jsx>{`

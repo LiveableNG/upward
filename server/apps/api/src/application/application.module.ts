@@ -75,6 +75,7 @@ import { GetAvatarUploadUrlUseCase } from './use-cases/user/get-avatar-upload-ur
 import { IngestPastRecordsUseCase } from './use-cases/user/ingest-past-records.use-case'
 import { RequestCredibilityRecordsUseCase } from './use-cases/user/request-credibility-records.use-case'
 import { GetCredibilityRequestsUseCase } from './use-cases/user/get-credibility-requests.use-case'
+import { CheckSlugAvailabilityUseCase } from './use-cases/user/check-slug-availability.use-case'
 import { GetCredibilityRequestDetailsUseCase } from './use-cases/external/get-credibility-request-details.use-case'
 import { FulfillCredibilityRequestUseCase } from './use-cases/external/fulfill-credibility-request.use-case'
 import { SingleInviteUseCase } from './use-cases/external/single-invite.use-case'
@@ -194,8 +195,9 @@ const UseCases = [
   VerifyAccountUseCase,
   GetTransactionUseCase,
   GetUserTransactionsUseCase,
-  GenerateReceiptPdfUseCase,
   GenerateKYCReportPdfUseCase,
+  GenerateReceiptPdfUseCase,
+  CheckSlugAvailabilityUseCase,
   MarkNotificationReadUseCase,
 
   CreateAnnouncementUseCase,

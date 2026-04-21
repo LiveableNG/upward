@@ -120,7 +120,7 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
                 <span>{band.toUpperCase()}</span>
               </div>
               <div className="insight-progress">
-                <div className="insight-progress__fill" style={{ width: `${(credScore / 900) * 100}%`, background: getRankColor() }} />
+                <div className="insight-progress__fill" style={{ width: `${(credScore / 800) * 100}%`, background: getRankColor() }} />
               </div>
             </div>
           </div>

@@ -304,7 +304,6 @@ export class RecordTransactionUseCase {
           }
         }
 
-        // 5. Settle Property Balance & Rollover
         if (userPropertyIdToSettle && data.type === 'RENT') {
           const prop = await this.propertyRepo.findById(userPropertyIdToSettle)
           if (prop) {
@@ -413,6 +412,34 @@ export class RecordTransactionUseCase {
           }
         }
       }
+      if (result.status === 'SUCCESS' && pr?.platformId) {
+        try {
+          const updatedPrAmountPaid = (pr.amountPaid || 0) + paymentAmount;
+          const statusForWebhook = updatedPrAmountPaid >= pr.amount ? 'PAID' : 'PARTIAL';
+          const remainingAmount = Math.max(0, pr.amount - updatedPrAmountPaid);
+
+          this.eventBus.publish(new PaymentUpdatedEvent(
+            pr.platformId,
+            'payment.updated',
+            {
+              paymentUuid: pr.uuid,
+              reference: result.reference,
+              amountPaid: result.amount, 
+              totalPaid: updatedPrAmountPaid,
+              remainingAmount: remainingAmount,
+              overpaymentAmount: excess,
+              currency: result.currency || pr.currency || 'NGN',
+              status: statusForWebhook,
+              paidAt: new Date(),
+              customerEmail: user.email
+            }
+          ));
+          this.logger.log(`Payment webhook event 'payment.updated' (${statusForWebhook}) published for platform ${pr.platformId}`);
+        } catch (e) {
+          this.logger.error(`Failed to publish payment success event: ${e instanceof Error ? e.message : 'Unknown error'}`);
+        }
+      }
+
       return result;
     })
   }

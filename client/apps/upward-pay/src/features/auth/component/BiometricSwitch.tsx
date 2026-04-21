@@ -93,12 +93,12 @@ export function BiometricSwitch() {
 
   return (
     <>
-      <div className="settings-item" onClick={handleToggle}>
+      <div className="settings-item settings-item--biometric" onClick={handleToggle}>
         <div className="settings-item__left">
           <div className="settings-item__icon-wrap">
-            <Fingerprint size={18} color="var(--clay)" />
+            <Fingerprint size={20} color="var(--clay)" />
           </div>
-          <div>
+          <div className="settings-item__content">
             <span className="settings-item__title">Biometric Login</span>
             <p className="settings-item__sub">Use FaceID or Fingerprint to sign in</p>
           </div>
@@ -168,6 +168,44 @@ export function BiometricSwitch() {
       )}
 
       <style jsx>{`
+        .settings-item--biometric {
+          padding: 1.25rem 1rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          cursor: pointer;
+        }
+        .settings-item__left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .settings-item__icon-wrap {
+          width: 36px;
+          height: 36px;
+          background: var(--surface2);
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .settings-item__content {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .settings-item__title {
+          font-weight: 700;
+          font-size: 15px;
+          color: var(--text);
+          display: block;
+        }
+        .settings-item__sub {
+          font-size: 13px;
+          color: var(--text-muted);
+          margin: 0;
+        }
         .switch {
           width: 44px;
           height: 24px;

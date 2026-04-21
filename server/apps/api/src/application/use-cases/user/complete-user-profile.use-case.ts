@@ -69,7 +69,23 @@ export class CompleteUserProfileUseCase {
 
     if (!user?.profileSlug) {
       const slugBase = (firstName + '-' + lastName).toLowerCase().replace(/[^a-z0-9]/g, '-')
-      userData.profileSlug = `${slugBase}-${Math.floor(1000 + Math.random() * 9000)}`
+      let candidate = `${slugBase}-${Math.floor(1000 + Math.random() * 9000)}`
+      
+      let isUnique = false
+      let attempts = 0
+      while (!isUnique && attempts < 5) {
+        const existing = await this.prisma.upward_user.findFirst({
+          where: { profileSlug: candidate },
+          select: { id: true }
+        })
+        if (!existing) {
+          isUnique = true
+        } else {
+          candidate = `${slugBase}-${Math.floor(1000 + Math.random() * 9000)}`
+          attempts++
+        }
+      }
+      userData.profileSlug = candidate
     }
 
     const properties = dto.properties || []

@@ -4,11 +4,13 @@ import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/features/auth/AuthContext'
 import FallbackSuspense from '@/components/FallbackSuspense'
+import { BiometricEnrollmentStep } from '@/features/auth/component/signup/BiometricEnrollmentStep'
+import { Capacitor } from '@capacitor/core'
 import { BenefitsStep } from '@/features/auth/component/signup/BenefitsStep'
 import { LoginFormFlow } from '@/features/auth/component/signup/LoginFormFlow'
 import { SignupFormFlow } from '@/features/auth/component/signup/SignupFormFlow'
 
-type Mode = 'welcome' | 'signup' | 'login'
+type Mode = 'welcome' | 'signup' | 'login' | 'biometrics'
 
 function SignupPageContent() {
   const router = useRouter()
@@ -17,12 +19,13 @@ function SignupPageContent() {
 
   const initialMode: Mode = (searchParams.get('mode') as Mode) || 'welcome'
   const [mode, setMode] = useState<Mode>(initialMode)
+  const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null)
 
   useEffect(() => {
-    if (!loading && isLoggedIn) {
+    if (!loading && isLoggedIn && mode !== 'biometrics' && mode !== 'welcome') {
       router.push('/dashboard')
     }
-  }, [isLoggedIn, loading, router])
+  }, [isLoggedIn, loading, router, mode])
 
   if (loading) return <FallbackSuspense message="Getting ready…" />
 
@@ -39,10 +42,27 @@ function SignupPageContent() {
     return <LoginFormFlow onBackToWelcome={() => setMode('welcome')} />
   }
 
+  if (mode === 'biometrics' && credentials) {
+    return (
+      <BiometricEnrollmentStep 
+        email={credentials.email}
+        password={credentials.password}
+        onComplete={() => router.push('/dashboard')}
+      />
+    )
+  }
+
   return (
     <SignupFormFlow 
       onBackToWelcome={() => setMode('welcome')} 
-      onSignupSuccess={() => router.push('/dashboard')}
+      onSignupSuccess={(email, password) => {
+        setCredentials({ email, password })
+        if (Capacitor.isNativePlatform()) {
+          setMode('biometrics')
+        } else {
+          router.push('/dashboard')
+        }
+      }}
     />
   )
 }
