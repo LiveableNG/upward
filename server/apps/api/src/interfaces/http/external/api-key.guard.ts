@@ -19,13 +19,19 @@ export class ApiKeyGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest()
     const apiKeyHeader = request.headers['x-api-key']
-    const apiKey = Array.isArray(apiKeyHeader) ? apiKeyHeader[0] : apiKeyHeader
-    const method = request.method ?? 'UNKNOWN'
-    const path = request.originalUrl  request.url  'unknown-path'
-    const ip = request.ip  request.headers['x-forwarded-for']  'unknown-ip'
+    const apiKey =
+      Array.isArray(apiKeyHeader)
+        ? apiKeyHeader.find((value): value is string => typeof value === 'string')
+        : typeof apiKeyHeader === 'string'
+          ? apiKeyHeader
+          : undefined
+    const method = String(request.method ?? 'UNKNOWN')
+    const path = String(request.originalUrl  request.url  'unknown-path')
+    const ipHeader = request.ip  request.headers['x-forwarded-for']  'unknown-ip'
+    const ip = Array.isArray(ipHeader) ? ipHeader.join(',') : String(ipHeader)
 
     if (!apiKey) {
-      this.logger.warn([${method}] ${path} rejected: missing API key | ip=${ip})
+      this.logger.warn('[' + method + '] ' + path + ' rejected: missing API key | ip=' + ip)
       throw new UnauthorizedException('Missing API key')
     }
 
@@ -39,14 +45,32 @@ export class ApiKeyGuard implements CanActivate {
 
     if (!platform) {
       this.logger.warn(
-        [${method}] ${path} rejected: invalid API key | key=${apiKeyMasked} hash=${apiKeyHashPreview} ip=${ip},
+        '[' +
+          method +
+          '] ' +
+          path +
+          ' rejected: invalid API key | key=' +
+          apiKeyMasked +
+          ' hash=' +
+          apiKeyHashPreview +
+          ' ip=' +
+          ip,
       )
       throw new UnauthorizedException('Invalid API key')
     }
 
     request.platformId = platform.id
     this.logger.log(
-      [${method}] ${path} authorized | platformId=${platform.id} key=${apiKeyMasked} hash=${apiKeyHashPreview},
+      '[' +
+        method +
+        '] ' +
+        path +
+        ' authorized | platformId=' +
+        platform.id +
+        ' key=' +
+        apiKeyMasked +
+        ' hash=' +
+        apiKeyHashPreview,
     )
     return true
   }
