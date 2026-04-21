@@ -20,8 +20,10 @@ import {
   Calendar,
   Shield,
 } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useAuth } from '@/features/auth/AuthContext'
+import { Capacitor } from '@capacitor/core'
 
 import { useToast } from '@/components/common/Toast'
 import { useScoreProfile, usePublicScoreProfile } from '../../services/scoreService'
@@ -36,8 +38,14 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   const router = useRouter()
   const { isLoggedIn } = useAuth()
   const { success, error: toastError } = useToast()
+  const [isApp, setIsApp] = useState(false)
+
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      setIsApp(true)
+    }
+  }, [])
   
-  // Conditionally fetch based on whether we are in public or private view
   const privateProfile = useScoreProfile()
   const publicProfile = usePublicScoreProfile(publicSlug || '')
   
@@ -45,12 +53,15 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   
   const handleShare = () => {
     const p = scoreProfile?.data?.profile
-    const u = scoreProfile?.data?.profile?.uuid || ''
-    // Prefer custom slug if set, otherwise use UUID for a stable link
-    const identifier = p?.profileSlug || (scoreProfile as any)?.data?.uuid || u || 'not-found'
+    const u = scoreProfile?.data?.profile?.uuid || (scoreProfile as any)?.data?.uuid || ''
     
-    // Construct public URL
-    const url = `http://localhost:3000/profile/${identifier}`
+    const identifier = p?.profileSlug || u || 'not-found'
+    
+    const baseUrl = Capacitor.isNativePlatform() 
+      ? 'https://upward-pay.vercel.app' 
+      : (typeof window !== 'undefined' ? window.location.origin : 'https://upward-pay.vercel.app')
+
+    const url = `${baseUrl}/profile/${identifier}`
     
     navigator.clipboard.writeText(url)
     success('Public profile link copied to clipboard!')
@@ -175,7 +186,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                 <span className="kyc-report__score-label">{isScorable ? 'Rent Credibility Score' : 'Score Building'}</span>
                 <div className="kyc-report__score-value-wrap">
                    <div className="kyc-report__score-value">{score}</div>
-                   <div className="kyc-report__score-max">/ 900</div>
+                   <div className="kyc-report__score-max">/ 800</div>
                 </div>
                 <div className="kyc-report__score-tier">
                   <Star size={12} fill="var(--clay)" color="var(--clay)" />
@@ -188,10 +199,10 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                   <circle 
                     className="kyc-report__gauge-fill" 
                     cx="50" cy="50" r="45" 
-                    style={{ strokeDasharray: `${(score/900)*283} 283` }}
+                    style={{ strokeDasharray: `${(score/800)*283} 283` }}
                   />
                 </svg>
-                <div className="kyc-report__score-gauge-inner">{Math.round((score/900)*100)}%</div>
+                <div className="kyc-report__score-gauge-inner">{Math.round((score/800)*100)}%</div>
               </div>
             </div>
           </div>
@@ -301,7 +312,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
           </div>
         </div>
 
-        {!isPublic && (
+        {!isPublic && !isApp && (
             <div className="kyc-report-actions">
               <button className="btn btn--primary btn--full kyc-report-actions__share" onClick={handleShare}>
                 <Share2 size={18} />

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Wand2, Smartphone, Gift, ArrowRight, Sparkles } from 'lucide-react'
+import { Wand2, Smartphone, Gift, ArrowRight, Sparkles, TrendingUp } from 'lucide-react'
 
 export function UpcomingFeaturesWidget() {
   const router = useRouter()
@@ -13,6 +13,13 @@ export function UpcomingFeaturesWidget() {
       icon: Wand2,
       color: 'var(--clay)',
       bg: 'rgba(217, 119, 87, 0.1)',
+    },
+    {
+      title: 'Future Savings',
+      desc: 'Save for rent (+100 Score)',
+      icon: TrendingUp,
+      color: '#8b5cf6',
+      bg: 'rgba(139, 92, 246, 0.1)',
     },
     {
       title: 'Advanced Property Search',

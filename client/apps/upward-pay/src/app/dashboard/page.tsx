@@ -19,6 +19,7 @@ import FallbackSuspense from '@/components/FallbackSuspense'
 import { useScoreProfile } from '@/features/dashboard/services/scoreService'
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { AppleIcon, PlayStoreIcon } from '@/components/StoreIcons'
+import { Capacitor } from '@capacitor/core'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -101,7 +102,10 @@ export default function DashboardPage() {
   const totalPaid = completedPayments.reduce((sum: number, p: any) => sum + p.amount, 0)
   const currency = completedPayments[0]?.currency || 'NGN'
 
-  const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor?.isNative
+  const isCapacitor = Capacitor.isNativePlatform() || 
+    (typeof window !== 'undefined' && 
+     (Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios'))
+     
   const shouldShowAppBanner = !isCapacitor && !localDismissedBanner
 
   const backendNotifCount = notifData?.unreadCount || 0

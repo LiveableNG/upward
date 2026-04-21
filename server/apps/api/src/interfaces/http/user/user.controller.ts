@@ -21,6 +21,7 @@ import { RequestCredibilityRecordsUseCase } from '../../../application/use-cases
 import { GetCredibilityRequestsUseCase } from '../../../application/use-cases/user/get-credibility-requests.use-case'
 import { GenerateKYCReportPdfUseCase } from '../../../application/use-cases/user/generate-kyc-report-pdf.use-case'
 
+import { CheckSlugAvailabilityUseCase } from '../../../application/use-cases/user/check-slug-availability.use-case'
 interface FastifyReply {
   setCookie(name: string, value: string, options: Record<string, unknown>): FastifyReply
   clearCookie(name: string, options?: Record<string, unknown>): FastifyReply
@@ -88,6 +89,7 @@ export class UserController {
     private readonly requestCredibilityRecords: RequestCredibilityRecordsUseCase,
     private readonly getCredibilityRequests: GetCredibilityRequestsUseCase,
     private readonly generateKYCPdf: GenerateKYCReportPdfUseCase,
+    private readonly checkSlugAvailability: CheckSlugAvailabilityUseCase,
   ) { }
 
   @Post('signup')
@@ -290,5 +292,12 @@ export class UserController {
       .header('Content-Type', 'application/pdf')
       .header('Content-Disposition', `attachment; filename=Credibility_Report_${req.user.id}.pdf`)
       .send(buffer);
+  }
+
+  @Get('check-slug/:slug')
+  @HttpCode(HttpStatus.OK)
+  async checkSlug(@Req() req: any) {
+    const slug = req.params.slug;
+    return this.checkSlugAvailability.execute(slug);
   }
 }

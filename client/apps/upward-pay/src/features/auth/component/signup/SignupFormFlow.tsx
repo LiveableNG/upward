@@ -16,11 +16,13 @@ import DateInput from '@/components/common/DateInput'
 
 interface SignupFormFlowProps {
   onBackToWelcome: () => void
-  onSignupSuccess: () => void
+  onSignupSuccess: (email: string, password: string) => void
 }
 
 export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormFlowProps) {
-  const { signup, loading: signupLoading, error: signupError } = useSignup('', onSignupSuccess)
+  const { signup, loading: signupLoading, error: signupError } = useSignup('', () => {
+    onSignupSuccess(email, password)
+  })
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
