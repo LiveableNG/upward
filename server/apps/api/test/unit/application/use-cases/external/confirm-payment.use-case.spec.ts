@@ -63,7 +63,6 @@ describe('ConfirmExternalPaymentUseCase', () => {
   let paymentRequestRepository: jest.Mocked<IPaymentRequestRepository>
   let userRepository: jest.Mocked<UserRepository>
   let recordTransactionUseCase: jest.Mocked<RecordTransactionUseCase>
-  let webhookService: jest.Mocked<WebhookService>
 
   beforeEach(() => {
     paymentRequestRepository = {
@@ -87,15 +86,10 @@ describe('ConfirmExternalPaymentUseCase', () => {
       execute: jest.fn(),
     } as any
 
-    webhookService = {
-      sendWebhook: jest.fn(),
-    } as any
-
     useCase = new ConfirmExternalPaymentUseCase(
       paymentRequestRepository,
       userRepository,
       recordTransactionUseCase,
-      webhookService,
     )
   })
 
@@ -165,19 +159,6 @@ describe('ConfirmExternalPaymentUseCase', () => {
         })
       })
 
-      it('should send webhook if platformId is present', async () => {
-        recordTransactionUseCase.execute.mockResolvedValue(makeTransaction({ status: 'SUCCESS' }) as any)
-        
-        await useCase.execute(paymentUuid, reference)
-
-        expect(webhookService.sendWebhook).toHaveBeenCalledWith(
-          77,
-          'payment.confirmed',
-          expect.objectContaining({
-            event: 'payment.confirmed',
-          })
-        )
-      })
     })
   })
 })
