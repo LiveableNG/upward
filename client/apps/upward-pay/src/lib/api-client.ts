@@ -7,12 +7,18 @@ let refreshPromise: Promise<string | null> | null = null
 
 async function runRefresh(): Promise<string | null> {
   try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
+
     const response = await fetch(`${API_BASE}/user/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
       credentials: 'include',
+      signal: controller.signal,
     })
+    
+    clearTimeout(timeoutId)
     
     if (!response.ok) throw new Error('Refresh failed')
     
@@ -47,13 +53,18 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       headers['Content-Type'] = 'application/json'
     }
 
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
+
     const fetchOptions: RequestInit = {
       credentials: 'include',
       ...options,
-      headers
+      headers,
+      signal: controller.signal,
     }
 
     const res = await fetch(url, fetchOptions)
+    clearTimeout(timeoutId)
     
     if (res.status === 401 && !path.includes('/user/auth/refresh') && !path.includes('/user/auth/login')) {
       // Token might be expired. Try to refresh.

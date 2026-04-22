@@ -16,15 +16,15 @@
     <path
         android:strokeColor="#FFFFFF"
         android:strokeWidth="8.5"
-        android:strokeLinecap="round"
+        android:strokeLineCap="round"
         android:pathData="M40.5,78 Q40.5,89.1 54,89.1 Q67.5,89.1 67.5,78" />
     
     <!-- Roof line -->
     <path
         android:strokeColor="#FFFFFF"
         android:strokeWidth="8"
-        android:strokeLinecap="round"
-        android:strokeLinejoin="round"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
         android:pathData="M31.5,58.5 L54,39.6 L76.5,58.5" />
     
     <!-- Green dot -->
