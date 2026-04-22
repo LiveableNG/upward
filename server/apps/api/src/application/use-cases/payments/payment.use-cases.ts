@@ -169,11 +169,28 @@ export class RecordTransactionUseCase {
 
       let paymentAmount = pr ? Math.min(data.amount, remaining) : data.amount
       let userPropertyIdToSettle: number | null = pr?.userPropertyId || null;
+      let propertyForCycle: any = null;
 
-      if (isVerified && data.type === 'RENT' && !pr && data.userPropertyUuid) {
-        const prop = await this.propertyRepo.findByUuid(data.userPropertyUuid)
-        if (prop) {
-          userPropertyIdToSettle = prop.id!;
+      if (userPropertyIdToSettle) {
+        propertyForCycle = await this.propertyRepo.findById(userPropertyIdToSettle);
+      }
+
+      // If PR doesn't have a linked property, try to find it via userPropertyUuid or fallback
+      if (!userPropertyIdToSettle && isVerified && data.type === 'RENT') {
+        if (data.userPropertyUuid) {
+          propertyForCycle = await this.propertyRepo.findByUuid(data.userPropertyUuid);
+          if (propertyForCycle) {
+            userPropertyIdToSettle = propertyForCycle.id!;
+          }
+        }
+        
+        // Final fallback: If user has only ONE property, link it to that
+        if (!userPropertyIdToSettle && user) {
+          const userProps = await this.propertyRepo.findByUserId(user.id!);
+          if (userProps.length === 1) {
+            propertyForCycle = userProps[0];
+            userPropertyIdToSettle = propertyForCycle.id!;
+          }
         }
       }
 
@@ -356,22 +373,22 @@ export class RecordTransactionUseCase {
 
             // --- 6. Rent Cycle Source of Truth Update ---
             const cycleDueDate = pr ? new Date(pr.dueDate) : (prop.rentEndDate ? new Date(prop.rentEndDate) : new Date())
-            const isPaidFull = totalRentPaidForProp >= totalOwedForProp
             const paidAt = new Date()
-
-            let cycleStatus: any = 'PARTIAL_ON_TIME'
-            if (isPaidFull) {
-              cycleStatus = paidAt <= cycleDueDate ? 'PAID_ON_TIME' : 'PAID_LATE'
-            } else {
-              cycleStatus = paidAt <= cycleDueDate ? 'PARTIAL_ON_TIME' : 'PARTIAL_LATE'
-            }
+            
+            // amountOwed should be the specific request amount if it's a PR, or the property rent if manual
+            const amountOwedForCycle = pr ? pr.amount : (prop.rentAmount || 0);
+            
+            const currentTotalPaid = pr ? (pr.amountPaid || 0) + rentPortion : rentPortion;
+            const cycleStatus = currentTotalPaid >= amountOwedForCycle 
+              ? (paidAt <= cycleDueDate ? 'PAID_ON_TIME' : 'PAID_LATE')
+              : (paidAt <= cycleDueDate ? 'PARTIAL_ON_TIME' : 'PARTIAL_LATE')
 
             if (pr) {
               await this.rentCycleRepo.upsertByPaymentRequestId(pr.id!, {
                 userId: user.id!,
                 userPropertyId: prop.id,
-                amountOwed: totalOwedForProp,
-                amountPaid: totalRentPaidForProp,
+                amountOwed: amountOwedForCycle,
+                amountPaid: (pr.amountPaid || 0) + rentPortion,
                 currency: data.currency || prop.currency || 'NGN',
                 dueDate: cycleDueDate,
                 paidAt: paidAt,
@@ -381,33 +398,35 @@ export class RecordTransactionUseCase {
               }, txClient)
             } else {
               // Manual match based on property and due date
-              const existingCycles = await this.rentCycleRepo.findByUserPropertyId(prop.id!)
-              const existingCycle = existingCycles.find(c =>
-                new Date(c.dueDate).getTime() === cycleDueDate.getTime() && c.source === 'MANUAL'
+              const existingCycles = await this.rentCycleRepo.findByUserId(user.id!)
+              const matchingCycle = existingCycles.find(c =>
+                c.userPropertyId === prop.id &&
+                new Date(c.dueDate).getTime() === cycleDueDate.getTime()
               )
 
-              if (existingCycle) {
-                await this.rentCycleRepo.update(existingCycle.id!, {
-                  amountPaid: totalRentPaidForProp,
-                  paidAt: paidAt,
-                  status: cycleStatus
+              if (matchingCycle && matchingCycle.id) {
+                await this.rentCycleRepo.update(matchingCycle.id, {
+                  amountPaid: (matchingCycle.amountPaid || 0) + rentPortion,
+                  status: cycleStatus,
+                  paidAt: paidAt
                 }, txClient)
               } else {
                 await this.rentCycleRepo.create({
                   userId: user.id!,
-                  userPropertyId: prop.id,
-                  amountOwed: totalOwedForProp,
-                  amountPaid: totalRentPaidForProp,
+                  userPropertyId: prop.id!,
+                  amountOwed: amountOwedForCycle,
+                  amountPaid: rentPortion,
                   currency: data.currency || prop.currency || 'NGN',
                   dueDate: cycleDueDate,
                   paidAt: paidAt,
                   status: cycleStatus,
                   source: 'MANUAL',
-                  description: `Manual Rent Payment`
+                  description: `Rent payment for ${prop.location?.address || 'property'}`
                 }, txClient)
               }
             }
 
+            // Always update the master property record
             await this.propertyRepo.update(prop.id!, updateData, txClient)
           }
         }

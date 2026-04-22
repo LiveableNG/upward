@@ -9,7 +9,6 @@ import { api } from '@/lib/api'
 
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
 import { StatStrip } from '@/features/dashboard/components/StatStrip'
-import { AppInstallBanner } from '@/features/dashboard/components/AppInstallBanner'
 import { UpcomingFeaturesWidget } from '@/features/dashboard/components/UpcomingFeaturesWidget'
 import { RentCredibilityScore } from '@/features/dashboard/components/RentCredibilityScore'
 import { ShareCredibility } from '@/features/dashboard/components/ShareCredibility'
@@ -183,13 +182,6 @@ export default function DashboardPage() {
           profilePic={user.profilePic}
         />
       </div>
-      {/* App install banner renders in normal flow, below the sticky header */}
-      {shouldShowAppBanner && (
-        <div className="mobile-only">
-          <AppInstallBanner onDismiss={handleDismissBanner} />
-        </div>
-      )}
-
       <StatStrip
         completedPaymentsCount={completedPayments.length}
         totalPaid={totalPaid}

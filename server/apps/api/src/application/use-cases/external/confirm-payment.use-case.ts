@@ -37,6 +37,7 @@ export class ConfirmExternalPaymentUseCase {
       status: 'PENDING',
       type: 'RENT',
       paymentRequestId: paymentRequest.id!,
+      userPropertyUuid: paymentRequest.userPropertyUuid,
     })
 
     if (!transaction) {
