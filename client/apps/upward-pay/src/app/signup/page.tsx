@@ -24,7 +24,7 @@ function SignupPageContent() {
   useEffect(() => {
     if (!loading && isLoggedIn && mode !== 'biometrics' && mode !== 'welcome') {
       const redirect = searchParams.get('redirect') || '/dashboard'
-      router.push(redirect)
+      router.replace(redirect)
     }
   }, [isLoggedIn, loading, router, mode, searchParams])
 

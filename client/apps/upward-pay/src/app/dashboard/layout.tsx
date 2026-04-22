@@ -20,7 +20,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!loading && !isLoggedIn) {
-      router.push(`/login?redirect=${pathname}`)
+      router.replace(`/login?redirect=${pathname}`)
     }
   }, [loading, isLoggedIn, router, pathname])
 

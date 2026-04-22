@@ -31,41 +31,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const INACTIVITY_TIMEOUT = 5 * 60 * 1000 // 5 minutes
 
   const refreshUser = async () => {
-    console.log('[Auth] Refreshing user...')
     try {
       const profile = await getMe()
-      console.log('[Auth] Refresh success, profile:', profile)
       setUser(profile)
       // Marker for "Throw away" (Termination) check
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('upward_session_active', 'true')
       }
     } catch (err) {
-      console.log('[Auth] Refresh failed:', err)
       setUser(null)
       setAccessToken(null)
     } finally {
-      console.log('[Auth] Refresh done, setting loading=false')
       setLoading(false)
     }
   }
 
   useEffect(() => {
     const initSession = async () => {
-      console.log('[Auth] Initializing session...')
-      // 5-second failsafe to dismiss loading state no matter what
-      const failsafe = setTimeout(() => {
-        console.warn('[Auth] Session initialization taking too long. Dismissing loading state...')
-        setLoading(false)
-      }, 5000)
-
       if (Capacitor.isNativePlatform()) {
         const isSessionActive = sessionStorage.getItem('upward_session_active')
         
         if (!isSessionActive) {
-          console.log('[Auth] App terminated/fresh launch detected. Hardening session...')
           await logout()
-          clearTimeout(failsafe)
           setLoading(false)
           return
         }
@@ -91,7 +78,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       await refreshUser()
-      clearTimeout(failsafe)
     }
 
     initSession()
@@ -122,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setAccessToken(null)
       setUser(null)
-      router.push('/login')
+      router.replace('/login')
     }
   }
 
