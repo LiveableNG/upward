@@ -1,5 +1,4 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
-console.log('[API] Base URL:', API_BASE)
 
 import { getAccessToken, setAccessToken } from './auth-token'
 
@@ -42,7 +41,6 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
   const url = path.startsWith('http') ? path : `${API_BASE}${path}`
   
   const makeRequest = async (token: string | null) => {
-    console.log(`[API] Requesting: ${url}`, { method: options.method || 'GET', hasToken: !!token })
     const headers: Record<string, string> = {
       ...((options.headers as Record<string, string>) || {}),
     }
@@ -67,7 +65,6 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
     const res = await fetch(url, fetchOptions)
     clearTimeout(timeoutId)
-    console.log(`[API] Response: ${res.status} ${res.statusText} for ${url}`)
     
     if (res.status === 401 && !path.includes('/user/auth/refresh') && !path.includes('/user/auth/login')) {
       // Token might be expired. Try to refresh.
