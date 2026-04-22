@@ -67,6 +67,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
     const res = await fetch(url, fetchOptions)
     clearTimeout(timeoutId)
+    console.log(`[API] Response: ${res.status} ${res.statusText} for ${url}`)
     
     if (res.status === 401 && !path.includes('/user/auth/refresh') && !path.includes('/user/auth/login')) {
       // Token might be expired. Try to refresh.

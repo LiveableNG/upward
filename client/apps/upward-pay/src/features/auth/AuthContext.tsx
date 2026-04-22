@@ -31,17 +31,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const INACTIVITY_TIMEOUT = 5 * 60 * 1000 // 5 minutes
 
   const refreshUser = async () => {
+    console.log('[Auth] Refreshing user...')
     try {
       const profile = await getMe()
+      console.log('[Auth] Refresh success, profile:', profile)
       setUser(profile)
       // Marker for "Throw away" (Termination) check
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('upward_session_active', 'true')
       }
     } catch (err) {
+      console.log('[Auth] Refresh failed:', err)
       setUser(null)
       setAccessToken(null)
     } finally {
+      console.log('[Auth] Refresh done, setting loading=false')
       setLoading(false)
     }
   }
@@ -56,12 +60,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }, 5000)
 
       if (Capacitor.isNativePlatform()) {
-        // 1. Termination Check (SessionStorage marker)
-        // sessionStorage is typically cleared when the webview task is killed
         const isSessionActive = sessionStorage.getItem('upward_session_active')
         
-        // If we were supposedly logged in (persistent cookies exist) but the marker is gone,
-        // it means the app was terminated (swiped away). Force logout.
         if (!isSessionActive) {
           console.log('[Auth] App terminated/fresh launch detected. Hardening session...')
           await logout()
@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        // 2. Background Inactivity Listener (5 min timeout)
+
         await App.addListener('appStateChange', async (state) => {
           if (!state.isActive) {
             // App backgrounded
