@@ -17,6 +17,11 @@ import { UpwardLogo } from '@/components/PoweredByUpward'
 import PaystackEmbeddedCheckout from '@/features/dashboard/components/payment/PaystackEmbeddedCheckout'
 import FallbackSuspense from '@/components/FallbackSuspense'
 import { setCookie } from '@/lib/cookie-utils'
+import { Capacitor } from '@capacitor/core'
+import { CapacitorGuard } from '@/components/common/CapacitorGuard'
+import { BiometricsService } from '@/features/auth/services/biometricsService'
+import { BiometricLoginButton } from '@/features/auth/component/BiometricLoginButton'
+import { useLogin } from '@/features/auth/hooks/useLogin'
 
 import { InvoiceHeader } from '@/features/payments/components/unified-pay/InvoiceHeader'
 import { AmountDetailCard } from '@/features/payments/components/unified-pay/AmountDetailCard'
@@ -110,9 +115,42 @@ export default function PayClient() {
 
   const [showRenewalModal, setShowRenewalModal] = useState(false)
 
+  const [autoPrompted, setAutoPrompted] = useState(false)
+  const { login: executeLogin, loading: loginLoading } = useLogin(`/pay/${uuid}`)
+
   useEffect(() => {
     if (uuid) loadPaymentDetails()
   }, [uuid])
+
+  // Automatic Biometric Prompt Logic
+  useEffect(() => {
+    async function triggerAutoBiometrics() {
+
+      if (!Capacitor.isNativePlatform() || autoPrompted || authUser || step !== 'invoice' || !paymentData?.hasPassword) return
+
+      const available = await BiometricsService.isAvailable()
+      const enabled = await BiometricsService.isEnabled()
+
+      if (available && enabled && !loginLoading) {
+        setAutoPrompted(true)
+        setTimeout(async () => {
+          try {
+            const authenticated = await BiometricsService.authenticate('Log in to Pay')
+            if (authenticated) {
+              const credentials = await BiometricsService.getCredentials()
+              if (credentials) {
+                executeLogin(credentials.email, credentials.password)
+              }
+            }
+          } catch (e) {
+            console.error('Auto-biometric login failed:', e)
+          }
+        }, 800)
+      }
+    }
+
+    triggerAutoBiometrics()
+  }, [step, paymentData, authUser, autoPrompted, loginLoading, executeLogin])
 
   async function loadPaymentDetails() {
     try {
@@ -308,9 +346,19 @@ export default function PayClient() {
                   {loginRequired && (
                     <div className="login-prompt">
                       <p className="login-prompt__text">This request is linked to an account. Login to pay.</p>
-                      <button className="btn btn--primary btn--full btn--pill" onClick={() => router.push(`/login?redirect=/pay/${uuid}`)}>
-                        <Lock size={16} className="mr-2" /> Login to Pay
+                      <button 
+                        className="btn btn--primary btn--full btn--pill" 
+                        onClick={() => router.push(`/login?redirect=/pay/${uuid}`)}
+                        disabled={loginLoading}
+                      >
+                        <Lock size={16} className="mr-2" /> {loginLoading ? 'Logging in...' : 'Login to Pay'}
                       </button>
+
+                      <CapacitorGuard>
+                        <div style={{ marginTop: '-8px' }}>
+                          <BiometricLoginButton onAuthenticated={(email, pass) => executeLogin(email, pass)} />
+                        </div>
+                      </CapacitorGuard>
                     </div>
                   )}
 

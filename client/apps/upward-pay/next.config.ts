@@ -1,13 +1,11 @@
-import type { NextConfig } from 'next'
-
-const isStaticExport = process.env['NEXT_OUTPUT'] === 'export'
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  ...(isStaticExport ? { output: 'export' as const } : {}),
+  output: 'export',
   images: {
     unoptimized: true,
   },
   trailingSlash: true,
-}
+};
 
-export default nextConfig
+export default nextConfig;

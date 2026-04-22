@@ -100,6 +100,8 @@ export class PrismaRentCycleRepository implements IRentCycleRepository {
       const record = await prisma.upward_rent_cycle.update({
         where: { id: existing.id },
         data: {
+          userPropertyId: data.userPropertyId,
+          source: data.source,
           amountOwed: data.amountOwed,
           amountPaid: data.amountPaid,
           dueDate: data.dueDate,
