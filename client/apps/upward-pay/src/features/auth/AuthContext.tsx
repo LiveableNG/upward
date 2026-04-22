@@ -31,39 +31,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const INACTIVITY_TIMEOUT = 5 * 60 * 1000 // 5 minutes
 
   const refreshUser = async () => {
+    console.log('[Auth] Refreshing user...')
     try {
       const profile = await getMe()
+      console.log('[Auth] Refresh success, profile:', profile)
       setUser(profile)
-      // Marker for "Throw away" (Termination) check
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('upward_session_active', 'true')
       }
     } catch (err) {
+      console.error('[Auth] Refresh failed:', err)
       setUser(null)
       setAccessToken(null)
     } finally {
+      console.log('[Auth] Refresh done, setting loading=false')
       setLoading(false)
     }
   }
 
   useEffect(() => {
     const initSession = async () => {
+      console.log('[Auth] Initializing session...')
       if (Capacitor.isNativePlatform()) {
         const isSessionActive = sessionStorage.getItem('upward_session_active')
         
         if (!isSessionActive) {
+          console.log('[Auth] No active session found on native platform. Logging out.')
           await logout()
           setLoading(false)
           return
         }
 
-
         await App.addListener('appStateChange', async (state) => {
           if (!state.isActive) {
-            // App backgrounded
             localStorage.setItem('app_backgrounded_at', Date.now().toString())
           } else {
-            // App focused
             const backgroundedAt = localStorage.getItem('app_backgrounded_at')
             if (backgroundedAt) {
               const diff = Date.now() - parseInt(backgroundedAt)

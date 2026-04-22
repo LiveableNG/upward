@@ -1,6 +1,9 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
-
 import { getAccessToken, setAccessToken } from './auth-token'
+import { Capacitor } from '@capacitor/core'
+
+const API_BASE = (typeof window !== 'undefined' && !Capacitor.isNativePlatform())
+  ? '/api/v1'
+  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1')
 
 let isRefreshing = false
 let refreshPromise: Promise<string | null> | null = null
@@ -45,7 +48,9 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       ...((options.headers as Record<string, string>) || {}),
     }
 
-    if (token) {
+    // Only add Authorization header if we have a token AND we are on native platform
+    // On web, we rely on secure HTTP-only cookies via the same-domain proxy
+    if (token && Capacitor.isNativePlatform()) {
       headers['Authorization'] = `Bearer ${token}`
     }
 

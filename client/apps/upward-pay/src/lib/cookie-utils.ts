@@ -1,7 +1,3 @@
-/**
- * Client-side cookie utility to bridge the gap between backend-set HttpOnly cookies
- * and Next.js middleware, especially in cross-origin local development.
- */
 export function setCookie(name: string, value: string, days: number = 7) {
   if (typeof document === 'undefined') return
   
