@@ -48,6 +48,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initSession = async () => {
+      // 5-second failsafe to dismiss loading state no matter what
+      const failsafe = setTimeout(() => {
+        console.warn('[Auth] Session initialization taking too long. Dismissing loading state...')
+        setLoading(false)
+      }, 5000)
+
       if (Capacitor.isNativePlatform()) {
         // 1. Termination Check (SessionStorage marker)
         // sessionStorage is typically cleared when the webview task is killed
@@ -58,6 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!isSessionActive) {
           console.log('[Auth] App terminated/fresh launch detected. Hardening session...')
           await logout()
+          clearTimeout(failsafe)
           setLoading(false)
           return
         }
@@ -83,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       await refreshUser()
+      clearTimeout(failsafe)
     }
 
     initSession()
