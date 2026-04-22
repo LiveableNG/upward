@@ -48,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initSession = async () => {
+      console.log('[Auth] Initializing session...')
       // 5-second failsafe to dismiss loading state no matter what
       const failsafe = setTimeout(() => {
         console.warn('[Auth] Session initialization taking too long. Dismissing loading state...')
