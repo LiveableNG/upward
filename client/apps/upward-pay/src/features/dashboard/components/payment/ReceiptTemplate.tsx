@@ -65,13 +65,8 @@ export default function ReceiptTemplate({
   receipt: ReceiptData
   onClose?: () => void
   onDownload?: () => void
+  onShare?: () => void
 }) {
-  function handleShare() {
-    const amountStr = formatCurrency(receipt.amount)
-    const text = `Hello! I've just paid my rent through Upward. Here is my receipt (#${receipt.receiptNumber}) for ${amountStr}. This payment is verified on the GoodTenants platform for your records.`
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`
-    window.open(whatsappUrl, '_blank')
-  }
 
   const isCredit = receipt.type === 'credit'
   const isActualBreakdown =
@@ -90,9 +85,6 @@ export default function ReceiptTemplate({
             <ArrowLeft size={18} />
           </button>
           <div className="receipt-actions__right">
-            <button className="btn btn--secondary btn--sm" onClick={handleShare}>
-              Share
-            </button>
             <button className="btn btn--primary btn--sm" onClick={() => onDownload?.()}>
               <Download size={13} style={{ marginRight: 4 }} />
               Download
@@ -176,7 +168,7 @@ export default function ReceiptTemplate({
           <div
             style={{
               background: (receipt.status || 'PAID') === 'PARTIAL' ? 'rgba(217,119,87,0.08)' : (isCredit ? 'var(--success-bg)' : 'rgba(34,197,94,0.08)'),
-              color: (receipt.status || 'PAID') === 'PARTIAL' ? 'var(--clay)' : (isCredit ? 'var(--success)' : '#16a34a'),
+              color: 'var(--clay)',
               padding: '5px 12px',
               borderRadius: 100,
               fontSize: 10,

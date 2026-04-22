@@ -29,6 +29,7 @@ import {
   Check,
   X,
   Loader2,
+  Copy,
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -240,6 +241,18 @@ function ProfileMenuContentInner() {
     }
   }
 
+  const handleCopyLink = async () => {
+    const baseUrl = Capacitor.isNativePlatform() ? 'https://upward-pay.vercel.app' : window.location.origin
+    const url = `${baseUrl}/profile/${formData.profileSlug || profile?.uuid}`
+    
+    try {
+      await navigator.clipboard.writeText(url)
+      success('Link copied to clipboard')
+    } catch (err) {
+      toastError('Failed to copy link')
+    }
+  }
+
   const sections = [
     { id: 'personal', title: 'Personal Details', icon: User },
     { id: 'contracts', title: 'Tenancy Agreement', icon: FileText },
@@ -408,11 +421,30 @@ function ProfileMenuContentInner() {
                   marginBottom: '1rem'
                 }}>
                   <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Live Portfolio URL</div>
-                  <div style={{ wordBreak: 'break-all', fontWeight: 600, color: 'var(--clay)', fontSize: '0.9rem' }}>
-                    {(() => {
-                      const baseUrl = Capacitor.isNativePlatform() ? 'https://upward-pay.vercel.app' : window.location.origin
-                      return `${baseUrl}/profile/${formData.profileSlug || profile.uuid}`
-                    })()}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                    <div style={{ wordBreak: 'break-all', fontWeight: 600, color: 'var(--clay)', fontSize: '0.9rem', flex: 1 }}>
+                      {(() => {
+                        const baseUrl = Capacitor.isNativePlatform() ? 'https://upward-pay.vercel.app' : window.location.origin
+                        return `${baseUrl}/profile/${formData.profileSlug || profile.uuid}`
+                      })()}
+                    </div>
+                    <button 
+                      onClick={handleCopyLink}
+                      style={{ 
+                        background: 'var(--clay-faint)', 
+                        color: 'var(--clay)', 
+                        border: 'none', 
+                        padding: '6px', 
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Copy Link"
+                    >
+                      <Copy size={16} />
+                    </button>
                   </div>
                 </div>
                 <div className="slug-input-container" style={{ gridColumn: '1 / -1', position: 'relative' }}>

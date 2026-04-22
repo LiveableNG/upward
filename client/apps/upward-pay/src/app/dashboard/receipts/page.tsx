@@ -53,6 +53,9 @@ export default function ReceiptsPage() {
                 : 'Property Unit'
               : 'Upward Wallet'
 
+        const propInfo = tx.property || landlord?.properties?.[0]
+        const propertyAddress = tx.propertyAddress || propInfo?.locationAddress || propInfo?.address || tx.paymentRequest?.propertyLocation || profile?.address || ''
+
         // Map backend Transaction to frontend ReceiptData
         const data: ReceiptData = {
           uuid: tx.uuid,
@@ -61,10 +64,10 @@ export default function ReceiptsPage() {
           paidAt: tx.createdAt,
           generatedAt: new Date().toISOString(),
           tenantName: profile ? `${profile.firstName} ${profile.lastName}` : 'Tenant',
-          companyName: (landlord?.accountName !== 'account_name' ? landlord?.accountName : null) || landlord?.name || tx.paymentRequest?.companyName || tx.paymentRequest?.managerName || tx.narration,
+          companyName: (landlord?.accountName && landlord.accountName !== 'account_name') ? landlord.accountName : (landlord?.name || tx.paymentRequest?.companyName || tx.paymentRequest?.managerName || tx.narration),
           companyLogo: '',
           paymentType: tx.paymentType || 'Rent Payment',
-          propertyAddress: tx.propertyAddress || tx.paymentRequest?.propertyLocation || profile?.address || '',
+          propertyAddress: propertyAddress,
           amount: tx.amount,
           currency: tx.currency || 'NGN',
           channel: 'Paystack',
@@ -125,6 +128,63 @@ export default function ReceiptsPage() {
     }
   }
 
+  async function handleShare() {
+    if (!receipt) return
+    try {
+      const res = await api.getReceiptPdf({
+        title: receipt.title,
+        receiptNumber: receipt.receiptNumber,
+        paidAt: receipt.paidAt,
+        tenantName: receipt.tenantName,
+        landlordName: receipt.companyName,
+        paymentType: receipt.paymentType,
+        propertyAddress: receipt.propertyAddress,
+        amount: receipt.amount,
+        currency: receipt.currency,
+        reference: receipt.paystackReference,
+        channel: receipt.channel,
+        type: receipt.type === 'credit' ? 'SAVINGS' : 'RENT',
+        status: receipt.status,
+        lineItems: receipt.lineItems,
+      })
+
+      if (res?.url) {
+        // Convert data URL or fetch URL to Blob
+        let blob: Blob
+        if (res.url.startsWith('data:')) {
+          const arr = res.url.split(',')
+          const mime = arr[0].match(/:(.*?);/)?.[1]
+          const bstr = atob(arr[1])
+          let n = bstr.length
+          const u8arr = new Uint8Array(n)
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n)
+          }
+          blob = new Blob([u8arr], { type: mime })
+        } else {
+          const response = await fetch(res.url)
+          blob = await response.blob()
+        }
+
+        const file = new File([blob], `receipt-${receipt.receiptNumber}.pdf`, { type: 'application/pdf' })
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: `Receipt ${receipt.receiptNumber}`,
+            text: `Here is my payment receipt for ${receipt.amount.toLocaleString()} ${receipt.currency}`,
+          })
+        } else {
+          // Fallback if sharing files is not supported
+          handleDownload()
+        }
+      }
+    } catch (e) {
+      console.error('Share failed:', e)
+      handleDownload()
+    }
+  }
+
   if (loading) {
     return <FallbackSuspense message="Loading receipt details..." />
   }
@@ -138,6 +198,7 @@ export default function ReceiptsPage() {
       receipt={receipt}
       onClose={() => router.push('/dashboard/transactions')}
       onDownload={handleDownload}
+      onShare={handleShare}
     />
   )
 }
