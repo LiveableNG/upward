@@ -16,6 +16,8 @@ import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useLogin } from '@/features/auth/hooks/useLogin'
 import { BiometricsService } from '@/features/auth/services/biometricsService'
 import { useToast } from '@/components/common/Toast'
+import { requestOTP } from '@/features/auth/services/authService'
+import { OTPInput } from '@/components/common/OTPInput'
 
 interface LoginFormFlowProps {
   onBackToWelcome: () => void
@@ -25,13 +27,20 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
   const router = useRouter()
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
   const redirect = searchParams?.get('redirect') || '/dashboard'
-  const { login: doLogin, loading: loginLoading, error: loginError } = useLogin(redirect)
+  const { 
+    login: doLogin, 
+    otpLogin, 
+    loading: loginLoading, 
+    error: loginError 
+  } = useLogin(redirect)
 
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [biometricAvailable, setBiometricAvailable] = useState(false)
   const [biometricLoading, setBiometricLoading] = useState(false)
+  const [step, setStep] = useState<'login' | 'otp'>('login')
+  const [isRequestingOTP, setIsRequestingOTP] = useState(false)
 
   const { error: toastError } = useToast()
 
@@ -70,6 +79,52 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
     }
   }
 
+  const handleRequestOTP = async () => {
+    if (!loginEmail) {
+      toastError('Please enter your email address first.')
+      return
+    }
+
+    setIsRequestingOTP(true)
+    try {
+      await requestOTP(loginEmail, 'LOGIN')
+      setStep('otp')
+    } catch (err: any) {
+      toastError(err.message || 'Failed to send verification code')
+    } finally {
+      setIsRequestingOTP(false)
+    }
+  }
+
+  const handleVerifyOTP = async (otp: string) => {
+    otpLogin(loginEmail, otp)
+  }
+
+  if (step === 'otp') {
+    return (
+      <div className="auth-shell auth-shell--login">
+        <div className="auth-shell__top">
+          <button className="auth-shell__back" onClick={() => setStep('login')} disabled={loginLoading}>
+            <ChevronLeft size={20} />
+          </button>
+        </div>
+        <div className="auth-shell__brand">
+          <UpwardLogo size={28} color="var(--clay)" />
+        </div>
+        <div className="auth-stage">
+          <OTPInput
+            email={loginEmail}
+            onVerify={handleVerifyOTP}
+            onResend={handleRequestOTP}
+            onChangeEmail={() => setStep('login')}
+            isLoading={loginLoading}
+            error={loginError?.message}
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="auth-shell auth-shell--login">
       <div className="auth-shell__top">
@@ -96,10 +151,11 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
                   <p>{loginError.message}</p>
                   <button 
                     type="button" 
-                    className="btn btn--clay btn--small mt-2" 
-                    onClick={() => router.push(`/invite/${loginError.data.userId}`)}
+                    className="btn btn--primary btn--full mt-4" 
+                    onClick={handleRequestOTP}
+                    disabled={isRequestingOTP}
                   >
-                    Complete Profile
+                    {isRequestingOTP ? <Loader2 size={18} className="animate-spin" /> : 'Verify & Set Password'}
                   </button>
                 </div>
               ) : (
@@ -135,7 +191,6 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
                 autoComplete="current-password"
-                required
               />
               <button
                 type="button"
@@ -151,9 +206,22 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
             id="login-submit"
             className="btn btn--primary btn--full btn--pay mt-6"
             type="submit"
-            disabled={loginLoading || biometricLoading || !loginEmail || !loginPassword}
+            disabled={loginLoading || biometricLoading || isRequestingOTP || !loginEmail || !loginPassword}
           >
             {loginLoading ? 'Signing in…' : 'Sign In'} <ArrowRight size={17} />
+          </button>
+
+          <div className="auth-divider">
+            <span>OR</span>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn--ghost btn--full verif-code-btn"
+            onClick={handleRequestOTP}
+            disabled={loginLoading || isRequestingOTP || !loginEmail}
+          >
+            {isRequestingOTP ? <Loader2 size={18} className="animate-spin" /> : 'Log in with verification code'}
           </button>
 
           {biometricAvailable && (
@@ -189,6 +257,32 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
         }
         .mt-3 {
           margin-top: 16px;
+        }
+        .mt-6 {
+          margin-top: 32px;
+        }
+        .auth-divider {
+          display: flex;
+          align-items: center;
+          margin: 20px 0;
+          color: var(--text-muted);
+          font-size: 11px;
+          font-weight: 700;
+        }
+        .auth-divider::before,
+        .auth-divider::after {
+          content: "";
+          flex: 1;
+          height: 1px;
+          background: var(--border);
+        }
+        .auth-divider span {
+          margin: 0 12px;
+        }
+        .verif-code-btn {
+          color: var(--clay);
+          font-weight: 600;
+          font-size: 13px;
         }
         .biometric-btn {
           display: flex;

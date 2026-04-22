@@ -709,3 +709,21 @@ model upward_credibility_request {
   @@index([propertyUuid])
   @@index([status])
 }
+
+model upward_verification_token {
+  id         Int      @id @default(autoincrement())
+  uuid       String   @unique @default(uuid())
+  token      String?  @unique // For public links (invite, payment)
+  otp        String?  // 6-digit code for OTP verify
+  context    String   // SIGNUP, LOGIN, INVITE, PAYMENT
+  identifier String   // email or entity UUID
+  metadata   Json?    // Optional extra data (e.g. original email for change flow)
+  resends    Int      @default(0)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([token])
+  @@index([identifier, context])
+}
+

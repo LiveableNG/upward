@@ -367,4 +367,73 @@ export class EmailService {
       throw error
     }
   }
+
+  async sendAuthOTP(email: string, otp: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT') {
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
+
+    const contexts = {
+      SIGNUP: {
+        title: 'Verify your email',
+        message: 'Welcome to Upward! Use the code below to verify your email address and complete your signup.',
+        subject: `Verify your Upward account: ${otp}`,
+      },
+      LOGIN: {
+        title: 'Login Verification',
+        message: 'You requested to log in via verification code. Use the code below to proceed.',
+        subject: `Your Upward Login Code: ${otp}`,
+      },
+      INVITE: {
+        title: 'Accept Your Invite',
+        message: 'You have been invited to join Upward. Use the code below to verify your identity and accept the invite.',
+        subject: `Your Upward Invite Verification Code: ${otp}`,
+      },
+      PAYMENT: {
+        title: 'Verify Payment Access',
+        message: 'Use the code below to verify your access to this payment. This ensures your transaction is secure.',
+        subject: `Your Upward Payment Verification Code: ${otp}`,
+      },
+    }
+
+    const { title, message, subject } = contexts[context]
+
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: #f9fafb; padding: 40px; border-radius: 16px;">
+        <div style="margin-bottom:32px;">
+          <span style="color:#d97757;font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Upward</span>
+          <div style="color:#6B7280;font-size:12px;margin-top:4px;">by GoodTenants</div>
+        </div>
+        <h2 style="color: #111827; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">${title}</h2>
+        <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Hello,</p>
+        <p style="font-size: 16px; color: #4b5563;">${message}</p>
+        
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 32px; border-radius: 12px; margin: 32px 0; text-align: center;">
+          <div style="font-size: 11px; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 12px;">Verification Code</div>
+          <div style="font-size: 48px; font-weight: 800; color: #d97757; letter-spacing: 0.1em; line-height: 1;">${otp}</div>
+        </div>
+
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; text-align: center;">
+          This code expires in 10 minutes.
+        </p>
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-top: 24px;">
+          If you didn't request this, you can safely ignore this email.
+        </p>
+      </div>
+    `
+
+    try {
+      await this.mg.messages.create(domain, {
+        from,
+        to: [email],
+        subject,
+        html,
+      })
+      this.logger.log(`${context} OTP sent to ${email}`)
+    } catch (error) {
+      this.logger.error(`Failed to send ${context} OTP to ${email}`, error)
+      this.bugsnag.notify(error, { email, type: context })
+      throw error
+    }
+  }
 }
+

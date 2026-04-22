@@ -4,6 +4,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
 import { UserAuthService } from '../../../application/auth/user-auth.service'
 import { WebhookService } from '../../../shared/infrastructure/common/webhook/webhook.service'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import { VERIFICATION_TOKEN_REPOSITORY, VerificationTokenRepository } from '../../../domains/auth/verification-token.repository'
 import * as bcrypt from 'bcrypt'
 
 interface FastifyReply {
@@ -44,18 +45,23 @@ export class InviteController {
     private readonly userAuthService: UserAuthService,
     private readonly webhookService: WebhookService,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
+    @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
   ) { }
 
-  @Get(':uuid')
-  async getInviteData(@Param('uuid') uuid: string) {
-    const user = await this.userRepository.findByUuid(uuid)
+  @Get(':token')
+  async getInviteData(@Param('token') token: string) {
+    const vt = await this.tokenRepository.findByToken(token)
 
+    if (!vt || vt.context !== 'INVITE' || vt.expiresAt < new Date()) {
+      throw new NotFoundException('Invite link is invalid or has expired')
+    }
+
+    const user = await this.userRepository.findByUuid(vt.identifier)
     if (!user) {
-      throw new NotFoundException('Invite not found or expired')
+      throw new NotFoundException('Invited user not found')
     }
 
     const hasPassword = !!user.passwordHash && user.passwordHash !== '' && user.passwordHash !== 'INVITED'
-
     const companyUser = user.companyUsers?.[0]
     const property = user.properties?.[0]
 
@@ -64,22 +70,18 @@ export class InviteController {
       managerName = `${property.manager.firstName ? this.encryption.decrypt(property.manager.firstName) : ''} ${property.manager.lastName ? this.encryption.decrypt(property.manager.lastName) : ''}`
     }
 
+    // Mask email
+    const maskedEmail = this.userAuthService.maskEmail(user.email)
+
     return {
       success: true,
       hasPassword,
-      user: {
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        phone: user.phone || null,
-      },
+      maskedEmail,
       company: companyUser ? {
         name: this.encryption.decrypt(companyUser.company.name),
         profilePic: (companyUser.company as any).profilePic,
       } : null,
-      manager: managerName ? {
-        name: managerName
-      } : null,
+      manager: managerName ? { name: managerName } : null,
       property: property ? {
         rentAmount: property.rentAmount,
         location: property.location ? {
@@ -91,16 +93,72 @@ export class InviteController {
     }
   }
 
-  @Post(':uuid/accept')
+  @Post(':token/request-otp')
+  async requestInviteOTP(
+    @Param('token') token: string,
+    @Body() body: { email?: string }
+  ) {
+    const vt = await this.tokenRepository.findByToken(token)
+    if (!vt || vt.context !== 'INVITE' || vt.expiresAt < new Date()) {
+      throw new NotFoundException('Invite link is invalid or has expired')
+    }
+
+    let email = body.email
+    if (!email) {
+      const user = await this.userRepository.findByUuid(vt.identifier)
+      if (!user) throw new NotFoundException('Invited user not found')
+      email = user.email
+    } else {
+      // "This isn't my email" flow -> update user email server-side first
+      const user = await this.userRepository.findByUuid(vt.identifier)
+      if (!user) throw new NotFoundException('Invited user not found')
+      
+      await this.userRepository.update(user.id!, { 
+        email: email,
+        emailHash: (this.userRepository as any).encryption.hash(email)
+      })
+    }
+
+    if (!email) {
+      throw new BadRequestException('No email address found for this invite')
+    }
+
+    await this.userAuthService.requestOTP(email, 'INVITE')
+    return { success: true, message: 'Verification code sent to ' + email }
+  }
+
+  @Post(':token/verify-otp')
+  async verifyInviteOTP(
+    @Param('token') token: string,
+    @Body() body: { otp: string }
+  ) {
+    const vt = await this.tokenRepository.findByToken(token)
+    if (!vt || vt.context !== 'INVITE') throw new NotFoundException('Invalid link')
+
+    const user = await this.userRepository.findByUuid(vt.identifier)
+    if (!user) throw new NotFoundException('User not found')
+
+    return this.userAuthService.verifyOTP(user.email, body.otp, 'INVITE', false)
+  }
+
+  @Post(':token/accept')
   async acceptInvite(
-    @Param('uuid') uuid: string,
-    @Body() data: any,
+    @Param('token') token: string,
+    @Body() data: { password?: string; otp: string },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
-    const user = await this.userRepository.findByUuid(uuid)
+    const vt = await this.tokenRepository.findByToken(token)
+    if (!vt || vt.context !== 'INVITE' || vt.expiresAt < new Date()) {
+      throw new NotFoundException('Invite link is invalid or has expired')
+    }
 
-    if (!user) {
-      throw new NotFoundException('Invite not found')
+    const user = await this.userRepository.findByUuid(vt.identifier)
+    if (!user) throw new NotFoundException('Invite not found')
+
+    // Verify OTP again during acceptance for final security check
+    const verification = await this.userAuthService.verifyOTP(user.email, data.otp, 'INVITE')
+    if (!verification.success) {
+      throw new BadRequestException(verification.message || 'Invalid or expired verification code')
     }
 
     if (!data.password) {
@@ -111,20 +169,19 @@ export class InviteController {
 
     await this.userRepository.update(user.id!, {
       passwordHash,
-      firstName: data.firstName || user.firstName,
-      lastName: data.lastName || user.lastName,
-      phone: data.phone || user.phone,
     })
 
     const updatedUser = await this.userRepository.findById(user.id!)
     if (!updatedUser) throw new Error('Failed to update user')
 
-    // Generate tokens and create a database session
+    // Delete the invite token after successful acceptance
+    await this.tokenRepository.delete(vt.id!)
+
     const { accessToken, refreshToken, user: userNoPass } = await this.userAuthService.generateFullAuthResponse(updatedUser)
     
     setUserAuthCookies(reply, accessToken, refreshToken)
 
-    const companyUser = user.companyUsers?.[0]
+    const companyUser = updatedUser.companyUsers?.[0]
     const platformId = companyUser?.company?.platformId
 
     if (platformId) {

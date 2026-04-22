@@ -98,3 +98,32 @@ export async function resetPassword(data: { email: string; otp: string; new: str
     body: JSON.stringify(data),
   })
 }
+
+export async function checkEmail(email: string) {
+  return request<{ exists: boolean; hasPassword?: boolean; isInvited?: boolean }>('/user/auth/check-email', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export async function requestOTP(email: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT') {
+  return request<{ success: boolean; message: string }>('/user/auth/request-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, context }),
+  })
+}
+
+export async function verifyOTP(email: string, otp: string, context: string) {
+  return request<{ success: boolean; message?: string }>('/user/auth/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp, context }),
+  })
+}
+
+export async function loginWithOTP(email: string, otp: string) {
+  return request<AuthResponse>('/user/auth/otp-login', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp }),
+  })
+}
+

@@ -6,7 +6,7 @@
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
 
-const BASE_URL = 'https://upward-dev.vercel.app/api/v1';
+const BASE_URL = 'http://localhost:4000/api/v1';
 
 async function callApi(endpoint, method, body, apiKey = null, token = null) {
   const url = `${BASE_URL}${endpoint}`;
@@ -49,61 +49,63 @@ async function run() {
       return d.toISOString().split('T')[0];
     };
 
-    // // 1. Get Platform Key
-    // console.log('--- Step 1: Get Platform Key ---');
-    // const platformData = await callApi('/platform/get-key', 'POST', {
-    //   name: 'GoodTenants',
-    //   email: 'hello@goodte',
-    //   webhookUrl: 'https://hooks.upward.ng/simulate'
-    // });
-    // const apiKey = platformData.apiKey;
-    // console.log(`API Key acquired: ${apiKey}`);
+    // 1. Get Platform Key
+    console.log('--- Step 1: Get Platform Key ---');
+    const platformData = await callApi('/platform/get-key', 'POST', {
+      name: 'GoodTenants',
+      email: 'hello@goodtenants.africa',
+      webhookUrl: 'https://hooks.upward.ng/simulate'
+    });
+    const apiKey = platformData.apiKey;
+    console.log(`API Key acquired: ${apiKey}`);
 
-    // // 2. Setup Test User with multiple Rent Scenarios
-    // console.log('\n--- Step 2: Creating Test User with Urgency Matrix ---');
-    // const scenarios = [
-    //   { address: 'Ajah estate Ikeja', amount: 1200000, date: getFutureDate(14) },
-    // ];
+    // 2. Setup Test User with multiple Rent Scenarios
+    console.log('\n--- Step 2: Creating Test User with Urgency Matrix ---');
+    const scenarios = [
+      { address: 'Ajah estate Ikeja', amount: 1200000, date: getFutureDate(14) },
+    ];
 
-    // const inviteData = await callApi('/single/invite', 'POST', {
-    //   company: { name: 'Upward Premium' },
-    //   invite: {
-    //     user: { 
-    //       email: `ayeleru1234@gmail.com`, 
-    //       firstName: 'Abdulsalam', 
-    //       lastName: 'Ayeleru' 
-    //     },
-    //     properties: scenarios.map(s => ({
-    //       location: { country: 'Nigeria', state: 'Lagos', area: 'Shomolu', address: s.address },
-    //       rent: {
-    //         rentAmount: s.amount,
-    //         rentEndDate: s.date,
-    //         rentStartDate: new Date(new Date(s.date).setFullYear(new Date(s.date).getFullYear() - 1))
-    //       }
-    //     }))
-    //   }
-    // }, apiKey);
+    const inviteData = await callApi('/single/invite', 'POST', {
+      company: { name: 'Upward Premium' },
+      invite: {
+        user: { 
+          email: `baldwinjames9872@gmail.com`, 
+          firstName: 'Baldwin', 
+          lastName: 'James' 
+        },
+        properties: scenarios.map(s => ({
+          location: { country: 'Nigeria', state: 'Lagos', area: 'Shomolu', address: s.address },
+          rent: {
+            rentAmount: s.amount,
+            rentEndDate: s.date,
+            rentStartDate: new Date(new Date(s.date).setFullYear(new Date(s.date).getFullYear() - 1))
+          }
+        }))
+      }
+    }, apiKey);
 
-    // const userId = inviteData.data.userId;
-    // const responseProps = inviteData.data.properties;
+    const userId = inviteData.data.userId;
+    const responseProps = inviteData.data.properties;
     
-    // // Map response UUIDs back to our scenario dates
-    // const propMap = responseProps.map((p, i) => ({
-    //     ...p,
-    //     dueDate: scenarios[i].date,
-    //     amount: scenarios[i].amount
-    // }));
+    // Map response UUIDs back to our scenario dates
+    const propMap = responseProps.map((p, i) => ({
+        ...p,
+        dueDate: scenarios[i].date,
+        amount: scenarios[i].amount
+    }));
 
-    // console.log(`\nCreated ${propMap.length} property scenarios for User ID: ${userId}`);
-    // propMap.forEach((p, i) => {
-    //     console.log(`- Property ${i+1}: ${p.uuid} (Due: ${p.dueDate})`);
-    // });
+    console.log(`\nCreated ${propMap.length} property scenarios for User ID: ${userId}`);
+    propMap.forEach((p, i) => {
+        console.log(`- Property ${i+1}: ${p.uuid} (Due: ${p.dueDate})`);
+    });
 
-    // 3. Create a Payment Request for the Overdue property
+    //3. Create a Payment Request for the Overdue property
     console.log('\n--- Step 3: Triggering Hero Card for Overdue Property ---');
-    const apiKey = 'up_sk_live_e68751ef7c946e23d5af9180'
+    const overduePropUuid = propMap[0].uuid;
+    const dueDate = propMap[0].dueDate;
+    const amount = propMap[0].amount;
     await callApi('/payment-request', 'POST', {
-      userPropertyUuid: '01fad61a-9567-45da-bf56-b0fde237a032',
+      userPropertyUuid: overduePropUuid,
       currency: 'NGN',
       description: 'Rent Payment',
       allowPartial: true,
