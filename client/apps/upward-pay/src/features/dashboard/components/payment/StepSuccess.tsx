@@ -49,7 +49,7 @@ export function StepSuccess({
         <Check size={40} />
       </div>
 
-      <h2 style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)', marginBottom: 8, letterSpacing: '-0.02em' }}>
+      <h2 style={{ fontSize: 26, fontWeight: 800, color: 'var(--clay)', marginBottom: 8, letterSpacing: '-0.02em' }}>
         Transaction Successful
       </h2>
       <p

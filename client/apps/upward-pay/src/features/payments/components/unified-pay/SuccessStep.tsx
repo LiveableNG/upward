@@ -88,7 +88,7 @@ export function SuccessStep({
         .pay-success-title {
           font-size: 28px;
           font-weight: 950;
-          color: var(--dark);
+          color: var(--clay);
           margin-bottom: 12px;
           letter-spacing: -0.04em;
         }

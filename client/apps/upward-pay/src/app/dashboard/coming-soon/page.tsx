@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Smartphone, Gift, Wand2, Rocket } from 'lucide-react'
+import { ArrowLeft, Smartphone, Gift, Wand2, Rocket, TrendingUp } from 'lucide-react'
 
 export default function ComingSoonPage() {
   const router = useRouter()
@@ -12,6 +12,12 @@ export default function ComingSoonPage() {
       desc: 'Smart financial planning for your next rent and housing goals.',
       icon: Wand2,
       color: 'var(--clay)',
+    },
+    {
+      title: 'Future Savings',
+      desc: 'Automated rent savings with credibility score boosts.',
+      icon: TrendingUp,
+      color: '#8b5cf6',
     },
     {
       title: 'Advanced Property Search',
