@@ -9,6 +9,7 @@ import {
   COMPANY_USER_REPOSITORY,
   CompanyUserRepository
 } from '../../../domains/companies/company.repository'
+import { VERIFICATION_TOKEN_REPOSITORY, VerificationTokenRepository } from '../../../domains/auth/verification-token.repository'
 import {
   PropertyRepository,
   PROPERTY_REPOSITORY,
@@ -43,6 +44,7 @@ export class SingleInviteUseCase {
     @Inject(COMPANY_USER_REPOSITORY) private readonly companyUserRepository: CompanyUserRepository,
     @Inject(PROPERTY_REPOSITORY) private readonly propertyRepository: PropertyRepository,
     @Inject(LOCATION_REPOSITORY) private readonly locationRepository: LocationRepository,
+    @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
     private readonly notificationService: NotificationService,
   ) { }
 
@@ -50,13 +52,22 @@ export class SingleInviteUseCase {
     const result = await this.setupInviteContext(payload, platformId);
     const firstProp = result.properties[0]
 
+    // 4. Generate expirable verification token for the link
+    const token = randomUUID()
+    await this.tokenRepository.create({
+      token,
+      context: 'INVITE',
+      identifier: result.user.uuid,
+      expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000), // 72 hours
+    })
+
     return {
       userId: result.user.uuid,
       companyId: result.company.uuid,
       managerId: firstProp?.managerUuid || null,
       userPropertyUuid: firstProp?.uuid || null,
       email: result.user.email,
-      inviteLink: urls[0] + `/invite/${result.user.uuid}`,
+      inviteLink: urls[0] + `/invite/${token}`,
       properties: result.properties.map(p => ({
         uuid: p.uuid,
         address: p.address,

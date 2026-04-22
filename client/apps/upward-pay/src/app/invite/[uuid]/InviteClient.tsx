@@ -11,48 +11,55 @@ import {
   ShieldCheck,
   Eye,
   EyeOff,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useAuth } from '@/features/auth/AuthContext'
 import { setCookie } from '@/lib/cookie-utils'
+import { OTPInput } from '@/components/common/OTPInput'
+
+// Re-checking AuthContext path from SignupFlow
+// import { useAuth } from '@/features/auth/AuthContext'
 
 export default function InviteClient() {
-  const { uuid } = useParams()
+  const params = useParams()
+  const token = params.uuid as string // The route is currently [uuid], we'll treat it as our token
   const router = useRouter()
   const { success, error: toastError } = useToast()
-  const { login } = useAuth()
-
+  
+  // Checking AuthContext path - fix to match working imports
+  // Based on SignupFormFlow: import { useAuth } from '@/features/auth/AuthContext'
+  // But InviteClient has: import { useAuth } from '@/features/auth/AuthContext' (wait no, line 18 says ContextAuth?)
+  // Let me check actual file existence.
+  
   const [loading, setLoading] = useState(true)
   const [inviteData, setInviteData] = useState<any>(null)
+  const [step, setStep] = useState<'verification' | 'otp' | 'form'>('verification')
   const [showPassword, setShowPassword] = useState(false)
+  const [otp, setOtp] = useState('')
   const [formData, setFormData] = useState<any>({
     firstName: '',
     lastName: '',
     email: '',
-    phone: '',
-    address: '',
     password: '',
     confirmPassword: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRequestingOTP, setIsRequestingOTP] = useState(false)
   const [localError, setLocalError] = useState('')
-
-  const { isLoggedIn, loading: authLoading } = useAuth()
+  const [isChangingEmail, setIsChangingEmail] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
 
   useEffect(() => {
-    if (authLoading) return
-    if (isLoggedIn) {
-      router.replace('/dashboard')
-      return
-    }
     fetchInviteData()
-  }, [uuid, isLoggedIn, authLoading])
+  }, [token])
 
   async function fetchInviteData() {
     try {
-      const res = await api.get(`/public/invite/${uuid}`)
+      const res = await api.get(`/public/invite/${token}`)
       if (res.success) {
         if (res.hasPassword) {
           success('Your account is already active. Please sign in.')
@@ -60,20 +67,54 @@ export default function InviteClient() {
           return
         }
         setInviteData(res)
-        setFormData((prev: any) => ({
-          ...prev,
-          firstName: res.user.firstName || '',
-          lastName: res.user.lastName || '',
-          email: res.user.email || '',
-          phone: res.user.phone || '',
-          address: res.user.address || ''
-        }))
+        // Note: we don't set email here because it's masked in the response for security
       }
     } catch (err) {
       toastError('Invite not found or has expired')
       router.push('/signup?mode=login')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleRequestOTP = async (emailOverride?: string) => {
+    setIsRequestingOTP(true)
+    try {
+      const res = await api.post(`/public/invite/${token}/request-otp`, {
+        email: emailOverride
+      })
+      if (res.success) {
+        setStep('otp')
+        if (emailOverride) {
+          setIsChangingEmail(false)
+          // Re-fetch to get updated masked email if needed, or just trust the new email
+        }
+      }
+    } catch (err: any) {
+      toastError(err.message || 'Failed to send verification code')
+    } finally {
+      setIsRequestingOTP(false)
+    }
+  }
+
+  const handleVerifyOTP = async (code: string) => {
+    setIsSubmitting(true)
+    try {
+      const res = await api.post(`/public/invite/${token}/verify-otp`, {
+        otp: code
+      })
+      if (res.success) {
+        setOtp(code)
+        // Also populate form data with any user details returned if available
+        // Pre-fill names if we had them or let user fill
+        setStep('form')
+      } else {
+        setLocalError(res.message || 'Invalid code')
+      }
+    } catch (err: any) {
+      setLocalError(err.message || 'Verification failed')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -88,23 +129,16 @@ export default function InviteClient() {
 
     setIsSubmitting(true)
     try {
-      const res = await api.post(`/public/invite/${uuid}/accept`, {
+      const res = await api.post(`/public/invite/${token}/accept`, {
         password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phone: formData.phone,
-        address: formData.address
+        otp: otp // Use the verified OTP to finalize
       })
 
       if (res.success) {
         success('Account activated! Welcome to Upward.')
-        // Direct login
-        if (res.user && res.accessToken) {
-          setCookie('access_token', res.accessToken)
-          login(res.user)
-          router.push('/dashboard')
-        } else {
-          router.push('/signup?mode=login')
+        // The controller sets cookies, but we might need to trigger AuthContext
+        if (res.user) {
+          window.location.href = '/dashboard'
         }
       }
     } catch (err: any) {
@@ -127,7 +161,7 @@ export default function InviteClient() {
         </div>
       </div>
       <div className="auth-layout__form flex-center">
-        <div className="loading-spinner" />
+        <Loader2 className="animate-spin" size={40} color="var(--clay)" />
         <style jsx>{`
           .flex-center {
             display: flex;
@@ -135,17 +169,6 @@ export default function InviteClient() {
             justify-content: center;
             flex: 1;
             min-height: 100vh;
-          }
-          .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--surface2);
-            border-top-color: var(--clay);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-          }
-          @keyframes spin {
-            to { transform: rotate(360deg); }
           }
         `}</style>
       </div>
@@ -156,7 +179,6 @@ export default function InviteClient() {
 
   return (
     <div className="auth-layout">
-      {/* Desktop Visual Panel - Hidden on Mobile */}
       <div className="auth-layout__visual">
         <div className="auth-layout__visual-content">
           <div className="auth-layout__graphic">
@@ -178,118 +200,134 @@ export default function InviteClient() {
           </div>
 
           <div className="auth-stage">
-            <div className="auth-stage__header">
-              <h1 className="auth-stage__title">Activate your account</h1>
-              <p className="auth-stage__subtitle">
-                You&apos;ve been invited by <strong>{companyName}</strong> to join Upward and start building your payment credibility.
-              </p>
-            </div>
+            {step === 'verification' && (
+              <div className="animate-pop">
+                <div className="auth-stage__header">
+                  <h1 className="auth-stage__title">Confirm your identity</h1>
+                  <p className="auth-stage__subtitle">
+                    This invite was sent to <strong>{inviteData?.maskedEmail}</strong>. 
+                    Please verify your email to continue.
+                  </p>
+                </div>
 
-            <form className="auth-form" onSubmit={handleSubmit}>
-              {localError && <div className="auth-form__error">{localError}</div>}
-              
-              <div className="auth-form__row">
-                <div className="auth-form__field">
-                  <label>First Name</label>
-                  <div className="input-with-icon">
-                    <User size={17} />
-                    <input
-                      type="text"
-                      value={formData.firstName}
-                      onChange={e => setFormData({ ...formData, firstName: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="auth-form__field">
-                  <label>Last Name</label>
-                  <div className="input-with-icon">
-                    <User size={17} />
-                    <input
-                      type="text"
-                      value={formData.lastName}
-                      onChange={e => setFormData({ ...formData, lastName: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
+                <div className="verification-options mt-6">
+                  <button 
+                    className="btn btn--primary btn--full" 
+                    onClick={() => handleRequestOTP()}
+                    disabled={isRequestingOTP}
+                  >
+                    {isRequestingOTP ? <Loader2 className="animate-spin" size={18} /> : 'Send code to this email'}
+                  </button>
 
-              <div className="auth-form__field mt-1">
-                <label>Email Address</label>
-                <div className="input-with-icon">
-                  <Mail size={17} />
-                  <input 
-                    type="email" 
-                    value={formData.email} 
-                    disabled 
-                    className="disabled-input" 
-                  />
-                </div>
-              </div>
+                  <button 
+                    className="btn btn--ghost btn--full mt-2"
+                    onClick={() => setIsChangingEmail(!isChangingEmail)}
+                  >
+                    Not your email?
+                  </button>
 
-              <div className="auth-form__row mt-1">
-                <div className="auth-form__field">
-                  <label>Set Password</label>
-                  <div className="input-with-icon">
-                    <Lock size={17} />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.password}
-                      onChange={e => setFormData({ ...formData, password: e.target.value })}
-                      required
-                      minLength={8}
-                      placeholder="Min. 8 characters"
-                    />
-                  </div>
-                </div>
-                <div className="auth-form__field">
-                  <label>Confirm Password</label>
-                  <div className="input-with-icon">
-                    <Lock size={17} />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.confirmPassword}
-                      onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="password-toggle"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
+                  {isChangingEmail && (
+                    <div className="email-change-form mt-4 animate-pop p-4 rounded-lg bg-surface-subtle border border-dashed border-clay-glow">
+                      <p className="text-xs text-secondary mb-3">Enter the email address where you'd like to receive the code:</p>
+                      <div className="input-with-icon">
+                        <Mail size={17} />
+                        <input 
+                          type="email" 
+                          placeholder="Your correct email"
+                          className="bg-surface"
+                          value={newEmail}
+                          onChange={e => setNewEmail(e.target.value)}
+                        />
+                      </div>
+                      <button 
+                        className="btn btn--primary btn--full mt-4"
+                        disabled={!newEmail || isRequestingOTP}
+                        onClick={() => handleRequestOTP(newEmail)}
+                      >
+                        {isRequestingOTP ? <Loader2 className="animate-spin" size={18} /> : 'Update and send code'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
+            )}
 
-              <div className="form-info-box mt-4">
-                <ShieldCheck size={18} color="var(--success)" strokeWidth={2.5} />
-                <p>Direct invitation from <strong>{companyName}</strong>. Your data is secure and verified.</p>
+            {step === 'otp' && (
+              <OTPInput
+                email={newEmail || inviteData?.maskedEmail}
+                onVerify={handleVerifyOTP}
+                onResend={() => handleRequestOTP(newEmail || undefined)}
+                onChangeEmail={() => setStep('verification')}
+                isLoading={isSubmitting}
+                error={localError}
+              />
+            )}
+
+            {step === 'form' && (
+              <div className="animate-pop">
+                <div className="auth-stage__header">
+                  <h1 className="auth-stage__title">Secure your account</h1>
+                  <p className="auth-stage__subtitle">
+                    Create a password to finalize your account activation.
+                  </p>
+                </div>
+
+                <form className="auth-form" onSubmit={handleSubmit}>
+                  {localError && <div className="auth-form__error">{localError}</div>}
+                  
+                  <div className="auth-form__field">
+                    <label>Set Password</label>
+                    <div className="input-with-icon">
+                      <Lock size={17} />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={formData.password}
+                        onChange={e => setFormData({ ...formData, password: e.target.value })}
+                        required
+                        minLength={8}
+                        placeholder="Min. 8 characters"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="auth-form__field mt-1">
+                    <label>Confirm Password</label>
+                    <div className="input-with-icon">
+                      <Lock size={17} />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={formData.confirmPassword}
+                        onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="form-info-box mt-4">
+                    <ShieldCheck size={18} color="var(--success)" strokeWidth={2.5} />
+                    <p>Verification complete. Your account is now being secured.</p>
+                  </div>
+
+                  <button className="btn btn--primary btn--full btn--pay mt-6" type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Finalizing…' : 'Activate Account'}
+                    {!isSubmitting && <ArrowRight size={17} />}
+                  </button>
+                </form>
               </div>
-
-              <button className="btn btn--primary btn--full btn--pay mt-6" type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Activating account…' : 'Accept Invitation'}
-                {!isSubmitting && <ArrowRight size={17} />}
-              </button>
-            </form>
+            )}
           </div>
 
           <style jsx>{`
-            .auth-form__row {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 12px;
-            }
-            .mt-1 {
-              margin-top: 12px;
-            }
-            .disabled-input {
-              cursor: not-allowed;
-              opacity: 0.7;
-              background: var(--surface2) !important;
-            }
+            .mt-1 { margin-top: 12px; }
+            .mt-4 { margin-top: 24px; }
+            .mt-6 { margin-top: 32px; }
             .form-info-box {
               background: var(--surface);
               border: 1px solid var(--border-solid);
@@ -304,6 +342,13 @@ export default function InviteClient() {
               color: var(--text-secondary);
               line-height: 1.4;
               margin: 0;
+            }
+            .animate-pop {
+              animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            @keyframes pop {
+              0% { transform: scale(0.95); opacity: 0; }
+              100% { transform: scale(1); opacity: 1; }
             }
             @media (max-width: 480px) {
               .auth-form__row {

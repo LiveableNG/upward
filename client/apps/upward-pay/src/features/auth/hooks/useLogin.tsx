@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { login as authLogin } from '../services/authService'
+import { login as authLogin, loginWithOTP as authOTPLogin } from '../services/authService'
 import { useAuth } from '../AuthContext'
 import { setAccessToken } from '@/lib/auth-token'
 import { BiometricsService } from '../services/biometricsService'
@@ -28,9 +28,23 @@ export function useLogin(redirect: string) {
     },
   })
 
+  const otpLoginMutation = useMutation({
+    mutationFn: (data: { email: string; otp: string }) => authOTPLogin(data.email, data.otp),
+    onSuccess: async (result) => {
+      if (result.accessToken) {
+        setAccessToken(result.accessToken)
+      }
+      
+      setAuthUser(result.user)
+      queryClient.setQueryData(['user'], result.user)
+      router.push(redirect)
+    },
+  })
+
   return {
     login: (email: string, password: string) => loginMutation.mutate({ email, password }),
-    loading: loginMutation.isPending,
-    error: loginMutation.error as any,
+    otpLogin: (email: string, otp: string) => otpLoginMutation.mutate({ email, otp }),
+    loading: loginMutation.isPending || otpLoginMutation.isPending,
+    error: (loginMutation.error || otpLoginMutation.error) as any,
   }
 }

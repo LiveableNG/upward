@@ -248,7 +248,46 @@ export class UserController {
     return { success: true, message: 'Password reset successful' }
   }
 
+  @Post('check-email')
+  @HttpCode(HttpStatus.OK)
+  async checkEmail(@Body() body: { email: string }) {
+    return this.userAuthService.checkEmail(body.email)
+  }
+
+  @Post('request-otp')
+  @HttpCode(HttpStatus.OK)
+  async requestOTP(@Body() body: { email: string; context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' }) {
+    await this.userAuthService.requestOTP(body.email, body.context)
+    return { success: true, message: 'Verification code sent' }
+  }
+
+  @Post('verify-otp')
+  @HttpCode(HttpStatus.OK)
+  async verifyOTP(@Body() body: { email: string; otp: string; context: string }) {
+    return this.userAuthService.verifyOTP(body.email, body.otp, body.context)
+  }
+
+  @Post('otp-login')
+  @HttpCode(HttpStatus.OK)
+  async otpLogin(
+    @Body() body: { email: string; otp: string },
+    @Res({ passthrough: false }) reply: FastifyReply,
+  ) {
+    const verification = await this.userAuthService.verifyOTP(body.email, body.otp, 'LOGIN')
+    if (!verification.success) {
+      throw new UnauthorizedException(verification.message)
+    }
+
+    const user = await this.userAuthService.findByEmail(body.email)
+    if (!user) throw new UnauthorizedException('User not found')
+
+    const { refreshToken, ...rest } = await this.userAuthService.generateFullAuthResponse(user)
+    setUserAuthCookies(reply, rest.accessToken, refreshToken)
+    reply.status(HttpStatus.OK).send(rest)
+  }
+
   @Post('past-records')
+
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   async ingestRecords(

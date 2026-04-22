@@ -13,6 +13,7 @@ import {
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '@shared/infrastructure/common/encryption.service'
 import { NotificationService } from '@shared/infrastructure/common/notification.service'
+import { VERIFICATION_TOKEN_REPOSITORY, VerificationTokenRepository } from '@domains/auth/verification-token.repository'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -145,6 +146,7 @@ describe('SingleInviteUseCase', () => {
   let propertyRepository: jest.Mocked<PropertyRepository>
   let locationRepository: jest.Mocked<LocationRepository>
   let notificationService: jest.Mocked<NotificationService>
+  let tokenRepository: jest.Mocked<VerificationTokenRepository>
 
   beforeEach(() => {
     prisma = {} as any
@@ -199,6 +201,14 @@ describe('SingleInviteUseCase', () => {
       notifyUser: jest.fn(),
     } as any
 
+    tokenRepository = {
+      create: jest.fn(),
+      findByToken: jest.fn(),
+      findByIdentifier: jest.fn(),
+      delete: jest.fn(),
+      deleteOldTokens: jest.fn(),
+    } as any
+
     useCase = new SingleInviteUseCase(
       prisma,
       encryption,
@@ -208,6 +218,7 @@ describe('SingleInviteUseCase', () => {
       companyUserRepository,
       propertyRepository,
       locationRepository,
+      tokenRepository,
       notificationService,
     )
   })

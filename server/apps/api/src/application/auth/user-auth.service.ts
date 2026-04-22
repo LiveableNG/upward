@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, ConflictException, Inject, Forbidden
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import { UserRepository, USER_REPOSITORY, User } from '../../domains/users/user.repository'
+import { VerificationTokenRepository, VERIFICATION_TOKEN_REPOSITORY } from '../../domains/auth/verification-token.repository'
 import { EmailService } from '../../shared/infrastructure/email/email.service'
 import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service'
 import { S3Service } from '../../shared/infrastructure/common/s3/s3.service'
@@ -14,6 +15,7 @@ import { EncryptionService } from '../../shared/infrastructure/common/encryption
 export class UserAuthService extends BaseAuthService {
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
+    @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly encryption: EncryptionService,
@@ -550,5 +552,73 @@ export class UserAuthService extends BaseAuthService {
       resetPasswordOTP: null,
       resetPasswordExpires: null,
     })
+  }
+
+  async checkEmail(email: string): Promise<{ exists: boolean; hasPassword?: boolean; isInvited?: boolean }> {
+    const user = await this.userRepository.findByEmail(email)
+    if (!user) return { exists: false }
+    const isInvited = user.passwordHash === 'INVITED'
+    return {
+      exists: true,
+      isInvited,
+      hasPassword: !!user.passwordHash && user.passwordHash !== '' && !isInvited,
+    }
+  }
+
+  async requestOTP(email: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT'): Promise<void> {
+    // 1. Delete any old OTPs for this email/context
+    await this.tokenRepository.deleteOldTokens(email, context)
+
+    // 2. Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 mins
+
+    // 3. Create token record
+    await this.tokenRepository.create({
+      otp,
+      context,
+      identifier: email,
+      expiresAt,
+    })
+
+    // 4. Send email
+    await this.emailService.sendAuthOTP(email, otp, context)
+  }
+
+  async verifyOTP(email: string, otp: string, context: string, deleteOnSuccess = true): Promise<{ success: boolean; message?: string }> {
+    const record = await this.tokenRepository.findByIdentifier(email, context)
+
+    if (!record || !record.otp || record.expiresAt < new Date()) {
+      return { success: false, message: 'Invalid or expired verification code' }
+    }
+
+    if (record.otp !== otp) {
+      return { success: false, message: 'Invalid verification code' }
+    }
+
+    // OTP is valid!
+    if (deleteOnSuccess) {
+      await this.tokenRepository.delete(record.id!)
+    }
+    return { success: true }
+  }
+
+  maskEmail(email: string): string {
+    const [local, domain] = email.split('@')
+    if (!local || !domain) return email
+
+    if (local.length <= 2) {
+      return local[0] + '***@' + domain
+    }
+
+    if (local.length <= 4) {
+      return local[0] + '***' + local[local.length - 1] + '@' + domain
+    }
+
+    return local.substring(0, 2) + '***' + local.substring(local.length - 1) + '@' + domain
+  }
+
+  async findByEmail(email: string) {
+    return this.userRepository.findByEmail(email)
   }
 }
