@@ -39,9 +39,16 @@ export default function InviteClient() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [localError, setLocalError] = useState('')
 
+  const { isLoggedIn, loading: authLoading } = useAuth()
+
   useEffect(() => {
+    if (authLoading) return
+    if (isLoggedIn) {
+      router.replace('/dashboard')
+      return
+    }
     fetchInviteData()
-  }, [uuid])
+  }, [uuid, isLoggedIn, authLoading])
 
   async function fetchInviteData() {
     try {

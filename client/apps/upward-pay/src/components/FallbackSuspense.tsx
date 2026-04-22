@@ -4,14 +4,16 @@ interface FallbackSuspenseProps {
   message?: string
 }
 
-export default function FallbackSuspense({ message = 'Loading...' }: FallbackSuspenseProps) {
+export default function FallbackSuspense({ message }: FallbackSuspenseProps) {
   return (
-    <div className="dashboard">
+    <div className="pay-page__splash-container">
       <div className="pay-page__splash">
         <div className="pay-page__logo-pulse">
-          <UpwardLogo size={28} color="#fff" />
+          <UpwardLogo size={108} color="#fff" />
         </div>
-        <p className="pay-page__splash-text">{message}</p>
+        <div className="pay-page__splash-footer">
+          <p className="pay-page__splash-text">{message || 'Tenancy Records & Credibility'}</p>
+        </div>
       </div>
     </div>
   )

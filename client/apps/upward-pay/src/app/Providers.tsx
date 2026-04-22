@@ -32,10 +32,17 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       await App.addListener('appUrlOpen', (event: any) => {
         try {
           const url = new URL(event.url)
-          // Capture path + query + hash to ensure no data (like invite tokens) is lost
-          let targetPath = url.pathname + url.search + url.hash
+          
+          let targetPath = ''
+          if (url.protocol === 'upward:') {
+            // For custom schemes like upward://pay/uuid, url.host is 'pay' and url.pathname is '/uuid'
+            targetPath = `/${url.host}${url.pathname}${url.search}${url.hash}`
+          } else {
+            // For https links, we just want the path onwards
+            targetPath = `${url.pathname}${url.search}${url.hash}`
+          }
 
-          // For custom schemes like upward://pay/path, ensuring targetPath starts with /
+          // Ensure it's a valid relative path for the router
           if (!targetPath.startsWith('/')) {
             targetPath = '/' + targetPath
           }

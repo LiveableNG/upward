@@ -100,11 +100,9 @@
   0%,
   100% {
     transform: scale(1);
-    box-shadow: 0 0 40px var(--clay-glow);
   }
   50% {
     transform: scale(1.08);
-    box-shadow: 0 0 60px rgba(217, 119, 87, 0.35);
   }
 }
 

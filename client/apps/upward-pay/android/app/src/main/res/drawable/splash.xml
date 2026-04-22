@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/splash_bg" />
+    
+    <!-- Logo at center -->
+    <item
+        android:drawable="@drawable/ic_splash_logo"
+        android:gravity="center"
+        android:top="-30dp" />
+    
+    <!-- Wording at bottom -->
+    <item
+        android:drawable="@drawable/splash_text"
+        android:gravity="bottom|center_horizontal"
+        android:bottom="80dp"
+        android:width="200dp"
+        android:height="50dp" />
+</layer-list>

@@ -17,7 +17,9 @@ function LoginRedirectContent() {
   useEffect(() => {
     if (loading) return
     if (isLoggedIn) {
-      router.replace('/dashboard')
+      const searchParams = new URLSearchParams(window.location.search)
+      const redirect = searchParams.get('redirect') || '/dashboard'
+      router.replace(redirect)
     } else {
       router.replace('/signup?mode=login')
     }

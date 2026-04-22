@@ -23,9 +23,10 @@ function SignupPageContent() {
 
   useEffect(() => {
     if (!loading && isLoggedIn && mode !== 'biometrics' && mode !== 'welcome') {
-      router.push('/dashboard')
+      const redirect = searchParams.get('redirect') || '/dashboard'
+      router.push(redirect)
     }
-  }, [isLoggedIn, loading, router, mode])
+  }, [isLoggedIn, loading, router, mode, searchParams])
 
   if (loading) return <FallbackSuspense message="Getting ready…" />
 
