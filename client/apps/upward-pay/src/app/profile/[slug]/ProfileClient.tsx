@@ -65,7 +65,25 @@ export default function ProfileClient() {
     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
     pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
     const { profile: userData } = scoreProfile.data
-    pdf.save(`Upward_Credibility_Report_${(userData.name).replace(/\s+/g, '_')}.pdf`)
+    const fileName = `Upward_Credibility_Report_${(userData.name).replace(/\s+/g, '_')}.pdf`
+    
+    const pdfBlob = pdf.output('blob')
+    const file = new File([pdfBlob], fileName, { type: 'application/pdf' })
+
+    if (Capacitor.isNativePlatform() && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'Upward Credibility Report',
+          text: `Check out my verified credibility profile on Upward.`
+        })
+        return
+      } catch (err) {
+        console.error('Share failed, falling back to download:', err)
+      }
+    }
+
+    pdf.save(fileName)
   }
 
   if (isLoading) return <FallbackSuspense message="Validating credentials..." />

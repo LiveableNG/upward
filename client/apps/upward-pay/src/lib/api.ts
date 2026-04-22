@@ -83,4 +83,6 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
+  getCredibilityPdf: () =>
+    import('./api-client').then((m) => m.requestBlob('/user/credibility/pdf', { method: 'GET' })),
 }

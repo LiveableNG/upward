@@ -29,29 +29,48 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     if (!Capacitor.isNativePlatform()) return
 
     const setupDeepLink = async () => {
+      // Handle links while app is already open
       await App.addListener('appUrlOpen', (event: any) => {
-        try {
-          const url = new URL(event.url)
-          
-          let targetPath = ''
-          if (url.protocol === 'upward:') {
-            // For custom schemes like upward://pay/uuid, url.host is 'pay' and url.pathname is '/uuid'
-            targetPath = `/${url.host}${url.pathname}${url.search}${url.hash}`
-          } else {
-            // For https links, we just want the path onwards
-            targetPath = `${url.pathname}${url.search}${url.hash}`
-          }
-
-          // Ensure it's a valid relative path for the router
-          if (!targetPath.startsWith('/')) {
-            targetPath = '/' + targetPath
-          }
-
-          router.push(targetPath)
-        } catch (error) {
-          console.error('Deep Link Error:', error)
-        }
+        handleUrl(event.url)
       })
+
+      // Handle the link that launched the app
+      const launchUrl = await App.getLaunchUrl()
+      if (launchUrl?.url) {
+        handleUrl(launchUrl.url)
+      }
+    }
+
+    const handleUrl = async (urlString: string) => {
+      console.log('[DeepLink] Received URL:', urlString)
+      try {
+        const url = new URL(urlString)
+        
+        let targetPath = ''
+        if (url.protocol === 'upward:') {
+          // For custom schemes like upward://pay/uuid, url.host is 'pay' and url.pathname is '/uuid'
+          targetPath = `/${url.host}${url.pathname}${url.search}${url.hash}`
+        } else {
+          // For https links, we just want the path onwards
+          targetPath = `${url.pathname}${url.search}${url.hash}`
+        }
+
+        // Ensure it's a valid relative path for the router
+        if (!targetPath.startsWith('/')) {
+          targetPath = '/' + targetPath
+        }
+
+        console.log('[DeepLink] Navigating to:', targetPath)
+        
+        // Give the router a moment to be ready, especially on cold starts
+        if (Capacitor.isNativePlatform()) {
+          await new Promise(resolve => setTimeout(resolve, 500))
+        }
+        
+        router.push(targetPath)
+      } catch (error) {
+        console.error('Deep Link Error:', error)
+      }
     }
 
     setupDeepLink()

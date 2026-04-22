@@ -89,7 +89,13 @@ function distributeAmount(amount: number, items: LineItemRecord[], totalOwed: nu
 
 export default function PayClient() {
   const router = useRouter()
-  const { token: uuid } = useParams()
+  const params = useParams()
+  const uuid = useMemo(() => {
+    const t = params?.token
+    if (Array.isArray(t)) return t[0]
+    return t as string
+  }, [params?.token])
+
   const { user: authUser, login } = useAuth()
   const { success, error: toastError } = useToast()
 
@@ -119,7 +125,21 @@ export default function PayClient() {
   const { login: executeLogin, loading: loginLoading } = useLogin(`/pay/${uuid}`)
 
   useEffect(() => {
-    if (uuid) loadPaymentDetails()
+    console.log('[PayClient] Component mounted. UUID from params:', uuid)
+    if (uuid) {
+      loadPaymentDetails()
+    } else {
+      console.warn('[PayClient] No UUID found in params after mount')
+      // If no uuid after 5 seconds, show error
+      const timer = setTimeout(() => {
+        if (step === 'loading') {
+          console.error('[PayClient] UUID still missing after 5s timeout')
+          setErrorMessage('Invalid or missing payment link')
+          setStep('error')
+        }
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
   }, [uuid])
 
   // Automatic Biometric Prompt Logic
@@ -153,8 +173,19 @@ export default function PayClient() {
   }, [step, paymentData, authUser, autoPrompted, loginLoading, executeLogin])
 
   async function loadPaymentDetails() {
+    console.log('[PayClient] Loading payment details for uuid:', uuid)
+    const timeout = setTimeout(() => {
+      if (step === 'loading') {
+        console.error('[PayClient] Loading timed out after 10s')
+        setErrorMessage('Connection timed out. Please try again.')
+        setStep('error')
+      }
+    }, 10000)
+
     try {
       const res = await api.get(`/payment-request/${uuid}`)
+      clearTimeout(timeout)
+      console.log('[PayClient] Load response:', res)
       if (res.success) {
         setPaymentData(res.data)
         const items = (res.data.payment.lineItemRecords || []) as LineItemRecord[]
@@ -183,6 +214,8 @@ export default function PayClient() {
         throw new Error('Could not retrieve payment details')
       }
     } catch (err: any) {
+      clearTimeout(timeout)
+      console.error('[PayClient] Load error:', err)
       setErrorMessage(err.message || 'Payment request not found or expired')
       setStep('error')
     }

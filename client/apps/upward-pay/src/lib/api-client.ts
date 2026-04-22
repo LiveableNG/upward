@@ -101,3 +101,48 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
   return makeRequest(getAccessToken())
 }
+
+export async function requestBlob(path: string, options: RequestInit = {}): Promise<Blob> {
+  const url = path.startsWith('http') ? path : `${API_BASE}${path}`
+  
+  const makeRequest = async (token: string | null): Promise<Blob> => {
+    const headers: Record<string, string> = {
+      ...((options.headers as Record<string, string>) || {}),
+    }
+
+    if (token && Capacitor.isNativePlatform()) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
+
+    const res = await fetch(url, {
+      credentials: 'include',
+      ...options,
+      headers,
+      signal: controller.signal,
+    })
+    
+    clearTimeout(timeoutId)
+
+    if (res.status === 401 && !path.includes('/user/auth/refresh')) {
+      if (!isRefreshing) {
+        isRefreshing = true
+        refreshPromise = runRefresh()
+      }
+      const newToken = await refreshPromise
+      if (newToken) return makeRequest(newToken)
+      throw new Error('Session expired')
+    }
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ message: 'Download failed' }))
+      throw new Error(errorData.message || 'Download failed')
+    }
+
+    return res.blob()
+  }
+
+  return makeRequest(getAccessToken())
+}

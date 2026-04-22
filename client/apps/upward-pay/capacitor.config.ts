@@ -5,8 +5,20 @@ const config: CapacitorConfig = {
   appName: 'Upward Pay',
   webDir: 'out',
   server: {
-    androidScheme: 'http',
-    hostname: 'localhost'
+    androidScheme: 'https',
+    hostname: 'localhost',
+    allowNavigation: [
+      'upward-pay.vercel.app',
+      'upward-pay-vercel.app',
+      'upward-dev.vercel.app',
+      'upward.goodtenants.io'
+    ]
+  },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 0,
+      launchAutoHide: true,
+    }
   }
 };
 

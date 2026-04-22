@@ -27,7 +27,7 @@ import { Capacitor } from '@capacitor/core'
 
 import { useToast } from '@/components/common/Toast'
 import { useScoreProfile, usePublicScoreProfile } from '../../services/scoreService'
-import { formatCurrency } from '@/lib/utils'
+import { api } from '@/lib/api'
 
 interface KYCReportContentProps {
   isPublic?: boolean
@@ -51,17 +51,31 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   
   const { data: scoreProfile, isLoading } = isPublic ? publicProfile : privateProfile
   
-  const handleShare = () => {
+  const handleShare = async () => {
     const p = scoreProfile?.data?.profile
     const u = scoreProfile?.data?.profile?.uuid || (scoreProfile as any)?.data?.uuid || ''
     
-    const identifier = p?.profileSlug || u || 'not-found'
+    // Always use UUID for sharing as per user request
+    const identifier = u || 'not-found'
     
     const baseUrl = Capacitor.isNativePlatform() 
       ? 'https://upward-pay.vercel.app' 
       : (typeof window !== 'undefined' ? window.location.origin : 'https://upward-pay.vercel.app')
 
     const url = `${baseUrl}/profile/${identifier}`
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${p?.name}'s Credibility Portfolio`,
+          text: `View my verified tenant credibility portfolio on Upward.`,
+          url: url,
+        })
+        return
+      } catch (err) {
+        console.log('Share cancelled or failed, falling back to clipboard')
+      }
+    }
     
     navigator.clipboard.writeText(url)
     success('Public profile link copied to clipboard!')
@@ -70,9 +84,29 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   const handleDownloadPDF = async () => {
     try {
       success('Preparing report...')
-      window.open('/api/user/credibility/pdf', '_blank')
+      const blob = await api.getCredibilityPdf()
+      const fileName = `Upward_Credibility_Report_${profile.name.replace(/\s+/g, '_')}.pdf`
+      const file = new File([blob], fileName, { type: 'application/pdf' })
+
+      if (Capacitor.isNativePlatform() && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'Upward Credibility Report',
+          text: `Check out my verified credibility profile on Upward.`,
+        })
+      } else {
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = fileName
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+      }
     } catch (err) {
-      toastError('Failed to download PDF')
+      console.error('PDF download failed:', err)
+      toastError('Failed to download PDF. Please try again.')
     }
   }
 

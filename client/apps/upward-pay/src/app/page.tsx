@@ -8,6 +8,8 @@ import { fetchInvitationData, type InvitationData } from '@/lib/invitation-servi
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useAuth } from '@/features/auth/AuthContext'
 import FallbackSuspense from '@/components/FallbackSuspense'
+import { Capacitor } from '@capacitor/core'
+import { App } from '@capacitor/app'
 
 function LandingPageContent() {
   const searchParams = useSearchParams()
@@ -43,8 +45,29 @@ function LandingPageContent() {
 
     // No token, no email → redirect
     if (isLoggedIn) {
-      const redirect = searchParams.get('redirect') || '/dashboard'
-      router.replace(redirect)
+      const handleNativeRedirect = async () => {
+        if (Capacitor.isNativePlatform()) {
+          // On native, check if we were launched with a deep link
+          // If so, skip this redirect to let Providers.tsx handle it
+          const launchUrl = await App.getLaunchUrl()
+          if (launchUrl?.url && (launchUrl.url.includes('/pay/') || launchUrl.url.includes('pay/'))) {
+            console.log('[Landing] Deep link detected on launch, skipping auto-redirect:', launchUrl.url)
+            return
+          }
+          
+          // Also check if there's any token/email in the search params (web fallback)
+          if (token || email) {
+            console.log('[Landing] Token/Email detected in params, skipping auto-redirect.')
+            return
+          }
+        }
+
+        const redirect = searchParams.get('redirect') || '/dashboard'
+        console.log('[Landing] Redirecting to:', redirect)
+        router.replace(redirect)
+      }
+
+      handleNativeRedirect()
     } else {
       router.replace('/signup')
     }

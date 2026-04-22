@@ -52,13 +52,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initSession = async () => {
       console.log('[Auth] Initializing session...')
+      
+      const sessionActive = typeof window !== 'undefined' ? sessionStorage.getItem('upward_session_active') : null
+      
       if (Capacitor.isNativePlatform()) {
-        const isSessionActive = sessionStorage.getItem('upward_session_active')
-        
-        if (!isSessionActive) {
-          console.log('[Auth] No active session found on native platform. Logging out.')
-          await logout()
+        if (!sessionActive) {
+          console.log('[Auth] Fresh app launch detected (no active session). Requiring login.')
           setLoading(false)
+          await logout()
           return
         }
 

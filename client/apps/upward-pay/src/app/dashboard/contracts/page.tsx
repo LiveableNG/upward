@@ -172,7 +172,35 @@ export default function ContractsPage() {
                   <div className="contract-item__actions">
                     <button
                       className="action-btn"
-                      onClick={() => window.open(contract.fileUrl, '_blank')}
+                      onClick={async () => {
+                        try {
+                          success('Downloading...')
+                          const blob = await import('@/lib/api-client').then(m => 
+                            m.requestBlob(`/user/contracts/${contract.uuid}/download`, { method: 'GET' })
+                          )
+                          const file = new File([blob], contract.fileName, { type: contract.fileType || 'application/pdf' })
+
+                          if (require('@capacitor/core').Capacitor.isNativePlatform() && navigator.canShare && navigator.canShare({ files: [file] })) {
+                            await navigator.share({
+                              files: [file],
+                              title: 'Tenancy Document',
+                              text: `Here is the document: ${contract.fileName}`,
+                            })
+                          } else {
+                            const url = window.URL.createObjectURL(blob)
+                            const link = document.createElement('a')
+                            link.href = url
+                            link.download = contract.fileName
+                            document.body.appendChild(link)
+                            link.click()
+                            document.body.removeChild(link)
+                            window.URL.revokeObjectURL(url)
+                          }
+                        } catch (err) {
+                          console.error('Download failed:', err)
+                          error('Failed to download document')
+                        }
+                      }}
                       title="Download"
                     >
                       <Download size={18} />

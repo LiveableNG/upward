@@ -29,7 +29,9 @@ export function middleware(request: NextRequest) {
 
   if (isAuthPage && hasToken) {
     if (tokenValue && !isTokenExpired(tokenValue)) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      const searchParams = request.nextUrl.searchParams
+      const redirectPath = searchParams.get('redirect') || '/dashboard'
+      return NextResponse.redirect(new URL(redirectPath, request.url))
     }
   }
   const isProtectedPage = pathname.startsWith('/dashboard') || 

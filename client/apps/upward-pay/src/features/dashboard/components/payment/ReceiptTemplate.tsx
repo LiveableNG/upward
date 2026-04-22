@@ -16,6 +16,7 @@ import {
   Check,
   TrendingUp,
   Activity,
+  Share2
 } from 'lucide-react'
 
 export interface ReceiptData {
@@ -61,6 +62,7 @@ export default function ReceiptTemplate({
   receipt,
   onClose,
   onDownload,
+  onShare,
 }: {
   receipt: ReceiptData
   onClose?: () => void
@@ -85,6 +87,16 @@ export default function ReceiptTemplate({
             <ArrowLeft size={18} />
           </button>
           <div className="receipt-actions__right">
+            {onShare && (
+              <button 
+                className="btn btn--secondary btn--sm" 
+                style={{ padding: '8px 12px' }}
+                onClick={() => onShare?.()}
+              >
+                <Share2 size={13} style={{ marginRight: 4 }} />
+                Share
+              </button>
+            )}
             <button className="btn btn--primary btn--sm" onClick={() => onDownload?.()}>
               <Download size={13} style={{ marginRight: 4 }} />
               Download

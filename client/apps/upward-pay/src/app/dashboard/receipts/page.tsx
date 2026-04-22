@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import { Capacitor } from '@capacitor/core'
 import FallbackSuspense from '@/components/FallbackSuspense'
 import ReceiptTemplate, {
   type ReceiptData,
@@ -94,59 +95,58 @@ export default function ReceiptsPage() {
 
   async function handleDownload() {
     if (!receipt) return
+    
+    // On native mobile, we prefer sharing as it's more reliable for 'saving' files
+    if (Capacitor.isNativePlatform()) {
+      return handleShare()
+    }
+
     try {
-      const res = await api.getReceiptPdf({
-        title: receipt.title,
-        receiptNumber: receipt.receiptNumber,
-        paidAt: receipt.paidAt,
-        tenantName: receipt.tenantName,
-        landlordName: receipt.companyName,
-        paymentType: receipt.paymentType,
-        propertyAddress: receipt.propertyAddress,
-        amount: receipt.amount,
-        currency: receipt.currency,
-        reference: receipt.paystackReference,
-        channel: receipt.channel,
-        type: receipt.type === 'credit' ? 'SAVINGS' : 'RENT',
-        status: receipt.status,
-        lineItems: receipt.lineItems,
-      })
+      const res = await api.getReceiptPdf(getReceiptPayload(receipt))
       if (res?.url) {
-        if (res.url.startsWith('data:')) {
-          const link = document.createElement('a')
-          link.href = res.url
-          link.download = `receipt-${receipt.receiptNumber}.pdf`
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-        } else {
-          window.open(res.url, '_blank')
-        }
+        performFileDownload(res.url, `receipt-${receipt.receiptNumber}.pdf`)
       }
     } catch (e) {
       console.error('Download failed:', e)
     }
   }
 
+  function getReceiptPayload(data: ReceiptData) {
+    return {
+      title: data.title,
+      receiptNumber: data.receiptNumber,
+      paidAt: data.paidAt,
+      tenantName: data.tenantName,
+      landlordName: data.companyName,
+      paymentType: data.paymentType,
+      propertyAddress: data.propertyAddress,
+      amount: data.amount,
+      currency: data.currency,
+      reference: data.paystackReference,
+      channel: data.channel,
+      type: data.type === 'credit' ? 'SAVINGS' : 'RENT',
+      status: data.status,
+      lineItems: data.lineItems,
+    }
+  }
+
+  function performFileDownload(url: string, filename: string) {
+    if (url.startsWith('data:')) {
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } else {
+      window.open(url, '_blank')
+    }
+  }
+
   async function handleShare() {
     if (!receipt) return
     try {
-      const res = await api.getReceiptPdf({
-        title: receipt.title,
-        receiptNumber: receipt.receiptNumber,
-        paidAt: receipt.paidAt,
-        tenantName: receipt.tenantName,
-        landlordName: receipt.companyName,
-        paymentType: receipt.paymentType,
-        propertyAddress: receipt.propertyAddress,
-        amount: receipt.amount,
-        currency: receipt.currency,
-        reference: receipt.paystackReference,
-        channel: receipt.channel,
-        type: receipt.type === 'credit' ? 'SAVINGS' : 'RENT',
-        status: receipt.status,
-        lineItems: receipt.lineItems,
-      })
+      const res = await api.getReceiptPdf(getReceiptPayload(receipt))
 
       if (res?.url) {
         // Convert data URL or fetch URL to Blob
@@ -166,7 +166,8 @@ export default function ReceiptsPage() {
           blob = await response.blob()
         }
 
-        const file = new File([blob], `receipt-${receipt.receiptNumber}.pdf`, { type: 'application/pdf' })
+        const filename = `receipt-${receipt.receiptNumber}.pdf`
+        const file = new File([blob], filename, { type: 'application/pdf' })
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
@@ -175,13 +176,14 @@ export default function ReceiptsPage() {
             text: `Here is my payment receipt for ${receipt.amount.toLocaleString()} ${receipt.currency}`,
           })
         } else {
-          // Fallback if sharing files is not supported
-          handleDownload()
+          // Fallback if sharing files is not supported: attempt direct download
+          performFileDownload(res.url, filename)
         }
       }
     } catch (e) {
       console.error('Share failed:', e)
-      handleDownload()
+      // Final attempt: try to just open the URL if we have one
+      // But we don't have the URL easily here unless we store it or retry
     }
   }
 
