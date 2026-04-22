@@ -67,11 +67,6 @@ function ProfileMenuContentInner() {
   const [contracts, setContracts] = useState<ContractData[]>([])
   const [expandedProps, setExpandedProps] = useState<Record<number, boolean>>({})
   
-  // Slug Logic States
-  const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle')
-  const [slugSuggestions, setSlugSuggestions] = useState<string[]>([])
-  const [lastCheckedSlug, setLastCheckedSlug] = useState('')
-
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -100,38 +95,6 @@ function ProfileMenuContentInner() {
       loadDocuments()
     }
   }, [user])
-
-  useEffect(() => {
-    const slug = formData.profileSlug
-    if (!isEditing || !slug || slug === user?.profileSlug || slug === lastCheckedSlug) {
-      if (slug === user?.profileSlug) setSlugStatus('available')
-      return
-    }
-
-    if (slug.length < 3) {
-      setSlugStatus('invalid')
-      return
-    }
-
-    const handler = setTimeout(async () => {
-      setSlugStatus('checking')
-      try {
-        const res = await api.checkSlug(slug)
-        setLastCheckedSlug(slug)
-        if (res.available) {
-          setSlugStatus('available')
-          setSlugSuggestions([])
-        } else {
-          setSlugStatus('taken')
-          setSlugSuggestions(res.suggestions || [])
-        }
-      } catch (err) {
-        setSlugStatus('idle')
-      }
-    }, 600)
-
-    return () => clearTimeout(handler)
-  }, [formData.profileSlug, isEditing, user?.profileSlug, lastCheckedSlug])
 
   async function loadDocuments() {
     try {
@@ -243,7 +206,7 @@ function ProfileMenuContentInner() {
 
   const handleCopyLink = async () => {
     const baseUrl = Capacitor.isNativePlatform() ? 'https://upward-pay.vercel.app' : window.location.origin
-    const url = `${baseUrl}/profile/${formData.profileSlug || profile?.uuid}`
+    const url = `${baseUrl}/profile/${profile?.uuid}`
     
     try {
       await navigator.clipboard.writeText(url)
@@ -402,110 +365,6 @@ function ProfileMenuContentInner() {
                   value={formData.gender || ''}
                   onChange={(v) => setFormData({ ...formData, gender: v })}
                 />
-              </div>
-            </section>
-
-            {/* Section 2: Public Profile Visibility */}
-            <section className="profile-section">
-              <div className="profile-section__header">
-                <h3 className="profile-section__title">Public Portfolio Visibility</h3>
-                <p className="profile-section__desc">Your verified credibility profile can be shared with managers or landlords using this unique link.</p>
-              </div>
-              <div className="profile-section__body profile-section__body--grid">
-                <div className="share-url-preview bento-hero-pending--clay" style={{ 
-                  gridColumn: '1 / -1', 
-                  padding: '1rem', 
-                  borderRadius: '12px', 
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border-solid)',
-                  marginBottom: '1rem'
-                }}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Live Portfolio URL</div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                    <div style={{ wordBreak: 'break-all', fontWeight: 600, color: 'var(--clay)', fontSize: '0.9rem', flex: 1 }}>
-                      {(() => {
-                        const baseUrl = Capacitor.isNativePlatform() ? 'https://upward-pay.vercel.app' : window.location.origin
-                        return `${baseUrl}/profile/${formData.profileSlug || profile.uuid}`
-                      })()}
-                    </div>
-                    <button 
-                      onClick={handleCopyLink}
-                      style={{ 
-                        background: 'var(--clay-faint)', 
-                        color: 'var(--clay)', 
-                        border: 'none', 
-                        padding: '6px', 
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      title="Copy Link"
-                    >
-                      <Copy size={16} />
-                    </button>
-                  </div>
-                </div>
-                <div className="slug-input-container" style={{ gridColumn: '1 / -1', position: 'relative' }}>
-                  <DetailOrEdit
-                    isEditing={isEditing}
-                    icon={Share2}
-                    label="Custom Profile Slug"
-                    placeholder="e.g. john-doe-2025"
-                    value={formData.profileSlug || ''}
-                    onChange={(v) => setFormData({ ...formData, profileSlug: v.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-') })}
-                  />
-                  {isEditing && formData.profileSlug && (
-                    <div className="slug-status-indicator" style={{ 
-                      position: 'absolute', 
-                      right: '12px', 
-                      top: '36px', 
-                      display: 'flex', 
-                      alignItems: 'center',
-                      gap: '6px',
-                      fontSize: '0.75rem',
-                      fontWeight: 600
-                    }}>
-                      {slugStatus === 'checking' && <Loader2 size={16} className="animate-spin text-clay" />}
-                      {slugStatus === 'available' && <div className="flex items-center text-success"><Check size={16} /> <span style={{ color: '#22c55e' }}>Available</span></div>}
-                      {slugStatus === 'taken' && <div className="flex items-center text-error"><X size={16} /> <span style={{ color: '#ef4444' }}>Taken</span></div>}
-                      {slugStatus === 'invalid' && <span style={{ color: 'var(--text-muted)' }}>Too short</span>}
-                    </div>
-                  )}
-                </div>
-
-                {isEditing && slugStatus === 'taken' && slugSuggestions.length > 0 && (
-                  <div className="slug-suggestions" style={{ gridColumn: '1 / -1', marginTop: '-8px', marginBottom: '12px' }}>
-                    <p style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-muted)' }}>Suggested alternatives:</p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {slugSuggestions.map(s => (
-                        <button 
-                          key={s}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, profileSlug: s })}
-                          style={{ 
-                            background: 'var(--clay-faint)', 
-                            color: 'var(--clay)', 
-                            border: '1px solid var(--clay)',
-                            borderRadius: '20px',
-                            padding: '4px 12px',
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <div className="info-box" style={{ gridColumn: '1 / -1', marginTop: '4px' }}>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
-                    Lowercase letters, numbers, and dashes only. If empty, your system UUID will be used as the default link.
-                  </p>
-                </div>
               </div>
             </section>
 
