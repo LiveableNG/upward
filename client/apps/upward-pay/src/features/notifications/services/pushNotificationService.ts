@@ -27,39 +27,52 @@ export class PushNotificationService {
   static async registerDevice(): Promise<void> {
     if (!Capacitor.isNativePlatform()) return
     
-    // Clear existing listeners to prevent duplicates
-    await PushNotifications.removeAllListeners()
-    
-    // Add listeners before registering
-    await PushNotifications.addListener('registration', async (token) => {
-      if (cachedToken === token.value) return
-      cachedToken = token.value
-
-      const platform = Capacitor.getPlatform()
-      try {
-        await api.post('/user/notifications/device-token', {
-          token: token.value,
-          platform,
-        })
-        console.log('[Push] Token registered:', platform)
-      } catch (err) {
-        console.error('[Push] Token registration failed', err)
+    try {
+      // 1. Check existing permission status
+      const status = await this.getPermissionStatus()
+      if (status !== 'granted') {
+        console.warn('[Push] Registration skipped: Permission not granted')
+        return
       }
-    })
 
-    await PushNotifications.addListener('registrationError', (err) => {
-      console.error('[Push] Registration error', err)
-    })
+      // 2. Clear existing listeners to prevent leaks
+      await PushNotifications.removeAllListeners()
+      
+      // 3. Add listeners before registering
+      await PushNotifications.addListener('registration', async (token) => {
+        if (cachedToken === token.value) return
+        cachedToken = token.value
 
-    // Handle incoming notifications and taps
-    await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-      const url = action.notification.data?.url
-      if (url && typeof window !== 'undefined') {
-        window.location.href = url
-      }
-    })
+        const platform = Capacitor.getPlatform()
+        try {
+          await api.post('/user/notifications/device-token', {
+            token: token.value,
+            platform,
+          })
+          console.log('[Push] Token registered successfully on', platform)
+        } catch (err) {
+          console.error('[Push] Backend token registration failed', err)
+        }
+      })
 
-    await PushNotifications.register()
+      await PushNotifications.addListener('registrationError', (err) => {
+        console.error('[Push] Registration error:', err)
+      })
+
+      // Handle incoming notifications and taps
+      await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+        const url = action.notification.data?.url
+        if (url && typeof window !== 'undefined') {
+          // Use router from providers or window location
+          window.location.href = url
+        }
+      })
+
+      // 4. Actually call system registration
+      await PushNotifications.register()
+    } catch (err) {
+      console.error('[Push] Unexpected registration setup error', err)
+    }
   }
 
   static async unregisterDevice(): Promise<void> {

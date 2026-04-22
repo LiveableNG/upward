@@ -23,7 +23,9 @@ interface LoginFormFlowProps {
 
 export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
   const router = useRouter()
-  const { login: doLogin, loading: loginLoading, error: loginError } = useLogin('/dashboard')
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+  const redirect = searchParams?.get('redirect') || '/dashboard'
+  const { login: doLogin, loading: loginLoading, error: loginError } = useLogin(redirect)
 
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')

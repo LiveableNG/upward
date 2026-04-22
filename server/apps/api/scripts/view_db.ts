@@ -81,11 +81,12 @@ async function main() {
     // 4. PROPERTIES & LOCATIONS
     console.log('\n\x1b[36m>>> TABLE: upward_user_property (Join with upward_location)\x1b[0m')
     const properties = await prisma.upward_user_property.findMany({ 
-      take: 5,
+      take: 10,
       include: { location: true }
     })
     console.table(properties.map(p => ({
       id: p.id,
+      uuid: p.uuid,
       userId: p.userId,
       rent: p.rentAmount,
       address: p.location?.address,

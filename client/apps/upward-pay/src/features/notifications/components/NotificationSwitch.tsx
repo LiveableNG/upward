@@ -18,6 +18,7 @@ export function NotificationSwitch() {
       setIsAvailable(available)
       if (available) {
         const status = await PushNotificationService.getPermissionStatus()
+        // Only set as enabled if explicitly granted
         setIsEnabled(status === 'granted')
       }
       setLoading(false)
@@ -27,27 +28,33 @@ export function NotificationSwitch() {
 
   const handleToggle = async () => {
     if (processing) return
-    setProcessing(true)
-
+    
     try {
       if (isEnabled) {
+        // Turning OFF: Unregister everything
+        setProcessing(true)
         await PushNotificationService.unregisterDevice()
         setIsEnabled(false)
         success('Push notifications disabled')
       } else {
+        // Turning ON: Check permissions first
         const status = await PushNotificationService.getPermissionStatus()
         
         if (status === 'denied') {
-          error('Notification permission was denied. Please enable it in system settings.')
+          error('Notification permission is denied. Please enable it in your phone settings.')
           return
         }
 
+        // Trigger native prompt if needed, then register
+        setProcessing(true)
         const granted = await PushNotificationService.requestPermission()
         if (granted) {
           await PushNotificationService.registerDevice()
           setIsEnabled(true)
           success('Push notifications enabled')
         } else {
+          // User chose "Don't Allow"
+          setIsEnabled(false)
           error('Permission not granted')
         }
       }
@@ -61,23 +68,63 @@ export function NotificationSwitch() {
   if (loading || !isAvailable) return null
 
   return (
-    <div className="settings-item" onClick={handleToggle}>
-      <div className="settings-item__left">
-        <div className="settings-item__icon-wrap">
-          <Bell size={18} color="var(--clay)" />
+    <>
+      <div className="settings-item settings-item--notification" onClick={handleToggle}>
+        <div className="settings-item__left">
+          <div className="settings-item__icon-wrap">
+            <Bell size={20} color="var(--clay)" />
+          </div>
+          <div className="settings-item__content">
+            <span className="settings-item__title">Push Notifications</span>
+            <p className="settings-item__sub">Stay updated with payment alerts</p>
+          </div>
         </div>
-        <div>
-          <span className="settings-item__title">Push Notifications</span>
-          <p className="settings-item__sub">Stay updated with payment alerts</p>
-        </div>
-      </div>
-      <div className={`switch ${isEnabled ? 'is-active' : ''} ${processing ? 'is-loading' : ''}`}>
-        <div className="switch__handle">
-          {processing && <Loader2 size={12} className="animate-spin" />}
+        <div className={`switch ${isEnabled ? 'is-active' : ''} ${processing ? 'is-loading' : ''}`}>
+          <div className="switch__handle">
+            {processing && <Loader2 size={12} className="animate-spin" />}
+          </div>
         </div>
       </div>
 
       <style jsx>{`
+        .settings-item--notification {
+          padding: 1.25rem 1rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          cursor: pointer;
+        }
+        .settings-item__left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .settings-item__icon-wrap {
+          width: 36px;
+          height: 36px;
+          background: var(--surface2);
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .settings-item__content {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .settings-item__title {
+          font-weight: 700;
+          font-size: 15px;
+          color: var(--text);
+          display: block;
+        }
+        .settings-item__sub {
+          font-size: 13px;
+          color: var(--text-muted);
+          margin: 0;
+        }
         .switch {
           width: 44px;
           height: 24px;
@@ -112,6 +159,6 @@ export function NotificationSwitch() {
           pointer-events: none;
         }
       `}</style>
-    </div>
+    </>
   )
 }

@@ -19,7 +19,11 @@ export function BottomNav() {
       <div className="bottom-nav__container">
         {navItems.map((item) => {
           const Icon = item.icon
-          const isActive = pathname === item.href
+          const normalizedPath = pathname?.endsWith('/') ? pathname : `${pathname}/`
+          const normalizedHref = item.href.endsWith('/') ? item.href : `${item.href}/`
+          
+          const isActive = normalizedPath === normalizedHref
+          
           return (
             <Link
               key={item.href}

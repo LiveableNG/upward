@@ -118,10 +118,21 @@ export function DashboardHeader({
           </div>
 
           <nav className="dashboard__header-nav">
-            <Link href="/dashboard" className={pathname === '/dashboard' ? 'active' : ''}>Home</Link>
-            <Link href="/dashboard/pay-rent" className={pathname === '/dashboard/pay-rent' ? 'active' : ''}>Pay Rent</Link>
-            <Link href="/dashboard/transactions" className={pathname === '/dashboard/transactions' ? 'active' : ''}>Transactions</Link>
-            <Link href="/dashboard/me" className={pathname === '/dashboard/me' ? 'active' : ''}>Profile</Link>
+            {(() => {
+              const isActive = (href: string) => {
+                const normalizedPath = pathname?.endsWith('/') ? pathname : `${pathname}/`
+                const normalizedHref = href.endsWith('/') ? href : `${href}/`
+                return normalizedPath === normalizedHref
+              }
+              return (
+                <>
+                  <Link href="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>Home</Link>
+                  <Link href="/dashboard/pay-rent" className={isActive('/dashboard/pay-rent') ? 'active' : ''}>Pay Rent</Link>
+                  <Link href="/dashboard/transactions" className={isActive('/dashboard/transactions') ? 'active' : ''}>Transactions</Link>
+                  <Link href="/dashboard/me" className={isActive('/dashboard/me') ? 'active' : ''}>Profile</Link>
+                </>
+              )
+            })()}
           </nav>
 
           <div className="dashboard__header-right">

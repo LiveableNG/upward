@@ -35,26 +35,31 @@
 }
 
 /* ── Splash / Loading ── */
+.pay-page__splash-container {
+  position: fixed;
+  inset: 0;
+  background: var(--clay);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+}
+
 .pay-page__splash {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-6);
-  min-height: 60vh;
+  position: relative;
 }
 
 .pay-page__logo-pulse {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--clay) 0%, #c46648 100%);
+  width: 120px;
+  height: 120px;
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: logoBreath 2s ease-in-out infinite;
-  box-shadow: 0 0 40px var(--clay-glow);
+  animation: logoBreath 2.2s ease-in-out infinite;
 }
 
 .pay-page__logo-pulse span {
@@ -63,11 +68,19 @@
   color: #fff;
 }
 
+.pay-page__splash-footer {
+  position: absolute;
+  bottom: 80px;
+  width: 100%;
+  text-align: center;
+}
+
 .pay-page__splash-text {
   font-size: 14px;
-  color: var(--text-muted);
-  font-weight: 400;
-  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 /* ── Company Section ── */

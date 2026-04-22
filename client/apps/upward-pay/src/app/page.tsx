@@ -43,11 +43,12 @@ function LandingPageContent() {
 
     // No token, no email → redirect
     if (isLoggedIn) {
-      router.replace('/dashboard')
+      const redirect = searchParams.get('redirect') || '/dashboard'
+      router.replace(redirect)
     } else {
       router.replace('/signup')
     }
-  }, [token, email, router, isLoggedIn, authLoading])
+  }, [token, email, router, isLoggedIn, authLoading, searchParams])
 
   const isLoading = authLoading || fetchingInvitation
 
