@@ -43,6 +43,31 @@ async function main() {
   console.log('==============================================================\x1b[0m\n')
 
   try {
+    const searchKey = 'up_sk_live_e68751ef7c946e23d5af9180'
+    const searchHash = crypto.createHash('sha256').update(searchKey).digest('hex')
+    
+    console.log(`\x1b[33m>>> SEARCHING FOR API KEY: ${searchKey}\x1b[0m`)
+    console.log(`\x1b[33m>>> HASH: ${searchHash}\x1b[0m`)
+    
+    const targetPlatform = await prisma.upward_platform.findUnique({
+      where: { apiKey: searchHash }
+    })
+
+    if (targetPlatform) {
+      console.log('\n\x1b[32m[MATCH FOUND]\x1b[0m')
+      console.table([{
+        id: targetPlatform.id,
+        uuid: targetPlatform.uuid,
+        name_DEC: encryption.decrypt(targetPlatform.name),
+        email_DEC: encryption.decrypt(targetPlatform.email),
+        webhook: targetPlatform.webhookUrl
+      }])
+    } else {
+      console.log('\n\x1b[31m[NO MATCH FOUND] No platform has this API key.\x1b[0m\n')
+    }
+
+    // Continue with normal view_db output...
+
     // 1. USERS
     console.log('\x1b[36m>>> TABLE: upward_user\x1b[0m')
     const users = await prisma.upward_user.findMany({ take: 5 })

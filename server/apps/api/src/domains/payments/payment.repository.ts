@@ -189,6 +189,9 @@ export interface WebhookLog {
   lastTriedAt?: Date
   createdAt: Date
   updatedAt: Date
+  platform?: {
+    name: string
+  }
 }
 
 export interface IWebhookRepository {

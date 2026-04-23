@@ -121,6 +121,11 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
     }
   }
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    alert('Copied to clipboard!')
+  }
+
   return (
     <div className="page-container">
       <div
@@ -285,7 +290,7 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
         </form>
       </div>
 
-      <div className="table-container card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="table-container card" style={{ padding: 0, overflowX: 'auto' }}>
         {/* Desktop View Table */}
         <div className="hide-mobile">
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -324,7 +329,7 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{log.platform?.name || 'Unknown Platform'}</div>
                     </td>
                     <td style={{ padding: '16px' }}>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={log.url}>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={log.url}>
                         {log.url}
                       </div>
                     </td>
@@ -346,8 +351,10 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
                           {getStatusIcon(log.status)}
                           {log.status}
                         </span>
-                        {log.responseCode && (
-                           <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>({log.responseCode})</span>
+                        {log.responseCode !== null && log.responseCode !== undefined && (
+                           <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                             ({log.responseCode === 0 ? 'Err' : log.responseCode})
+                           </span>
                         )}
                       </div>
                     </td>
@@ -509,6 +516,9 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Status</div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: 600, color: getStatusColor(selectedLog.status) }}>
                                 {getStatusIcon(selectedLog.status)} {selectedLog.status}
+                                {selectedLog.responseCode !== null && (
+                                    <span style={{ fontWeight: 400, opacity: 0.8 }}>({selectedLog.responseCode === 0 ? 'Network Error' : selectedLog.responseCode})</span>
+                                )}
                             </div>
                         </div>
                         <div>
@@ -534,7 +544,15 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
                     )}
 
                     <div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Payload</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>Payload</span>
+                            <button 
+                                onClick={() => copyToClipboard(JSON.stringify(selectedLog.payload, null, 2))}
+                                style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: '10px', fontWeight: 700, cursor: 'pointer' }}
+                            >
+                                COPY JSON
+                            </button>
+                        </div>
                         <pre style={{
                             fontSize: '12px', background: 'var(--dark)', color: '#a5f3fc',
                             padding: '16px', borderRadius: '12px', overflowX: 'auto',
@@ -545,7 +563,8 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
                     </div>
                 </div>
 
-                <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                    <button onClick={() => setSelectedLog(null)} className="btn btn-outline">Close</button>
                     <button
                         onClick={() => {
                             handleRetry(selectedLog.id);
