@@ -532,7 +532,10 @@ export class PrismaSubaccountRepository implements ISubaccountRepository {
 
 @Injectable()
 export class PrismaWebhookRepository implements IWebhookRepository {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private encryption: EncryptionService,
+  ) {}
 
   async create(data: Omit<WebhookLog, 'id' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<WebhookLog> {
     const prisma = tx || this.prisma
@@ -610,7 +613,17 @@ export class PrismaWebhookRepository implements IWebhookRepository {
       this.prisma.upward_webhook_log.count({ where }),
     ])
 
-    return { logs: logs as unknown as WebhookLog[], total }
+    const decryptedLogs = logs.map(log => ({
+      ...log,
+      platform: log.platform ? {
+        ...log.platform,
+        name: log.platform.name && log.platform.name.includes(':') 
+          ? this.encryption.decrypt(log.platform.name) 
+          : log.platform.name
+      } : undefined
+    }))
+
+    return { logs: decryptedLogs as unknown as WebhookLog[], total }
   }
 
   async findById(id: string): Promise<WebhookLog | null> {
@@ -618,7 +631,19 @@ export class PrismaWebhookRepository implements IWebhookRepository {
       where: { id },
       include: { platform: true },
     })
-    return res as unknown as WebhookLog | null
+    if (!res) return null
+
+    const log = {
+      ...res,
+      platform: res.platform ? {
+        ...res.platform,
+        name: res.platform.name && res.platform.name.includes(':') 
+          ? this.encryption.decrypt(res.platform.name) 
+          : res.platform.name
+      } : undefined
+    }
+
+    return log as unknown as WebhookLog
   }
 }
 
