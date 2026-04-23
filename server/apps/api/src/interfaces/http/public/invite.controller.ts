@@ -186,14 +186,11 @@ export class InviteController {
 
     if (platformId) {
       await this.webhookService.sendWebhook(platformId, 'invite.accepted', {
-        event: 'invite.accepted',
-        data: {
-          userUuid: updatedUser.uuid,
-          customerEmail: updatedUser.email,
-          firstName: updatedUser.firstName || '',
-          lastName: updatedUser.lastName || '',
-          registeredAt: updatedUser.updatedAt,
-        }
+        userUuid: updatedUser.uuid,
+        customerEmail: updatedUser.email,
+        firstName: updatedUser.firstName || '',
+        lastName: updatedUser.lastName || '',
+        registeredAt: updatedUser.updatedAt,
       })
     }
 
