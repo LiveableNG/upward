@@ -87,14 +87,15 @@ function distributeAmount(amount: number, items: LineItemRecord[], totalOwed: nu
   return allocs
 }
 
-export default function PayClient() {
+export default function PayClient({ overrideToken }: { overrideToken?: string }) {
   const router = useRouter()
   const params = useParams()
   const uuid = useMemo(() => {
+    if (overrideToken) return overrideToken
     const t = params?.token
     if (Array.isArray(t)) return t[0]
     return t as string
-  }, [params?.token])
+  }, [params?.token, overrideToken])
 
   const { user: authUser, login } = useAuth()
   const { success, error: toastError } = useToast()

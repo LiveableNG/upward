@@ -56,7 +56,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const sessionActive = typeof window !== 'undefined' ? sessionStorage.getItem('upward_session_active') : null
       
       if (Capacitor.isNativePlatform()) {
-        if (!sessionActive) {
+        const launchUrl = await App.getLaunchUrl()
+        const isDeepLink = !!(launchUrl?.url && (
+          launchUrl.url.includes('/pay/') ||
+          launchUrl.url.includes('pay/') ||
+          launchUrl.url.includes('/invite/') ||
+          launchUrl.url.includes('invite/')
+        ))
+
+        if (!sessionActive && !isDeepLink) {
           console.log('[Auth] Fresh app launch detected (no active session). Requiring login.')
           setLoading(false)
           await logout()

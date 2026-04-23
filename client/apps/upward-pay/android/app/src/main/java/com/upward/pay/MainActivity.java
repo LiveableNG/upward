@@ -1,4 +1,4 @@
-package com.upward.pay;
+package com.goodtenants.upward;
 
 import com.getcapacitor.BridgeActivity;
 

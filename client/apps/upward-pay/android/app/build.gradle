@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.upward.pay"
+    namespace = "com.goodtenants.upward"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.upward.pay"
+        applicationId "com.goodtenants.upward"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

@@ -1,11 +1,11 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.upward.pay',
+  appId: 'com.goodtenants.upward',
   appName: 'Upward Pay',
   webDir: 'out',
   server: {
-    androidScheme: 'https',
+    androidScheme: 'http',
     hostname: 'localhost',
     allowNavigation: [
       'upward-pay.vercel.app',
