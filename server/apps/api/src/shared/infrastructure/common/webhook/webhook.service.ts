@@ -24,7 +24,10 @@ export class WebhookService {
       platformId,
       event,
       url: platform.webhookUrl,
-      payload,
+      payload: {
+        event,
+        data: payload,
+      },
       status: 'PENDING',
       retries: 0,
     })
@@ -41,31 +44,43 @@ export class WebhookService {
   }
 
   private async dispatch(log: any) {
+    let responseCode = 0
     try {
       this.logger.log(`Dispatching webhook ${log.event} to ${log.url} (Attempt ${log.retries + 1})`)
+
+      // Ensure payload is wrapped in { event, data } structure as per public documentation
+      let finalPayload = log.payload
+      if (finalPayload && (typeof finalPayload !== 'object' || !finalPayload.event || !finalPayload.data)) {
+        finalPayload = {
+          event: log.event,
+          data: log.payload,
+        }
+      }
 
       const response = await fetch(log.url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(log.payload),
+        body: JSON.stringify(finalPayload),
       })
+
+      responseCode = response.status
 
       if (response.ok) {
         await this.webhookRepo.update(log.id, {
           status: 'SENT',
-          responseCode: response.status,
+          responseCode,
           lastTriedAt: new Date(),
         })
         this.logger.log(`Webhook ${log.id} sent successfully.`)
       } else {
-        throw new Error(`Platform returned ${response.status}`)
+        throw new Error(`Platform returned ${responseCode}`)
       }
     } catch (error: any) {
       this.logger.error(`Webhook delivery failed for ${log.id}: ${error.message}`)
       
       await this.webhookRepo.update(log.id, {
         status: 'FAILED',
-        responseCode: error.response?.status || 0,
+        responseCode,
         errorMessage: error.message,
         retries: log.retries + 1,
         lastTriedAt: new Date(),
