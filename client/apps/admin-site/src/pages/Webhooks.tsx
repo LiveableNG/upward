@@ -3,7 +3,6 @@ import {
   Webhook,
   Search,
   Clock,
-  Globe,
   ArrowLeft,
   ArrowRight,
   Filter,
