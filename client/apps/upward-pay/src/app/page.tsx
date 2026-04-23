@@ -10,6 +10,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import FallbackSuspense from '@/components/FallbackSuspense'
 import { Capacitor } from '@capacitor/core'
 import { App } from '@capacitor/app'
+import PayClient from '@/app/pay/[token]/PayClient'
 
 function LandingPageContent() {
   const searchParams = useSearchParams()
@@ -20,14 +21,42 @@ function LandingPageContent() {
   const email = searchParams.get('email')
 
   const [invitationData, setInvitationData] = useState<InvitationData | null>(null)
+  const [pathToken, setPathToken] = useState<string | null>(null)
+  const [isPayRoute, setIsPayRoute] = useState(false)
   const [fetchingInvitation, setFetchingInvitation] = useState(!!token)
+
+  // On mount, check if we're on a subpath (for Capacitor fallback)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+      const pathname = window.location.pathname
+      if (pathname.includes('/pay/')) {
+        const t = pathname.split('/pay/')[1]?.split('/')[0]
+        if (t) {
+          console.log('[Landing] Detected pay path on mobile:', t)
+          setPathToken(t)
+          setIsPayRoute(true)
+          setFetchingInvitation(false)
+        }
+      } else if (pathname.includes('/invite/')) {
+        const t = pathname.split('/invite/')[1]?.split('/')[0]
+        if (t) {
+          console.log('[Landing] Detected invite path on mobile:', t)
+          setPathToken(t)
+          setFetchingInvitation(true)
+        }
+      }
+    }
+  }, [])
+
+  const finalToken = token || pathToken
 
   useEffect(() => {
     if (authLoading) return
 
     // Invited / whitelist flow
-    if (token) {
-      fetchInvitationData(token)
+    if (finalToken && !isPayRoute) {
+      setFetchingInvitation(true)
+      fetchInvitationData(finalToken)
         .then((data) => {
           setInvitationData(data)
           setFetchingInvitation(false)
@@ -38,26 +67,34 @@ function LandingPageContent() {
       return
     }
 
-    if (email && !token) {
+    if (email && !finalToken) {
       setFetchingInvitation(false)
       return
     }
 
-    // No token, no email → redirect
-    if (isLoggedIn) {
-      const handleNativeRedirect = async () => {
+    // No token, no email → redirect logic
+    const handleRedirect = async () => {
+      if (isLoggedIn) {
         if (Capacitor.isNativePlatform()) {
-          // On native, check if we were launched with a deep link
-          // If so, skip this redirect to let Providers.tsx handle it
+          // Check if we were launched with a deep link
           const launchUrl = await App.getLaunchUrl()
-          if (launchUrl?.url && (launchUrl.url.includes('/pay/') || launchUrl.url.includes('pay/'))) {
-            console.log('[Landing] Deep link detected on launch, skipping auto-redirect:', launchUrl.url)
+          const isDeepLink = !!(launchUrl?.url && (
+            launchUrl.url.includes('/pay/') ||
+            launchUrl.url.includes('pay/') ||
+            launchUrl.url.includes('/invite/') ||
+            launchUrl.url.includes('invite/')
+          )) || (typeof window !== 'undefined' && (
+            window.location.pathname.includes('/pay/') ||
+            window.location.pathname.includes('/invite/')
+          ))
+
+          if (isDeepLink) {
+            console.log('[Landing] Deep link or subpath detected, skipping auto-redirect')
             return
           }
           
-          // Also check if there's any token/email in the search params (web fallback)
-          if (token || email) {
-            console.log('[Landing] Token/Email detected in params, skipping auto-redirect.')
+          if (finalToken || email) {
+            console.log('[Landing] Token/Email detected, skipping auto-redirect.')
             return
           }
         }
@@ -65,13 +102,13 @@ function LandingPageContent() {
         const redirect = searchParams.get('redirect') || '/dashboard'
         console.log('[Landing] Redirecting to:', redirect)
         router.replace(redirect)
+      } else {
+        router.replace('/signup')
       }
-
-      handleNativeRedirect()
-    } else {
-      router.replace('/signup')
     }
-  }, [token, email, router, isLoggedIn, authLoading, searchParams])
+
+    handleRedirect()
+  }, [finalToken, email, router, isLoggedIn, authLoading, searchParams, isPayRoute])
 
   const isLoading = authLoading || fetchingInvitation
 
@@ -80,15 +117,19 @@ function LandingPageContent() {
   }
 
   // No token/email yet (redirect pending)
-  if (!token && !email) {
+  if (!finalToken && !email && !isPayRoute) {
     return <LogoSplash />
+  }
+
+  if (isPayRoute && finalToken) {
+    return <PayClient overrideToken={finalToken} />
   }
 
   return (
     <Suspense fallback={<FallbackSuspense message="Syncing Invitation…" />}>
       <JoinContent
         initialInvitation={invitationData}
-        token={token || undefined}
+        token={finalToken || undefined}
         email={email || undefined}
       />
     </Suspense>

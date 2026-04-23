@@ -38,9 +38,11 @@ async function bootstrap() {
   )
 
   const frontendUrl = process.env['FRONTEND_URL']
-  const origins = frontendUrl
+  const baseOrigins = frontendUrl
     ? frontendUrl.split(',').map((url) => url.trim())
     : ['http://localhost:3000', 'http://localhost:5173']
+    
+  const origins = [...baseOrigins, 'http://localhost', 'https://localhost', 'capacitor://localhost']
 
   app.enableCors({
     origin: origins,

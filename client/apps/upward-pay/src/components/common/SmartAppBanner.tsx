@@ -39,7 +39,7 @@ export const SmartAppBanner = () => {
     window.location.href = 'upward://pay/dashboard'
     setTimeout(() => {
       if (Date.now() - start < 3000) {
-        window.location.href = 'https://play.google.com/store/apps/details?id=com.upward.pay'
+        window.location.href = 'https://play.google.com/store/apps/details?id=com.goodtenants.upward'
       }
     }, 2000)
   }
@@ -49,8 +49,8 @@ export const SmartAppBanner = () => {
   return (
     <div className="smart-banner">
       <div className="smart-banner__content">
-        <button 
-          className="smart-banner__close" 
+        <button
+          className="smart-banner__close"
           onClick={handleClose}
           aria-label="Close banner"
         >
