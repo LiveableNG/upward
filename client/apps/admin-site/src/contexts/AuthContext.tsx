@@ -60,13 +60,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ) // 14 minutes
   }, [])
   useEffect(() => {
-    callRefresh().then((state) => {
-      if (state) {
-        setAuth(state)
-        scheduleRefresh()
-      }
-      setLoading(false)
-    })
+    setLoading(false)
+    
     return () => {
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
     }
