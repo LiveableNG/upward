@@ -32,6 +32,14 @@ export class WebhookService {
     await this.dispatch(log)
   }
 
+  async retryWebhook(id: string) {
+    const log = await this.webhookRepo.findById(id)
+    if (!log) {
+      throw new Error('Webhook log not found')
+    }
+    return this.dispatch(log)
+  }
+
   private async dispatch(log: any) {
     try {
       this.logger.log(`Dispatching webhook ${log.event} to ${log.url} (Attempt ${log.retries + 1})`)

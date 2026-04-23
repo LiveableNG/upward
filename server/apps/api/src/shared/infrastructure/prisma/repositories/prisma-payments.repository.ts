@@ -577,6 +577,49 @@ export class PrismaWebhookRepository implements IWebhookRepository {
     })
     return res as unknown as WebhookLog[]
   }
+
+  async findAll(params: {
+    page: number
+    limit: number
+    search?: string
+    status?: string
+  }): Promise<{ logs: WebhookLog[]; total: number }> {
+    const { page, limit, search, status } = params
+    const skip = (page - 1) * limit
+    const where: Prisma.upward_webhook_logWhereInput = {
+      ...(status && status !== 'ALL' ? { status } : {}),
+      ...(search
+        ? {
+            OR: [
+              { event: { contains: search, mode: 'insensitive' } },
+              { url: { contains: search, mode: 'insensitive' } },
+              { errorMessage: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    }
+
+    const [logs, total] = await Promise.all([
+      this.prisma.upward_webhook_log.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: { platform: true },
+      }),
+      this.prisma.upward_webhook_log.count({ where }),
+    ])
+
+    return { logs: logs as unknown as WebhookLog[], total }
+  }
+
+  async findById(id: string): Promise<WebhookLog | null> {
+    const res = await this.prisma.upward_webhook_log.findUnique({
+      where: { id },
+      include: { platform: true },
+    })
+    return res as unknown as WebhookLog | null
+  }
 }
 
 @Injectable()
