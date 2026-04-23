@@ -66,6 +66,8 @@ import { DeleteFairnessStoryUseCase } from './use-cases/fairness-story/delete-fa
 import { GetStoryUploadUrlsUseCase } from './use-cases/fairness-story/get-story-upload-urls.use-case'
 import { GetAdminLogsUseCase } from './use-cases/admin-log/get-admin-logs.use-case'
 import { LogAdminActionUseCase } from './use-cases/admin-log/log-admin-action.use-case'
+import { GetWebhookLogsUseCase } from './use-cases/admin/get-webhook-logs.use-case'
+import { RetryWebhookUseCase } from './use-cases/admin/retry-webhook.use-case'
 import { GetCountriesUseCase } from './use-cases/location/get-countries.use-case'
 import { GetCitiesUseCase } from './use-cases/location/get-cities.use-case'
 import { CompleteUserProfileUseCase } from './use-cases/user/complete-user-profile.use-case'
@@ -179,6 +181,8 @@ const UseCases = [
   RunTuesdayCampaignUseCase,
   GetAdminLogsUseCase,
   LogAdminActionUseCase,
+  GetWebhookLogsUseCase,
+  RetryWebhookUseCase,
   GetCountriesUseCase,
   GetCitiesUseCase,
   CompleteUserProfileUseCase,

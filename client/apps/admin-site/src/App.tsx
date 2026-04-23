@@ -13,6 +13,7 @@ import WaitlistCampaigns from './pages/WaitlistCampaigns'
 import EmailLogs from './pages/EmailLogs'
 import Announcements from './pages/Announcements'
 import SupportTickets from './pages/SupportTickets'
+import Webhooks from './pages/Webhooks'
 import Layout from './components/Layout'
 
 import ChangePassword from './components/ChangePassword'
@@ -57,6 +58,7 @@ function AppRoutes() {
                 element={<Settings token={auth.token} currentAdminId={auth.user.id} />}
               />
               <Route path="/logs" element={<Logs token={auth.token} />} />
+              <Route path="/webhooks" element={<Webhooks token={auth.token} />} />
             </>
           )}
           <Route path="*" element={<Navigate to="/" replace />} />

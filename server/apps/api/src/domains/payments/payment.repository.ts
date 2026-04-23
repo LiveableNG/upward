@@ -195,6 +195,13 @@ export interface IWebhookRepository {
   create(data: Omit<WebhookLog, 'id' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<WebhookLog>
   update(id: string, data: Partial<WebhookLog>, tx?: Prisma.TransactionClient): Promise<WebhookLog>
   findToRetry(maxRetries: number): Promise<WebhookLog[]>
+  findAll(params: {
+    page: number
+    limit: number
+    search?: string
+    status?: string
+  }): Promise<{ logs: WebhookLog[]; total: number }>
+  findById(id: string): Promise<WebhookLog | null>
 }
 
 export interface Overpayment {

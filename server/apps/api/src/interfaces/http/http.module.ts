@@ -23,6 +23,7 @@ import { PlatformAdminController } from './external/platform-invite.controller'
 import { ExternalPaymentController } from './external/external-payment.controller'
 import { PublicCredibilityController } from './public/credibility.controller'
 import { WellKnownController } from './public/well-known.controller'
+import { WebhookAdminController } from './admin/webhook-admin.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule],
@@ -48,6 +49,7 @@ import { WellKnownController } from './public/well-known.controller'
     AdminSupportController,
     PublicCredibilityController,
     WellKnownController,
+    WebhookAdminController,
   ],
 })
 export class HttpModule {}

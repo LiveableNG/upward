@@ -12,7 +12,8 @@ import {
   CalendarClock,
   History,
   Megaphone,
-  LifeBuoy
+  LifeBuoy,
+  Webhook
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -38,6 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
   ]
 
   if (isSuperadmin) {
+    navItems.push({ name: 'Webhook Logs', path: '/webhooks', icon: Webhook })
     navItems.push({ name: 'System Logs', path: '/logs', icon: FileText })
     navItems.push({ name: 'Settings', path: '/settings', icon: Settings })
   }
