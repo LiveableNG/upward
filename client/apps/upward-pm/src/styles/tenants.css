@@ -1,0 +1,129 @@
+.tenants-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.tenant-group-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.tenant-group-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.tenant-group-card__header {
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.tenant-info-main {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.tenant-avatar-large {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--clay-faint);
+  color: var(--clay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 20px;
+}
+
+.tenant-info-main h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.tenant-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.tenant-meta span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tenant-units-section {
+  padding: 20px 24px;
+  background: var(--surface-hover);
+}
+
+.section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+.tenant-units-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tenant-unit-pill {
+  background: white;
+  border: 1px solid var(--border);
+  padding: 10px 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s;
+}
+
+.tenant-unit-pill:hover {
+  border-color: var(--clay);
+  background: var(--clay-faint);
+}
+
+.tenant-unit-pill__icon {
+  color: var(--clay);
+}
+
+.tenant-unit-pill__text {
+  display: flex;
+  flex-direction: column;
+}
+
+.tenant-unit-pill__text strong {
+  font-size: 13px;
+}
+
+.tenant-unit-pill__text span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.badge--xs {
+  font-size: 9px;
+  padding: 2px 8px;
+}
+
+.btn--sm {
+  padding: 8px 14px;
+  font-size: 13px;
+}
