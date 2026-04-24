@@ -1,0 +1,75 @@
+.payments-page {
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+.table-container {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.pm-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.pm-table th {
+  padding: var(--space-4) var(--space-6);
+  background: var(--surface-hover);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pm-table td {
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.pm-table tr:hover {
+  background: var(--ivory-faint);
+}
+
+.status-chip {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-chip--completed { background: var(--success-bg); color: var(--success); }
+.status-chip--pending { background: rgba(245, 158, 11, 0.08); color: var(--warning); }
+.status-chip--failed { background: var(--error-bg); color: var(--error); }
+
+.amount-text {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.tenant-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.tenant-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--clay-faint);
+  color: var(--clay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 11px;
+}
