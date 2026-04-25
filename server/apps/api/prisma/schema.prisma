@@ -740,6 +740,11 @@ model upward_property_manager {
   businessName String?
   phone        String?
   phoneHash    String?
+  profilePic   String?
+  bankName     String?
+  bankCode     String?
+  accountNumber String?
+  accountName  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   

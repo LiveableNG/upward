@@ -5,6 +5,11 @@ export interface PropertyManagerProfile {
   lastName: string;
   businessName?: string;
   phone?: string;
+  profilePic?: string;
+  bankName?: string;
+  bankCode?: string;
+  accountNumber?: string;
+  accountName?: string;
 }
 
 export interface AuthResponse {

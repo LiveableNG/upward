@@ -16,7 +16,6 @@ import {
 import { UpwardLogo } from '@/components/common/UpwardLogo'
 import { useAuth } from '@/features/auth/AuthContext'
 import { cn } from '@/lib/utils'
-import '@/styles/sidebar.css'
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
@@ -30,14 +29,12 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () =>
   const pathname = usePathname()
   const { user, logout } = useAuth()
 
-  const userInitials = user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : 'PM'
-
   return (
     <aside className={cn('sidebar', isOpen && 'sidebar--open')}>
       <div className="sidebar__header">
-        <Link href="/" className="sidebar__logo">
-          <UpwardLogo size={36} />
-          <span className="sidebar__brand">Upward PM</span>
+        <Link href="/dashboard" className="sidebar__logo">
+          <UpwardLogo size={32} color="var(--forest)" />
+          <span className="sidebar__brand">{user?.firstName || 'Upward'}</span>
         </Link>
         <button className="sidebar__close" onClick={onClose}>
           <X size={20} />
@@ -45,8 +42,12 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () =>
       </div>
 
       <nav className="sidebar__nav">
+        {isOpen && (
+          <button className="sidebar__close sidebar__close--standalone" onClick={onClose}>
+            <X size={20} />
+          </button>
+        )}
         <div className="sidebar__section">
-          <p className="sidebar__section-title">Menu</p>
           <ul className="sidebar__list">
             {navItems.map((item) => {
               const Icon = item.icon
@@ -75,18 +76,6 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () =>
             <span>Add Property</span>
           </button>
           
-          <div className="sidebar__footer">
-            <div className="sidebar__user">
-              <div className="sidebar__user-avatar">{userInitials}</div>
-              <div className="sidebar__user-info">
-                <p className="sidebar__user-name">{user ? `${user.firstName} ${user.lastName}` : 'Loading...'}</p>
-                <p className="sidebar__user-role">{user?.businessName || 'Property Manager'}</p>
-              </div>
-            </div>
-            <button className="sidebar__logout" onClick={logout} title="Logout">
-              <LogOut size={18} />
-            </button>
-          </div>
         </div>
       </nav>
     </aside>

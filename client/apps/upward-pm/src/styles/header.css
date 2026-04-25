@@ -1,0 +1,117 @@
+.desktop-header {
+  height: var(--header-height);
+  padding: 0 var(--space-8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+
+.desktop-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  margin-left: auto;
+}
+
+.desktop-header__icon-btn {
+  position: relative;
+  color: var(--text-secondary);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+}
+
+.desktop-header__icon-btn:hover {
+  background: var(--surface-hover);
+  color: var(--forest);
+}
+
+.desktop-header__badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background: var(--error);
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+}
+
+.desktop-header__profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding-left: var(--space-6);
+  border-left: 1px solid var(--border);
+}
+
+.desktop-header__user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.desktop-header__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.desktop-header__role {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.desktop-header__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--ivory-dim);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s;
+}
+
+.desktop-header__avatar:hover {
+  border-color: var(--forest);
+}
+
+.desktop-header__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.desktop-header__avatar-fallback {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--forest);
+}
+
+.desktop-header__logout {
+  color: var(--text-muted);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+}
+
+.desktop-header__logout:hover {
+  color: var(--error);
+  background: var(--error-bg);
+}
+
+@media (max-width: 1024px) {
+  .desktop-header {
+    display: none;
+  }
+}

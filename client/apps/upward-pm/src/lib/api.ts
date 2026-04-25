@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { request } from './api-client'
 import * as authService from '@/features/auth/services/authService'
+import * as pmService from '@/features/pm/services/pmService'
 
 export const api = {
   // Auth & Profile
@@ -10,6 +11,12 @@ export const api = {
   getProfile: authService.getMe,
   requestOTP: authService.requestOTP,
   verifyOTP: authService.verifyOTP,
+  updatePmProfile: pmService.updateProfile,
+  updatePmBankInfo: pmService.updateBankInfo,
+  verifyPmBank: pmService.verifyBank,
+  getBanks: pmService.getBanks,
+  changePmPassword: pmService.changePassword,
+  getPmAvatarUploadUrl: pmService.getAvatarUploadUrl,
 
   // Generic Helpers
   get: <T = any>(url: string) => request<T>(url, { method: 'GET' }),

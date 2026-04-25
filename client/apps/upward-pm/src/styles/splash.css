@@ -1,0 +1,57 @@
+.splash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg);
+  z-index: 10000;
+}
+
+.splash__logo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The "Beaming" Effect */
+.splash__logo::before,
+.splash__logo::after {
+  content: '';
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--forest);
+  opacity: 0;
+  z-index: -1;
+}
+
+.splash__logo::before {
+  animation: beam 2s infinite ease-out;
+}
+
+.splash__logo::after {
+  animation: beam 2s infinite ease-out 1s;
+}
+
+@keyframes beam {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+.splash__logo svg {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 4px 12px rgba(22, 101, 52, 0.15));
+}

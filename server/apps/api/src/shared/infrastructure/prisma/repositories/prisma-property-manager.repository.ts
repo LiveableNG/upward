@@ -25,6 +25,11 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
       businessName: model.businessName ? this.encryption.decrypt(model.businessName) : undefined,
       phone: model.phone ? this.encryption.decrypt(model.phone) : undefined,
       phoneHash: model.phoneHash,
+      profilePic: model.profilePic,
+      bankName: model.bankName,
+      bankCode: model.bankCode,
+      accountNumber: model.accountNumber ? this.encryption.decrypt(model.accountNumber) : undefined,
+      accountName: model.accountName ? this.encryption.decrypt(model.accountName) : undefined,
       createdAt: model.createdAt,
       updatedAt: model.updatedAt,
     }
@@ -66,6 +71,11 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
         businessName: pm.businessName ? this.encryption.encrypt(pm.businessName) : null,
         phone: pm.phone ? this.encryption.encrypt(pm.phone) : null,
         phoneHash: pm.phone ? this.encryption.hash(pm.phone) : null,
+        profilePic: pm.profilePic,
+        bankName: pm.bankName,
+        bankCode: pm.bankCode,
+        accountNumber: pm.accountNumber ? this.encryption.encrypt(pm.accountNumber) : null,
+        accountName: pm.accountName ? this.encryption.encrypt(pm.accountName) : null,
       },
     })
     return this.toDomain(record)
@@ -94,6 +104,15 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
     if (data.phone) {
       updateData.phone = this.encryption.encrypt(data.phone)
       updateData.phoneHash = this.encryption.hash(data.phone)
+    }
+    if (data.profilePic !== undefined) updateData.profilePic = data.profilePic
+    if (data.bankName !== undefined) updateData.bankName = data.bankName
+    if (data.bankCode !== undefined) updateData.bankCode = data.bankCode
+    if (data.accountNumber !== undefined) {
+      updateData.accountNumber = data.accountNumber ? this.encryption.encrypt(data.accountNumber) : null
+    }
+    if (data.accountName !== undefined) {
+      updateData.accountName = data.accountName ? this.encryption.encrypt(data.accountName) : null
     }
 
     const record = await (this.prisma as any).upward_property_manager.update({
