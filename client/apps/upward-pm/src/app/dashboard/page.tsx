@@ -13,7 +13,8 @@ import {
   UserPlus
 } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
-import '@/styles/dashboard.css'
+import { useAuth } from '@/features/auth/AuthContext'
+import { ActivityCarousel } from '@/features/pm/components/dashboard/ActivityCarousel'
 
 const stats = [
   { label: 'Total Units', value: '124', icon: Building2, trend: '+4 this month', type: 'forest' },
@@ -54,6 +55,7 @@ const recentActivity = [
 ]
 
 export default function Dashboard() {
+  const { user } = useAuth()
   const { success } = useToast()
 
   const handleQuickAction = (action: string) => {
@@ -62,10 +64,7 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard animate-fade-in">
-      <header className="dashboard__header">
-        <h1 className="dashboard__title">Welcome back, Manager</h1>
-        <p className="dashboard__subtitle">Here's what's happening with your properties today.</p>
-      </header>
+      <ActivityCarousel />
 
       <div className="stats-grid">
         {stats.map((stat) => {

@@ -88,6 +88,10 @@ import { GetPublicPaymentDetailsUseCase } from './use-cases/external/get-public-
 import { ConfirmExternalPaymentUseCase } from './use-cases/external/confirm-payment.use-case'
 import { AddPropertyUseCase } from './use-cases/external/add-property.use-case'
 import { RenewPropertyUseCase } from './use-cases/external/renew-property.use-case'
+import { UpdatePmProfileUseCase } from './use-cases/pm/update-pm-profile.use-case'
+import { UpdatePmBankInfoUseCase } from './use-cases/pm/update-pm-bank-info.use-case'
+import { ChangePmPasswordUseCase } from './use-cases/pm/change-pm-password.use-case'
+import { GetPmAvatarUploadUrlUseCase } from './use-cases/pm/get-pm-avatar-upload-url.use-case'
 import { AuthModule } from './auth/auth.module'
 import { CreateAnnouncementUseCase } from './use-cases/notifications/create-announcement.use-case'
 import { DeactivateAnnouncementsUseCase } from './use-cases/notifications/deactivate-announcements.use-case'
@@ -238,6 +242,10 @@ const UseCases = [
   RegisterDeviceTokenUseCase,
   UnregisterDeviceTokenUseCase,
   SendPushToUserUseCase,
+  UpdatePmProfileUseCase,
+  UpdatePmBankInfoUseCase,
+  ChangePmPasswordUseCase,
+  GetPmAvatarUploadUrlUseCase,
 ]
 
 @Module({

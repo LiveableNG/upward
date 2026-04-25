@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import "./globals.css";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileHeader } from "@/components/layout/MobileHeader";
+import { DesktopHeader } from "@/components/layout/DesktopHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Providers } from "@/components/common/Providers";
 
@@ -29,6 +30,7 @@ export default function RootLayout({
               <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
               <div className="layout__content">
                 <MobileHeader onMenuClick={() => setIsSidebarOpen(true)} />
+                <DesktopHeader />
                 <main className="layout__main">
                   {children}
                 </main>

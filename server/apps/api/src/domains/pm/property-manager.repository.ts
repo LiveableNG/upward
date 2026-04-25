@@ -11,6 +11,11 @@ export interface PropertyManager {
   businessName?: string | null
   phone?: string | null
   phoneHash?: string | null
+  profilePic?: string | null
+  bankName?: string | null
+  bankCode?: string | null
+  accountNumber?: string | null
+  accountName?: string | null
   createdAt: Date
   updatedAt: Date
 }

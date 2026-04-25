@@ -2,17 +2,17 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { Splash } from '@/components/common/Splash'
 
 export default function RootPage() {
   const router = useRouter()
 
   useEffect(() => {
-    router.replace('/dashboard')
+    const timer = setTimeout(() => {
+      router.replace('/dashboard')
+    }, 1500)
+    return () => clearTimeout(timer)
   }, [router])
 
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-pulse text-clay">Loading dashboard...</div>
-    </div>
-  )
+  return <Splash />
 }
