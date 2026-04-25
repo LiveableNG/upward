@@ -14,11 +14,12 @@ import {
   X
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/common/UpwardLogo'
+import { useAuth } from '@/features/auth/AuthContext'
 import { cn } from '@/lib/utils'
 import '@/styles/sidebar.css'
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Building2, label: 'Properties', href: '/properties' },
   { icon: Users, label: 'Tenants', href: '/tenants' },
   { icon: CreditCard, label: 'Payments', href: '/payments' },
@@ -27,12 +28,15 @@ const navItems = [
 
 export function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () => void }) {
   const pathname = usePathname()
+  const { user, logout } = useAuth()
+
+  const userInitials = user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : 'PM'
 
   return (
     <aside className={cn('sidebar', isOpen && 'sidebar--open')}>
       <div className="sidebar__header">
         <Link href="/" className="sidebar__logo">
-          <UpwardLogo size={32} />
+          <UpwardLogo size={36} />
           <span className="sidebar__brand">Upward PM</span>
         </Link>
         <button className="sidebar__close" onClick={onClose}>
@@ -66,20 +70,20 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () =>
         </div>
 
         <div className="sidebar__section sidebar__section--bottom">
-          <button className="sidebar__add-btn clay-gradient">
+          <button className="sidebar__add-btn forest-gradient">
             <PlusCircle size={18} />
             <span>Add Property</span>
           </button>
           
           <div className="sidebar__footer">
             <div className="sidebar__user">
-              <div className="sidebar__user-avatar">PM</div>
+              <div className="sidebar__user-avatar">{userInitials}</div>
               <div className="sidebar__user-info">
-                <p className="sidebar__user-name">Lagos Property Mgmt</p>
-                <p className="sidebar__user-role">Premium Manager</p>
+                <p className="sidebar__user-name">{user ? `${user.firstName} ${user.lastName}` : 'Loading...'}</p>
+                <p className="sidebar__user-role">{user?.businessName || 'Property Manager'}</p>
               </div>
             </div>
-            <button className="sidebar__logout">
+            <button className="sidebar__logout" onClick={logout} title="Logout">
               <LogOut size={18} />
             </button>
           </div>

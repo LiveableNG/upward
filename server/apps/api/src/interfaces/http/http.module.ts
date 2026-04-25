@@ -24,6 +24,7 @@ import { ExternalPaymentController } from './external/external-payment.controlle
 import { PublicCredibilityController } from './public/credibility.controller'
 import { WellKnownController } from './public/well-known.controller'
 import { WebhookAdminController } from './admin/webhook-admin.controller'
+import { PmAuthController } from './pm/pm-auth.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule],
@@ -50,6 +51,7 @@ import { WebhookAdminController } from './admin/webhook-admin.controller'
     PublicCredibilityController,
     WellKnownController,
     WebhookAdminController,
+    PmAuthController,
   ],
 })
 export class HttpModule {}

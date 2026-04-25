@@ -68,12 +68,12 @@
 
 .sidebar__link:hover {
   background: var(--surface-hover);
-  color: var(--clay);
+  color: var(--forest);
 }
 
 .sidebar__link--active {
-  background: var(--clay-faint);
-  color: var(--clay);
+  background: var(--forest-faint);
+  color: var(--forest);
 }
 
 .sidebar__section--bottom {
@@ -93,7 +93,7 @@
   font-weight: 600;
   font-size: 14px;
   margin-bottom: var(--space-6);
-  box-shadow: var(--shadow-clay);
+  box-shadow: var(--shadow-forest);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -126,7 +126,7 @@
   justify-content: center;
   font-weight: 700;
   font-size: 12px;
-  color: var(--clay);
+  color: var(--forest);
 }
 
 .sidebar__user-name {

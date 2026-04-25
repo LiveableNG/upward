@@ -727,3 +727,41 @@ model upward_verification_token {
   @@index([identifier, context])
 }
 
+model upward_property_manager {
+  id           Int      @id @default(autoincrement())
+  uuid         String   @unique @default(uuid())
+  email        String   @unique
+  emailHash    String   @unique
+  passwordHash String
+  firstName    String
+  firstNameHash String?
+  lastName     String
+  lastNameHash  String?
+  businessName String?
+  phone        String?
+  phoneHash    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  authSessions upward_pm_auth_session[]
+  
+  @@index([email])
+}
+
+model upward_pm_auth_session {
+  id               String   @id @default(uuid())
+  pmId             Int
+  refreshTokenHash String   @unique
+  userAgent        String?
+  ipAddress        String?
+  deviceId         String?
+  isRevoked        Boolean  @default(false)
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  pm upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+
+  @@index([pmId])
+}
+

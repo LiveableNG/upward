@@ -115,9 +115,9 @@ export default function PaymentsPage() {
 
       {/* Summary Cards */}
       <div className="stats-grid" style={{ marginTop: 40 }}>
-        <div className="stat-card" style={{ background: 'var(--clay-faint)', border: '1px solid var(--clay)' }}>
-          <p className="stat-card__label" style={{ color: 'var(--clay)' }}>Total Collected (Oct)</p>
-          <h3 className="stat-card__value" style={{ color: 'var(--clay)' }}>₦12,450,000</h3>
+        <div className="stat-card" style={{ background: 'var(--forest-faint)', border: '1px solid var(--forest)' }}>
+          <p className="stat-card__label" style={{ color: 'var(--forest)' }}>Total Collected (Oct)</p>
+          <h3 className="stat-card__value" style={{ color: 'var(--forest)' }}>₦12,450,000</h3>
         </div>
         <div className="stat-card">
           <p className="stat-card__label">Outstanding Balance</p>

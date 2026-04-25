@@ -33,7 +33,7 @@
 }
 
 .bottom-nav__item--active {
-  color: var(--clay);
+  color: var(--forest);
 }
 
 @media (max-width: 1024px) {

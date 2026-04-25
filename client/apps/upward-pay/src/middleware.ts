@@ -17,7 +17,7 @@ function isTokenExpired(token: string): boolean {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const tokenCookie = request.cookies.get('access_token')
+  const tokenCookie = request.cookies.get('pay_access_token')
   const hasToken = !!tokenCookie
   const tokenValue = tokenCookie?.value
 

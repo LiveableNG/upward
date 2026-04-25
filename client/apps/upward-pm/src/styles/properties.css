@@ -27,13 +27,13 @@
 }
 
 .btn--primary {
-  background: var(--clay);
+  background: var(--forest);
   color: white;
-  box-shadow: var(--shadow-clay);
+  box-shadow: var(--shadow-forest);
 }
 
 .btn--primary:hover {
-  background: var(--clay-hover);
+  background: var(--forest-hover);
   transform: translateY(-1px);
 }
 
@@ -75,8 +75,8 @@
 
 .search-input input:focus {
   background: white;
-  border-color: var(--clay);
-  box-shadow: 0 0 0 4px var(--clay-glow);
+  border-color: var(--forest);
+  box-shadow: 0 0 0 4px var(--forest-glow);
 }
 
 .search-icon {
@@ -119,7 +119,7 @@
 }
 
 .properties-tabs__btn--active {
-  color: var(--clay);
+  color: var(--forest);
 }
 
 .properties-tabs__btn--active::after {
@@ -129,7 +129,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--clay);
+  background: var(--forest);
 }
 
 /* Units Grid */
@@ -148,7 +148,7 @@
 }
 
 .unit-card:hover {
-  border-color: var(--clay);
+  border-color: var(--forest);
   box-shadow: var(--shadow-lg);
 }
 
@@ -223,7 +223,7 @@
 }
 
 .unit-card__action--primary {
-  background: var(--clay);
+  background: var(--forest);
   color: white;
 }
 
@@ -249,7 +249,7 @@
 }
 
 .prop-card:hover {
-  border-color: var(--clay);
+  border-color: var(--forest);
   box-shadow: var(--shadow-lg);
 }
 
@@ -353,9 +353,9 @@
 }
 
 .prop-card__action:hover {
-  background: var(--clay-faint);
-  border-color: var(--clay);
-  color: var(--clay);
+  background: var(--forest-faint);
+  border-color: var(--forest);
+  color: var(--forest);
 }
 
 /* Modal Simulation */
@@ -413,12 +413,12 @@
 }
 
 .import-zone:hover {
-  border-color: var(--clay);
-  background: var(--clay-faint);
+  border-color: var(--forest);
+  background: var(--forest-faint);
 }
 
 .import-zone__icon {
-  color: var(--clay);
+  color: var(--forest);
   margin-bottom: var(--space-4);
 }
 
@@ -447,8 +447,8 @@
 
 .form-input:focus {
   background: white;
-  border-color: var(--clay);
-  box-shadow: 0 0 0 4px var(--clay-glow);
+  border-color: var(--forest);
+  box-shadow: 0 0 0 4px var(--forest-glow);
 }
 
 @media (max-width: 640px) {

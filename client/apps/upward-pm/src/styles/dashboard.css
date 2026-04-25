@@ -52,7 +52,7 @@
   margin-bottom: var(--space-4);
 }
 
-.stat-card--clay .stat-card__icon { background: var(--clay-faint); color: var(--clay); }
+.stat-card--forest .stat-card__icon { background: var(--forest-faint); color: var(--forest); }
 .stat-card--success .stat-card__icon { background: var(--success-bg); color: var(--success); }
 .stat-card--info .stat-card__icon { background: rgba(59, 130, 246, 0.08); color: var(--info); }
 .stat-card--warning .stat-card__icon { background: rgba(245, 158, 11, 0.08); color: var(--warning); }
@@ -111,7 +111,7 @@
 
 .section-link {
   font-size: 13px;
-  color: var(--clay);
+  color: var(--forest);
   font-weight: 600;
 }
 
@@ -191,7 +191,7 @@
 
 .property-item-mini:hover {
   transform: translateX(4px);
-  border-color: var(--clay);
+  border-color: var(--forest);
 }
 
 .property-item-mini h4 {

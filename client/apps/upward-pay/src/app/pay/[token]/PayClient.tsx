@@ -298,7 +298,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
       if (res.success) {
         success('Account activated!')
         if (res.user && res.accessToken) {
-          setCookie('access_token', res.accessToken)
+          setCookie('pay_access_token', res.accessToken)
           login(res.user)
           router.push('/dashboard')
         } else {

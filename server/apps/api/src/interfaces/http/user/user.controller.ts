@@ -39,7 +39,7 @@ interface FastifyRequest {
 }
 
 const REFRESH_COOKIE_NAME = 'user_refresh'
-const ACCESS_COOKIE_NAME = 'access_token'
+const ACCESS_COOKIE_NAME = 'pay_access_token'
 
 function setUserAuthCookies(reply: FastifyReply, accessToken: string, refreshToken: string) {
   const isProd = process.env['NODE_ENV'] === 'production' || !!process.env['VERCEL']

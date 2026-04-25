@@ -25,6 +25,7 @@ import { PrismaRentCycleRepository } from './repositories/prisma-rent-cycle.repo
 import { PrismaContractRepository } from './repositories/prisma-contract.repository'
 import { PrismaSupportTicketRepository } from './repositories/prisma-support.repository'
 import { PrismaVerificationTokenRepository } from './repositories/prisma-verification-token.repository'
+import { PrismaPropertyManagerRepository } from './repositories/prisma-property-manager.repository'
 import { PaystackGateway } from '../../../domains/payments/paystack.gateway'
 import { WAITLIST_REPOSITORY } from '../../../domains/waitlist/waitlist.repository'
 import { USER_REPOSITORY } from '../../../domains/users/user.repository'
@@ -54,6 +55,7 @@ import { NOTIFICATION_REPOSITORY } from '../../../domains/notifications/notifica
 import { CONTRACT_REPOSITORY } from '../../../domains/contracts/contract.repository'
 import { SUPPORT_TICKET_REPOSITORY } from '../../../domains/support/support.repository'
 import { VERIFICATION_TOKEN_REPOSITORY } from '../../../domains/auth/verification-token.repository'
+import { PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Global()
@@ -145,6 +147,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: VERIFICATION_TOKEN_REPOSITORY,
       useClass: PrismaVerificationTokenRepository,
     },
+    {
+      provide: PROPERTY_MANAGER_REPOSITORY,
+      useClass: PrismaPropertyManagerRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -170,6 +176,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     SUPPORT_TICKET_REPOSITORY,
     PAYMENT_LINE_ITEM_REPOSITORY,
     VERIFICATION_TOKEN_REPOSITORY,
+    PROPERTY_MANAGER_REPOSITORY,
   ],
 })
 export class PrismaModule {}
