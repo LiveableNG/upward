@@ -13,7 +13,7 @@ export function MobileHeader({ onMenuClick }: { onMenuClick: () => void }) {
       </button>
       
       <div className="mobile-header__logo">
-        <UpwardLogo size={28} />
+        <UpwardLogo size={32} />
         <span className="mobile-header__brand">Upward PM</span>
       </div>
 

@@ -36,8 +36,8 @@
   width: 56px;
   height: 56px;
   border-radius: 16px;
-  background: var(--clay-faint);
-  color: var(--clay);
+  background: var(--forest-faint);
+  color: var(--forest);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,12 +96,12 @@
 }
 
 .tenant-unit-pill:hover {
-  border-color: var(--clay);
-  background: var(--clay-faint);
+  border-color: var(--forest);
+  background: var(--forest-faint);
 }
 
 .tenant-unit-pill__icon {
-  color: var(--clay);
+  color: var(--forest);
 }
 
 .tenant-unit-pill__text {

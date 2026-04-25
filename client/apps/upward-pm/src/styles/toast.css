@@ -49,8 +49,8 @@
 }
 
 .toast--info .toast__icon {
-  background: var(--clay-faint);
-  color: var(--clay);
+  background: var(--forest-faint);
+  color: var(--forest);
 }
 
 .toast__content {

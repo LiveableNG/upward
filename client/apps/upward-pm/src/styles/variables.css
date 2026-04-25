@@ -1,10 +1,10 @@
 :root {
-  /* Colors - Ivory & Clay Theme */
-  --clay: #d97757;
-  --clay-rgb: 217, 119, 87;
-  --clay-hover: #c46648;
-  --clay-glow: rgba(217, 119, 87, 0.2);
-  --clay-faint: rgba(217, 119, 87, 0.06);
+  /* Colors - Ivory & Forest Theme */
+  --forest: #166534;
+  --forest-rgb: 22, 101, 52;
+  --forest-hover: #14532d;
+  --forest-glow: rgba(22, 101, 52, 0.2);
+  --forest-faint: rgba(22, 101, 52, 0.06);
 
   --ivory: #faf9f5;
   --ivory-dim: #f2f1eb;
@@ -54,7 +54,7 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.03);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.06);
-  --shadow-clay: 0 8px 24px var(--clay-glow);
+  --shadow-forest: 0 8px 24px var(--forest-glow);
 
   /* Layout */
   --sidebar-width: 280px;

@@ -1,0 +1,157 @@
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  HttpCode,
+  HttpStatus,
+  Res,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common'
+import { PmAuthService } from '../../../application/auth/pm-auth.service'
+import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
+
+interface FastifyReply {
+  setCookie(name: string, value: string, options: Record<string, unknown>): FastifyReply
+  clearCookie(name: string, options?: Record<string, unknown>): FastifyReply
+  status(code: number): FastifyReply
+  send(payload: unknown): void
+}
+
+interface FastifyRequest {
+  cookies?: Record<string, string>
+  user?: {
+    sub: string
+    email: string
+    role: string
+  }
+}
+
+const REFRESH_COOKIE_NAME = 'pm_refresh'
+const ACCESS_COOKIE_NAME = 'pm_access_token'
+
+function setPmAuthCookies(reply: FastifyReply, accessToken: string, refreshToken: string) {
+  const isProd = process.env['NODE_ENV'] === 'production' || !!process.env['VERCEL']
+
+  reply.setCookie(REFRESH_COOKIE_NAME, refreshToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+    partitioned: isProd,
+  })
+
+  reply.setCookie(ACCESS_COOKIE_NAME, accessToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60,
+    partitioned: isProd,
+  })
+}
+
+function clearPmAuthCookies(reply: FastifyReply) {
+  const isProd = process.env['NODE_ENV'] === 'production' || !!process.env['VERCEL']
+  const options = {
+    path: '/',
+    httpOnly: true,
+    secure: isProd,
+    sameSite: (isProd ? 'none' : 'lax') as any,
+    partitioned: isProd,
+  }
+
+  reply.clearCookie(REFRESH_COOKIE_NAME, options)
+  reply.clearCookie(ACCESS_COOKIE_NAME, options)
+}
+
+@Controller('pm/auth')
+export class PmAuthController {
+  constructor(private readonly pmAuthService: PmAuthService) {}
+
+  @Post('signup')
+  @HttpCode(HttpStatus.CREATED)
+  async signup(
+    @Body() body: {
+      email: string;
+      password: string;
+      firstName: string;
+      lastName: string;
+      businessName?: string;
+      phone?: string;
+    },
+    @Res({ passthrough: false }) reply: FastifyReply,
+  ) {
+    const { refreshToken, ...rest } = await this.pmAuthService.signup(body)
+    setPmAuthCookies(reply, rest.accessToken, refreshToken)
+    reply.status(HttpStatus.CREATED).send(rest)
+  }
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async login(
+    @Body() body: { email: string; password: string },
+    @Res({ passthrough: false }) reply: FastifyReply,
+  ) {
+    const { refreshToken, ...rest } = await this.pmAuthService.login(body.email, body.password)
+    setPmAuthCookies(reply, rest.accessToken, refreshToken)
+    reply.status(HttpStatus.OK).send(rest)
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(@Req() req: FastifyRequest, @Res({ passthrough: false }) reply: FastifyReply) {
+    const token = req.cookies?.[REFRESH_COOKIE_NAME]
+    if (!token) {
+      clearPmAuthCookies(reply)
+      throw new UnauthorizedException('No refresh token')
+    }
+
+    try {
+      const { refreshToken, ...rest } = await this.pmAuthService.refreshAccessToken(token)
+      setPmAuthCookies(reply, rest.accessToken, refreshToken)
+      reply.status(HttpStatus.OK).send(rest)
+    } catch (err) {
+      clearPmAuthCookies(reply)
+      throw err
+    }
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@Req() req: FastifyRequest, @Res({ passthrough: false }) reply: FastifyReply) {
+    const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME]
+    if (refreshToken) {
+      await this.pmAuthService.revokeSession(refreshToken)
+    }
+
+    clearPmAuthCookies(reply)
+    reply.status(HttpStatus.OK).send({ message: 'Logged out' })
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async me(@Req() req: FastifyRequest) {
+    if (!req.user?.sub) {
+      throw new UnauthorizedException('No PM in request')
+    }
+    return this.pmAuthService.getProfile(req.user.sub)
+  }
+
+  @Post('request-otp')
+  @HttpCode(HttpStatus.OK)
+  async requestOTP(@Body() body: { email: string; context: 'SIGNUP' | 'LOGIN' }) {
+    await this.pmAuthService.requestOTP(body.email, body.context)
+    return { success: true, message: 'Verification code sent' }
+  }
+
+  @Post('verify-otp')
+  @HttpCode(HttpStatus.OK)
+  async verifyOTP(@Body() body: { email: string; otp: string; context: string }) {
+    return this.pmAuthService.verifyOTP(body.email, body.otp, body.context)
+  }
+}

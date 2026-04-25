@@ -1,8 +1,8 @@
 import React from 'react'
 
 export function UpwardLogo({
-  size = 20,
-  color = '#d97757',
+  size = 28,
+  color = '#166534',
   className = '',
 }: {
   size?: number

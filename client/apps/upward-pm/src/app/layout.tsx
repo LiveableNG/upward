@@ -6,7 +6,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileHeader } from "@/components/layout/MobileHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
-import { ToastProvider } from "@/components/common/Toast";
+import { Providers } from "@/components/common/Providers";
 
 export default function RootLayout({
   children,
@@ -21,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ToastProvider>
+        <Providers>
           {isAuthPage ? (
             <main>{children}</main>
           ) : (
@@ -36,7 +36,7 @@ export default function RootLayout({
               </div>
             </div>
           )}
-        </ToastProvider>
+        </Providers>
       </body>
     </html>
   );
