@@ -2,6 +2,7 @@
 import { request } from './api-client'
 import * as authService from '@/features/auth/services/authService'
 import * as pmService from '@/features/pm/services/pmService'
+import * as propertyService from '@/features/pm/services/propertyService'
 
 export const api = {
   // Auth & Profile
@@ -17,6 +18,18 @@ export const api = {
   getBanks: pmService.getBanks,
   changePmPassword: pmService.changePassword,
   getPmAvatarUploadUrl: pmService.getAvatarUploadUrl,
+
+  // Properties & Units
+  getProperties: propertyService.getProperties,
+  createProperty: propertyService.createProperty,
+  updateProperty: propertyService.updateProperty,
+  getUnits: propertyService.getUnits,
+  getUnit: propertyService.getUnit,
+  updateUnit: propertyService.updateUnit,
+  deleteUnit: propertyService.deleteUnit,
+  getUnitPayments: propertyService.getUnitPayments,
+  addUnitPayment: propertyService.addUnitPayment,
+  bulkCreateUnits: propertyService.bulkCreateUnits,
 
   // Generic Helpers
   get: <T = any>(url: string) => request<T>(url, { method: 'GET' }),

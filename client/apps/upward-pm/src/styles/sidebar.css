@@ -139,6 +139,62 @@
   margin-right: calc(-1 * var(--space-2));
 }
 
+.sidebar--collapsed {
+  width: 80px;
+}
+
+.sidebar--collapsed .sidebar__brand,
+.sidebar--collapsed .sidebar__section-title,
+.sidebar--collapsed .sidebar__link span,
+.sidebar--collapsed .sidebar__add-btn span {
+  display: none;
+}
+
+.sidebar--collapsed .sidebar__header {
+  padding: var(--space-10) var(--space-4);
+  justify-content: center;
+}
+
+.sidebar--collapsed .sidebar__nav {
+  padding: 0 var(--space-2);
+}
+
+.sidebar--collapsed .sidebar__link {
+  justify-content: center;
+  padding: var(--space-3) 0;
+}
+
+.sidebar--collapsed .sidebar__add-btn {
+  padding: var(--space-4) 0;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto var(--space-6);
+}
+
+.sidebar__collapse-toggle {
+  position: absolute;
+  top: 50%;
+  right: -12px;
+  width: 24px;
+  height: 24px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  z-index: 10;
+  transition: all 0.2s;
+}
+
+.sidebar__collapse-toggle:hover {
+  background: var(--forest-faint);
+  border-color: var(--forest);
+  color: var(--forest);
+}
+
 @media (max-width: 1024px) {
   .sidebar {
     transform: translateX(-100%);

@@ -5,6 +5,7 @@
 @import '../styles/sidebar.css';
 @import '../styles/splash.css';
 @import '../styles/header.css';
+@import '../styles/properties.css';
 
 * {
   box-sizing: border-box;
@@ -117,6 +118,11 @@ input, select, textarea {
   padding: var(--space-8);
   min-height: 100vh;
   position: relative;
+  transition: margin-left 0.3s ease;
+}
+
+.layout--collapsed .layout__main {
+  margin-left: 80px;
 }
 
 @media (max-width: 1024px) {

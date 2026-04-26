@@ -8,6 +8,7 @@ import { MobileHeader } from "@/components/layout/MobileHeader";
 import { DesktopHeader } from "@/components/layout/DesktopHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Providers } from "@/components/common/Providers";
+import { cn } from '@/lib/utils'
 
 export default function RootLayout({
   children,
@@ -15,6 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const pathname = usePathname()
   
   const isAuthPage = pathname === '/signup' || pathname === '/login'
@@ -26,8 +28,13 @@ export default function RootLayout({
           {isAuthPage ? (
             <main>{children}</main>
           ) : (
-            <div className="layout">
-              <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+            <div className={cn("layout", isSidebarCollapsed && "layout--collapsed")}>
+              <Sidebar 
+                isOpen={isSidebarOpen} 
+                onClose={() => setIsSidebarOpen(false)} 
+                isCollapsed={isSidebarCollapsed}
+                onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              />
               <div className="layout__content">
                 <MobileHeader onMenuClick={() => setIsSidebarOpen(true)} />
                 <DesktopHeader />

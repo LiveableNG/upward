@@ -20,6 +20,14 @@ export class UpdatePmProfileUseCase {
     const pm = await this.pmRepository.findByUuid(pmUuid)
     if (!pm) throw new NotFoundException('Property manager not found')
 
-    return this.pmRepository.update(pm.id!, dto)
+    const updatedPm = await this.pmRepository.update(pm.id!, dto)
+    
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash, id: serverId, uuid, ...rest } = updatedPm
+    return {
+      id: uuid,
+      uuid,
+      ...rest
+    }
   }
 }
