@@ -26,6 +26,8 @@ import { PrismaContractRepository } from './repositories/prisma-contract.reposit
 import { PrismaSupportTicketRepository } from './repositories/prisma-support.repository'
 import { PrismaVerificationTokenRepository } from './repositories/prisma-verification-token.repository'
 import { PrismaPropertyManagerRepository } from './repositories/prisma-property-manager.repository'
+import { PrismaPmPropertyRepository } from './repositories/prisma-pm-property.repository'
+import { PrismaPmUnitRepository } from './repositories/prisma-pm-unit.repository'
 import { PaystackGateway } from '../../../domains/payments/paystack.gateway'
 import { WAITLIST_REPOSITORY } from '../../../domains/waitlist/waitlist.repository'
 import { USER_REPOSITORY } from '../../../domains/users/user.repository'
@@ -56,6 +58,7 @@ import { CONTRACT_REPOSITORY } from '../../../domains/contracts/contract.reposit
 import { SUPPORT_TICKET_REPOSITORY } from '../../../domains/support/support.repository'
 import { VERIFICATION_TOKEN_REPOSITORY } from '../../../domains/auth/verification-token.repository'
 import { PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository'
+import { PM_PROPERTY_REPOSITORY, PM_UNIT_REPOSITORY } from '../../../domains/pm/IPropertyRepository'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Global()
@@ -151,6 +154,14 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: PROPERTY_MANAGER_REPOSITORY,
       useClass: PrismaPropertyManagerRepository,
     },
+    {
+      provide: PM_PROPERTY_REPOSITORY,
+      useClass: PrismaPmPropertyRepository,
+    },
+    {
+      provide: PM_UNIT_REPOSITORY,
+      useClass: PrismaPmUnitRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -177,6 +188,8 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     PAYMENT_LINE_ITEM_REPOSITORY,
     VERIFICATION_TOKEN_REPOSITORY,
     PROPERTY_MANAGER_REPOSITORY,
+    PM_PROPERTY_REPOSITORY,
+    PM_UNIT_REPOSITORY,
   ],
 })
 export class PrismaModule {}

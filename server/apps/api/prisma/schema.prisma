@@ -749,6 +749,7 @@ model upward_property_manager {
   updatedAt    DateTime @updatedAt
   
   authSessions upward_pm_auth_session[]
+  properties   upward_pm_property[]
   
   @@index([email])
 }
@@ -768,5 +769,76 @@ model upward_pm_auth_session {
   pm upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
 
   @@index([pmId])
+}
+
+model upward_pm_property {
+  id           Int      @id @default(autoincrement())
+  uuid         String   @unique @default(uuid())
+  pmId         Int
+  name         String
+  address      String?
+  totalUnits   Int      @default(0)
+  propertyType String   @default("Residential")
+  imageUrl     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  pm    upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  units upward_pm_unit[]
+
+  @@index([pmId])
+}
+
+model upward_pm_unit {
+  id           Int      @id @default(autoincrement())
+  uuid         String   @unique @default(uuid())
+  propertyId   Int
+  unitName     String
+  
+  tenantFirstNameEncrypted String?  /// @encrypted
+  tenantFirstNameSearch    String?
+  tenantLastNameEncrypted  String?  /// @encrypted
+  tenantLastNameSearch     String?
+  tenantEmailEncrypted     String?  /// @encrypted
+  tenantEmailHash          String?
+  tenantPhoneEncrypted     String?  /// @encrypted
+  tenantPhoneHash          String?
+  
+  rentAmount      Float    @default(0)
+  rentStartDate   DateTime?
+  rentDueDate     DateTime? // Specific due date or next due date
+  rentFrequency   String   @default("Monthly") // Monthly, Quarterly, Bi-Annually, Annually
+  currency        String   @default("NGN")
+  status          String   @default("VACANT") // OCCUPIED, VACANT, MAINTENANCE
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  property upward_pm_property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  rentPayments upward_pm_rent_payment[]
+
+  @@index([propertyId])
+  @@index([status])
+  @@index([tenantEmailHash])
+}
+
+model upward_pm_rent_payment {
+  id           Int      @id @default(autoincrement())
+  uuid         String   @unique @default(uuid())
+  unitId       Int
+  amount       Float
+  paymentDate  DateTime
+  periodStart  DateTime?
+  periodEnd    DateTime?
+  method       String   @default("Bank Transfer") // Bank Transfer, Cash, Card, Other
+  reference    String?
+  status       String   @default("SUCCESS") // SUCCESS, PENDING, FAILED
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  unit upward_pm_unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@index([unitId])
+  @@index([paymentDate])
 }
 

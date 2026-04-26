@@ -8,6 +8,7 @@ import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service
 import * as bcrypt from 'bcrypt'
 import { BaseAuthService } from './base-auth.service'
 import { EncryptionService } from '../../shared/infrastructure/common/encryption.service'
+import * as crypto from 'crypto'
 
 @Injectable()
 export class PmAuthService extends BaseAuthService {
@@ -53,11 +54,17 @@ export class PmAuthService extends BaseAuthService {
     })
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash: _, ...pmNoPass } = pm
+    const { passwordHash: _, id: serverId, uuid, ...rest } = pm
+    const clientProfile = {
+      id: uuid, // Map uuid to id for client
+      uuid,
+      ...rest
+    }
+
     return {
       accessToken,
       refreshToken,
-      user: pmNoPass,
+      user: clientProfile,
     }
   }
 
@@ -179,11 +186,17 @@ export class PmAuthService extends BaseAuthService {
     })
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash: _, ...pmNoPass } = pm
+    const { passwordHash: _, id: serverId, uuid, ...rest } = pm
+    const clientProfile = {
+      id: uuid,
+      uuid,
+      ...rest
+    }
+
     return {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,
-      user: pmNoPass,
+      user: clientProfile,
     }
   }
 
@@ -205,7 +218,11 @@ export class PmAuthService extends BaseAuthService {
     const pm = await this.pmRepository.findByUuid(pmUuid)
     if (!pm) throw new UnauthorizedException('PM not found')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...profile } = pm
-    return profile
+    const { passwordHash, id: serverId, uuid, ...profile } = pm
+    return {
+      id: uuid,
+      uuid,
+      ...profile
+    }
   }
 }

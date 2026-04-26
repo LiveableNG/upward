@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/features/auth/AuthContext'
+import { useProperties } from '@/features/pm/hooks/useProperties'
 
 interface CarouselItem {
   id: string
@@ -65,11 +66,13 @@ const items: CarouselItem[] = [
 
 export function ActivityCarousel() {
   const { user } = useAuth()
+  const { data: properties = [] } = useProperties()
   const [index, setIndex] = useState(0)
   
   const carouselItems = items.filter(item => {
     if (item.id === 'payment-info') return !user?.bankCode
     if (item.id === 'complete-profile') return !user?.profilePic
+    if (item.id === 'add-property') return properties.length === 0
     return true
   })
 
