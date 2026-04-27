@@ -7,11 +7,12 @@ import { useToast } from '@/components/common/Toast'
 import { cn } from '@/lib/utils'
 import Papa from 'papaparse'
 
-import { useProperties, useUnits, useCreateProperty, useUpdateProperty, useBulkCreateUnits } from '@/features/pm/hooks/useProperties'
+import { useProperties, useUnits, useCreateProperty, useUpdateProperty, useBulkCreateUnits, useDeleteProperty } from '@/features/pm/hooks/useProperties'
 import { PropertyCard } from './PropertyCard'
 import { UnitCard } from './UnitCard'
 import { AddPropertyModal } from './modals/AddPropertyModal'
 import { EditPropertyModal } from './modals/EditPropertyModal'
+import { DeletePropertyModal } from './modals/DeletePropertyModal'
 import { AddUnitModal } from './modals/AddUnitModal'
 
 import { Property, getPropertyImageUploadUrl } from '../../services/propertyService'
@@ -23,6 +24,7 @@ export function PropertiesView() {
   const [activeTab, setActiveTab] = useState<Tab>('units')
   const [showAddPropertyModal, setShowAddPropertyModal] = useState(false)
   const [showEditPropertyModal, setShowEditPropertyModal] = useState(false)
+  const [showDeletePropertyModal, setShowDeletePropertyModal] = useState(false)
   const [showAddUnitModal, setShowAddUnitModal] = useState(false)
   const [editingPropertyUuid, setEditingPropertyUuid] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -37,7 +39,10 @@ export function PropertiesView() {
     totalUnits: '',
     propertyType: 'Residential',
     imageFile: null as File | null,
-    imageUrl: ''
+    imageUrl: '',
+    country: 'Nigeria',
+    state: '',
+    area: ''
   })
 
   const [unitForm, setUnitForm] = useState({
@@ -49,7 +54,8 @@ export function PropertiesView() {
     rentAmount: '',
     rentStartDate: '',
     rentDueDate: '',
-    rentFrequency: 'Monthly'
+    rentFrequency: 'Monthly',
+    tenantUuid: ''
   })
 
   const { success, info, error } = useToast()
@@ -59,15 +65,27 @@ export function PropertiesView() {
   
   const createPropertyMutation = useCreateProperty()
   const updatePropertyMutation = useUpdateProperty()
+  const deletePropertyMutation = useDeleteProperty()
   const bulkCreateUnitsMutation = useBulkCreateUnits()
+
+  const handleConfirmDelete = () => {
+    deletePropertyMutation.mutate(editingPropertyUuid, {
+      onSuccess: () => {
+        success('Property and all associated units deleted permanently')
+        setShowDeletePropertyModal(false)
+        setShowEditPropertyModal(false)
+        resetPropForm()
+      }
+    })
+  }
 
   // Filters
   const filteredUnits = units.filter(unit => {
     const prop = properties.find(p => p.uuid === (unit as any).propertyUuid || p.id === unit.propertyId)
     const matchesSearch = 
       unit.unitName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      unit.tenantFirstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      unit.tenantLastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      unit.tenant?.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      unit.tenant?.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       prop?.name?.toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesProp = selectedPropertyFilter === 'All Properties' || prop?.name === selectedPropertyFilter
@@ -83,10 +101,10 @@ export function PropertiesView() {
   const handleDownloadTemplate = () => {
     const headers = ["Unit Name", "TenantFirstName", "TenantLastName", "TenantEmail", "TenantPhone", "Rent Amount", "RentStartDate", "RentDueDate", "RentFrequency"]
     const rows = [
-      ["101", "John", "Doe", "john@example.com", "08012345678", "2000000", "2024-01-01", "2024-05-01", "Monthly"],
-      ["102", "Jane", "Smith", "jane@example.com", "08012345679", "1500000", "2024-02-01", "2024-06-01", "Monthly"],
-      ["201", "Alice", "Johnson", "alice@example.com", "08012345680", "3000000", "2024-03-01", "2024-07-01", "Annually"],
-      ["202", "Bob", "Brown", "bob@example.com", "08012345681", "2500000", "2024-04-01", "2024-08-01", "Bi-Annually"]
+      ["101", "John", "Doe", "john@example.com", "+2348012345678", "2000000", "2024-01-01", "2024-05-01", "Monthly"],
+      ["102", "Jane", "Smith", "jane@example.com", "+2348012345679", "1500000", "2024-02-01", "2024-06-01", "Monthly"],
+      ["201", "Alice", "Johnson", "alice@example.com", "+2348012345680", "3000000", "2024-03-01", "2024-07-01", "Annually"],
+      ["202", "Bob", "Brown", "bob@example.com", "+2348012345681", "2500000", "2024-04-01", "2024-08-01", "Bi-Annually"]
     ]
     
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n")
@@ -106,6 +124,10 @@ export function PropertiesView() {
     if (!targetPropertyUuid) return error("Please select a property")
     if (!unitForm.unitName) return error("Unit Name is required")
     
+    if (unitForm.tenantPhone && !/^\+234\d{10}$/.test(unitForm.tenantPhone)) {
+      return error("Tenant phone must be in format +2348000000000")
+    }
+    
     bulkCreateUnitsMutation.mutate({
       propertyUuid: targetPropertyUuid,
       units: [{
@@ -118,6 +140,7 @@ export function PropertiesView() {
         rentStartDate: unitForm.rentStartDate,
         rentDueDate: unitForm.rentDueDate,
         rentFrequency: unitForm.rentFrequency,
+        tenantUuid: unitForm.tenantUuid,
         status: 'OCCUPIED'
       }]
     }, {
@@ -127,7 +150,8 @@ export function PropertiesView() {
         setUnitForm({ 
           unitName: '', tenantFirstName: '', tenantLastName: '', 
           tenantEmail: '', tenantPhone: '', rentAmount: '',
-          rentStartDate: '', rentDueDate: '', rentFrequency: 'Monthly'
+          rentStartDate: '', rentDueDate: '', rentFrequency: 'Monthly',
+          tenantUuid: ''
         })
         setTargetPropertyUuid('')
       },
@@ -159,7 +183,10 @@ export function PropertiesView() {
         address: propForm.address,
         propertyType: propForm.propertyType,
         totalUnits: parseInt(propForm.totalUnits) || 0,
-        imageUrl: finalImageUrl || undefined
+        imageUrl: finalImageUrl || undefined,
+        country: propForm.country,
+        state: propForm.state,
+        area: propForm.area
       }, {
         onSuccess: () => {
           success('Property created successfully!')
@@ -180,7 +207,10 @@ export function PropertiesView() {
       totalUnits: prop.totalUnits.toString(),
       propertyType: prop.propertyType,
       imageFile: null,
-      imageUrl: prop.imageUrl || ''
+      imageUrl: prop.imageUrl || '',
+      country: prop.country || 'Nigeria',
+      state: prop.state || '',
+      area: prop.area || ''
     })
     setShowEditPropertyModal(true)
   }
@@ -208,7 +238,10 @@ export function PropertiesView() {
           address: propForm.address,
           propertyType: propForm.propertyType,
           totalUnits: parseInt(propForm.totalUnits) || 0,
-          imageUrl: finalImageUrl
+          imageUrl: finalImageUrl,
+          country: propForm.country,
+          state: propForm.state,
+          area: propForm.area
         }
       }, {
         onSuccess: () => {
@@ -223,7 +256,7 @@ export function PropertiesView() {
   }
 
   const resetPropForm = () => {
-    setPropForm({ name: '', address: '', totalUnits: '', propertyType: 'Residential', imageFile: null, imageUrl: '' })
+    setPropForm({ name: '', address: '', totalUnits: '', propertyType: 'Residential', imageFile: null, imageUrl: '', country: 'Nigeria', state: '', area: '' })
     setEditingPropertyUuid('')
   }
 
@@ -353,9 +386,18 @@ export function PropertiesView() {
         isOpen={showEditPropertyModal}
         onClose={() => setShowEditPropertyModal(false)}
         onSave={handleUpdateProperty}
+        onDelete={() => setShowDeletePropertyModal(true)}
         isPending={updatePropertyMutation.isPending}
         formData={propForm}
         setFormData={setPropForm}
+      />
+
+      <DeletePropertyModal 
+        isOpen={showDeletePropertyModal}
+        onClose={() => setShowDeletePropertyModal(false)}
+        onConfirm={handleConfirmDelete}
+        isPending={deletePropertyMutation.isPending}
+        propertyName={propForm.name}
       />
     </>
   )

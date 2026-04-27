@@ -58,6 +58,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
     const fetchOptions: RequestInit = {
       credentials: 'include',
+      cache: 'no-store',
       ...options,
       headers,
       signal: controller.signal,
@@ -89,7 +90,15 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       throw error
     }
 
-    return res.json() as Promise<T>
+    if (res.status === 204 || res.headers.get('content-length') === '0') {
+      return {} as T
+    }
+
+    try {
+      return await res.json()
+    } catch (err) {
+      return {} as T
+    }
   }
 
   return makeRequest(getAccessToken())

@@ -1,6 +1,7 @@
 import React from 'react'
 import { X } from 'lucide-react'
 import { Property } from '../../../services/propertyService'
+import { useTenants } from '../../../hooks/useTenants'
 
 interface AddUnitModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ interface AddUnitModalProps {
     tenantLastName: string;
     tenantEmail: string;
     tenantPhone: string;
+    tenantUuid?: string;
   };
   setFormData: (data: any) => void;
 }
@@ -27,6 +29,9 @@ interface AddUnitModalProps {
 export const AddUnitModal: React.FC<AddUnitModalProps> = ({
   isOpen, onClose, onSave, isPending, properties, targetPropertyUuid, setTargetPropertyUuid, formData, setFormData
 }) => {
+  const { data: tenants = [] } = useTenants()
+  const [useExistingTenant, setUseExistingTenant] = React.useState(false)
+
   if (!isOpen) return null;
 
   return (
@@ -109,53 +114,100 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
         </div>
 
         <div style={{ borderTop: '1px solid var(--border)', margin: '20px 0', paddingTop: 20 }}>
-          <h4 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Tenant Details</h4>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div className="form-group">
-              <label className="form-label">First Name</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="John"
-                value={formData.tenantFirstName}
-                onChange={e => setFormData({ ...formData, tenantFirstName: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Last Name</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="Doe"
-                value={formData.tenantLastName}
-                onChange={e => setFormData({ ...formData, tenantLastName: e.target.value })}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h4 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Tenant Details</h4>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Use Existing</span>
+              <input 
+                type="checkbox" 
+                checked={useExistingTenant} 
+                onChange={e => {
+                  setUseExistingTenant(e.target.checked)
+                  if (!e.target.checked) {
+                    setFormData({ ...formData, tenantUuid: '' })
+                  }
+                }} 
               />
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          {useExistingTenant ? (
             <div className="form-group">
-              <label className="form-label">Email Address</label>
-              <input
-                type="email"
+              <label className="form-label">Select Existing Tenant</label>
+              <select 
                 className="form-input"
-                placeholder="john@example.com"
-                value={formData.tenantEmail}
-                onChange={e => setFormData({ ...formData, tenantEmail: e.target.value })}
-              />
+                value={formData.tenantUuid || ''}
+                onChange={e => {
+                  const selected = tenants.find(t => t.uuid === e.target.value)
+                  if (selected) {
+                    setFormData({
+                      ...formData,
+                      tenantUuid: selected.uuid,
+                      tenantFirstName: selected.firstName || '',
+                      tenantLastName: selected.lastName || '',
+                      tenantEmail: selected.email || '',
+                      tenantPhone: selected.phone || ''
+                    })
+                  }
+                }}
+              >
+                <option value="">-- Choose Tenant --</option>
+                {tenants.map(t => (
+                  <option key={t.uuid} value={t.uuid}>
+                    {t.firstName} {t.lastName} ({t.email})
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="form-group">
-              <label className="form-label">Phone Number</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="08012345678"
-                value={formData.tenantPhone}
-                onChange={e => setFormData({ ...formData, tenantPhone: e.target.value })}
-              />
-            </div>
-          </div>
+          ) : (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="form-group">
+                  <label className="form-label">First Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="John"
+                    value={formData.tenantFirstName}
+                    onChange={e => setFormData({ ...formData, tenantFirstName: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Last Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Doe"
+                    value={formData.tenantLastName}
+                    onChange={e => setFormData({ ...formData, tenantLastName: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="form-group">
+                  <label className="form-label">Email Address</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    placeholder="john@example.com"
+                    value={formData.tenantEmail}
+                    onChange={e => setFormData({ ...formData, tenantEmail: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Phone Number</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="+2348000000000"
+                    value={formData.tenantPhone}
+                    onChange={e => setFormData({ ...formData, tenantPhone: e.target.value })}
+                  />
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>

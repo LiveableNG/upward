@@ -94,6 +94,7 @@ import { ChangePmPasswordUseCase } from './use-cases/pm/change-pm-password.use-c
 import { GetPmAvatarUploadUrlUseCase } from './use-cases/pm/get-pm-avatar-upload-url.use-case'
 import { CreatePropertyUseCase } from './pm/use-cases/create-property.use-case'
 import { UpdatePropertyUseCase } from './pm/use-cases/update-property.use-case'
+import { DeletePropertyUseCase } from './pm/use-cases/delete-property.use-case'
 import { GetPmPropertiesUseCase } from './pm/use-cases/get-pm-properties.use-case'
 import { BulkCreateUnitsUseCase } from './pm/use-cases/bulk-create-units.use-case'
 import { GetPmUnitsUseCase } from './pm/use-cases/get-pm-units.use-case'
@@ -103,6 +104,13 @@ import { DeleteUnitUseCase } from './pm/use-cases/delete-unit.use-case'
 import { GetUnitPaymentsUseCase } from './pm/use-cases/get-unit-payments.use-case'
 import { AddUnitPaymentUseCase } from './pm/use-cases/add-unit-payment.use-case'
 import { GetPropertyImageUploadUrlUseCase } from './pm/use-cases/get-property-image-upload-url.use-case'
+import { GetPmTenantsUseCase } from './pm/use-cases/tenants/get-pm-tenants.use-case'
+import { InviteTenantUseCase } from './pm/use-cases/tenants/invite-tenant.use-case'
+import { CreateTenantUseCase } from './pm/use-cases/tenants/create-tenant.use-case'
+import { GetTenantUseCase } from './pm/use-cases/tenants/get-tenant.use-case'
+import { AssignTenantToUnitUseCase } from './pm/use-cases/tenants/assign-tenant-to-unit.use-case'
+import { UpdateTenantUseCase } from './pm/use-cases/tenants/update-tenant.use-case'
+import { SyncUnitToUpwardUseCase } from './pm/use-cases/units/sync-unit.use-case'
 import { AuthModule } from './auth/auth.module'
 import { CreateAnnouncementUseCase } from './use-cases/notifications/create-announcement.use-case'
 import { DeactivateAnnouncementsUseCase } from './use-cases/notifications/deactivate-announcements.use-case'
@@ -259,6 +267,7 @@ const UseCases = [
   GetPmAvatarUploadUrlUseCase,
   CreatePropertyUseCase,
   UpdatePropertyUseCase,
+  DeletePropertyUseCase,
   GetPmPropertiesUseCase,
   BulkCreateUnitsUseCase,
   GetPmUnitsUseCase,
@@ -268,6 +277,13 @@ const UseCases = [
   GetUnitPaymentsUseCase,
   AddUnitPaymentUseCase,
   GetPropertyImageUploadUrlUseCase,
+  GetPmTenantsUseCase,
+  InviteTenantUseCase,
+  CreateTenantUseCase,
+  GetTenantUseCase,
+  AssignTenantToUnitUseCase,
+  UpdateTenantUseCase,
+  SyncUnitToUpwardUseCase,
 ]
 
 @Module({

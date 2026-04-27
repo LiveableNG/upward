@@ -17,6 +17,18 @@ export class CreatePropertyDto {
 
   @IsOptional()
   imageUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  country?: string;
+
+  @IsString()
+  @IsOptional()
+  state?: string;
+
+  @IsString()
+  @IsOptional()
+  area?: string;
 }
 
 export class UpdatePropertyDto {
@@ -39,6 +51,18 @@ export class UpdatePropertyDto {
   @IsString()
   @IsOptional()
   imageUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  country?: string;
+
+  @IsString()
+  @IsOptional()
+  state?: string;
+
+  @IsString()
+  @IsOptional()
+  area?: string;
 }
 
 export class UnitImportDto {
@@ -75,6 +99,10 @@ export class UnitImportDto {
   @IsString()
   @IsOptional()
   rentFrequency?: string;
+
+  @IsString()
+  @IsOptional()
+  tenantUuid?: string;
 
   @IsString()
   status!: string;

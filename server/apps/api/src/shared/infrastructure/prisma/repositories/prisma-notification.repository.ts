@@ -84,10 +84,10 @@ export class PrismaNotificationRepository implements NotificationRepository {
         },
       },
       update: {
-        seenPopup: data.seenPopup,
-        interactedPopup: data.interactedPopup,
-        seenBanner: data.seenBanner,
-        interactedBanner: data.interactedBanner,
+        ...(data.seenPopup !== undefined && { seenPopup: data.seenPopup }),
+        ...(data.interactedPopup !== undefined && { interactedPopup: data.interactedPopup }),
+        ...(data.seenBanner !== undefined && { seenBanner: data.seenBanner }),
+        ...(data.interactedBanner !== undefined && { interactedBanner: data.interactedBanner }),
       },
       create: {
         userId: data.userId,

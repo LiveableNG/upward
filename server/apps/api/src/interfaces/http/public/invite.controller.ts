@@ -170,6 +170,7 @@ export class InviteController {
     await this.userRepository.update(user.id!, {
       passwordHash,
     })
+    await this.userAuthService.syncTenantStatuses(user.email)
 
     const updatedUser = await this.userRepository.findById(user.id!)
     if (!updatedUser) throw new Error('Failed to update user')

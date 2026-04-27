@@ -19,8 +19,12 @@ export interface UserProfile {
     rentEndDate: string;
     rentAmount?: number;
     isManaged?: boolean;
-    companyName?: string;
     managerName?: string;
+    managerPhone?: string;
+    managerEmail?: string;
+    companyName?: string;
+    companyPhone?: string;
+    companyEmail?: string;
     isPastTenancy?: boolean;
     location?: {
       area?: string;

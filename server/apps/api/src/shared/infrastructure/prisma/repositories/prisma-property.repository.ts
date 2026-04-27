@@ -31,6 +31,10 @@ export class PrismaPropertyRepository implements PropertyRepository {
         company: true,
         manager: true,
         location: true,
+        pmManager: true,
+        pmUnit: {
+          include: { property: true }
+        }
       },
     })
     if (!record) return null
@@ -42,6 +46,12 @@ export class PrismaPropertyRepository implements PropertyRepository {
     if (result.manager) {
       result.manager.firstName = this.encryption.decrypt(result.manager.firstName)
       result.manager.lastName = this.encryption.decrypt(result.manager.lastName)
+    } else if (result.pmManager) {
+      // Fallback to PM Manager for Upward Pay UI consistency
+      result.manager = {
+        firstName: this.encryption.decrypt(result.pmManager.firstName),
+        lastName: this.encryption.decrypt(result.pmManager.lastName)
+      }
     }
 
     return result as unknown as Property
@@ -50,9 +60,24 @@ export class PrismaPropertyRepository implements PropertyRepository {
   async findByUserId(userId: number): Promise<Property[]> {
     const records = await this.prisma.upward_user_property.findMany({
       where: { userId },
-      include: { location: true }
+      include: { 
+        location: true,
+        pmManager: true,
+        pmUnit: {
+          include: { property: true }
+        }
+      }
     })
-    return records as unknown as Property[]
+    return records.map(record => {
+      const result = { ...record } as any
+      if (result.pmManager && !result.manager) {
+        result.manager = {
+          firstName: this.encryption.decrypt(result.pmManager.firstName),
+          lastName: this.encryption.decrypt(result.pmManager.lastName)
+        }
+      }
+      return result
+    }) as unknown as Property[]
   }
 
   async save(property: Property, tx?: Prisma.TransactionClient): Promise<Property> {
@@ -69,6 +94,8 @@ export class PrismaPropertyRepository implements PropertyRepository {
       rentEndDate: property.rentEndDate,
       isVerified: property.isVerified,
       isPastTenancy: property.isPastTenancy,
+      pmManagerId: property.pmManagerId,
+      pmUnitId: property.pmUnitId,
     }
     const record = property.id
       ? await prisma.upward_user_property.update({

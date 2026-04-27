@@ -23,6 +23,7 @@ export const api = {
   getProperties: propertyService.getProperties,
   createProperty: propertyService.createProperty,
   updateProperty: propertyService.updateProperty,
+  deleteProperty: propertyService.deleteProperty,
   getUnits: propertyService.getUnits,
   getUnit: propertyService.getUnit,
   updateUnit: propertyService.updateUnit,
@@ -30,17 +31,19 @@ export const api = {
   getUnitPayments: propertyService.getUnitPayments,
   addUnitPayment: propertyService.addUnitPayment,
   bulkCreateUnits: propertyService.bulkCreateUnits,
+  syncToUpward: propertyService.syncToUpward,
+  getPropertyImageUploadUrl: propertyService.getPropertyImageUploadUrl,
 
   // Generic Helpers
   get: <T = any>(url: string) => request<T>(url, { method: 'GET' }),
-  post: <T = any>(url: string, data: any) =>
+  post: <T = any>(url: string, data?: any) =>
     request<T>(url, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data ? JSON.stringify(data) : undefined,
     }),
-  patch: <T = any>(url: string, data: any) =>
+  patch: <T = any>(url: string, data?: any) =>
     request<T>(url, {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: data ? JSON.stringify(data) : undefined,
     }),
 }

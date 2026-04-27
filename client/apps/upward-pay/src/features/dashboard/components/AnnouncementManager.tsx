@@ -9,7 +9,7 @@ export function AnnouncementManager() {
   const queryClient = useQueryClient()
   const [showPopup, setShowPopup] = useState(false)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => api.getNotifications(),
     refetchInterval: 60000, // Check every minute
@@ -26,12 +26,22 @@ export function AnnouncementManager() {
   const activeRentReminder = data?.activeRentReminder // Priority check
   const announcementId = activeAnnouncement?.id
   const hasSeenPopup = activeAnnouncement?.state?.seenPopup
+  const triggeredIdRef = React.useRef<number | null>(null)
 
   useEffect(() => {
     const isFromPush = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('from_push') === 'true'
     
-    // Priority Rule: Don't show announcement if a rent reminder is active
-    if (!isLoading && activeAnnouncement && !hasSeenPopup && !activeRentReminder && !updateStateMutation.isPending && !isFromPush) {
+    if (
+      !isLoading && 
+      !isFetching && 
+      activeAnnouncement && 
+      !hasSeenPopup && 
+      !activeRentReminder && 
+      !updateStateMutation.isPending && 
+      !isFromPush &&
+      triggeredIdRef.current !== activeAnnouncement.id
+    ) {
+      triggeredIdRef.current = activeAnnouncement.id
       setShowPopup(true)
       // Automatically mark as seen in backend
       updateStateMutation.mutate({
@@ -41,6 +51,7 @@ export function AnnouncementManager() {
     }
   }, [
     isLoading,
+    isFetching,
     announcementId,
     hasSeenPopup,
     activeRentReminder,

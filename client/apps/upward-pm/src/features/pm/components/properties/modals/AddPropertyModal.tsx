@@ -1,6 +1,7 @@
 import React from 'react'
 import { X } from 'lucide-react'
 import { ImageUpload } from './ImageUpload'
+import { useCountries, useCities } from '../../../hooks/useLocation'
 
 interface AddPropertyModalProps {
   isOpen: boolean;
@@ -13,6 +14,9 @@ interface AddPropertyModalProps {
     totalUnits: string;
     propertyType: string;
     imageUrl?: string;
+    country?: string;
+    state?: string;
+    area?: string;
   };
   setFormData: (data: any) => void;
 }
@@ -20,6 +24,9 @@ interface AddPropertyModalProps {
 export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ 
   isOpen, onClose, onSave, isPending, formData, setFormData 
 }) => {
+  const { data: countriesData } = useCountries()
+  const { data: citiesData, isLoading: isLoadingCities } = useCities(formData.country || '')
+
   if (!isOpen) return null;
 
   return (
@@ -61,7 +68,45 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
           />
         </div>
 
-
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="form-group">
+            <label className="form-label">Country</label>
+            <select 
+              className="form-input" 
+              value={formData.country} 
+              onChange={e => setFormData({ ...formData, country: e.target.value, state: '' })}
+            >
+              <option value="">Select Country</option>
+              {countriesData?.data?.map(c => (
+                <option key={c.id} value={c.name}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">State</label>
+            <select 
+              className="form-input" 
+              value={formData.state} 
+              onChange={e => setFormData({ ...formData, state: e.target.value })}
+              disabled={!formData.country || isLoadingCities}
+            >
+              <option value="">{isLoadingCities ? 'Loading...' : 'Select State'}</option>
+              {citiesData?.data?.map(city => (
+                <option key={city} value={city}>{city}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Area</label>
+            <input 
+              type="text" 
+              className="form-input" 
+              placeholder="e.g. Lekki" 
+              value={formData.area} 
+              onChange={e => setFormData({ ...formData, area: e.target.value })}
+            />
+          </div>
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div className="form-group">

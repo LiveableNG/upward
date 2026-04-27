@@ -521,12 +521,16 @@ model upward_user_property {
   rentEndDate   DateTime?
   isVerified    Boolean   @default(false)
   isPastTenancy Boolean   @default(false)
+  pmManagerId   Int?
+  pmUnitId      Int?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   user     upward_user      @relation(fields: [userId], references: [id], onDelete: Cascade)
   company  upward_company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   manager  upward_manager?  @relation(fields: [managerId], references: [id])
+  pmManager upward_property_manager? @relation(fields: [pmManagerId], references: [id])
+  pmUnit    upward_pm_unit? @relation(fields: [pmUnitId], references: [id])
   location upward_location? @relation(fields: [locationId], references: [id])
 
   paymentRequests upward_payment_request[]
@@ -750,6 +754,8 @@ model upward_property_manager {
   
   authSessions upward_pm_auth_session[]
   properties   upward_pm_property[]
+  tenants      upward_pm_tenant[]
+  userProperties upward_user_property[]
   
   @@index([email])
 }
@@ -780,6 +786,9 @@ model upward_pm_property {
   totalUnits   Int      @default(0)
   propertyType String   @default("Residential")
   imageUrl     String?
+  country      String   @default("Nigeria")
+  state        String?
+  area         String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -795,30 +804,56 @@ model upward_pm_unit {
   propertyId   Int
   unitName     String
   
-  tenantFirstNameEncrypted String?  /// @encrypted
-  tenantFirstNameSearch    String?
-  tenantLastNameEncrypted  String?  /// @encrypted
-  tenantLastNameSearch     String?
-  tenantEmailEncrypted     String?  /// @encrypted
-  tenantEmailHash          String?
-  tenantPhoneEncrypted     String?  /// @encrypted
-  tenantPhoneHash          String?
-  
   rentAmount      Float    @default(0)
   rentStartDate   DateTime?
   rentDueDate     DateTime? // Specific due date or next due date
   rentFrequency   String   @default("Monthly") // Monthly, Quarterly, Bi-Annually, Annually
   currency        String   @default("NGN")
   status          String   @default("VACANT") // OCCUPIED, VACANT, MAINTENANCE
+  
+  tenantId        Int?
+  tenant          upward_pm_tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  
+  isSynced        Boolean  @default(false)
+  userPropertyUuid String?
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   property upward_pm_property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   rentPayments upward_pm_rent_payment[]
+  userProperties upward_user_property[]
 
   @@index([propertyId])
   @@index([status])
-  @@index([tenantEmailHash])
+  @@index([tenantId])
+}
+
+model upward_pm_tenant {
+  id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid())
+  pmId      Int
+  
+  firstNameEncrypted String?  /// @encrypted
+  firstNameSearch    String?
+  lastNameEncrypted  String?  /// @encrypted
+  lastNameSearch     String?
+  emailEncrypted     String?  /// @encrypted
+  emailHash          String?
+  phoneEncrypted     String?  /// @encrypted
+  phoneHash          String?
+  
+  inviteStatus       String   @default("PENDING") // PENDING, SENT, ON_UPWARD, ACCEPTED
+  inviteSentAt       DateTime?
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  pm                 upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  units              upward_pm_unit[]
+
+  @@index([pmId])
+  @@index([emailHash])
 }
 
 model upward_pm_rent_payment {

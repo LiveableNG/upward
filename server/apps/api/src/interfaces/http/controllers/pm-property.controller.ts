@@ -2,6 +2,7 @@ import { Controller, Post, Get, Patch, Body, UseGuards, Req, Query, Param } from
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
 import { CreatePropertyUseCase } from '../../../application/pm/use-cases/create-property.use-case';
 import { UpdatePropertyUseCase } from '../../../application/pm/use-cases/update-property.use-case';
+import { DeletePropertyUseCase } from '../../../application/pm/use-cases/delete-property.use-case';
 import { GetPmPropertiesUseCase } from '../../../application/pm/use-cases/get-pm-properties.use-case';
 import { BulkCreateUnitsUseCase } from '../../../application/pm/use-cases/bulk-create-units.use-case';
 import { GetPmUnitsUseCase } from '../../../application/pm/use-cases/get-pm-units.use-case';
@@ -11,6 +12,7 @@ import { DeleteUnitUseCase } from '../../../application/pm/use-cases/delete-unit
 import { GetUnitPaymentsUseCase } from '../../../application/pm/use-cases/get-unit-payments.use-case';
 import { AddUnitPaymentUseCase } from '../../../application/pm/use-cases/add-unit-payment.use-case';
 import { GetPropertyImageUploadUrlUseCase } from '../../../application/pm/use-cases/get-property-image-upload-url.use-case';
+import { SyncUnitToUpwardUseCase } from '../../../application/pm/use-cases/units/sync-unit.use-case';
 import { CreatePropertyDto, UpdatePropertyDto, BulkCreateUnitsDto } from '../../../application/pm/dtos/property.dto';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 import { Inject, UnauthorizedException, Delete } from '@nestjs/common';
@@ -21,6 +23,7 @@ export class PmPropertyController {
   constructor(
     private readonly createPropertyUseCase: CreatePropertyUseCase,
     private readonly updatePropertyUseCase: UpdatePropertyUseCase,
+    private readonly deletePropertyUseCase: DeletePropertyUseCase,
     private readonly getPmPropertiesUseCase: GetPmPropertiesUseCase,
     private readonly bulkCreateUnitsUseCase: BulkCreateUnitsUseCase,
     private readonly getPmUnitsUseCase: GetPmUnitsUseCase,
@@ -30,6 +33,7 @@ export class PmPropertyController {
     private readonly getUnitPaymentsUseCase: GetUnitPaymentsUseCase,
     private readonly addUnitPaymentUseCase: AddUnitPaymentUseCase,
     private readonly getPropertyImageUploadUrlUseCase: GetPropertyImageUploadUrlUseCase,
+    private readonly syncUnitToUpwardUseCase: SyncUnitToUpwardUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -51,6 +55,12 @@ export class PmPropertyController {
   async updateProperty(@Req() req: any, @Param('propertyUuid') propertyUuid: string, @Body() dto: UpdatePropertyDto) {
     const pmId = await this.getPmId(req);
     return this.updatePropertyUseCase.execute(pmId, propertyUuid, dto);
+  }
+
+  @Delete('properties/:propertyUuid')
+  async deleteProperty(@Req() req: any, @Param('propertyUuid') propertyUuid: string) {
+    const pmId = await this.getPmId(req);
+    return this.deletePropertyUseCase.execute(pmId, propertyUuid);
   }
 
   @Get('properties')
@@ -99,6 +109,12 @@ export class PmPropertyController {
   async addUnitPayment(@Req() req: any, @Param('unitUuid') unitUuid: string, @Body() dto: any) {
     const pmId = await this.getPmId(req);
     return this.addUnitPaymentUseCase.execute(pmId, unitUuid, dto);
+  }
+
+  @Post('units/:unitUuid/sync-to-upward')
+  async syncToUpward(@Req() req: any, @Param('unitUuid') unitUuid: string) {
+    const pmId = await this.getPmId(req);
+    return this.syncUnitToUpwardUseCase.execute(unitUuid, pmId);
   }
 
   @Post('properties/image-upload-url')

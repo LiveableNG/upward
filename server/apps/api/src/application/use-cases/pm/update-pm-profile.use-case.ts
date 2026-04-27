@@ -1,5 +1,6 @@
 import { Injectable, Logger, Inject, NotFoundException } from '@nestjs/common'
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../domains/pm/property-manager.repository'
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 
 @Injectable()
 export class UpdatePmProfileUseCase {
@@ -8,6 +9,7 @@ export class UpdatePmProfileUseCase {
   constructor(
     @Inject(PROPERTY_MANAGER_REPOSITORY)
     private readonly pmRepository: PropertyManagerRepository,
+    private readonly s3Service: S3Service,
   ) {}
 
   async execute(pmUuid: string, dto: {
@@ -24,10 +26,16 @@ export class UpdatePmProfileUseCase {
     
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, id: serverId, uuid, ...rest } = updatedPm
-    return {
+    const clientProfile: any = {
       id: uuid,
       uuid,
       ...rest
     }
+
+    if (clientProfile.profilePic) {
+      clientProfile.profilePic = await this.s3Service.getDownloadUrl(clientProfile.profilePic)
+    }
+
+    return clientProfile
   }
 }

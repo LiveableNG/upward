@@ -39,9 +39,16 @@ export class CompleteUserProfileUseCase {
       rentAmount?: number;
       isPastTenancy?: boolean;
       companyName?: string;
+      companyPhone?: string;
+      companyEmail?: string;
       managerName?: string;
+      managerPhone?: string;
+      managerEmail?: string;
     }>
   }) {
+    if (dto.phone && !/^\+234\d{10}$/.test(dto.phone)) {
+      throw new Error('Phone number must be in format +2348000000000');
+    }
     const waitlistEntry = await this.waitlistRepository.findByEmail(dto.email)
 
     let passwordHash: string | undefined
@@ -124,6 +131,8 @@ export class CompleteUserProfileUseCase {
     if (properties.length > 0) {
       await this.syncProperties(user.id!, properties)
     }
+
+    await this.userAuthService.syncTenantStatuses(dto.email)
 
     // Reuse UserAuthService login logic to create session and tokens
     return this.userAuthService.generateFullAuthResponse(user)

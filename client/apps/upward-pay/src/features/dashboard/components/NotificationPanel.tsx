@@ -45,7 +45,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
     }
   }, [isOpen])
 
-  const { data: notifData, isLoading: isNotifLoading } = useQuery({
+  const { data: notifData, isLoading: isNotifLoading, isFetching: isNotifFetching } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => api.getNotifications(),
     enabled: isOpen,
@@ -90,9 +90,11 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
     },
   })
 
+  const triggeredPanelIdRef = React.useRef<number | null>(null)
+
   // Auto-mark category as read when switching tabs
   useEffect(() => {
-    if (!isOpen || isNotifLoading) return
+    if (!isOpen || isNotifLoading || isNotifFetching) return
     
     const timer = setTimeout(() => {
       // Only auto-mark 'Services' as read. 
@@ -101,14 +103,19 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
         markAllReadMutation.mutate(activeTab)
         
         // Also mark announcement as read if it exists
-        if (notifData?.activeAnnouncement && !notifData.activeAnnouncement.state.interactedBanner) {
+        if (
+          notifData?.activeAnnouncement && 
+          !notifData.activeAnnouncement.state.interactedBanner &&
+          triggeredPanelIdRef.current !== notifData.activeAnnouncement.id
+        ) {
+          triggeredPanelIdRef.current = notifData.activeAnnouncement.id
           updateAnnouncementMutation.mutate(notifData.activeAnnouncement.id)
         }
       }
     }, 1500)
     
     return () => clearTimeout(timer)
-  }, [activeTab, isOpen, isNotifLoading, notifData])
+  }, [activeTab, isOpen, isNotifLoading, isNotifFetching, notifData])
 
   const notifications = useMemo(() => {
     const raw = [...(notifData?.notifications || [])]

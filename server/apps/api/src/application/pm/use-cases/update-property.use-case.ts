@@ -1,12 +1,14 @@
 import { Inject, Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { IPropertyRepository, PM_PROPERTY_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
 import { UpdatePropertyDto } from '../dtos/property.dto';
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
 
 @Injectable()
 export class UpdatePropertyUseCase {
   constructor(
     @Inject(PM_PROPERTY_REPOSITORY)
     private readonly propertyRepository: IPropertyRepository,
+    private readonly s3Service: S3Service,
   ) {}
 
   async execute(pmId: number, propertyUuid: string, dto: UpdatePropertyDto) {
@@ -20,12 +22,21 @@ export class UpdatePropertyUseCase {
       throw new ForbiddenException('You do not have access to update this property');
     }
 
-    return this.propertyRepository.update(propertyUuid, {
+    const updatedProperty = await this.propertyRepository.update(propertyUuid, {
       name: dto.name,
       address: dto.address,
       totalUnits: dto.totalUnits,
       propertyType: dto.propertyType,
       imageUrl: dto.imageUrl,
+      country: dto.country,
+      state: dto.state,
+      area: dto.area,
     });
+
+    if (updatedProperty.imageUrl) {
+      updatedProperty.imageUrl = await this.s3Service.getDownloadUrl(updatedProperty.imageUrl);
+    }
+
+    return updatedProperty;
   }
 }

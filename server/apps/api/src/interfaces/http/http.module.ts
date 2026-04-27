@@ -27,6 +27,7 @@ import { WebhookAdminController } from './admin/webhook-admin.controller'
 import { PmAuthController } from './pm/pm-auth.controller'
 import { PmProfileController } from './pm/pm-profile.controller'
 import { PmPropertyController } from './controllers/pm-property.controller'
+import { PmTenantController } from './controllers/pm-tenant.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule],
@@ -56,6 +57,7 @@ import { PmPropertyController } from './controllers/pm-property.controller'
     PmAuthController,
     PmProfileController,
     PmPropertyController,
+    PmTenantController,
   ],
 })
 export class HttpModule {}
