@@ -1,6 +1,7 @@
 import React from 'react'
 import { X } from 'lucide-react'
 import { ImageUpload } from './ImageUpload'
+import { useCountries, useCities } from '../../../hooks/useLocation'
 
 interface EditPropertyModalProps {
   isOpen: boolean;
@@ -13,13 +14,20 @@ interface EditPropertyModalProps {
     totalUnits: string;
     propertyType: string;
     imageUrl?: string;
+    country?: string;
+    state?: string;
+    area?: string;
   };
   setFormData: (data: any) => void;
+  onDelete: () => void;
 }
 
 export const EditPropertyModal: React.FC<EditPropertyModalProps> = ({ 
-  isOpen, onClose, onSave, isPending, formData, setFormData 
+  isOpen, onClose, onSave, isPending, formData, setFormData, onDelete
 }) => {
+  const { data: countriesData } = useCountries()
+  const { data: citiesData, isLoading: isLoadingCities } = useCities(formData.country || '')
+
   if (!isOpen) return null;
 
   return (
@@ -60,7 +68,44 @@ export const EditPropertyModal: React.FC<EditPropertyModalProps> = ({
           />
         </div>
 
-
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="form-group">
+            <label className="form-label">Country</label>
+            <select 
+              className="form-input" 
+              value={formData.country} 
+              onChange={e => setFormData({ ...formData, country: e.target.value, state: '' })}
+            >
+              <option value="">Select Country</option>
+              {countriesData?.data?.map(c => (
+                <option key={c.id} value={c.name}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">State</label>
+            <select 
+              className="form-input" 
+              value={formData.state} 
+              onChange={e => setFormData({ ...formData, state: e.target.value })}
+              disabled={!formData.country || isLoadingCities}
+            >
+              <option value="">{isLoadingCities ? 'Loading...' : 'Select State'}</option>
+              {citiesData?.data?.map(city => (
+                <option key={city} value={city}>{city}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Area</label>
+            <input 
+              type="text" 
+              className="form-input" 
+              value={formData.area} 
+              onChange={e => setFormData({ ...formData, area: e.target.value })}
+            />
+          </div>
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div className="form-group">
@@ -87,10 +132,13 @@ export const EditPropertyModal: React.FC<EditPropertyModalProps> = ({
         </div>
 
         <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-          <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
+          <button className="btn btn--danger btn--ghost" style={{ flex: 1 }} onClick={onDelete}>
+            Delete Property
+          </button>
+          <button className="btn btn--secondary" style={{ marginLeft: 'auto', width: 100 }} onClick={onClose}>
             Cancel
           </button>
-          <button className="btn btn--primary" style={{ flex: 1 }} onClick={onSave} disabled={isPending}>
+          <button className="btn btn--primary" style={{ width: 140 }} onClick={onSave} disabled={isPending}>
             {isPending ? 'Saving...' : 'Save Changes'}
           </button>
         </div>

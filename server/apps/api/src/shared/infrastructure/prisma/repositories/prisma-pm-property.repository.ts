@@ -15,6 +15,9 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
         totalUnits: data.totalUnits,
         propertyType: data.propertyType,
         imageUrl: data.imageUrl,
+        country: data.country,
+        state: data.state,
+        area: data.area,
       },
     });
   }
@@ -43,5 +46,12 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
       where: { uuid },
       data,
     });
+  }
+
+  async delete(uuid: string): Promise<boolean> {
+    await this.prisma.upward_pm_property.delete({
+      where: { uuid },
+    });
+    return true;
   }
 }

@@ -94,12 +94,19 @@ export class UserAuthService extends BaseAuthService {
       rentDueDate?: string;
       rentAmount?: number;
       companyName?: string;
+      companyPhone?: string;
+      companyEmail?: string;
       managerName?: string;
+      managerPhone?: string;
+      managerEmail?: string;
       isPastTenancy?: boolean;
     }>
     isFromWaitlist?: boolean
     isFromInvite?: boolean
   }): Promise<UserAuthResponse & { refreshToken: string }> {
+    if (dto.phone && !/^\+234\d{10}$/.test(dto.phone)) {
+      throw new Error('Phone number must be in format +2348000000000');
+    }
     const existing = await this.userRepository.findByEmail(dto.email)
 
     if (existing) {
@@ -120,6 +127,7 @@ export class UserAuthService extends BaseAuthService {
         if (dto.properties && dto.properties.length > 0) {
           await this.syncProperties(user.id!, dto.properties)
         }
+        await this.syncTenantStatuses(dto.email)
         return this.generateFullAuthResponse(user)
       }
       throw new ConflictException('User with this email already exists')
@@ -155,6 +163,8 @@ export class UserAuthService extends BaseAuthService {
     if (dto.properties && dto.properties.length > 0) {
       await this.syncProperties(user.id!, dto.properties)
     }
+
+    await this.syncTenantStatuses(dto.email)
 
     return this.generateFullAuthResponse(user)
   }
@@ -278,6 +288,9 @@ export class UserAuthService extends BaseAuthService {
     const user = await this.userRepository.findByUuid(userUuid)
     if (!user) throw new UnauthorizedException('User not found')
 
+    if (data.phone && !/^\+234\d{10}$/.test(data.phone)) {
+      throw new Error('Phone number must be in format +2348000000000');
+    }
 
     await this.userRepository.update(user.id!, data as any)
 
@@ -315,7 +328,14 @@ export class UserAuthService extends BaseAuthService {
     }
     isPastTenancy?: boolean;
   }>) {
+    const phoneRegex = /^\+234\d{10}$/;
     for (const prop of properties) {
+      if (prop.companyPhone && !phoneRegex.test(prop.companyPhone)) {
+        throw new Error('Company phone must be in format +2348000000000');
+      }
+      if (prop.managerPhone && !phoneRegex.test(prop.managerPhone)) {
+        throw new Error('Manager phone must be in format +2348000000000');
+      }
       let locationId: number | undefined
       let companyId: number | undefined
       let managerId: number | undefined
@@ -552,6 +572,7 @@ export class UserAuthService extends BaseAuthService {
       resetPasswordOTP: null,
       resetPasswordExpires: null,
     })
+    await this.syncTenantStatuses(email)
   }
 
   async checkEmail(email: string): Promise<{ exists: boolean; hasPassword?: boolean; isInvited?: boolean }> {
@@ -620,5 +641,23 @@ export class UserAuthService extends BaseAuthService {
 
   async findByEmail(email: string) {
     return this.userRepository.findByEmail(email)
+  }
+
+  public async syncTenantStatuses(email: string) {
+    try {
+      const emailHash = this.encryption.hash(email)
+      await this.prisma.upward_pm_tenant.updateMany({
+        where: {
+          emailHash,
+          inviteStatus: { in: ['PENDING', 'SENT'] }
+        },
+        data: {
+          inviteStatus: 'ON_UPWARD'
+        }
+      })
+    } catch (error) {
+      console.error('Failed to sync tenant statuses:', error)
+
+    }
   }
 }

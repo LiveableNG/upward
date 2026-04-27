@@ -20,6 +20,10 @@ export interface Property {
   company?: { name: string }
   manager?: { firstName: string; lastName: string }
   location?: Location
+  pmManagerId?: number
+  pmUnitId?: number
+  pmManager?: { firstName: string; lastName: string; businessName?: string }
+  pmUnit?: { unitName: string; property?: { name: string } }
 }
 
 export interface Location {

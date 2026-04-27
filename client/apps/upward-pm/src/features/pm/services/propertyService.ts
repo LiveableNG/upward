@@ -8,6 +8,9 @@ export interface Property {
   totalUnits: number;
   propertyType: string;
   imageUrl?: string;
+  country?: string;
+  state?: string;
+  area?: string;
 }
 
 export interface Unit {
@@ -16,17 +19,20 @@ export interface Unit {
   propertyId: number;
   property?: Property;
   unitName: string;
+  tenantId?: number;
+  tenant?: any; 
+  tenantUuid?: string;
   tenantFirstName?: string;
   tenantLastName?: string;
   tenantEmail?: string;
-  tenantEmailHash?: string;
   tenantPhone?: string;
   rentAmount: number;
   rentStartDate?: string;
   rentDueDate?: string;
   rentFrequency: string;
   status: string;
-  imageUrl?: string;
+  isSynced: boolean;
+  userPropertyUuid: string | null;
 }
 
 export const getProperties = () => {
@@ -44,6 +50,12 @@ export const updateProperty = (uuid: string, data: Partial<Property>) => {
   return request<Property>(`/pm/properties/${uuid}`, {
     method: 'PATCH',
     body: JSON.stringify(data)
+  })
+}
+
+export const deleteProperty = (uuid: string) => {
+  return request<{ success: boolean }>(`/pm/properties/${uuid}`, {
+    method: 'DELETE'
   })
 }
 
@@ -91,5 +103,11 @@ export const getPropertyImageUploadUrl = (contentType: string, filename: string)
   return request<{ key: string; uploadUrl: string; publicUrl: string }>('/pm/properties/image-upload-url', {
     method: 'POST',
     body: JSON.stringify({ contentType, filename })
+  })
+}
+
+export const syncToUpward = (unitUuid: string) => {
+  return request<void>(`/pm/units/${unitUuid}/sync-to-upward`, {
+    method: 'POST'
   })
 }

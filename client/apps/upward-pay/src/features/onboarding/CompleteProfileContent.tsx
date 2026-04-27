@@ -31,7 +31,7 @@ const profileSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   fullName: z.string().min(2, 'Full name is required'),
-  phone: z.string().min(10, 'Valid phone number is required'),
+  phone: z.string().regex(/^\+234\d{10}$/, 'Phone number must be in format +2348000000000'),
   address: z.string().optional(),
   rentEndDate: z.string().optional(),
 })

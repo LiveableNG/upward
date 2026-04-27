@@ -10,10 +10,16 @@ import {
   Trash2, 
   Save, 
   Hash,
-  PlusCircle
+  PlusCircle,
+  Clock,
+  MapPin,
+  Globe
 } from 'lucide-react'
-import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments } from '@/features/pm/hooks/useProperties'
+import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useAddUnitPayment } from '@/features/pm/hooks/useProperties'
+import { TenantAssignmentSection } from '@/features/pm/components/tenants/TenantAssignmentSection'
+import { AddRentRecordModal } from '@/features/pm/components/properties/modals/AddRentRecordModal'
 import { useToast } from '@/components/common/Toast'
+import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import { cn } from '@/lib/utils'
 import { Splash } from '@/components/common/Splash'
 
@@ -26,18 +32,22 @@ function UnitDetailContent() {
   const { data: payments = [] } = useUnitPayments(uuid as string)
   const updateUnitMutation = useUpdateUnit()
   const deleteUnitMutation = useDeleteUnit()
+  const addPaymentMutation = useAddUnitPayment()
+
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
 
   const [formData, setFormData] = useState<any>(() => ({
     unitName: unit.unitName,
-    tenantFirstName: unit.tenantFirstName || '',
-    tenantLastName: unit.tenantLastName || '',
-    tenantEmail: unit.tenantEmail || '',
-    tenantPhone: unit.tenantPhone || '',
     rentAmount: unit.rentAmount,
     rentFrequency: unit.rentFrequency,
     status: unit.status,
     rentStartDate: unit.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : '',
     rentDueDate: unit.rentDueDate ? new Date(unit.rentDueDate).toISOString().split('T')[0] : '',
+    address: unit.property?.address || '',
+    state: unit.property?.state || '',
+    country: unit.property?.country || 'Nigeria',
+    area: unit.property?.area || '',
   }))
   
   const [isEditing, setIsEditing] = useState(false)
@@ -60,19 +70,31 @@ function UnitDetailContent() {
   }
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this unit? This action cannot be undone.')) {
-      deleteUnitMutation.mutate(uuid as string, {
-        onSuccess: () => {
-          success('Unit deleted')
-          router.back()
-        },
-        onError: () => error('Failed to delete unit')
-      })
-    }
+    deleteUnitMutation.mutate(uuid as string, {
+      onSuccess: () => {
+        success('Unit deleted')
+        setIsDeleteConfirmOpen(false)
+        router.back()
+      },
+      onError: () => error('Failed to delete unit')
+    })
   }
 
   const addRentRecord = () => {
-    info('Opening add rent record modal...')
+    setIsAddModalOpen(true)
+  }
+
+  const handleSavePayment = (data: any) => {
+    addPaymentMutation.mutate({
+      unitUuid: uuid as string,
+      data
+    }, {
+      onSuccess: () => {
+        success('Rent record added successfully')
+        setIsAddModalOpen(false)
+      },
+      onError: () => error('Failed to add rent record')
+    })
   }
 
   return (
@@ -90,16 +112,38 @@ function UnitDetailContent() {
         <div className="unit-detail__actions">
           <button 
             className="btn btn--danger btn--icon" 
-            onClick={handleDelete}
+            onClick={() => setIsDeleteConfirmOpen(true)}
             title="Delete Unit"
           >
             <Trash2 size={18} />
           </button>
           {isEditing ? (
-            <button className="btn btn--primary" onClick={handleUpdate}>
-              <Save size={18} />
-              Save Changes
-            </button>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button 
+                className="btn btn--secondary" 
+                onClick={() => {
+                  setFormData({
+                    unitName: unit.unitName,
+                    rentAmount: unit.rentAmount,
+                    rentFrequency: unit.rentFrequency,
+                    status: unit.status,
+                    rentStartDate: unit.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : '',
+                    rentDueDate: unit.rentDueDate ? new Date(unit.rentDueDate).toISOString().split('T')[0] : '',
+                    address: unit.property?.address || '',
+                    state: unit.property?.state || '',
+                    country: unit.property?.country || 'Nigeria',
+                    area: unit.property?.area || '',
+                  })
+                  setIsEditing(false)
+                }}
+              >
+                Cancel
+              </button>
+              <button className="btn btn--primary" onClick={handleUpdate}>
+                <Save size={18} />
+                Save Changes
+              </button>
+            </div>
           ) : (
             <button className="btn btn--secondary" onClick={() => setIsEditing(true)}>
               Edit Details
@@ -158,50 +202,59 @@ function UnitDetailContent() {
 
           <div className="unit-detail__card glass">
             <div className="card-header">
-              <User size={20} className="text-clay" />
-              <h3>Tenant Details</h3>
+              <MapPin size={20} className="text-clay" />
+              <h3>Location & Address</h3>
             </div>
             <div className="card-body">
+              <div className="form-group">
+                <label className="form-label">Address</label>
+                <input 
+                  className="form-input" 
+                  value={formData.address} 
+                  onChange={e => setFormData({...formData, address: e.target.value})}
+                  disabled={!isEditing}
+                  placeholder="e.g. 123 Street Name"
+                />
+              </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">First Name</label>
+                  <label className="form-label">Area / City</label>
                   <input 
                     className="form-input" 
-                    value={formData.tenantFirstName} 
-                    onChange={e => setFormData({...formData, tenantFirstName: e.target.value})}
+                    value={formData.area} 
+                    onChange={e => setFormData({...formData, area: e.target.value})}
                     disabled={!isEditing}
+                    placeholder="e.g. Lekki"
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Last Name</label>
+                  <label className="form-label">State</label>
                   <input 
                     className="form-input" 
-                    value={formData.tenantLastName} 
-                    onChange={e => setFormData({...formData, tenantLastName: e.target.value})}
+                    value={formData.state} 
+                    onChange={e => setFormData({...formData, state: e.target.value})}
                     disabled={!isEditing}
+                    placeholder="e.g. Lagos"
                   />
                 </div>
               </div>
               <div className="form-group">
-                <label className="form-label">Email Address</label>
-                <input 
-                  className="form-input" 
-                  value={formData.tenantEmail} 
-                  onChange={e => setFormData({...formData, tenantEmail: e.target.value})}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Phone Number</label>
-                <input 
-                  className="form-input" 
-                  value={formData.tenantPhone} 
-                  onChange={e => setFormData({...formData, tenantPhone: e.target.value})}
-                  disabled={!isEditing}
-                />
+                <label className="form-label">Country</label>
+                <div className="input-with-icon">
+                  <Globe size={16} className="input-icon" />
+                  <input 
+                    className="form-input" 
+                    style={{ paddingLeft: '40px' }}
+                    value={formData.country} 
+                    onChange={e => setFormData({...formData, country: e.target.value})}
+                    disabled={!isEditing}
+                  />
+                </div>
               </div>
             </div>
           </div>
+
+          <TenantAssignmentSection unit={unit} />
 
           <div className="unit-detail__card glass">
             <div className="card-header">
@@ -325,6 +378,24 @@ function UnitDetailContent() {
           </div>
         </div>
       )}
+      <AddRentRecordModal 
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSave={handleSavePayment}
+        isPending={addPaymentMutation.isPending}
+        unitName={unit?.unitName || ''}
+      />
+
+      <ConfirmationModal 
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete Unit"
+        message="Are you sure you want to delete this unit? This action cannot be undone and will remove all associated data."
+        confirmText="Delete Unit"
+        type="danger"
+        isPending={deleteUnitMutation.isPending}
+      />
 
       <style jsx>{`
         .unit-detail {
@@ -479,6 +550,17 @@ function UnitDetailContent() {
           color: var(--text-secondary);
         }
         .text-forest { color: var(--forest); }
+        
+        .input-with-icon {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+        .input-icon {
+          position: absolute;
+          left: 12px;
+          color: var(--text-muted);
+        }
 
         @media (max-width: 768px) {
           .unit-detail__grid, .rent-stats {

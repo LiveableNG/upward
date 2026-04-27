@@ -5,6 +5,7 @@ import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY, PropertyManager
 import { VerificationTokenRepository, VERIFICATION_TOKEN_REPOSITORY } from '../../domains/auth/verification-token.repository'
 import { EmailService } from '../../shared/infrastructure/email/email.service'
 import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service'
+import { S3Service } from '../../shared/infrastructure/common/s3/s3.service'
 import * as bcrypt from 'bcrypt'
 import { BaseAuthService } from './base-auth.service'
 import { EncryptionService } from '../../shared/infrastructure/common/encryption.service'
@@ -18,6 +19,7 @@ export class PmAuthService extends BaseAuthService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly encryption: EncryptionService,
+    private readonly s3Service: S3Service,
     jwtService: JwtService,
     configService: ConfigService,
   ) {
@@ -55,10 +57,14 @@ export class PmAuthService extends BaseAuthService {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash: _, id: serverId, uuid, ...rest } = pm
-    const clientProfile = {
+    const clientProfile: any = {
       id: uuid, // Map uuid to id for client
       uuid,
       ...rest
+    }
+
+    if (clientProfile.profilePic) {
+      clientProfile.profilePic = await this.s3Service.getDownloadUrl(clientProfile.profilePic)
     }
 
     return {
@@ -187,10 +193,14 @@ export class PmAuthService extends BaseAuthService {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash: _, id: serverId, uuid, ...rest } = pm
-    const clientProfile = {
+    const clientProfile: any = {
       id: uuid,
       uuid,
       ...rest
+    }
+
+    if (clientProfile.profilePic) {
+      clientProfile.profilePic = await this.s3Service.getDownloadUrl(clientProfile.profilePic)
     }
 
     return {
@@ -219,10 +229,16 @@ export class PmAuthService extends BaseAuthService {
     if (!pm) throw new UnauthorizedException('PM not found')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, id: serverId, uuid, ...profile } = pm
-    return {
+    const clientProfile: any = {
       id: uuid,
       uuid,
       ...profile
     }
+
+    if (clientProfile.profilePic) {
+      clientProfile.profilePic = await this.s3Service.getDownloadUrl(clientProfile.profilePic)
+    }
+
+    return clientProfile
   }
 }

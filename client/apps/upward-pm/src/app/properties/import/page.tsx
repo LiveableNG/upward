@@ -20,10 +20,10 @@ function ImportContent() {
   const handleDownloadTemplate = () => {
     const headers = ["Unit Name", "TenantFirstName", "TenantLastName", "TenantEmail", "TenantPhone", "Rent Amount", "RentStartDate", "RentDueDate", "RentFrequency"]
     const rows = [
-      ["101", "John", "Doe", "john@example.com", "08012345678", "2000000", "2024-01-01", "2024-05-01", "Monthly"],
-      ["102", "Jane", "Smith", "jane@example.com", "08012345679", "1500000", "2024-02-01", "2024-06-01", "Monthly"],
-      ["201", "Alice", "Johnson", "alice@example.com", "08012345680", "3000000", "2024-03-01", "2024-07-01", "Annually"],
-      ["202", "Bob", "Brown", "bob@example.com", "08012345681", "2500000", "2024-04-01", "2024-08-01", "Bi-Annually"]
+      ["101", "John", "Doe", "john@example.com", "+2348012345678", "2000000", "2024-01-01", "2024-05-01", "Monthly"],
+      ["102", "Jane", "Smith", "jane@example.com", "+2348012345679", "1500000", "2024-02-01", "2024-06-01", "Monthly"],
+      ["201", "Alice", "Johnson", "alice@example.com", "+2348012345680", "3000000", "2024-03-01", "2024-07-01", "Annually"],
+      ["202", "Bob", "Brown", "bob@example.com", "+2348012345681", "2500000", "2024-04-01", "2024-08-01", "Bi-Annually"]
     ]
     
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n")
@@ -71,6 +71,11 @@ function ImportContent() {
   const handleConfirmImport = () => {
     if (!targetPropertyUuid) return error('Please select a property first')
     if (previewUnits.length === 0) return error('No units to import')
+
+    const invalidPhones = previewUnits.filter(u => u.tenantPhone && !/^\+234\d{10}$/.test(u.tenantPhone))
+    if (invalidPhones.length > 0) {
+      return error(`Some rows have invalid phone formats. Must be +2348000000000`)
+    }
 
     const unitsToImport = previewUnits.map(({ id, ...rest }) => rest)
     bulkCreateUnitsMutation.mutate({ propertyUuid: targetPropertyUuid, units: unitsToImport }, {
@@ -167,16 +172,25 @@ function ImportContent() {
               <table className="import-table">
                 <thead>
                   <tr>
-                    <th>Unit Name</th>
-                    <th>TenantFirstName</th>
-                    <th>TenantLastName</th>
-                    <th>TenantEmail</th>
-                    <th>TenantPhone</th>
-                    <th>Rent Amount</th>
-                    <th>RentStartDate</th>
-                    <th>RentDueDate</th>
-                    <th>RentFrequency</th>
-                    <th></th>
+                    <th style={{ minWidth: '100px', position: 'sticky', top: 0, background: 'var(--surface-hover)', zIndex: 10 }}>Unit</th>
+                    <th style={{ minWidth: '150px', position: 'sticky', top: 0, background: 'var(--surface-hover)', zIndex: 10 }}>First Name</th>
+                    <th style={{ minWidth: '150px', position: 'sticky', top: 0, background: 'var(--surface-hover)', zIndex: 10 }}>Last Name</th>
+                    <th style={{ minWidth: '200px', position: 'sticky', top: 0, background: 'var(--surface-hover)', zIndex: 10 }}>Email</th>
+                    <th style={{ minWidth: '150px', position: 'sticky', top: 0, background: 'var(--surface-hover)', zIndex: 10 }}>Phone</th>
+                    <th style={{ minWidth: '140px', position: 'sticky', top: 0, background: 'var(--surface-hover)', zIndex: 10 }}>Rent Amount</th>
+                    <th style={{ minWidth: '160px', position: 'sticky', top: 0, background: 'var(--surface-hover)', zIndex: 10 }}>Start Date</th>
+                    <th style={{ minWidth: '160px', position: 'sticky', top: 0, background: 'var(--surface-hover)', zIndex: 10 }}>Due Date</th>
+                    <th style={{ minWidth: '170px', position: 'sticky', top: 0, background: 'var(--surface-hover)', zIndex: 10 }}>Frequency</th>
+                    <th style={{ 
+                      minWidth: '60px', 
+                      position: 'sticky', 
+                      top: 0, 
+                      right: 0, 
+                      background: 'var(--surface-hover)', 
+                      zIndex: 20, 
+                      borderLeft: '1px solid var(--border)',
+                      boxShadow: '-4px 0 10px rgba(0,0,0,0.05)'
+                    }}></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -214,7 +228,14 @@ function ImportContent() {
                           <option value="Annually">Annually</option>
                         </select>
                       </td>
-                      <td>
+                      <td style={{ 
+                        position: 'sticky', 
+                        right: 0, 
+                        background: 'var(--surface)', 
+                        borderLeft: '1px solid var(--border)', 
+                        zIndex: 5,
+                        boxShadow: '-4px 0 10px rgba(0,0,0,0.05)'
+                      }}>
                         <button className="btn-icon btn-icon--danger" onClick={() => removeRow(u.id)}>
                           <X size={16} />
                         </button>
@@ -229,9 +250,15 @@ function ImportContent() {
               <button className="btn btn--secondary" onClick={() => setPreviewUnits([])}>
                 Reset
               </button>
-              <button className="btn btn--primary" onClick={handleConfirmImport} disabled={bulkCreateUnitsMutation.isPending}>
-                {bulkCreateUnitsMutation.isPending ? 'Importing...' : 'Confirm & Save All'}
-              </button>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button 
+                  className="btn btn--primary" 
+                  onClick={handleConfirmImport} 
+                  disabled={bulkCreateUnitsMutation.isPending}
+                >
+                  {bulkCreateUnitsMutation.isPending ? 'Importing...' : 'Confirm & Save All'}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -239,43 +266,48 @@ function ImportContent() {
 
       <style jsx>{`
         .import-page {
-          padding: 32px;
-          max-width: 1400px;
+          padding: 0;
+          width: 100%;
+          max-width: var(--max-width);
           margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-6);
         }
         .import-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 32px;
+          padding: var(--space-6) 0 0 0;
         }
         .import-container {
-          background: var(--surface);
-          border-radius: 16px;
-          border: 1px solid var(--border);
-          overflow: hidden;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        }
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            margin-bottom: var(--space-8);
+          }
         .import-config {
-          padding: 24px;
+          padding: var(--space-6);
           border-bottom: 1px solid var(--border);
-          background: var(--bg);
+          background: var(--ivory-dim);
         }
         .import-dropzone {
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 80px;
+          padding: 60px;
           border: 2px dashed var(--border);
-          border-radius: 12px;
+          border-radius: var(--radius-md);
           cursor: pointer;
           transition: all 0.2s;
-          margin-top: 20px;
+          margin-top: var(--space-5);
           background: var(--surface);
         }
         .import-dropzone:hover {
-          border-color: var(--clay);
+          border-color: var(--forest);
           background: var(--surface-hover);
         }
         .import-dropzone--disabled {
@@ -283,30 +315,33 @@ function ImportContent() {
           cursor: not-allowed;
         }
         .import-dropzone__icon {
-          color: var(--clay);
-          margin-bottom: 16px;
+          color: var(--forest);
+          margin-bottom: var(--space-4);
         }
         .import-preview {
-          padding: 24px;
+          display: flex;
+          flex-direction: column;
         }
         .import-preview__header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 16px;
+          padding: var(--space-6) var(--space-6) var(--space-4) var(--space-6);
         }
         .import-table-container {
-          overflow-x: auto;
-          margin-bottom: 24px;
-          border: 1px solid var(--border);
-          border-radius: 12px;
+          overflow: auto;
+          border-top: 1px solid var(--border);
+          border-bottom: 1px solid var(--border);
           background: var(--surface);
           width: 100%;
+          max-height: calc(100vh - 280px);
+          min-height: 400px;
         }
         .import-table {
-          width: 100%;
-          min-width: 1200px;
-          border-collapse: collapse;
+          width: max-content;
+          min-width: 100%;
+          border-collapse: separate;
+          border-spacing: 0;
           font-size: 13px;
         }
         .import-table th {
@@ -319,21 +354,27 @@ function ImportContent() {
           letter-spacing: 0.05em;
           font-size: 11px;
           white-space: nowrap;
+          border-bottom: 1px solid var(--border);
+          position: sticky;
+          top: 0;
+          z-index: 20;
         }
         .import-table td {
           padding: 8px 12px;
-          border-top: 1px solid var(--border);
-          min-width: 120px;
-        }
-        .import-table td:first-child {
-          min-width: 150px;
+          border-bottom: 1px solid var(--border);
         }
         .import-footer {
           display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          padding-top: 24px;
-          border-top: 1px solid var(--border);
+          justify-content: space-between;
+          align-items: center;
+          gap: var(--space-3);
+          padding: var(--space-6);
+          width: 100%;
+          background: var(--surface);
+          position: sticky;
+          bottom: 0;
+          z-index: 30;
+          box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
         }
         .btn-icon {
           background: none;

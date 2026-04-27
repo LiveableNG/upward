@@ -29,7 +29,7 @@ export const UnitCard: React.FC<UnitCardProps> = ({ unit, propertyName }) => {
             Tenant
           </span>
           <span className="info-row__value">
-            {unit.tenantFirstName ? `${unit.tenantFirstName} ${unit.tenantLastName || ''}` : 'No Tenant'}
+            {unit.tenant ? `${unit.tenant.firstName} ${unit.tenant.lastName || ''}` : 'No Tenant'}
           </span>
         </div>
         <div className="info-row">

@@ -15,20 +15,13 @@ export class PrismaPmUnitRepository implements IUnitRepository {
       data: data.map(unit => ({
         propertyId: unit.propertyId,
         unitName: unit.unitName,
-        tenantFirstNameEncrypted: unit.tenantFirstNameEncrypted,
-        tenantFirstNameSearch: unit.tenantFirstNameSearch,
-        tenantLastNameEncrypted: unit.tenantLastNameEncrypted,
-        tenantLastNameSearch: unit.tenantLastNameSearch,
-        tenantEmailEncrypted: unit.tenantEmailEncrypted,
-        tenantEmailHash: unit.tenantEmailHash,
-        tenantPhoneEncrypted: unit.tenantPhoneEncrypted,
-        tenantPhoneHash: unit.tenantPhoneHash,
         rentAmount: unit.rentAmount,
         rentStartDate: unit.rentStartDate,
         rentDueDate: unit.rentDueDate,
         rentFrequency: unit.rentFrequency,
         currency: unit.currency,
         status: unit.status,
+        tenantId: unit.tenantId,
       })),
     });
   }
@@ -37,17 +30,34 @@ export class PrismaPmUnitRepository implements IUnitRepository {
     return {
       ...u,
       propertyUuid: u.property?.uuid,
-      tenantFirstName: u.tenantFirstNameEncrypted ? this.encryption.decrypt(u.tenantFirstNameEncrypted) : null,
-      tenantLastName: u.tenantLastNameEncrypted ? this.encryption.decrypt(u.tenantLastNameEncrypted) : null,
-      tenantEmail: u.tenantEmailEncrypted ? this.encryption.decrypt(u.tenantEmailEncrypted) : null,
-      tenantPhone: u.tenantPhoneEncrypted ? this.encryption.decrypt(u.tenantPhoneEncrypted) : null,
+      tenant: u.tenant ? {
+        id: u.tenant.id,
+        uuid: u.tenant.uuid,
+        pmId: u.tenant.pmId,
+        firstName: u.tenant.firstNameEncrypted ? this.encryption.decrypt(u.tenant.firstNameEncrypted) : null,
+        lastName: u.tenant.lastNameEncrypted ? this.encryption.decrypt(u.tenant.lastNameEncrypted) : null,
+        email: u.tenant.emailEncrypted ? this.encryption.decrypt(u.tenant.emailEncrypted) : null,
+        phone: u.tenant.phoneEncrypted ? this.encryption.decrypt(u.tenant.phoneEncrypted) : null,
+        inviteStatus: u.tenant.inviteStatus,
+        inviteSentAt: u.tenant.inviteSentAt
+      } : null,
+      isSynced: u.isSynced,
+      userPropertyUuid: u.userPropertyUuid
     } as any;
+  }
+
+  async findByUuid(uuid: string): Promise<UnitEntity | null> {
+    const unit = await this.prisma.upward_pm_unit.findUnique({
+      where: { uuid },
+      include: { property: true, tenant: true },
+    });
+    return unit ? this.mapUnit(unit) : null;
   }
 
   async findByPropertyId(propertyId: number): Promise<UnitEntity[]> {
     const units = await this.prisma.upward_pm_unit.findMany({
       where: { propertyId },
-      include: { property: true },
+      include: { property: true, tenant: true },
       orderBy: { unitName: 'asc' },
     });
     return units.map(u => this.mapUnit(u));
@@ -58,47 +68,55 @@ export class PrismaPmUnitRepository implements IUnitRepository {
       where: {
         property: { pmId },
       },
-      include: { property: true },
+      include: { property: true, tenant: true },
       orderBy: { unitName: 'asc' },
     });
     return units.map(u => this.mapUnit(u));
   }
 
   async update(uuid: string, data: any): Promise<UnitEntity> {
-    const updateData: any = { ...data };
+    const allowedFields = [
+      'unitName', 'rentAmount', 'rentStartDate', 'rentDueDate', 
+      'rentFrequency', 'currency', 'status', 'tenantId',
+      'isSynced', 'userPropertyUuid'
+    ];
     
-    if (data.tenantFirstName) {
-      updateData.tenantFirstNameEncrypted = this.encryption.encrypt(data.tenantFirstName);
-      updateData.tenantFirstNameSearch = data.tenantFirstName.toLowerCase();
-      delete updateData.tenantFirstName;
-    }
-    if (data.tenantLastName) {
-      updateData.tenantLastNameEncrypted = this.encryption.encrypt(data.tenantLastName);
-      updateData.tenantLastNameSearch = data.tenantLastName.toLowerCase();
-      delete updateData.tenantLastName;
-    }
-    if (data.tenantEmail) {
-      updateData.tenantEmailEncrypted = this.encryption.encrypt(data.tenantEmail);
-      updateData.tenantEmailHash = this.encryption.hash(data.tenantEmail);
-      delete updateData.tenantEmail;
-    }
-    if (data.tenantPhone) {
-      updateData.tenantPhoneEncrypted = this.encryption.encrypt(data.tenantPhone);
-      updateData.tenantPhoneHash = this.encryption.hash(data.tenantPhone);
-      delete updateData.tenantPhone;
+    const updateData: any = {};
+    
+    for (const key of allowedFields) {
+      if (data[key] !== undefined) {
+        updateData[key] = data[key];
+      }
     }
 
-    if (data.rentStartDate) {
-      updateData.rentStartDate = new Date(data.rentStartDate);
+    if (updateData.rentStartDate) {
+      updateData.rentStartDate = new Date(updateData.rentStartDate);
     }
-    if (data.rentDueDate) {
-      updateData.rentDueDate = new Date(data.rentDueDate);
+    if (updateData.rentDueDate) {
+      updateData.rentDueDate = new Date(updateData.rentDueDate);
+    }
+
+    const propertyFields = ['address', 'state', 'country', 'area'];
+    const propertyUpdate: any = {};
+    let hasPropertyUpdate = false;
+
+    for (const key of propertyFields) {
+      if (data[key] !== undefined) {
+        propertyUpdate[key] = data[key];
+        hasPropertyUpdate = true;
+      }
+    }
+
+    if (hasPropertyUpdate) {
+      updateData.property = {
+        update: propertyUpdate
+      };
     }
 
     const unit = await this.prisma.upward_pm_unit.update({
       where: { uuid },
       data: updateData,
-      include: { property: true }
+      include: { property: true, tenant: true }
     });
 
     return this.mapUnit(unit);

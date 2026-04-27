@@ -25,8 +25,21 @@ export const useUpdateProperty = () => {
   
   return useMutation({
     mutationFn: ({ uuid, data }: { uuid: string, data: Partial<Property> }) => api.updateProperty(uuid, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pm-properties'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-property', variables.uuid] })
+    }
+  })
+}
+
+export const useDeleteProperty = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (uuid: string) => api.deleteProperty(uuid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pm-properties'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-units'] })
     }
   })
 }
@@ -62,6 +75,7 @@ export const useDeleteUnit = () => {
     mutationFn: (uuid: string) => api.deleteUnit(uuid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pm-units'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-properties'] })
     }
   })
 }
@@ -93,6 +107,17 @@ export const useBulkCreateUnits = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pm-units'] })
       queryClient.invalidateQueries({ queryKey: ['pm-properties'] })
+    }
+  })
+}
+
+export const useSyncToUpward = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (unitUuid: string) => api.syncToUpward(unitUuid),
+    onSuccess: (_, unitUuid) => {
+      queryClient.invalidateQueries({ queryKey: ['pm-unit', unitUuid] })
+      queryClient.invalidateQueries({ queryKey: ['pm-units'] })
     }
   })
 }

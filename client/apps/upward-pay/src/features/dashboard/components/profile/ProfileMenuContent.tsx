@@ -108,6 +108,12 @@ function ProfileMenuContentInner() {
   async function handleSave() {
     if (!profile) return
 
+    const phoneRegex = /^\+234\d{10}$/
+    if (formData.phone && !phoneRegex.test(formData.phone)) {
+      toastError('Phone number must be in format +2348000000000')
+      return
+    }
+
     if (isEditing && formData.properties) {
       for (let i = 0; i < formData.properties.length; i++) {
         const prop = formData.properties[i]
@@ -137,6 +143,11 @@ function ProfileMenuContentInner() {
         
         if (!prop.rentAmount || prop.rentAmount <= 0) {
           toastError(`Property #${propNum}: Please provide a valid rent amount`)
+          return
+        }
+
+        if (prop.managerPhone && !phoneRegex.test(prop.managerPhone)) {
+          toastError(`Property #${propNum}: Manager phone must be in format +2348000000000`)
           return
         }
 

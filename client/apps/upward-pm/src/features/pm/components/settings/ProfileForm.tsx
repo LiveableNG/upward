@@ -11,7 +11,7 @@ const profileSchema = z.object({
   firstName: z.string().min(2, 'First name is too short'),
   lastName: z.string().min(2, 'Last name is too short'),
   businessName: z.string().optional(),
-  phone: z.string().min(10, 'Invalid phone number'),
+  phone: z.string().regex(/^\+234\d{10}$/, 'Phone number must be in format +2348000000000'),
 })
 
 type ProfileFormData = z.infer<typeof profileSchema>

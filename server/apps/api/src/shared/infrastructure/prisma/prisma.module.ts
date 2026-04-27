@@ -28,6 +28,7 @@ import { PrismaVerificationTokenRepository } from './repositories/prisma-verific
 import { PrismaPropertyManagerRepository } from './repositories/prisma-property-manager.repository'
 import { PrismaPmPropertyRepository } from './repositories/prisma-pm-property.repository'
 import { PrismaPmUnitRepository } from './repositories/prisma-pm-unit.repository'
+import { PrismaPmTenantRepository } from './repositories/prisma-pm-tenant.repository'
 import { PaystackGateway } from '../../../domains/payments/paystack.gateway'
 import { WAITLIST_REPOSITORY } from '../../../domains/waitlist/waitlist.repository'
 import { USER_REPOSITORY } from '../../../domains/users/user.repository'
@@ -58,7 +59,7 @@ import { CONTRACT_REPOSITORY } from '../../../domains/contracts/contract.reposit
 import { SUPPORT_TICKET_REPOSITORY } from '../../../domains/support/support.repository'
 import { VERIFICATION_TOKEN_REPOSITORY } from '../../../domains/auth/verification-token.repository'
 import { PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository'
-import { PM_PROPERTY_REPOSITORY, PM_UNIT_REPOSITORY } from '../../../domains/pm/IPropertyRepository'
+import { PM_PROPERTY_REPOSITORY, PM_UNIT_REPOSITORY, PM_TENANT_REPOSITORY } from '../../../domains/pm/IPropertyRepository'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Global()
@@ -162,6 +163,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: PM_UNIT_REPOSITORY,
       useClass: PrismaPmUnitRepository,
     },
+    {
+      provide: PM_TENANT_REPOSITORY,
+      useClass: PrismaPmTenantRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -190,6 +195,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     PROPERTY_MANAGER_REPOSITORY,
     PM_PROPERTY_REPOSITORY,
     PM_UNIT_REPOSITORY,
+    PM_TENANT_REPOSITORY,
   ],
 })
 export class PrismaModule {}
