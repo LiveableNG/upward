@@ -2,7 +2,15 @@
 
 import React, { useState } from 'react'
 import { usePathname } from 'next/navigation'
+import "../styles/variables.css";
 import "./globals.css";
+import "../styles/sidebar.css";
+import "../styles/header.css";
+import "../styles/dashboard.css";
+import "../styles/settings.css";
+import "../styles/splash.css";
+import "../styles/properties.css";
+
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileHeader } from "@/components/layout/MobileHeader";
 import { DesktopHeader } from "@/components/layout/DesktopHeader";
@@ -22,7 +30,7 @@ export default function RootLayout({
   const isAuthPage = pathname === '/signup' || pathname === '/login'
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
         <Providers>
           {isAuthPage ? (

@@ -35,17 +35,17 @@ export class GetCredibilityRequestDetailsUseCase {
     });
 
     return {
-      success: true,
-      data: {
-        uuid: request.uuid,
-        status: request.status,
-        requestedAt: request.createdAt,
-        tenantName: request.user.firstName + ' ' + request.user.lastName,
-        tenantProfilePic: request.user.profilePic,
-        propertyAddress: property?.location?.address || property?.location?.area || 'Address Not Provided',
-        companyName: request.companyName ? this.encryption.decrypt(request.companyName) : null,
-        managerName: request.managerName ? this.encryption.decrypt(request.managerName) : null,
-      }
+      uuid: request.uuid,
+      status: request.status,
+      requestedAt: request.createdAt,
+      user: {
+        firstName: this.encryption.decrypt(request.user.firstName),
+        lastName: this.encryption.decrypt(request.user.lastName),
+        profilePic: request.user.profilePic,
+      },
+      propertyAddress: property?.location?.address || property?.location?.area || 'Address Not Provided',
+      companyName: request.companyName ? this.encryption.decrypt(request.companyName) : null,
+      managerName: request.managerName ? this.encryption.decrypt(request.managerName) : null,
     };
   }
 }

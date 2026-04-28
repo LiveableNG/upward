@@ -8,11 +8,34 @@
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  z-index: 100;
+  z-index: 1000;
+}
+
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.sidebar-backdrop--open {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .sidebar__header {
-  padding: var(--space-10) var(--space-6);
+  padding: var(--space-8) var(--space-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 80px;
 }
 
 .sidebar__logo {
@@ -131,12 +154,15 @@
 .sidebar__close {
   display: none;
   color: var(--text-muted);
+  background: var(--surface-hover);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
 }
 
-.sidebar__close--standalone {
-  align-self: flex-end;
-  padding: var(--space-4);
-  margin-right: calc(-1 * var(--space-2));
+.sidebar__close:hover {
+  color: var(--text);
+  background: var(--border);
 }
 
 .sidebar--collapsed {
@@ -204,28 +230,33 @@
   
   .sidebar--open {
     transform: translateX(0);
-    box-shadow: 0 0 0 100vw rgba(0, 0, 0, 0.4);
   }
 
-  .sidebar__close {
-    display: block;
+  .sidebar__collapse-toggle {
+    display: none;
   }
 
-  .sidebar__brand, 
-  .sidebar__section-title, 
-  .sidebar__link span, 
-  .sidebar__add-btn span, 
-  .sidebar__user-info {
-    display: block;
+  .sidebar__header {
+    padding: var(--space-4) var(--space-6);
+    min-height: 70px;
   }
 
   .sidebar__logo {
-    justify-content: space-between;
-    width: 100%;
+    width: auto;
   }
 
-  .sidebar__link {
-    justify-content: flex-start;
+  .sidebar__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar__brand, 
+  .sidebar .sidebar__section-title, 
+  .sidebar .sidebar__link span, 
+  .sidebar .sidebar__add-btn span, 
+  .sidebar .sidebar__user-info {
+    display: block !important;
   }
 
   .sidebar__footer {

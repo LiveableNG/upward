@@ -6,6 +6,8 @@ import { CreateTenantUseCase, CreateTenantDto } from '../../../application/pm/us
 import { GetTenantUseCase } from '../../../application/pm/use-cases/tenants/get-tenant.use-case';
 import { AssignTenantToUnitUseCase } from '../../../application/pm/use-cases/tenants/assign-tenant-to-unit.use-case';
 import { UpdateTenantUseCase } from '../../../application/pm/use-cases/tenants/update-tenant.use-case';
+import { BulkCreateTenantRecordsUseCase } from '../../../application/pm/use-cases/bulk-create-tenant-records.use-case';
+import { BulkInviteTenantsUseCase, BulkInviteDto } from '../../../application/pm/use-cases/tenants/bulk-invite-tenants.use-case';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 
 @Controller('pm/tenants')
@@ -18,6 +20,8 @@ export class PmTenantController {
     private readonly getTenantUseCase: GetTenantUseCase,
     private readonly assignTenantToUnitUseCase: AssignTenantToUnitUseCase,
     private readonly updateTenantUseCase: UpdateTenantUseCase,
+    private readonly bulkCreateTenantRecordsUseCase: BulkCreateTenantRecordsUseCase,
+    private readonly bulkInviteTenantsUseCase: BulkInviteTenantsUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -69,5 +73,26 @@ export class PmTenantController {
   async updateTenant(@Req() req: any, @Param('uuid') uuid: string, @Body() dto: any) {
     const pmId = await this.getPmId(req);
     return this.updateTenantUseCase.execute(pmId, uuid, dto);
+  }
+
+  @Post('records/bulk')
+  async bulkCreateRecords(@Req() req: any, @Body() body: any) {
+    const pmId = await this.getPmId(req);
+    return this.bulkCreateTenantRecordsUseCase.execute({
+      pmId,
+      propertyAddress: body.propertyAddress,
+      unitUuid: body.unitUuid,
+      firstName: body.firstName,
+      lastName: body.lastName,
+      email: body.email,
+      phone: body.phone,
+      records: body.records
+    });
+  }
+
+  @Post('bulk-invite')
+  async bulkInvite(@Req() req: any, @Body() dto: BulkInviteDto) {
+    const pmId = await this.getPmId(req);
+    return this.bulkInviteTenantsUseCase.execute(pmId, dto);
   }
 }

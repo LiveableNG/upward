@@ -121,3 +121,18 @@ export const useSyncToUpward = () => {
     }
   })
 }
+
+export const useBulkFullImport = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (data: { rows: any[]; inviteAfterImport?: boolean }) => 
+      api.bulkFullImport(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pm-units'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-properties'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-tenants'] })
+      queryClient.invalidateQueries({ queryKey: ['bulk-invites'] })
+    }
+  })
+}

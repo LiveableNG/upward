@@ -6,6 +6,7 @@ import { PaymentWebhookHandler } from './events/handlers/payment-webhook.handler
 import { S3Module } from '../shared/infrastructure/common/s3/s3.module'
 import { ReceiptModule } from '../shared/infrastructure/common/receipt/receipt.module'
 import { WebhookService } from '../shared/infrastructure/common/webhook/webhook.service'
+import { BulkInviteService } from '../shared/infrastructure/common/bulk-invite.service'
 import { EncryptionService } from '../shared/infrastructure/common/encryption.service'
 import { KYCModule } from '../shared/infrastructure/common/kyc/kyc.module'
 
@@ -113,6 +114,12 @@ import { UpdateTenantUseCase } from './pm/use-cases/tenants/update-tenant.use-ca
 import { SyncUnitToUpwardUseCase } from './pm/use-cases/units/sync-unit.use-case'
 import { CreatePmPaymentRequestUseCase } from './pm/use-cases/payments/create-pm-payment-request.use-case'
 import { GetPmPaymentRequestsUseCase } from './pm/use-cases/payments/get-pm-payment-requests.use-case'
+import { GetPendingCredibilityRequestsUseCase } from './pm/use-cases/get-pending-credibility-requests.use-case'
+import { BulkCreateTenantRecordsUseCase } from './pm/use-cases/bulk-create-tenant-records.use-case'
+import { BulkInviteTenantsUseCase } from './pm/use-cases/tenants/bulk-invite-tenants.use-case'
+import { BulkFullImportUseCase } from './pm/use-cases/bulk-full-import.use-case'
+
+import { RejectCredibilityRequestUseCase } from './use-cases/external/reject-credibility-request.use-case'
 import { AuthModule } from './auth/auth.module'
 import { CreateAnnouncementUseCase } from './use-cases/notifications/create-announcement.use-case'
 import { DeactivateAnnouncementsUseCase } from './use-cases/notifications/deactivate-announcements.use-case'
@@ -288,6 +295,12 @@ const UseCases = [
   SyncUnitToUpwardUseCase,
   CreatePmPaymentRequestUseCase,
   GetPmPaymentRequestsUseCase,
+  GetPendingCredibilityRequestsUseCase,
+  BulkCreateTenantRecordsUseCase,
+  BulkInviteTenantsUseCase,
+  BulkFullImportUseCase,
+
+  RejectCredibilityRequestUseCase,
 ]
 
 @Module({
@@ -298,12 +311,15 @@ const UseCases = [
     InteractionHandler,
     PaymentWebhookHandler,
     WebhookService,
+    BulkInviteService,
+
     EncryptionService,
     PushNotificationService,
     NotificationService,
     PrismaDeviceTokenRepository,
     ...UseCases,
   ],
-  exports: [WebhookService, EncryptionService, PushNotificationService, NotificationService, PrismaDeviceTokenRepository, ...UseCases],
+  exports: [WebhookService, BulkInviteService, EncryptionService, PushNotificationService, NotificationService, PrismaDeviceTokenRepository, ...UseCases],
+
 })
 export class ApplicationModule { }

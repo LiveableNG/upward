@@ -17,6 +17,9 @@ interface AddPropertyModalProps {
     country?: string;
     state?: string;
     area?: string;
+    landlordName?: string;
+    landlordEmail?: string;
+    landlordPhone?: string;
   };
   setFormData: (data: any) => void;
 }
@@ -130,6 +133,42 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
               <option>Commercial</option>
               <option>Mixed Use</option>
             </select>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 24, padding: 16, background: 'var(--bg)', borderRadius: 12 }}>
+          <h4 style={{ fontSize: 13, marginBottom: 16, color: 'var(--text-secondary)' }}>Landlord Details (Optional)</h4>
+          <div className="form-group">
+            <label className="form-label">Landlord Name</label>
+            <input 
+              type="text" 
+              className="form-input" 
+              placeholder="e.g. John Doe" 
+              value={formData.landlordName || ''} 
+              onChange={e => setFormData({ ...formData, landlordName: e.target.value })} 
+            />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="form-group">
+              <label className="form-label">Email Address</label>
+              <input 
+                type="email" 
+                className="form-input" 
+                placeholder="landlord@email.com" 
+                value={formData.landlordEmail || ''} 
+                onChange={e => setFormData({ ...formData, landlordEmail: e.target.value })} 
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Phone Number</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="+234..." 
+                value={formData.landlordPhone || ''} 
+                onChange={e => setFormData({ ...formData, landlordPhone: e.target.value })} 
+              />
+            </div>
           </div>
         </div>
 

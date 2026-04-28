@@ -6,6 +6,7 @@ export function middleware(request: NextRequest) {
   
   // Public paths
   const isPublicPath = pathname === '/login' || pathname === '/signup'
+  const isPublicRequestPath = pathname.startsWith('/public/requests/')
   
   // Check for tokens in cookies
   const accessToken = request.cookies.get('pm_access_token')?.value
@@ -16,6 +17,16 @@ export function middleware(request: NextRequest) {
   // Redirect logic
   if (isPublicPath && isLoggedIn) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  if (isPublicRequestPath) {
+    if (isLoggedIn) {
+      // Redirect logged-in PMs to the guarded version of the requests page
+      const newPath = pathname.replace('/public/requests/', '/requests/')
+      return NextResponse.redirect(new URL(newPath, request.url))
+    }
+    // Allow non-logged-in users to access the public request page
+    return NextResponse.next()
   }
 
   if (!isPublicPath && !isLoggedIn) {

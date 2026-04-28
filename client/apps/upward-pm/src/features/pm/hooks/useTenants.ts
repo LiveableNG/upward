@@ -84,11 +84,23 @@ export const useTenantActions = () => {
     }
   })
 
+  const bulkInvite = useMutation({
+    mutationFn: (tenantUuids: string[]) => tenantService.bulkInvite(tenantUuids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tenants'] })
+      toast.success('Bulk invitation process started in background')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to start bulk invitation')
+    }
+  })
+
   return {
     createTenant,
     inviteTenant,
     assignTenant,
     unassignTenant,
-    updateTenant
+    updateTenant,
+    bulkInvite
   }
 }

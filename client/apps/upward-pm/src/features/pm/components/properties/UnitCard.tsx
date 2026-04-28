@@ -1,6 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { User, CreditCard } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Unit } from '../../services/propertyService'
 import { PmPaymentRequest } from '../../services/paymentService'
 
@@ -54,18 +55,16 @@ export const UnitCard: React.FC<UnitCardProps> = ({
 
               {unit.status === 'OCCUPIED' && unit.tenant?.email && (
                 <button 
-                  className={`unit-card__request-btn ${!unit.isSynced ? 'unit-card__request-btn--disabled' : ''}`}
+                  className={cn(
+                    'unit-card__request-btn',
+                    !unit.isSynced && 'unit-card__request-btn--disabled'
+                  )}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     if (unit.isSynced) onRequestPayment?.(unit);
                   }}
                   title={!unit.isSynced ? "Sync required to request payment" : ""}
-                  style={{ 
-                    opacity: unit.isSynced ? 1 : 0.6,
-                    cursor: unit.isSynced ? 'pointer' : 'not-allowed',
-                    background: unit.isSynced ? 'var(--clay)' : 'var(--text-muted)'
-                  }}
                 >
                   <CreditCard size={12} />
                   {unit.isSynced ? 'Request' : 'Not Synced'}
@@ -87,9 +86,24 @@ export const UnitCard: React.FC<UnitCardProps> = ({
             <div className="info-row">
               <span className="info-row__label">
                 <CreditCard size={12} style={{ marginRight: 4 }} /> 
-                Rent
+                Rent ({unit.rentType})
               </span>
               <span className="info-row__value">₦{unit.rentAmount?.toLocaleString()}</span>
+            </div>
+            
+            <div className="unit-card__extra-info">
+              {unit.managementFee > 0 && (
+                <div className="info-row-minimal">
+                  <span className="info-row__label">Mgt Fee:</span>
+                  <span className="info-row__value">₦{unit.managementFee.toLocaleString()}</span>
+                </div>
+              )}
+              {unit.notes && (
+                <div className="unit-card__notes">
+                  <span className="info-row__label">Note:</span>
+                  <p className="unit-card__notes-text">{unit.notes}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -42,7 +42,7 @@ function UnitDetailContent() {
   const [formData, setFormData] = useState<any>(() => ({
     unitName: unit.unitName,
     rentAmount: unit.rentAmount,
-    rentFrequency: unit.rentFrequency,
+    rentType: unit.rentType,
     status: unit.status,
     rentStartDate: unit.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : '',
     rentDueDate: unit.rentDueDate ? new Date(unit.rentDueDate).toISOString().split('T')[0] : '',
@@ -131,7 +131,7 @@ function UnitDetailContent() {
                   setFormData({
                     unitName: unit.unitName,
                     rentAmount: unit.rentAmount,
-                    rentFrequency: unit.rentFrequency,
+                    rentType: unit.rentType,
                     status: unit.status,
                     rentStartDate: unit.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : '',
                     rentDueDate: unit.rentDueDate ? new Date(unit.rentDueDate).toISOString().split('T')[0] : '',
@@ -279,18 +279,18 @@ function UnitDetailContent() {
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">Rent Frequency</label>
-                <select 
-                  className="form-input" 
-                  value={formData.rentFrequency}
-                  onChange={e => setFormData({...formData, rentFrequency: e.target.value})}
-                  disabled={!isEditing}
-                >
-                  <option value="Monthly">Monthly</option>
-                  <option value="Quarterly">Quarterly</option>
-                  <option value="Bi-Annually">Bi-Annually</option>
-                  <option value="Annually">Annually</option>
-                </select>
+                  <label className="form-label">Rent Type</label>
+                  <select 
+                    className="form-input" 
+                    value={formData.rentType}
+                    onChange={e => setFormData({...formData, rentType: e.target.value})}
+                    disabled={!isEditing}
+                  >
+                    <option value="Monthly">Monthly</option>
+                    <option value="Quarterly">Quarterly</option>
+                    <option value="Bi-Annually">Bi-Annually</option>
+                    <option value="Annually">Annually</option>
+                  </select>
               </div>
             </div>
           </div>

@@ -28,6 +28,7 @@ import { PmAuthController } from './pm/pm-auth.controller'
 import { PmProfileController } from './pm/pm-profile.controller'
 import { PmPropertyController } from './controllers/pm-property.controller'
 import { PmTenantController } from './controllers/pm-tenant.controller'
+import { PmCredibilityController } from './controllers/pm-credibility.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule],
@@ -58,6 +59,7 @@ import { PmTenantController } from './controllers/pm-tenant.controller'
     PmProfileController,
     PmPropertyController,
     PmTenantController,
+    PmCredibilityController,
   ],
 })
 export class HttpModule {}

@@ -3,6 +3,7 @@ import { IUnitRepository, PM_UNIT_REPOSITORY, IPropertyRepository, PM_PROPERTY_R
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository';
 import { BulkCreateUnitsDto } from '../dtos/property.dto';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
+import { BulkInviteTenantsUseCase } from './tenants/bulk-invite-tenants.use-case';
 
 @Injectable()
 export class BulkCreateUnitsUseCase {
@@ -12,6 +13,7 @@ export class BulkCreateUnitsUseCase {
     @Inject(PM_TENANT_REPOSITORY) private readonly tenantRepository: ITenantRepository,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     private readonly encryption: EncryptionService,
+    private readonly bulkInviteUseCase: BulkInviteTenantsUseCase,
   ) {}
 
   async execute(pmId: number, dto: BulkCreateUnitsDto) {
@@ -28,6 +30,7 @@ export class BulkCreateUnitsUseCase {
     }
 
     const unitsToCreate = [];
+    const createdTenantUuids: string[] = [];
 
     for (const u of dto.units) {
       let tenantId: number | null = null;
@@ -60,23 +63,47 @@ export class BulkCreateUnitsUseCase {
           });
         }
         tenantId = tenant.id;
+        if (tenant.inviteStatus === 'PENDING') {
+          createdTenantUuids.push(tenant.uuid);
+        }
       }
 
-      unitsToCreate.push({
+      const newUnit = await this.unitRepository.create({
         propertyId: property.id,
         unitName: u.unitName,
         rentAmount: u.rentAmount,
+        managementFee: u.managementFee ?? 0,
         rentStartDate: u.rentStartDate ? new Date(u.rentStartDate) : null,
         rentDueDate: u.rentDueDate ? new Date(u.rentDueDate) : null,
-        rentFrequency: u.rentFrequency || 'Monthly',
-        currency: 'NGN',
+        rentType: u.rentType || 'Monthly',
+        currency: u.currency || 'NGN',
+        notes: u.notes || null,
         status: tenantId ? (u.status || 'OCCUPIED') : 'VACANT',
         tenantId,
         isSynced: false,
         userPropertyUuid: null,
       });
+
+      if (u.rentAmountPaid && u.rentAmountPaid > 0) {
+        await this.unitRepository.addRentPayment(newUnit.uuid, {
+          amount: u.rentAmountPaid,
+          paymentDate: new Date(),
+          periodStart: newUnit.rentStartDate,
+          status: 'SUCCESS',
+          method: 'Other',
+          notes: 'Imported initial payment',
+          periodEnd: null,
+          reference: null
+        });
+      }
     }
 
-    return this.unitRepository.createMany(unitsToCreate);
+    if (dto.inviteAfterImport && createdTenantUuids.length > 0) {
+      await this.bulkInviteUseCase.execute(pmId, {
+        tenantUuids: [...new Set(createdTenantUuids)]
+      });
+    }
+
+    return { count: dto.units.length };
   }
 }

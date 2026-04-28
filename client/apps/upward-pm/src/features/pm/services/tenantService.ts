@@ -1,60 +1,81 @@
-import { api } from '@/lib/api'
-
-export interface Tenant {
-  id: number
-  uuid: string
-  pmId: number
-  firstName: string | null
-  lastName: string | null
-  email: string | null
-  phone: string | null
-  inviteStatus: 'PENDING' | 'SENT' | 'ON_UPWARD' | 'ACCEPTED'
-  inviteSentAt: string | null
-  units: {
-    id: number
-    uuid: string
-    unitName: string
-    property: {
-      name: string
-      uuid: string
-    }
-    status: string
-  }[]
-}
+import { request } from '@/lib/api-client'
 
 export interface CreateTenantDto {
-  firstName: string
-  lastName: string
-  email: string
-  phone?: string
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+}
+
+export interface Tenant {
+  id: number;
+  uuid: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  inviteStatus: string;
+  inviteSentAt: string | null;
+  units?: Array<{
+    id: number;
+    uuid: string;
+    unitName: string;
+    status: string;
+    isSynced: boolean;
+    property: {
+      uuid: string;
+      name: string;
+    }
+  }>
 }
 
 export const tenantService = {
-  getTenants: async (): Promise<Tenant[]> => {
-    return api.get('/pm/tenants')
+  getTenants: () => {
+    return request<Tenant[]>('/pm/tenants')
   },
 
-  getTenant: async (uuid: string): Promise<Tenant> => {
-    return api.get(`/pm/tenants/${uuid}`)
+  getTenant: (uuid: string) => {
+    return request<Tenant>(`/pm/tenants/${uuid}`)
   },
 
-  createTenant: async (dto: CreateTenantDto): Promise<Tenant> => {
-    return api.post('/pm/tenants', dto)
+  createTenant: (dto: CreateTenantDto) => {
+    return request<Tenant>('/pm/tenants', {
+      method: 'POST',
+      body: JSON.stringify(dto)
+    })
   },
 
-  inviteTenant: async (uuid: string): Promise<void> => {
-    await api.post(`/pm/tenants/${uuid}/invite`)
+  inviteTenant: (uuid: string) => {
+    return request<void>(`/pm/tenants/${uuid}/invite`, {
+      method: 'POST'
+    })
   },
 
-  assignTenant: async (tenantUuid: string, unitUuid: string): Promise<void> => {
-    await api.post(`/pm/tenants/${tenantUuid}/assign`, { unitUuid })
-  },
-  
-  unassignTenant: async (tenantUuid: string, unitUuid: string): Promise<void> => {
-    await api.post(`/pm/tenants/${tenantUuid}/unassign`, { unitUuid })
+  assignTenant: (tenantUuid: string, unitUuid: string) => {
+    return request<void>(`/pm/tenants/${tenantUuid}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ unitUuid })
+    })
   },
 
-  updateTenant: async (uuid: string, dto: Partial<CreateTenantDto>): Promise<Tenant> => {
-    return api.patch(`/pm/tenants/${uuid}`, dto)
+  unassignTenant: (tenantUuid: string, unitUuid: string) => {
+    return request<void>(`/pm/tenants/${tenantUuid}/unassign`, {
+      method: 'POST',
+      body: JSON.stringify({ unitUuid })
+    })
+  },
+
+  updateTenant: (uuid: string, data: Partial<CreateTenantDto>) => {
+    return request<Tenant>(`/pm/tenants/${uuid}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    })
+  },
+
+  bulkInvite: (tenantUuids: string[]) => {
+    return request<{ bulkInviteId: string }>('/pm/tenants/bulk-invite', {
+      method: 'POST',
+      body: JSON.stringify({ tenantUuids })
+    })
   }
 }

@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import * as crypto from 'crypto';
+import { EmailService } from '../../../shared/infrastructure/email/email.service';
+import { ConfigService } from '@nestjs/config';
 
 interface RequestRecordsInput {
   propertyUuid: string;
@@ -18,7 +20,9 @@ interface RequestRecordsInput {
 export class RequestCredibilityRecordsUseCase {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly encryption: EncryptionService
+    private readonly encryption: EncryptionService,
+    private readonly emailService: EmailService,
+    private readonly configService: ConfigService
   ) {}
 
   async execute(userId: string, input: RequestRecordsInput) {
@@ -41,8 +45,28 @@ export class RequestCredibilityRecordsUseCase {
       }
     });
 
-    // TODO: Trigger Email/SMS Service here to the manager/company
-    console.log(`Email request sent to ${input.requestContactDetails.email || input.requestContactDetails.phone}`);
+    const requestEmail = input.requestContactDetails.email;
+    if (requestEmail) {
+      const pmUrl = this.configService.get<string>('PM_APP_URL') || 'http://localhost:3002';
+      const requestLink = `${pmUrl}/public/requests/${request.uuid}`;
+      
+      const property = await this.prisma.upward_user_property.findUnique({
+        where: { uuid: input.propertyUuid },
+        include: { location: true }
+      });
+      const propertyAddress = property?.location?.address || property?.location?.area || 'a property';
+
+      await this.emailService.sendCredibilityRequestEmail({
+        email: requestEmail,
+        tenantName: `${this.encryption.decrypt(user.firstName)} ${this.encryption.decrypt(user.lastName)}`,
+        propertyAddress,
+
+        requestLink
+      });
+      console.log(`Email request sent to ${requestEmail} with link ${requestLink}`);
+    } else {
+      console.log(`No email provided for credibility request ${request.uuid}`);
+    }
 
     return { success: true, request };
   }

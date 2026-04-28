@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsArray, ValidateNested, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreatePropertyDto {
@@ -29,6 +29,18 @@ export class CreatePropertyDto {
   @IsString()
   @IsOptional()
   area?: string;
+
+  @IsString()
+  @IsOptional()
+  landlordName?: string;
+
+  @IsString()
+  @IsOptional()
+  landlordEmail?: string;
+
+  @IsString()
+  @IsOptional()
+  landlordPhone?: string;
 }
 
 export class UpdatePropertyDto {
@@ -63,8 +75,21 @@ export class UpdatePropertyDto {
   @IsString()
   @IsOptional()
   area?: string;
+
+  @IsString()
+  @IsOptional()
+  landlordName?: string;
+
+  @IsString()
+  @IsOptional()
+  landlordEmail?: string;
+
+  @IsString()
+  @IsOptional()
+  landlordPhone?: string;
 }
 
+// --- Mode B: Units-only import for an existing property ---
 export class UnitImportDto {
   @IsString()
   unitName!: string;
@@ -88,6 +113,14 @@ export class UnitImportDto {
   @IsNumber()
   rentAmount!: number;
 
+  @IsNumber()
+  @IsOptional()
+  rentAmountPaid?: number;
+
+  @IsNumber()
+  @IsOptional()
+  managementFee?: number;
+
   @IsString()
   @IsOptional()
   rentStartDate?: string;
@@ -98,22 +131,138 @@ export class UnitImportDto {
 
   @IsString()
   @IsOptional()
-  rentFrequency?: string;
+  rentType?: string;
+
+  @IsString()
+  @IsOptional()
+  currency?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
 
   @IsString()
   @IsOptional()
   tenantUuid?: string;
 
   @IsString()
-  status!: string;
+  @IsOptional()
+  status?: string;
 }
 
 export class BulkCreateUnitsDto {
   @IsString()
   propertyUuid!: string;
 
+  @IsBoolean()
+  @IsOptional()
+  inviteAfterImport?: boolean;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UnitImportDto)
   units!: UnitImportDto[];
+}
+
+// --- Mode A: Full import (property + landlord + tenant + unit in one flat row) ---
+export class FullImportRowDto {
+  // Property (required)
+  @IsString()
+  propertyName!: string;
+
+  @IsString()
+  propertyAddress!: string;
+
+  @IsString()
+  @IsOptional()
+  propertyType?: string;
+
+  @IsString()
+  @IsOptional()
+  propertyCountry?: string;
+
+  @IsString()
+  @IsOptional()
+  propertyState?: string;
+
+  @IsString()
+  @IsOptional()
+  propertyArea?: string;
+
+  // Landlord (all optional)
+  @IsString()
+  @IsOptional()
+  landlordFirstName?: string;
+
+  @IsString()
+  @IsOptional()
+  landlordLastName?: string;
+
+  @IsString()
+  @IsOptional()
+  landlordEmail?: string;
+
+  @IsString()
+  @IsOptional()
+  landlordPhone?: string;
+
+  // Tenant (email required)
+  @IsString()
+  tenantFirstName!: string;
+
+  @IsString()
+  tenantLastName!: string;
+
+  @IsString()
+  tenantEmail!: string;
+
+  @IsString()
+  @IsOptional()
+  tenantPhone?: string;
+
+  // Unit (name + rentAmount required)
+  @IsString()
+  unitName!: string;
+
+  @IsNumber()
+  unitRentAmount!: number;
+
+  @IsNumber()
+  @IsOptional()
+  unitRentAmountPaid?: number;
+
+  @IsString()
+  @IsOptional()
+  unitRentType?: string;
+
+  @IsString()
+  @IsOptional()
+  unitCurrency?: string;
+
+  @IsString()
+  @IsOptional()
+  unitRentStartDate?: string;
+
+  @IsString()
+  @IsOptional()
+  unitRentDueDate?: string;
+
+  @IsNumber()
+  @IsOptional()
+  unitManagementFee?: number;
+
+  @IsString()
+  @IsOptional()
+  unitNotes?: string;
+}
+
+export class BulkFullImportDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FullImportRowDto)
+  rows!: FullImportRowDto[];
+
+  @IsBoolean()
+  @IsOptional()
+  inviteAfterImport?: boolean;
 }

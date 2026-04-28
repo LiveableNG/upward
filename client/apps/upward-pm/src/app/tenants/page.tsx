@@ -11,7 +11,7 @@ export default function TenantsPage() {
   const [showAddModal, setShowAddModal] = useState(false)
 
   return (
-    <div className="properties-page animate-fade-in">
+    <div className="properties-page animate-fade-only">
       <header className="properties-header">
         <div>
           <h1 className="dashboard__title">Tenants Directory</h1>

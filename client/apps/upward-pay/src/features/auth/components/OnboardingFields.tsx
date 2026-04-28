@@ -1,5 +1,7 @@
 import React from 'react'
-import { User, Mail, Phone } from 'lucide-react'
+import { User, Mail } from 'lucide-react'
+import { PhoneInput } from '@/components/common/PhoneInput'
+import { isValidPhoneNumber } from 'libphonenumber-js'
 
 interface OnboardingFieldsProps {
   formData: {
@@ -16,6 +18,10 @@ export function OnboardingFields({ formData, setFormData, disabled = false }: On
   const handleChange = (field: string, value: string) => {
     setFormData((prev: any) => ({ ...prev, [field]: value }))
   }
+
+  const phoneError = formData.phone && !isValidPhoneNumber(formData.phone) 
+    ? 'Invalid international phone number' 
+    : undefined
 
   return (
     <div className="onboarding-fields">
@@ -61,18 +67,15 @@ export function OnboardingFields({ formData, setFormData, disabled = false }: On
         </div>
       </div>
 
-      <div className="auth-form__field mt-3">
-        <label>Phone Number</label>
-        <div className="input-with-icon">
-          <Phone size={17} />
-          <input
-            type="tel"
-            value={formData.phone}
-            onChange={(e) => handleChange('phone', e.target.value)}
-            placeholder="e.g. +234..."
-            disabled={disabled}
-          />
-        </div>
+      <div className="mt-3">
+        <PhoneInput
+          label="Phone Number"
+          value={formData.phone}
+          onValueChange={(val) => handleChange('phone', val)}
+          placeholder="e.g. +234..."
+          disabled={disabled}
+          error={phoneError}
+        />
       </div>
 
       <style jsx>{`
@@ -98,3 +101,4 @@ export function OnboardingFields({ formData, setFormData, disabled = false }: On
     </div>
   )
 }
+

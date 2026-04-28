@@ -1,6 +1,22 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { X, UserPlus, Loader2 } from 'lucide-react'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
 import { useTenantActions } from '../../../hooks/useTenants'
+import { PhoneInput } from '@/components/common/PhoneInput'
+import { isValidPhoneNumber } from 'libphonenumber-js'
+
+const tenantSchema = z.object({
+  firstName: z.string().min(2, 'First name is required'),
+  lastName: z.string().min(2, 'Last name is required'),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().refine((val) => !val || isValidPhoneNumber(val), {
+    message: 'Invalid international phone number (e.g. +234...)'
+  })
+})
+
+type TenantFormData = z.infer<typeof tenantSchema>
 
 interface AddTenantModalProps {
   isOpen: boolean
@@ -9,26 +25,29 @@ interface AddTenantModalProps {
 
 export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose }) => {
   const { createTenant } = useTenantActions()
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: ''
+  
+  const { 
+    register, 
+    handleSubmit, 
+    control,
+    reset,
+    formState: { errors } 
+  } = useForm<TenantFormData>({
+    resolver: zodResolver(tenantSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: ''
+    }
   })
 
   if (!isOpen) return null
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (formData.phone && !/^\+234\d{10}$/.test(formData.phone)) {
-      alert('Phone number must be in format +2348000000000')
-      return
-    }
-
-    createTenant.mutate(formData, {
+  const onSubmit = (data: TenantFormData) => {
+    createTenant.mutate(data, {
       onSuccess: () => {
-        setFormData({ firstName: '', lastName: '', email: '', phone: '' })
+        reset()
         onClose()
       }
     })
@@ -45,52 +64,53 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose 
           <button onClick={onClose}><X size={20} /></button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ marginTop: 24 }}>
+        <form onSubmit={handleSubmit(onSubmit)} style={{ marginTop: 24 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div className="form-group">
               <label className="form-label">First Name</label>
               <input 
                 type="text" 
-                className="form-input" 
+                className={`form-input ${errors.firstName ? 'form-input--error' : ''}`}
                 placeholder="e.g. John" 
-                required
-                value={formData.firstName} 
-                onChange={e => setFormData({ ...formData, firstName: e.target.value })} 
+                {...register('firstName')}
               />
+              {errors.firstName && <span className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px' }}>{errors.firstName.message}</span>}
             </div>
             <div className="form-group">
               <label className="form-label">Last Name</label>
               <input 
                 type="text" 
-                className="form-input" 
+                className={`form-input ${errors.lastName ? 'form-input--error' : ''}`}
                 placeholder="e.g. Doe" 
-                required
-                value={formData.lastName} 
-                onChange={e => setFormData({ ...formData, lastName: e.target.value })} 
+                {...register('lastName')}
               />
+              {errors.lastName && <span className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px' }}>{errors.lastName.message}</span>}
             </div>
           </div>
 
-          <div className="form-group">
+          <div className="form-group" style={{ marginTop: 16 }}>
             <label className="form-label">Email Address</label>
             <input 
               type="email" 
-              className="form-input" 
+              className={`form-input ${errors.email ? 'form-input--error' : ''}`}
               placeholder="tenant@example.com" 
-              required
-              value={formData.email} 
-              onChange={e => setFormData({ ...formData, email: e.target.value })}
+              {...register('email')}
             />
+            {errors.email && <span className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px' }}>{errors.email.message}</span>}
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Phone Number</label>
-            <input 
-              type="tel" 
-              className="form-input" 
-              placeholder="+2348000000000" 
-              value={formData.phone} 
-              onChange={e => setFormData({ ...formData, phone: e.target.value })}
+          <div style={{ marginTop: 16 }}>
+            <Controller
+              name="phone"
+              control={control}
+              render={({ field }) => (
+                <PhoneInput
+                  {...field}
+                  label="Phone Number"
+                  placeholder="e.g. +234 800 000 0000"
+                  error={errors.phone?.message}
+                />
+              )}
             />
           </div>
 
@@ -119,3 +139,4 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose 
     </div>
   )
 }
+

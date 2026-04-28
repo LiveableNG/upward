@@ -33,6 +33,7 @@ export const api = {
   addUnitPayment: propertyService.addUnitPayment,
   bulkCreateUnits: propertyService.bulkCreateUnits,
   syncToUpward: propertyService.syncToUpward,
+  bulkFullImport: propertyService.bulkFullImport,
   getPropertyImageUploadUrl: propertyService.getPropertyImageUploadUrl,
   
   // Payments
