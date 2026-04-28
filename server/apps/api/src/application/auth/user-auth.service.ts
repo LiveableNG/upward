@@ -586,9 +586,21 @@ export class UserAuthService extends BaseAuthService {
     }
   }
 
-  async requestOTP(email: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT'): Promise<void> {
+  async requestOTP(email: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT'): Promise<{ context: string }> {
+    const existing = await this.userRepository.findByEmail(email)
+    let effectiveContext = context
+
+    if (context === 'LOGIN' && !existing) {
+      throw new UnauthorizedException('No account found with this email address.')
+    }
+
+    if (context === 'SIGNUP' && existing && existing.passwordHash && existing.passwordHash !== 'INVITED') {
+      // Seamlessly switch to login flow
+      effectiveContext = 'LOGIN'
+    }
+
     // 1. Delete any old OTPs for this email/context
-    await this.tokenRepository.deleteOldTokens(email, context)
+    await this.tokenRepository.deleteOldTokens(email, effectiveContext)
 
     // 2. Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString()
@@ -597,13 +609,14 @@ export class UserAuthService extends BaseAuthService {
     // 3. Create token record
     await this.tokenRepository.create({
       otp,
-      context,
+      context: effectiveContext as any,
       identifier: email,
       expiresAt,
     })
 
     // 4. Send email
-    await this.emailService.sendAuthOTP(email, otp, context)
+    await this.emailService.sendAuthOTP(email, otp, effectiveContext as any)
+    return { context: effectiveContext }
   }
 
   async verifyOTP(email: string, otp: string, context: string, deleteOnSuccess = true): Promise<{ success: boolean; message?: string }> {

@@ -108,17 +108,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = async () => {
+    console.log('[Auth] Logging out...')
+    setLoading(true)
     try {
-      await PushNotificationService.unregisterDevice() 
-      await authLogout()
+      // Try to unregister notifications and notify backend, but don't let them block local logout
+      await Promise.allSettled([
+        PushNotificationService.unregisterDevice(),
+        authLogout()
+      ])
+      
       if (typeof window !== 'undefined') {
         localStorage.removeItem('app_banner_dismissed')
         sessionStorage.removeItem('upward_session_active')
         localStorage.removeItem('app_backgrounded_at')
       }
+    } catch (err) {
+      console.error('[Auth] Logout error:', err)
     } finally {
       setAccessToken(null)
       setUser(null)
+      setLoading(false)
       router.replace('/login')
     }
   }

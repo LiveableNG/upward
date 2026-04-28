@@ -41,7 +41,6 @@ function setPmAuthCookies(reply: FastifyReply, accessToken: string, refreshToken
     sameSite: isProd ? 'none' : 'lax',
     path: '/',
     maxAge: 7 * 24 * 60 * 60, // 7 days
-    partitioned: isProd,
   })
 
   reply.setCookie(ACCESS_COOKIE_NAME, accessToken, {
@@ -50,7 +49,6 @@ function setPmAuthCookies(reply: FastifyReply, accessToken: string, refreshToken
     sameSite: isProd ? 'none' : 'lax',
     path: '/',
     maxAge: 7 * 24 * 60 * 60,
-    partitioned: isProd,
   })
 }
 
@@ -61,7 +59,6 @@ function clearPmAuthCookies(reply: FastifyReply) {
     httpOnly: true,
     secure: isProd,
     sameSite: (isProd ? 'none' : 'lax') as any,
-    partitioned: isProd,
   }
 
   reply.clearCookie(REFRESH_COOKIE_NAME, options)
@@ -145,13 +142,23 @@ export class PmAuthController {
   @Post('request-otp')
   @HttpCode(HttpStatus.OK)
   async requestOTP(@Body() body: { email: string; context: 'SIGNUP' | 'LOGIN' }) {
-    await this.pmAuthService.requestOTP(body.email, body.context)
-    return { success: true, message: 'Verification code sent' }
+    return this.pmAuthService.requestOTP(body.email, body.context)
   }
 
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
   async verifyOTP(@Body() body: { email: string; otp: string; context: string }) {
     return this.pmAuthService.verifyOTP(body.email, body.otp, body.context)
+  }
+
+  @Post('otp-login')
+  @HttpCode(HttpStatus.OK)
+  async otpLogin(
+    @Body() body: { email: string; otp: string },
+    @Res({ passthrough: false }) reply: FastifyReply,
+  ) {
+    const { refreshToken, ...rest } = await this.pmAuthService.otpLogin(body.email, body.otp)
+    setPmAuthCookies(reply, rest.accessToken, refreshToken)
+    reply.status(HttpStatus.OK).send(rest)
   }
 }

@@ -39,7 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   if (!isLoggedIn) {
-    return null
+    return <FallbackSuspense message="Redirecting to login..." />
   }
 
   return (

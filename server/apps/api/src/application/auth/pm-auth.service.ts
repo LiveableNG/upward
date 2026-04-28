@@ -123,20 +123,45 @@ export class PmAuthService extends BaseAuthService {
     return this.generateFullAuthResponse(pm)
   }
 
-  async requestOTP(email: string, context: 'SIGNUP' | 'LOGIN'): Promise<void> {
-    await (this.tokenRepository as any).deleteOldTokens(email, context)
+  async otpLogin(email: string, otp: string): Promise<any> {
+    const verification = await this.verifyOTP(email, otp, 'LOGIN')
+    if (!verification.success) {
+      throw new UnauthorizedException(verification.message)
+    }
+
+    const pm = await this.pmRepository.findByEmail(email)
+    if (!pm) throw new UnauthorizedException('Property manager account not found')
+
+    return this.generateFullAuthResponse(pm)
+  }
+
+  async requestOTP(email: string, context: 'SIGNUP' | 'LOGIN'): Promise<{ context: 'SIGNUP' | 'LOGIN' }> {
+    const existing = await this.pmRepository.findByEmail(email)
+    let effectiveContext = context
+
+    if (context === 'LOGIN' && !existing) {
+      throw new UnauthorizedException('No property manager account found with this email.')
+    }
+
+    if (context === 'SIGNUP' && existing) {
+      // Seamlessly switch to login flow
+      effectiveContext = 'LOGIN'
+    }
+
+    await (this.tokenRepository as any).deleteOldTokens(email, effectiveContext)
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString()
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 mins
 
     await this.tokenRepository.create({
       otp,
-      context,
+      context: effectiveContext,
       identifier: email,
       expiresAt,
     })
 
-    await this.emailService.sendAuthOTP(email, otp, context)
+    await this.emailService.sendAuthOTP(email, otp, effectiveContext)
+    return { context: effectiveContext }
   }
 
   async verifyOTP(email: string, otp: string, context: string): Promise<{ success: boolean; message?: string }> {
