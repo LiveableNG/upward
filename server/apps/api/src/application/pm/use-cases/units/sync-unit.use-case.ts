@@ -43,8 +43,8 @@ export class SyncUnitToUpwardUseCase {
       throw new Error('Unit must have an assigned tenant to sync');
     }
 
-    if (unit.tenant.inviteStatus !== 'ON_UPWARD' && unit.tenant.inviteStatus !== 'ACCEPTED') {
-      throw new Error('Tenant must be active on Upward to sync unit');
+    if (unit.tenant.inviteStatus !== 'ON_UPWARD' && unit.tenant.inviteStatus !== 'ACCEPTED' && unit.tenant.inviteStatus !== 'SENT') {
+      throw new Error('Tenant must be invited or active on Upward to sync unit');
     }
 
     const tenantEmail = unit.tenant.email;

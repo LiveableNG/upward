@@ -111,6 +111,8 @@ import { GetTenantUseCase } from './pm/use-cases/tenants/get-tenant.use-case'
 import { AssignTenantToUnitUseCase } from './pm/use-cases/tenants/assign-tenant-to-unit.use-case'
 import { UpdateTenantUseCase } from './pm/use-cases/tenants/update-tenant.use-case'
 import { SyncUnitToUpwardUseCase } from './pm/use-cases/units/sync-unit.use-case'
+import { CreatePmPaymentRequestUseCase } from './pm/use-cases/payments/create-pm-payment-request.use-case'
+import { GetPmPaymentRequestsUseCase } from './pm/use-cases/payments/get-pm-payment-requests.use-case'
 import { AuthModule } from './auth/auth.module'
 import { CreateAnnouncementUseCase } from './use-cases/notifications/create-announcement.use-case'
 import { DeactivateAnnouncementsUseCase } from './use-cases/notifications/deactivate-announcements.use-case'
@@ -284,6 +286,8 @@ const UseCases = [
   AssignTenantToUnitUseCase,
   UpdateTenantUseCase,
   SyncUnitToUpwardUseCase,
+  CreatePmPaymentRequestUseCase,
+  GetPmPaymentRequestsUseCase,
 ]
 
 @Module({

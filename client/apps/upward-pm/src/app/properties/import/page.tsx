@@ -57,7 +57,7 @@ function ImportContent() {
           rentStartDate: row['RentStartDate'] || '',
           rentDueDate: row['RentDueDate'] || '',
           rentFrequency: row['RentFrequency'] || 'Monthly',
-          status: 'OCCUPIED'
+          status: (row['TenantEmail']?.trim() || row['TenantFirstName']?.trim() || row['TenantLastName']?.trim()) ? 'OCCUPIED' : 'VACANT'
         })).filter((u: any) => u.unitName);
         
         info(`Previewing ${parsedUnits.length} units. Review and confirm.`)
@@ -99,13 +99,18 @@ function ImportContent() {
       rentStartDate: '',
       rentDueDate: '',
       rentFrequency: 'Monthly',
-      status: 'OCCUPIED' 
+      status: 'VACANT' 
     }])
   }
 
   const updateRow = (index: number, field: string, value: any) => {
     const newArr = [...previewUnits]
     newArr[index][field] = value
+    
+    // Auto-update status based on tenant info presence
+    const row = newArr[index]
+    row.status = (row.tenantEmail?.trim() || row.tenantFirstName?.trim() || row.tenantLastName?.trim()) ? 'OCCUPIED' : 'VACANT'
+    
     setPreviewUnits(newArr)
   }
 
@@ -245,20 +250,22 @@ function ImportContent() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
 
-            <div className="import-footer">
-              <button className="btn btn--secondary" onClick={() => setPreviewUnits([])}>
-                Reset
+        {previewUnits.length > 0 && (
+          <div className="import-footer">
+            <button className="btn btn--secondary" onClick={() => setPreviewUnits([])}>
+              Reset
+            </button>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button 
+                className="btn btn--primary" 
+                onClick={handleConfirmImport} 
+                disabled={bulkCreateUnitsMutation.isPending}
+              >
+                {bulkCreateUnitsMutation.isPending ? 'Importing...' : 'Confirm & Save All'}
               </button>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <button 
-                  className="btn btn--primary" 
-                  onClick={handleConfirmImport} 
-                  disabled={bulkCreateUnitsMutation.isPending}
-                >
-                  {bulkCreateUnitsMutation.isPending ? 'Importing...' : 'Confirm & Save All'}
-                </button>
-              </div>
             </div>
           </div>
         )}
@@ -268,8 +275,6 @@ function ImportContent() {
         .import-page {
           padding: 0;
           width: 100%;
-          max-width: var(--max-width);
-          margin: 0 auto;
           display: flex;
           flex-direction: column;
           gap: var(--space-6);
@@ -331,10 +336,9 @@ function ImportContent() {
         .import-table-container {
           overflow: auto;
           border-top: 1px solid var(--border);
-          border-bottom: 1px solid var(--border);
           background: var(--surface);
           width: 100%;
-          max-height: calc(100vh - 280px);
+          max-height: calc(100vh - 320px);
           min-height: 400px;
         }
         .import-table {
@@ -368,13 +372,11 @@ function ImportContent() {
           justify-content: space-between;
           align-items: center;
           gap: var(--space-3);
-          padding: var(--space-6);
+          padding: var(--space-5) var(--space-6);
           width: 100%;
           background: var(--surface);
-          position: sticky;
-          bottom: 0;
-          z-index: 30;
-          box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
+          border-top: 1px solid var(--border);
+          border-radius: 0 0 var(--radius-lg) var(--radius-lg);
         }
         .btn-icon {
           background: none;

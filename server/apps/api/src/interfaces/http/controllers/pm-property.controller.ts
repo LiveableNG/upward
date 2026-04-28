@@ -13,6 +13,8 @@ import { GetUnitPaymentsUseCase } from '../../../application/pm/use-cases/get-un
 import { AddUnitPaymentUseCase } from '../../../application/pm/use-cases/add-unit-payment.use-case';
 import { GetPropertyImageUploadUrlUseCase } from '../../../application/pm/use-cases/get-property-image-upload-url.use-case';
 import { SyncUnitToUpwardUseCase } from '../../../application/pm/use-cases/units/sync-unit.use-case';
+import { CreatePmPaymentRequestUseCase, CreatePmPaymentRequestDto } from '../../../application/pm/use-cases/payments/create-pm-payment-request.use-case';
+import { GetPmPaymentRequestsUseCase } from '../../../application/pm/use-cases/payments/get-pm-payment-requests.use-case';
 import { CreatePropertyDto, UpdatePropertyDto, BulkCreateUnitsDto } from '../../../application/pm/dtos/property.dto';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 import { Inject, UnauthorizedException, Delete } from '@nestjs/common';
@@ -34,6 +36,8 @@ export class PmPropertyController {
     private readonly addUnitPaymentUseCase: AddUnitPaymentUseCase,
     private readonly getPropertyImageUploadUrlUseCase: GetPropertyImageUploadUrlUseCase,
     private readonly syncUnitToUpwardUseCase: SyncUnitToUpwardUseCase,
+    private readonly createPmPaymentRequestUseCase: CreatePmPaymentRequestUseCase,
+    private readonly getPmPaymentRequestsUseCase: GetPmPaymentRequestsUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -121,5 +125,17 @@ export class PmPropertyController {
   async getImageUploadUrl(@Req() req: any, @Body() body: { contentType: string; filename: string }) {
     const pmId = await this.getPmId(req);
     return this.getPropertyImageUploadUrlUseCase.execute(pmId, body.contentType, body.filename);
+  }
+
+  @Post('payment-requests')
+  async createPaymentRequest(@Req() req: any, @Body() dto: CreatePmPaymentRequestDto) {
+    const pmId = await this.getPmId(req);
+    return this.createPmPaymentRequestUseCase.execute(pmId, dto);
+  }
+
+  @Get('payment-requests')
+  async getPaymentRequests(@Req() req: any) {
+    const pmId = await this.getPmId(req);
+    return this.getPmPaymentRequestsUseCase.execute(pmId);
   }
 }

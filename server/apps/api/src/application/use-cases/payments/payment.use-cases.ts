@@ -25,6 +25,7 @@ import {
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { PROPERTY_REPOSITORY, PropertyRepository } from '../../../domains/companies/property.repository'
 import { RENT_CYCLE_REPOSITORY, IRentCycleRepository } from '../../../domains/scoring/rent-cycle.repository'
+import { PM_PAYMENT_REQUEST_REPOSITORY, IPmPaymentRequestRepository } from '../../../domains/pm/IPropertyRepository'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
@@ -100,6 +101,8 @@ export class RecordTransactionUseCase {
     private readonly propertyRepo: PropertyRepository,
     @Inject(RENT_CYCLE_REPOSITORY)
     private readonly rentCycleRepo: IRentCycleRepository,
+    @Inject(PM_PAYMENT_REQUEST_REPOSITORY)
+    private readonly pmPaymentRepo: IPmPaymentRequestRepository,
     @Inject(EVENT_BUS)
     private readonly eventBus: EventBus,
     private readonly prisma: PrismaService,
@@ -216,6 +219,49 @@ export class RecordTransactionUseCase {
             status: newStatus,
             paidAt: newStatus === 'PAID' ? new Date() : undefined,
           }, txClient)
+
+          // Update PM record if it exists
+          try {
+            const pmPr = await this.pmPaymentRepo.findByPaymentRequestId(pr.id!, txClient);
+            if (pmPr) {
+              await this.pmPaymentRepo.update(pmPr.uuid, {
+                amountPaid: Math.min(newAmountPaid, pr.amount),
+                status: newStatus,
+              }, txClient);
+
+              // Record payment in PM history
+              await txClient.upward_pm_rent_payment.create({
+                data: {
+                  unitId: pmPr.unitId,
+                  amount: paymentAmount,
+                  paymentDate: new Date(),
+                  method: 'PAYSTACK',
+                  status: 'SUCCESS',
+                  notes: `Payment for request ${pmPr.uuid.slice(-8)}`,
+                  periodStart: pr.dueDate ? new Date(pr.dueDate) : null,
+                }
+              });
+
+              if (newStatus === 'PAID') {
+                const unit = await txClient.upward_pm_unit.findUnique({ where: { id: pmPr.unitId } });
+                if (unit && unit.rentDueDate) {
+                  const newDueDate = new Date(unit.rentDueDate);
+                  
+                  newDueDate.setFullYear(newDueDate.getFullYear() + 1); 
+
+                  await txClient.upward_pm_unit.update({
+                    where: { id: unit.id },
+                    data: { rentDueDate: newDueDate }
+                  });
+                  this.logger.log(`Updated unit ${unit.id} due date to ${newDueDate.toISOString()}`);
+                }
+              }
+
+              this.logger.log(`Updated PM payment request ${pmPr.uuid} and recorded history for core request ${pr.id}`);
+            }
+          } catch (err) {
+            this.logger.error(`Failed to update PM payment request for core request ${pr.id}:`, err);
+          }
 
           // 3. Settle Line Items
           if (data.lineItems && Array.isArray(data.lineItems)) {

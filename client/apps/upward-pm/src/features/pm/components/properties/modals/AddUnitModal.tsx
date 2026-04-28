@@ -168,6 +168,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                     type="text"
                     className="form-input"
                     placeholder="John"
+                    autoComplete="off"
                     value={formData.tenantFirstName}
                     onChange={e => setFormData({ ...formData, tenantFirstName: e.target.value })}
                   />
@@ -178,6 +179,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                     type="text"
                     className="form-input"
                     placeholder="Doe"
+                    autoComplete="off"
                     value={formData.tenantLastName}
                     onChange={e => setFormData({ ...formData, tenantLastName: e.target.value })}
                   />
@@ -191,6 +193,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                     type="email"
                     className="form-input"
                     placeholder="john@example.com"
+                    autoComplete="off"
                     value={formData.tenantEmail}
                     onChange={e => setFormData({ ...formData, tenantEmail: e.target.value })}
                   />

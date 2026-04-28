@@ -32,26 +32,29 @@ export class BulkCreateUnitsUseCase {
     for (const u of dto.units) {
       let tenantId: number | null = null;
 
-      // Handle tenant if info is provided
+      const email = u.tenantEmail?.trim();
+      const firstName = u.tenantFirstName?.trim();
+      const lastName = u.tenantLastName?.trim();
+
       if (u.tenantUuid) {
         const tenant = await this.tenantRepository.findByUuid(u.tenantUuid);
         if (tenant && tenant.pmId === pmId) {
           tenantId = tenant.id;
         }
-      } else if (u.tenantEmail) {
-        const emailHash = this.encryption.hash(u.tenantEmail);
+      } else if (email) {
+        const emailHash = this.encryption.hash(email);
         let tenant = await this.tenantRepository.findByEmailHash(pmId, emailHash);
 
         if (!tenant) {
-          const existingUser = await this.userRepository.findByEmail(u.tenantEmail);
+          const existingUser = await this.userRepository.findByEmail(email);
           const initialStatus = existingUser ? 'ON_UPWARD' : 'PENDING';
 
           tenant = await this.tenantRepository.create({
             pmId,
-            firstName: u.tenantFirstName || '',
-            lastName: u.tenantLastName || '',
-            email: u.tenantEmail,
-            phone: u.tenantPhone || '',
+            firstName: firstName || '',
+            lastName: lastName || '',
+            email: email,
+            phone: u.tenantPhone?.trim() || '',
             inviteStatus: initialStatus,
             inviteSentAt: null,
           });
@@ -67,7 +70,7 @@ export class BulkCreateUnitsUseCase {
         rentDueDate: u.rentDueDate ? new Date(u.rentDueDate) : null,
         rentFrequency: u.rentFrequency || 'Monthly',
         currency: 'NGN',
-        status: u.status,
+        status: tenantId ? (u.status || 'OCCUPIED') : 'VACANT',
         tenantId,
         isSynced: false,
         userPropertyUuid: null,

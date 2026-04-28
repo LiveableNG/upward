@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation'
 import { signup as authSignup } from '../services/authService'
 import { useAuth } from '../AuthContext'
 import { setAccessToken } from '@/lib/auth-token'
+import { setCookie } from '@/lib/cookie-utils'
 
 export function useSignup(redirect: string = '/dashboard', onSuccess?: () => void) {
   const router = useRouter()
@@ -23,6 +24,7 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
     onSuccess: (result) => {
       if (result.accessToken) {
         setAccessToken(result.accessToken)
+        setCookie('pay_access_token', result.accessToken)
       }
 
       setAuthUser(result.user)

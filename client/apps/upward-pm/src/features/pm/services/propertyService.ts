@@ -13,6 +13,17 @@ export interface Property {
   area?: string;
 }
 
+export interface Tenant {
+  id: number;
+  uuid: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  inviteStatus?: string;
+  inviteSentAt?: string;
+}
+
 export interface Unit {
   id: number;
   uuid: string;
@@ -20,7 +31,7 @@ export interface Unit {
   property?: Property;
   unitName: string;
   tenantId?: number;
-  tenant?: any; 
+  tenant?: Tenant; 
   tenantUuid?: string;
   tenantFirstName?: string;
   tenantLastName?: string;

@@ -399,6 +399,7 @@ model upward_payment_request {
   subaccount   upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
   overpayments upward_overpayment[]
   rentCycles   upward_rent_cycle[]
+  pmPaymentRequests upward_pm_payment_request[]
 
   @@index([userId])
   @@index([status])
@@ -756,6 +757,7 @@ model upward_property_manager {
   properties   upward_pm_property[]
   tenants      upward_pm_tenant[]
   userProperties upward_user_property[]
+  paymentRequests upward_pm_payment_request[]
   
   @@index([email])
 }
@@ -823,6 +825,7 @@ model upward_pm_unit {
   property upward_pm_property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   rentPayments upward_pm_rent_payment[]
   userProperties upward_user_property[]
+  paymentRequests upward_pm_payment_request[]
 
   @@index([propertyId])
   @@index([status])
@@ -851,6 +854,7 @@ model upward_pm_tenant {
 
   pm                 upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
   units              upward_pm_unit[]
+  paymentRequests    upward_pm_payment_request[]
 
   @@index([pmId])
   @@index([emailHash])
@@ -875,5 +879,35 @@ model upward_pm_rent_payment {
 
   @@index([unitId])
   @@index([paymentDate])
+}
+
+model upward_pm_payment_request {
+  id               Int      @id @default(autoincrement())
+  uuid             String   @unique @default(uuid())
+  pmId             Int
+  unitId           Int
+  tenantId         Int?
+  paymentRequestId Int?     // Links to the core upward_payment_request
+  
+  amount           Float
+  currency         String   @default("NGN")
+  description      String?
+  dueDate          DateTime
+  status           String   @default("PENDING") // PENDING, PARTIAL, PAID
+  amountPaid       Float    @default(0)
+  allowPartial     Boolean  @default(false)
+  minAmount        Float?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  pm             upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  unit           upward_pm_unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tenant         upward_pm_tenant?       @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  paymentRequest upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
+
+  @@index([pmId])
+  @@index([unitId])
+  @@index([status])
 }
 

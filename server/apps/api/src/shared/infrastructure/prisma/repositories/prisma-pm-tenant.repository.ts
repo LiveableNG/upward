@@ -45,6 +45,7 @@ export class PrismaPmTenantRepository implements ITenantRepository {
         rentFrequency: u.rentFrequency,
         currency: u.currency,
         status: u.status,
+        isSynced: u.isSynced,
         tenantId: u.tenantId
       })) : []
     };
@@ -61,6 +62,19 @@ export class PrismaPmTenantRepository implements ITenantRepository {
       orderBy: { createdAt: 'desc' }
     });
     return tenants.map(t => this.mapTenant(t));
+  }
+
+  async findById(id: number): Promise<TenantEntity | null> {
+    const tenant = await this.prisma.upward_pm_tenant.findUnique({
+      where: { id },
+      include: { 
+        units: {
+          include: { property: true }
+        }
+      }
+    });
+    if (!tenant) return null;
+    return this.mapTenant(tenant);
   }
 
   async findByUuid(uuid: string): Promise<TenantEntity | null> {

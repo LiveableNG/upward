@@ -1,0 +1,134 @@
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { 
+  PM_PAYMENT_REQUEST_REPOSITORY, IPmPaymentRequestRepository,
+  PM_UNIT_REPOSITORY, IUnitRepository 
+} from '../../../../domains/pm/IPropertyRepository';
+import { PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository as ICorePaymentRequestRepository } from '../../../../domains/payments/payment.repository';
+import { CreateExternalPaymentRequestUseCase } from '../../../use-cases/external/create-payment-request.use-case';
+import { ExternalPaymentRequestPayloadDto } from '../../../use-cases/external/external-api.dto';
+import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../../domains/pm/property-manager.repository';
+import { EmailService } from '../../../../shared/infrastructure/email/email.service';
+import { NotificationService } from '../../../../shared/infrastructure/common/notification.service';
+import { PM_TENANT_REPOSITORY, ITenantRepository } from '../../../../domains/pm/IPropertyRepository';
+import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+
+export interface CreatePmPaymentRequestDto {
+  unitUuid: string;
+  amount: number;
+  dueDate: string;
+  description?: string;
+  allowPartial?: boolean;
+  minAmount?: number;
+  lineItems?: { name: string; amount: number }[];
+}
+
+@Injectable()
+export class CreatePmPaymentRequestUseCase {
+  constructor(
+    @Inject(PM_PAYMENT_REQUEST_REPOSITORY)
+    private readonly pmPaymentRepo: IPmPaymentRequestRepository,
+    @Inject(PM_UNIT_REPOSITORY)
+    private readonly unitRepo: IUnitRepository,
+    @Inject(PROPERTY_MANAGER_REPOSITORY)
+    private readonly pmRepo: PropertyManagerRepository,
+    @Inject(PAYMENT_REQUEST_REPOSITORY)
+    private readonly corePaymentRepo: ICorePaymentRequestRepository,
+    @Inject(PM_TENANT_REPOSITORY)
+    private readonly pmTenantRepo: ITenantRepository,
+    private readonly createExternalPaymentRequestUseCase: CreateExternalPaymentRequestUseCase,
+    private readonly emailService: EmailService,
+    private readonly notificationService: NotificationService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  async execute(pmId: number, data: CreatePmPaymentRequestDto): Promise<any> {
+    const unit = await this.unitRepo.findByUuid(data.unitUuid);
+    if (!unit) throw new NotFoundException('Unit not found');
+
+    if (!unit.isSynced || !unit.userPropertyUuid) {
+      throw new BadRequestException('Unit must be synced to Upward Pay before requesting payments');
+    }
+
+    const pm = await this.pmRepo.findById(pmId);
+    if (!pm) throw new NotFoundException('Property Manager not found');
+
+    if (!pm.bankCode || !pm.accountNumber) {
+      throw new BadRequestException('Please set up your bank information in settings to receive payments');
+    }
+
+    const payload: ExternalPaymentRequestPayloadDto = {
+      userPropertyUuid: unit.userPropertyUuid,
+      amount: data.amount,
+      dueDate: data.dueDate,
+      description: data.description,
+      allowPartial: data.allowPartial,
+      minAmount: data.minAmount,
+      lineItems: data.lineItems,
+      bankCode: pm.bankCode,
+      accountNumber: pm.accountNumber,
+    };
+
+    const result = await this.createExternalPaymentRequestUseCase.execute(payload, 0); 
+
+    const corePR = await this.corePaymentRepo.findByUuid(result.paymentUuid);
+    if (!corePR) {
+      throw new BadRequestException('Failed to synchronize with payment gateway');
+    }
+
+    const pmPR = await this.pmPaymentRepo.create({
+      pmId,
+      unitId: unit.id,
+      tenantId: unit.tenantId,
+      paymentRequestId: corePR.id ?? null,
+      amount: data.amount,
+      currency: unit.currency || 'NGN',
+      description: data.description || null,
+      dueDate: new Date(data.dueDate),
+      status: 'PENDING',
+      amountPaid: 0,
+      allowPartial: data.allowPartial || false,
+      minAmount: data.minAmount || null,
+    });
+
+    try {
+      if (unit.tenantId) {
+        const tenant = await this.pmTenantRepo.findById(unit.tenantId);
+        if (tenant) {
+          const tenantEmail = tenant.email || null;
+          const tenantName = tenant.firstName || 'Tenant';
+          const pmName = pm.businessName || `${pm.firstName} ${pm.lastName}`;
+
+          if (tenantEmail) {
+            await this.emailService.sendPaymentRequestEmail({
+              email: tenantEmail,
+              tenantName,
+              pmName,
+              amount: data.amount,
+              currency: unit.currency || 'NGN',
+              dueDate: data.dueDate,
+              description: data.description,
+              paymentLink: result.paymentLink,
+            });
+            
+            const coreUser = await this.prisma.upward_user.findFirst({
+              where: { email: tenantEmail }
+            });
+            
+            if (coreUser) {
+              await this.notificationService.notifyUser(coreUser.id, {
+                title: 'New Payment Request',
+                message: `You have a new payment request for ${pmPR.currency} ${pmPR.amount.toLocaleString()} from ${pmName}.`,
+                type: 'PAYMENT',
+                url: `/pay/${corePR.uuid}`,
+              });
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to send payment request notifications:', err);
+    }
+
+    return pmPR;
+  }
+}

@@ -65,22 +65,22 @@ export function OnboardingStep({
               <h1 className="auth-stage__title">
                 {type === 'payment' ? 'Almost there!' : 'Complete Your Profile'}
               </h1>
-              <p className="auth-stage__subtitle">
-                {type === 'payment' ? (
-                  <>
-                    Your payment to <strong>{companyName}</strong> is complete.
-                    {remainingBalance > 0 && (
-                      <div className="balance-notice">
-                        Remaining balance: <strong>{formatCurrency(remainingBalance, currency)}</strong>.
-                        We advise paying your balance on time to maintain a strong rent credibility score.
-                      </div>
-                    )}
-                    Now, set up your profile to track your rent credibility and scores.
-                  </>
-                ) : (
-                  <>Set a secure password to activate your account and access your property details and rent dashboard.</>
-                )}
-              </p>
+            <div className="auth-stage__subtitle">
+              {type === 'payment' ? (
+                <>
+                  Your payment to <strong>{companyName}</strong> is complete.
+                  {remainingBalance > 0 && (
+                    <div className="balance-notice">
+                      Remaining balance: <strong>{formatCurrency(remainingBalance, currency)}</strong>.
+                      We advise paying your balance on time to maintain a strong rent credibility score.
+                    </div>
+                  )}
+                  Now, set up your profile to track your rent credibility and scores.
+                </>
+              ) : (
+                <>Set a secure password to activate your account and access your property details and rent dashboard.</>
+              )}
+            </div>
             </header>
 
             <form className="auth-form mt-8" onSubmit={handleActivation}>

@@ -16,6 +16,7 @@ import {
   Globe
 } from 'lucide-react'
 import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useAddUnitPayment } from '@/features/pm/hooks/useProperties'
+import { usePaymentRequests } from '@/features/pm/hooks/usePayments'
 import { TenantAssignmentSection } from '@/features/pm/components/tenants/TenantAssignmentSection'
 import { AddRentRecordModal } from '@/features/pm/components/properties/modals/AddRentRecordModal'
 import { useToast } from '@/components/common/Toast'
@@ -30,6 +31,7 @@ function UnitDetailContent() {
   
   const { data: unit } = useUnit(uuid as string)
   const { data: payments = [] } = useUnitPayments(uuid as string)
+  const { data: allRequests = [] } = usePaymentRequests()
   const updateUnitMutation = useUpdateUnit()
   const deleteUnitMutation = useDeleteUnit()
   const addPaymentMutation = useAddUnitPayment()
@@ -55,6 +57,10 @@ function UnitDetailContent() {
 
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
   const lastPayment = payments[0] || null
+  
+  const unitRequests = allRequests.filter(r => r.unitId === unit?.id)
+  const activeRequest = unitRequests.find(r => r.status !== 'PAID')
+  const amountRemaining = activeRequest ? (activeRequest.amount - activeRequest.amountPaid) : 0
 
   const handleUpdate = () => {
     updateUnitMutation.mutate({ 
@@ -118,7 +124,7 @@ function UnitDetailContent() {
             <Trash2 size={18} />
           </button>
           {isEditing ? (
-            <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
               <button 
                 className="btn btn--secondary" 
                 onClick={() => {
@@ -140,7 +146,7 @@ function UnitDetailContent() {
                 Cancel
               </button>
               <button className="btn btn--primary" onClick={handleUpdate}>
-                <Save size={18} />
+                <Save size={16} />
                 Save Changes
               </button>
             </div>
@@ -171,7 +177,7 @@ function UnitDetailContent() {
         <div className="unit-detail__grid">
           <div className="unit-detail__card glass">
             <div className="card-header">
-              <Hash size={20} className="text-clay" />
+              <Hash size={16} className="text-clay" />
               <h3>Unit Information</h3>
             </div>
             <div className="card-body">
@@ -202,7 +208,7 @@ function UnitDetailContent() {
 
           <div className="unit-detail__card glass">
             <div className="card-header">
-              <MapPin size={20} className="text-clay" />
+              <MapPin size={16} className="text-clay" />
               <h3>Location & Address</h3>
             </div>
             <div className="card-body">
@@ -241,10 +247,10 @@ function UnitDetailContent() {
               <div className="form-group">
                 <label className="form-label">Country</label>
                 <div className="input-with-icon">
-                  <Globe size={16} className="input-icon" />
+                  <Globe size={14} className="input-icon" />
                   <input 
                     className="form-input" 
-                    style={{ paddingLeft: '40px' }}
+                    style={{ paddingLeft: '34px' }}
                     value={formData.country} 
                     onChange={e => setFormData({...formData, country: e.target.value})}
                     disabled={!isEditing}
@@ -258,7 +264,7 @@ function UnitDetailContent() {
 
           <div className="unit-detail__card glass">
             <div className="card-header">
-              <CreditCard size={20} className="text-clay" />
+              <CreditCard size={16} className="text-clay" />
               <h3>Financials</h3>
             </div>
             <div className="card-body">
@@ -291,7 +297,7 @@ function UnitDetailContent() {
 
           <div className="unit-detail__card glass">
             <div className="card-header">
-              <Calendar size={20} className="text-clay" />
+              <Calendar size={16} className="text-clay" />
               <h3>Lease Dates</h3>
             </div>
             <div className="card-body">
@@ -326,15 +332,18 @@ function UnitDetailContent() {
               <span className="rent-stat-card__value">₦{(totalPaid || 0).toLocaleString()}</span>
             </div>
             <div className="rent-stat-card glass">
-              <span className="rent-stat-card__label">Last Payment</span>
-              <span className="rent-stat-card__value">₦{(lastPayment?.amount || 0).toLocaleString()}</span>
-              {lastPayment && <span className="rent-stat-card__meta">{new Date(lastPayment.paymentDate).toLocaleDateString()}</span>}
+              <span className="rent-stat-card__label">Outstanding Balance</span>
+              <span className={cn("rent-stat-card__value", amountRemaining > 0 ? "text-error" : "text-forest")}>
+                ₦{(amountRemaining || 0).toLocaleString()}
+              </span>
+              {activeRequest && <span className="rent-stat-card__meta">Due: {new Date(activeRequest.dueDate).toLocaleDateString()}</span>}
             </div>
             <div className="rent-stat-card glass">
               <span className="rent-stat-card__label">Rent Status</span>
-              <span className={cn("rent-stat-card__value", "text-forest")}>
-                {unit?.status === 'OCCUPIED' ? 'Up to Date' : 'No Active Lease'}
+              <span className={cn("rent-stat-card__value", amountRemaining === 0 ? "text-forest" : "text-clay")}>
+                {amountRemaining === 0 ? 'Fully Paid' : 'Partial/Pending'}
               </span>
+              {unit?.rentDueDate && <span className="rent-stat-card__meta">Next Cycle: {new Date(unit.rentDueDate).toLocaleDateString()}</span>}
             </div>
           </div>
 
@@ -342,7 +351,7 @@ function UnitDetailContent() {
             <div className="rent-history__header">
               <h3>Rent Payment History</h3>
               <button className="btn btn--primary btn--sm" onClick={addRentRecord}>
-                <PlusCircle size={16} /> Add Record
+                <PlusCircle size={14} /> Add Record
               </button>
             </div>
             <div className="rent-history__table-container">
@@ -369,7 +378,7 @@ function UnitDetailContent() {
                     </tr>
                   )) : (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', padding: '40px' }}>No payment history found.</td>
+                      <td colSpan={5} style={{ textAlign: 'center', padding: '32px' }}>No payment history found.</td>
                     </tr>
                   )}
                 </tbody>
@@ -405,27 +414,27 @@ function UnitDetailContent() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 30px;
+          margin-bottom: 20px;
         }
         .unit-detail__nav {
           display: flex;
           align-items: center;
-          gap: 20px;
+          gap: 14px;
         }
         .unit-detail__actions {
           display: flex;
-          gap: 12px;
+          gap: 8px;
         }
         .unit-tabs {
           display: flex;
-          gap: 32px;
-          margin-bottom: 32px;
+          gap: 24px;
+          margin-bottom: 20px;
           border-bottom: 1px solid var(--border);
         }
         .unit-tab {
-          padding: 12px 4px;
+          padding: 10px 4px;
           font-weight: 600;
-          font-size: 15px;
+          font-size: 14px;
           color: var(--text-muted);
           position: relative;
           transition: all 0.2s;
@@ -448,28 +457,44 @@ function UnitDetailContent() {
         .unit-detail__grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 24px;
+          gap: 16px;
         }
         .unit-detail__card {
-          border-radius: 20px;
-          padding: 24px;
+          border-radius: 16px;
+          padding: 16px 20px;
         }
         .card-header {
           display: flex;
           align-items: center;
-          gap: 12px;
-          margin-bottom: 24px;
-          padding-bottom: 16px;
+          gap: 8px;
+          margin-bottom: 14px;
+          padding-bottom: 10px;
           border-bottom: 1px solid var(--border);
         }
         .card-header h3 {
-          font-size: 16px;
+          font-size: 14px;
           font-weight: 700;
+        }
+        .card-body .form-group {
+          margin-bottom: 10px;
+        }
+        .card-body .form-group:last-child {
+          margin-bottom: 0;
+        }
+        .form-label {
+          font-size: 11px;
+          margin-bottom: 4px;
+          display: block;
+        }
+        .form-input {
+          height: 34px;
+          font-size: 13px;
+          padding: 0 10px;
         }
         .form-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 16px;
+          gap: 10px;
         }
         .btn--danger {
           background: var(--error-bg);
@@ -486,48 +511,51 @@ function UnitDetailContent() {
         .skeleton {
           height: 400px;
           background: var(--ivory-dim);
-          border-radius: 20px;
+          border-radius: 16px;
         }
-
-        /* Rent View Styles */
         .rent-stats {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 24px;
-          margin-bottom: 32px;
+          gap: 16px;
+          margin-bottom: 20px;
         }
         .rent-stat-card {
-          padding: 24px;
-          border-radius: 20px;
+          padding: 16px 20px;
+          border-radius: 16px;
           display: flex;
           flex-direction: column;
+          gap: 2px;
         }
         .rent-stat-card__label {
-          font-size: 12px;
+          font-size: 11px;
           color: var(--text-muted);
-          margin-bottom: 8px;
+          margin-bottom: 4px;
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
         .rent-stat-card__value {
-          font-size: 24px;
+          font-size: 20px;
           font-weight: 800;
           color: var(--text);
         }
         .rent-stat-card__meta {
-          font-size: 12px;
+          font-size: 11px;
           color: var(--text-muted);
-          margin-top: 4px;
+          margin-top: 2px;
         }
         .rent-history {
-          border-radius: 20px;
-          padding: 32px;
+          border-radius: 16px;
+          padding: 20px 24px;
         }
         .rent-history__header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 24px;
+          margin-bottom: 16px;
+        }
+        .rent-history__header h3 {
+          font-size: 14px;
+          font-weight: 700;
         }
         .rent-history__table-container {
           overflow-x: auto;
@@ -535,21 +563,24 @@ function UnitDetailContent() {
         .rent-history__table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 14px;
+          font-size: 13px;
         }
         .rent-history__table th {
           text-align: left;
-          padding: 12px;
+          padding: 8px 10px;
           color: var(--text-muted);
+          font-size: 11px;
           font-weight: 600;
           border-bottom: 1px solid var(--border);
         }
         .rent-history__table td {
-          padding: 16px 12px;
+          padding: 12px 10px;
           border-bottom: 1px solid var(--border);
           color: var(--text-secondary);
         }
-        .text-forest { color: var(--forest); }
+        .text-forest { color: var(--forest) !important; }
+        .text-error { color: var(--error) !important; }
+        .text-clay { color: var(--clay) !important; }
         
         .input-with-icon {
           position: relative;
@@ -558,7 +589,7 @@ function UnitDetailContent() {
         }
         .input-icon {
           position: absolute;
-          left: 12px;
+          left: 10px;
           color: var(--text-muted);
         }
 

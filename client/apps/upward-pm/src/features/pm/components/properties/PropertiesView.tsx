@@ -14,6 +14,8 @@ import { AddPropertyModal } from './modals/AddPropertyModal'
 import { EditPropertyModal } from './modals/EditPropertyModal'
 import { DeletePropertyModal } from './modals/DeletePropertyModal'
 import { AddUnitModal } from './modals/AddUnitModal'
+import { CreatePaymentRequestModal } from '../payments/modals/CreatePaymentRequestModal'
+import { usePaymentRequests } from '@/features/pm/hooks/usePayments'
 
 import { Property, getPropertyImageUploadUrl } from '../../services/propertyService'
 
@@ -26,6 +28,8 @@ export function PropertiesView() {
   const [showEditPropertyModal, setShowEditPropertyModal] = useState(false)
   const [showDeletePropertyModal, setShowDeletePropertyModal] = useState(false)
   const [showAddUnitModal, setShowAddUnitModal] = useState(false)
+  const [showPaymentRequestModal, setShowPaymentRequestModal] = useState(false)
+  const [selectedUnitForPayment, setSelectedUnitForPayment] = useState<any>(null)
   const [editingPropertyUuid, setEditingPropertyUuid] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPropertyFilter, setSelectedPropertyFilter] = useState('All Properties')
@@ -62,6 +66,7 @@ export function PropertiesView() {
   
   const { data: properties } = useProperties()
   const { data: units } = useUnits()
+  const { data: paymentRequests } = usePaymentRequests()
   
   const createPropertyMutation = useCreateProperty()
   const updatePropertyMutation = useUpdateProperty()
@@ -141,7 +146,7 @@ export function PropertiesView() {
         rentDueDate: unitForm.rentDueDate,
         rentFrequency: unitForm.rentFrequency,
         tenantUuid: unitForm.tenantUuid,
-        status: 'OCCUPIED'
+        status: (unitForm.tenantEmail?.trim() || unitForm.tenantFirstName?.trim() || unitForm.tenantLastName?.trim() || unitForm.tenantUuid) ? 'OCCUPIED' : 'VACANT'
       }]
     }, {
       onSuccess: () => {
@@ -265,6 +270,11 @@ export function PropertiesView() {
     setActiveTab('units')
   }
 
+  const handleOpenPaymentRequest = (unit: any) => {
+    setSelectedUnitForPayment(unit)
+    setShowPaymentRequestModal(true)
+  }
+
   return (
     <>
       <div className="properties-page animate-fade-in">
@@ -347,7 +357,16 @@ export function PropertiesView() {
           <div className="units-grid">
             {filteredUnits.map((unit) => {
               const propName = properties.find(p => p.uuid === (unit as any).propertyUuid || p.id === unit.propertyId)?.name || 'Unknown Property'
-              return <UnitCard key={unit.uuid} unit={unit} propertyName={propName} />
+              const unitRequests = paymentRequests?.filter(r => r.unitId === unit.id) || []
+              return (
+                <UnitCard 
+                  key={unit.uuid} 
+                  unit={unit} 
+                  propertyName={propName} 
+                  onRequestPayment={handleOpenPaymentRequest}
+                  paymentRequests={unitRequests}
+                />
+              )
             })}
           </div>
         ) : (
@@ -398,6 +417,12 @@ export function PropertiesView() {
         onConfirm={handleConfirmDelete}
         isPending={deletePropertyMutation.isPending}
         propertyName={propForm.name}
+      />
+
+      <CreatePaymentRequestModal 
+        isOpen={showPaymentRequestModal}
+        onClose={() => setShowPaymentRequestModal(false)}
+        unit={selectedUnitForPayment}
       />
     </>
   )

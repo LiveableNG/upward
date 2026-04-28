@@ -9,6 +9,8 @@ import { PROPERTY_REPOSITORY, PropertyRepository } from '../../../domains/compan
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { COMPANY_REPOSITORY, CompanyRepository, MANAGER_REPOSITORY, ManagerRepository } from '../../../domains/companies/company.repository'
 import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../domains/payments/payment.repository'
+import { VERIFICATION_TOKEN_REPOSITORY, VerificationTokenRepository } from '../../../domains/auth/verification-token.repository'
+import { randomUUID } from 'node:crypto'
 
 @Injectable()
 export class GetPublicPaymentDetailsUseCase {
@@ -20,6 +22,7 @@ export class GetPublicPaymentDetailsUseCase {
     @Inject(COMPANY_REPOSITORY) private readonly companyRepository: CompanyRepository,
     @Inject(MANAGER_REPOSITORY) private readonly managerRepository: ManagerRepository,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: IPaymentGateway,
+    @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
   ) {}
 
   async execute(uuid: string): Promise<any> {
@@ -78,6 +81,22 @@ export class GetPublicPaymentDetailsUseCase {
       }
     }
 
+    let inviteToken = null
+    if (user.passwordHash === 'INVITED') {
+      const validToken = await this.tokenRepository.findByIdentifier(user.uuid, 'INVITE')
+      if (validToken && validToken.expiresAt > new Date()) {
+        inviteToken = validToken.token
+      } else {
+        inviteToken = randomUUID()
+        await this.tokenRepository.create({
+          token: inviteToken,
+          context: 'INVITE',
+          identifier: user.uuid,
+          expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000), // 72 hours
+        })
+      }
+    }
+
     return {
       payment: {
         uuid: paymentRequest.uuid,
@@ -117,6 +136,7 @@ export class GetPublicPaymentDetailsUseCase {
         lastName: manager.lastName,
       } : null,
       hasPassword: user.passwordHash !== 'INVITED',
+      inviteToken: inviteToken,
     }
   }
 }
