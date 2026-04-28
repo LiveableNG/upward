@@ -15,7 +15,9 @@ import { GetPropertyImageUploadUrlUseCase } from '../../../application/pm/use-ca
 import { SyncUnitToUpwardUseCase } from '../../../application/pm/use-cases/units/sync-unit.use-case';
 import { CreatePmPaymentRequestUseCase, CreatePmPaymentRequestDto } from '../../../application/pm/use-cases/payments/create-pm-payment-request.use-case';
 import { GetPmPaymentRequestsUseCase } from '../../../application/pm/use-cases/payments/get-pm-payment-requests.use-case';
-import { CreatePropertyDto, UpdatePropertyDto, BulkCreateUnitsDto } from '../../../application/pm/dtos/property.dto';
+import { BulkFullImportUseCase } from '../../../application/pm/use-cases/bulk-full-import.use-case';
+import { BulkInviteTenantsUseCase } from '../../../application/pm/use-cases/tenants/bulk-invite-tenants.use-case';
+import { CreatePropertyDto, UpdatePropertyDto, BulkCreateUnitsDto, BulkFullImportDto } from '../../../application/pm/dtos/property.dto';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 import { Inject, UnauthorizedException, Delete } from '@nestjs/common';
 
@@ -38,6 +40,8 @@ export class PmPropertyController {
     private readonly syncUnitToUpwardUseCase: SyncUnitToUpwardUseCase,
     private readonly createPmPaymentRequestUseCase: CreatePmPaymentRequestUseCase,
     private readonly getPmPaymentRequestsUseCase: GetPmPaymentRequestsUseCase,
+    private readonly bulkFullImportUseCase: BulkFullImportUseCase,
+    private readonly bulkInviteTenantsUseCase: BulkInviteTenantsUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -77,6 +81,12 @@ export class PmPropertyController {
   async bulkCreateUnits(@Req() req: any, @Body() dto: BulkCreateUnitsDto) {
     const pmId = await this.getPmId(req);
     return this.bulkCreateUnitsUseCase.execute(pmId, dto);
+  }
+
+  @Post('import/bulk')
+  async bulkFullImport(@Req() req: any, @Body() dto: BulkFullImportDto) {
+    const pmId = await this.getPmId(req);
+    return this.bulkFullImportUseCase.execute(pmId, dto);
   }
 
   @Get('units')

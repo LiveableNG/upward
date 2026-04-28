@@ -1,17 +1,19 @@
-'use client'
-
 import React from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useUpdateProfile } from '@/features/pm/hooks/usePmSettings'
+import { PhoneInput } from '@/components/common/PhoneInput'
+import { isValidPhoneNumber } from 'libphonenumber-js'
 
 const profileSchema = z.object({
   firstName: z.string().min(2, 'First name is too short'),
   lastName: z.string().min(2, 'Last name is too short'),
   businessName: z.string().optional(),
-  phone: z.string().regex(/^\+234\d{10}$/, 'Phone number must be in format +2348000000000'),
+  phone: z.string().refine((val) => !val || isValidPhoneNumber(val), {
+    message: 'Invalid international phone number (e.g. +234...)'
+  }),
 })
 
 type ProfileFormData = z.infer<typeof profileSchema>
@@ -20,7 +22,7 @@ export function ProfileForm() {
   const { user } = useAuth()
   const { mutate: updateProfile, isPending } = useUpdateProfile()
 
-  const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm<ProfileFormData>({
+  const { register, handleSubmit, reset, control, formState: { errors, isDirty } } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       firstName: user?.firstName || '',
@@ -54,7 +56,7 @@ export function ProfileForm() {
             <label className="settings__label">First Name</label>
             <input 
               {...register('firstName')}
-              className="settings__input"
+              className={`settings__input ${errors.firstName ? 'settings__input--error' : ''}`}
               placeholder="Enter first name"
             />
             {errors.firstName && <span className="text-error text-xs">{errors.firstName.message}</span>}
@@ -63,7 +65,7 @@ export function ProfileForm() {
             <label className="settings__label">Last Name</label>
             <input 
               {...register('lastName')}
-              className="settings__input"
+              className={`settings__input ${errors.lastName ? 'settings__input--error' : ''}`}
               placeholder="Enter last name"
             />
             {errors.lastName && <span className="text-error text-xs">{errors.lastName.message}</span>}
@@ -80,13 +82,19 @@ export function ProfileForm() {
             />
           </div>
           <div className="settings__field">
-            <label className="settings__label">Phone Number</label>
-            <input 
-              {...register('phone')}
-              className="settings__input"
-              placeholder="Enter phone number"
+            <Controller
+              name="phone"
+              control={control}
+              render={({ field }) => (
+                <PhoneInput
+                  {...field}
+                  label="Phone Number"
+                  placeholder="e.g. +234 800 000 0000"
+                  error={errors.phone?.message}
+                  className="settings__input"
+                />
+              )}
             />
-            {errors.phone && <span className="text-error text-xs">{errors.phone.message}</span>}
           </div>
         </div>
 
@@ -101,3 +109,4 @@ export function ProfileForm() {
     </section>
   )
 }
+

@@ -5,10 +5,12 @@ import { useTenantActions } from '../../hooks/useTenants'
 import Link from 'next/link'
 
 interface TenantCardProps {
-  tenant: Tenant
+  tenant: Tenant;
+  isSelected?: boolean;
+  onSelect?: (uuid: string, selected: boolean) => void;
 }
 
-export const TenantCard: React.FC<TenantCardProps> = ({ tenant }) => {
+export const TenantCard: React.FC<TenantCardProps> = ({ tenant, isSelected, onSelect }) => {
   const { inviteTenant } = useTenantActions()
 
   const getInitials = (firstName: string | null, lastName: string | null) => {
@@ -25,9 +27,19 @@ export const TenantCard: React.FC<TenantCardProps> = ({ tenant }) => {
   const isOnUpward = tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED'
 
   return (
-    <div className="tenant-group-card">
+    <div className={`tenant-group-card ${isSelected ? 'tenant-group-card--selected' : ''}`}>
       <div className="tenant-group-card__header">
         <div className="tenant-info-main">
+          {onSelect && (
+            <div className="tenant-card__checkbox">
+              <input 
+                type="checkbox" 
+                checked={isSelected} 
+                onChange={(e) => onSelect(tenant.uuid, e.target.checked)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
           <div className="tenant-avatar-large">
             {getInitials(tenant.firstName, tenant.lastName)}
           </div>

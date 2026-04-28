@@ -1,19 +1,22 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Plus, Download, Search, FileSpreadsheet, X, ArrowLeft } from 'lucide-react'
+import React, { useState, useMemo } from 'react'
+import { Plus, Download, Search, FileSpreadsheet, X, ArrowLeft, Filter, Calendar, CreditCard as CreditCardIcon } from 'lucide-react'
+import { format, isBefore, addDays, startOfDay } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/common/Toast'
 import { cn } from '@/lib/utils'
 import Papa from 'papaparse'
 
 import { useProperties, useUnits, useCreateProperty, useUpdateProperty, useBulkCreateUnits, useDeleteProperty } from '@/features/pm/hooks/useProperties'
+import { isValidPhoneNumber } from 'libphonenumber-js'
 import { PropertyCard } from './PropertyCard'
 import { UnitCard } from './UnitCard'
 import { AddPropertyModal } from './modals/AddPropertyModal'
 import { EditPropertyModal } from './modals/EditPropertyModal'
 import { DeletePropertyModal } from './modals/DeletePropertyModal'
 import { AddUnitModal } from './modals/AddUnitModal'
+import { ImportModeModal } from './modals/ImportModeModal'
 import { CreatePaymentRequestModal } from '../payments/modals/CreatePaymentRequestModal'
 import { usePaymentRequests } from '@/features/pm/hooks/usePayments'
 
@@ -28,6 +31,7 @@ export function PropertiesView() {
   const [showEditPropertyModal, setShowEditPropertyModal] = useState(false)
   const [showDeletePropertyModal, setShowDeletePropertyModal] = useState(false)
   const [showAddUnitModal, setShowAddUnitModal] = useState(false)
+  const [showImportModeModal, setShowImportModeModal] = useState(false)
   const [showPaymentRequestModal, setShowPaymentRequestModal] = useState(false)
   const [selectedUnitForPayment, setSelectedUnitForPayment] = useState<any>(null)
   const [editingPropertyUuid, setEditingPropertyUuid] = useState('')
@@ -35,6 +39,8 @@ export function PropertiesView() {
   const [selectedPropertyFilter, setSelectedPropertyFilter] = useState('All Properties')
   const [targetPropertyUuid, setTargetPropertyUuid] = useState('')
   const [previewUnits, setPreviewUnits] = useState<any[]>([])
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'pending'>('all')
+  const [dueFilter, setDueFilter] = useState<'all' | 'passed' | '30days' | '60days' | '90days'>('all')
   
   // Form States
   const [propForm, setPropForm] = useState({
@@ -46,7 +52,10 @@ export function PropertiesView() {
     imageUrl: '',
     country: 'Nigeria',
     state: '',
-    area: ''
+    area: '',
+    landlordName: '',
+    landlordEmail: '',
+    landlordPhone: ''
   })
 
   const [unitForm, setUnitForm] = useState({
@@ -58,7 +67,9 @@ export function PropertiesView() {
     rentAmount: '',
     rentStartDate: '',
     rentDueDate: '',
-    rentFrequency: 'Monthly',
+    rentType: 'Monthly',
+    managementFee: '',
+    notes: '',
     tenantUuid: ''
   })
 
@@ -85,52 +96,60 @@ export function PropertiesView() {
   }
 
   // Filters
-  const filteredUnits = units.filter(unit => {
-    const prop = properties.find(p => p.uuid === (unit as any).propertyUuid || p.id === unit.propertyId)
-    const matchesSearch = 
-      unit.unitName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      unit.tenant?.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      unit.tenant?.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      prop?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredUnits = useMemo(() => {
+    return units.filter(unit => {
+      const prop = properties.find(p => p.uuid === (unit as any).propertyUuid || p.id === unit.propertyId)
+      
+      // Search Filter
+      const matchesSearch = 
+        unit.unitName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        unit.tenant?.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        unit.tenant?.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        prop?.name?.toLowerCase().includes(searchQuery.toLowerCase())
 
-    const matchesProp = selectedPropertyFilter === 'All Properties' || prop?.name === selectedPropertyFilter
-    return matchesSearch && matchesProp
-  })
+      // Property Filter
+      const matchesProp = selectedPropertyFilter === 'All Properties' || prop?.name === selectedPropertyFilter
+
+      // Payment Request Filter
+      const unitRequests = paymentRequests?.filter(r => r.unitId === unit.id) || []
+      const hasPendingRequest = unitRequests.some(r => r.status !== 'PAID')
+      const matchesPayment = paymentFilter === 'all' || (paymentFilter === 'pending' && hasPendingRequest)
+
+      // Due Date Filter
+      let matchesDue = true
+      if (dueFilter !== 'all' && unit.rentDueDate) {
+        const dueDate = new Date(unit.rentDueDate)
+        const today = startOfDay(new Date())
+        
+        if (dueFilter === 'passed') {
+          matchesDue = isBefore(dueDate, today)
+        } else if (dueFilter === '30days') {
+          matchesDue = isBefore(dueDate, addDays(today, 30)) && !isBefore(dueDate, today)
+        } else if (dueFilter === '60days') {
+          matchesDue = isBefore(dueDate, addDays(today, 60)) && !isBefore(dueDate, today)
+        } else if (dueFilter === '90days') {
+          matchesDue = isBefore(dueDate, addDays(today, 90)) && !isBefore(dueDate, today)
+        }
+      } else if (dueFilter !== 'all' && !unit.rentDueDate) {
+        matchesDue = false
+      }
+
+      return matchesSearch && matchesProp && matchesPayment && matchesDue
+    })
+  }, [units, properties, paymentRequests, searchQuery, selectedPropertyFilter, paymentFilter, dueFilter])
 
   const filteredProperties = properties.filter(prop => 
     prop.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     prop.address?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  // Handlers
-  const handleDownloadTemplate = () => {
-    const headers = ["Unit Name", "TenantFirstName", "TenantLastName", "TenantEmail", "TenantPhone", "Rent Amount", "RentStartDate", "RentDueDate", "RentFrequency"]
-    const rows = [
-      ["101", "John", "Doe", "john@example.com", "+2348012345678", "2000000", "2024-01-01", "2024-05-01", "Monthly"],
-      ["102", "Jane", "Smith", "jane@example.com", "+2348012345679", "1500000", "2024-02-01", "2024-06-01", "Monthly"],
-      ["201", "Alice", "Johnson", "alice@example.com", "+2348012345680", "3000000", "2024-03-01", "2024-07-01", "Annually"],
-      ["202", "Bob", "Brown", "bob@example.com", "+2348012345681", "2500000", "2024-04-01", "2024-08-01", "Bi-Annually"]
-    ]
-    
-    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n")
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.setAttribute("href", url)
-    link.setAttribute("download", "upward_units_template.csv")
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    success('Template downloaded!')
-  }
-
 
   const handleManualCreateUnit = () => {
     if (!targetPropertyUuid) return error("Please select a property")
     if (!unitForm.unitName) return error("Unit Name is required")
     
-    if (unitForm.tenantPhone && !/^\+234\d{10}$/.test(unitForm.tenantPhone)) {
-      return error("Tenant phone must be in format +2348000000000")
+    if (unitForm.tenantPhone && !isValidPhoneNumber(unitForm.tenantPhone)) {
+      return error("Please enter a valid international phone number")
     }
     
     bulkCreateUnitsMutation.mutate({
@@ -144,7 +163,9 @@ export function PropertiesView() {
         rentAmount: parseFloat(unitForm.rentAmount) || 0,
         rentStartDate: unitForm.rentStartDate,
         rentDueDate: unitForm.rentDueDate,
-        rentFrequency: unitForm.rentFrequency,
+        rentType: unitForm.rentType,
+        managementFee: parseFloat(unitForm.managementFee) || 0,
+        notes: unitForm.notes,
         tenantUuid: unitForm.tenantUuid,
         status: (unitForm.tenantEmail?.trim() || unitForm.tenantFirstName?.trim() || unitForm.tenantLastName?.trim() || unitForm.tenantUuid) ? 'OCCUPIED' : 'VACANT'
       }]
@@ -155,7 +176,8 @@ export function PropertiesView() {
         setUnitForm({ 
           unitName: '', tenantFirstName: '', tenantLastName: '', 
           tenantEmail: '', tenantPhone: '', rentAmount: '',
-          rentStartDate: '', rentDueDate: '', rentFrequency: 'Monthly',
+          rentStartDate: '', rentDueDate: '', rentType: 'Monthly',
+          managementFee: '', notes: '',
           tenantUuid: ''
         })
         setTargetPropertyUuid('')
@@ -191,7 +213,10 @@ export function PropertiesView() {
         imageUrl: finalImageUrl || undefined,
         country: propForm.country,
         state: propForm.state,
-        area: propForm.area
+        area: propForm.area,
+        landlordName: propForm.landlordName,
+        landlordEmail: propForm.landlordEmail,
+        landlordPhone: propForm.landlordPhone
       }, {
         onSuccess: () => {
           success('Property created successfully!')
@@ -215,7 +240,10 @@ export function PropertiesView() {
       imageUrl: prop.imageUrl || '',
       country: prop.country || 'Nigeria',
       state: prop.state || '',
-      area: prop.area || ''
+      area: prop.area || '',
+      landlordName: prop.landlordName || '',
+      landlordEmail: prop.landlordEmail || '',
+      landlordPhone: prop.landlordPhone || ''
     })
     setShowEditPropertyModal(true)
   }
@@ -246,7 +274,10 @@ export function PropertiesView() {
           imageUrl: finalImageUrl,
           country: propForm.country,
           state: propForm.state,
-          area: propForm.area
+          area: propForm.area,
+          landlordName: propForm.landlordName,
+          landlordEmail: propForm.landlordEmail,
+          landlordPhone: propForm.landlordPhone
         }
       }, {
         onSuccess: () => {
@@ -261,7 +292,11 @@ export function PropertiesView() {
   }
 
   const resetPropForm = () => {
-    setPropForm({ name: '', address: '', totalUnits: '', propertyType: 'Residential', imageFile: null, imageUrl: '', country: 'Nigeria', state: '', area: '' })
+    setPropForm({ 
+      name: '', address: '', totalUnits: '', propertyType: 'Residential', 
+      imageFile: null, imageUrl: '', country: 'Nigeria', state: '', area: '',
+      landlordName: '', landlordEmail: '', landlordPhone: '' 
+    })
     setEditingPropertyUuid('')
   }
 
@@ -290,10 +325,6 @@ export function PropertiesView() {
           <div className="properties-header__actions">
             {activeTab === 'units' ? (
               <>
-                <button className="btn btn--secondary" onClick={handleDownloadTemplate}>
-                  <Download size={18} />
-                  Template
-                </button>
                 <button 
                   className="btn btn--secondary" 
                   onClick={() => properties.length > 0 ? setShowAddUnitModal(true) : error("Please add a property first")}
@@ -304,8 +335,7 @@ export function PropertiesView() {
                 </button>
                 <button 
                   className="btn btn--primary" 
-                  onClick={() => properties.length > 0 ? router.push('/properties/import') : error("Please add a property first")}
-                  disabled={properties.length === 0}
+                  onClick={() => setShowImportModeModal(true)}
                 >
                   <FileSpreadsheet size={18} />
                   Bulk Import
@@ -346,10 +376,31 @@ export function PropertiesView() {
             />
           </div>
           {activeTab === 'units' && (
-            <select className="filter-select" value={selectedPropertyFilter} onChange={e => setSelectedPropertyFilter(e.target.value)}>
-              <option>All Properties</option>
-              {properties.map(p => <option key={p.uuid}>{p.name}</option>)}
-            </select>
+            <>
+              <select className="filter-select" value={selectedPropertyFilter} onChange={e => setSelectedPropertyFilter(e.target.value)}>
+                <option>All Properties</option>
+                {properties.map(p => <option key={p.uuid}>{p.name}</option>)}
+              </select>
+
+              <div className="filter-group">
+                <CreditCardIcon size={14} className="filter-group__icon" />
+                <select className="filter-select-minimal" value={paymentFilter} onChange={e => setPaymentFilter(e.target.value as any)}>
+                  <option value="all">All Payments</option>
+                  <option value="pending">Pending Requests</option>
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <Calendar size={14} className="filter-group__icon" />
+                <select className="filter-select-minimal" value={dueFilter} onChange={e => setDueFilter(e.target.value as any)}>
+                  <option value="all">Any Due Date</option>
+                  <option value="passed">Overdue</option>
+                  <option value="30days">Due in 30 days</option>
+                  <option value="60days">Due in 60 days</option>
+                  <option value="90days">Due in 90 days</option>
+                </select>
+              </div>
+            </>
           )}
         </div>
 
@@ -423,6 +474,12 @@ export function PropertiesView() {
         isOpen={showPaymentRequestModal}
         onClose={() => setShowPaymentRequestModal(false)}
         unit={selectedUnitForPayment}
+      />
+
+      <ImportModeModal 
+        isOpen={showImportModeModal}
+        onClose={() => setShowImportModeModal(false)}
+        hasProperties={properties.length > 0}
       />
     </>
   )

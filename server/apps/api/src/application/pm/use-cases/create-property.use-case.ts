@@ -22,6 +22,9 @@ export class CreatePropertyUseCase {
       country: dto.country || 'Nigeria',
       state: dto.state || null,
       area: dto.area || null,
+      landlordName: dto.landlordName || null,
+      landlordEmail: dto.landlordEmail || null,
+      landlordPhone: dto.landlordPhone || null,
     });
 
     if (property.imageUrl) {

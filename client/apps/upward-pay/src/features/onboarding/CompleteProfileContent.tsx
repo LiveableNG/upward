@@ -2,14 +2,13 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   User,
   Mail,
-  Phone,
   Lock,
   ChevronRight,
   ArrowLeft,
@@ -26,12 +25,16 @@ import {
 import { completeProfile, updateProfile } from '@/features/auth/services/authService'
 import { useAuth } from '@/features/auth/AuthContext'
 import PoweredByUpward from '@/components/PoweredByUpward'
+import { PhoneInput } from '@/components/common/PhoneInput'
+import { isValidPhoneNumber } from 'libphonenumber-js'
 
 const profileSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   fullName: z.string().min(2, 'Full name is required'),
-  phone: z.string().regex(/^\+234\d{10}$/, 'Phone number must be in format +2348000000000'),
+  phone: z.string().refine((val) => !val || isValidPhoneNumber(val), {
+    message: 'Invalid international phone number (e.g. +234...)'
+  }),
   address: z.string().optional(),
   rentEndDate: z.string().optional(),
 })
@@ -64,6 +67,7 @@ export default function CompleteProfileContent({
     handleSubmit,
     trigger,
     getValues,
+    control,
     formState: { errors },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -256,19 +260,18 @@ export default function CompleteProfileContent({
               </div>
 
               <div className="auth-form__field">
-                <label>Phone Number</label>
-                <div className="input-with-icon">
-                  <Phone size={18} />
-                  <input {...register('phone')} type="tel" placeholder="+234 800 000 0000" />
-                </div>
-                {errors.phone && (
-                  <span
-                    className="auth-form__error"
-                    style={{ background: 'none', border: 'none', padding: '0', marginTop: '4px' }}
-                  >
-                    {errors.phone.message}
-                  </span>
-                )}
+                <Controller
+                  name="phone"
+                  control={control}
+                  render={({ field }) => (
+                    <PhoneInput
+                      {...field}
+                      label="Phone Number"
+                      placeholder="e.g. +234 800 000 0000"
+                      error={errors.phone?.message}
+                    />
+                  )}
+                />
               </div>
 
               <button className="btn btn--primary btn--full btn--pay" onClick={onNextStep}>
@@ -379,3 +382,4 @@ export default function CompleteProfileContent({
     </div>
   )
 }
+

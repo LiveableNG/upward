@@ -9,7 +9,7 @@ class SimpleEncryptionService {
   private readonly ivLength: number
 
   constructor() {
-    const hexKey = process.env.ENCRYPTION_KEY || 'd7f3e2a1b0c9d8e7f6a5b4c3d2e1f0a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8'
+    const hexKey = process.env.ENCRYPTION_KEY || '1107dfc18c646779472c1676315cca08daaa14f375c0f1696ef26f7f89bba815'
     this.key = Buffer.from(hexKey, 'hex')
     this.ivLength = parseInt(process.env.ENCRYPTION_IV_LENGTH || '16', 10)
   }

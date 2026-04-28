@@ -4,6 +4,7 @@ import { IPaymentRequestRepository, IPaymentLineItemRepository, PAYMENT_LINE_ITE
 import { PropertyRepository } from '@domains/companies/property.repository'
 import { UserRepository } from '@domains/users/user.repository'
 import { CompanyRepository, ManagerRepository } from '@domains/companies/company.repository'
+import { VerificationTokenRepository } from '@domains/auth/verification-token.repository'
 
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -87,6 +88,7 @@ describe('GetPublicPaymentDetailsUseCase', () => {
   let managerRepository: jest.Mocked<ManagerRepository>
   let lineItemRepository: jest.Mocked<IPaymentLineItemRepository>
   let gateway: jest.Mocked<IPaymentGateway>
+  let verificationTokenRepository: jest.Mocked<VerificationTokenRepository>
 
   beforeEach(() => {
     paymentRequestRepository = {
@@ -130,6 +132,11 @@ describe('GetPublicPaymentDetailsUseCase', () => {
       verifyAccountNumber: jest.fn().mockResolvedValue({ accountName: 'Test Recipient' }),
     } as any
 
+    verificationTokenRepository = {
+      findByIdentifier: jest.fn(),
+      create: jest.fn(),
+    } as any
+
     useCase = new GetPublicPaymentDetailsUseCase(
       paymentRequestRepository,
       lineItemRepository,
@@ -138,6 +145,7 @@ describe('GetPublicPaymentDetailsUseCase', () => {
       companyRepository,
       managerRepository,
       gateway,
+      verificationTokenRepository,
     )
   })
 

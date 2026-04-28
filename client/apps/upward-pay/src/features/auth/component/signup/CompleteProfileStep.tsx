@@ -21,6 +21,7 @@ import { UpwardLogo } from '@/components/PoweredByUpward'
 import { completeProfile } from '@/features/auth/services/authService'
 import { useAuth } from '@/features/auth/AuthContext'
 import { setAccessToken } from '@/lib/auth-token'
+import { setCookie } from '@/lib/cookie-utils'
 import DateInput from '@/components/common/DateInput'
 
 export function CompleteProfileStep() {
@@ -94,6 +95,7 @@ export function CompleteProfileStep() {
 
       if (response.accessToken) {
         setAccessToken(response.accessToken)
+        setCookie('pay_access_token', response.accessToken)
       }
       
       updateAuthUser(response.user)

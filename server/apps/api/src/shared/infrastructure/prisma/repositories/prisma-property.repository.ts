@@ -31,7 +31,7 @@ export class PrismaPropertyRepository implements PropertyRepository {
         company: true,
         manager: true,
         location: true,
-        pmManager: true,
+        pm: true,
         pmUnit: {
           include: { property: true }
         }
@@ -46,11 +46,11 @@ export class PrismaPropertyRepository implements PropertyRepository {
     if (result.manager) {
       result.manager.firstName = this.encryption.decrypt(result.manager.firstName)
       result.manager.lastName = this.encryption.decrypt(result.manager.lastName)
-    } else if (result.pmManager) {
+    } else if (result.pm) {
       // Fallback to PM Manager for Upward Pay UI consistency
       result.manager = {
-        firstName: this.encryption.decrypt(result.pmManager.firstName),
-        lastName: this.encryption.decrypt(result.pmManager.lastName)
+        firstName: this.encryption.decrypt(result.pm.firstName),
+        lastName: this.encryption.decrypt(result.pm.lastName)
       }
     }
 
@@ -62,7 +62,7 @@ export class PrismaPropertyRepository implements PropertyRepository {
       where: { userId },
       include: { 
         location: true,
-        pmManager: true,
+        pm: true,
         pmUnit: {
           include: { property: true }
         }
@@ -70,10 +70,10 @@ export class PrismaPropertyRepository implements PropertyRepository {
     })
     return records.map(record => {
       const result = { ...record } as any
-      if (result.pmManager && !result.manager) {
+      if (result.pm && !result.manager) {
         result.manager = {
-          firstName: this.encryption.decrypt(result.pmManager.firstName),
-          lastName: this.encryption.decrypt(result.pmManager.lastName)
+          firstName: this.encryption.decrypt(result.pm.firstName),
+          lastName: this.encryption.decrypt(result.pm.lastName)
         }
       }
       return result
@@ -94,7 +94,7 @@ export class PrismaPropertyRepository implements PropertyRepository {
       rentEndDate: property.rentEndDate,
       isVerified: property.isVerified,
       isPastTenancy: property.isPastTenancy,
-      pmManagerId: property.pmManagerId,
+      pmId: property.pmId,
       pmUnitId: property.pmUnitId,
     }
     const record = property.id

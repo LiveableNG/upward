@@ -10,6 +10,26 @@ export class PrismaPmUnitRepository implements IUnitRepository {
     private readonly encryption: EncryptionService,
   ) {}
 
+  async create(data: Omit<UnitEntity, 'id' | 'uuid'>): Promise<UnitEntity> {
+    const unit = await this.prisma.upward_pm_unit.create({
+      data: {
+        propertyId: data.propertyId,
+        unitName: data.unitName,
+        rentAmount: data.rentAmount,
+        rentStartDate: data.rentStartDate,
+        rentDueDate: data.rentDueDate,
+        rentType: data.rentType,
+        managementFee: data.managementFee,
+        notes: data.notes,
+        currency: data.currency,
+        status: data.status,
+        tenantId: data.tenantId,
+      },
+      include: { property: true, tenant: true },
+    });
+    return this.mapUnit(unit);
+  }
+
   async createMany(data: Omit<UnitEntity, 'id' | 'uuid'>[]): Promise<{ count: number }> {
     return this.prisma.upward_pm_unit.createMany({
       data: data.map(unit => ({
@@ -18,7 +38,9 @@ export class PrismaPmUnitRepository implements IUnitRepository {
         rentAmount: unit.rentAmount,
         rentStartDate: unit.rentStartDate,
         rentDueDate: unit.rentDueDate,
-        rentFrequency: unit.rentFrequency,
+        rentType: unit.rentType,
+        managementFee: unit.managementFee,
+        notes: unit.notes,
         currency: unit.currency,
         status: unit.status,
         tenantId: unit.tenantId,
@@ -77,7 +99,7 @@ export class PrismaPmUnitRepository implements IUnitRepository {
   async update(uuid: string, data: any): Promise<UnitEntity> {
     const allowedFields = [
       'unitName', 'rentAmount', 'rentStartDate', 'rentDueDate', 
-      'rentFrequency', 'currency', 'status', 'tenantId',
+      'rentType', 'managementFee', 'notes', 'currency', 'status', 'tenantId',
       'isSynced', 'userPropertyUuid'
     ];
     

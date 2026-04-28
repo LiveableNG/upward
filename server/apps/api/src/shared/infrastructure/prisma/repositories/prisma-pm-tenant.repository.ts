@@ -42,7 +42,7 @@ export class PrismaPmTenantRepository implements ITenantRepository {
         rentAmount: u.rentAmount,
         rentStartDate: u.rentStartDate,
         rentDueDate: u.rentDueDate,
-        rentFrequency: u.rentFrequency,
+        rentType: u.rentType,
         currency: u.currency,
         status: u.status,
         isSynced: u.isSynced,

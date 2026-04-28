@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation'
 import { login as authLogin, loginWithOTP as authOTPLogin } from '../services/authService'
 import { useAuth } from '../AuthContext'
 import { setAccessToken } from '@/lib/auth-token'
+import { setCookie } from '@/lib/cookie-utils'
 import { BiometricsService } from '../services/biometricsService'
 
 export function useLogin(redirect: string) {
@@ -15,6 +16,7 @@ export function useLogin(redirect: string) {
     onSuccess: async (result, variables) => {
       if (result.accessToken) {
         setAccessToken(result.accessToken)
+        setCookie('pay_access_token', result.accessToken)
       }
       
       // Save credentials for biometrics if enabled
@@ -33,6 +35,7 @@ export function useLogin(redirect: string) {
     onSuccess: async (result) => {
       if (result.accessToken) {
         setAccessToken(result.accessToken)
+        setCookie('pay_access_token', result.accessToken)
       }
       
       setAuthUser(result.user)

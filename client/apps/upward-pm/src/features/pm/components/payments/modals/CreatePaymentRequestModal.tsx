@@ -27,8 +27,14 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit }: CreatePayme
 
   useEffect(() => {
     if (unit) {
-      setAmount(unit.rentAmount.toString())
-      setLineItems([{ name: 'Rent', amount: unit.rentAmount.toString() }])
+      const items = [{ name: 'Rent', amount: unit.rentAmount.toString() }]
+      if (unit.managementFee && unit.managementFee > 0) {
+        items.push({ name: 'Management Fee', amount: unit.managementFee.toString() })
+      }
+      
+      setLineItems(items)
+      const total = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
+      setAmount(total.toString())
       
       const date = new Date()
       date.setDate(date.getDate() + 7)
@@ -121,8 +127,8 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit }: CreatePayme
                   value={item.name}
                   onChange={(e) => handleLineItemChange(index, 'name', e.target.value)}
                   className="form-input"
-                  style={{ flex: 2, background: item.name === 'Rent' ? 'var(--ivory-dim)' : undefined }}
-                  readOnly={item.name === 'Rent'}
+                  style={{ flex: 2, background: (item.name === 'Rent' || item.name === 'Management Fee') ? 'var(--ivory-dim)' : undefined }}
+                  readOnly={item.name === 'Rent' || item.name === 'Management Fee'}
                 />
                 <input 
                   type="number" 
@@ -130,8 +136,8 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit }: CreatePayme
                   value={item.amount}
                   onChange={(e) => handleLineItemChange(index, 'amount', e.target.value)}
                   className="form-input"
-                  style={{ flex: 1, background: item.name === 'Rent' ? 'var(--ivory-dim)' : undefined }}
-                  readOnly={item.name === 'Rent'}
+                  style={{ flex: 1, background: (item.name === 'Rent' || item.name === 'Management Fee') ? 'var(--ivory-dim)' : undefined }}
+                  readOnly={item.name === 'Rent' || item.name === 'Management Fee'}
                 />
                 {lineItems.length > 1 && (
                   <button onClick={() => handleRemoveLineItem(index)} style={{ color: 'var(--error)' }}>

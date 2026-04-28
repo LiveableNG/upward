@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useProperties } from '@/features/pm/hooks/useProperties'
+import { useCredibilityRequests } from '@/features/pm/hooks/useCredibilityRequests'
 
 interface CarouselItem {
   id: string
@@ -52,24 +53,32 @@ const items: CarouselItem[] = [
     link: '/properties',
     color: 'info',
     actionLabel: 'Add Property'
-  },
-  {
-    id: 'rent-request',
-    title: 'Rent Payment Request',
-    description: 'A tenant from Lekki Heights has requested a payment record for 2023.',
-    icon: CreditCard,
-    link: '/payments',
-    color: 'warning',
-    actionLabel: 'Review Request'
   }
 ]
 
 export function ActivityCarousel() {
   const { user } = useAuth()
   const { data: properties = [] } = useProperties()
+  const { data: credibilityRequests = [] } = useCredibilityRequests()
+  
   const [index, setIndex] = useState(0)
   
-  const carouselItems = items.filter(item => {
+  // Create dynamic items based on fetched data
+  let dynamicItems = [...items]
+  
+  if (credibilityRequests.length > 0) {
+    dynamicItems.push({
+      id: 'credibility-requests',
+      title: 'Past Tenancy Requests',
+      description: `You have ${credibilityRequests.length} pending request${credibilityRequests.length > 1 ? 's' : ''} for past payment records from tenants.`,
+      icon: CreditCard,
+      link: '/requests',
+      color: 'warning',
+      actionLabel: 'Review Requests'
+    })
+  }
+
+  const carouselItems = dynamicItems.filter(item => {
     if (item.id === 'payment-info') return !user?.bankCode
     if (item.id === 'complete-profile') return !user?.profilePic
     if (item.id === 'add-property') return properties.length === 0

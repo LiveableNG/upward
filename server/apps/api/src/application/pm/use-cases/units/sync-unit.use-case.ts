@@ -145,7 +145,7 @@ export class SyncUnitToUpwardUseCase {
             isVerified: true,
             amountPaid: 0,
             amountRemaining: unit.rentAmount,
-            pmManagerId: pmId,
+            pmId,
             pmUnitId: unit.id,
           }
         });

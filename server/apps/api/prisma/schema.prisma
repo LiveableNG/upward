@@ -8,31 +8,30 @@ datasource db {
 }
 
 model upward_waitlist {
-  id                       String    @id @default(uuid())
-  email                    String    @unique
+  id                       String              @id @default(uuid())
+  email                    String              @unique
   firstName                String?
   lastName                 String?
   phone                    String?
   role                     String?
   benefits                 String[]
-  acceptTerms              Boolean   @default(false)
-  wantsAmbassador          Boolean   @default(false)
+  acceptTerms              Boolean             @default(false)
+  wantsAmbassador          Boolean             @default(false)
   country                  String?
   city                     String?
   selectedSession          String?
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
-  campaignWeekSent         Int       @default(0) // How many Tuesday drip emails have been sent to this user. 0 = never sent. Next send = this+1.
-  confirmationSent         Boolean   @default(false)
-  confirmationEmailStatus  String? // PENDING, SENT, FAILED
-  confirmationEmailError   String?
-  confirmationEmailRetries Int       @default(0)
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+  confirmationSent         Boolean             @default(false)
   abVariant                String?
-  unsubscribed             Boolean   @default(false)
+  confirmationEmailError   String?
+  confirmationEmailRetries Int                 @default(0)
+  confirmationEmailStatus  String?
+  campaignWeekSent         Int                 @default(0)
+  unsubscribed             Boolean             @default(false)
   unsubscribedAt           DateTime?
-
-  attendances upward_attendance[]
-  emailLogs   upward_email_log[]
+  attendances              upward_attendance[]
+  emailLogs                upward_email_log[]
 
   @@index([email])
   @@index([createdAt])
@@ -40,52 +39,49 @@ model upward_waitlist {
 }
 
 model upward_session {
-  id             String   @id @default(uuid())
+  id             String              @id @default(uuid())
   name           String
   googleMeetLink String
   startTime      DateTime
   endTime        DateTime
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  attendances upward_attendance[]
-  emailLogs   upward_email_log[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  attendances    upward_attendance[]
+  emailLogs      upward_email_log[]
 
   @@index([startTime])
 }
 
 model upward_attendance {
-  id        String   @id @default(uuid())
+  id        String          @id @default(uuid())
   sessionId String
   userId    String
-  attended  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user    upward_waitlist @relation(fields: [userId], references: [id], onDelete: Cascade)
-  session upward_session  @relation(fields: [sessionId], references: [id])
+  attended  Boolean         @default(false)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  session   upward_session  @relation(fields: [sessionId], references: [id])
+  user      upward_waitlist @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, userId])
 }
 
 model upward_email_log {
-  id        String    @id @default(uuid())
+  id        String          @id @default(uuid())
   userId    String
-  email     String?
   sessionId String?
   subject   String
-  type      String    @default("GENERIC") // CONFIRMATION, BULK, SESSION_INVITE, etc.
-  status    String // SENT, FAILED
-  body      String?   @db.Text
-  mailgunId String?
-  lastError String?
-  retries   Int       @default(0)
   sentAt    DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  user    upward_waitlist @relation(fields: [userId], references: [id], onDelete: Cascade)
-  session upward_session? @relation(fields: [sessionId], references: [id])
+  status    String
+  createdAt DateTime        @default(now())
+  email     String?
+  lastError String?
+  mailgunId String?
+  type      String          @default("GENERIC")
+  updatedAt DateTime        @updatedAt
+  retries   Int             @default(0)
+  body      String?
+  session   upward_session? @relation(fields: [sessionId], references: [id])
+  user      upward_waitlist @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([sessionId])
@@ -97,7 +93,7 @@ model upward_admin {
   id                 String             @id @default(uuid())
   email              String             @unique
   passwordHash       String
-  role               String             @default("ADMIN") // ADMIN, SUPERADMIN
+  role               String             @default("ADMIN")
   mustChangePassword Boolean            @default(true)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
@@ -107,15 +103,14 @@ model upward_admin {
 }
 
 model upward_admin_log {
-  id        String   @id @default(uuid())
+  id        String       @id @default(uuid())
   adminId   String
-  action    String // LOGIN, LOGOUT, EXPORT_CSV, SEND_EMAIL, ADD_ADMIN, DELETE_ADMIN, DEMOTE_ADMIN, DELETE_USER, etc.
-  details   String? // Summary or JSON string: "Deleted 3 users", "Subject: Welcome Email"
+  action    String
+  details   String?
   ipAddress String?
   userAgent String?
-  createdAt DateTime @default(now())
-
-  admin upward_admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+  admin     upward_admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   @@index([adminId])
   @@index([action])
@@ -124,14 +119,14 @@ model upward_admin_log {
 
 model upward_interaction {
   id        String   @id @default(uuid())
-  visitorId String // Anonymous ID from localStorage
-  type      String // CLICK, VIEW, SCROLL
-  target    String // e.g. "HERO_CTA", "BENEFITS_SECTION"
-  abVariant String // A or B
+  visitorId String
+  type      String
+  target    String
+  abVariant String
   ipAddress String?
   userAgent String?
-  metadata  String?
   createdAt DateTime @default(now())
+  metadata  String?
 
   @@index([visitorId])
   @@index([type])
@@ -142,8 +137,8 @@ model upward_error_log {
   id        String   @id @default(uuid())
   message   String
   stack     String?
-  context   String? // JSON string of request context (URL, Body, Params, etc.)
-  severity  String   @default("ERROR") // ERROR, WARNING, INFO
+  context   String?
+  severity  String   @default("ERROR")
   resolved  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -155,11 +150,11 @@ model upward_error_log {
 
 model upward_email_campaign {
   id          String   @id @default(uuid())
-  weekNumber  Int      @unique // 1, 2, 3, ... — which week in the drip sequence
+  weekNumber  Int      @unique
   subject     String
-  htmlContent String   @db.Text
-  textContent String?  @db.Text
-  label       String? // e.g. "Welcome to Upward", "Week 2: Housing Tips"
+  htmlContent String
+  textContent String?
+  label       String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -170,10 +165,10 @@ model upward_email_campaign {
 
 model upward_system_email {
   id          String   @id @default(uuid())
-  slug        String   @unique // SIGNUP_CONFIRMATION, etc.
+  slug        String   @unique
   subject     String
-  htmlContent String   @db.Text
-  textContent String?  @db.Text
+  htmlContent String
+  textContent String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -185,7 +180,7 @@ model upward_fairness_story {
   id         String   @id @default(uuid())
   name       String?
   categories String[]
-  story      String   @db.Text
+  story      String
   audioUrl   String?
   fileUrls   String[]
   createdAt  DateTime @default(now())
@@ -195,84 +190,76 @@ model upward_fairness_story {
 }
 
 model upward_user {
-  id           Int    @id @default(autoincrement())
-  uuid         String @unique @default(uuid())
-  passwordHash String
-
-  email         String
-  firstName     String
-  lastName      String
-  phone         String?
-  emailHash     String  @unique
-  firstNameHash String
-  lastNameHash  String
-  phoneHash     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // occupation           String?
+  id                   Int                              @id @default(autoincrement())
+  uuid                 String                           @unique @default(uuid())
+  passwordHash         String
+  email                String
+  firstName            String
+  lastName             String
+  phone                String?
+  emailHash            String                           @unique
+  firstNameHash        String
+  lastNameHash         String
+  phoneHash            String?
+  createdAt            DateTime                         @default(now())
+  updatedAt            DateTime                         @updatedAt
   gender               String?
   dateOfBirth          String?
-  isFromWaitlist       Boolean   @default(false)
-  isFromInvite         Boolean   @default(false)
-  profileSlug          String?   @unique
-  bio                  String?   @db.Text
+  isFromWaitlist       Boolean                          @default(false)
+  isFromInvite         Boolean                          @default(false)
+  profileSlug          String?                          @unique
+  bio                  String?
   profilePic           String?
   resetPasswordOTP     String?
   resetPasswordExpires DateTime?
-
-  announcementStates upward_user_announcement_state[]
-  notifications      upward_notification[]
-  paymentRequests    upward_payment_request[]
-
-  companyUsers   upward_company_user[]
-  properties     upward_user_property[]
-  contracts      upward_user_contract[]
-  authSessions   upward_auth_session[]
-  supportTickets upward_support_ticket[]
-  deviceTokens        upward_device_token[]
-  overpayments        upward_overpayment[]
-  credibilityRequests upward_credibility_request[]
-  rentCycles          upward_rent_cycle[]
+  authSessions         upward_auth_session[]
+  companyUsers         upward_company_user[]
+  credibilityRequests  upward_credibility_request[]
+  deviceTokens         upward_device_token[]
+  notifications        upward_notification[]
+  overpayments         upward_overpayment[]
+  paymentRequests      upward_payment_request[]
+  rentCycles           upward_rent_cycle[]
+  supportTickets       upward_support_ticket[]
+  announcementStates   upward_user_announcement_state[]
+  contracts            upward_user_contract[]
+  properties           upward_user_property[]
 
   @@index([email])
   @@index([createdAt])
 }
 
 model upward_device_token {
-  id        Int      @id @default(autoincrement())
+  id        Int         @id @default(autoincrement())
   userId    Int
-  token     String // FCM / APNs token
-  platform  String // android | ios | web
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String
+  platform  String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  user      upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, token])
   @@index([userId])
 }
 
 model upward_support_ticket {
-  id         Int       @id @default(autoincrement())
-  uuid       String    @unique @default(uuid())
+  id         Int         @id @default(autoincrement())
+  uuid       String      @unique @default(uuid())
   userId     Int
-  message    String    @db.Text
-  status     String    @default("OPEN") // OPEN, RESOLVED
+  message    String
+  status     String      @default("OPEN")
   resolvedAt DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-
-  user upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  user       upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
 }
 
 model upward_saved_landlord {
-  id            Int       @id @default(autoincrement())
-  uuid          String    @unique @default(uuid())
+  id            Int                         @id @default(autoincrement())
+  uuid          String                      @unique @default(uuid())
   userId        Int
   name          String
   accountName   String
@@ -282,35 +269,33 @@ model upward_saved_landlord {
   lastAmount    Float?
   lastPaid      DateTime?
   subaccountId  Int?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  subaccount upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
+  createdAt     DateTime                    @default(now())
+  updatedAt     DateTime                    @updatedAt
+  subaccount    upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
 
   @@index([userId])
 }
 
 model upward_transaction {
-  id              Int      @id @default(autoincrement())
-  uuid            String   @unique @default(uuid())
-  userId          Int
-  type            String   @default("RENT") // RENT, SAVINGS, WALLET_DEPOSIT, WALLET_WITHDRAWAL, GOAL_ALLOCATION
-  transactionType String   @default("PAYMENT") // PAYMENT, FUTURE_CREDIT
-  status          String   @default("PENDING") // PENDING, SUCCESS, FAILED
-  amount          Float
-  currency        String   @default("NGN")
-  reference       String   @unique
-  narration       String?
-  landlordId      String?
-  paymentType     String?
-  propertyAddress String?
-  lineItems       Json?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
+  id               Int                     @id @default(autoincrement())
+  uuid             String                  @unique @default(uuid())
+  userId           Int
+  type             String                  @default("RENT")
+  status           String                  @default("PENDING")
+  amount           Float
+  currency         String                  @default("NGN")
+  reference        String                  @unique
+  narration        String?
+  landlordId       String?
+  paymentType      String?
+  propertyAddress  String?
+  lineItems        Json?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
   paymentRequestId Int?
-  paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
+  transactionType  String                  @default("PAYMENT")
   overpayments     upward_overpayment[]
+  paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
 
   @@index([userId])
   @@index([reference])
@@ -318,54 +303,51 @@ model upward_transaction {
 }
 
 model upward_announcement {
-  id        Int      @id @default(autoincrement())
-  uuid      String   @unique @default(uuid())
+  id        Int                              @id @default(autoincrement())
+  uuid      String                           @unique @default(uuid())
   title     String
-  message   String   @db.Text
-  iconType  String   @default("sparkles") // sparkles, clock, target, etc.
+  message   String
+  iconType  String                           @default("sparkles")
+  isActive  Boolean                          @default(true)
+  createdAt DateTime                         @default(now())
+  updatedAt DateTime                         @updatedAt
   url       String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  states upward_user_announcement_state[]
+  states    upward_user_announcement_state[]
 
   @@index([isActive])
   @@index([createdAt])
 }
 
 model upward_user_announcement_state {
-  id               Int      @id @default(autoincrement())
-  uuid             String   @unique @default(uuid())
+  id               Int                 @id @default(autoincrement())
+  uuid             String              @unique @default(uuid())
   userId           Int
   announcementId   Int
-  seenPopup        Boolean  @default(false)
-  interactedPopup  Boolean  @default(false)
-  seenBanner       Boolean  @default(false)
-  interactedBanner Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  announcement upward_announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
-  user         upward_user         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  seenPopup        Boolean             @default(false)
+  interactedPopup  Boolean             @default(false)
+  seenBanner       Boolean             @default(false)
+  interactedBanner Boolean             @default(false)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  announcement     upward_announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user             upward_user         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, announcementId])
   @@index([userId])
 }
 
 model upward_notification {
-  id        Int      @id @default(autoincrement())
-  uuid      String   @unique @default(uuid())
+  id        Int         @id @default(autoincrement())
+  uuid      String      @unique @default(uuid())
   userId    Int
   title     String
-  message   String   @db.Text
-  type      String   @default("SYSTEM") // SYSTEM, SUPPORT, PAYMENT
+  message   String
+  type      String      @default("SYSTEM")
   url       String?
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isRead    Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  user      upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isRead])
@@ -373,32 +355,30 @@ model upward_notification {
 }
 
 model upward_payment_request {
-  id             Int       @id @default(autoincrement())
-  uuid           String    @unique @default(uuid())
-  userId         Int
-  userPropertyId Int?
-  amount         Float
-  currency       String    @default("NGN")
-  description    String?
-  dueDate        DateTime
-  status         String    @default("PENDING") // PENDING, PARTIAL, PAID
-  amountPaid     Float     @default(0)
-  allowPartial   Boolean   @default(false)
-  minAmount      Float?
-  paidAt         DateTime?
-  reference      String?   @unique
-  subaccountId   Int?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  user            upward_user               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions    upward_transaction[]
+  id              Int                         @id @default(autoincrement())
+  uuid            String                      @unique @default(uuid())
+  userId          Int
+  userPropertyId  Int?
+  amount          Float
+  currency        String                      @default("NGN")
+  description     String?
+  dueDate         DateTime
+  status          String                      @default("PENDING")
+  paidAt          DateTime?
+  reference       String?                     @unique
+  subaccountId    Int?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  allowPartial    Boolean                     @default(false)
+  amountPaid      Float                       @default(0)
+  minAmount       Float?
+  overpayments    upward_overpayment[]
   lineItemRecords upward_payment_line_item[]
-
-  userProperty upward_user_property?       @relation(fields: [userPropertyId], references: [id])
-  subaccount   upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
-  overpayments upward_overpayment[]
-  rentCycles   upward_rent_cycle[]
+  subaccount      upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
+  user            upward_user                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProperty    upward_user_property?       @relation(fields: [userPropertyId], references: [id])
+  rentCycles      upward_rent_cycle[]
+  transactions    upward_transaction[]
   pmPaymentRequests upward_pm_payment_request[]
 
   @@index([userId])
@@ -406,183 +386,177 @@ model upward_payment_request {
 }
 
 model upward_payment_line_item {
-  id               Int      @id @default(autoincrement())
-  uuid             String   @unique @default(uuid())
+  id               Int                    @id @default(autoincrement())
+  uuid             String                 @unique @default(uuid())
   paymentRequestId Int
-  name             String
   totalAmount      Float
-  amountPaid       Float    @default(0)
-  status           String   @default("PENDING") // PENDING, PARTIAL, PAID
-  sortOrder        Int      @default(0)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  paymentRequest upward_payment_request @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
+  amountPaid       Float                  @default(0)
+  status           String                 @default("PENDING")
+  sortOrder        Int                    @default(0)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  name             String
+  paymentRequest   upward_payment_request @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
 
   @@index([paymentRequestId])
   @@index([status])
 }
 
 model upward_company {
-  id         Int              @id @default(autoincrement())
-  uuid       String           @unique @default(uuid())
-  name       String
-  address    String?
-  email      String?
-  phone      String?
-  emailHash  String?          @unique
-  phoneHash  String?
-  nameHash   String?
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
-  platformId Int?
-  platform   upward_platform? @relation(fields: [platformId], references: [id], onDelete: Cascade)
-
+  id           Int                    @id @default(autoincrement())
+  uuid         String                 @unique @default(uuid())
+  name         String
+  address      String?
+  email        String?
+  phone        String?
+  emailHash    String?                @unique
+  phoneHash    String?
+  nameHash     String?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  platformId   Int?
+  platform     upward_platform?       @relation(fields: [platformId], references: [id], onDelete: Cascade)
   companyUsers upward_company_user[]
-  properties   upward_user_property[]
   managers     upward_manager[]
+  properties   upward_user_property[]
 }
 
 model upward_platform {
-  id         Int      @id @default(autoincrement())
-  uuid       String   @unique @default(uuid())
-  apiKey     String   @unique
-  webhookUrl String
-  name       String
-  address    String?
-  email      String?
-  emailHash  String?  @unique
-  nameHash   String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
+  id          Int                  @id @default(autoincrement())
+  uuid        String               @unique @default(uuid())
+  apiKey      String               @unique
+  webhookUrl  String
+  name        String
+  address     String?
+  email       String?
+  emailHash   String?              @unique
+  nameHash    String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
   companies   upward_company[]
   webhookLogs upward_webhook_log[]
 }
 
 model upward_company_user {
-  id         Int       @id @default(autoincrement())
-  uuid       String    @unique @default(uuid())
+  id         Int            @id @default(autoincrement())
+  uuid       String         @unique @default(uuid())
   companyId  Int
   userId     Int
-  invitedAt  DateTime  @default(now())
+  invitedAt  DateTime       @default(now())
   acceptedAt DateTime?
-
-  company upward_company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user    upward_user    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company    upward_company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user       upward_user    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([companyId, userId])
 }
 
 model upward_manager {
-  id            Int      @id @default(autoincrement())
-  uuid          String   @unique @default(uuid())
+  id            Int                    @id @default(autoincrement())
+  uuid          String                 @unique @default(uuid())
   companyId     Int
-  firstName     String? /// @encrypted
-  lastName      String? /// @encrypted
-  phone         String? /// @encrypted
-  email         String? /// @encrypted
-  emailHash     String?  @unique
+  /// @encrypted
+  firstName     String?
+  /// @encrypted
+  lastName      String?
+  /// @encrypted
+  phone         String?
+  /// @encrypted
+  email         String?
+  emailHash     String?                @unique
   phoneHash     String?
   firstNameHash String?
   lastNameHash  String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  company    upward_company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  properties upward_user_property[]
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  company       upward_company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  properties    upward_user_property[]
 }
 
 model upward_location {
-  id        Int      @id @default(autoincrement())
-  uuid      String   @unique @default(uuid())
-  country   String
-  state     String
-  area      String
-  subarea   String?
-  address   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id         Int                    @id @default(autoincrement())
+  uuid       String                 @unique @default(uuid())
+  country    String
+  state      String
+  area       String
+  subarea    String?
+  address    String?
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
   properties upward_user_property[]
 }
 
 model upward_user_property {
-  id            Int       @id @default(autoincrement())
-  uuid          String    @unique @default(uuid())
-  userId        Int
-  companyId     Int?
-  managerId     Int?
-  locationId    Int?
-  rentAmount    Float     @default(0)
-  amountPaid    Float     @default(0)
-  amountRemaining Float   @default(0)
-  currency      String    @default("NGN")
-  rentStartDate DateTime?
-  rentEndDate   DateTime?
-  isVerified    Boolean   @default(false)
-  isPastTenancy Boolean   @default(false)
-  pmManagerId   Int?
-  pmUnitId      Int?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  user     upward_user      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company  upward_company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  manager  upward_manager?  @relation(fields: [managerId], references: [id])
-  pmManager upward_property_manager? @relation(fields: [pmManagerId], references: [id])
-  pmUnit    upward_pm_unit? @relation(fields: [pmUnitId], references: [id])
-  location upward_location? @relation(fields: [locationId], references: [id])
-
+  id              Int                          @id @default(autoincrement())
+  uuid            String                       @unique @default(uuid())
+  userId          Int
+  companyId       Int?
+  managerId       Int?
+  locationId      Int?
+  rentAmount      Float                        @default(0)
+  currency        String                       @default("NGN")
+  rentStartDate   DateTime?
+  rentEndDate     DateTime?
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+  isVerified      Boolean                      @default(false)
+  amountPaid      Float                        @default(0)
+  amountRemaining Float                        @default(0)
+  isPastTenancy   Boolean                      @default(false)
   paymentRequests upward_payment_request[]
-  contracts       upward_user_contract[]
-  inspections     upward_property_inspection[]
   infractions     upward_property_infraction[]
+  inspections     upward_property_inspection[]
   rentCycles      upward_rent_cycle[]
+  contracts       upward_user_contract[]
+  company         upward_company?              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  location        upward_location?             @relation(fields: [locationId], references: [id])
+  manager         upward_manager?              @relation(fields: [managerId], references: [id])
+  user            upward_user                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  pmId            Int?
+  pm              upward_property_manager?     @relation(fields: [pmId], references: [id])
+  pmUnitId        Int?
+  pmUnit          upward_pm_unit?              @relation(fields: [pmUnitId], references: [id])
 }
 
 model upward_property_inspection {
-  id             Int      @id @default(autoincrement())
-  uuid           String   @unique @default(uuid())
+  id             Int                  @id @default(autoincrement())
+  uuid           String               @unique @default(uuid())
   userPropertyId Int
   inspectorName  String?
-  score          Float?   // 0 to 100
-  reportUrl      String?  // Link to PDF/External report
-  source         String   @default("UPWARD") // GT, MANUAL, etc.
-  notes          String?  @db.Text
-  createdAt      DateTime @default(now())
-
-  userProperty upward_user_property @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
+  score          Float?
+  reportUrl      String?
+  source         String               @default("UPWARD")
+  notes          String?
+  createdAt      DateTime             @default(now())
+  userProperty   upward_user_property @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
 
   @@index([userPropertyId])
 }
 
 model upward_property_infraction {
-  id             Int      @id @default(autoincrement())
-  uuid           String   @unique @default(uuid())
-  userPropertyId Int
-  description    String
-  amountOwed     Float    @default(0) // Renovation cost/debt
-  isResolved     Boolean  @default(false)
-  reportedToBureau Boolean @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  userProperty upward_user_property @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
+  id               Int                  @id @default(autoincrement())
+  uuid             String               @unique @default(uuid())
+  userPropertyId   Int
+  description      String
+  amountOwed       Float                @default(0)
+  isResolved       Boolean              @default(false)
+  reportedToBureau Boolean              @default(false)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  userProperty     upward_user_property @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
 
   @@index([userPropertyId])
 }
 
 model upward_paystack_subaccount {
-  id             Int      @id @default(autoincrement())
-  uuid           String   @unique @default(uuid())
-  accountNumber  String
-  bankCode       String
-  subaccountCode String   @unique
-  businessName   String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
+  id              Int                      @id @default(autoincrement())
+  uuid            String                   @unique @default(uuid())
+  accountNumber   String
+  bankCode        String
+  subaccountCode  String                   @unique
+  businessName    String?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
   paymentRequests upward_payment_request[]
   savedLandlords  upward_saved_landlord[]
 
@@ -591,20 +565,19 @@ model upward_paystack_subaccount {
 }
 
 model upward_webhook_log {
-  id           String    @id @default(uuid())
+  id           String          @id @default(uuid())
   platformId   Int
-  event        String // e.g. payment.confirmed
+  event        String
   url          String
   payload      Json
-  status       String // PENDING, SENT, FAILED
+  status       String
   responseCode Int?
   errorMessage String?
-  retries      Int       @default(0)
+  retries      Int             @default(0)
   lastTriedAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  platform upward_platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  platform     upward_platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
 
   @@index([platformId])
   @@index([status])
@@ -612,26 +585,24 @@ model upward_webhook_log {
 }
 
 model upward_rent_cycle {
-  id               Int       @id @default(autoincrement())
-  uuid             String    @unique @default(uuid())
+  id               Int                     @id @default(autoincrement())
+  uuid             String                  @unique @default(uuid())
   userId           Int
   userPropertyId   Int?
-  paymentRequestId Int?      // null for manual payments
-  source           String    @default("MANUAL") // MANUAL, PAYMENT_REQUEST, PAST_RECORD
+  paymentRequestId Int?
+  source           String                  @default("MANUAL")
   amountOwed       Float
-  amountPaid       Float     @default(0)
-  currency         String    @default("NGN")
-  dueDate          DateTime  // rentEndDate for manual, PR.dueDate for requests
-  paidAt           DateTime? // when payment was made
-  status           String    @default("PENDING")
-  // Statuses: PENDING, PAID_ON_TIME, PAID_LATE, PARTIAL_ON_TIME, PARTIAL_LATE, MISSED
+  amountPaid       Float                   @default(0)
+  currency         String                  @default("NGN")
+  dueDate          DateTime
+  paidAt           DateTime?
+  status           String                  @default("PENDING")
   description      String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  user            upward_user              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userProperty    upward_user_property?    @relation(fields: [userPropertyId], references: [id])
-  paymentRequest  upward_payment_request?  @relation(fields: [paymentRequestId], references: [id])
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
+  user             upward_user             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProperty     upward_user_property?   @relation(fields: [userPropertyId], references: [id])
 
   @@index([userId])
   @@index([userPropertyId])
@@ -640,75 +611,75 @@ model upward_rent_cycle {
 }
 
 model upward_user_contract {
-  id             Int      @id @default(autoincrement())
-  uuid           String   @unique @default(uuid())
+  id             Int                   @id @default(autoincrement())
+  uuid           String                @unique @default(uuid())
   userId         Int
   userPropertyId Int?
   fileName       String
-  fileUrl        String // The S3 Key
-  fileType       String // mime type
-  fileSize       Int // in bytes
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  user         upward_user           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userProperty upward_user_property? @relation(fields: [userPropertyId], references: [id], onDelete: SetNull)
+  fileUrl        String
+  fileType       String
+  fileSize       Int
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  user           upward_user           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProperty   upward_user_property? @relation(fields: [userPropertyId], references: [id])
 
   @@index([userId])
   @@index([userPropertyId])
 }
 
 model upward_auth_session {
-  id               String   @id @default(uuid())
+  id               String      @id @default(uuid())
   userId           Int
-  refreshTokenHash String   @unique
+  refreshTokenHash String      @unique
   userAgent        String?
   ipAddress        String?
   deviceId         String?
-  isRevoked        Boolean  @default(false)
+  isRevoked        Boolean     @default(false)
   expiresAt        DateTime
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  user upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  user             upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([refreshTokenHash])
 }
 
 model upward_overpayment {
-  id               Int      @id @default(autoincrement())
-  uuid             String   @unique @default(uuid())
+  id               Int                     @id @default(autoincrement())
+  uuid             String                  @unique @default(uuid())
   userId           Int
   amount           Float
-  currency         String   @default("NGN")
+  currency         String                  @default("NGN")
   transactionId    Int?
   paymentRequestId Int?
-  status           String   @default("AVAILABLE") // AVAILABLE, APPLIED
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  user           upward_user             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transaction    upward_transaction?     @relation(fields: [transactionId], references: [id])
-  paymentRequest upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
+  status           String                  @default("AVAILABLE")
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
+  transaction      upward_transaction?     @relation(fields: [transactionId], references: [id])
+  user             upward_user             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model upward_credibility_request {
-  id           Int      @id @default(autoincrement())
-  uuid         String   @unique @default(uuid())
+  id           Int         @id @default(autoincrement())
+  uuid         String      @unique @default(uuid())
   userId       Int
   propertyUuid String
-  companyName  String?  /// @encrypted
-  managerName  String?  /// @encrypted
-  email        String?  /// @encrypted
-  phone        String?  /// @encrypted
-  status       String   @default("PENDING") // PENDING, COMPLETED, CANCELLED
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  user upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// @encrypted
+  companyName  String?
+  /// @encrypted
+  managerName  String?
+  /// @encrypted
+  email        String?
+  /// @encrypted
+  phone        String?
+  status       String      @default("PENDING")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  user         upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([propertyUuid])
@@ -718,11 +689,11 @@ model upward_credibility_request {
 model upward_verification_token {
   id         Int      @id @default(autoincrement())
   uuid       String   @unique @default(uuid())
-  token      String?  @unique // For public links (invite, payment)
-  otp        String?  // 6-digit code for OTP verify
-  context    String   // SIGNUP, LOGIN, INVITE, PAYMENT
-  identifier String   // email or entity UUID
-  metadata   Json?    // Optional extra data (e.g. original email for change flow)
+  token      String?  @unique
+  otp        String?
+  context    String
+  identifier String
+  metadata   Json?
   resends    Int      @default(0)
   expiresAt  DateTime
   createdAt  DateTime @default(now())
@@ -732,6 +703,34 @@ model upward_verification_token {
   @@index([identifier, context])
 }
 
+model upward_whatsapp_sessions {
+  id            Int       @id @default(autoincrement())
+  uuid          String    @unique(map: "upward_whatsapp_sessions_uuid_unique") @db.Uuid
+  phone         String?   @db.VarChar(255)
+  phoneHash     String?   @db.VarChar(255)
+  state         String    @default("NEW") @db.VarChar(255)
+  sessionData   Json?
+  lastMessageAt DateTime? @db.Timestamp(0)
+  expiresAt     DateTime? @db.Timestamp(0)
+  createdAt     DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime  @default(now()) @db.Timestamp(0)
+
+  @@index([expiresAt], map: "upward_whatsapp_sessions_expiresat_index")
+  @@index([lastMessageAt], map: "upward_whatsapp_sessions_lastmessageat_index")
+  @@index([phone], map: "upward_whatsapp_sessions_phone_index")
+  @@index([phoneHash], map: "upward_whatsapp_sessions_phonehash_index")
+}
+
+model upward_whatsapp_transaction_pins {
+  id             Int      @id @default(autoincrement())
+  uuid           String   @unique(map: "upward_whatsapp_transaction_pins_uuid_unique") @db.Uuid
+  upwardUserUuid String   @unique(map: "upward_whatsapp_transaction_pins_upwarduseruuid_unique") @db.Uuid
+  pinHash        String   @db.VarChar(255)
+  createdAt      DateTime @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime @default(now()) @db.Timestamp(0)
+
+  @@index([upwardUserUuid], map: "upward_whatsapp_transaction_pins_upwarduseruuid_index")
+}
 model upward_property_manager {
   id           Int      @id @default(autoincrement())
   uuid         String   @unique @default(uuid())
@@ -758,6 +757,7 @@ model upward_property_manager {
   tenants      upward_pm_tenant[]
   userProperties upward_user_property[]
   paymentRequests upward_pm_payment_request[]
+  bulkInvites     upward_pm_bulk_invite[]
   
   @@index([email])
 }
@@ -791,6 +791,14 @@ model upward_pm_property {
   country      String   @default("Nigeria")
   state        String?
   area         String?
+  
+  landlordNameEncrypted   String?
+  landlordNameSearch      String?
+  landlordEmailEncrypted  String?
+  landlordEmailHash       String?
+  landlordPhoneEncrypted  String?
+  landlordPhoneHash       String?
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -809,8 +817,10 @@ model upward_pm_unit {
   rentAmount      Float    @default(0)
   rentStartDate   DateTime?
   rentDueDate     DateTime? // Specific due date or next due date
-  rentFrequency   String   @default("Monthly") // Monthly, Quarterly, Bi-Annually, Annually
+  rentType        String   @default("Monthly") // Monthly, Quarterly, Bi-Annually, Annually
   currency        String   @default("NGN")
+  managementFee   Float    @default(0)
+  notes           String?  @db.Text
   status          String   @default("VACANT") // OCCUPIED, VACANT, MAINTENANCE
   
   tenantId        Int?
@@ -911,3 +921,36 @@ model upward_pm_payment_request {
   @@index([status])
 }
 
+model upward_pm_bulk_invite {
+  id           String   @id @default(uuid())
+  pmId         Int
+  status       String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  totalTenants Int      @default(0)
+  sentCount    Int      @default(0)
+  failedCount  Int      @default(0)
+  error        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  pm           upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  items        upward_pm_bulk_invite_item[]
+
+  @@index([pmId])
+  @@index([status])
+}
+
+model upward_pm_bulk_invite_item {
+  id           String   @id @default(uuid())
+  bulkInviteId String
+  tenantUuid   String
+  status       String   @default("PENDING") // PENDING, SENT, FAILED
+  error        String?
+  retries      Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  bulkInvite   upward_pm_bulk_invite @relation(fields: [bulkInviteId], references: [id], onDelete: Cascade)
+
+  @@index([bulkInviteId])
+  @@index([status])
+}

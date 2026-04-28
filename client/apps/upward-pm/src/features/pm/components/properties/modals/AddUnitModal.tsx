@@ -2,6 +2,8 @@ import React from 'react'
 import { X } from 'lucide-react'
 import { Property } from '../../../services/propertyService'
 import { useTenants } from '../../../hooks/useTenants'
+import { PhoneInput } from '@/components/common/PhoneInput'
+import { isValidPhoneNumber } from 'libphonenumber-js'
 
 interface AddUnitModalProps {
   isOpen: boolean;
@@ -16,7 +18,9 @@ interface AddUnitModalProps {
     rentAmount: string;
     rentStartDate: string;
     rentDueDate: string;
-    rentFrequency: string;
+    rentType: string;
+    managementFee: string;
+    notes: string;
     tenantFirstName: string;
     tenantLastName: string;
     tenantEmail: string;
@@ -34,6 +38,10 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
 
   if (!isOpen) return null;
 
+  const phoneError = formData.tenantPhone && !isValidPhoneNumber(formData.tenantPhone)
+    ? 'Invalid international phone number'
+    : undefined
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
@@ -45,7 +53,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
           <button onClick={onClose}><X size={20} /></button>
         </div>
 
-        <div className="form-group">
+        <div className="form-group" style={{ marginTop: 20 }}>
           <label className="form-label">Select Target Property</label>
           <select
             className="form-input"
@@ -68,15 +76,27 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
           />
         </div>
 
-        <div className="form-group">
-          <label className="form-label">Rent Amount (₦)</label>
-          <input
-            type="number"
-            className="form-input"
-            placeholder="e.g. 1500000"
-            value={formData.rentAmount}
-            onChange={e => setFormData({ ...formData, rentAmount: e.target.value })}
-          />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="form-group">
+            <label className="form-label">Rent Amount (₦)</label>
+            <input
+              type="number"
+              className="form-input"
+              placeholder="e.g. 1500000"
+              value={formData.rentAmount}
+              onChange={e => setFormData({ ...formData, rentAmount: e.target.value })}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Management Fee (₦)</label>
+            <input
+              type="number"
+              className="form-input"
+              placeholder="e.g. 150000"
+              value={formData.managementFee}
+              onChange={e => setFormData({ ...formData, managementFee: e.target.value })}
+            />
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
@@ -99,11 +119,11 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
             />
           </div>
           <div className="form-group">
-            <label className="form-label">Frequency</label>
+            <label className="form-label">Rent Type</label>
             <select
               className="form-input"
-              value={formData.rentFrequency}
-              onChange={e => setFormData({ ...formData, rentFrequency: e.target.value })}
+              value={formData.rentType}
+              onChange={e => setFormData({ ...formData, rentType: e.target.value })}
             >
               <option value="Monthly">Monthly</option>
               <option value="Quarterly">Quarterly</option>
@@ -111,6 +131,17 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
               <option value="Annually">Annually</option>
             </select>
           </div>
+        </div>
+        
+        <div className="form-group" style={{ marginTop: 12 }}>
+          <label className="form-label">Internal Notes</label>
+          <textarea
+            className="form-input"
+            style={{ minHeight: 80, resize: 'vertical' }}
+            placeholder="Any special instructions or notes for this unit..."
+            value={formData.notes}
+            onChange={e => setFormData({ ...formData, notes: e.target.value })}
+          />
         </div>
 
         <div style={{ borderTop: '1px solid var(--border)', margin: '20px 0', paddingTop: 20 }}>
@@ -198,14 +229,13 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                     onChange={e => setFormData({ ...formData, tenantEmail: e.target.value })}
                   />
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Phone Number</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="+2348000000000"
+                <div>
+                  <PhoneInput
+                    label="Phone Number"
                     value={formData.tenantPhone}
-                    onChange={e => setFormData({ ...formData, tenantPhone: e.target.value })}
+                    onValueChange={(val) => setFormData({ ...formData, tenantPhone: val })}
+                    placeholder="e.g. +234..."
+                    error={phoneError}
                   />
                 </div>
               </div>
@@ -217,7 +247,12 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
           <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
             Cancel
           </button>
-          <button className="btn btn--primary" style={{ flex: 1 }} onClick={onSave} disabled={isPending}>
+          <button 
+            className="btn btn--primary" 
+            style={{ flex: 1 }} 
+            onClick={onSave} 
+            disabled={isPending || (!!formData.tenantPhone && !!phoneError)}
+          >
             {isPending ? 'Saving...' : 'Save Unit'}
           </button>
         </div>
@@ -225,3 +260,4 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
     </div>
   )
 }
+

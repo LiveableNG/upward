@@ -11,6 +11,9 @@ export interface Property {
   country?: string;
   state?: string;
   area?: string;
+  landlordName?: string;
+  landlordEmail?: string;
+  landlordPhone?: string;
 }
 
 export interface Tenant {
@@ -40,7 +43,9 @@ export interface Unit {
   rentAmount: number;
   rentStartDate?: string;
   rentDueDate?: string;
-  rentFrequency: string;
+  rentType: string;
+  managementFee: number;
+  notes?: string;
   status: string;
   isSynced: boolean;
   userPropertyUuid: string | null;
@@ -120,5 +125,12 @@ export const getPropertyImageUploadUrl = (contentType: string, filename: string)
 export const syncToUpward = (unitUuid: string) => {
   return request<void>(`/pm/units/${unitUuid}/sync-to-upward`, {
     method: 'POST'
+  })
+}
+
+export const bulkFullImport = (data: { rows: any[]; inviteAfterImport?: boolean }) => {
+  return request<{ success: boolean; propertiesCreated: number; unitsCreated: number; bulkInviteId: string | null }>('/pm/import/bulk', {
+    method: 'POST',
+    body: JSON.stringify(data)
   })
 }

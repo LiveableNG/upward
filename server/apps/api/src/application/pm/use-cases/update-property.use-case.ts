@@ -31,6 +31,9 @@ export class UpdatePropertyUseCase {
       country: dto.country,
       state: dto.state,
       area: dto.area,
+      landlordName: dto.landlordName,
+      landlordEmail: dto.landlordEmail,
+      landlordPhone: dto.landlordPhone,
     });
 
     if (updatedProperty.imageUrl) {

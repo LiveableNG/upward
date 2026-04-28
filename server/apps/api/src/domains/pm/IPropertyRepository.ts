@@ -14,6 +14,9 @@ export interface PropertyEntity {
   country: string;
   state: string | null;
   area: string | null;
+  landlordName: string | null;
+  landlordEmail: string | null;
+  landlordPhone: string | null;
 }
 
 export interface UnitEntity {
@@ -26,8 +29,10 @@ export interface UnitEntity {
   rentAmount: number;
   rentStartDate: Date | null;
   rentDueDate: Date | null;
-  rentFrequency: string;
+  rentType: string;
   currency: string;
+  managementFee: number;
+  notes: string | null;
   status: string;
   tenantId: number | null;
   tenant?: TenantEntity;
@@ -72,6 +77,7 @@ export interface RentPaymentEntity {
 }
 
 export interface IUnitRepository {
+  create(data: Omit<UnitEntity, 'id' | 'uuid'>): Promise<UnitEntity>;
   createMany(data: Omit<UnitEntity, 'id' | 'uuid'>[]): Promise<{ count: number }>;
   findByPropertyId(propertyId: number): Promise<UnitEntity[]>;
   findByUuid(uuid: string): Promise<UnitEntity | null>;

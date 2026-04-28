@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { GetCredibilityRequestDetailsUseCase } from '../../../application/use-cases/external/get-credibility-request-details.use-case';
 import { FulfillCredibilityRequestUseCase } from '../../../application/use-cases/external/fulfill-credibility-request.use-case';
+import { RejectCredibilityRequestUseCase } from '../../../application/use-cases/external/reject-credibility-request.use-case';
 import { RenewPropertyUseCase } from '../../../application/use-cases/external/renew-property.use-case';
 
 @Controller('public/credibility')
@@ -8,6 +9,7 @@ export class PublicCredibilityController {
   constructor(
     private readonly getDetailsUseCase: GetCredibilityRequestDetailsUseCase,
     private readonly fulfillUseCase: FulfillCredibilityRequestUseCase,
+    private readonly rejectUseCase: RejectCredibilityRequestUseCase,
     private readonly renewPropertyUseCase: RenewPropertyUseCase
   ) {}
 
@@ -24,6 +26,12 @@ export class PublicCredibilityController {
     @Body() body: { records: any[] }
   ) {
     return this.fulfillUseCase.execute(uuid, body);
+  }
+
+  @Post('request/:uuid/reject')
+  @HttpCode(HttpStatus.OK)
+  async rejectRequest(@Param('uuid') uuid: string) {
+    return this.rejectUseCase.execute(uuid);
   }
 
   @Post('property/:uuid/renew')
