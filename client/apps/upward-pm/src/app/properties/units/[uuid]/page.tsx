@@ -177,7 +177,7 @@ function UnitDetailContent() {
         <div className="unit-detail__grid">
           <div className="unit-detail__card glass">
             <div className="card-header">
-              <Hash size={16} className="text-clay" />
+              <Hash size={16} className="text-accent" />
               <h3>Unit Information</h3>
             </div>
             <div className="card-body">
@@ -208,7 +208,7 @@ function UnitDetailContent() {
 
           <div className="unit-detail__card glass">
             <div className="card-header">
-              <MapPin size={16} className="text-clay" />
+              <MapPin size={16} className="text-accent" />
               <h3>Location & Address</h3>
             </div>
             <div className="card-body">
@@ -264,7 +264,7 @@ function UnitDetailContent() {
 
           <div className="unit-detail__card glass">
             <div className="card-header">
-              <CreditCard size={16} className="text-clay" />
+              <CreditCard size={16} className="text-accent" />
               <h3>Financials</h3>
             </div>
             <div className="card-body">
@@ -297,7 +297,7 @@ function UnitDetailContent() {
 
           <div className="unit-detail__card glass">
             <div className="card-header">
-              <Calendar size={16} className="text-clay" />
+              <Calendar size={16} className="text-accent" />
               <h3>Lease Dates</h3>
             </div>
             <div className="card-body">
@@ -340,7 +340,7 @@ function UnitDetailContent() {
             </div>
             <div className="rent-stat-card glass">
               <span className="rent-stat-card__label">Rent Status</span>
-              <span className={cn("rent-stat-card__value", amountRemaining === 0 ? "text-forest" : "text-clay")}>
+              <span className={cn("rent-stat-card__value", amountRemaining === 0 ? "text-forest" : "text-accent")}>
                 {amountRemaining === 0 ? 'Fully Paid' : 'Partial/Pending'}
               </span>
               {unit?.rentDueDate && <span className="rent-stat-card__meta">Next Cycle: {new Date(unit.rentDueDate).toLocaleDateString()}</span>}
@@ -580,7 +580,7 @@ function UnitDetailContent() {
         }
         .text-forest { color: var(--forest) !important; }
         .text-error { color: var(--error) !important; }
-        .text-clay { color: var(--clay) !important; }
+        .text-accent { color: var(--accent) !important; }
         
         .input-with-icon {
           position: relative;

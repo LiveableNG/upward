@@ -79,12 +79,12 @@ textarea {
   border: 1px solid var(--border);
 }
 
-.clay-gradient {
-  background: linear-gradient(135deg, var(--clay) 0%, #c86848 100%);
+.accent-gradient {
+  background: linear-gradient(135deg, var(--accent) 0%, #2d4a3e 100%);
 }
 
-.text-clay {
-  color: var(--clay);
+.text-accent {
+  color: var(--accent);
 }
 
 .text-forest {
