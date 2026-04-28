@@ -124,7 +124,7 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
   if (!requestDetails) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center">
-        <AlertCircle size={48} className="text-clay mb-4" />
+        <AlertCircle size={48} className="text-accent mb-4" />
         <h2 className="text-xl font-bold mb-2">Request Not Found</h2>
         <p className="text-text-muted">The credibility request could not be found or has expired.</p>
       </div>
@@ -171,7 +171,7 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
   if (requestDetails.status !== 'PENDING') {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center">
-        <AlertCircle size={48} className="text-clay mb-4" />
+        <AlertCircle size={48} className="text-accent mb-4" />
         <h2 className="text-xl font-bold mb-2">Request Already Processed</h2>
         <p className="text-text-muted">This request is marked as {requestDetails.status}.</p>
         {!isPublic && (
@@ -250,7 +250,7 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
                       <input type="date" className="form-input w-full" value={r.paidDate} onChange={e => updateRow(i, 'paidDate', e.target.value)} />
                     </td>
                     <td className="p-2 text-right">
-                      <button className="text-clay hover:text-clay/80 p-2 rounded-lg hover:bg-clay/10 transition-colors" onClick={() => removeRow(r.id)}>
+                      <button className="text-accent hover:text-accent/80 p-2 rounded-lg hover:bg-accent/10 transition-colors" onClick={() => removeRow(r.id)}>
                         <X size={16} />
                       </button>
                     </td>
@@ -270,7 +270,7 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
 
         <div className="import-footer flex justify-between items-center p-6 bg-surface border-t border-border">
           <button 
-            className="btn btn--secondary text-clay border-clay hover:bg-clay/10" 
+            className="btn btn--secondary text-accent border-accent hover:bg-accent/10" 
             onClick={() => handleAction('reject')}
             disabled={submitting}
           >

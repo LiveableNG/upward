@@ -39,7 +39,7 @@ export const UnitCard: React.FC<UnitCardProps> = ({
                 <div style={{ 
                   fontSize: 9, 
                   fontWeight: 800, 
-                  color: 'var(--clay)', 
+                  color: 'var(--forest)', 
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: 4,

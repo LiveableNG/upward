@@ -33,7 +33,7 @@ export default function RequestsPage() {
           <div className="p-8 text-center text-text-muted animate-pulse">Loading requests...</div>
         ) : requests.length === 0 ? (
           <div className="empty-state">
-            <AlertCircle size={48} className="text-clay mb-4" />
+            <AlertCircle size={48} className="text-accent mb-4" />
             <h3 className="text-xl font-bold mb-2">No pending requests</h3>
             <p className="text-text-muted">When tenants request their past records, they will appear here.</p>
           </div>
@@ -58,7 +58,7 @@ export default function RequestsPage() {
                     <td>
                       <span className={cn(
                         "px-2 py-1 rounded-full text-xs font-semibold",
-                        req.status === 'PENDING' ? "bg-warning/20 text-warning" : "bg-clay/20 text-clay"
+                        req.status === 'PENDING' ? "bg-warning/20 text-warning" : "bg-accent/20 text-accent"
                       )}>
                         {req.status}
                       </span>
