@@ -13,10 +13,11 @@ import {
   EyeOff,
 } from 'lucide-react'
 import { useSignup } from '../hooks/useSignup'
-import { useRequestOTP, useVerifyOTP } from '../hooks/useOtp'
+import { useRequestOTP, useVerifyOTP, useOtpLogin } from '../hooks/useOtp'
 
 export const SignupForm = () => {
   const [stage, setStage] = useState<'info' | 'otp' | 'success'>('info')
+  const [effectiveContext, setEffectiveContext] = useState<'SIGNUP' | 'LOGIN'>('SIGNUP')
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -35,11 +36,13 @@ export const SignupForm = () => {
   const signupMutation = useSignup()
   const requestOtpMutation = useRequestOTP()
   const verifyOtpMutation = useVerifyOTP()
+  const otpLoginMutation = useOtpLogin()
 
   const loading =
     signupMutation.isPending ||
     requestOtpMutation.isPending ||
-    verifyOtpMutation.isPending
+    verifyOtpMutation.isPending ||
+    otpLoginMutation.isPending
 
   const handleInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,7 +60,10 @@ export const SignupForm = () => {
         context: 'SIGNUP',
       },
       {
-        onSuccess: () => setStage('otp'),
+        onSuccess: (data: any) => {
+          setEffectiveContext(data.context)
+          setStage('otp')
+        },
       }
     )
   }
@@ -67,24 +73,36 @@ export const SignupForm = () => {
 
     const otpCode = otp.join('')
 
-    verifyOtpMutation.mutate(
-      {
-        email: formData.email,
-        otp: otpCode,
-        context: 'SIGNUP',
-      },
-      {
-        onSuccess: (res: any) => {
-          if (res.success) {
-            const { confirmPassword, ...signupPayload } = formData
-
-            signupMutation.mutate(signupPayload, {
-              onSuccess: () => setStage('success'),
-            })
+    if (effectiveContext === 'LOGIN') {
+      otpLoginMutation.mutate(
+        { email: formData.email, otp: otpCode },
+        {
+          onSuccess: () => {
+            // Success state or dashboard redirect handled by hook/router
+            window.location.href = '/dashboard'
           }
+        }
+      )
+    } else {
+      verifyOtpMutation.mutate(
+        {
+          email: formData.email,
+          otp: otpCode,
+          context: 'SIGNUP',
         },
-      }
-    )
+        {
+          onSuccess: (res: any) => {
+            if (res.success) {
+              const { confirmPassword, ...signupPayload } = formData
+
+              signupMutation.mutate(signupPayload, {
+                onSuccess: () => setStage('success'),
+              })
+            }
+          },
+        }
+      )
+    }
   }
 
   const handleOtpChange = (index: number, value: string) => {

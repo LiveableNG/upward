@@ -1,6 +1,8 @@
 import { getAccessToken, setAccessToken } from './auth-token'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
+const API_BASE = typeof window !== 'undefined' 
+  ? '/api/v1' 
+  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1')
 
 let isRefreshing = false
 let refreshPromise: Promise<string | null> | null = null

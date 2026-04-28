@@ -32,6 +32,8 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
   const [showPassword, setShowPassword] = useState(false)
   const [localError, setLocalError] = useState('')
 
+  const [effectiveContext, setEffectiveContext] = useState<'SIGNUP' | 'LOGIN'>('SIGNUP')
+
   const [isCheckingEmail, setIsCheckingEmail] = useState(false)
   const [emailExists, setEmailExists] = useState(false)
   const [hasPassword, setHasPassword] = useState(true)
@@ -58,9 +60,10 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
           setHasPassword(res.hasPassword ?? true)
           setIsInvited(res.isInvited ?? false)
           
-          if (res.exists) {
-            setShowExistsModal(true)
-          }
+          // No longer show modal immediately, we will handle it via seamless switch
+          // if (res.exists) {
+          //   setShowExistsModal(true)
+          // }
         } catch (err) {
           console.error('Email check failed', err)
         } finally {
@@ -82,14 +85,16 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
       return
     }
 
-    if (emailExists) {
-      setShowExistsModal(true)
-      return
-    }
-
     setIsRequestingOTP(true)
     try {
-      await requestOTP(email, 'SIGNUP')
+      const res: any = await requestOTP(email, 'SIGNUP')
+      setEffectiveContext(res.context || 'SIGNUP')
+      
+      if (res.context === 'LOGIN') {
+        // Show a temporary message or just proceed
+        console.log('Switched to login mode')
+      }
+      
       setStep('otp')
     } catch (err: any) {
       setLocalError(err.message || 'Failed to send verification code')
@@ -100,16 +105,27 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
 
   const handleVerifyOTP = async (otp: string) => {
     setOtpError(null)
-    signup({ 
-      email, 
-      password, 
-      firstName,
-      lastName,
-    })
+    
+    if (effectiveContext === 'LOGIN') {
+      try {
+        const { loginWithOTP } = await import('../../services/authService')
+        await loginWithOTP(email, otp)
+        onSignupSuccess(email, password)
+      } catch (err: any) {
+        setOtpError(err.message || 'Login failed')
+      }
+    } else {
+      signup({ 
+        email, 
+        password, 
+        firstName,
+        lastName,
+      })
+    }
   }
 
   const handleResendOTP = async () => {
-    await requestOTP(email, 'SIGNUP')
+    await requestOTP(email, effectiveContext)
   }
 
   if (step === 'otp') {

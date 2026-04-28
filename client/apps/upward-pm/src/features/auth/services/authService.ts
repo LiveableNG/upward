@@ -33,6 +33,15 @@ export const verifyOTP = async (email: string, otp: string, context: string) => 
   })
 }
 
+export const otpLogin = async (email: string, otp: string) => {
+  const res = await request<any>('/pm/auth/otp-login', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp })
+  })
+  if (res.accessToken) setAccessToken(res.accessToken)
+  return res
+}
+
 export const logout = async () => {
   await request('/pm/auth/logout', { method: 'POST' })
   setAccessToken(null)

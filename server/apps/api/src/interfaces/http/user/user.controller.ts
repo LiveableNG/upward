@@ -50,7 +50,6 @@ function setUserAuthCookies(reply: FastifyReply, accessToken: string, refreshTok
     sameSite: isProd ? 'none' : 'lax',
     path: '/',
     maxAge: 7 * 24 * 60 * 60, // 7 days
-    partitioned: isProd, // CHIPS support for cross-site mobile
   })
 
   reply.setCookie(ACCESS_COOKIE_NAME, accessToken, {
@@ -59,7 +58,6 @@ function setUserAuthCookies(reply: FastifyReply, accessToken: string, refreshTok
     sameSite: isProd ? 'none' : 'lax',
     path: '/',
     maxAge: 7 * 24 * 60 * 60, // 7 days (keep alive for middleware)
-    partitioned: isProd,
   })
 }
 
@@ -70,7 +68,6 @@ function clearUserAuthCookies(reply: FastifyReply) {
     httpOnly: true,
     secure: isProd,
     sameSite: (isProd ? 'none' : 'lax') as any,
-    partitioned: isProd,
   }
 
   reply.clearCookie(REFRESH_COOKIE_NAME, options)
@@ -257,8 +254,7 @@ export class UserController {
   @Post('request-otp')
   @HttpCode(HttpStatus.OK)
   async requestOTP(@Body() body: { email: string; context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' }) {
-    await this.userAuthService.requestOTP(body.email, body.context)
-    return { success: true, message: 'Verification code sent' }
+    return this.userAuthService.requestOTP(body.email, body.context)
   }
 
   @Post('verify-otp')
