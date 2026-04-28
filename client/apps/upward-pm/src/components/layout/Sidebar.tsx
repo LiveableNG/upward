@@ -52,7 +52,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
         </button>
 
         <div className="sidebar__header">
-          <Link href="/dashboard" className="sidebar__logo">
+          <Link href="/dashboard" className="sidebar__logo" onClick={onClose}>
             <UpwardLogo size={32} color="var(--forest)" />
             {(!isCollapsed || isOpen) && <span className="sidebar__brand">{user?.firstName || 'Upward'}</span>}
           </Link>
@@ -79,6 +79,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
                         isActive && 'sidebar__link--active'
                       )}
                       title={isCollapsed ? item.label : undefined}
+                      onClick={onClose}
                     >
                       <Icon size={20} />
                       {(!isCollapsed || isOpen) && <span>{item.label}</span>}
@@ -90,12 +91,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
           </div>
 
           <div className="sidebar__section sidebar__section--bottom">
-            <button className="sidebar__add-btn forest-gradient">
-              <PlusCircle size={18} />
-              {(!isCollapsed || isOpen) && <span>Add Property</span>}
-            </button>
-            
-            <button className="sidebar__logout-btn" onClick={logout}>
+            <button className="sidebar__logout-btn" onClick={() => { logout(); onClose?.(); }}>
               <LogOut size={18} />
               {(!isCollapsed || isOpen) && <span>Logout</span>}
             </button>

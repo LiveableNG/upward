@@ -49,7 +49,6 @@ export default function RootLayout({
                 <main className="layout__main">
                   {children}
                 </main>
-                <BottomNav />
               </div>
             </div>
           )}
