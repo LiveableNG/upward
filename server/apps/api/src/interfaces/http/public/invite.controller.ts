@@ -15,7 +15,7 @@ interface FastifyReply {
 }
 
 const REFRESH_COOKIE_NAME = 'user_refresh'
-const ACCESS_COOKIE_NAME = 'access_token'
+const ACCESS_COOKIE_NAME = 'pay_access_token'
 
 function setUserAuthCookies(reply: FastifyReply, accessToken: string, refreshToken: string) {
   const isProd = process.env['NODE_ENV'] === 'production' || !!process.env['VERCEL']
@@ -144,7 +144,7 @@ export class InviteController {
   @Post(':token/accept')
   async acceptInvite(
     @Param('token') token: string,
-    @Body() data: { password?: string; otp: string },
+    @Body() data: { password?: string; otp?: string },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
     const vt = await this.tokenRepository.findByToken(token)
@@ -155,10 +155,13 @@ export class InviteController {
     const user = await this.userRepository.findByUuid(vt.identifier)
     if (!user) throw new NotFoundException('Invite not found')
 
-    // Verify OTP again during acceptance for final security check
-    const verification = await this.userAuthService.verifyOTP(user.email, data.otp, 'INVITE')
-    if (!verification.success) {
-      throw new BadRequestException(verification.message || 'Invalid or expired verification code')
+    // Verify OTP if provided. For some flows (like onboarding after payment), 
+    // the invite token itself is sufficient proof of access.
+    if (data.otp) {
+      const verification = await this.userAuthService.verifyOTP(user.email, data.otp, 'INVITE')
+      if (!verification.success) {
+        throw new BadRequestException(verification.message || 'Invalid or expired verification code')
+      }
     }
 
     if (!data.password) {

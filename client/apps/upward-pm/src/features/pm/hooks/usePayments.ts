@@ -1,0 +1,22 @@
+import { useQuery, useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { api } from '@/lib/api'
+import { CreatePaymentRequestDto } from '../services/paymentService'
+
+export const usePaymentRequests = () => {
+  return useSuspenseQuery({
+    queryKey: ['pm-payment-requests'],
+    queryFn: () => api.getPaymentRequests()
+  })
+}
+
+export const useCreatePaymentRequest = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (data: CreatePaymentRequestDto) => api.createPaymentRequest(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pm-payment-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-units'] })
+    }
+  })
+}

@@ -61,7 +61,7 @@ function SignupPageContent() {
         if (Capacitor.isNativePlatform()) {
           setMode('biometrics')
         } else {
-          router.push('/dashboard')
+          window.location.href = '/dashboard'
         }
       }}
     />

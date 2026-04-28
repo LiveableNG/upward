@@ -31,7 +31,7 @@ export const TenantAssignmentSection: React.FC<TenantAssignmentSectionProps> = (
   }
 
   const currentTenant = unit.tenant
-  const isOnUpward = currentTenant?.inviteStatus === 'ON_UPWARD' || currentTenant?.inviteStatus === 'ACCEPTED'
+  const isInvitedOrActive = currentTenant?.inviteStatus === 'ON_UPWARD' || currentTenant?.inviteStatus === 'ACCEPTED' || currentTenant?.inviteStatus === 'SENT'
   const isSynced = unit.isSynced
 
   return (
@@ -78,7 +78,7 @@ export const TenantAssignmentSection: React.FC<TenantAssignmentSectionProps> = (
                 </span>
               ) : (
                 <span className="badge badge--on-upward" style={{ fontSize: 10 }}>
-                  {currentTenant.inviteStatus === 'ACCEPTED' ? 'Active' : currentTenant.inviteStatus.replace('_', ' ')}
+                  {currentTenant.inviteStatus === 'ACCEPTED' ? 'Active' : currentTenant.inviteStatus?.replace('_', ' ')}
                 </span>
               )}
               <button className="btn btn--danger btn--sm" onClick={() => setIsUnassignConfirmOpen(true)}>
@@ -92,20 +92,20 @@ export const TenantAssignmentSection: React.FC<TenantAssignmentSectionProps> = (
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16 }}>
                 <Info size={16} style={{ color: 'var(--clay)', marginTop: 2, flexShrink: 0 }} />
                 <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                  <strong>Verify & Sync:</strong> Linking this unit to the tenant's Upward account allows them to see it in their "Properties" list and receive official payment requests. This also grants this unit a <strong>Verified</strong> badge.
+                  <strong>Verify & Sync:</strong> Linking this unit to the tenant's account allows them to see it in their "Properties" list and receive official payment requests. <strong>Note:</strong> Tenants can pay as guests even if they haven't set a password yet.
                 </p>
               </div>
               
               <button 
-                className={`btn ${isOnUpward ? 'btn--primary' : 'btn--secondary'} btn--sm`} 
+                className={`btn ${isInvitedOrActive ? 'btn--primary' : 'btn--secondary'} btn--sm`} 
                 style={{ width: '100%', justifyContent: 'center', gap: 8 }}
-                disabled={!isOnUpward || isSyncing}
+                disabled={!isInvitedOrActive || isSyncing}
                 onClick={() => syncToUpward(unit.uuid)}
               >
                 {isSyncing ? 'Syncing...' : (
                   <>
                     <ShieldCheck size={16} />
-                    {isOnUpward ? 'Verify & Sync to Upward Pay' : 'Tenant must be on Upward to Sync'}
+                    {isInvitedOrActive ? 'Verify & Sync to Upward Pay' : 'Tenant must be invited to Sync'}
                   </>
                 )}
               </button>

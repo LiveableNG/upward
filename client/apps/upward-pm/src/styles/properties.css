@@ -190,6 +190,41 @@
 .badge--invited { background: rgba(59, 130, 246, 0.08); color: var(--info); }
 .badge--unlinked { background: var(--ivory-dark); color: var(--text-muted); }
 
+.unit-card__request-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--forest-faint);
+  color: var(--forest);
+  border: 1px solid var(--forest);
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.unit-card__request-btn:hover {
+  background: var(--forest);
+  color: white;
+}
+
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--clay);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
 .unit-card__body {
   padding: var(--space-5);
 }

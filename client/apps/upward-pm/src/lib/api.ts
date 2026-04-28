@@ -3,6 +3,7 @@ import { request } from './api-client'
 import * as authService from '@/features/auth/services/authService'
 import * as pmService from '@/features/pm/services/pmService'
 import * as propertyService from '@/features/pm/services/propertyService'
+import * as paymentService from '@/features/pm/services/paymentService'
 
 export const api = {
   // Auth & Profile
@@ -33,6 +34,10 @@ export const api = {
   bulkCreateUnits: propertyService.bulkCreateUnits,
   syncToUpward: propertyService.syncToUpward,
   getPropertyImageUploadUrl: propertyService.getPropertyImageUploadUrl,
+  
+  // Payments
+  getPaymentRequests: paymentService.getPaymentRequests,
+  createPaymentRequest: paymentService.createPaymentRequest,
 
   // Generic Helpers
   get: <T = any>(url: string) => request<T>(url, { method: 'GET' }),

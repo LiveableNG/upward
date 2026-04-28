@@ -115,7 +115,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
                 rentStartDate: '',
                 rentDueDate: 1,
                 rentFrequency: 'Monthly',
-                status: 'OCCUPIED' 
+                status: 'VACANT' 
               }])}>
                 <Plus size={16} /> Add Row
               </button>

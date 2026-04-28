@@ -288,7 +288,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     }
     setIsSubmitting(true)
     try {
-      const res = await api.post(`/public/invite/${paymentData.user.uuid}/accept`, {
+      const res = await api.post(`/public/invite/${paymentData.inviteToken || paymentData.user.uuid}/accept`, {
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -300,7 +300,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
         if (res.user && res.accessToken) {
           setCookie('pay_access_token', res.accessToken)
           login(res.user)
-          router.push('/dashboard')
+          window.location.href = '/dashboard'
         } else {
           router.push('/login')
         }

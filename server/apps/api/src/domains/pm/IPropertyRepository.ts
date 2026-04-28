@@ -1,5 +1,6 @@
 export const PM_PROPERTY_REPOSITORY = Symbol('PM_PROPERTY_REPOSITORY');
 export const PM_UNIT_REPOSITORY = Symbol('PM_UNIT_REPOSITORY');
+export const PM_PAYMENT_REQUEST_REPOSITORY = Symbol('PM_PAYMENT_REQUEST_REPOSITORY');
 
 export interface PropertyEntity {
   id: number;
@@ -87,8 +88,40 @@ export const PM_TENANT_REPOSITORY = Symbol('PM_TENANT_REPOSITORY');
 
 export interface ITenantRepository {
   findByPmId(pmId: number): Promise<TenantEntity[]>;
+  findById(id: number): Promise<TenantEntity | null>;
   findByUuid(uuid: string): Promise<TenantEntity | null>;
   findByEmailHash(pmId: number, emailHash: string): Promise<TenantEntity | null>;
   create(data: Omit<TenantEntity, 'id' | 'uuid'>): Promise<TenantEntity>;
   update(uuid: string, data: Partial<Omit<TenantEntity, 'id' | 'uuid' | 'pmId'>>): Promise<TenantEntity>;
+}
+
+export interface PmPaymentRequestEntity {
+  id: number;
+  uuid: string;
+  pmId: number;
+  unitId: number;
+  tenantId: number | null;
+  paymentRequestId: number | null;
+  coreRequestUuid?: string | null;
+  amount: number;
+  currency: string;
+  description: string | null;
+  dueDate: Date;
+  status: string;
+  amountPaid: number;
+  allowPartial: boolean;
+  minAmount: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+  
+  unit?: UnitEntity;
+  tenant?: TenantEntity;
+}
+
+export interface IPmPaymentRequestRepository {
+  create(data: Omit<PmPaymentRequestEntity, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: any): Promise<PmPaymentRequestEntity>;
+  findByPmId(pmId: number): Promise<PmPaymentRequestEntity[]>;
+  findByUuid(uuid: string): Promise<PmPaymentRequestEntity | null>;
+  findByPaymentRequestId(paymentRequestId: number, tx?: any): Promise<PmPaymentRequestEntity | null>;
+  update(uuid: string, data: Partial<PmPaymentRequestEntity>, tx?: any): Promise<PmPaymentRequestEntity>;
 }

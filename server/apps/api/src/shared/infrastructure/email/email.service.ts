@@ -483,7 +483,7 @@ export class EmailService {
               <span class="manager-label">Invited by Manager</span>
               <span class="manager-name">${pmName}</span>
             </div>
-
+ 
             <p>With Upward, you can securely pay rent, view your payment history, and build your rental credibility all in one place.</p>
             
             <a href="${inviteLink}" class="btn">Accept Invitation & Get Started</a>
@@ -498,7 +498,7 @@ export class EmailService {
       </body>
       </html>
     `;
-
+ 
     try {
       const result = await this.mg.messages.create(domain, {
         from,
@@ -509,6 +509,90 @@ export class EmailService {
       return !!result.id;
     } catch (error) {
       this.logger.error(`Failed to send tenant invite email to ${email}`, error);
+      return false;
+    }
+  }
+
+  async sendPaymentRequestEmail(params: {
+    email: string;
+    tenantName: string;
+    pmName: string;
+    amount: number;
+    currency: string;
+    dueDate: string | Date;
+    description?: string;
+    paymentLink: string;
+  }): Promise<boolean> {
+    const { email, tenantName, pmName, amount, currency, dueDate, description, paymentLink } = params;
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN');
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+          body { font-family: 'Inter', -apple-system, sans-serif; background-color: #fdfcfb; color: #1a1a1a; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e8e6e1; box-shadow: 0 10px 25px rgba(13, 77, 43, 0.05); }
+          .header { background-color: #0d4d2b; padding: 40px; text-align: left; }
+          .content { padding: 48px; }
+          .logo-text { color: #fdfcfb; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; display: block; }
+          .logo-sub { color: rgba(253, 252, 251, 0.7); font-size: 12px; }
+          h1 { font-size: 24px; font-weight: 700; color: #0d4d2b; margin-bottom: 24px; line-height: 1.3; }
+          p { font-size: 16px; line-height: 1.7; color: #4a4a4a; margin-bottom: 24px; }
+          .payment-badge { background-color: #f0f7f2; border: 1px solid #d1e7d8; padding: 24px; border-radius: 16px; margin-bottom: 32px; }
+          .payment-label { font-size: 11px; font-weight: 700; color: #0d4d2b; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; display: block; }
+          .payment-amount { font-size: 32px; font-weight: 800; color: #1a1a1a; margin-bottom: 8px; display: block; }
+          .payment-meta { font-size: 14px; color: #666; display: block; margin-top: 4px; }
+          .btn { background-color: #0d4d2b; color: #fdfcfb !important; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block; transition: background-color 0.2s; text-align: center; width: 100%; box-sizing: border-box; }
+          .footer { padding: 32px 48px; border-top: 1px solid #f0eee9; background-color: #faf9f6; }
+          .footer-text { font-size: 13px; color: #8c8c8c; line-height: 1.6; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <span class="logo-text">Upward</span>
+            <span class="logo-sub">Payment Request</span>
+          </div>
+          <div class="content">
+            <h1>Payment Request from ${pmName}</h1>
+            <p>Hello ${tenantName}, you have a new payment request for your property.</p>
+            
+            <div class="payment-badge">
+              <span class="payment-label">Amount Due</span>
+              <span class="payment-amount">${currency} ${amount.toLocaleString()}</span>
+              <span class="payment-meta"><strong>Due Date:</strong> ${new Date(dueDate).toLocaleDateString()}</span>
+              ${description ? `<span class="payment-meta"><strong>Description:</strong> ${description}</span>` : ''}
+            </div>
+
+            <p>Please use the button below to view the breakdown and make your payment securely.</p>
+            
+            <a href="${paymentLink}" class="btn">View & Pay Now</a>
+          </div>
+          <div class="footer">
+            <p class="footer-text">
+              If you have any questions about this request, please contact your property manager directly.<br>
+              © 2026 Upward by GoodTenants. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    try {
+      const result = await this.mg.messages.create(domain, {
+        from,
+        to: [email],
+        subject: `New Payment Request: ${currency} ${amount.toLocaleString()} from ${pmName}`,
+        html,
+      });
+      return !!result.id;
+    } catch (error) {
+      this.logger.error(`Failed to send payment request email to ${email}`, error);
       return false;
     }
   }
