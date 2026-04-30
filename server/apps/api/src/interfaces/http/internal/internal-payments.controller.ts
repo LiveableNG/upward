@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common'
+ import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common'
 import { CreateManualPaymentRequestUseCase } from '../../../application/use-cases/payments/payment.use-cases'
 
 @Controller('internal/payments')
