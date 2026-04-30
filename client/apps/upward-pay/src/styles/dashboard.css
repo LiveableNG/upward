@@ -49,7 +49,6 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: nowrap;
   padding: var(--space-3) var(--space-5);
   background: var(--surface);
   backdrop-filter: blur(16px) saturate(180%);
@@ -74,8 +73,6 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-width: 0;
-  flex: 1;
 }
 
 .dashboard__avatar {
@@ -113,9 +110,8 @@
 
 .dashboard__header-right {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex-shrink: 0;
+  gap: var(--space-4);
+  padding-top: var(--space-1);
 }
 
 .dashboard__header-nav {
@@ -140,12 +136,6 @@
   background: var(--surface2);
   border-color: var(--clay);
   color: var(--clay);
-}
-
-.truncate-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .dashboard__logout {
