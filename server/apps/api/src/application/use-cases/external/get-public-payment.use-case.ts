@@ -6,7 +6,7 @@ import {
   IPaymentLineItemRepository,
 } from '../../../domains/payments/payment.repository'
 import { PROPERTY_REPOSITORY, PropertyRepository } from '../../../domains/companies/property.repository'
-import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import { USER_REPOSITORY, UserRepository, PASS_PLACEHOLDERS } from '../../../domains/users/user.repository'
 import { COMPANY_REPOSITORY, CompanyRepository, MANAGER_REPOSITORY, ManagerRepository } from '../../../domains/companies/company.repository'
 import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../domains/payments/payment.repository'
 import { VERIFICATION_TOKEN_REPOSITORY, VerificationTokenRepository } from '../../../domains/auth/verification-token.repository'
@@ -82,7 +82,11 @@ export class GetPublicPaymentDetailsUseCase {
     }
 
     let inviteToken = null
-    if (user.passwordHash === 'INVITED') {
+    const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
+                     user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+                     !!(user.passwordHash && !user.passwordHash.startsWith('$2'));
+    
+    if (isShadow) {
       const validToken = await this.tokenRepository.findByIdentifier(user.uuid, 'INVITE')
       if (validToken && validToken.expiresAt > new Date()) {
         inviteToken = validToken.token
@@ -137,7 +141,7 @@ export class GetPublicPaymentDetailsUseCase {
         firstName: manager.firstName,
         lastName: manager.lastName,
       } : null,
-      hasPassword: user.passwordHash !== 'INVITED',
+      hasPassword: !!user.passwordHash && user.passwordHash.startsWith('$2'),
       inviteToken: inviteToken,
     }
   }
