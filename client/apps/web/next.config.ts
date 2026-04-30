@@ -4,16 +4,18 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://upward-pay.vercel.ap
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@upward/shared-types'],
-  trailingSlash: true,
+  images: {
+    unoptimized: true,
+  },
   async rewrites() {
     return [
       {
         source: '/login',
-        destination: `${APP_URL}/login/`,
+        destination: `${APP_URL}/login`,
       },
       {
         source: '/signup',
-        destination: `${APP_URL}/signup/`,
+        destination: `${APP_URL}/signup`,
       },
       {
         source: '/dashboard/:path*',
@@ -37,7 +39,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/forgot-password',
-        destination: `${APP_URL}/forgot-password/`,
+        destination: `${APP_URL}/forgot-password`,
       },
       {
         source: '/api/v1/:path*',
