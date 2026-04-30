@@ -74,7 +74,7 @@ function ProfileMenuContentInner() {
 
   const validatePhone = (val: string) => {
     if (!val) return ''
-    if (!phoneRegex.test(val)) return 'Format: +2348000000000'
+    if (!phoneRegex.test(val)) return '+2348000000000'
     return ''
   }
 

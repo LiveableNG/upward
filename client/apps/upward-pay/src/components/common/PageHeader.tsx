@@ -52,8 +52,8 @@ export function PageHeader({
   const effectiveBackLabel = backLabel || (backPath === '/dashboard' ? 'Back to Dashboard' : 'Back')
 
   return (
-    <header className="dashboard__header page-header-sticky mobile-only">
-      <div className="dashboard__header-left">
+    <header className="dashboard__header page-header-sticky">
+      <div className="dashboard__header-left" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
         {showBack && (
           <button
             className="dashboard__back"
@@ -64,10 +64,10 @@ export function PageHeader({
             <ArrowLeft size={20} />
           </button>
         )}
-        <h1 className="dashboard__title truncate-text" style={{ flex: 1, minWidth: 0 }}>{title}</h1>
+        <h1 className="dashboard__title truncate-text" style={{ flex: 1, minWidth: 0, margin: 0 }}>{title}</h1>
         {statusBadge && <div className="page-header__badge">{statusBadge}</div>}
       </div>
-      <div className="dashboard__header-right">
+      <div className="dashboard__header-right" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
         {rightElement ? (
           rightElement
         ) : (
