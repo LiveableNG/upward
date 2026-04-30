@@ -109,6 +109,8 @@ export class GetPublicPaymentDetailsUseCase {
         subaccountCode: subaccountCode,
         allowPartial: paymentRequest.allowPartial || false,
         minAmount: paymentRequest.minAmount || undefined,
+        maxPartialAmount: paymentRequest.minAmount ? Math.max(0, (paymentRequest.amount - (paymentRequest.amountPaid || 0)) - paymentRequest.minAmount) : (paymentRequest.amount - (paymentRequest.amountPaid || 0)),
+        remainingBalance: paymentRequest.amount - (paymentRequest.amountPaid || 0),
         lineItemRecords: lineItemRecords,
         verifiedRecipientName: verifiedRecipientName,
       },
