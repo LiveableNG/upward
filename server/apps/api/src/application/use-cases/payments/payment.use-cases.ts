@@ -21,6 +21,8 @@ import {
   IPaymentLineItemRepository,
   SavedLandlord,
   Transaction,
+  SUBACCOUNT_REPOSITORY,
+  ISubaccountRepository,
 } from '../../../domains/payments/payment.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { PROPERTY_REPOSITORY, PropertyRepository } from '../../../domains/companies/property.repository'
@@ -29,7 +31,97 @@ import { PM_PAYMENT_REQUEST_REPOSITORY, IPmPaymentRequestRepository } from '../.
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
+
 @Injectable()
+export class CreateManualPaymentRequestUseCase {
+  constructor(
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: UserRepository,
+    @Inject(PAYMENT_GATEWAY)
+    private readonly paymentGateway: IPaymentGateway,
+    @Inject(SAVED_LANDLORD_REPOSITORY)
+    private readonly landlordRepo: ISavedLandlordRepository,
+    @Inject(SUBACCOUNT_REPOSITORY)
+    private readonly subaccountRepo: ISubaccountRepository,
+    @Inject(PAYMENT_REQUEST_REPOSITORY)
+    private readonly paymentRequestRepo: IPaymentRequestRepository,
+    @Inject(PROPERTY_REPOSITORY)
+    private readonly propertyRepo: PropertyRepository,
+  ) {}
+
+  async execute(data: {
+    userId: string
+    amount: number
+    landlordUuid?: string
+    landlordDetails?: {
+      accountNumber: string
+      bankCode: string
+      name: string
+    }
+    propertyUuid?: string
+    metadata?: any
+  }) {
+    const user = await this.userRepository.findByUuid(data.userId)
+    if (!user) throw new Error('User not found')
+
+    let subaccountId: number | undefined
+
+    if (data.landlordUuid) {
+      const landlord = await this.landlordRepo.findByUuid(data.landlordUuid)
+      if (landlord) {
+        subaccountId = landlord.subaccountId
+        if (!subaccountId) {
+          const sub = await this.paymentGateway.findOrCreateSubaccount({
+            accountNumber: landlord.accountNumber,
+            bankCode: landlord.bankCode,
+            businessName: landlord.name,
+          })
+          subaccountId = sub?.id
+        }
+      }
+    } else if (data.landlordDetails) {
+      const subaccount = await this.paymentGateway.findOrCreateSubaccount({
+        businessName: data.landlordDetails.name,
+        bankCode: data.landlordDetails.bankCode,
+        accountNumber: data.landlordDetails.accountNumber,
+      })
+      subaccountId = subaccount?.id
+    }
+
+    let userPropertyId: number | undefined
+    let dueDate = new Date()
+
+    if (data.propertyUuid) {
+      const prop = await this.propertyRepo.findByUuid(data.propertyUuid)
+      if (prop) {
+        userPropertyId = prop.id
+        if (prop.rentEndDate) {
+          dueDate = prop.rentEndDate
+        }
+      }
+    }
+
+    const paymentRequest = await this.paymentRequestRepo.create({
+      userId: user.id!,
+      amount: data.amount,
+      currency: 'NGN',
+      description: data.metadata?.narration || 'Self-initiated Payment',
+      dueDate,
+      status: 'PENDING',
+      allowPartial: false,
+      subaccountId: subaccountId,
+      userPropertyId,
+      reference: `MNL_${Date.now()}`,
+    })
+
+    return {
+      uuid: paymentRequest.uuid,
+    }
+  }
+}
+
+@Injectable()
+
 export class SaveLandlordUseCase {
   constructor(
     @Inject(SAVED_LANDLORD_REPOSITORY)

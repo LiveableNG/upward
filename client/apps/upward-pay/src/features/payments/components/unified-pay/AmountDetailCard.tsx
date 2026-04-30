@@ -10,6 +10,7 @@ interface AmountDetailCardProps {
   dueDate: string
   parsedAmount: number
   progressPct: number
+  label?: string
 }
 
 export function AmountDetailCard({
@@ -17,12 +18,13 @@ export function AmountDetailCard({
   currency,
   dueDate,
   parsedAmount,
-  progressPct
+  progressPct,
+  label = 'Amount Outstanding'
 }: AmountDetailCardProps) {
   return (
     <div className="pay-amount-card">
       <div className="pay-amount-card__main">
-        <span className="pay-amount-card__label">Amount Outstanding</span>
+        <span className="pay-amount-card__label">{label}</span>
         <div className="pay-amount-card__value">{formatCurrency(totalOwed, currency)}</div>
         {dueDate && !isNaN(new Date(dueDate).getTime()) && (
           <div className="pay-amount-card__due">

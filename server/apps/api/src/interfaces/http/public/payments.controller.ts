@@ -25,6 +25,7 @@ import {
   GetPendingPaymentsUseCase,
   ResolveSubaccountUseCase,
   GetPropertyBalanceUseCase,
+  CreateManualPaymentRequestUseCase,
 } from '../../../application/use-cases/payments/payment.use-cases'
 
 @Controller('payments')
@@ -41,6 +42,7 @@ export class PaymentsController {
     private readonly getPendingPaymentsUc: GetPendingPaymentsUseCase,
     private readonly resolveSubaccountUc: ResolveSubaccountUseCase,
     private readonly getPropertyBalanceUc: GetPropertyBalanceUseCase,
+    private readonly createManualRequestUc: CreateManualPaymentRequestUseCase,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -104,6 +106,20 @@ export class PaymentsController {
       propertyAddress: body.propertyAddress,
       userPropertyUuid: body.userPropertyUuid,
       currency: body.currency || 'NGN',
+    })
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('initialize-manual')
+  async initializeManual(@Req() req: any, @Body() body: any) {
+    const userId = req.user.id
+    return this.createManualRequestUc.execute({
+      userId,
+      amount: body.amount,
+      landlordUuid: body.landlordUuid,
+      landlordDetails: body.landlordDetails,
+      propertyUuid: body.propertyUuid,
+      metadata: body.metadata,
     })
   }
 

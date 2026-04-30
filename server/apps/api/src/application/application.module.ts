@@ -146,6 +146,7 @@ import {
   GetPendingPaymentsUseCase,
   ResolveSubaccountUseCase,
   GetPropertyBalanceUseCase,
+  CreateManualPaymentRequestUseCase,
 } from './use-cases/payments/payment.use-cases'
 
 import { UploadContractUseCase } from './use-cases/contracts/upload-contract.use-case'
@@ -299,6 +300,7 @@ const UseCases = [
   BulkCreateTenantRecordsUseCase,
   BulkInviteTenantsUseCase,
   BulkFullImportUseCase,
+  CreateManualPaymentRequestUseCase,
 
   RejectCredibilityRequestUseCase,
 ]
