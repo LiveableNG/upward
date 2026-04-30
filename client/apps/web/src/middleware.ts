@@ -59,6 +59,7 @@ export function middleware(request: NextRequest) {
                       pathname.startsWith('/pay') ||
                       pathname.startsWith('/profile') ||
                       pathname.startsWith('/invite') ||
+                      pathname.startsWith('/fill-record') ||
                       pathname.startsWith('/.well-known')
 
   if (shouldProxy) {
@@ -95,6 +96,7 @@ export const config = {
     '/api/v1/:path*',
     '/welcome/:path*',
     '/invite/:path*',
+    '/fill-record/:path*',
     '/.well-known/:path*'
   ],
 }

@@ -64,7 +64,7 @@ export function PageHeader({
             <ArrowLeft size={20} />
           </button>
         )}
-        <h1 className="dashboard__title">{title}</h1>
+        <h1 className="dashboard__title truncate-text" style={{ flex: 1, minWidth: 0 }}>{title}</h1>
         {statusBadge && <div className="page-header__badge">{statusBadge}</div>}
       </div>
       <div className="dashboard__header-right">

@@ -47,8 +47,10 @@ export class RequestCredibilityRecordsUseCase {
 
     const requestEmail = input.requestContactDetails.email;
     if (requestEmail) {
-      const pmUrl = this.configService.get<string>('PM_APP_URL') || 'http://localhost:3002';
-      const requestLink = `${pmUrl}/public/requests/${request.uuid}`;
+      const payUrl = this.configService.get<string>('PAY_APP_URL') || 
+                     this.configService.get<string>('FRONTEND_URL')?.split(',')[0] || 
+                     'https://upward-pay.vercel.app';
+      const requestLink = `${payUrl}/fill-record/${request.uuid}`;
       
       const property = await this.prisma.upward_user_property.findUnique({
         where: { uuid: input.propertyUuid },
