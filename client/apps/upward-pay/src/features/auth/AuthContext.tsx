@@ -41,8 +41,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (err) {
       console.error('[Auth] Refresh failed:', err)
-      setUser(null)
-      setAccessToken(null)
+      // Call logout to clear any stale cookies and break potential redirect loops
+      await logout()
     } finally {
       console.log('[Auth] Refresh done, setting loading=false')
       setLoading(false)

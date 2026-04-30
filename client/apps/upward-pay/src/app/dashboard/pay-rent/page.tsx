@@ -350,6 +350,32 @@ export default function PayRentPage() {
               requestedAmount={requestedAmount}
               totalPaidAlready={totalPaidAlready}
               onConfirm={() => setStep('checkout')}
+              onManualConfirm={async () => {
+                try {
+                  const res = await api.createManualPaymentRequest({
+                    amount: payAmount,
+                    landlordUuid: selectedLandlord.uuid,
+                    landlordDetails: (selectedLandlord as any).isNewLocal ? {
+                      accountNumber: selectedLandlord.accountNumber,
+                      bankCode: selectedLandlord.bankCode,
+                      name: selectedLandlord.name
+                    } : undefined,
+                    propertyUuid: selectedPropertyUuid || undefined,
+                    metadata: {
+                      narration: narration || `Manual Payment for ${propertyAddress}`,
+                      propertyAddress,
+                      userPropertyUuid: selectedPropertyUuid || undefined,
+                      paymentType,
+                      lineItems: lineItems.length > 0 ? lineItems : undefined,
+                    }
+                  })
+                  if (res.uuid) {
+                    router.push(`/pay/${res.uuid}`)
+                  }
+                } catch (e) {
+                  console.error('Failed to create manual payment request:', e)
+                }
+              }}
               onEditAmount={() => setPayAmount(0)}
               onBack={handleBack}
               lineItems={lineItems}

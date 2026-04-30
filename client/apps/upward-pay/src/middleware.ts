@@ -49,13 +49,19 @@ export function middleware(request: NextRequest) {
 }
 export const config = {
   matcher: [
+    '/dashboard',
     '/dashboard/:path*', 
+    '/profile',
     '/profile/:path*',
+    '/settings',
     '/settings/:path*',
+    '/kyc',
     '/kyc/:path*',
+    '/transactions',
     '/transactions/:path*',
     '/login',
     '/signup',
+    '/invite',
     '/invite/:path*',
     '/forgot-password',
     '/reset-password'

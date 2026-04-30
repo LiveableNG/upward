@@ -101,3 +101,20 @@ export async function resolveSubaccount(accountNumber: string, bankCode: string,
 export async function getPropertyBalance(propertyUuid: string) {
   return request<any>(`/payments/property-balance/${propertyUuid}`, { method: 'GET' })
 }
+
+export async function createManualPaymentRequest(data: {
+  amount: number
+  landlordUuid?: string
+  landlordDetails?: {
+    accountNumber: string
+    bankCode: string
+    name: string
+  }
+  propertyUuid?: string
+  metadata?: any
+}) {
+  return request<{ uuid: string }>('/payments/initialize-manual', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}

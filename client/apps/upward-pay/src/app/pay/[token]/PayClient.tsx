@@ -373,6 +373,12 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                     dueDate={paymentData.payment.dueDate}
                     parsedAmount={isGuest ? totalOwed : parsedAmount}
                     progressPct={isGuest ? 0 : progressPct}
+                    label={
+                      paymentData.payment?.description?.includes('Manual') || 
+                      paymentData.payment?.description?.includes('Self-initiated') 
+                        ? 'Total to Pay' 
+                        : 'Amount Outstanding'
+                    }
                   />
                 </div>
 

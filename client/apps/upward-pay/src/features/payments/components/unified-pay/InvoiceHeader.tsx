@@ -24,7 +24,7 @@ export function InvoiceHeader({ companyName, description, logo, propertyAddress,
         )}
       </div>
       <div className="pay-invoice-header__info">
-        <span className="pay-invoice-header__tag">Secure Invoice</span>
+        <span className="pay-invoice-header__tag">Secure Payment</span>
         <div className="pay-invoice-header__title-container">
           <h1 className="pay-invoice-header__title">{companyName}</h1>
           {isVerified && (

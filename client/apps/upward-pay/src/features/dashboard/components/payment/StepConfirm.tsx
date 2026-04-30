@@ -13,8 +13,8 @@ export function StepConfirm({
   paymentType = 'Rent Payment',
   propertyAddress = '',
   onConfirm,
+  onManualConfirm,
   onEditAmount,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onBack,
   isPriorityRequest,
   lineItems = [],
@@ -28,6 +28,7 @@ export function StepConfirm({
   paymentType?: string
   propertyAddress?: string
   onConfirm: () => void
+  onManualConfirm?: () => void
   onEditAmount?: () => void
   onBack: () => void
   isPriorityRequest?: boolean
@@ -156,6 +157,16 @@ export function StepConfirm({
       >
         Confirm & Pay
       </button>
+
+      {onManualConfirm && (
+        <button
+          onClick={onManualConfirm}
+          className="btn btn--secondary btn--full"
+          style={{ height: 56, fontSize: 16, border: '1px solid var(--border-solid)' }}
+        >
+          Create Payment Link
+        </button>
+      )}
     </div>
   )
 }
