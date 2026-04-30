@@ -230,7 +230,7 @@ export function Header({
         <button
           className="mobile-hide"
           onClick={() => {
-            if (trackInteraction) trackInteraction('CLICK', 'HEADER_OPEN_APP')
+            if (trackInteraction) trackInteraction('CLICK', 'HEADER_GET_STARTED')
             window.location.href = '/signup'
           }}
           style={{
@@ -264,7 +264,7 @@ export function Header({
             e.currentTarget.style.background = 'var(--accent)'
           }}
         >
-          Open App
+          Get Started
           <div
             style={{
               position: 'absolute',
@@ -488,7 +488,7 @@ export function Header({
                 gap: '12px',
               }}
             >
-              Open App
+              Get Started
               <div
                 style={{
                   position: 'absolute',

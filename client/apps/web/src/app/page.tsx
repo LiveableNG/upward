@@ -7,7 +7,6 @@ import { BenefitsGrid } from '@/components/sections/benefits-grid'
 import { WhyUpwardPage } from '@/components/sections/why-upward-page'
 import { TellAFriend } from '@/components/sections/tell-a-friend'
 import { PartnersBar } from '@/components/sections/partners-bar'
-import { AmbassadorSection } from '@/components/sections/ambassador-section'
 import { FairHousingPage } from '@/components/sections/fair-housing-page'
 
 export default function HomePage() {
@@ -180,11 +179,6 @@ export default function HomePage() {
             </div>
 
             <div className="divider" />
-
-            <AmbassadorSection
-              onOpenSignup={() => openSignup()}
-              trackInteraction={trackInteraction}
-            />
 
             <div className="divider" />
 
