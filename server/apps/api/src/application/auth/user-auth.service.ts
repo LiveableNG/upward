@@ -376,9 +376,21 @@ export class UserAuthService extends BaseAuthService {
       if (prop.companyName !== undefined) {
         if (prop.companyName && prop.companyName.trim() !== '') {
           const nameHash = this.encryption.hash(prop.companyName)
-          let company = await this.prisma.upward_company.findFirst({
-            where: { nameHash }
-          })
+          const companyEmailHash = prop.companyEmail ? this.encryption.hash(prop.companyEmail) : null
+          
+          let company = null
+          
+          if (companyEmailHash) {
+            company = await this.prisma.upward_company.findUnique({
+              where: { emailHash: companyEmailHash }
+            })
+          }
+          
+          if (!company) {
+            company = await this.prisma.upward_company.findFirst({
+              where: { nameHash }
+            })
+          }
           if (!company) {
             company = await this.prisma.upward_company.create({
               data: { 
@@ -442,9 +454,24 @@ export class UserAuthService extends BaseAuthService {
           }
 
           const firstNameHash = this.encryption.hash(prop.managerName)
-          let manager = await this.prisma.upward_manager.findFirst({
-            where: { firstNameHash, companyId: managerCompanyId }
-          })
+          const managerEmailHash = prop.managerEmail ? this.encryption.hash(prop.managerEmail) : null
+          
+          let manager = null
+          
+          // Try finding by email first as it is unique
+          if (managerEmailHash) {
+            manager = await this.prisma.upward_manager.findUnique({
+              where: { emailHash: managerEmailHash }
+            })
+          }
+          
+          // Fallback to name + company if no email or not found by email
+          if (!manager) {
+            manager = await this.prisma.upward_manager.findFirst({
+              where: { firstNameHash, companyId: managerCompanyId }
+            })
+          }
+
           if (!manager) {
             manager = await this.prisma.upward_manager.create({
               data: { 
@@ -452,7 +479,7 @@ export class UserAuthService extends BaseAuthService {
                 firstNameHash,
                 companyId: managerCompanyId,
                 email: prop.managerEmail ? this.encryption.encrypt(prop.managerEmail) : null,
-                emailHash: prop.managerEmail ? this.encryption.hash(prop.managerEmail) : null,
+                emailHash: managerEmailHash,
                 phone: prop.managerPhone ? this.encryption.encrypt(prop.managerPhone) : null,
                 phoneHash: prop.managerPhone ? this.encryption.hash(prop.managerPhone) : null
               }
@@ -655,6 +682,26 @@ export class UserAuthService extends BaseAuthService {
 
   async findByEmail(email: string) {
     return this.userRepository.findByEmail(email)
+  }
+
+  async getWaitlistClaimData(uuid: string) {
+    const entry = await this.prisma.upward_waitlist.findUnique({
+      where: { id: uuid }
+    })
+    
+    if (!entry) {
+      throw new ForbiddenException('Waitlist entry not found')
+    }
+
+    const existingUser = await this.userRepository.findByEmail(entry.email)
+    
+    return {
+      success: true,
+      email: entry.email,
+      firstName: entry.firstName || '',
+      lastName: entry.lastName || '',
+      hasPassword: !!existingUser?.passwordHash && existingUser?.passwordHash !== 'INVITED' && existingUser?.passwordHash !== ''
+    }
   }
 
   public async syncTenantStatuses(email: string) {

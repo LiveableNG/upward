@@ -15,6 +15,9 @@ export const metadata: Metadata = {
   title: 'Upward Pay — Secure Rent Payments',
   description:
     'Pay rent securely, get verified receipts, and build your payment credibility with Upward.',
+  icons: {
+    icon: '/favicon.svg',
+  },
 }
 
 export const viewport: Viewport = {

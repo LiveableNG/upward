@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
         destination: `${APP_URL}/signup`,
       },
       {
+        source: '/welcome/:path*',
+        destination: `${APP_URL}/welcome/:path*`,
+      },
+      {
         source: '/dashboard/:path*',
         destination: `${APP_URL}/dashboard/:path*`,
       },
