@@ -1,6 +1,6 @@
 import { Injectable, Logger, Inject, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
-import { UserRepository, USER_REPOSITORY } from '../../../domains/users/user.repository'
+import { UserRepository, USER_REPOSITORY, PASS_PLACEHOLDERS } from '../../../domains/users/user.repository'
 import {
   CompanyRepository,
   COMPANY_REPOSITORY,
@@ -124,7 +124,7 @@ export class SingleInviteUseCase {
         firstName: userData.firstName,
         lastName: userData.lastName,
         phone: userData.phone,
-        passwordHash: 'INVITED',
+        passwordHash: PASS_PLACEHOLDERS.INVITED,
         isFromInvite: true,
         createdAt: new Date(),
         updatedAt: new Date(),

@@ -6,6 +6,7 @@ import { EmailService } from '../../../shared/infrastructure/email/email.service
 import { ConfigService } from '@nestjs/config';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import { randomUUID } from 'crypto';
+import { PASS_PLACEHOLDERS } from '../../../domains/users/user.repository';
 
 interface BulkCreateInput {
   pmId: number;
@@ -64,7 +65,7 @@ export class BulkCreateTenantRecordsUseCase {
           lastNameHash: this.encryption.hash(input.lastName || ''),
           emailHash: emailHash,
           phoneHash: input.phone ? this.encryption.hash(input.phone) : null,
-          passwordHash: 'SHADOW_USER_PENDING_ONBOARDING',
+          passwordHash: PASS_PLACEHOLDERS.SHADOW,
         }
       });
       isNewUser = true;

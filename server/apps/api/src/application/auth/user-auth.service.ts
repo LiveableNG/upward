@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException, ConflictException, Inject, ForbiddenException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
-import { UserRepository, USER_REPOSITORY, User } from '../../domains/users/user.repository'
+import { UserRepository, USER_REPOSITORY, User, PASS_PLACEHOLDERS } from '../../domains/users/user.repository'
 import { VerificationTokenRepository, VERIFICATION_TOKEN_REPOSITORY } from '../../domains/auth/verification-token.repository'
 import { EmailService } from '../../shared/infrastructure/email/email.service'
 import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service'
@@ -110,7 +110,11 @@ export class UserAuthService extends BaseAuthService {
     const existing = await this.userRepository.findByEmail(dto.email)
 
     if (existing) {
-      if (existing.passwordHash === 'INVITED' || !existing.passwordHash) {
+      const isShadow = existing.passwordHash === PASS_PLACEHOLDERS.INVITED || 
+                       existing.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+                       !!(existing.passwordHash && !existing.passwordHash.startsWith('$2'));
+
+      if (isShadow || !existing.passwordHash) {
         const passwordHash = await bcrypt.hash(dto.password, 10)
         await this.userRepository.update(existing.id!, {
           passwordHash,
@@ -179,7 +183,11 @@ export class UserAuthService extends BaseAuthService {
       throw new UnauthorizedException('Invalid credentials')
     }
 
-    if (user.passwordHash === 'INVITED') {
+    const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
+                     user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+                     !!(user.passwordHash && !user.passwordHash.startsWith('$2'));
+
+    if (isShadow) {
       throw new ForbiddenException({
         message: 'Your account was invited by a property manager. Complete your profile to login.',
         code: 'INVITE_PENDING',
@@ -605,11 +613,13 @@ export class UserAuthService extends BaseAuthService {
   async checkEmail(email: string): Promise<{ exists: boolean; hasPassword?: boolean; isInvited?: boolean; uuid?: string }> {
     const user = await this.userRepository.findByEmail(email)
     if (!user) return { exists: false }
-    const isInvited = user.passwordHash === 'INVITED'
+    const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
+                     user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+                     !!(user.passwordHash && !user.passwordHash.startsWith('$2'));
     return {
       exists: true,
-      isInvited,
-      hasPassword: !!user.passwordHash && user.passwordHash !== '' && !isInvited,
+      isInvited: isShadow,
+      hasPassword: !!user.passwordHash && user.passwordHash !== '' && !isShadow,
       uuid: user.uuid,
     }
   }
@@ -700,7 +710,10 @@ export class UserAuthService extends BaseAuthService {
       email: entry.email,
       firstName: entry.firstName || '',
       lastName: entry.lastName || '',
-      hasPassword: !!existingUser?.passwordHash && existingUser?.passwordHash !== 'INVITED' && existingUser?.passwordHash !== ''
+      hasPassword: !!existingUser?.passwordHash && 
+                   existingUser?.passwordHash !== PASS_PLACEHOLDERS.INVITED && 
+                   existingUser?.passwordHash !== PASS_PLACEHOLDERS.SHADOW && 
+                   existingUser?.passwordHash.startsWith('$2')
     }
   }
 

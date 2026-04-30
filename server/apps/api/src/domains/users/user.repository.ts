@@ -39,3 +39,9 @@ export interface UserRepository {
 }
 
 export const USER_REPOSITORY = Symbol('USER_REPOSITORY')
+
+export const PASS_PLACEHOLDERS = {
+  INVITED: 'INVITED',
+  SHADOW: 'SHADOW_USER_PENDING_ONBOARDING'
+}
+
