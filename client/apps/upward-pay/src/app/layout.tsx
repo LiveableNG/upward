@@ -40,15 +40,17 @@ export default function RootLayout({
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `
-              try {
-                const theme = localStorage.getItem('upward-theme');
-                const root = document.documentElement;
-                if (theme === 'dark') {
-                  root.classList.add('theme--dark');
-                } else if (theme === 'light') {
-                  root.classList.add('theme--light');
-                }
-              } catch (e) {}
+              (function() {
+                try {
+                  const theme = localStorage.getItem('upward-theme');
+                  const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+                  if (theme === 'dark' || (theme === 'system' && supportDarkMode) || (!theme && supportDarkMode)) {
+                    document.documentElement.classList.add('theme--dark');
+                  } else {
+                    document.documentElement.classList.add('theme--light');
+                  }
+                } catch (e) {}
+              })();
             `,
           }}
         />

@@ -16,9 +16,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // Load from localStorage on mount
   useEffect(() => {
+    // Shared localStorage key with upward-pay
     const saved = localStorage.getItem('upward-theme') as Theme
     if (saved) {
       setThemeState(saved)
+    } else {
+      // If no theme saved, check system preference
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      setThemeState(isDark ? 'dark' : 'light')
     }
   }, [])
 

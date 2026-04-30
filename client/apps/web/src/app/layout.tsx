@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import { StructuredData } from '@/components/layout/structured-data'
+import { ThemeProvider } from '@/components/ThemeProvider'
 import './globals.css'
 
 export const viewport: Viewport = {
@@ -90,10 +91,29 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
           rel="stylesheet"
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const theme = localStorage.getItem('upward-theme');
+                  const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+                  if (theme === 'dark' || (theme === 'system' && supportDarkMode) || (!theme && supportDarkMode)) {
+                    document.documentElement.classList.add('theme--dark');
+                  } else {
+                    document.documentElement.classList.add('theme--light');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
         <StructuredData />
       </head>
       <body suppressHydrationWarning>
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
 
         {GA_ID && (
           <>
