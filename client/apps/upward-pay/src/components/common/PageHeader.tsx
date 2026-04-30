@@ -49,16 +49,15 @@ export function PageHeader({
     }
   }
 
-  // Determine the default back label if none provided
   const effectiveBackLabel = backLabel || (backPath === '/dashboard' ? 'Back to Dashboard' : 'Back')
 
   return (
-    <header className="dashboard__header page-header-sticky">
+    <header className="dashboard__header page-header-sticky mobile-only">
       <div className="dashboard__header-left">
         {showBack && (
-          <button 
-            className="dashboard__back mobile-only" 
-            onClick={handleBack} 
+          <button
+            className="dashboard__back"
+            onClick={handleBack}
             type="button"
             data-back-label={effectiveBackLabel}
           >
