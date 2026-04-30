@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { type UserProfile } from './types'
 import { getMe, logout as authLogout, refreshToken as authRefresh } from './services/authService'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { setAccessToken } from '@/lib/auth-token'
 import { usePushNotifications, PushNotificationService } from '@/features/notifications/services/pushNotificationService'
 import { App } from '@capacitor/app'
@@ -24,6 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const pathname = usePathname()
 
   
   usePushNotifications(!!user)
@@ -128,7 +129,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAccessToken(null)
       setUser(null)
       setLoading(false)
-      router.replace('/login')
+      
+      // Only redirect if we are NOT on a public page
+      const isPublicPath = 
+        pathname?.startsWith('/pay/') || 
+        pathname?.startsWith('/invite/') || 
+        pathname?.startsWith('/welcome/') || 
+        pathname?.startsWith('/complete-profile') ||
+        pathname?.startsWith('/profile/') ||
+        ['/login', '/signup', '/forgot-password', '/reset-password'].includes(pathname || '')
+
+      if (!isPublicPath) {
+        router.replace('/login')
+      }
     }
   }
 

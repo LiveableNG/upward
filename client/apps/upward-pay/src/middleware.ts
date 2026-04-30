@@ -46,8 +46,7 @@ export function middleware(request: NextRequest) {
   const isProtectedPage = pathname.startsWith('/dashboard') || 
                           pathname.startsWith('/settings') ||
                           pathname.startsWith('/kyc') ||
-                          pathname.startsWith('/transactions') ||
-                          pathname.startsWith('/profile')
+                          pathname.startsWith('/transactions')
 
   if (isProtectedPage && ( !hasToken || isExpired )) {
     const url = new URL('/login', baseUrl)

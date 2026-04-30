@@ -42,8 +42,6 @@ export function middleware(request: NextRequest) {
 
   // 2. Protected Routes Logic
   const isProtectedRoute = pathname.startsWith('/dashboard') || 
-                           pathname.startsWith('/profile') ||
-                           pathname.startsWith('/pay') ||
                            pathname.startsWith('/api/v1')
 
   if (isProtectedRoute && ( !hasToken || isExpired ) && !pathname.startsWith('/api/v1')) {
@@ -58,6 +56,8 @@ export function middleware(request: NextRequest) {
   // 3. Proxy/Rewrite Logic for App Routes
   const shouldProxy = isProtectedRoute || 
                       pathname.startsWith('/welcome') || 
+                      pathname.startsWith('/pay') ||
+                      pathname.startsWith('/profile') ||
                       pathname.startsWith('/invite') ||
                       pathname.startsWith('/.well-known')
 
