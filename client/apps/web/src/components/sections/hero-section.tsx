@@ -5,7 +5,7 @@ export function HeroSection({
   onOpenSignup,
   variant = 'A',
 }: {
-  onOpenSignup: (email?: string, step?: number) => void
+  onOpenSignup: (email?: string) => void
   variant?: 'A' | 'B'
 }) {
   const content = {

@@ -7,14 +7,10 @@ import { BenefitsGrid } from '@/components/sections/benefits-grid'
 import { WhyUpwardPage } from '@/components/sections/why-upward-page'
 import { TellAFriend } from '@/components/sections/tell-a-friend'
 import { PartnersBar } from '@/components/sections/partners-bar'
-import { SignupForm } from '@/components/sections/signup-form'
 import { AmbassadorSection } from '@/components/sections/ambassador-section'
 import { FairHousingPage } from '@/components/sections/fair-housing-page'
 
 export default function HomePage() {
-  const [showModal, setShowModal] = useState(false)
-  const [prefilledEmail, setPrefilledEmail] = useState('')
-  const [prefilledStep, setPrefilledStep] = useState(1)
   const [view, setView] = useState<'home' | 'why' | 'fairness'>('home')
   const [abVariant, setAbVariant] = useState<'A' | 'B' | null>(null)
   const [visitorId, setVisitorId] = useState('')
@@ -49,9 +45,8 @@ export default function HomePage() {
   }
 
   useEffect(() => {
-    if (showModal) document.body.classList.add('no-scroll')
-    else document.body.classList.remove('no-scroll')
-  }, [showModal])
+    window.scrollTo(0, 0)
+  }, [view])
 
   // Handle A/B variant assignment and Visitor ID
   useEffect(() => {
@@ -92,11 +87,6 @@ export default function HomePage() {
     const viewParam = params.get('view')
     if (viewParam === 'why') setView('why')
     if (viewParam === 'home') setView('home')
-
-    // Handle signup modal deep-link
-    if (params.get('signup') === 'true') {
-      setShowModal(true)
-    }
 
     // Handle section scrolling
     const hash = window.location.hash
@@ -182,10 +172,10 @@ export default function HomePage() {
                   transition: 'opacity 0.2s ease-in',
                 }}
               >
-                <HeroSection onOpenSignup={(e, s) => openSignup(e, s)} variant={abVariant || 'A'} />
+                <HeroSection onOpenSignup={(e) => openSignup(e)} variant={abVariant || 'A'} />
               </div>
               <div className="split-benefits">
-                <BenefitsGrid onOpenSignup={(e, s) => openSignup(e, s)} />
+                <BenefitsGrid onOpenSignup={(e) => openSignup(e)} />
               </div>
             </div>
 
