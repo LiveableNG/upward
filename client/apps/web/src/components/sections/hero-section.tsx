@@ -1,5 +1,4 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
 import { PressLogos } from './press-logos'
 
 export function HeroSection({
@@ -9,28 +8,6 @@ export function HeroSection({
   onOpenSignup: (email?: string, step?: number) => void
   variant?: 'A' | 'B'
 }) {
-  const LAUNCH_DATE = '2026-04-16T00:00:00'
-  const launchRef = useRef<number>(new Date(LAUNCH_DATE).getTime())
-  const [time, setTime] = useState({ d: 0, h: 0, m: 0, s: 0 })
-
-  useEffect(() => {
-    const tick = () => {
-      const diff = launchRef.current - Date.now()
-      if (diff <= 0) return
-      setTime({
-        d: Math.floor(diff / (1000 * 60 * 60 * 24)),
-        h: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        m: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
-        s: Math.floor((diff % (1000 * 60)) / 1000),
-      })
-    }
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [])
-
-  const pad = (n: number) => String(n).padStart(2, '0')
-
   const content = {
     A: {
       titleLine1: 'Paid millions in rent?',
@@ -79,7 +56,7 @@ export function HeroSection({
             }}
             className="mobile-hide"
           />
-          Rent Passport Program — Now Open
+          Rent Passport Program — Now Live
         </div>
 
         <h1
@@ -133,7 +110,7 @@ export function HeroSection({
               alignItems: 'center',
               marginTop: '32px',
             }}
-            className="hero-cta-container mobile-only"
+            className="hero-cta-container"
           >
             <button
               onClick={() => onOpenSignup()}
@@ -167,7 +144,7 @@ export function HeroSection({
                 e.currentTarget.style.background = 'var(--accent)'
               }}
             >
-              Join Now
+              Get Started
               <svg
                 width="18"
                 height="18"
@@ -194,6 +171,33 @@ export function HeroSection({
                   animation: 'beam 4s infinite ease-in-out',
                 }}
               />
+            </button>
+            <button
+              onClick={() => (window.location.href = '/login')}
+              style={{
+                background: 'transparent',
+                color: 'var(--text)',
+                fontFamily: 'var(--font-head)',
+                fontWeight: 700,
+                fontSize: '14px',
+                letterSpacing: '0.1em',
+                padding: '18px 36px',
+                borderRadius: '100px',
+                border: '1px solid var(--border)',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--surface2)'
+                e.currentTarget.style.borderColor = 'var(--accent)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.borderColor = 'var(--border)'
+              }}
+              className="mobile-hide"
+            >
+              Sign In
             </button>
           </div>
 
@@ -225,60 +229,6 @@ export function HeroSection({
               </span>
             ))}
           </div>
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: '40px',
-            animation: 'fadeUp 0.7s 0.3s ease both',
-          }}
-          className="countdown-container"
-        >
-          {[
-            ['Days', pad(time.d)],
-            ['Hours', pad(time.h)],
-            ['Mins', pad(time.m)],
-            ['Secs', pad(time.s)],
-          ].map(([label, val], i, arr) => (
-            <div
-              key={label}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                paddingRight: i < arr.length - 1 ? '36px' : 0,
-                marginRight: i < arr.length - 1 ? '36px' : 0,
-                borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
-              }}
-              className="countdown-item"
-            >
-              <span
-                style={{
-                  fontFamily: 'var(--font-head)',
-                  fontSize: 'clamp(2rem,5vw,4rem)',
-                  fontWeight: 800,
-                  lineHeight: 1,
-                  letterSpacing: '-0.04em',
-                  transition: 'all 0.3s ease',
-                }}
-              >
-                {val}
-              </span>
-              <span
-                style={{
-                  fontSize: '10px',
-                  letterSpacing: '0.25em',
-                  textTransform: 'uppercase' as const,
-                  color: 'var(--accent)',
-                  marginTop: '8px',
-                }}
-              >
-                {label}
-              </span>
-            </div>
-          ))}
         </div>
 
         <div style={{ marginTop: '0px' }}>
@@ -313,25 +263,10 @@ export function HeroSection({
             .audience-tags {
               justify-content: center;
             }
-            .countdown-container {
-              justify-content: center;
-              gap: 0;
-              margin-bottom: 40px !important;
-            }
-            .countdown-item {
-              padding-right: 15px !important;
-              margin-right: 15px !important;
-            }
-            .countdown-item span:first-child {
-              font-size: 32px !important;
-            }
-            .countdown-item span:last-child {
-              font-size: 8px !important;
-            }
           }
           @media (min-width: 769px) {
-            .mobile-only {
-              display: none !important;
+            .mobile-hide {
+              display: initial;
             }
           }
         `}</style>

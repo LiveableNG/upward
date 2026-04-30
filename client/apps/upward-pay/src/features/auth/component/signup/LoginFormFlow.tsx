@@ -16,8 +16,10 @@ import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useLogin } from '@/features/auth/hooks/useLogin'
 import { BiometricsService } from '@/features/auth/services/biometricsService'
 import { useToast } from '@/components/common/Toast'
-import { requestOTP } from '@/features/auth/services/authService'
+import { requestOTP, loginWithOTP } from '@/features/auth/services/authService'
 import { OTPInput } from '@/components/common/OTPInput'
+import { setAccessToken } from '@/lib/auth-token'
+import { setCookie } from '@/lib/cookie-utils'
 
 interface LoginFormFlowProps {
   onBackToWelcome: () => void
@@ -39,8 +41,9 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [biometricAvailable, setBiometricAvailable] = useState(false)
   const [biometricLoading, setBiometricLoading] = useState(false)
-  const [step, setStep] = useState<'login' | 'otp'>('login')
+  const [step, setStep] = useState<'login' | 'otp' | 'profile'>('login')
   const [isRequestingOTP, setIsRequestingOTP] = useState(false)
+  const [isInvitePending, setIsInvitePending] = useState(false)
 
   const { error: toastError } = useToast()
 
@@ -79,7 +82,7 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
     }
   }
 
-  const handleRequestOTP = async () => {
+  const handleRequestOTP = async (forInvite?: boolean) => {
     if (!loginEmail) {
       toastError('Please enter your email address first.')
       return
@@ -87,7 +90,9 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
 
     setIsRequestingOTP(true)
     try {
+      // For invited users we use 'LOGIN' context (they exist in DB already)
       await requestOTP(loginEmail, 'LOGIN')
+      if (forInvite !== undefined) setIsInvitePending(forInvite)
       setStep('otp')
     } catch (err: any) {
       toastError(err.message || 'Failed to send verification code')
@@ -97,7 +102,27 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
   }
 
   const handleVerifyOTP = async (otp: string) => {
-    otpLogin(loginEmail, otp)
+    if (isInvitePending) {
+      try {
+        const result = await loginWithOTP(loginEmail, otp)
+        if (result.accessToken) {
+          setAccessToken(result.accessToken)
+          setCookie('pay_access_token', result.accessToken)
+        }
+        
+        // If we have the userId from the error, use it. Otherwise fallback to a general path
+        const userId = loginError?.data?.userId;
+        if (userId) {
+          router.push(`/invite/${userId}?email=${encodeURIComponent(loginEmail)}`)
+        } else {
+          router.push(`/complete-profile?email=${encodeURIComponent(loginEmail)}`)
+        }
+      } catch (err: any) {
+        toastError(err.message || 'Verification failed')
+      }
+    } else {
+      otpLogin(loginEmail, otp)
+    }
   }
 
   if (step === 'otp') {
@@ -115,7 +140,7 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
           <OTPInput
             email={loginEmail}
             onVerify={handleVerifyOTP}
-            onResend={handleRequestOTP}
+            onResend={() => handleRequestOTP()}
             onChangeEmail={() => setStep('login')}
             isLoading={loginLoading}
             error={loginError?.message}
@@ -152,7 +177,7 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
                   <button 
                     type="button" 
                     className="btn btn--primary btn--full mt-4" 
-                    onClick={handleRequestOTP}
+                    onClick={() => handleRequestOTP(true)}
                     disabled={isRequestingOTP}
                   >
                     {isRequestingOTP ? <Loader2 size={18} className="animate-spin" /> : 'Verify & Set Password'}
@@ -218,7 +243,7 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
           <button
             type="button"
             className="btn btn--ghost btn--full verif-code-btn"
-            onClick={handleRequestOTP}
+            onClick={() => handleRequestOTP(false)}
             disabled={loginLoading || isRequestingOTP || !loginEmail}
           >
             {isRequestingOTP ? <Loader2 size={18} className="animate-spin" /> : 'Log in with verification code'}

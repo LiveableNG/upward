@@ -333,56 +333,24 @@ export class EmailService {
     const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
 
     const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-          body { font-family: 'Inter', -apple-system, sans-serif; background-color: #fdfcfb; color: #1a1a1a; margin: 0; padding: 0; }
-          .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e8e6e1; box-shadow: 0 10px 25px rgba(13, 77, 43, 0.05); }
-          .header { background-color: #0d4d2b; padding: 32px 40px; text-align: left; }
-          .content { padding: 48px; }
-          .logo-text { color: #fdfcfb; font-size: 18px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; display: block; }
-          .logo-sub { color: rgba(253, 252, 251, 0.7); font-size: 11px; margin-top: 2px; display: block; }
-          h1 { font-size: 24px; font-weight: 700; color: #0d4d2b; margin-bottom: 24px; line-height: 1.3; margin-top: 0; }
-          p { font-size: 16px; line-height: 1.7; color: #4a4a4a; margin-bottom: 24px; }
-          .otp-badge { background-color: #f0f7f2; border: 1px solid #d1e7d8; padding: 32px; border-radius: 20px; margin: 32px 0; text-align: center; }
-          .otp-label { font-size: 11px; font-weight: 700; color: #0d4d2b; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; display: block; }
-          .otp-code { font-size: 48px; font-weight: 800; color: #1a1a1a; letter-spacing: 0.2em; line-height: 1; margin: 0; }
-          .footer { padding: 32px 48px; border-top: 1px solid #f0eee9; background-color: #faf9f6; }
-          .footer-text { font-size: 13px; color: #8c8c8c; line-height: 1.6; margin: 0; }
-          .meta-text { font-size: 13px; color: #9ca3af; text-align: center; margin-top: 24px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <span class="logo-text">Upward</span>
-            <span class="logo-sub">Security</span>
-          </div>
-          <div class="content">
-            <h1>Password Reset Request</h1>
-            <p>Hello ${fullName},</p>
-            <p>We received a request to reset your password. Use the code below to proceed. This code expires in 15 minutes.</p>
-            
-            <div class="otp-badge">
-              <span class="otp-label">Reset Code</span>
-              <p class="otp-code">${otp}</p>
-            </div>
-
-            <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-top: 32px;">
-              If you didn't request this, you can safely ignore this email. Someone may have typed your email address by mistake.
-            </p>
-          </div>
-          <div class="footer">
-            <p class="footer-text">
-              © 2026 Upward by GoodTenants. All rights reserved.
-            </p>
-          </div>
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: #f9fafb; padding: 40px; border-radius: 16px;">
+        <div style="margin-bottom:32px;">
+          <span style="color:#d97757;font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Upward</span>
+          <div style="color:#6B7280;font-size:12px;margin-top:4px;">by GoodTenants</div>
         </div>
-      </body>
-      </html>
+        <h2 style="color: #111827; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">Password Reset Request</h2>
+        <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Hello ${fullName},</p>
+        <p style="font-size: 16px; color: #4b5563;">We received a request to reset your password. Use the code below to proceed. This code expires in 15 minutes.</p>
+        
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 32px; border-radius: 12px; margin: 32px 0; text-align: center;">
+          <div style="font-size: 11px; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 12px;">Verification Code</div>
+          <div style="font-size: 48px; font-weight: 800; color: #d97757; letter-spacing: 0.1em; line-height: 1;">${otp}</div>
+        </div>
+
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5;">
+          If you didn't request this, you can safely ignore this email. Someone may have typed your email address by mistake.
+        </p>
+      </div>
     `
 
     try {
@@ -430,57 +398,27 @@ export class EmailService {
     const { title, message, subject } = contexts[context]
 
     const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-          body { font-family: 'Inter', -apple-system, sans-serif; background-color: #fdfcfb; color: #1a1a1a; margin: 0; padding: 0; }
-          .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e8e6e1; box-shadow: 0 10px 25px rgba(13, 77, 43, 0.05); }
-          .header { background-color: #0d4d2b; padding: 32px 40px; text-align: left; }
-          .content { padding: 48px; }
-          .logo-text { color: #fdfcfb; font-size: 18px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; display: block; }
-          .logo-sub { color: rgba(253, 252, 251, 0.7); font-size: 11px; margin-top: 2px; display: block; }
-          h1 { font-size: 24px; font-weight: 700; color: #0d4d2b; margin-bottom: 24px; line-height: 1.3; margin-top: 0; }
-          p { font-size: 16px; line-height: 1.7; color: #4a4a4a; margin-bottom: 24px; }
-          .otp-badge { background-color: #f0f7f2; border: 1px solid #d1e7d8; padding: 32px; border-radius: 20px; margin: 32px 0; text-align: center; }
-          .otp-label { font-size: 11px; font-weight: 700; color: #0d4d2b; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; display: block; }
-          .otp-code { font-size: 48px; font-weight: 800; color: #1a1a1a; letter-spacing: 0.2em; line-height: 1; margin: 0; }
-          .footer { padding: 32px 48px; border-top: 1px solid #f0eee9; background-color: #faf9f6; }
-          .footer-text { font-size: 13px; color: #8c8c8c; line-height: 1.6; margin: 0; }
-          .meta-text { font-size: 13px; color: #9ca3af; text-align: center; margin-top: 24px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <span class="logo-text">Upward</span>
-            <span class="logo-sub">Property Management</span>
-          </div>
-          <div class="content">
-            <h1>${title}</h1>
-            <p>Hello,</p>
-            <p>${message}</p>
-            
-            <div class="otp-badge">
-              <span class="otp-label">Verification Code</span>
-              <p class="otp-code">${otp}</p>
-            </div>
-
-            <p class="meta-text">This code expires in 10 minutes.</p>
-            <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-top: 32px;">
-              If you didn't request this, you can safely ignore this email.
-            </p>
-          </div>
-          <div class="footer">
-            <p class="footer-text">
-              © 2026 Upward by GoodTenants. All rights reserved.
-            </p>
-          </div>
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: #f9fafb; padding: 40px; border-radius: 16px;">
+        <div style="margin-bottom:32px;">
+          <span style="color:#d97757;font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Upward</span>
+          <div style="color:#6B7280;font-size:12px;margin-top:4px;">by GoodTenants</div>
         </div>
-      </body>
-      </html>
+        <h2 style="color: #111827; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">${title}</h2>
+        <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Hello,</p>
+        <p style="font-size: 16px; color: #4b5563;">${message}</p>
+        
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 32px; border-radius: 12px; margin: 32px 0; text-align: center;">
+          <div style="font-size: 11px; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 12px;">Verification Code</div>
+          <div style="font-size: 48px; font-weight: 800; color: #d97757; letter-spacing: 0.1em; line-height: 1;">${otp}</div>
+        </div>
+
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; text-align: center;">
+          This code expires in 10 minutes.
+        </p>
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-top: 24px;">
+          If you didn't request this, you can safely ignore this email.
+        </p>
+      </div>
     `
 
     try {
@@ -790,3 +728,4 @@ export class EmailService {
   }
 }
 
+ 

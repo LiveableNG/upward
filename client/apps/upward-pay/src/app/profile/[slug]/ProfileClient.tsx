@@ -7,7 +7,6 @@ import {
   ShieldCheck, 
   MapPin, 
   Calendar, 
-  Download, 
   Flame, 
   Target,
   CheckCircle2,
@@ -17,14 +16,11 @@ import {
 import FallbackSuspense from '@/components/FallbackSuspense'
 import Link from 'next/link'
 import { useRef, useState, useEffect } from 'react'
-import html2canvas from 'html2canvas'
-import { jsPDF } from 'jspdf'
 import { Capacitor } from '@capacitor/core'
 
 export default function ProfileClient() {
   const params = useParams()
   const slug = params?.slug as string
-  const reportRef = useRef<HTMLDivElement>(null)
   const [isApp, setIsApp] = useState(false)
 
   useEffect(() => {
@@ -43,50 +39,9 @@ export default function ProfileClient() {
     retry: false,
   })
 
-  const downloadPDF = async () => {
-    if (!reportRef.current) return
-    const canvas = await html2canvas(reportRef.current, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      windowWidth: 900,
-      onclone: (doc) => {
-        const el = doc.querySelector('.certificate') as HTMLElement
-        if (el) {
-          el.style.width = '860px'
-          el.style.padding = '3rem'
-        }
-      }
-    })
-    const imgData = canvas.toDataURL('image/png')
-    const pdf = new jsPDF('p', 'mm', 'a4')
-    const imgProps = pdf.getImageProperties(imgData)
-    const pdfWidth = pdf.internal.pageSize.getWidth()
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
-    const { profile: userData } = scoreProfile.data
-    const fileName = `Upward_Credibility_Report_${(userData.name).replace(/\s+/g, '_')}.pdf`
-    
-    const pdfBlob = pdf.output('blob')
-    const file = new File([pdfBlob], fileName, { type: 'application/pdf' })
 
-    if (Capacitor.isNativePlatform() && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({
-          files: [file],
-          title: 'Upward Credibility Report',
-          text: `Check out my verified credibility profile on Upward.`
-        })
-        return
-      } catch (err) {
-        console.error('Share failed, falling back to download:', err)
-      }
-    }
 
-    pdf.save(fileName)
-  }
-
-  if (isLoading) return <FallbackSuspense message="Validating credentials..." />
+  if (isLoading) return <FallbackSuspense />
 
   if (error || !scoreProfile) {
     return (
@@ -137,17 +92,12 @@ export default function ProfileClient() {
               <span className="logo-tag">VERIFIED</span>
             </Link>
           </div>
-            {!isApp && (
-              <button className="download-btn-top" onClick={downloadPDF}>
-                <Download size={16} />
-                <span>Download Report</span>
-              </button>
-            )}
+
         </div>
       </nav>
 
       <main className="main-container">
-        <div className="report-wrapper" ref={reportRef}>
+        <div className="report-wrapper">
           <div className="certificate">
             <header className="cert-header">
               <div className="cert-header__left">
@@ -353,25 +303,7 @@ export default function ProfileClient() {
           letter-spacing: 0.5px;
         }
 
-        .download-btn-top {
-          display: flex;
-          align-items: center;
-          gap: 0.45rem;
-          background: #0a0a0f;
-          color: #ffffff;
-          border: none;
-          padding: 0.55rem 1.1rem;
-          border-radius: 10px;
-          font-weight: 700;
-          font-size: 0.82rem;
-          cursor: pointer;
-          transition: opacity 0.2s;
-          white-space: nowrap;
-        }
 
-        .download-btn-top:hover {
-          opacity: 0.85;
-        }
 
         .main-container {
           max-width: 960px;

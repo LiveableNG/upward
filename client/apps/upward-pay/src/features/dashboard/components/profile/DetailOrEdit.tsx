@@ -13,6 +13,7 @@ interface DetailOrEditProps {
   type?: 'text' | 'select' | 'date'
   options?: { value: string; label: string }[]
   isCritical?: boolean
+  error?: string
 }
 
 export function DetailOrEdit({
@@ -26,13 +27,14 @@ export function DetailOrEdit({
   type = 'text',
   options,
   isCritical = false,
+  error,
 }: DetailOrEditProps) {
   const isMissing = !value || value === ''
 
   if (!isEditing && isMissing) return null
 
   return (
-    <div className={`detail-item ${isEditing ? 'detail-item--editing' : ''} ${isMissing ? 'detail-item--missing' : ''} ${isCritical ? 'detail-item--critical' : ''}`}>
+    <div className={`detail-item ${isEditing ? 'detail-item--editing' : ''} ${isMissing ? 'detail-item--missing' : ''} ${isCritical ? 'detail-item--critical' : ''} ${error ? 'detail-item--error' : ''}`}>
       <div className="detail-item__left">
         <div className="detail-item__icon-container">
           <Icon size={18} />
@@ -63,6 +65,7 @@ export function DetailOrEdit({
                   onChange={(e) => onChange?.(e.target.value)}
                 />
               )}
+              {error && <span className="detail-item__error-text">{error}</span>}
             </div>
           ) : (
             <span
@@ -176,6 +179,23 @@ export function DetailOrEdit({
           border-color: var(--clay);
           background: var(--bg);
           box-shadow: 0 0 0 4px var(--clay-glow);
+        }
+        
+        .detail-item--error .detail-item__input {
+          border-color: var(--error);
+          background: #fffafa;
+        }
+
+        :global(.theme--dark) .detail-item--error .detail-item__input {
+          background: #2a1a1a;
+        }
+
+        .detail-item__error-text {
+          font-size: 0.75rem;
+          color: var(--error);
+          font-weight: 600;
+          margin-top: 0.25rem;
+          display: block;
         }
 
         .detail-item__warning {

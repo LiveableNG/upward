@@ -209,11 +209,29 @@ export function Header({
       </ul>
 
       <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+        <Link
+          href="/login"
+          className="mobile-hide"
+          style={{
+            fontSize: '11px',
+            letterSpacing: '0.15em',
+            textTransform: 'uppercase',
+            color: 'var(--muted)',
+            textDecoration: 'none',
+            fontFamily: 'var(--font-head)',
+            fontWeight: 700,
+            transition: 'color 0.2s',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text)')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--muted)')}
+        >
+          Login
+        </Link>
         <button
           className="mobile-hide"
           onClick={() => {
-            if (trackInteraction) trackInteraction('CLICK', 'HEADER_SIGNUP_BTNA')
-            onOpenSignup()
+            if (trackInteraction) trackInteraction('CLICK', 'HEADER_OPEN_APP')
+            window.location.href = '/signup'
           }}
           style={{
             fontSize: '9px',
@@ -246,7 +264,7 @@ export function Header({
             e.currentTarget.style.background = 'var(--accent)'
           }}
         >
-          Get Early Access
+          Open App
           <div
             style={{
               position: 'absolute',
@@ -443,8 +461,8 @@ export function Header({
           <div style={{ marginTop: 'auto', paddingBottom: '40px' }}>
             <button
               onClick={() => {
-                if (trackInteraction) trackInteraction('CLICK', 'MOBILE_SIGNUP_BTN')
-                onOpenSignup()
+                if (trackInteraction) trackInteraction('CLICK', 'MOBILE_OPEN_APP')
+                window.location.href = '/signup'
                 setMobileMenuOpen(false)
               }}
               style={{
@@ -470,7 +488,7 @@ export function Header({
                 gap: '12px',
               }}
             >
-              Get Early Access
+              Open App
               <div
                 style={{
                   position: 'absolute',

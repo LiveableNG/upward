@@ -75,7 +75,7 @@ export default function CompleteProfileContent({
       email: initialEmail || '',
       fullName: initialData?.fullName || '',
       phone: initialData?.phone || '',
-      password: '',
+      password: initialData?.password || '',
       address: '',
       rentEndDate: '',
     },

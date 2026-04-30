@@ -4,6 +4,13 @@ import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSignup } from '../hooks/useSignup'
 import {
+  checkEmail,
+  requestOTP,
+  verifyOTP,
+  loginWithOTP,
+} from '../services/authService'
+import { OTPInput } from '@/components/common/OTPInput'
+import {
   TrendingUp,
   Gift,
   Shield,
@@ -16,9 +23,12 @@ import {
   Sprout,
   Star,
   Calendar,
+  AlertCircle,
+  Home,
+  LogIn,
 } from 'lucide-react'
 
-type Step = 0 | 1 | 2 | 3
+type Step = 0 | 1 | 2 | 3 | 'otp'
 
 export default function SignupForm() {
   const router = useRouter()
@@ -36,11 +46,78 @@ export default function SignupForm() {
     managerName?: string;
   }>>([{ address: '', rentEndDate: '', companyName: '', managerName: '' }])
   const [password, setPassword] = useState('')
+  const [showExistPopup, setShowExistPopup] = useState(false)
+  const [existingUserStatus, setExistingUserStatus] = useState<{
+    exists: boolean;
+    hasPassword?: boolean;
+    isInvited?: boolean;
+    uuid?: string;
+  } | null>(null)
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false)
+  const [otpError, setOtpError] = useState<string | null>(null)
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
 
-  const { signup, loading, error } = useSignup('/dashboard')
+  const { signup, loading: signupLoading, error: signupError } = useSignup('/dashboard')
+  const loading = signupLoading || isCheckingEmail || isVerifyingOtp
+  const error = signupError || otpError
 
-  const nextStep = () => setStep((s) => (s + 1) as Step)
-  const prevStep = () => setStep((s) => (s - 1) as Step)
+  const nextStep = () => setStep((s) => (s === 'otp' ? 2 : (s + 1) as Step))
+  const prevStep = () => setStep((s) => (s === 'otp' ? 1 : (s - 1) as Step))
+
+  const handleEmailSubmit = async () => {
+    if (!email || !fullName) return
+    setIsCheckingEmail(true)
+    try {
+      const res = await checkEmail(email)
+      if (res.exists) {
+        setExistingUserStatus(res)
+        setShowExistPopup(true)
+      } else {
+        nextStep()
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsCheckingEmail(false)
+    }
+  }
+
+  const handleVerifyProperty = async () => {
+    setShowExistPopup(false)
+    setIsVerifyingOtp(true)
+    try {
+      await requestOTP(email, 'SIGNUP')
+      setStep('otp')
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsVerifyingOtp(false)
+    }
+  }
+
+  const handleOtpVerify = async (otp: string) => {
+    setIsVerifyingOtp(true)
+    setOtpError(null)
+    try {
+      if (existingUserStatus?.hasPassword) {
+        // Log them in
+        await loginWithOTP(email, otp)
+        router.push('/dashboard')
+      } else if (existingUserStatus?.isInvited) {
+        // Verify OTP first
+        const res = await verifyOTP(email, otp, 'SIGNUP')
+        if (res.success) {
+          router.push(`/invite/${existingUserStatus.uuid}?email=${encodeURIComponent(email)}&name=${encodeURIComponent(fullName)}`)
+        } else {
+          setOtpError(res.message || 'Invalid code')
+        }
+      }
+    } catch (err: any) {
+      setOtpError(err.message || 'Failed to verify code')
+    } finally {
+      setIsVerifyingOtp(false)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,7 +148,8 @@ export default function SignupForm() {
     },
   ]
 
-  const progressWidth = (step / 3) * 100
+  const numericStep = typeof step === 'number' ? step : 1
+  const progressWidth = (numericStep / 3) * 100
 
   return (
     <div className="auth-page__content">
@@ -84,7 +162,7 @@ export default function SignupForm() {
           {[0, 1, 2, 3].map((s) => (
             <div
               key={s}
-              className={`signup-progress__dot ${step === s ? 'is-active' : step > s ? 'is-done' : ''}`}
+              className={`signup-progress__dot ${step === s ? 'is-active' : numericStep > s ? 'is-done' : ''}`}
             />
           ))}
         </div>
@@ -170,10 +248,10 @@ export default function SignupForm() {
 
             <button
               className="btn btn--primary btn--full btn--pay"
-              onClick={nextStep}
-              disabled={!fullName || !email}
+              onClick={handleEmailSubmit}
+              disabled={loading || !fullName || !email}
             >
-              Continue <ChevronRight size={18} />
+              {loading ? 'Checking...' : 'Continue'} <ChevronRight size={18} />
             </button>
           </div>
         </div>
@@ -324,6 +402,67 @@ export default function SignupForm() {
           </form>
         </div>
       )}
+
+      {step === 'otp' && (
+        <div className="signup-step signup-step--form">
+          <button className="signup-step__back" onClick={prevStep}>
+            <ArrowLeft size={18} /> Back
+          </button>
+          
+          <div className="signup-step__header mb-8">
+            <h2 className="auth-page__title">Confirm your identity</h2>
+            <p className="auth-page__subtitle">
+              We've found an account associated with {email}. Please verify it's you.
+            </p>
+          </div>
+
+          <OTPInput 
+            email={email}
+            onVerify={handleOtpVerify}
+            onResend={async () => { await requestOTP(email, 'SIGNUP') }}
+            isLoading={isVerifyingOtp}
+            error={otpError}
+          />
+        </div>
+      )}
+
+      {showExistPopup && (
+        <div className="modal-overlay">
+          <div className="modal-content animate-pop">
+            <div className="modal-header">
+              <div className="modal-icon-circle bg-orange-100">
+                <AlertCircle size={24} color="#d97757" />
+              </div>
+              <h2 className="modal-title">Email Already Registered</h2>
+              <p className="modal-subtitle">
+                An account with <strong>{email}</strong> already exists in our system. How would you like to proceed?
+              </p>
+            </div>
+
+            <div className="modal-actions flex flex-col gap-3">
+              <button 
+                className="btn btn--primary btn--full btn--pay"
+                onClick={handleVerifyProperty}
+              >
+                <Home size={18} /> Verify Property & Continue
+              </button>
+              <button 
+                className="btn btn--outline btn--full"
+                onClick={() => router.push(`/login?email=${encodeURIComponent(email)}`)}
+              >
+                <LogIn size={18} /> Log In to Existing Account
+              </button>
+              <button 
+                className="btn btn--ghost btn--full mt-2"
+                onClick={() => setShowExistPopup(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       <div className="auth-page__alt mt-6 text-center">
         Already have an account?{' '}

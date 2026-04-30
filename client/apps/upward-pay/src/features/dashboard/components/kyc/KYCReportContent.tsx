@@ -4,8 +4,7 @@ import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   ShieldCheck,
-  Download,
-  Share2,
+  Link2,
   Award,
   CheckCircle2,
   MapPin,
@@ -24,6 +23,7 @@ import { useState, useEffect } from 'react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Capacitor } from '@capacitor/core'
+import FallbackSuspense from '@/components/FallbackSuspense'
 
 import { useToast } from '@/components/common/Toast'
 import { useScoreProfile, usePublicScoreProfile } from '../../services/scoreService'
@@ -53,10 +53,9 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   
   const handleShare = async () => {
     const p = scoreProfile?.data?.profile
-    const u = scoreProfile?.data?.profile?.uuid || (scoreProfile as any)?.data?.uuid || ''
     
     // Always use UUID for sharing as per user request
-    const identifier = u || 'not-found'
+    const identifier = p?.uuid
     
     const baseUrl = Capacitor.isNativePlatform() 
       ? 'https://upward-pay.vercel.app' 
@@ -64,63 +63,29 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
     const url = `${baseUrl}/profile/${identifier}`
     
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${p?.name}'s Credibility Portfolio`,
-          text: `View my verified tenant credibility portfolio on Upward.`,
-          url: url,
-        })
-        return
-      } catch (err) {
-        console.log('Share cancelled or failed, falling back to clipboard')
-      }
-    }
-    
     navigator.clipboard.writeText(url)
     success('Public profile link copied to clipboard!')
   }
 
-  const handleDownloadPDF = async () => {
-    try {
-      success('Preparing report...')
-      const blob = await api.getCredibilityPdf()
-      const fileName = `Upward_Credibility_Report_${profile.name.replace(/\s+/g, '_')}.pdf`
-      const file = new File([blob], fileName, { type: 'application/pdf' })
 
-      if (Capacitor.isNativePlatform() && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: 'Upward Credibility Report',
-          text: `Check out my verified credibility profile on Upward.`,
-        })
-      } else {
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = fileName
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
-      }
-    } catch (err) {
-      console.error('PDF download failed:', err)
-      toastError('Failed to download PDF. Please try again.')
-    }
-  }
 
   if (isLoading || !scoreProfile) {
-    return (
-      <div className="kyc-page dashboard--nav-offset animate-pulse" style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-        <div className="flex items-center justify-center h-full">Loading Credibility Profile...</div>
-      </div>
-    )
+    return <FallbackSuspense />
   }
 
   const { isScorable, score, rank, band, metrics, profile, cycles, properties = [] } = scoreProfile.data
-  const initials = profile.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)
   const isFaded = !isScorable
+  const isVerified = properties.some((p: any) => p.isManaged)
+  const initials = profile.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)
+
+  const getRankColor = () => {
+    if (!isScorable || !isVerified) return '#928e89'
+    if (rank === 'A') return '#d97757'
+    if (rank === 'B') return '#22c55e'
+    if (rank === 'C') return '#3b82f6'
+    if (rank === 'D') return '#f59e0b'
+    return '#ef4444'
+  }
 
   const liveVerifications = [
     { label: 'Identity Verified', date: 'Official' },
@@ -146,8 +111,14 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             </button>
             <h2 className="mobile-header__title">Credibility Profile</h2>
             <div className="mobile-header__actions">
-              <button className="mobile-header__icon-btn" onClick={handleShare} title="Copy Link">
-                <Share2 size={20} />
+              <button 
+                className="mobile-header__icon-btn" 
+                onClick={handleShare} 
+                title={isVerified ? "Copy Link" : "Verification required to share profile"}
+                disabled={!isVerified}
+                style={{ opacity: isVerified ? 1 : 0.5 }}
+              >
+                <Link2 size={20} />
               </button>
             </div>
           </header>
@@ -223,7 +194,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                    <div className="kyc-report__score-max">/ 800</div>
                 </div>
                 <div className="kyc-report__score-tier">
-                  <Star size={12} fill="var(--clay)" color="var(--clay)" />
+                  <Star size={12} fill={getRankColor()} color={getRankColor()} />
                   {isScorable ? `Tier: ${rank} (${band})` : 'New profile building history'}
                 </div>
               </div>
@@ -233,10 +204,15 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                   <circle 
                     className="kyc-report__gauge-fill" 
                     cx="50" cy="50" r="45" 
-                    style={{ strokeDasharray: `${(score/800)*283} 283` }}
+                    style={{ 
+                      strokeDasharray: `${(score/800)*283} 283`,
+                      stroke: getRankColor()
+                    }}
                   />
                 </svg>
-                <div className="kyc-report__score-gauge-inner">{Math.round((score/800)*100)}%</div>
+                <div className="kyc-report__score-gauge-inner" style={{ color: getRankColor() }}>
+                  {Math.round((score/800)*100)}%
+                </div>
               </div>
             </div>
           </div>
@@ -245,7 +221,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             {/* Real Properties Listing */}
             <section className="kyc-report__section">
               <p className="kyc-report__section-title">
-                <Home size={14} color="var(--clay)" />
+                <Home size={14} color={isVerified ? "var(--clay)" : "#928e89"} />
                 Tenancy History
               </p>
               <div className="kyc-report__properties-list">
@@ -278,13 +254,16 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
             <section className="kyc-report__section">
               <p className="kyc-report__section-title">
-                <TrendingUp size={14} color="var(--clay)" />
+                <TrendingUp size={14} color={isVerified ? "var(--clay)" : "#928e89"} />
                 Rent Behaviour Metrics
               </p>
               <div className="kyc-report__metrics-grid">
                 {liveMetrics.map((m, i) => (
                   <div key={i} className="kyc-report__metric">
-                    <div className="kyc-report__metric-icon-wrap">
+                    <div className="kyc-report__metric-icon-wrap" style={{ 
+                      background: isVerified ? 'var(--clay-faint)' : '#f0ede8',
+                      color: isVerified ? 'var(--clay)' : '#928e89'
+                    }}>
                        {i === 0 && <Clock size={16} />}
                        {i === 1 && <Zap size={16} />}
                        {i === 2 && <Calendar size={16} />}
@@ -303,7 +282,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
             <section className="kyc-report__section">
               <p className="kyc-report__section-title">
-                <Clock size={14} color="var(--clay)" />
+                <Clock size={14} color={isVerified ? "var(--clay)" : "#928e89"} />
                 Recent Observations
               </p>
               <div className="kyc-report__timeline">
@@ -348,21 +327,21 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
         {!isPublic && !isApp && (
             <div className="kyc-report-actions">
-              <button className="btn btn--primary btn--full kyc-report-actions__share" onClick={handleShare}>
-                <Share2 size={18} />
-                Copy Credibility Portfolio Link
+              <button 
+                className="btn btn--primary btn--full kyc-report-actions__share" 
+                onClick={handleShare}
+                disabled={!isVerified}
+                title={isVerified ? "" : "You need at least one verified property to share your portfolio"}
+                style={{ 
+                  opacity: isVerified ? 1 : 0.6,
+                  cursor: isVerified ? 'pointer' : 'not-allowed',
+                  filter: isVerified ? 'none' : 'grayscale(0.5)'
+                }}
+              >
+                <Link2 size={18} />
+                {isVerified ? 'Copy Credibility Portfolio Link' : 'Verification Required to Share'}
               </button>
-              <div className="kyc-report-actions__row">
-                <button className="btn btn--secondary kyc-report-actions__btn" onClick={handleDownloadPDF}>
-                  <Download size={16} /> Download PDF
-                </button>
-                <button
-                  className="btn btn--secondary kyc-report-actions__btn"
-                  onClick={() => router.push('/dashboard')}
-                >
-                  <Home size={16} /> Finish
-                </button>
-              </div>
+
             </div>
         )}
 
@@ -744,20 +723,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             flex-direction: column;
             gap: 1rem;
         }
-        .kyc-report-actions__row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-        .kyc-report-actions__btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-size: 0.9rem;
-            padding: 12px;
-            border-radius: 12px;
-        }
+
         .kyc-report-actions__share {
             padding: 16px;
             border-radius: 16px;
@@ -766,26 +732,15 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
         }
         @media (max-width: 640px) {
             .kyc-report-container {
-                padding: 64px 12px 100px !important;
+                padding: 64px 12px 40px !important;
             }
             .kyc-report-actions {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                background: var(--bg);
-                padding: 16px 12px 24px;
-                border-top: 1px solid var(--border-solid);
-                z-index: 100;
-                max-width: 100%;
+                display: none;
             }
             .kyc-report-actions__share {
                 order: 1;
             }
-            .kyc-report-actions__row {
-                order: 2;
-                grid-template-columns: 1fr 1fr;
-            }
+
         }
       `}</style>
     </div>

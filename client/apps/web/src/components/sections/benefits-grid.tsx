@@ -12,12 +12,7 @@ export function BenefitsGrid({
       showToast('Please enter a valid email address.', true)
       return
     }
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    }).catch(() => {})
-    if (onOpenSignup) onOpenSignup(email, 2)
+    if (onOpenSignup) onOpenSignup(email)
   }
   const cards = [
     {
@@ -254,7 +249,7 @@ export function BenefitsGrid({
               e.currentTarget.style.boxShadow = ''
             }}
           >
-            Join Now
+            Get Started
             <svg
               width="18"
               height="18"
@@ -280,7 +275,7 @@ export function BenefitsGrid({
             fontStyle: 'italic',
           }}
         >
-          Join hundreds of smart renters already on the waitlist.
+          Join hundreds of smart renters already building with Upward.
         </p>
       </div>
 

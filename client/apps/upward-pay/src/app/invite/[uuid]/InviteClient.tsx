@@ -11,7 +11,6 @@ import {
   ShieldCheck,
   Eye,
   EyeOff,
-  AlertCircle,
   Loader2,
 } from 'lucide-react'
 import { api } from '@/lib/api'
@@ -19,27 +18,16 @@ import { useToast } from '@/components/common/Toast'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useAuth } from '@/features/auth/AuthContext'
 import { setCookie } from '@/lib/cookie-utils'
-import { OTPInput } from '@/components/common/OTPInput'
-
-// Re-checking AuthContext path from SignupFlow
-// import { useAuth } from '@/features/auth/AuthContext'
 
 export default function InviteClient() {
   const params = useParams()
-  const token = params.uuid as string // The route is currently [uuid], we'll treat it as our token
+  const token = params.uuid as string
   const router = useRouter()
   const { success, error: toastError } = useToast()
-  
-  // Checking AuthContext path - fix to match working imports
-  // Based on SignupFormFlow: import { useAuth } from '@/features/auth/AuthContext'
-  // But InviteClient has: import { useAuth } from '@/features/auth/AuthContext' (wait no, line 18 says ContextAuth?)
-  // Let me check actual file existence.
-  
   const [loading, setLoading] = useState(true)
   const [inviteData, setInviteData] = useState<any>(null)
-  const [step, setStep] = useState<'verification' | 'otp' | 'form'>('verification')
+  const [step, setStep] = useState<'form'>('form')
   const [showPassword, setShowPassword] = useState(false)
-  const [otp, setOtp] = useState('')
   const [formData, setFormData] = useState<any>({
     firstName: '',
     lastName: '',
@@ -48,10 +36,7 @@ export default function InviteClient() {
     confirmPassword: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isRequestingOTP, setIsRequestingOTP] = useState(false)
   const [localError, setLocalError] = useState('')
-  const [isChangingEmail, setIsChangingEmail] = useState(false)
-  const [newEmail, setNewEmail] = useState('')
 
   useEffect(() => {
     fetchInviteData()
@@ -67,7 +52,12 @@ export default function InviteClient() {
           return
         }
         setInviteData(res)
-        // Note: we don't set email here because it's masked in the response for security
+        setFormData({
+          ...formData,
+          firstName: res.firstName || '',
+          lastName: res.lastName || '',
+          email: res.email || ''
+        })
       }
     } catch (err) {
       toastError('Invite not found or has expired')
@@ -77,46 +67,7 @@ export default function InviteClient() {
     }
   }
 
-  const handleRequestOTP = async (emailOverride?: string) => {
-    setIsRequestingOTP(true)
-    try {
-      const res = await api.post(`/public/invite/${token}/request-otp`, {
-        email: emailOverride
-      })
-      if (res.success) {
-        setStep('otp')
-        if (emailOverride) {
-          setIsChangingEmail(false)
-          // Re-fetch to get updated masked email if needed, or just trust the new email
-        }
-      }
-    } catch (err: any) {
-      toastError(err.message || 'Failed to send verification code')
-    } finally {
-      setIsRequestingOTP(false)
-    }
-  }
 
-  const handleVerifyOTP = async (code: string) => {
-    setIsSubmitting(true)
-    try {
-      const res = await api.post(`/public/invite/${token}/verify-otp`, {
-        otp: code
-      })
-      if (res.success) {
-        setOtp(code)
-        // Also populate form data with any user details returned if available
-        // Pre-fill names if we had them or let user fill
-        setStep('form')
-      } else {
-        setLocalError(res.message || 'Invalid code')
-      }
-    } catch (err: any) {
-      setLocalError(err.message || 'Verification failed')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -131,7 +82,9 @@ export default function InviteClient() {
     try {
       const res = await api.post(`/public/invite/${token}/accept`, {
         password: formData.password,
-        otp: otp // Use the verified OTP to finalize
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email
       })
 
       if (res.success) {
@@ -200,82 +153,62 @@ export default function InviteClient() {
           </div>
 
           <div className="auth-stage">
-            {step === 'verification' && (
-              <div className="animate-pop">
-                <div className="auth-stage__header">
-                  <h1 className="auth-stage__title">Confirm your identity</h1>
-                  <p className="auth-stage__subtitle">
-                    This invite was sent to <strong>{inviteData?.maskedEmail}</strong>. 
-                    Please verify your email to continue.
-                  </p>
-                </div>
-
-                <div className="verification-options mt-6">
-                  <button 
-                    className="btn btn--primary btn--full" 
-                    onClick={() => handleRequestOTP()}
-                    disabled={isRequestingOTP}
-                  >
-                    {isRequestingOTP ? <Loader2 className="animate-spin" size={18} /> : 'Send code to this email'}
-                  </button>
-
-                  <button 
-                    className="btn btn--ghost btn--full mt-2"
-                    onClick={() => setIsChangingEmail(!isChangingEmail)}
-                  >
-                    Not your email?
-                  </button>
-
-                  {isChangingEmail && (
-                    <div className="email-change-form mt-4 animate-pop p-4 rounded-lg bg-surface-subtle border border-dashed border-clay-glow">
-                      <p className="text-xs text-secondary mb-3">Enter the email address where you'd like to receive the code:</p>
-                      <div className="input-with-icon">
-                        <Mail size={17} />
-                        <input 
-                          type="email" 
-                          placeholder="Your correct email"
-                          className="bg-surface"
-                          value={newEmail}
-                          onChange={e => setNewEmail(e.target.value)}
-                        />
-                      </div>
-                      <button 
-                        className="btn btn--primary btn--full mt-4"
-                        disabled={!newEmail || isRequestingOTP}
-                        onClick={() => handleRequestOTP(newEmail)}
-                      >
-                        {isRequestingOTP ? <Loader2 className="animate-spin" size={18} /> : 'Update and send code'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {step === 'otp' && (
-              <OTPInput
-                email={newEmail || inviteData?.maskedEmail}
-                onVerify={handleVerifyOTP}
-                onResend={() => handleRequestOTP(newEmail || undefined)}
-                onChangeEmail={() => setStep('verification')}
-                isLoading={isSubmitting}
-                error={localError}
-              />
-            )}
-
             {step === 'form' && (
               <div className="animate-pop">
                 <div className="auth-stage__header">
-                  <h1 className="auth-stage__title">Secure your account</h1>
+                  <h1 className="auth-stage__title">Complete your profile</h1>
                   <p className="auth-stage__subtitle">
-                    Create a password to finalize your account activation.
+                    Verify your details and set a password to activate your account.
                   </p>
                 </div>
 
                 <form className="auth-form" onSubmit={handleSubmit}>
                   {localError && <div className="auth-form__error">{localError}</div>}
                   
-                  <div className="auth-form__field">
+                  <div className="auth-form__row">
+                    <div className="auth-form__field">
+                      <label>First Name</label>
+                      <div className="input-with-icon">
+                        <User size={17} />
+                        <input
+                          type="text"
+                          value={formData.firstName}
+                          onChange={e => setFormData({ ...formData, firstName: e.target.value })}
+                          required
+                          placeholder="First name"
+                        />
+                      </div>
+                    </div>
+                    <div className="auth-form__field">
+                      <label>Last Name</label>
+                      <div className="input-with-icon">
+                        <User size={17} />
+                        <input
+                          type="text"
+                          value={formData.lastName}
+                          onChange={e => setFormData({ ...formData, lastName: e.target.value })}
+                          required
+                          placeholder="Last name"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="auth-form__field mt-1">
+                    <label>Email Address</label>
+                    <div className="input-with-icon">
+                      <Mail size={17} />
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                        required
+                        placeholder="your@email.com"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="auth-form__field mt-1">
                     <label>Set Password</label>
                     <div className="input-with-icon">
                       <Lock size={17} />
@@ -299,6 +232,7 @@ export default function InviteClient() {
                         value={formData.confirmPassword}
                         onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
                         required
+                        placeholder="Confirm password"
                       />
                       <button
                         type="button"
@@ -312,11 +246,11 @@ export default function InviteClient() {
 
                   <div className="form-info-box mt-4">
                     <ShieldCheck size={18} color="var(--success)" strokeWidth={2.5} />
-                    <p>Verification complete. Your account is now being secured.</p>
+                    <p>Complete your profile to continue.</p>
                   </div>
 
                   <button className="btn btn--primary btn--full btn--pay mt-6" type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? 'Finalizing…' : 'Activate Account'}
+                    {isSubmitting ? 'Activating…' : 'Activate Account'}
                     {!isSubmitting && <ArrowRight size={17} />}
                   </button>
                 </form>
@@ -349,6 +283,11 @@ export default function InviteClient() {
             @keyframes pop {
               0% { transform: scale(0.95); opacity: 0; }
               100% { transform: scale(1); opacity: 1; }
+            }
+            .auth-form__row {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 16px;
             }
             @media (max-width: 480px) {
               .auth-form__row {
