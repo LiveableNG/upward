@@ -30,6 +30,7 @@ import { PmPropertyController } from './controllers/pm-property.controller'
 import { PmTenantController } from './controllers/pm-tenant.controller'
 import { PmCredibilityController } from './controllers/pm-credibility.controller'
 import { InternalScoreController } from './internal/internal-score.controller'
+import { InternalPaymentsController } from './internal/internal-payments.controller'
 
 
 @Module({
@@ -63,6 +64,7 @@ import { InternalScoreController } from './internal/internal-score.controller'
     PmTenantController,
     PmCredibilityController,
     InternalScoreController,
+    InternalPaymentsController,
 
   ],
 })
