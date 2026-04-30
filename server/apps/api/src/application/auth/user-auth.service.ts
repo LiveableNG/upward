@@ -575,7 +575,7 @@ export class UserAuthService extends BaseAuthService {
     await this.syncTenantStatuses(email)
   }
 
-  async checkEmail(email: string): Promise<{ exists: boolean; hasPassword?: boolean; isInvited?: boolean }> {
+  async checkEmail(email: string): Promise<{ exists: boolean; hasPassword?: boolean; isInvited?: boolean; uuid?: string }> {
     const user = await this.userRepository.findByEmail(email)
     if (!user) return { exists: false }
     const isInvited = user.passwordHash === 'INVITED'
@@ -583,6 +583,7 @@ export class UserAuthService extends BaseAuthService {
       exists: true,
       isInvited,
       hasPassword: !!user.passwordHash && user.passwordHash !== '' && !isInvited,
+      uuid: user.uuid,
     }
   }
 

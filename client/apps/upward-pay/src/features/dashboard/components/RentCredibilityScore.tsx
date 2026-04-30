@@ -17,13 +17,14 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
   }
 
   const { isScorable, score: credScore, rank, band, metrics } = scoreProfile.data
+  const isVerified = user.properties?.some((p: any) => p.isManaged) || false
   const credPercentage = isScorable ? (credScore / 800) * 100 : (400 / 800) * 100
   const streak = metrics.longestStreak
   const onTime = Math.round(metrics.ptPercentage)
   const profileCompletion = scoreProfile.data.profile.profileCompletion
 
   const getRankColor = () => {
-    if (!isScorable) return 'var(--text-muted)'
+    if (!isScorable || !isVerified) return 'var(--text-muted)'
     if (rank === 'A') return 'var(--clay)'
     if (rank === 'B') return 'var(--success)'
     if (rank === 'C') return 'var(--info)'
@@ -66,7 +67,7 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
                 />
               </svg>
               <div className="score-content">
-                <span className="score-val">{credScore}</span>
+                <span className="score-val" style={{ color: isVerified ? '' : 'var(--text-muted)' }}>{credScore}</span>
                 <span className="score-label">{isScorable ? 'UPWARD SCORE' : 'NOT SCORE-ABLE YET'}</span>
               </div>
             </div>
@@ -79,21 +80,21 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
 
           <div className="quick-stats">
             <div className="q-stat">
-              <Flame size={20} className={streak > 0 ? 'text--orange' : 'text--muted'} />
+              <Flame size={20} className={(streak > 0 && isVerified) ? 'text--orange' : 'text--muted'} />
               <div className="q-stat__info">
                 <span className="q-val">{streak}</span>
                 <span className="q-lbl">STREAK</span>
               </div>
             </div>
             <div className="q-stat">
-              <ShieldCheck size={20} className="text--clay" />
+              <ShieldCheck size={20} className={isVerified ? "text--clay" : "text--muted"} />
               <div className="q-stat__info">
                 <span className="q-val">{onTime}%</span>
                 <span className="q-lbl">ON-TIME</span>
               </div>
             </div>
             <div className="q-stat">
-              <Zap size={20} className="text--green" />
+              <Zap size={20} className={isVerified ? "text--green" : "text--muted"} />
               <div className="q-stat__info">
                 <span className="q-val">{profileCompletion}%</span>
                 <span className="q-lbl">PROFILE</span>
@@ -111,7 +112,7 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
                 <span>{onTime}%</span>
               </div>
               <div className="insight-progress">
-                <div className="insight-progress__fill" style={{ width: `${onTime}%` }} />
+                <div className="insight-progress__fill" style={{ width: `${onTime}%`, background: isVerified ? 'var(--clay)' : 'var(--text-muted)' }} />
               </div>
             </div>
             <div className="insight-item">

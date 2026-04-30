@@ -100,7 +100,7 @@ export async function resetPassword(data: { email: string; otp: string; new: str
 }
 
 export async function checkEmail(email: string) {
-  return request<{ exists: boolean; hasPassword?: boolean; isInvited?: boolean }>('/user/auth/check-email', {
+  return request<{ exists: boolean; hasPassword?: boolean; isInvited?: boolean; uuid?: string }>('/user/auth/check-email', {
     method: 'POST',
     body: JSON.stringify({ email }),
   })

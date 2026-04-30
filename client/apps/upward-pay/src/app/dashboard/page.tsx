@@ -98,6 +98,7 @@ export default function DashboardPage() {
     firstProp?.rentEndDate
 
   const isNewUser = !isProfileComplete
+  const isVerified = user.properties?.some((p: any) => p.isManaged) || false
   const totalPaid = completedPayments.reduce((sum: number, p: any) => sum + p.amount, 0)
   const currency = completedPayments[0]?.currency || 'NGN'
 
@@ -161,7 +162,7 @@ export default function DashboardPage() {
   }) || propertyReminders.some((r: any) => r?.isCritical)
 
   const getRankColor = () => {
-    if (!isScorable) return 'var(--text-muted)'
+    if (!isScorable || !isVerified) return 'var(--text-muted)'
     if (rank === 'A') return 'var(--clay)'
     if (rank === 'B') return 'var(--success)'
     if (rank === 'C') return 'var(--info)'
@@ -350,10 +351,10 @@ export default function DashboardPage() {
                     </div>
                   ) : isNewUser ? (
                     <div className="bento-hero-score">
-                       <div className="bento-hero-score__label" style={{ color: 'var(--clay)' }}>Setup Required</div>
+                       <div className="bento-hero-score__label" style={{ color: isVerified ? 'var(--clay)' : 'var(--text-muted)' }}>Setup Required</div>
                        <h2 className="bento-hero-score__title">Complete your<br />Profile</h2>
                        <p className="bento-hero-score__desc">Add your property details to start building your credibility score.</p>
-                       <button className="btn btn--primary bento-hero-btn" onClick={() => router.push('/dashboard/me?view=personal')}>
+                       <button className="btn btn--primary bento-hero-btn" onClick={() => router.push('/dashboard/me?view=personal&edit=true')}>
                          Get Started <ArrowRight size={16} />
                        </button>
                     </div>
@@ -406,14 +407,14 @@ export default function DashboardPage() {
           {/* CELL 2: Reliability Rating */}
           <div className="bento-cell bento-cell--metric">
             <div className="bento-metric">
-              <div className="bento-metric__icon bento-metric__icon--clay">
+              <div className="bento-metric__icon" style={{ background: isVerified ? 'var(--clay-faint)' : 'var(--surface2)', color: isVerified ? 'var(--clay)' : 'var(--text-muted)' }}>
                 <ShieldCheck size={20} />
               </div>
-              <div className="bento-metric__pct">{onTime}%</div>
+              <div className="bento-metric__pct" style={{ color: isVerified ? 'var(--text)' : 'var(--text-muted)' }}>{onTime}%</div>
               <div className="bento-metric__title">Reliability Rating</div>
               <div className="bento-metric__desc">Based on on-time payments</div>
               <div className="bento-metric__bar">
-                <div className="bento-metric__bar-fill" style={{ width: `${onTime}%`, background: 'var(--clay)' }} />
+                <div className="bento-metric__bar-fill" style={{ width: `${onTime}%`, background: getRankColor() }} />
               </div>
               <button className="bento-metric__link" onClick={() => router.push('/dashboard/pay-rent')}>
                 Boost Your Score <ArrowRight size={13} />
@@ -424,16 +425,16 @@ export default function DashboardPage() {
           {/* CELL 3: Score Breakdown */}
           <div className="bento-cell bento-cell--metric">
             <div className="bento-metric">
-              <div className="bento-metric__icon bento-metric__icon--clay">
+              <div className="bento-metric__icon" style={{ background: isVerified ? 'var(--clay-faint)' : 'var(--surface2)', color: isVerified ? 'var(--clay)' : 'var(--text-muted)' }}>
                 <TrendingUp size={20} />
               </div>
-              <div className="bento-metric__pct">
+              <div className="bento-metric__pct" style={{ color: isVerified ? 'var(--text)' : 'var(--text-muted)' }}>
                 Score Detail
               </div>
               <div className="bento-metric__title">Reputation Factors</div>
               <div className="bento-metric__desc">View how your score is calculated</div>
               <div className="bento-metric__bar">
-                <div className="bento-metric__bar-fill" style={{ width: `${(credScore / 800) * 100}%`, background: 'var(--clay)' }} />
+                <div className="bento-metric__bar-fill" style={{ width: `${(credScore / 800) * 100}%`, background: getRankColor() }} />
               </div>
               <button className="bento-metric__link" onClick={() => router.push('/dashboard/score-breakdown')}>
                 View Breakdown <ArrowRight size={13} />
@@ -484,7 +485,7 @@ export default function DashboardPage() {
           {/* CELL 5: Streak Stat */}
           <div className="bento-cell bento-cell--streak">
             <div className="bento-streak">
-              <Flame size={28} className={streak > 0 ? 'bento-streak__icon--active' : 'bento-streak__icon--muted'} />
+              <Flame size={28} className={(streak > 0 && isVerified) ? 'bento-streak__icon--active' : 'bento-streak__icon--muted'} />
               <div className="bento-streak__num">{streak}</div>
               <div className="bento-streak__label">Payment Streak</div>
               <div className="bento-streak__sub">Consecutive on-time payments</div>

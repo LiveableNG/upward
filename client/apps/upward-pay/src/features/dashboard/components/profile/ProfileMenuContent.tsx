@@ -60,18 +60,36 @@ function ProfileMenuContentInner() {
   const [view, setView] = useState<ViewMode>(
     searchParams.get('view') === 'personal' ? 'personal' : 'menu'
   )
-  const [isEditing, setIsEditing] = useState(false)
+  const [isEditing, setIsEditing] = useState(searchParams.get('edit') === 'true')
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [formData, setFormData] = useState<Partial<UserProfile>>({})
   const [saving, setSaving] = useState(false)
   const [contracts, setContracts] = useState<ContractData[]>([])
   const [expandedProps, setExpandedProps] = useState<Record<number, boolean>>({})
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const phoneRegex = useMemo(() => /^\+234\d{10}$/, [])
+
+  const validatePhone = (val: string) => {
+    if (!val) return ''
+    if (!phoneRegex.test(val)) return 'Format: +2348000000000'
+    return ''
+  }
 
   useEffect(() => {
     if (user) {
       setProfile(user)
+      
+      // Auto-expand properties on desktop
+      const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024
+      const initialExpanded: Record<number, boolean> = {}
+      user.properties?.forEach((_, idx) => {
+        initialExpanded[idx] = isDesktop
+      })
+      setExpandedProps(initialExpanded)
+
       setFormData({
         ...user,
         address: user.address || '',
@@ -108,9 +126,9 @@ function ProfileMenuContentInner() {
   async function handleSave() {
     if (!profile) return
 
-    const phoneRegex = /^\+234\d{10}$/
-    if (formData.phone && !phoneRegex.test(formData.phone)) {
-      toastError('Phone number must be in format +2348000000000')
+    const pErr = validatePhone(formData.phone || '')
+    if (pErr) {
+      toastError(`Your Phone Number: ${pErr}`)
       return
     }
 
@@ -118,6 +136,12 @@ function ProfileMenuContentInner() {
       for (let i = 0; i < formData.properties.length; i++) {
         const prop = formData.properties[i]
         const propNum = i + 1
+
+        const mpErr = validatePhone(prop.managerPhone || '')
+        if (mpErr) {
+          toastError(`Property #${propNum} Manager Phone: ${mpErr}`)
+          return
+        }
 
         // 1. Mandatory Location Fields
         if (!prop.location?.address || !prop.location?.area) {
@@ -146,10 +170,7 @@ function ProfileMenuContentInner() {
           return
         }
 
-        if (prop.managerPhone && !phoneRegex.test(prop.managerPhone)) {
-          toastError(`Property #${propNum}: Manager phone must be in format +2348000000000`)
-          return
-        }
+        // Removed old phone validation toast from loop as it's handled above
 
         // 4. Date Logic: End must be after Start
         const start = new Date(prop.rentStartDate)
@@ -274,6 +295,10 @@ function ProfileMenuContentInner() {
       prop[parent] = { ...prop[parent], [child]: value }
     } else {
       ;(newProps[idx] as any)[field] = value
+      
+      if (field === 'managerPhone') {
+        setValidationErrors(prev => ({ ...prev, [`prop_${idx}_managerPhone`]: validatePhone(value) }))
+      }
     }
     setFormData({ ...formData, properties: newProps })
   }
@@ -292,7 +317,7 @@ function ProfileMenuContentInner() {
               <button 
                 className="btn btn--primary btn--sm btn--pill" 
                 onClick={handleSave}
-                disabled={saving}
+                disabled={saving || Object.values(validationErrors).some(v => !!v)}
               >
                 {saving ? '...' : 'Save'}
               </button>
@@ -352,7 +377,11 @@ function ProfileMenuContentInner() {
                   icon={Phone}
                   label="Phone Number"
                   value={formData.phone || ''}
-                  onChange={(v) => setFormData({ ...formData, phone: v })}
+                  error={validationErrors.phone}
+                  onChange={(v) => {
+                    setFormData({ ...formData, phone: v })
+                    setValidationErrors(prev => ({ ...prev, phone: validatePhone(v) }))
+                  }}
                 />
                 <DetailOrEdit
                   isEditing={isEditing}
@@ -582,6 +611,7 @@ function ProfileMenuContentInner() {
                               label="Manager Phone"
                               placeholder="Manager's active phone"
                               value={prop.managerPhone || ''}
+                              error={validationErrors[`prop_${idx}_managerPhone`]}
                               onChange={(v) => handlePropUpdate(idx, 'managerPhone', v)}
                             />
                             <DetailOrEdit
@@ -613,7 +643,7 @@ function ProfileMenuContentInner() {
                 >
                   Cancel
                 </button>
-                <button className="btn btn--primary" onClick={handleSave} disabled={saving}>
+                <button className="btn btn--primary" onClick={handleSave} disabled={saving || Object.values(validationErrors).some(v => !!v)}>
                   {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
@@ -628,6 +658,18 @@ function ProfileMenuContentInner() {
             --border-soft: var(--border-solid);
             --radius-main: 24px;
             --radius-item: 16px;
+          }
+
+          .profile-page :global(.dashboard__header) {
+            max-width: 860px;
+            margin: 0 auto var(--space-4);
+          }
+
+          @media (min-width: 1024px) {
+            .profile-page :global(.dashboard__header) {
+              max-width: 1100px;
+              margin-bottom: var(--space-6);
+            }
           }
 
           .property-item--past {
@@ -646,9 +688,16 @@ function ProfileMenuContentInner() {
           }
 
           .profile-content-scroll {
-            max-width: 800px;
+            max-width: 860px;
             margin: 0 auto;
-            padding: 2rem 1rem 8rem;
+            padding: 2.5rem 1.5rem 10rem;
+          }
+
+          @media (min-width: 1024px) {
+            .profile-content-scroll {
+              max-width: 1100px;
+              padding: 3rem 2rem 10rem;
+            }
           }
 
           /* Profile Shell (Menu View) */
@@ -828,13 +877,15 @@ function ProfileMenuContentInner() {
           .personal-sections {
             display: flex;
             flex-direction: column;
-            gap: 2rem;
+            gap: 2.5rem;
           }
 
           .profile-section {
             background: var(--section-bg);
             border-radius: var(--radius-main);
-            padding: 2rem;
+            padding: 2.5rem;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--border-soft);
           }
 
           .profile-section__header {
@@ -937,7 +988,13 @@ function ProfileMenuContentInner() {
           }
 
           .property-item__body {
-            padding: 0 1.5rem 1.5rem;
+            padding: 0 2rem 2rem;
+          }
+
+          @media (min-width: 1024px) {
+            .property-item__header {
+              padding: 1.5rem 2rem;
+            }
           }
 
           .property-item__delete {

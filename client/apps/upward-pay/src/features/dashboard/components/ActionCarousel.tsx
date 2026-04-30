@@ -97,7 +97,7 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
         title: 'Complete Your Profile',
         desc: 'Add your property details and rent due date to build your credibility score.',
         actionLabel: 'Add Property',
-        action: () => router.push('/dashboard/me?view=personal'),
+        action: () => router.push('/dashboard/me?view=personal&edit=true'),
         icon: <MapPin size={20} color="var(--clay)" />,
         bg: 'var(--clay-faint)',
         beamClass: 'animate-beam-clay',

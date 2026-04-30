@@ -50,13 +50,24 @@ export class InviteController {
 
   @Get(':token')
   async getInviteData(@Param('token') token: string) {
+    let userUuid: string | undefined;
     const vt = await this.tokenRepository.findByToken(token)
 
-    if (!vt || vt.context !== 'INVITE' || vt.expiresAt < new Date()) {
+    if (vt && vt.context === 'INVITE' && vt.expiresAt >= new Date()) {
+      userUuid = vt.identifier;
+    } else {
+      // Fallback: check if token is a user UUID and they are invited
+      const user = await this.userRepository.findByUuid(token);
+      if (user && user.passwordHash === 'INVITED') {
+        userUuid = token;
+      }
+    }
+
+    if (!userUuid) {
       throw new NotFoundException('Invite link is invalid or has expired')
     }
 
-    const user = await this.userRepository.findByUuid(vt.identifier)
+    const user = await this.userRepository.findByUuid(userUuid)
     if (!user) {
       throw new NotFoundException('Invited user not found')
     }
@@ -70,13 +81,12 @@ export class InviteController {
       managerName = `${property.manager.firstName ? this.encryption.decrypt(property.manager.firstName) : ''} ${property.manager.lastName ? this.encryption.decrypt(property.manager.lastName) : ''}`
     }
 
-    // Mask email
-    const maskedEmail = this.userAuthService.maskEmail(user.email)
-
     return {
       success: true,
       hasPassword,
-      maskedEmail,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
       company: companyUser ? {
         name: this.encryption.decrypt(companyUser.company.name),
         profilePic: (companyUser.company as any).profilePic,
@@ -144,25 +154,27 @@ export class InviteController {
   @Post(':token/accept')
   async acceptInvite(
     @Param('token') token: string,
-    @Body() data: { password?: string; otp?: string },
+    @Body() data: { password?: string; otp?: string; firstName?: string; lastName?: string; email?: string },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
+    let userUuid: string | undefined;
     const vt = await this.tokenRepository.findByToken(token)
-    if (!vt || vt.context !== 'INVITE' || vt.expiresAt < new Date()) {
+
+    if (vt && vt.context === 'INVITE' && vt.expiresAt >= new Date()) {
+      userUuid = vt.identifier;
+    } else {
+      const user = await this.userRepository.findByUuid(token);
+      if (user && user.passwordHash === 'INVITED') {
+        userUuid = token;
+      }
+    }
+
+    if (!userUuid) {
       throw new NotFoundException('Invite link is invalid or has expired')
     }
 
-    const user = await this.userRepository.findByUuid(vt.identifier)
+    const user = await this.userRepository.findByUuid(userUuid)
     if (!user) throw new NotFoundException('Invite not found')
-
-    // Verify OTP if provided. For some flows (like onboarding after payment), 
-    // the invite token itself is sufficient proof of access.
-    if (data.otp) {
-      const verification = await this.userAuthService.verifyOTP(user.email, data.otp, 'INVITE')
-      if (!verification.success) {
-        throw new BadRequestException(verification.message || 'Invalid or expired verification code')
-      }
-    }
 
     if (!data.password) {
       throw new BadRequestException('Password is required')
@@ -172,14 +184,19 @@ export class InviteController {
 
     await this.userRepository.update(user.id!, {
       passwordHash,
+      firstName: data.firstName || user.firstName,
+      lastName: data.lastName || user.lastName,
+      email: data.email || user.email,
     })
     await this.userAuthService.syncTenantStatuses(user.email)
 
     const updatedUser = await this.userRepository.findById(user.id!)
     if (!updatedUser) throw new Error('Failed to update user')
 
-    // Delete the invite token after successful acceptance
-    await this.tokenRepository.delete(vt.id!)
+    // Delete the invite token if it was used
+    if (vt) {
+      await this.tokenRepository.delete(vt.id!)
+    }
 
     const { accessToken, refreshToken, user: userNoPass } = await this.userAuthService.generateFullAuthResponse(updatedUser)
     

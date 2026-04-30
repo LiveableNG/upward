@@ -42,11 +42,10 @@ export default function HomePage() {
     }
   }
 
-  const openSignup = (email?: string, step: number = 1) => {
-    if (email) setPrefilledEmail(email)
-    setPrefilledStep(step)
-    setShowModal(true)
-    trackInteraction('CLICK', 'OPEN_SIGNUP_MODAL')
+  const openSignup = (email?: string) => {
+    trackInteraction('CLICK', 'OPEN_SIGNUP')
+    const url = email ? `/signup?email=${encodeURIComponent(email)}` : '/signup'
+    window.location.href = url
   }
 
   useEffect(() => {
@@ -236,64 +235,6 @@ export default function HomePage() {
         onOpenSignup={() => openSignup()}
         trackInteraction={trackInteraction}
       />
-
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowModal(false)}>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-            <div style={{ padding: '0px' }}>
-              <div style={{ padding: '48px 40px 24px' }} className="modal-header-padding">
-                <div className="section-label">Priority Access</div>
-                <h2
-                  style={{
-                    fontFamily: 'var(--font-head)',
-                    fontWeight: 800,
-                    fontSize: 'clamp(1.8rem, 4vw, 2.4rem)',
-                    letterSpacing: '-0.03em',
-                    lineHeight: 1.1,
-                    marginBottom: '12px',
-                    marginTop: '16px',
-                    background: 'var(--heading-mix)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                  }}
-                >
-                  Join the movement.
-                </h2>
-                <p
-                  style={{
-                    color: 'var(--muted)',
-                    fontSize: '15px',
-                    maxWidth: '440px',
-                    lineHeight: 1.6,
-                  }}
-                >
-                  Tell us about yourself and we&apos;ll tailor your experience from day one.
-                </p>
-              </div>
-              <SignupForm
-                initialEmail={prefilledEmail}
-                initialStep={prefilledStep}
-                abVariant={abVariant || 'A'}
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
       <div
         id="toast"

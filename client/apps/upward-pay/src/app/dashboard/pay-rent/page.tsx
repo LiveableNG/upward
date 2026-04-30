@@ -227,7 +227,7 @@ export default function PayRentPage() {
         {step !== 'checkout' && step !== 'processing' && step !== 'success' && (
           <div className="pay-rent__header">
             <div className="dashboard__header-left">
-              <button className="dashboard__back mobile-only" onClick={handleBack}>
+              <button className="dashboard__back" onClick={handleBack}>
                 <ArrowLeft size={20} />
               </button>
               <h2 className="dashboard__title">{stepTitle[step]}</h2>
