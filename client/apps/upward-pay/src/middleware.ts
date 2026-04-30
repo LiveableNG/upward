@@ -73,6 +73,8 @@ export const config = {
     '/signup',
     '/invite',
     '/invite/:path*',
+    '/fill-record',
+    '/fill-record/:path*',
     '/forgot-password',
     '/reset-password'
   ],
