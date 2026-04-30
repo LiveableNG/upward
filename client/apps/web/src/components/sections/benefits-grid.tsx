@@ -3,7 +3,7 @@ import { showToast } from '@upward/client-core'
 export function BenefitsGrid({
   onOpenSignup,
 }: {
-  onOpenSignup?: (email?: string, step?: number) => void
+  onOpenSignup?: (email?: string) => void
 }) {
   const handleHeroEmail = async () => {
     const emailEl = document.getElementById('hero-email-grid') as HTMLInputElement
