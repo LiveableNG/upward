@@ -10,6 +10,7 @@ import {
   ValidationPipe,
   Param,
   Req,
+  Res,
 } from '@nestjs/common'
 import { IncomingMessage } from 'node:http'
 import { JoinWaitlistUseCase } from '../../../application/use-cases/waitlist/join-waitlist.use-case'
@@ -19,6 +20,7 @@ import { TrackInteractionUseCase } from '../../../application/use-cases/analytic
 import { UnsubscribeWaitlistUseCase } from '../../../application/use-cases/waitlist/unsubscribe-waitlist.use-case'
 import { CreateWaitlistEntryDto } from '../dto/create-waitlist-entry.dto'
 import { TrackInteractionDto } from '../dto/track-interaction.dto'
+import { UserAuthService } from '../../../application/auth/user-auth.service'
 import type { WaitlistEntryResponse, ApiSuccess } from '@upward/shared-types'
 
 @Controller('waitlist')
@@ -29,6 +31,7 @@ export class WaitlistController {
     private readonly getWaitlistByEmailUseCase: GetWaitlistByEmailUseCase,
     private readonly trackInteractionUseCase: TrackInteractionUseCase,
     private readonly unsubscribeWaitlistUseCase: UnsubscribeWaitlistUseCase,
+    private readonly userAuthService: UserAuthService,
   ) {}
 
   @Post()
@@ -75,5 +78,49 @@ export class WaitlistController {
     const email = bodyEmail || queryEmail
     const success = await this.unsubscribeWaitlistUseCase.execute(email)
     return { data: { success }, message: success ? 'Unsubscribed' : 'User not found' }
+  }
+
+  @Get('claim/:uuid')
+  @HttpCode(HttpStatus.OK)
+  async getClaimData(@Param('uuid') uuid: string) {
+    return this.userAuthService.getWaitlistClaimData(uuid)
+  }
+
+  @Post('claim/:uuid/accept')
+  @HttpCode(HttpStatus.OK)
+  async acceptClaim(
+    @Param('uuid') uuid: string,
+    @Body() data: any,
+    @Res({ passthrough: false }) reply: any,
+  ) {
+    const response = await this.userAuthService.signup({
+      ...data,
+      isFromWaitlist: true
+    })
+
+    const isProd = process.env['NODE_ENV'] === 'production' || !!process.env['VERCEL']
+    
+    // Set Cookies (Same logic as InviteController)
+    reply.setCookie('user_refresh', response.refreshToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60,
+    })
+
+    reply.setCookie('pay_access_token', response.accessToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60,
+    })
+
+    return reply.status(HttpStatus.OK).send({
+      success: true,
+      accessToken: response.accessToken,
+      user: response.user
+    })
   }
 }
