@@ -39,6 +39,10 @@ const nextConfig: NextConfig = {
         source: '/forgot-password',
         destination: `${APP_URL}/forgot-password/`,
       },
+      {
+        source: '/api/v1/:path*',
+        destination: `${APP_URL}/api/v1/:path*`,
+      },
     ]
   },
 }
