@@ -137,6 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         pathname?.startsWith('/welcome/') || 
         pathname?.startsWith('/complete-profile') ||
         pathname?.startsWith('/profile/') ||
+        pathname?.startsWith('/fill-record/') ||
         ['/login', '/signup', '/forgot-password', '/reset-password'].includes(pathname || '')
 
       if (!isPublicPath) {
