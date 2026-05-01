@@ -1,0 +1,207 @@
+model upward_property_manager {
+  id              Int                         @id @default(autoincrement())
+  uuid            String                      @unique @default(uuid())
+  email           String                      @unique
+  emailHash       String                      @unique
+  passwordHash    String
+  firstName       String
+  firstNameHash   String?
+  lastName        String
+  lastNameHash    String?
+  businessName    String?
+  phone           String?
+  phoneHash       String?
+  profilePic      String?
+  bankName        String?
+  bankCode        String?
+  accountNumber   String?
+  accountName     String?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  authSessions    upward_pm_auth_session[]
+  bulkInvites     upward_pm_bulk_invite[]
+  paymentRequests upward_pm_payment_request[]
+  properties      upward_pm_property[]
+  tenants         upward_pm_tenant[]
+  userProperties  upward_user_property[]
+
+  @@index([email])
+}
+
+model upward_pm_auth_session {
+  id               String                  @id @default(uuid())
+  pmId             Int
+  refreshTokenHash String                  @unique
+  userAgent        String?
+  ipAddress        String?
+  deviceId         String?
+  isRevoked        Boolean                 @default(false)
+  expiresAt        DateTime
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  pm               upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+
+  @@index([pmId])
+}
+
+model upward_pm_property {
+  id                     Int                     @id @default(autoincrement())
+  uuid                   String                  @unique @default(uuid())
+  pmId                   Int
+  name                   String
+  address                String?
+  totalUnits             Int                     @default(0)
+  propertyType           String                  @default("Residential")
+  imageUrl               String?
+  country                String                  @default("Nigeria")
+  state                  String?
+  area                   String?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  landlordEmailEncrypted String?
+  landlordEmailHash      String?
+  landlordNameEncrypted  String?
+  landlordNameSearch     String?
+  landlordPhoneEncrypted String?
+  landlordPhoneHash      String?
+  pm                     upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  units                  upward_pm_unit[]
+
+  @@index([pmId])
+}
+
+model upward_pm_unit {
+  id               Int                         @id @default(autoincrement())
+  uuid             String                      @unique @default(uuid())
+  propertyId       Int
+  unitName         String
+  rentAmount       Float                       @default(0)
+  rentStartDate    DateTime?
+  rentDueDate      DateTime?
+  currency         String                      @default("NGN")
+  status           String                      @default("VACANT")
+  tenantId         Int?
+  isSynced         Boolean                     @default(false)
+  userPropertyUuid String?
+  createdAt        DateTime                    @default(now())
+  updatedAt        DateTime                    @updatedAt
+  managementFee    Float                       @default(0)
+  notes            String?
+  rentType         String                      @default("Monthly")
+  paymentRequests  upward_pm_payment_request[]
+  rentPayments     upward_pm_rent_payment[]
+  property         upward_pm_property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant           upward_pm_tenant?           @relation(fields: [tenantId], references: [id])
+  userProperties   upward_user_property[]
+
+  @@index([propertyId])
+  @@index([status])
+  @@index([tenantId])
+}
+
+model upward_pm_tenant {
+  id                 Int                         @id @default(autoincrement())
+  uuid               String                      @unique @default(uuid())
+  pmId               Int
+  /// @encrypted
+  firstNameEncrypted String?
+  firstNameSearch    String?
+  /// @encrypted
+  lastNameEncrypted  String?
+  lastNameSearch     String?
+  /// @encrypted
+  emailEncrypted     String?
+  emailHash          String?
+  /// @encrypted
+  phoneEncrypted     String?
+  phoneHash          String?
+  inviteStatus       String                      @default("PENDING")
+  inviteSentAt       DateTime?
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  paymentRequests    upward_pm_payment_request[]
+  pm                 upward_property_manager     @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  units              upward_pm_unit[]
+
+  @@index([pmId])
+  @@index([emailHash])
+}
+
+model upward_pm_rent_payment {
+  id          Int            @id @default(autoincrement())
+  uuid        String         @unique @default(uuid())
+  unitId      Int
+  amount      Float
+  paymentDate DateTime
+  periodStart DateTime?
+  periodEnd   DateTime?
+  method      String         @default("Bank Transfer")
+  reference   String?
+  status      String         @default("SUCCESS")
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  unit        upward_pm_unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@index([unitId])
+  @@index([paymentDate])
+}
+
+model upward_pm_payment_request {
+  id               Int                     @id @default(autoincrement())
+  uuid             String                  @unique @default(uuid())
+  pmId             Int
+  unitId           Int
+  tenantId         Int?
+  paymentRequestId Int?
+  amount           Float
+  currency         String                  @default("NGN")
+  description      String?
+  dueDate          DateTime
+  status           String                  @default("PENDING")
+  amountPaid       Float                   @default(0)
+  allowPartial     Boolean                 @default(false)
+  minAmount        Float?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
+  pm               upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  tenant           upward_pm_tenant?       @relation(fields: [tenantId], references: [id])
+  unit             upward_pm_unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@index([pmId])
+  @@index([unitId])
+  @@index([status])
+}
+
+model upward_pm_bulk_invite {
+  id           String                       @id @default(uuid())
+  pmId         Int
+  status       String                       @default("PENDING")
+  totalTenants Int                          @default(0)
+  sentCount    Int                          @default(0)
+  failedCount  Int                          @default(0)
+  error        String?
+  createdAt    DateTime                     @default(now())
+  updatedAt    DateTime                     @updatedAt
+  pm           upward_property_manager      @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  items        upward_pm_bulk_invite_item[]
+
+  @@index([pmId])
+  @@index([status])
+}
+
+model upward_pm_bulk_invite_item {
+  id           String                @id @default(uuid())
+  bulkInviteId String
+  tenantUuid   String
+  status       String                @default("PENDING")
+  error        String?
+  retries      Int                   @default(0)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  bulkInvite   upward_pm_bulk_invite @relation(fields: [bulkInviteId], references: [id], onDelete: Cascade)
+
+  @@index([bulkInviteId])
+  @@index([status])
+}

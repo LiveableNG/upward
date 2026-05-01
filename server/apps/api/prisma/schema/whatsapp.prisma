@@ -1,0 +1,48 @@
+model upward_whatsapp_sessions {
+  id            Int       @id @default(autoincrement())
+  uuid          String    @unique(map: "upward_whatsapp_sessions_uuid_unique") @db.Uuid
+  phone         String?   @db.VarChar(255)
+  phoneHash     String?   @db.VarChar(255)
+  state         String    @default("NEW") @db.VarChar(255)
+  sessionData   Json?
+  lastMessageAt DateTime? @db.Timestamp(0)
+  expiresAt     DateTime? @db.Timestamp(0)
+  createdAt     DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime  @default(now()) @db.Timestamp(0)
+
+  @@index([expiresAt], map: "upward_whatsapp_sessions_expiresat_index")
+  @@index([lastMessageAt], map: "upward_whatsapp_sessions_lastmessageat_index")
+  @@index([phone], map: "upward_whatsapp_sessions_phone_index")
+  @@index([phoneHash], map: "upward_whatsapp_sessions_phonehash_index")
+}
+
+model upward_whatsapp_transaction_pins {
+  id             Int      @id @default(autoincrement())
+  uuid           String   @unique(map: "upward_whatsapp_transaction_pins_uuid_unique") @db.Uuid
+  upwardUserUuid String   @unique(map: "upward_whatsapp_transaction_pins_upwarduseruuid_unique") @db.Uuid
+  pinHash        String   @db.VarChar(255)
+  createdAt      DateTime @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime @default(now()) @db.Timestamp(0)
+
+  @@index([upwardUserUuid], map: "upward_whatsapp_transaction_pins_upwarduseruuid_index")
+}
+
+model upward_whatsapp_rent_reminder_log {
+  id             Int      @id @default(autoincrement())
+  uuid           String   @unique(map: "upward_whatsapp_rent_reminder_log_uuid_unique") @db.Uuid
+  userPropertyId Int
+  userId         Int
+  phone          String?  @db.VarChar(255)
+  daysBefore     Int      @db.SmallInt
+  dueDate        DateTime @db.Date
+  reminderDate   DateTime @db.Date
+  status         String   @default("SENT") @db.VarChar(255)
+  createdAt      DateTime @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime @default(now()) @db.Timestamp(0)
+
+  @@unique([userPropertyId, reminderDate], map: "uwrrl_property_reminder_date_unique")
+  @@index([dueDate], map: "upward_whatsapp_rent_reminder_log_duedate_index")
+  @@index([reminderDate], map: "upward_whatsapp_rent_reminder_log_reminderdate_index")
+  @@index([userId], map: "upward_whatsapp_rent_reminder_log_userid_index")
+  @@index([userPropertyId], map: "upward_whatsapp_rent_reminder_log_userpropertyid_index")
+}

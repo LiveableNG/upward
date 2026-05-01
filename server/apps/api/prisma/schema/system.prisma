@@ -1,0 +1,279 @@
+model upward_waitlist {
+  id                       String              @id @default(uuid())
+  email                    String              @unique
+  firstName                String?
+  lastName                 String?
+  phone                    String?
+  role                     String?
+  benefits                 String[]
+  acceptTerms              Boolean             @default(false)
+  wantsAmbassador          Boolean             @default(false)
+  country                  String?
+  city                     String?
+  selectedSession          String?
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+  confirmationSent         Boolean             @default(false)
+  abVariant                String?
+  confirmationEmailError   String?
+  confirmationEmailRetries Int                 @default(0)
+  confirmationEmailStatus  String?
+  campaignWeekSent         Int                 @default(0)
+  unsubscribed             Boolean             @default(false)
+  unsubscribedAt           DateTime?
+  attendances              upward_attendance[]
+  emailLogs                upward_email_log[]
+
+  @@index([email])
+  @@index([createdAt])
+  @@index([confirmationEmailStatus])
+}
+
+model upward_session {
+  id             String              @id @default(uuid())
+  name           String
+  googleMeetLink String
+  startTime      DateTime
+  endTime        DateTime
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  attendances    upward_attendance[]
+  emailLogs      upward_email_log[]
+
+  @@index([startTime])
+}
+
+model upward_attendance {
+  id        String          @id @default(uuid())
+  sessionId String
+  userId    String
+  attended  Boolean         @default(false)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  session   upward_session  @relation(fields: [sessionId], references: [id])
+  user      upward_waitlist @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+}
+
+model upward_email_log {
+  id        String          @id @default(uuid())
+  userId    String
+  sessionId String?
+  subject   String
+  sentAt    DateTime?
+  status    String
+  createdAt DateTime        @default(now())
+  email     String?
+  lastError String?
+  mailgunId String?
+  type      String          @default("GENERIC")
+  updatedAt DateTime        @updatedAt
+  retries   Int             @default(0)
+  body      String?
+  session   upward_session? @relation(fields: [sessionId], references: [id])
+  user      upward_waitlist @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([status])
+  @@index([type])
+}
+
+model upward_interaction {
+  id        String   @id @default(uuid())
+  visitorId String
+  type      String
+  target    String
+  abVariant String
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  metadata  String?
+
+  @@index([visitorId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model upward_error_log {
+  id        String   @id @default(uuid())
+  message   String
+  stack     String?
+  context   String?
+  severity  String   @default("ERROR")
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([severity])
+  @@index([resolved])
+}
+
+model upward_email_campaign {
+  id          String   @id @default(uuid())
+  weekNumber  Int      @unique
+  subject     String
+  htmlContent String
+  textContent String?
+  label       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([weekNumber])
+  @@index([isActive])
+}
+
+model upward_system_email {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  subject     String
+  htmlContent String
+  textContent String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+}
+
+model upward_fairness_story {
+  id         String   @id @default(uuid())
+  name       String?
+  categories String[]
+  story      String
+  audioUrl   String?
+  fileUrls   String[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([createdAt])
+}
+
+model upward_announcement {
+  id        Int                              @id @default(autoincrement())
+  uuid      String                           @unique @default(uuid())
+  title     String
+  message   String
+  iconType  String                           @default("sparkles")
+  isActive  Boolean                          @default(true)
+  createdAt DateTime                         @default(now())
+  updatedAt DateTime                         @updatedAt
+  url       String?
+  states    upward_user_announcement_state[]
+
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+model upward_user_announcement_state {
+  id               Int                 @id @default(autoincrement())
+  uuid             String              @unique @default(uuid())
+  userId           Int
+  announcementId   Int
+  seenPopup        Boolean             @default(false)
+  interactedPopup  Boolean             @default(false)
+  seenBanner       Boolean             @default(false)
+  interactedBanner Boolean             @default(false)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  announcement     upward_announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user             upward_user         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, announcementId])
+  @@index([userId])
+}
+
+model upward_notification {
+  id        Int         @id @default(autoincrement())
+  uuid      String      @unique @default(uuid())
+  userId    Int
+  title     String
+  message   String
+  type      String      @default("SYSTEM")
+  url       String?
+  isRead    Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  user      upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model upward_webhook_log {
+  id           String          @id @default(uuid())
+  platformId   Int
+  event        String
+  url          String
+  payload      Json
+  status       String
+  responseCode Int?
+  errorMessage String?
+  retries      Int             @default(0)
+  lastTriedAt  DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  platform     upward_platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+
+  @@index([platformId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model upward_platform {
+  id          Int                  @id @default(autoincrement())
+  uuid        String               @unique @default(uuid())
+  apiKey      String               @unique
+  webhookUrl  String
+  name        String
+  address     String?
+  email       String?
+  emailHash   String?              @unique
+  nameHash    String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  companies   upward_company[]
+  webhookLogs upward_webhook_log[]
+}
+
+model upward_credibility_request {
+  id           Int         @id @default(autoincrement())
+  uuid         String      @unique @default(uuid())
+  userId       Int
+  propertyUuid String
+  /// @encrypted
+  companyName  String?
+  /// @encrypted
+  managerName  String?
+  /// @encrypted
+  email        String?
+  /// @encrypted
+  phone        String?
+  status       String      @default("PENDING")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  user         upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([propertyUuid])
+  @@index([status])
+}
+
+model upward_support_ticket {
+  id         Int         @id @default(autoincrement())
+  uuid       String      @unique @default(uuid())
+  userId     Int
+  message    String
+  status     String      @default("OPEN")
+  resolvedAt DateTime?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  user       upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}

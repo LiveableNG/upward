@@ -1,0 +1,154 @@
+model upward_transaction {
+  id               Int                     @id @default(autoincrement())
+  uuid             String                  @unique @default(uuid())
+  userId           Int
+  type             String                  @default("RENT")
+  status           String                  @default("PENDING")
+  amount           Float
+  currency         String                  @default("NGN")
+  reference        String                  @unique
+  narration        String?
+  landlordId       String?
+  paymentType      String?
+  propertyAddress  String?
+  lineItems        Json?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  paymentRequestId Int?
+  isManual         Boolean                 @default(false)
+  transactionType  String                  @default("PAYMENT")
+  overpayments     upward_overpayment[]
+  paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
+
+  @@index([userId])
+  @@index([reference])
+  @@index([paymentRequestId])
+}
+
+model upward_payment_request {
+  id                Int                         @id @default(autoincrement())
+  uuid              String                      @unique @default(uuid())
+  userId            Int
+  userPropertyId    Int?
+  amount            Float
+  currency          String                      @default("NGN")
+  description       String?
+  dueDate           DateTime
+  status            String                      @default("PENDING")
+  paidAt            DateTime?
+  reference         String?                     @unique
+  subaccountId      Int?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  allowPartial      Boolean                     @default(false)
+  amountPaid        Float                       @default(0)
+  minAmount         Float?
+  isManual          Boolean                     @default(false)
+  overpayments      upward_overpayment[]
+  lineItemRecords   upward_payment_line_item[]
+  subaccount        upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
+  user              upward_user                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProperty      upward_user_property?       @relation(fields: [userPropertyId], references: [id])
+  pmPaymentRequests upward_pm_payment_request[]
+  rentCycles        upward_rent_cycle[]
+  transactions      upward_transaction[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model upward_payment_line_item {
+  id               Int                    @id @default(autoincrement())
+  uuid             String                 @unique @default(uuid())
+  paymentRequestId Int
+  totalAmount      Float
+  amountPaid       Float                  @default(0)
+  status           String                 @default("PENDING")
+  sortOrder        Int                    @default(0)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  name             String
+  paymentRequest   upward_payment_request @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
+
+  @@index([paymentRequestId])
+  @@index([status])
+}
+
+model upward_rent_cycle {
+  id               Int                     @id @default(autoincrement())
+  uuid             String                  @unique @default(uuid())
+  userId           Int
+  userPropertyId   Int?
+  paymentRequestId Int?
+  source           String                  @default("MANUAL")
+  amountOwed       Float
+  amountPaid       Float                   @default(0)
+  currency         String                  @default("NGN")
+  dueDate          DateTime
+  paidAt           DateTime?
+  status           String                  @default("PENDING")
+  description      String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
+  user             upward_user             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProperty     upward_user_property?   @relation(fields: [userPropertyId], references: [id])
+
+  @@index([userId])
+  @@index([userPropertyId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model upward_overpayment {
+  id               Int                     @id @default(autoincrement())
+  uuid             String                  @unique @default(uuid())
+  userId           Int
+  amount           Float
+  currency         String                  @default("NGN")
+  transactionId    Int?
+  paymentRequestId Int?
+  status           String                  @default("AVAILABLE")
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
+  transaction      upward_transaction?     @relation(fields: [transactionId], references: [id])
+  user             upward_user             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model upward_paystack_subaccount {
+  id              Int                      @id @default(autoincrement())
+  uuid            String                   @unique @default(uuid())
+  accountNumber   String
+  bankCode        String
+  subaccountCode  String                   @unique
+  businessName    String?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  paymentRequests upward_payment_request[]
+  savedLandlords  upward_saved_landlord[]
+
+  @@unique([accountNumber, bankCode])
+  @@index([accountNumber, bankCode])
+}
+
+model upward_saved_landlord {
+  id            Int                         @id @default(autoincrement())
+  uuid          String                      @unique @default(uuid())
+  userId        Int
+  name          String
+  accountName   String
+  accountNumber String
+  bankName      String
+  bankCode      String
+  lastAmount    Float?
+  lastPaid      DateTime?
+  subaccountId  Int?
+  createdAt     DateTime                    @default(now())
+  updatedAt     DateTime                    @updatedAt
+  subaccount    upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
+
+  @@index([userId])
+}

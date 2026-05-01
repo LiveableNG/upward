@@ -1,0 +1,114 @@
+model upward_user {
+  id                   Int                              @id @default(autoincrement())
+  uuid                 String                           @unique @default(uuid())
+  passwordHash         String
+  email                String
+  firstName            String
+  lastName             String
+  phone                String?
+  emailHash            String                           @unique
+  firstNameHash        String
+  lastNameHash         String
+  phoneHash            String?
+  createdAt            DateTime                         @default(now())
+  updatedAt            DateTime                         @updatedAt
+  gender               String?
+  dateOfBirth          String?
+  isFromWaitlist       Boolean                          @default(false)
+  isFromInvite         Boolean                          @default(false)
+  profileSlug          String?                          @unique
+  bio                  String?
+  profilePic           String?
+  resetPasswordOTP     String?
+  resetPasswordExpires DateTime?
+  authSessions         upward_auth_session[]
+  companyUsers         upward_company_user[]
+  credibilityRequests  upward_credibility_request[]
+  deviceTokens         upward_device_token[]
+  notifications        upward_notification[]
+  overpayments         upward_overpayment[]
+  paymentRequests      upward_payment_request[]
+  rentCycles           upward_rent_cycle[]
+  supportTickets       upward_support_ticket[]
+  announcementStates   upward_user_announcement_state[]
+  contracts            upward_user_contract[]
+  properties           upward_user_property[]
+
+  @@index([email])
+  @@index([createdAt])
+}
+
+model upward_auth_session {
+  id               String      @id @default(uuid())
+  userId           Int
+  refreshTokenHash String      @unique
+  userAgent        String?
+  ipAddress        String?
+  deviceId         String?
+  isRevoked        Boolean     @default(false)
+  expiresAt        DateTime
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  user             upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshTokenHash])
+}
+
+model upward_verification_token {
+  id         Int      @id @default(autoincrement())
+  uuid       String   @unique @default(uuid())
+  token      String?  @unique
+  otp        String?
+  context    String
+  identifier String
+  metadata   Json?
+  resends    Int      @default(0)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([token])
+  @@index([identifier, context])
+}
+
+model upward_device_token {
+  id        Int         @id @default(autoincrement())
+  userId    Int
+  token     String
+  platform  String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  user      upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, token])
+  @@index([userId])
+}
+
+model upward_admin {
+  id                 String             @id @default(uuid())
+  email              String             @unique
+  passwordHash       String
+  role               String             @default("ADMIN")
+  mustChangePassword Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  logs               upward_admin_log[]
+
+  @@index([email])
+}
+
+model upward_admin_log {
+  id        String       @id @default(uuid())
+  adminId   String
+  action    String
+  details   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime     @default(now())
+  admin     upward_admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([action])
+  @@index([createdAt])
+}
