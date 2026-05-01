@@ -12,13 +12,25 @@ interface ActionCarouselProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rentReminders: any[]
 }
-
 const buildPaymentMessage = (p: PendingPayment) => {
   const remaining = p.total_amount - (p.amountPaid || 0)
   const isPartial = (p.amountPaid || 0) > 0
 
   const dateStr = p.due_date || p.dueDate
   const isOverdue = dateStr ? new Date(dateStr) < new Date() : false
+
+  if (p.isManual) {
+    if (isOverdue) {
+      return {
+        title: 'Outstanding Payment',
+        desc: `You have an outstanding self-initiated payment of ${formatCurrency(remaining, p.currency)} for ${p.property_address || 'your property'}. Settle now to maintain your streak.`
+      }
+    }
+    return {
+      title: 'Self-initiated Payment',
+      desc: `You started a payment for ${formatCurrency(p.total_amount, p.currency)} for ${p.property_address || 'your property'}. Complete this action to boost your credibility.`
+    }
+  }
 
   if (isOverdue && isPartial) {
     return {

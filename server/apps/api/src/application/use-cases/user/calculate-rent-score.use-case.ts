@@ -28,8 +28,6 @@ export class CalculateRentScoreUseCase {
     }
 
     let totalPTScore = 0
-    let currentStreak = 0
-    let longestStreak = 0
     let partialCyclesCount = 0
 
     const cycleDetails = allCycles.map(cycle => {
@@ -39,14 +37,11 @@ export class CalculateRentScoreUseCase {
 
       let ptValue = 0 // default for MISSED or PENDING past due
       let excluded = false
-      let status = cycle.status
+      const status = cycle.status
 
       if (status === 'PAID_ON_TIME') {
         ptValue = 1.0
-        currentStreak++
-        if (currentStreak > longestStreak) longestStreak = currentStreak
       } else if (status === 'PAID_LATE' && paidDate) {
-        currentStreak = 0
         const diffTime = Math.abs(paidDate.getTime() - dueDate.getTime())
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
@@ -62,19 +57,16 @@ export class CalculateRentScoreUseCase {
           excluded = true
           ptValue = -1
         } else {
-          currentStreak = 0
           ptValue = 0.5 
           partialCyclesCount++
         }
       } else if (status === 'MISSED') {
-        currentStreak = 0
         ptValue = 0
       } else if (status === 'PENDING') {
         if (isBeforeDueDate) {
           excluded = true
           ptValue = -1
         } else {
-          currentStreak = 0
           ptValue = 0 // effectively missed if past due
         }
       }
@@ -98,6 +90,42 @@ export class CalculateRentScoreUseCase {
 
     const scoredCycles = cycleDetails.filter((c: any) => !c.excluded)
     const scoredCount = scoredCycles.length
+
+    let currentStreak = 0
+    let longestStreak = 0
+
+    if (scoredCount > 0) {
+      const monthsMap: Record<string, any[]> = {}
+      scoredCycles.forEach(c => {
+        const monthKey = `${c.dueDate.getFullYear()}-${c.dueDate.getMonth()}`
+        if (!monthsMap[monthKey]) monthsMap[monthKey] = []
+        monthsMap[monthKey].push(c)
+      })
+
+      const sortedMonths = Object.keys(monthsMap).sort((a, b) => {
+        const partsA = a.split('-').map(Number)
+        const partsB = b.split('-').map(Number)
+        const ya = partsA[0] || 0
+        const ma = partsA[1] || 0
+        const yb = partsB[0] || 0
+        const mb = partsB[1] || 0
+        return ya !== yb ? ya - yb : ma - mb
+      })
+
+      sortedMonths.forEach(key => {
+        const cyclesInMonth = monthsMap[key]
+        if (!cyclesInMonth) return
+        
+        const allOnTime = cyclesInMonth.every(c => c.status === 'PAID_ON_TIME')
+        
+        if (allOnTime) {
+          currentStreak++
+          if (currentStreak > longestStreak) longestStreak = currentStreak
+        } else {
+          currentStreak = 0
+        }
+      })
+    }
 
     if (scoredCount === 0) {
       return await this.defaultUnscorableState(user)
@@ -137,11 +165,11 @@ export class CalculateRentScoreUseCase {
       data: {
         isScorable: true,
         score: FinalScore,
-        maxScore: 900,
+        maxScore: 800,
         band,
         rank,
         metrics: {
-          ptPercentage: (scoredCount > 0 ? (scoredCycles.filter((c: any) => c.ptValue >= 0.85).length / scoredCount) : 0) * 100,
+          ptPercentage: (scoredCount > 0 ? (scoredCycles.filter((c: any) => c.ptValue === 1.0).length / scoredCount) : 0) * 100,
           longestStreak: longestStreak,
           totalCycles: allCycles.length,
           historyYears: parseFloat(yearsOfHistory.toFixed(1)),
@@ -215,7 +243,7 @@ export class CalculateRentScoreUseCase {
       data: {
         isScorable: false,
         score: 500, // Defaul Faded Score
-        maxScore: 900,
+        maxScore: 800,
         band: 'Not score-able yet',
         rank: 'N/A',
         metrics: {

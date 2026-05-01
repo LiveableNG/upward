@@ -80,7 +80,7 @@ export function ScoreBreakdownScreen() {
 
   const scoreFactors = [
     { label: 'Payment Timeliness', value: `${Math.round(metrics.ptPercentage)}%`, icon: Clock, desc: 'How often you pay on or before the due date.' },
-    { label: 'Payment Consistency', value: `${metrics.longestStreak} mo`, icon: Flame, desc: 'Your longest continuous streak of on-time payments.' },
+    { label: 'Payment Consistency', value: `${metrics.longestStreak} mo`, icon: Flame, desc: 'Your longest continuous streak of on-time months.' },
     { label: 'Financial Discipline', value: `${Math.round(metrics.discipline)}%`, icon: Target, desc: 'The ratio of full payments vs partial payments.' },
     { label: 'Tenure', value: `${metrics.historyYears} yrs`, icon: History, desc: 'Length of your verified rent payment history.' },
   ]

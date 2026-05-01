@@ -111,6 +111,7 @@ export class CreateManualPaymentRequestUseCase {
       allowPartial: true,
       subaccountId: subaccountId,
       userPropertyId,
+      isManual: true,
       reference: `MNL_${Date.now()}`,
     })
 
@@ -259,6 +260,9 @@ export class RecordTransactionUseCase {
         if (pr) {
           remaining = Math.max(0, pr.amount - (pr.amountPaid || 0))
           excess = Math.max(0, data.amount - remaining)
+          if (pr.isManual) {
+            (data as any).isManual = true
+          }
         }
       }
 
@@ -763,6 +767,7 @@ export class GetPendingPaymentsUseCase {
         manager_name: p.managerName,
         property_address: p.propertyLocation,
         userPropertyUuid: p.userPropertyUuid,
+        isManual: p.isManual,
         lineItemRecords,
       }
     }))

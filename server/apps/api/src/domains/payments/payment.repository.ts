@@ -43,6 +43,7 @@ export interface Transaction {
   paymentRequestId?: number
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lineItems?: any
+  isManual?: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -143,6 +144,7 @@ export interface PaymentRequest {
   webhookUrl?: string
   platformName?: string
   platformId?: number
+  isManual?: boolean
   lineItemRecords?: PaymentLineItem[]
   userPropertyUuid?: string
   createdAt: Date
