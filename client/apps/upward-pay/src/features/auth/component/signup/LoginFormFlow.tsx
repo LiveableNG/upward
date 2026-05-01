@@ -19,16 +19,17 @@ import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useLogin } from '@/features/auth/hooks/useLogin'
 import { BiometricsService } from '@/features/auth/services/biometricsService'
 import { useToast } from '@/components/common/Toast'
-import { requestOTP, loginWithOTP, checkEmail } from '@/features/auth/services/authService'
+import { requestOTP, loginWithOTP, checkEmail, verifyOTP } from '@/features/auth/services/authService'
 import { OTPInput } from '@/components/common/OTPInput'
 import { setAccessToken } from '@/lib/auth-token'
 import { setCookie } from '@/lib/cookie-utils'
 
 interface LoginFormFlowProps {
   onBackToWelcome: () => void
+  onRedirectToSignup?: (email: string) => void
 }
 
-export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
+export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup }: LoginFormFlowProps) {
   const router = useRouter()
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
   const redirect = searchParams?.get('redirect') || '/dashboard'
@@ -46,13 +47,13 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
   const [biometricLoading, setBiometricLoading] = useState(false)
   const [step, setStep] = useState<'login' | 'otp' | 'profile'>('login')
   const [isRequestingOTP, setIsRequestingOTP] = useState(false)
+  const [effectiveContext, setEffectiveContext] = useState<'LOGIN' | 'WAITLIST' | 'INVITE'>('LOGIN')
+  const [otpError, setOtpError] = useState<string | null>(null)
 
   const [isCheckingEmail, setIsCheckingEmail] = useState(false)
   const [emailExists, setEmailExists] = useState(false)
   const [isInvited, setIsInvited] = useState(false)
   const [isWaitlist, setIsWaitlist] = useState(false)
-  const [showInvitedModal, setShowInvitedModal] = useState(false)
-  const [showWaitlistModal, setShowWaitlistModal] = useState(false)
   const emailCheckTimeout = useRef<NodeJS.Timeout | null>(null)
 
   const { error: toastError } = useToast()
@@ -121,16 +122,18 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
     }
   }
 
-  const handleRequestOTP = async () => {
+  const handleRequestOTP = async (customContext?: 'WAITLIST' | 'INVITE') => {
     if (!loginEmail) {
       toastError('Please enter your email address first.')
       return
     }
 
     setIsRequestingOTP(true)
+    const context = customContext || 'LOGIN'
+    setEffectiveContext(context)
+    
     try {
-      // For login we use 'LOGIN' context
-      await requestOTP(loginEmail, 'LOGIN')
+      await requestOTP(loginEmail, context)
       setStep('otp')
     } catch (err: any) {
       toastError(err.message || 'Failed to send verification code')
@@ -140,7 +143,26 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
   }
 
   const handleVerifyOTP = async (otp: string) => {
-    otpLogin(loginEmail, otp)
+    setOtpError(null)
+    if (effectiveContext === 'LOGIN') {
+      otpLogin(loginEmail, otp)
+    } else {
+      try {
+        const verification = await verifyOTP(loginEmail, otp, effectiveContext)
+        if (!verification.success) {
+          setOtpError(verification.message || 'Invalid verification code')
+          return
+        }
+
+        if (effectiveContext === 'WAITLIST' && verification.inviteToken) {
+          router.push(`/waitlist/${verification.inviteToken}`)
+        } else if (effectiveContext === 'INVITE' && verification.inviteToken) {
+          router.push(`/invite/${verification.inviteToken}`)
+        }
+      } catch (err: any) {
+        setOtpError(err.message || 'Verification failed')
+      }
+    }
   }
 
   if (step === 'otp') {
@@ -161,7 +183,7 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
             onResend={() => handleRequestOTP()}
             onChangeEmail={() => setStep('login')}
             isLoading={loginLoading}
-            error={loginError?.message}
+            error={otpError || loginError?.message}
           />
         </div>
       </div>
@@ -221,7 +243,7 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
             {emailExists && isInvited && (
               <div className="field-hint field-hint--invited">
                 <AlertCircle size={12} /> Your manager already invited you —{' '}
-                <button type="button" className="field-hint__link" onClick={() => setShowInvitedModal(true)}>
+                <button type="button" className="field-hint__link" onClick={() => handleRequestOTP('INVITE')}>
                   Verify to set your password
                 </button>
               </div>
@@ -230,7 +252,7 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
             {emailExists && isWaitlist && (
               <div className="field-hint field-hint--waitlist">
                 <Sparkles size={12} /> You have priority access!{' '}
-                <button type="button" className="field-hint__link" onClick={() => setShowWaitlistModal(true)}>
+                <button type="button" className="field-hint__link" onClick={() => handleRequestOTP('WAITLIST')}>
                   Claim your account
                 </button>
               </div>
@@ -333,55 +355,6 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
           </button>
         </form>
 
-        {showInvitedModal && (
-          <div className="modal-overlay">
-            <div className="modal-content animate-pop">
-              <div className="modal-icon">
-                <Mail size={40} color="var(--clay)" />
-              </div>
-              <h3>Verify Your Email</h3>
-              <p>
-                Your manager has already invited you to Upward. Please verify that <strong>{loginEmail}</strong> belongs to you to continue.
-              </p>
-              <div className="modal-actions">
-                <button
-                  className="btn btn--primary btn--full"
-                  onClick={() => (window.location.href = `/signup?email=${encodeURIComponent(loginEmail)}`)}
-                >
-                  Yes, verify my email
-                </button>
-                <button className="btn btn--ghost btn--full mt-4" onClick={() => setShowInvitedModal(false)}>
-                  No, use a different email
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showWaitlistModal && (
-          <div className="modal-overlay">
-            <div className="modal-content animate-pop">
-              <div className="modal-icon">
-                <ShieldCheck size={40} color="var(--clay)" />
-              </div>
-              <h3>Priority Access</h3>
-              <p>
-                You've been granted priority access to Upward. Please verify <strong>{loginEmail}</strong> to activate your account.
-              </p>
-              <div className="modal-actions">
-                <button
-                  className="btn btn--primary btn--full"
-                  onClick={() => (window.location.href = `/signup?email=${encodeURIComponent(loginEmail)}`)}
-                >
-                  Claim my account
-                </button>
-                <button className="btn btn--ghost btn--full mt-4" onClick={() => setShowWaitlistModal(false)}>
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       <style jsx>{`

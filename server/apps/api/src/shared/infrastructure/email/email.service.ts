@@ -393,6 +393,11 @@ export class EmailService {
         message: 'Use the code below to verify your access to this payment. This ensures your transaction is secure.',
         subject: `Your Upward Payment Verification Code: ${otp}`,
       },
+      WAITLIST: {
+        title: 'Claim Your Waitlist Spot',
+        message: 'Use the code below to verify your email and claim your spot on the Upward waitlist.',
+        subject: `Your Upward Waitlist Verification Code: ${otp}`,
+      },
     }
 
     const { title, message, subject } = contexts[context]
