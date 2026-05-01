@@ -70,14 +70,14 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
 
   // Debounced email existence check
   useEffect(() => {
-    setEmailExists(true) // Default to true while checking or if empty
+    setEmailExists(false)
     setIsInvited(false)
     setIsWaitlist(false)
     
     if (loginEmail && loginEmail.includes('@') && loginEmail.length > 5) {
+      setIsCheckingEmail(true)
       if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
       emailCheckTimeout.current = setTimeout(async () => {
-        setIsCheckingEmail(true)
         try {
           const res = await checkEmail(loginEmail)
           setEmailExists(res.exists)
@@ -89,6 +89,8 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
           setIsCheckingEmail(false)
         }
       }, 800)
+    } else {
+      setIsCheckingEmail(false)
     }
     return () => {
       if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
