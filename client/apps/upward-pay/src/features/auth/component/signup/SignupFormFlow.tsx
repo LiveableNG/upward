@@ -11,13 +11,14 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  ShieldCheck,
   Loader2,
+  Sparkles,
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useSignup } from '@/features/auth/hooks/useSignup'
 import { OTPInput } from '@/components/common/OTPInput'
 import { checkEmail, requestOTP, verifyOTP } from '@/features/auth/services/authService'
-import CompleteProfileContent from '@/features/onboarding/CompleteProfileContent'
 
 interface SignupFormFlowProps {
   onBackToWelcome: () => void
@@ -34,13 +35,16 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
   const [showPassword, setShowPassword] = useState(false)
   const [localError, setLocalError] = useState('')
 
-  const [effectiveContext, setEffectiveContext] = useState<'SIGNUP' | 'LOGIN'>('SIGNUP')
+  const [effectiveContext, setEffectiveContext] = useState<'SIGNUP' | 'LOGIN' | 'INVITE' | 'WAITLIST'>('SIGNUP')
 
   const [isCheckingEmail, setIsCheckingEmail] = useState(false)
   const [emailExists, setEmailExists] = useState(false)
   const [isInvited, setIsInvited] = useState(false)
+  const [isWaitlist, setIsWaitlist] = useState(false)
   const [showExistsModal, setShowExistsModal] = useState(false)
-  const [step, setStep] = useState<'form' | 'otp' | 'profile'>('form')
+  const [showInvitedModal, setShowInvitedModal] = useState(false)
+  const [showWaitlistModal, setShowWaitlistModal] = useState(false)
+  const [step, setStep] = useState<'form' | 'otp'>('form')
   const [isRequestingOTP, setIsRequestingOTP] = useState(false)
   const [otpError, setOtpError] = useState<string | null>(null)
   const [uuid, setUuid] = useState<string | null>(null)
@@ -55,6 +59,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
   useEffect(() => {
     setEmailExists(false)
     setIsInvited(false)
+    setIsWaitlist(false)
     if (email && email.includes('@') && email.length > 5) {
       if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
       emailCheckTimeout.current = setTimeout(async () => {
@@ -63,6 +68,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
           const res = await checkEmail(email)
           setEmailExists(res.exists)
           setIsInvited(res.isInvited ?? false)
+          setIsWaitlist(res.isWaitlist ?? false)
           setUuid(res.uuid || null)
         } catch (err) {
           console.error('Email check failed', err)
@@ -80,8 +86,18 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
     e.preventDefault()
     setLocalError('')
 
-    if (emailExists && !isInvited) {
+    if (emailExists && !isInvited && !isWaitlist) {
       setShowExistsModal(true)
+      return
+    }
+
+    if (emailExists && isInvited) {
+      setShowInvitedModal(true)
+      return
+    }
+
+    if (emailExists && isWaitlist) {
+      setShowWaitlistModal(true)
       return
     }
 
@@ -102,6 +118,34 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
     }
   }
 
+  const handleInviteProceed = async () => {
+    setShowInvitedModal(false)
+    setIsRequestingOTP(true)
+    try {
+      const res: any = await requestOTP(email, 'INVITE')
+      setEffectiveContext('INVITE')
+      setStep('otp')
+    } catch (err: any) {
+      setLocalError(err.message || 'Failed to send verification code')
+    } finally {
+      setIsRequestingOTP(false)
+    }
+  }
+
+  const handleWaitlistProceed = async () => {
+    setShowWaitlistModal(false)
+    setIsRequestingOTP(true)
+    try {
+      const res: any = await requestOTP(email, 'WAITLIST')
+      setEffectiveContext('WAITLIST')
+      setStep('otp')
+    } catch (err: any) {
+      setLocalError(err.message || 'Failed to send verification code')
+    } finally {
+      setIsRequestingOTP(false)
+    }
+  }
+
   const handleVerifyOTP = async (otp: string) => {
     setOtpError(null)
     try {
@@ -111,14 +155,18 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
         await loginWithOTP(email, otp)
         onSignupSuccess(email, password)
       } else {
-        const verification = await verifyOTP(email, otp, 'SIGNUP')
+        const verification = await verifyOTP(email, otp, effectiveContext)
         if (!verification.success) {
           setOtpError(verification.message || 'Invalid verification code')
           return
         }
 
-        if (isInvited && uuid) {
+        if (effectiveContext === 'INVITE' && verification.inviteToken) {
+          router.push(`/invite/${verification.inviteToken}`)
+        } else if (isInvited && uuid) {
           router.push(`/invite/${uuid}?email=${encodeURIComponent(email)}&name=${encodeURIComponent(`${firstName} ${lastName}`)}`)
+        } else if (effectiveContext === 'WAITLIST') {
+          signup({ email, password, firstName, lastName })
         } else {
           signup({ email, password, firstName, lastName })
         }
@@ -132,17 +180,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
     await requestOTP(email, effectiveContext)
   }
 
-  // ── Step: Profile completion for invited users ──────────────────────────────
-  if (step === 'profile') {
-    return (
-      <CompleteProfileContent
-        initialEmail={email}
-        initialData={{ password }}
-      />
-    )
-  }
 
-  // ── Step: OTP verification ──────────────────────────────────────────────────
   if (step === 'otp') {
     return (
       <div className="auth-shell auth-shell--signup">
@@ -168,7 +206,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
     )
   }
 
-  // ── Step: Signup form ───────────────────────────────────────────────────────
   return (
     <div className="auth-shell auth-shell--signup">
       <div className="auth-shell__top">
@@ -192,7 +229,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
             <div className="auth-form__error">{signupError || localError}</div>
           )}
 
-          {/* Email field */}
           <div className="auth-form__field">
             <label htmlFor="signup-email">Email Address</label>
             <div className="input-with-icon">
@@ -201,7 +237,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
                 id="signup-email"
                 type="email"
                 placeholder="sarah@email.com"
-                className={emailExists && !isInvited ? 'input--error' : ''}
+                className={emailExists && !isInvited && !isWaitlist ? 'input--error' : ''}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
@@ -209,8 +245,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
               />
               {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} />}
             </div>
-            {/* Show error for real duplicate accounts */}
-            {emailExists && !isInvited && (
+            {emailExists && !isInvited && !isWaitlist && (
               <div className="field-hint field-hint--error">
                 <AlertCircle size={12} /> This email is already registered.{' '}
                 <button type="button" className="field-hint__link" onClick={() => setShowExistsModal(true)}>
@@ -218,15 +253,20 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
                 </button>
               </div>
             )}
-            {/* Show helpful hint for invited users */}
+
             {emailExists && isInvited && (
               <div className="field-hint field-hint--invited">
                 <AlertCircle size={12} /> Your manager already invited you — verify to set your password.
               </div>
             )}
+
+            {emailExists && isWaitlist && (
+              <div className="field-hint field-hint--waitlist">
+                <Sparkles size={12} /> You have priority access! Click to claim your account.
+              </div>
+            )}
           </div>
 
-          {/* Name row */}
           <div className="auth-form__row mt-1">
             <div className="auth-form__field">
               <label htmlFor="signup-firstname">First Name</label>
@@ -258,7 +298,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
             </div>
           </div>
 
-          {/* Password row */}
           <div className="auth-form__row mt-1">
             <div className="auth-form__field">
               <label htmlFor="signup-password">Create Password</label>
@@ -302,21 +341,24 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
             className="btn btn--primary btn--full btn--pay mt-8"
             type="submit"
             disabled={
-              !firstName || !lastName || !email || !password || !confirmPassword ||
-              signupLoading || isRequestingOTP ||
-              (emailExists && !isInvited) // ← block real duplicates
+              !email ||
+              signupLoading ||
+              isRequestingOTP ||
+              isCheckingEmail ||
+              (emailExists && !isInvited && !isWaitlist) ||
+              (!isInvited && !isWaitlist && (!firstName || !lastName || !password || !confirmPassword))
             }
+
           >
+
             {isRequestingOTP
               ? 'Sending Code…'
-              : emailExists && isInvited
-              ? 'Verify & Set Password'
               : 'Create account'}{' '}
+
             <ArrowRight size={17} />
           </button>
         </form>
 
-        {/* Modal for existing non-invited accounts */}
         {showExistsModal && (
           <div className="modal-overlay">
             <div className="modal-content animate-pop">
@@ -336,6 +378,56 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
                 </button>
                 <button className="btn btn--ghost btn--full mt-4" onClick={() => setShowExistsModal(false)}>
                   Use a different email
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showInvitedModal && (
+          <div className="modal-overlay">
+            <div className="modal-content animate-pop">
+              <div className="modal-icon">
+                <Mail size={40} color="var(--clay)" />
+              </div>
+              <h3>Verify Your Email</h3>
+              <p>
+                Your manager has already invited you to Upward. Please verify that <strong>{email}</strong> belongs to you to continue.
+              </p>
+              <div className="modal-actions">
+                <button
+                  className="btn btn--primary btn--full"
+                  onClick={handleInviteProceed}
+                >
+                  Yes, verify my email
+                </button>
+                <button className="btn btn--ghost btn--full mt-4" onClick={() => setShowInvitedModal(false)}>
+                  No, use a different email
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showWaitlistModal && (
+          <div className="modal-overlay">
+            <div className="modal-content animate-pop">
+              <div className="modal-icon">
+                <ShieldCheck size={40} color="var(--clay)" />
+              </div>
+              <h3>Priority Access</h3>
+              <p>
+                You've been granted priority access to Upward. Please verify <strong>{email}</strong> to activate your account.
+              </p>
+              <div className="modal-actions">
+                <button
+                  className="btn btn--primary btn--full"
+                  onClick={handleWaitlistProceed}
+                >
+                  Claim my account
+                </button>
+                <button className="btn btn--ghost btn--full mt-4" onClick={() => setShowWaitlistModal(false)}>
+                  Cancel
                 </button>
               </div>
             </div>
@@ -366,7 +458,13 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
           flex-wrap: wrap;
         }
         .field-hint--error { color: var(--error); }
-        .field-hint--invited { color: var(--clay); }
+        .field-hint--invited, .field-hint--waitlist {
+          color: var(--clay);
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
         .field-hint__link {
           background: none;
           border: none;
