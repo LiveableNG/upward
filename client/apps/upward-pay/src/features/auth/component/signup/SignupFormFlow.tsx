@@ -256,13 +256,19 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
 
             {emailExists && isInvited && (
               <div className="field-hint field-hint--invited">
-                <AlertCircle size={12} /> Your manager already invited you — verify to set your password.
+                <AlertCircle size={12} /> Your manager already invited you —{' '}
+                <button type="button" className="field-hint__link" onClick={() => setShowInvitedModal(true)}>
+                  Verify to set your password
+                </button>
               </div>
             )}
 
             {emailExists && isWaitlist && (
               <div className="field-hint field-hint--waitlist">
-                <Sparkles size={12} /> You have priority access! Click to claim your account.
+                <Sparkles size={12} /> You have priority access!{' '}
+                <button type="button" className="field-hint__link" onClick={() => setShowWaitlistModal(true)}>
+                  Claim your account
+                </button>
               </div>
             )}
           </div>
@@ -345,8 +351,11 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
               signupLoading ||
               isRequestingOTP ||
               isCheckingEmail ||
-              (emailExists && !isInvited && !isWaitlist) ||
-              (!isInvited && !isWaitlist && (!firstName || !lastName || !password || !confirmPassword))
+              emailExists ||
+              !firstName ||
+              !lastName ||
+              !password ||
+              !confirmPassword
             }
 
           >
