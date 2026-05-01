@@ -3,11 +3,9 @@
 import { useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense, useState } from 'react'
-import JoinContent from '@/features/onboarding/JoinContent'
 import { fetchInvitationData, type InvitationData } from '@/lib/invitation-service'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useAuth } from '@/features/auth/AuthContext'
-import FallbackSuspense from '@/components/FallbackSuspense'
 import { Capacitor } from '@capacitor/core'
 import { App } from '@capacitor/app'
 import PayClient from '@/app/pay/[token]/PayClient'
@@ -72,11 +70,9 @@ function LandingPageContent() {
       return
     }
 
-    // No token, no email → redirect logic
     const handleRedirect = async () => {
       if (isLoggedIn) {
         if (Capacitor.isNativePlatform()) {
-          // Check if we were launched with a deep link
           const launchUrl = await App.getLaunchUrl()
           const isDeepLink = !!(launchUrl?.url && (
             launchUrl.url.includes('/pay/') ||
@@ -116,7 +112,6 @@ function LandingPageContent() {
     return <LogoSplash />
   }
 
-  // No token/email yet (redirect pending)
   if (!finalToken && !email && !isPayRoute) {
     return <LogoSplash />
   }
@@ -124,16 +119,6 @@ function LandingPageContent() {
   if (isPayRoute && finalToken) {
     return <PayClient overrideToken={finalToken} />
   }
-
-  return (
-    <Suspense fallback={<FallbackSuspense message="Syncing Invitation…" />}>
-      <JoinContent
-        initialInvitation={invitationData}
-        token={finalToken || undefined}
-        email={email || undefined}
-      />
-    </Suspense>
-  )
 }
 
 export default function LandingPage() {
