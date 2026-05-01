@@ -20,7 +20,8 @@ function isTokenExpired(token: string): boolean {
   }
 }
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://upward-dev.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://upward-pay.vercel.app'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://upward-dev.vercel.app/api/v1'
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
@@ -57,36 +58,66 @@ export function middleware(request: NextRequest) {
   if (pathname.startsWith('/_upward_pay')) {
     const assetPath = pathname.replace('/_upward_pay', '')
     const url = new URL(assetPath + search, APP_URL)
-    return NextResponse.rewrite(url)
+    
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('x-forwarded-host', request.headers.get('host') || '')
+    requestHeaders.set('host', url.host)
+    
+    return NextResponse.rewrite(url, {
+      request: {
+        headers: requestHeaders,
+      },
+    })
   }
 
   // 4. Proxy/Rewrite Logic for App Routes
   const shouldProxy = isProtectedRoute || 
-                      pathname.startsWith('/welcome') || 
-                      pathname.startsWith('/pay') ||
-                      pathname.startsWith('/profile') ||
-                      pathname.startsWith('/invite') ||
-                      pathname.startsWith('/fill-record') ||
-                      pathname.startsWith('/complete-profile') ||
-                      pathname.startsWith('/login') ||
-                      pathname.startsWith('/signup') ||
-                      pathname.startsWith('/forgot-password') ||
-                      pathname.startsWith('/reset-password') ||
-                      pathname.startsWith('/settings') ||
-                      pathname.startsWith('/kyc') ||
-                      pathname.startsWith('/transactions') ||
-                      pathname.startsWith('/.well-known')
+                       pathname.startsWith('/welcome') || 
+                       pathname.startsWith('/pay') ||
+                       pathname.startsWith('/profile') ||
+                       pathname.startsWith('/invite') ||
+                       pathname.startsWith('/fill-record') ||
+                       pathname.startsWith('/complete-profile') ||
+                       pathname.startsWith('/login') ||
+                       pathname.startsWith('/signup') ||
+                       pathname.startsWith('/forgot-password') ||
+                       pathname.startsWith('/reset-password') ||
+                       pathname.startsWith('/settings') ||
+                       pathname.startsWith('/kyc') ||
+                       pathname.startsWith('/transactions') ||
+                       pathname.startsWith('/.well-known')
 
   if (shouldProxy) {
-    const url = new URL(pathname + search, APP_URL)
-    
-    // Create custom headers for the proxy
+    // Determine target based on path
+    let targetBase = APP_URL
+    let targetPath = pathname
+
+    if (pathname.startsWith('/api/v1')) {
+      // API_URL might be like https://upward-dev.vercel.app/api/v1
+      // We want to ensure we don't double up on /api/v1 or lose it
+      const apiBase = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL
+      const pathWithoutPrefix = pathname.replace('/api/v1', '')
+      // Construct the URL by joining the API base and the remaining path
+      const url = new URL(apiBase + pathWithoutPrefix + search)
+      
+      const requestHeaders = new Headers(request.headers)
+      requestHeaders.set('x-forwarded-host', request.headers.get('host') || '')
+      requestHeaders.set('host', url.host)
+      requestHeaders.set('x-proxy-source', 'upward-web-gateway')
+      requestHeaders.set('x-forwarded-proto', 'https')
+
+      return NextResponse.rewrite(url, {
+        request: {
+          headers: requestHeaders,
+        },
+      })
+    }
+
+    // Default proxy to APP_URL (upward-pay)
+    const url = new URL(targetPath + search, targetBase)
     const requestHeaders = new Headers(request.headers)
-    
-    // IMPORTANT: Remove Host header to prevent destination server from redirecting to its canonical domain
-    requestHeaders.delete('host')
-    
     requestHeaders.set('x-forwarded-host', request.headers.get('host') || '')
+    requestHeaders.set('host', url.host)
     requestHeaders.set('x-proxy-source', 'upward-web-gateway')
     requestHeaders.set('x-forwarded-proto', 'https')
 
