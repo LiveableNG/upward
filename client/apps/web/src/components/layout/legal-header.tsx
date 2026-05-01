@@ -172,7 +172,7 @@ export function LegalHeader() {
               animation: 'pulse 2s infinite',
             }}
           />
-          Join Waitlist
+          Get Started
           <div
             style={{
               position: 'absolute',
@@ -440,7 +440,7 @@ export function LegalHeader() {
                 textDecoration: 'none',
               }}
             >
-              Join the Waitlist
+              Get Started
               <div
                 style={{
                   position: 'absolute',

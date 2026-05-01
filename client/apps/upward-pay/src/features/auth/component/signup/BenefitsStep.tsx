@@ -54,9 +54,9 @@ export function BenefitsStep({ onSignup, onLogin }: BenefitsStepProps) {
 
   return (
     <div className="auth-shell auth-shell--welcome">
-      <div className="auth-shell__logo">
+      <a href="/" className="auth-shell__logo">
         <UpwardLogo size={36} color="var(--clay)" />
-      </div>
+      </a>
 
       <div className="benefit-carousel">
         <div className="benefit-carousel__track" key={active}>

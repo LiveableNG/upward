@@ -148,9 +148,9 @@ export function CompleteProfileStep() {
 
       <div className="auth-layout__form">
         <div className="auth-shell auth-shell--complete">
-          <div className="auth-shell__brand">
+          <a href="/" className="auth-shell__brand">
             <UpwardLogo size={28} color="var(--clay)" />
-          </div>
+          </a>
 
           <div className="auth-stage">
             {stage === 'personal' ? (

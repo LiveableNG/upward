@@ -245,7 +245,7 @@ export function SignupForm({
 
   const submit = async () => {
     if (!checkboxes.news) {
-      showToast('You must agree to receive updates to join the waitlist.', true)
+      showToast('You must agree to receive updates to get started.', true)
       return
     }
 
@@ -396,7 +396,7 @@ export function SignupForm({
           >
             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
           </svg>
-          Joining...
+          Loading...
         </>
       ) : (
         children
@@ -454,7 +454,7 @@ export function SignupForm({
   const handleShare = async () => {
     const shareData = {
       title: 'Upward by GoodTenants',
-      text: 'I just joined the waitlist for Upward! Build your rental credibility and own your home.',
+      text: 'I just signed up for Upward! Build your rental credibility and own your home.',
       url: window.location.origin,
     }
 
@@ -545,7 +545,7 @@ export function SignupForm({
                 marginBottom: '12px',
               }}
             >
-              You're on the list!
+              You're all set!
             </div>
             <p
               style={{
@@ -555,8 +555,8 @@ export function SignupForm({
                 margin: '0 auto 24px',
               }}
             >
-              We'll send your invite to the email you provided. Be on the lookout — priority access
-              drops soon.
+              We'll send your invite to the email you provided. Be on the lookout — your journey
+              begins now.
             </p>
             <button
               style={{
@@ -590,10 +590,10 @@ export function SignupForm({
                     marginBottom: '8px',
                   }}
                 >
-                  Join Now
+                  Get Started
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '32px' }}>
-                  Enter your email to join the movement and start your journey with Upward.
+                  Enter your email to start your journey with Upward.
                 </div>
                 <div style={{ marginBottom: '20px' }}>
                   <label style={labelStyle}>Email Address *</label>
@@ -1331,7 +1331,7 @@ export function SignupForm({
                           <strong style={{ color: 'var(--text)' }}>Yes, keep me informed!</strong> I
                           agree to receive important updates, launch news, and exclusive
                           early-access information from Upward by GoodTenants. (Required to join the
-                          waitlist.)
+                          waitlist/community.)
                         </>
                       ) : (
                         <>
