@@ -209,7 +209,7 @@ export function Header({
       </ul>
 
       <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-        <Link
+        <a
           href="/login"
           className="mobile-hide"
           style={{
@@ -221,12 +221,13 @@ export function Header({
             fontFamily: 'var(--font-head)',
             fontWeight: 700,
             transition: 'color 0.2s',
+            display: 'inline-block'
           }}
           onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text)')}
           onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--muted)')}
         >
           Login
-        </Link>
+        </a>
         <button
           className="mobile-hide"
           onClick={() => {
