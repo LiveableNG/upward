@@ -4,30 +4,26 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
-  User,
-  Mail,
   Lock,
   ArrowRight,
   ShieldCheck,
   Eye,
   EyeOff,
   Loader2,
+  Sparkles,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
 import { UpwardLogo } from '@/components/PoweredByUpward'
-import { useAuth } from '@/features/auth/AuthContext'
-import { setCookie } from '@/lib/cookie-utils'
 import { OnboardingFields } from '@/features/auth/components/OnboardingFields'
 
-export default function InviteClient() {
+export default function WaitlistClient() {
   const params = useParams()
-  const token = params.uuid as string
+  const uuid = params.uuid as string
   const router = useRouter()
   const { success, error: toastError } = useToast()
   const [loading, setLoading] = useState(true)
-  const [inviteData, setInviteData] = useState<any>(null)
-  const [step, setStep] = useState<'form'>('form')
+  const [waitlistData, setWaitlistData] = useState<any>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState<any>({
     firstName: '',
@@ -40,19 +36,19 @@ export default function InviteClient() {
   const [localError, setLocalError] = useState('')
 
   useEffect(() => {
-    fetchInviteData()
-  }, [token])
+    fetchWaitlistData()
+  }, [uuid])
 
-  async function fetchInviteData() {
+  async function fetchWaitlistData() {
     try {
-      const res = await api.get(`/public/invite/${token}`)
-      if (res.success) {
+      const res = await api.get(`/waitlist/claim/${uuid}`)
+      if (res.email) {
         if (res.hasPassword) {
           success('Your account is already active. Please sign in.')
           router.push('/login')
           return
         }
-        setInviteData(res)
+        setWaitlistData(res)
         setFormData({
           ...formData,
           firstName: res.firstName || '',
@@ -61,14 +57,12 @@ export default function InviteClient() {
         })
       }
     } catch (err) {
-      toastError('Invite not found or has expired')
-      router.push('/signup?mode=login')
+      toastError('Waitlist entry not found or has expired')
+      router.push('/signup')
     } finally {
       setLoading(false)
     }
   }
-
-
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -81,7 +75,7 @@ export default function InviteClient() {
 
     setIsSubmitting(true)
     try {
-      const res = await api.post(`/public/invite/${token}/accept`, {
+      const res = await api.post(`/waitlist/claim/${uuid}/accept`, {
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -90,7 +84,6 @@ export default function InviteClient() {
 
       if (res.success) {
         success('Account activated! Welcome to Upward.')
-        // The controller sets cookies, but we might need to trigger AuthContext
         if (res.user) {
           window.location.href = '/dashboard'
         }
@@ -110,8 +103,8 @@ export default function InviteClient() {
             <div className="auth-layout__circle" style={{ background: 'rgba(255,255,255,0.04)' }}></div>
             <div className="auth-layout__card-mock" style={{ backdropFilter: 'blur(8px)' }}></div>
           </div>
-          <h1>Preparing your invite.</h1>
-          <p>Securing your data and loading your personalized invitation...</p>
+          <h1>Welcome back.</h1>
+          <p>We're preparing your priority access. Just a moment while we load your details...</p>
         </div>
       </div>
       <div className="auth-layout__form flex-center">
@@ -129,8 +122,6 @@ export default function InviteClient() {
     </div>
   )
 
-  const companyName = inviteData?.company?.name || 'Your Landlord'
-
   return (
     <div className="auth-layout">
       <div className="auth-layout__visual">
@@ -139,11 +130,15 @@ export default function InviteClient() {
             <div className="auth-layout__circle"></div>
             <div className="auth-layout__card-mock"></div>
           </div>
-          <h1>Join {companyName}.</h1>
+          <h1>Priority Access.</h1>
           <p>
-            You've been invited to Upward. Accept your invitation to start
-            building your rental credibility effortlessly.
+            Thanks for your patience on our waitlist. You're now ready to start
+            building your rental credibility with Upward.
           </p>
+          <div className="visual-badge">
+            <Sparkles size={16} />
+            <span>Founding Member Access</span>
+          </div>
         </div>
       </div>
 
@@ -154,74 +149,72 @@ export default function InviteClient() {
           </div>
 
           <div className="auth-stage">
-            {step === 'form' && (
-              <div className="animate-pop">
-                <div className="auth-stage__header">
-                  <h1 className="auth-stage__title">Complete your profile</h1>
-                  <p className="auth-stage__subtitle">
-                    Verify your details and set a password to activate your account.
-                  </p>
+            <div className="animate-pop">
+              <div className="auth-stage__header">
+                <h1 className="auth-stage__title">Claim your account</h1>
+                <p className="auth-stage__subtitle">
+                  Confirm your details and set a password to get started.
+                </p>
+              </div>
+
+              <form className="auth-form" onSubmit={handleSubmit}>
+                {localError && <div className="auth-form__error">{localError}</div>}
+                
+                <OnboardingFields formData={formData} setFormData={setFormData} />
+
+                <div className="auth-form__field mt-4">
+                  <label>Set Password</label>
+                  <div className="input-with-icon">
+                    <Lock size={17} />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={e => setFormData({ ...formData, password: e.target.value })}
+                      required
+                      minLength={8}
+                      placeholder="Min. 8 characters"
+                    />
+                  </div>
                 </div>
 
-                <form className="auth-form" onSubmit={handleSubmit}>
-                  {localError && <div className="auth-form__error">{localError}</div>}
-                  
-                  <OnboardingFields formData={formData} setFormData={setFormData} />
-
-                  <div className="auth-form__field mt-1">
-                    <label>Set Password</label>
-                    <div className="input-with-icon">
-                      <Lock size={17} />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={formData.password}
-                        onChange={e => setFormData({ ...formData, password: e.target.value })}
-                        required
-                        minLength={8}
-                        placeholder="Min. 8 characters"
-                      />
-                    </div>
+                <div className="auth-form__field mt-4">
+                  <label>Confirm Password</label>
+                  <div className="input-with-icon">
+                    <Lock size={17} />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.confirmPassword}
+                      onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      required
+                      placeholder="Confirm password"
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
                   </div>
+                </div>
 
-                  <div className="auth-form__field mt-1">
-                    <label>Confirm Password</label>
-                    <div className="input-with-icon">
-                      <Lock size={17} />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={formData.confirmPassword}
-                        onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
-                        required
-                        placeholder="Confirm password"
-                      />
-                      <button
-                        type="button"
-                        className="password-toggle"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-                  </div>
+                <div className="form-info-box mt-6">
+                  <ShieldCheck size={18} color="var(--success)" strokeWidth={2.5} />
+                  <p>Your data is protected and encrypted.</p>
+                </div>
 
-                  <div className="form-info-box mt-4">
-                    <ShieldCheck size={18} color="var(--success)" strokeWidth={2.5} />
-                    <p>Complete your profile to continue.</p>
-                  </div>
-
-                  <button className="btn btn--primary btn--full btn--pay mt-6" type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? 'Activating…' : 'Activate Account'}
-                    {!isSubmitting && <ArrowRight size={17} />}
-                  </button>
-                </form>
-              </div>
-            )}
+                <button className="btn btn--primary btn--full btn--pay mt-8" type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Claiming…' : 'Claim Account'}
+                  {!isSubmitting && <ArrowRight size={17} />}
+                </button>
+              </form>
+            </div>
           </div>
 
           <style jsx>{`
-            .mt-1 { margin-top: 12px; }
-            .mt-4 { margin-top: 24px; }
-            .mt-6 { margin-top: 32px; }
+            .mt-4 { margin-top: 16px; }
+            .mt-6 { margin-top: 24px; }
+            .mt-8 { margin-top: 32px; }
             .form-info-box {
               background: var(--surface);
               border: 1px solid var(--border-solid);
@@ -244,15 +237,19 @@ export default function InviteClient() {
               0% { transform: scale(0.95); opacity: 0; }
               100% { transform: scale(1); opacity: 1; }
             }
-            .auth-form__row {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 16px;
-            }
-            @media (max-width: 480px) {
-              .auth-form__row {
-                grid-template-columns: 1fr;
-              }
+            .visual-badge {
+              display: inline-flex;
+              align-items: center;
+              gap: 8px;
+              background: rgba(255,255,255,0.1);
+              padding: 8px 16px;
+              border-radius: 100px;
+              font-size: 12px;
+              font-weight: 600;
+              color: white;
+              margin-top: 24px;
+              backdrop-filter: blur(4px);
+              border: 1px solid rgba(255,255,255,0.1);
             }
           `}</style>
         </div>

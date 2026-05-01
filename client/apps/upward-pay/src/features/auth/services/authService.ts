@@ -100,13 +100,13 @@ export async function resetPassword(data: { email: string; otp: string; new: str
 }
 
 export async function checkEmail(email: string) {
-  return request<{ exists: boolean; hasPassword?: boolean; isInvited?: boolean; uuid?: string }>('/user/auth/check-email', {
+  return request<{ exists: boolean; hasPassword?: boolean; isInvited?: boolean; uuid?: string; isWaitlist?: boolean; }>('/user/auth/check-email', {
     method: 'POST',
     body: JSON.stringify({ email }),
   })
 }
 
-export async function requestOTP(email: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT') {
+export async function requestOTP(email: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' | 'WAITLIST') {
   return request<{ success: boolean; message: string }>('/user/auth/request-otp', {
     method: 'POST',
     body: JSON.stringify({ email, context }),
@@ -114,7 +114,8 @@ export async function requestOTP(email: string, context: 'SIGNUP' | 'LOGIN' | 'I
 }
 
 export async function verifyOTP(email: string, otp: string, context: string) {
-  return request<{ success: boolean; message?: string }>('/user/auth/verify-otp', {
+  return request<{ success: boolean; message?: string; inviteToken?: string }>('/user/auth/verify-otp', {
+
     method: 'POST',
     body: JSON.stringify({ email, otp, context }),
   })

@@ -71,11 +71,9 @@ function SignupPageContent() {
 export default function SignupPage() {
   return (
     <div className="auth-layout">
-      {/* Desktop Visual Panel - Hidden on Mobile */}
       <div className="auth-layout__visual">
         <div className="auth-layout__visual-content">
           <div className="auth-layout__graphic">
-            {/* We can use CSS shapes/patterns for this graphic */}
             <div className="auth-layout__circle"></div>
             <div className="auth-layout__card-mock"></div>
           </div>

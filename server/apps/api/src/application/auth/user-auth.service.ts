@@ -610,9 +610,29 @@ export class UserAuthService extends BaseAuthService {
     await this.syncTenantStatuses(email)
   }
 
-  async checkEmail(email: string): Promise<{ exists: boolean; hasPassword?: boolean; isInvited?: boolean; uuid?: string }> {
+  async checkEmail(email: string): Promise<{ 
+    exists: boolean; 
+    hasPassword?: boolean; 
+    isInvited?: boolean; 
+    isWaitlist?: boolean;
+    uuid?: string 
+  }> {
     const user = await this.userRepository.findByEmail(email)
-    if (!user) return { exists: false }
+    
+    if (!user) {
+      const waitlistEntry = await this.prisma.upward_waitlist.findFirst({
+        where: { email }
+      })
+      if (waitlistEntry) {
+        return { 
+          exists: true, 
+          isWaitlist: true, 
+          uuid: waitlistEntry.uuid 
+        }
+      }
+      return { exists: false }
+    }
+
     const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
                      user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
                      !!(user.passwordHash && !user.passwordHash.startsWith('$2'));
@@ -622,14 +642,22 @@ export class UserAuthService extends BaseAuthService {
       hasPassword: !!user.passwordHash && user.passwordHash !== '' && !isShadow,
       uuid: user.uuid,
     }
+
   }
 
-  async requestOTP(email: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT'): Promise<{ context: string }> {
+  async requestOTP(email: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' | 'WAITLIST'): Promise<{ context: string }> {
     const existing = await this.userRepository.findByEmail(email)
     let effectiveContext = context
 
     if (context === 'LOGIN' && !existing) {
       throw new UnauthorizedException('No account found with this email address.')
+    }
+
+    if (context === 'WAITLIST') {
+      const entry = await this.prisma.upward_waitlist.findFirst({
+        where: { email }
+      })
+      if (!entry) throw new ForbiddenException('You are not on the priority waitlist.')
     }
 
     if (context === 'SIGNUP' && existing && existing.passwordHash && existing.passwordHash !== 'INVITED') {
@@ -657,7 +685,7 @@ export class UserAuthService extends BaseAuthService {
     return { context: effectiveContext }
   }
 
-  async verifyOTP(email: string, otp: string, context: string, deleteOnSuccess = true): Promise<{ success: boolean; message?: string }> {
+  async verifyOTP(email: string, otp: string, context: string, deleteOnSuccess = true): Promise<{ success: boolean; message?: string; inviteToken?: string }> {
     const record = await this.tokenRepository.findByIdentifier(email, context)
 
     if (!record || !record.otp || record.expiresAt < new Date()) {
@@ -672,8 +700,34 @@ export class UserAuthService extends BaseAuthService {
     if (deleteOnSuccess) {
       await this.tokenRepository.delete(record.id!)
     }
+
+    if (context === 'INVITE') {
+      const user = await this.userRepository.findByEmail(email)
+      if (user) {
+        const inviteToken = crypto.randomUUID()
+        await this.tokenRepository.create({
+          uuid: crypto.randomUUID(),
+          token: inviteToken,
+          context: 'INVITE',
+          identifier: user.uuid,
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+        })
+        return { success: true, inviteToken }
+      }
+    }
+
+    if (context === 'WAITLIST') {
+      const entry = await this.prisma.upward_waitlist.findFirst({
+        where: { email }
+      })
+      if (entry) {
+        return { success: true, inviteToken: entry.uuid }
+      }
+    }
+
     return { success: true }
   }
+
 
   maskEmail(email: string): string {
     const [local, domain] = email.split('@')
@@ -696,7 +750,7 @@ export class UserAuthService extends BaseAuthService {
 
   async getWaitlistClaimData(uuid: string) {
     const entry = await this.prisma.upward_waitlist.findUnique({
-      where: { id: uuid }
+      where: { uuid }
     })
     
     if (!entry) {

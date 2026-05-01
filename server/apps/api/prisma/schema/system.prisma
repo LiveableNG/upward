@@ -1,5 +1,6 @@
 model upward_waitlist {
   id                       String              @id @default(uuid())
+  uuid                     String              @unique @default(uuid())
   email                    String              @unique
   firstName                String?
   lastName                 String?

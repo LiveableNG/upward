@@ -1,6 +1,10 @@
 import { Metadata } from 'next'
 import { FillRecordClient } from '@/features/records/components/FillRecordClient'
 
+export function generateStaticParams() {
+  return [{ uuid: 'placeholder' }]
+}
+
 interface FillRecordPageProps {
   params: Promise<{ uuid: string }>
 }

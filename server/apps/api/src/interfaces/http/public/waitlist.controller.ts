@@ -100,7 +100,6 @@ export class WaitlistController {
 
     const isProd = process.env['NODE_ENV'] === 'production' || !!process.env['VERCEL']
     
-    // Set Cookies (Same logic as InviteController)
     reply.setCookie('user_refresh', response.refreshToken, {
       httpOnly: true,
       secure: isProd,
