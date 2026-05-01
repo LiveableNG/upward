@@ -4,7 +4,7 @@ const isStaticExport = process.env['NEXT_OUTPUT'] === 'export'
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://upward-dev.vercel.app/api/v1'
 
 const nextConfig: NextConfig = {
-  assetPrefix: process.env.NODE_ENV === 'production' ? 'https://upward-pay.vercel.app' : undefined,
+  assetPrefix: (process.env.NODE_ENV === 'production' && !isStaticExport) ? '/_upward_pay' : undefined,
   ...(isStaticExport ? { output: 'export' as const } : {}),
   images: {
     unoptimized: true,

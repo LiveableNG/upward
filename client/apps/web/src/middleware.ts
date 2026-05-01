@@ -53,13 +53,28 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 3. Proxy/Rewrite Logic for App Routes
+  // 3. Asset Proxy Logic (for upward-pay assets)
+  if (pathname.startsWith('/_upward_pay')) {
+    const assetPath = pathname.replace('/_upward_pay', '')
+    const url = new URL(assetPath + search, APP_URL)
+    return NextResponse.rewrite(url)
+  }
+
+  // 4. Proxy/Rewrite Logic for App Routes
   const shouldProxy = isProtectedRoute || 
                       pathname.startsWith('/welcome') || 
                       pathname.startsWith('/pay') ||
                       pathname.startsWith('/profile') ||
                       pathname.startsWith('/invite') ||
                       pathname.startsWith('/fill-record') ||
+                      pathname.startsWith('/complete-profile') ||
+                      pathname.startsWith('/login') ||
+                      pathname.startsWith('/signup') ||
+                      pathname.startsWith('/forgot-password') ||
+                      pathname.startsWith('/reset-password') ||
+                      pathname.startsWith('/settings') ||
+                      pathname.startsWith('/kyc') ||
+                      pathname.startsWith('/transactions') ||
                       pathname.startsWith('/.well-known')
 
   if (shouldProxy) {
@@ -71,9 +86,9 @@ export function middleware(request: NextRequest) {
     // IMPORTANT: Remove Host header to prevent destination server from redirecting to its canonical domain
     requestHeaders.delete('host')
     
-    // Set forwarding headers
     requestHeaders.set('x-forwarded-host', request.headers.get('host') || '')
     requestHeaders.set('x-proxy-source', 'upward-web-gateway')
+    requestHeaders.set('x-forwarded-proto', 'https')
 
     return NextResponse.rewrite(url, {
       request: {
@@ -88,8 +103,11 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/',
+    '/_upward_pay/:path*',
     '/login',
     '/signup',
+    '/forgot-password',
+    '/reset-password',
     '/dashboard/:path*',
     '/profile/:path*',
     '/pay/:path*',
@@ -97,6 +115,10 @@ export const config = {
     '/welcome/:path*',
     '/invite/:path*',
     '/fill-record/:path*',
+    '/complete-profile/:path*',
+    '/settings/:path*',
+    '/kyc/:path*',
+    '/transactions/:path*',
     '/.well-known/:path*'
   ],
 }
