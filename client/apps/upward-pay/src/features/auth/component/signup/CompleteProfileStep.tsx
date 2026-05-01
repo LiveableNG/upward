@@ -148,7 +148,7 @@ export function CompleteProfileStep() {
 
       <div className="auth-layout__form">
         <div className="auth-shell auth-shell--complete">
-          <a href="/" className="auth-shell__brand">
+          <a href="https://upward.goodtenants.io" className="auth-shell__brand">
             <UpwardLogo size={28} color="var(--clay)" />
           </a>
 

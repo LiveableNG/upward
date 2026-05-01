@@ -1330,8 +1330,7 @@ export function SignupForm({
                         <>
                           <strong style={{ color: 'var(--text)' }}>Yes, keep me informed!</strong> I
                           agree to receive important updates, launch news, and exclusive
-                          early-access information from Upward by GoodTenants. (Required to join the
-                          waitlist/community.)
+                          early-access information from Upward by GoodTenants. (Required to get started.)
                         </>
                       ) : (
                         <>

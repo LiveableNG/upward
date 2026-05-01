@@ -110,6 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     console.log('[Auth] Logging out...')
+    setUser(null)
+    setAccessToken(null)
     setLoading(true)
     try {
       // Try to unregister notifications and notify backend, but don't let them block local logout
@@ -126,8 +128,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('[Auth] Logout error:', err)
     } finally {
-      setAccessToken(null)
-      setUser(null)
       setLoading(false)
       
       // Only redirect if we are NOT on a public page

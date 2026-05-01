@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common'
 import {
   NOTIFICATION_REPOSITORY,
   NotificationRepository,
@@ -40,7 +40,7 @@ export class SendNotificationUseCase {
 
   async execute(data: { userId: string; title: string; message: string; type: string }) {
     const user = await this.userRepository.findByUuid(data.userId)
-    if (!user) throw new Error('User not found')
+    if (!user) throw new UnauthorizedException('User not found')
 
     const notification = await this.notificationRepository.createNotification({
       ...data,
@@ -72,7 +72,7 @@ export class GetUserNotificationsUseCase {
 
   async execute(userId: string) {
     const user = await this.userRepository.findByUuid(userId)
-    if (!user) throw new Error('User not found')
+    if (!user) throw new UnauthorizedException('User not found')
 
     const numericUserId = user.id!
 
@@ -205,7 +205,7 @@ export class UpdateAnnouncementStateUseCase {
     interactedBanner?: boolean
   }) {
     const user = await this.userRepository.findByUuid(data.userId)
-    if (!user) throw new Error('User not found')
+    if (!user) throw new UnauthorizedException('User not found')
 
     return this.notificationRepository.upsertAnnouncementState({
       ...data,
@@ -252,7 +252,7 @@ export class MarkNotificationsByCategoryReadUseCase {
 
   async execute(userId: string, category: string) {
     const user = await this.userRepository.findByUuid(userId)
-    if (!user) throw new Error('User not found')
+    if (!user) throw new UnauthorizedException('User not found')
 
     let types: string[] = []
     if (category === 'Transactions') types = ['PAYMENT']

@@ -54,7 +54,7 @@ export function BenefitsStep({ onSignup, onLogin }: BenefitsStepProps) {
 
   return (
     <div className="auth-shell auth-shell--welcome">
-      <a href="/" className="auth-shell__logo">
+      <a href="https://upward.goodtenants.io" className="auth-shell__logo">
         <UpwardLogo size={36} color="var(--clay)" />
       </a>
 
