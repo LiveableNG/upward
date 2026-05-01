@@ -244,7 +244,7 @@ function UnsubscribeContent() {
             </h1>
             <p style={{ color: 'var(--muted)', lineHeight: 1.6, marginBottom: '32px' }}>
               {status === 'notfound'
-                ? `We couldn't find an entry for ${email} on our waitlist.`
+                ? `We couldn't find an entry for ${email}.`
                 : "We couldn't process your request right now. Please try again later or contact support."}
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>

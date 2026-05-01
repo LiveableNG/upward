@@ -133,9 +133,9 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
             <ChevronLeft size={20} />
           </button>
         </div>
-        <div className="auth-shell__brand">
+        <a href="/" className="auth-shell__brand">
           <UpwardLogo size={28} color="var(--clay)" />
-        </div>
+        </a>
         <div className="auth-stage">
           <OTPInput
             email={loginEmail}
@@ -158,9 +158,9 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
         </button>
       </div>
 
-      <div className="auth-shell__brand">
+      <a href="/" className="auth-shell__brand">
         <UpwardLogo size={28} color="var(--clay)" />
-      </div>
+      </a>
 
       <div className="auth-stage">
         <div className="auth-stage__header">

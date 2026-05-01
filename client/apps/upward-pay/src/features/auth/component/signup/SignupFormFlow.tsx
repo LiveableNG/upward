@@ -151,9 +151,9 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
             <ChevronLeft size={20} />
           </button>
         </div>
-        <div className="auth-shell__brand">
+        <a href="/" className="auth-shell__brand">
           <UpwardLogo size={28} color="var(--clay)" />
-        </div>
+        </a>
         <div className="auth-stage">
           <OTPInput
             email={email}
@@ -177,9 +177,9 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
         </button>
       </div>
 
-      <div className="auth-shell__brand">
+      <a href="/" className="auth-shell__brand">
         <UpwardLogo size={28} color="var(--clay)" />
-      </div>
+      </a>
 
       <div className="auth-stage">
         <div className="auth-stage__header">
