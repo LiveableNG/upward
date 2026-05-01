@@ -17,7 +17,8 @@ function SignupPageContent() {
   const searchParams = useSearchParams()
   const { isLoggedIn, loading } = useAuth()
 
-  const initialMode: Mode = (searchParams.get('mode') as Mode) || 'welcome'
+  const initialEmail = searchParams.get('email') || ''
+  const initialMode: Mode = (searchParams.get('mode') as Mode) || (initialEmail ? 'signup' : 'welcome')
   const [mode, setMode] = useState<Mode>(initialMode)
   const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null)
 
@@ -40,7 +41,7 @@ function SignupPageContent() {
   }
 
   if (mode === 'login') {
-    return <LoginFormFlow onBackToWelcome={() => setMode('welcome')} />
+    return <LoginFormFlow onBackToWelcome={() => setMode('welcome')} onRedirectToSignup={(loginEmail) => window.location.href = `/signup?mode=signup&email=${encodeURIComponent(loginEmail)}`} />
   }
 
   if (mode === 'biometrics' && credentials) {
@@ -55,6 +56,7 @@ function SignupPageContent() {
 
   return (
     <SignupFormFlow 
+      initialEmail={initialEmail}
       onBackToWelcome={() => setMode('welcome')} 
       onSignupSuccess={(email, password) => {
         setCredentials({ email, password })

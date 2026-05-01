@@ -23,13 +23,14 @@ import { checkEmail, requestOTP, verifyOTP } from '@/features/auth/services/auth
 interface SignupFormFlowProps {
   onBackToWelcome: () => void
   onSignupSuccess: (email: string, password: string) => void
+  initialEmail?: string
 }
 
-export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormFlowProps) {
+export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail = '' }: SignupFormFlowProps) {
   const router = useRouter()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -42,8 +43,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
   const [isInvited, setIsInvited] = useState(false)
   const [isWaitlist, setIsWaitlist] = useState(false)
   const [showExistsModal, setShowExistsModal] = useState(false)
-  const [showInvitedModal, setShowInvitedModal] = useState(false)
-  const [showWaitlistModal, setShowWaitlistModal] = useState(false)
   const [step, setStep] = useState<'form' | 'otp'>('form')
   const [isRequestingOTP, setIsRequestingOTP] = useState(false)
   const [otpError, setOtpError] = useState<string | null>(null)
@@ -92,12 +91,12 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
     }
 
     if (emailExists && isInvited) {
-      setShowInvitedModal(true)
+      handleInviteProceed()
       return
     }
 
     if (emailExists && isWaitlist) {
-      setShowWaitlistModal(true)
+      handleWaitlistProceed()
       return
     }
 
@@ -119,7 +118,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
   }
 
   const handleInviteProceed = async () => {
-    setShowInvitedModal(false)
     setIsRequestingOTP(true)
     try {
       const res: any = await requestOTP(email, 'INVITE')
@@ -133,7 +131,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
   }
 
   const handleWaitlistProceed = async () => {
-    setShowWaitlistModal(false)
     setIsRequestingOTP(true)
     try {
       const res: any = await requestOTP(email, 'WAITLIST')
@@ -161,12 +158,12 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
           return
         }
 
-        if (effectiveContext === 'INVITE' && verification.inviteToken) {
+        if (effectiveContext === 'WAITLIST' && verification.inviteToken) {
+          router.push(`/waitlist/${verification.inviteToken}`)
+        } else if (effectiveContext === 'INVITE' && verification.inviteToken) {
           router.push(`/invite/${verification.inviteToken}`)
         } else if (isInvited && uuid) {
           router.push(`/invite/${uuid}?email=${encodeURIComponent(email)}&name=${encodeURIComponent(`${firstName} ${lastName}`)}`)
-        } else if (effectiveContext === 'WAITLIST') {
-          signup({ email, password, firstName, lastName })
         } else {
           signup({ email, password, firstName, lastName })
         }
@@ -257,7 +254,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
             {emailExists && isInvited && (
               <div className="field-hint field-hint--invited">
                 <AlertCircle size={12} /> Your manager already invited you —{' '}
-                <button type="button" className="field-hint__link" onClick={() => setShowInvitedModal(true)}>
+                <button type="button" className="field-hint__link" onClick={handleInviteProceed}>
                   Verify to set your password
                 </button>
               </div>
@@ -266,7 +263,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
             {emailExists && isWaitlist && (
               <div className="field-hint field-hint--waitlist">
                 <Sparkles size={12} /> You have priority access!{' '}
-                <button type="button" className="field-hint__link" onClick={() => setShowWaitlistModal(true)}>
+                <button type="button" className="field-hint__link" onClick={handleWaitlistProceed}>
                   Claim your account
                 </button>
               </div>
@@ -393,55 +390,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess }: SignupFormF
           </div>
         )}
 
-        {showInvitedModal && (
-          <div className="modal-overlay">
-            <div className="modal-content animate-pop">
-              <div className="modal-icon">
-                <Mail size={40} color="var(--clay)" />
-              </div>
-              <h3>Verify Your Email</h3>
-              <p>
-                Your manager has already invited you to Upward. Please verify that <strong>{email}</strong> belongs to you to continue.
-              </p>
-              <div className="modal-actions">
-                <button
-                  className="btn btn--primary btn--full"
-                  onClick={handleInviteProceed}
-                >
-                  Yes, verify my email
-                </button>
-                <button className="btn btn--ghost btn--full mt-4" onClick={() => setShowInvitedModal(false)}>
-                  No, use a different email
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showWaitlistModal && (
-          <div className="modal-overlay">
-            <div className="modal-content animate-pop">
-              <div className="modal-icon">
-                <ShieldCheck size={40} color="var(--clay)" />
-              </div>
-              <h3>Priority Access</h3>
-              <p>
-                You've been granted priority access to Upward. Please verify <strong>{email}</strong> to activate your account.
-              </p>
-              <div className="modal-actions">
-                <button
-                  className="btn btn--primary btn--full"
-                  onClick={handleWaitlistProceed}
-                >
-                  Claim my account
-                </button>
-                <button className="btn btn--ghost btn--full mt-4" onClick={() => setShowWaitlistModal(false)}>
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       <style jsx>{`
