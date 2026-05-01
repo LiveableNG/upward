@@ -76,6 +76,7 @@ export function middleware(request: NextRequest) {
                        pathname.startsWith('/pay') ||
                        pathname.startsWith('/profile') ||
                        pathname.startsWith('/invite') ||
+                       pathname.startsWith('/waitlist') ||
                        pathname.startsWith('/fill-record') ||
                        pathname.startsWith('/complete-profile') ||
                        pathname.startsWith('/login') ||
@@ -137,6 +138,7 @@ export const config = {
     '/dashboard/:path*',
     '/profile/:path*',
     '/pay/:path*',
+    '/waitlist/:path*',
     '/api/v1/:path*',
     '/welcome/:path*',
     '/invite/:path*',

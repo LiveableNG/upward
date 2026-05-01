@@ -18,7 +18,9 @@ import {
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useSignup } from '@/features/auth/hooks/useSignup'
 import { OTPInput } from '@/components/common/OTPInput'
-import { checkEmail, requestOTP, verifyOTP } from '@/features/auth/services/authService'
+import { checkEmail, requestOTP, verifyOTP, loginWithOTP } from '@/features/auth/services/authService'
+import { setAccessToken } from '@/lib/auth-token'
+import { setCookie } from '@/lib/cookie-utils'
 
 interface SignupFormFlowProps {
   onBackToWelcome: () => void
@@ -147,9 +149,12 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     setOtpError(null)
     try {
       if (effectiveContext === 'LOGIN') {
-        // Seamless switch: existing account — loginWithOTP verifies OTP internally
-        const { loginWithOTP } = await import('../../services/authService')
-        await loginWithOTP(email, otp)
+        // Seamless switch: existing account
+        const result = await loginWithOTP(email, otp)
+        if (result.accessToken) {
+          setAccessToken(result.accessToken)
+          setCookie('pay_access_token', result.accessToken)
+        }
         onSignupSuccess(email, password)
       } else {
         const verification = await verifyOTP(email, otp, effectiveContext)
