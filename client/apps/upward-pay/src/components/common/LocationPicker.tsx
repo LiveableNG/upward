@@ -2,7 +2,8 @@
 
 import { MapPin, Globe, Loader2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { getCountries, getCities, type Country } from '@/features/onboarding/services/locationService'
+import { api } from '@/lib/api'
+import type { Country } from '@/features/auth/services/locationService'
 
 interface LocationPickerProps {
   country: string
@@ -22,7 +23,7 @@ export default function LocationPicker({ country, city, onCountryChange, onCityC
     async function init() {
       setLoadingCountries(true)
       try {
-        const response = await getCountries()
+        const response = await api.getCountries()
         setCountries(response.data)
       } catch (err) {
         console.error('Failed to load countries', err)
@@ -40,7 +41,7 @@ export default function LocationPicker({ country, city, onCountryChange, onCityC
         setLoadingCities(true)
         try {
           // Send country name as used in backend logic (lowercase)
-          const response = await getCities(country)
+          const response = await api.getCities(country)
           setCities(response.data)
         } catch (err) {
           console.error('Failed to load cities', err)

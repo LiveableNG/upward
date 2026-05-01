@@ -7,6 +7,7 @@ import * as notificationService from '@/features/notifications/services/notifica
 import * as financeService from '@/features/finance/services/financeService'
 import * as supportService from '@/features/support/services/supportService'
 import * as credibilityService from '@/features/dashboard/services/credibilityService'
+import * as locationService from '@/features/auth/services/locationService'
 
 export const api = {
   // Auth & Profile
@@ -22,6 +23,10 @@ export const api = {
     authService.resetPassword({ email, otp, new: newPass }),
   checkSlug: (slug: string) =>
     request<any>(`/user/auth/check-slug/${slug}`, { method: 'GET' }),
+
+  // Locations
+  getCountries: locationService.getCountries,
+  getCities: locationService.getCities,
 
   // Payments
   initializePayment: paymentService.initializePayment,
