@@ -1,0 +1,148 @@
+model upward_user_property {
+  id                     Int                          @id @default(autoincrement())
+  uuid                   String                       @unique @default(uuid())
+  userId                 Int
+  companyId              Int?
+  managerId              Int?
+  locationId             Int?
+  rentAmount             Float                        @default(0)
+  currency               String                       @default("NGN")
+  rentStartDate          DateTime?
+  rentEndDate            DateTime?
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+  isVerified             Boolean                      @default(false)
+  amountPaid             Float                        @default(0)
+  amountRemaining        Float                        @default(0)
+  isPastTenancy          Boolean                      @default(false)
+  pmId                   Int?
+  pmUnitId               Int?
+  rentReminderEnabled    Boolean                      @default(false)
+  rentReminderDaysBefore Int?                         @db.SmallInt
+  paymentRequests        upward_payment_request[]
+  infractions            upward_property_infraction[]
+  inspections            upward_property_inspection[]
+  rentCycles             upward_rent_cycle[]
+  contracts              upward_user_contract[]
+  company                upward_company?              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  location               upward_location?             @relation(fields: [locationId], references: [id])
+  manager                upward_manager?              @relation(fields: [managerId], references: [id])
+  pm                     upward_property_manager?     @relation(fields: [pmId], references: [id])
+  pmUnit                 upward_pm_unit?              @relation(fields: [pmUnitId], references: [id])
+  user                   upward_user                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model upward_location {
+  id         Int                    @id @default(autoincrement())
+  uuid       String                 @unique @default(uuid())
+  country    String
+  state      String
+  area       String
+  subarea    String?
+  address    String?
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+  properties upward_user_property[]
+}
+
+model upward_company {
+  id           Int                    @id @default(autoincrement())
+  uuid         String                 @unique @default(uuid())
+  name         String
+  address      String?
+  email        String?
+  phone        String?
+  emailHash    String?                @unique
+  phoneHash    String?
+  nameHash     String?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  platformId   Int?
+  platform     upward_platform?       @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  companyUsers upward_company_user[]
+  managers     upward_manager[]
+  properties   upward_user_property[]
+}
+
+model upward_company_user {
+  id         Int            @id @default(autoincrement())
+  uuid       String         @unique @default(uuid())
+  companyId  Int
+  userId     Int
+  invitedAt  DateTime       @default(now())
+  acceptedAt DateTime?
+  company    upward_company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user       upward_user    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, userId])
+}
+
+model upward_manager {
+  id            Int                    @id @default(autoincrement())
+  uuid          String                 @unique @default(uuid())
+  companyId     Int
+  /// @encrypted
+  firstName     String?
+  /// @encrypted
+  lastName      String?
+  /// @encrypted
+  phone         String?
+  /// @encrypted
+  email         String?
+  emailHash     String?                @unique
+  phoneHash     String?
+  firstNameHash String?
+  lastNameHash  String?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  company       upward_company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  properties    upward_user_property[]
+}
+
+model upward_property_inspection {
+  id             Int                  @id @default(autoincrement())
+  uuid           String               @unique @default(uuid())
+  userPropertyId Int
+  inspectorName  String?
+  score          Float?
+  reportUrl      String?
+  source         String               @default("UPWARD")
+  notes          String?
+  createdAt      DateTime             @default(now())
+  userProperty   upward_user_property @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
+
+  @@index([userPropertyId])
+}
+
+model upward_property_infraction {
+  id               Int                  @id @default(autoincrement())
+  uuid             String               @unique @default(uuid())
+  userPropertyId   Int
+  description      String
+  amountOwed       Float                @default(0)
+  isResolved       Boolean              @default(false)
+  reportedToBureau Boolean              @default(false)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  userProperty     upward_user_property @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
+
+  @@index([userPropertyId])
+}
+
+model upward_user_contract {
+  id             Int                   @id @default(autoincrement())
+  uuid           String                @unique @default(uuid())
+  userId         Int
+  userPropertyId Int?
+  fileName       String
+  fileUrl        String
+  fileType       String
+  fileSize       Int
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  user           upward_user           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProperty   upward_user_property? @relation(fields: [userPropertyId], references: [id])
+
+  @@index([userId])
+  @@index([userPropertyId])
+}

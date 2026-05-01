@@ -9,9 +9,9 @@
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "type-check": "tsc --noEmit",
     "test": "jest --passWithNoTests",
-    "prisma:generate": "prisma generate",
-    "postinstall": "prisma generate",
-    "db:seed": "prisma db seed"
+    "prisma:generate": "prisma generate --schema=prisma/schema",
+    "postinstall": "prisma generate --schema=prisma/schema",
+    "db:seed": "prisma db seed --schema=prisma/schema"
   },
   "prisma": {
     "seed": "tsx prisma/seed-admin.ts"
