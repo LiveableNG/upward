@@ -43,7 +43,6 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
   const [biometricLoading, setBiometricLoading] = useState(false)
   const [step, setStep] = useState<'login' | 'otp' | 'profile'>('login')
   const [isRequestingOTP, setIsRequestingOTP] = useState(false)
-  const [isInvitePending, setIsInvitePending] = useState(false)
 
   const { error: toastError } = useToast()
 
@@ -82,7 +81,7 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
     }
   }
 
-  const handleRequestOTP = async (forInvite?: boolean) => {
+  const handleRequestOTP = async () => {
     if (!loginEmail) {
       toastError('Please enter your email address first.')
       return
@@ -90,9 +89,8 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
 
     setIsRequestingOTP(true)
     try {
-      // For invited users we use 'LOGIN' context (they exist in DB already)
+      // For login we use 'LOGIN' context
       await requestOTP(loginEmail, 'LOGIN')
-      if (forInvite !== undefined) setIsInvitePending(forInvite)
       setStep('otp')
     } catch (err: any) {
       toastError(err.message || 'Failed to send verification code')
@@ -102,27 +100,7 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
   }
 
   const handleVerifyOTP = async (otp: string) => {
-    if (isInvitePending) {
-      try {
-        const result = await loginWithOTP(loginEmail, otp)
-        if (result.accessToken) {
-          setAccessToken(result.accessToken)
-          setCookie('pay_access_token', result.accessToken)
-        }
-        
-        // If we have the userId from the error, use it. Otherwise fallback to a general path
-        const userId = loginError?.data?.userId;
-        if (userId) {
-          router.push(`/invite/${userId}?email=${encodeURIComponent(loginEmail)}`)
-        } else {
-          router.push(`/complete-profile?email=${encodeURIComponent(loginEmail)}`)
-        }
-      } catch (err: any) {
-        toastError(err.message || 'Verification failed')
-      }
-    } else {
-      otpLogin(loginEmail, otp)
-    }
+    otpLogin(loginEmail, otp)
   }
 
   if (step === 'otp') {
@@ -170,22 +148,8 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
         
         <form className="auth-form" onSubmit={handleSubmit}>
           {loginError && (
-            <div className={`auth-form__error ${loginError.code === 'INVITE_PENDING' ? 'is-warning' : ''}`}>
-              {loginError.code === 'INVITE_PENDING' ? (
-                <div className="invite-pending-notice">
-                  <p>{loginError.message}</p>
-                  <button 
-                    type="button" 
-                    className="btn btn--primary btn--full mt-4" 
-                    onClick={() => handleRequestOTP(true)}
-                    disabled={isRequestingOTP}
-                  >
-                    {isRequestingOTP ? <Loader2 size={18} className="animate-spin" /> : 'Verify & Set Password'}
-                  </button>
-                </div>
-              ) : (
-                loginError.message
-              )}
+            <div className="auth-form__error">
+              Invalid credentials
             </div>
           )}
           
@@ -243,7 +207,7 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
           <button
             type="button"
             className="btn btn--ghost btn--full verif-code-btn"
-            onClick={() => handleRequestOTP(false)}
+            onClick={() => handleRequestOTP()}
             disabled={loginLoading || isRequestingOTP || !loginEmail}
           >
             {isRequestingOTP ? <Loader2 size={18} className="animate-spin" /> : 'Log in with verification code'}
