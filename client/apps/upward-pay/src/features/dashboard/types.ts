@@ -21,6 +21,7 @@ export interface PendingPayment {
   lineItemRecords?: any[]
   due_date?: string | Date
   dueDate?: string | Date
+  isManual?: boolean
 }
 
 export interface CompletedPayment {
@@ -36,6 +37,7 @@ export interface CompletedPayment {
   transactionType?: 'PAYMENT' | 'FUTURE_CREDIT'
   property_address?: string
   lineItems?: any[]
+  isManual?: boolean
 }
 
 export interface SavedLandlord {

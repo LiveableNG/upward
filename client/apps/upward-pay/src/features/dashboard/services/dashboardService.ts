@@ -38,6 +38,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     subaccount_code: p.subaccount_code || null,
     company_logo: '',
     lineItemRecords: p.lineItemRecords || [],
+    isManual: !!p.isManual,
   }))
 
   const completedPayments: CompletedPayment[] = (txs || []).map((t: any) => ({
@@ -53,6 +54,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     transactionType: t.transactionType || 'PAYMENT',
     property_address: t.propertyAddress || null,
     lineItems: t.lineItems || [],
+    isManual: !!t.isManual,
   }))
 
   const savedLandlords: SavedLandlord[] = (landlords || []).map((l: any) => ({

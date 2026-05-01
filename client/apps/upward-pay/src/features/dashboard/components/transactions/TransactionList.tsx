@@ -143,9 +143,9 @@ export function TransactionList() {
                               {tx.channel || 'Paystack'} · {formatTime(tx.paid_at)}
                             </span>
                             <span
-                              className={`transaction-item__type-badge ${isCredit ? 'transaction-item__type-badge--credit' : (tx.transactionType === 'FUTURE_CREDIT' ? 'transaction-item__type-badge--future' : 'transaction-item__type-badge--debit')}`}
+                              className={`transaction-item__type-badge ${isCredit ? 'transaction-item__type-badge--credit' : (tx.transactionType === 'FUTURE_CREDIT' ? 'transaction-item__type-badge--future' : (tx.isManual ? 'transaction-item__type-badge--manual' : 'transaction-item__type-badge--debit'))}`}
                             >
-                              {tx.transactionType === 'FUTURE_CREDIT' ? 'Future Credit' : (tx.type || 'debit')}
+                              {tx.transactionType === 'FUTURE_CREDIT' ? 'Future Credit' : (tx.isManual ? 'Manual' : (tx.type || 'debit'))}
                             </span>
                           </div>
                         </div>
@@ -202,6 +202,11 @@ export function TransactionList() {
         .transaction-item__type-badge--future {
           background: #fff8e1;
           color: #ffa000;
+        }
+
+        .transaction-item__type-badge--manual {
+          background: var(--clay-faint);
+          color: var(--clay);
         }
 
         /* Desktop Optimization for Transaction Page */
