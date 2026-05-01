@@ -88,16 +88,12 @@ export function middleware(request: NextRequest) {
                        pathname.startsWith('/.well-known')
 
   if (shouldProxy) {
-    // Determine target based on path
-    let targetBase = APP_URL
-    let targetPath = pathname
+    const targetBase = APP_URL
+    const targetPath = pathname
 
     if (pathname.startsWith('/api/v1')) {
-      // API_URL might be like https://upward-dev.vercel.app/api/v1
-      // We want to ensure we don't double up on /api/v1 or lose it
       const apiBase = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL
       const pathWithoutPrefix = pathname.replace('/api/v1', '')
-      // Construct the URL by joining the API base and the remaining path
       const url = new URL(apiBase + pathWithoutPrefix + search)
       
       const requestHeaders = new Headers(request.headers)
@@ -113,7 +109,6 @@ export function middleware(request: NextRequest) {
       })
     }
 
-    // Default proxy to APP_URL (upward-pay)
     const url = new URL(targetPath + search, targetBase)
     const requestHeaders = new Headers(request.headers)
     requestHeaders.set('x-forwarded-host', request.headers.get('host') || '')
