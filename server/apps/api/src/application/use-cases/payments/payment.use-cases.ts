@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common'
 import {
   ReceiptService,
   ReceiptPdfData,
@@ -62,7 +62,7 @@ export class CreateManualPaymentRequestUseCase {
     metadata?: any
   }) {
     const user = await this.userRepository.findByUuid(data.userId)
-    if (!user) throw new Error('User not found')
+    if (!user) throw new UnauthorizedException('User not found')
 
     let subaccountId: number | undefined
 
@@ -135,7 +135,7 @@ export class SaveLandlordUseCase {
 
   async execute(data: Omit<SavedLandlord, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'userId'> & { userId: string }) {
     const user = await this.userRepository.findByUuid(data.userId)
-    if (!user) throw new Error('User not found')
+    if (!user) throw new UnauthorizedException('User not found')
 
     const subaccount = await this.paymentGateway.findOrCreateSubaccount({
       businessName: data.name,
@@ -162,7 +162,7 @@ export class GetSavedLandlordsUseCase {
 
   async execute(userId: string) {
     const user = await this.userRepository.findByUuid(userId)
-    if (!user) throw new Error('User not found')
+    if (!user) throw new UnauthorizedException('User not found')
     return this.landlordRepo.findByUserId(user.id!)
   }
 }
@@ -212,7 +212,7 @@ export class RecordTransactionUseCase {
     this.logger.log(`Recording transaction for reference: ${data.reference}`)
 
     const user = await this.userRepository.findByUuid(data.userId)
-    if (!user) throw new Error('User not found')
+    if (!user) throw new UnauthorizedException('User not found')
 
     // Idempotency check (Outside transaction is fine for initial check)
     const existing = await this.txRepo.findByReference(data.reference)
@@ -641,7 +641,7 @@ export class GetUserTransactionsUseCase {
 
   async execute(userId: string) {
     const user = await this.userRepository.findByUuid(userId)
-    if (!user) throw new Error('User not found')
+    if (!user) throw new UnauthorizedException('User not found')
     return this.txRepo.findByUserId(user.id!)
   }
 }
@@ -738,7 +738,7 @@ export class GetPendingPaymentsUseCase {
 
   async execute(userId: string) {
     const user = await this.userRepository.findByUuid(userId)
-    if (!user) throw new Error('User not found')
+    if (!user) throw new UnauthorizedException('User not found')
 
     // Fetch both PENDING and PARTIAL payments
     const pending = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PENDING')

@@ -133,7 +133,7 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
             <ChevronLeft size={20} />
           </button>
         </div>
-        <a href="/" className="auth-shell__brand">
+        <a href="https://upward.goodtenants.io" className="auth-shell__brand">
           <UpwardLogo size={28} color="var(--clay)" />
         </a>
         <div className="auth-stage">
@@ -158,7 +158,7 @@ export function LoginFormFlow({ onBackToWelcome }: LoginFormFlowProps) {
         </button>
       </div>
 
-      <a href="/" className="auth-shell__brand">
+      <a href="https://upward.goodtenants.io" className="auth-shell__brand">
         <UpwardLogo size={28} color="var(--clay)" />
       </a>
 
