@@ -74,7 +74,8 @@ export class GetUserNotificationsUseCase {
     const user = await this.userRepository.findByUuid(userId)
     if (!user) throw new UnauthorizedException('User not found')
 
-    const numericUserId = user.id!
+    const numericUserId = user.id
+    if (!numericUserId) throw new UnauthorizedException('Invalid user account state')
 
     // 1. Get active announcement (Global)
     const activeAnnouncement = await this.notificationRepository.findActiveAnnouncement()

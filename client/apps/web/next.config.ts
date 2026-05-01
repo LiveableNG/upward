@@ -1,6 +1,6 @@
 import type { NextConfig } from 'next'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://upward-pay.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://upward-dev.vercel.app'
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@upward/shared-types'],

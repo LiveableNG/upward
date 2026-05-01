@@ -24,7 +24,9 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/v1/:path*',
-        destination: `${API_URL}/:path*`,
+        destination: (API_URL.includes('upward-dev.vercel.app') || API_URL.includes('localhost'))
+          ? '/api/v1/:path*' 
+          : `${API_URL}/:path*`,
       },
     ]
   },

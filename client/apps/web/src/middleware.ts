@@ -20,7 +20,7 @@ function isTokenExpired(token: string): boolean {
   }
 }
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://upward-pay.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://upward-dev.vercel.app'
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
