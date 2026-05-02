@@ -337,20 +337,22 @@ export function StepAmount({
                   >
                     ₦
                   </span>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={item.amount || ''}
-                    onChange={(e) => updateLineItem(idx, e.target.value, 'amount')}
-                    style={{
-                      ...inputStyle,
-                      padding: '14px 0',
-                      fontSize: 14,
-                      fontWeight: 700,
-                      width: 90,
-                      flex: 'none',
-                    }}
-                  />
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={item.amount || ''}
+                      onChange={(e) => updateLineItem(idx, e.target.value, 'amount')}
+                      style={{
+                        ...inputStyle,
+                        padding: '14px 0',
+                        fontSize: 14,
+                        fontWeight: 700,
+                        width: 90,
+                        flex: 'none',
+                        opacity: idx === 0 ? 0.7 : 1,
+                      }}
+                      readOnly={idx === 0}
+                    />
                 </div>
               </div>
               {idx > 0 && (

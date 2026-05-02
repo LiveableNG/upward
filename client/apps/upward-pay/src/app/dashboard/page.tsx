@@ -258,6 +258,7 @@ export default function DashboardPage() {
             const daysLeft = Math.ceil(diff / (1000 * 60 * 60 * 24))
 
             const beamClass = hasSlides ? (isOverdue ? 'animate-beam-red' : 'animate-beam-clay') : ''
+            const isManual = hasSlides && (heroItem.isManual || (!heroItem.company_name && !heroItem.manager_name) || heroItem.company_name === 'Manual Payment')
 
             return (
               <div className={`bento-cell bento-cell--hero ${hasSlides ? 'has-pending' : ''} ${isOverdue ? 'is-overdue' : ''}`}>
@@ -266,12 +267,11 @@ export default function DashboardPage() {
                     <div className="bento-hero-pending__badge">
                       {isOverdue 
                         ? (heroItem.type === 'payment' 
-                            ? (heroItem.isManual ? 'MANUAL ACTION' : 'ACTION REQUIRED') 
+                            ? (isManual ? 'MANUAL ACTION' : 'ACTION REQUIRED') 
                             : 'RENT OVERDUE')
                         : (heroItem.type === 'payment' 
-                            ? (heroItem.isManual ? 'SELF-INITIATED' : ((heroItem.amountPaid || 0) > 0 ? 'PARTIAL PAYMENT' : 'PAYMENT REQUEST')) 
-                            : 'RENT DUE SOON')
-                      }
+                            ? (isManual ? 'SELF-INITIATED' : ((heroItem.amountPaid || 0) > 0 ? 'PARTIAL PAYMENT' : 'PAYMENT REQUEST')) 
+                            : 'RENT DUE SOON')}
                     </div>
                     
                     {heroSlides.length > 1 && (
@@ -299,7 +299,7 @@ export default function DashboardPage() {
                     <div className="bento-hero-pending">
                       
                       <h2 className={`bento-hero-pending__title ${isOverdue && heroItem.type === 'payment' ? 'animate-text-zoom' : ''}`}>
-                        {isOverdue ? 'Outstanding Action' : (heroItem.isManual ? 'Manual Payment' : (daysLeft <= 7 ? 'Payment Due' : 'Rent Payment'))} <br />
+                        {isOverdue ? 'Outstanding Action' : (isManual ? 'Manual Payment' : (daysLeft <= 7 ? 'Payment Due' : 'Rent Payment'))} <br />
                         <span className="bento-hero-pending__accent">
                           {heroItem.company_name || heroItem.property_address || heroItem.title || 'Soon'}
                         </span>
@@ -311,12 +311,12 @@ export default function DashboardPage() {
                             {formatCurrency(heroItem.total_amount - (heroItem.amountPaid || 0), heroItem.currency)}
                             {(heroItem.amountPaid || 0) > 0 && <span className="bento-hero-pending__total"> of {formatCurrency(heroItem.total_amount, heroItem.currency)}</span>}
                           </div>
-                          <p className={`bento-hero-pending__desc ${isOverdue && heroItem.type === 'payment' ? 'animate-text-zoom-subtle' : ''}`}>
+                          <p className={`bento-hero-pending__desc ${isOverdue && heroItem.type === 'payment' ? 'animate-text-zoom' : ''}`}>
                             {isOverdue
-                              ? (heroItem.isManual 
+                              ? (isManual 
                                   ? `You have an outstanding self-initiated payment. Complete it now to protect your streak.` 
                                   : `Your credit standing is currently being affected. Pay immediately to protect your credibility score.`)
-                              : (heroItem.isManual 
+                              : (isManual 
                                   ? `Complete your self-initiated payment for ${heroItem.property_address || 'your property'}.`
                                   : ((heroItem.amountPaid || 0) > 0
                                       ? `Settling balance for ${heroItem.property_address || 'your property'}.`

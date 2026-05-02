@@ -280,6 +280,7 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
         minAmount: data.minAmount,
         reference: data.reference,
         subaccountId: data.subaccountId,
+        isManual: data.isManual,
       },
     })
     return {
