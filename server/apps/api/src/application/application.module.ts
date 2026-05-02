@@ -83,6 +83,7 @@ import { GetCredibilityRequestDetailsUseCase } from './use-cases/external/get-cr
 import { FulfillCredibilityRequestUseCase } from './use-cases/external/fulfill-credibility-request.use-case'
 import { SingleInviteUseCase } from './use-cases/external/single-invite.use-case'
 import { GenerateKYCReportPdfUseCase } from './use-cases/user/generate-kyc-report-pdf.use-case'
+import { RequestDataDeletionUseCase } from './use-cases/user/request-data-deletion.use-case'
 import { CreatePlatformUseCase } from './use-cases/platform/create-platform.use-case'
 import { CreateExternalPaymentRequestUseCase } from './use-cases/external/create-payment-request.use-case'
 import { GetPublicPaymentDetailsUseCase } from './use-cases/external/get-public-payment.use-case'
@@ -301,6 +302,7 @@ const UseCases = [
   BulkInviteTenantsUseCase,
   BulkFullImportUseCase,
   CreateManualPaymentRequestUseCase,
+  RequestDataDeletionUseCase,
 
   RejectCredibilityRequestUseCase,
 ]
