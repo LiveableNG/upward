@@ -15,6 +15,7 @@ import {
   Loader2,
   Sparkles,
 } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useSignup } from '@/features/auth/hooks/useSignup'
 import { OTPInput } from '@/components/common/OTPInput'
@@ -37,6 +38,12 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [localError, setLocalError] = useState('')
+
+  useEffect(() => {
+    if (initialEmail) {
+      setEmail(initialEmail)
+    }
+  }, [initialEmail])
 
   const [effectiveContext, setEffectiveContext] = useState<'SIGNUP' | 'LOGIN' | 'INVITE' | 'WAITLIST'>('SIGNUP')
 
@@ -164,9 +171,19 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
         }
 
         if (effectiveContext === 'WAITLIST' && verification.inviteToken) {
-          router.push(`/waitlist/${verification.inviteToken}`)
+          const path = `/waitlist/${verification.inviteToken}`
+          if (Capacitor.isNativePlatform()) {
+            router.push(`/signup?mode=waitlist&uuid=${verification.inviteToken}`)
+          } else {
+            router.push(path)
+          }
         } else if (effectiveContext === 'INVITE' && verification.inviteToken) {
-          router.push(`/invite/${verification.inviteToken}`)
+          const path = `/invite/${verification.inviteToken}`
+          if (Capacitor.isNativePlatform()) {
+            router.push(`/signup?mode=invite&token=${verification.inviteToken}`)
+          } else {
+            router.push(path)
+          }
         } else if (isInvited) {
           setOtpError('Invite verification failed. Please try again.')
         } else {
@@ -383,7 +400,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
               <div className="modal-actions">
                 <button
                   className="btn btn--primary btn--full"
-                  onClick={() => (window.location.href = `/signup?mode=login&email=${encodeURIComponent(email)}`)}
+                  onClick={() => router.push(`/signup?mode=login&email=${encodeURIComponent(email)}`)}
                 >
                   Log in to my account
                 </button>

@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
   User,
   Mail,
@@ -19,12 +19,15 @@ import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useAuth } from '@/features/auth/AuthContext'
 import { setCookie } from '@/lib/cookie-utils'
 import { OnboardingFields } from '@/features/auth/components/OnboardingFields'
+import { setAccessToken } from '@/lib/auth-token'
 
 export default function InviteClient() {
   const params = useParams()
-  const token = params.uuid as string
+  const searchParams = useSearchParams()
+  const token = (params.uuid as string) || searchParams.get('token') || searchParams.get('invite') || ''
   const router = useRouter()
   const { success, error: toastError } = useToast()
+  const { login } = useAuth()
   const [loading, setLoading] = useState(true)
   const [inviteData, setInviteData] = useState<any>(null)
   const [step, setStep] = useState<'form'>('form')
@@ -92,7 +95,9 @@ export default function InviteClient() {
         success('Account activated! Welcome to Upward.')
         // The controller sets cookies, but we might need to trigger AuthContext
         if (res.user) {
-          window.location.href = '/dashboard'
+          if (res.accessToken) setAccessToken(res.accessToken)
+          login(res.user)
+          router.replace('/dashboard')
         }
       }
     } catch (err: any) {

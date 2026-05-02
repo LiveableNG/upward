@@ -104,7 +104,10 @@ export const OTPInput: React.FC<OTPInputProps> = ({
     <div className="otp-container">
       <div className="otp-header">
         <h2>Verify your identity</h2>
-        <p>We've sent a 6-digit code to <strong>{email}</strong></p>
+        <p>
+          We've sent a 6-digit code to <strong>{email}</strong>. 
+          Be sure to check your <strong>spam/junk</strong> folder if you don't see it.
+        </p>
         {onChangeEmail && (
           <button className="otp-change-email" onClick={onChangeEmail} disabled={isLoading}>
             Not your email? Change it

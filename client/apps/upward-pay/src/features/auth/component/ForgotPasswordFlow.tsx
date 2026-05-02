@@ -104,7 +104,8 @@ export default function ForgotPasswordFlow() {
             </div>
             <h1 className="auth-page__title">Check your email</h1>
             <p className="auth-page__subtitle">
-              We&apos;ve sent a 6-digit verification code to <strong>{email}</strong>
+              We&apos;ve sent a 6-digit verification code to <strong>{email}</strong>. 
+              Be sure to check your <strong>spam/junk</strong> folder if you don&apos;t see it.
             </p>
           </div>
 

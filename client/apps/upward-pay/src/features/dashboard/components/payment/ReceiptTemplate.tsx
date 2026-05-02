@@ -89,7 +89,7 @@ export default function ReceiptTemplate({
           <div className="receipt-actions__right">
             {onShare && (
               <button 
-                className="btn btn--secondary btn--sm" 
+                className={`btn ${onDownload ? 'btn--secondary' : 'btn--primary'} btn--sm`}
                 style={{ padding: '8px 12px' }}
                 onClick={() => onShare?.()}
               >
@@ -97,10 +97,12 @@ export default function ReceiptTemplate({
                 Share
               </button>
             )}
-            <button className="btn btn--primary btn--sm" onClick={() => onDownload?.()}>
-              <Download size={13} style={{ marginRight: 4 }} />
-              Download
-            </button>
+            {onDownload && (
+              <button className="btn btn--primary btn--sm" onClick={() => onDownload?.()}>
+                <Download size={13} style={{ marginRight: 4 }} />
+                Download
+              </button>
+            )}
           </div>
         </div>
 

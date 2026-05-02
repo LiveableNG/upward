@@ -9,8 +9,11 @@ import { Capacitor } from '@capacitor/core'
 import { BenefitsStep } from '@/features/auth/component/signup/BenefitsStep'
 import { LoginFormFlow } from '@/features/auth/component/signup/LoginFormFlow'
 import { SignupFormFlow } from '@/features/auth/component/signup/SignupFormFlow'
+import WaitlistClient from '@/app/waitlist/[uuid]/WaitlistClient'
+import InviteClient from '@/app/invite/[uuid]/InviteClient'
+import WelcomeClient from '@/app/welcome/[uuid]/WelcomeClient'
 
-type Mode = 'welcome' | 'signup' | 'login' | 'biometrics'
+type Mode = 'welcome' | 'signup' | 'login' | 'biometrics' | 'waitlist' | 'invite' | 'priority'
 
 function SignupPageContent() {
   const router = useRouter()
@@ -18,9 +21,17 @@ function SignupPageContent() {
   const { isLoggedIn, loading } = useAuth()
 
   const initialEmail = searchParams.get('email') || ''
-  const initialMode: Mode = (searchParams.get('mode') as Mode) || (initialEmail ? 'signup' : 'welcome')
-  const [mode, setMode] = useState<Mode>(initialMode)
+  const [mode, setMode] = useState<Mode>(
+    (searchParams.get('mode') as Mode) || (initialEmail ? 'signup' : 'welcome')
+  )
   const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null)
+
+  useEffect(() => {
+    const urlMode = searchParams.get('mode') as Mode
+    if (urlMode) {
+      setMode(urlMode)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (!loading && isLoggedIn && mode !== 'biometrics' && mode !== 'welcome') {
@@ -41,7 +52,13 @@ function SignupPageContent() {
   }
 
   if (mode === 'login') {
-    return <LoginFormFlow onBackToWelcome={() => setMode('welcome')} onRedirectToSignup={(loginEmail) => window.location.href = `/signup?mode=signup&email=${encodeURIComponent(loginEmail)}`} />
+    return (
+      <LoginFormFlow 
+        initialEmail={initialEmail}
+        onBackToWelcome={() => setMode('welcome')} 
+        onRedirectToSignup={(loginEmail) => router.push(`/signup?mode=signup&email=${encodeURIComponent(loginEmail)}`)} 
+      />
+    )
   }
 
   if (mode === 'biometrics' && credentials) {
@@ -54,6 +71,18 @@ function SignupPageContent() {
     )
   }
 
+  if (mode === 'waitlist') {
+    return <WaitlistClient />
+  }
+
+  if (mode === 'invite') {
+    return <InviteClient />
+  }
+
+  if (mode === 'priority') {
+    return <WelcomeClient />
+  }
+
   return (
     <SignupFormFlow 
       initialEmail={initialEmail}
@@ -63,7 +92,7 @@ function SignupPageContent() {
         if (Capacitor.isNativePlatform()) {
           setMode('biometrics')
         } else {
-          window.location.href = '/dashboard'
+          router.replace('/dashboard')
         }
       }}
     />

@@ -157,6 +157,49 @@ export default function ReceiptsPage() {
 
   async function shareFile(blob: Blob, filename: string) {
     if (!receipt) return
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem')
+        const { Share } = await import('@capacitor/share')
+
+        // Convert Blob to Base64 for Capacitor Filesystem
+        const reader = new FileReader()
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => {
+            const result = reader.result as string
+            if (result) {
+              resolve(result.split(',')[1]) // Extract pure base64
+            } else {
+              reject(new Error('Failed to convert blob to base64'))
+            }
+          }
+          reader.onerror = reject
+          reader.readAsDataURL(blob)
+        })
+
+        // Save to temporary cache for sharing
+        const fileName = `receipt-${receipt.receiptNumber.replace(/\//g, '-')}.pdf`
+        const writeResult = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Cache,
+        })
+
+        // Trigger native share sheet
+        await Share.share({
+          title: `Receipt ${receipt.receiptNumber}`,
+          text: `Your payment receipt from Upward for ${receipt.amount.toLocaleString()} ${receipt.currency}`,
+          url: writeResult.uri,
+        })
+        
+        return
+      } catch (err) {
+        console.error('Native sharing failed, falling back to web share:', err)
+      }
+    }
+
+    // Standard Web Share API / Download Fallback
     try {
       const file = new File([blob], filename, { type: 'application/pdf' })
       
@@ -196,16 +239,12 @@ export default function ReceiptsPage() {
   }
 
   function performFileDownload(url: string, filename: string) {
-    if (url.startsWith('data:')) {
-      const link = document.createElement('a')
-      link.href = url
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-    } else {
-      window.open(url, '_blank')
-    }
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   async function handleShare() {
@@ -254,7 +293,7 @@ export default function ReceiptsPage() {
     <ReceiptTemplate
       receipt={receipt}
       onClose={() => router.push('/dashboard/transactions')}
-      onDownload={handleDownload}
+      onDownload={Capacitor.isNativePlatform() ? undefined : handleDownload}
       onShare={handleShare}
     />
   )

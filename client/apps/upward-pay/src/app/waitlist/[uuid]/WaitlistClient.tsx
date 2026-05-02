@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
   Lock,
   ArrowRight,
@@ -16,12 +16,16 @@ import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { OnboardingFields } from '@/features/auth/components/OnboardingFields'
+import { useAuth } from '@/features/auth/AuthContext'
+import { setAccessToken } from '@/lib/auth-token'
 
 export default function WaitlistClient() {
   const params = useParams()
-  const uuid = params.uuid as string
+  const searchParams = useSearchParams()
+  const uuid = (params.uuid as string) || searchParams.get('uuid') || searchParams.get('claim') || ''
   const router = useRouter()
   const { success, error: toastError } = useToast()
+  const { login } = useAuth()
   const [loading, setLoading] = useState(true)
   const [waitlistData, setWaitlistData] = useState<any>(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -85,7 +89,9 @@ export default function WaitlistClient() {
       if (res.success) {
         success('Account activated! Welcome to Upward.')
         if (res.user) {
-          window.location.href = '/dashboard'
+          if (res.accessToken) setAccessToken(res.accessToken)
+          login(res.user)
+          router.replace('/dashboard')
         }
       }
     } catch (err: any) {

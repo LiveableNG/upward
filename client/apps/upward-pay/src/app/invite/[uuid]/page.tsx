@@ -1,9 +1,15 @@
+import { Suspense } from 'react'
 import InviteClient from './InviteClient'
+import FallbackSuspense from '@/components/FallbackSuspense'
 
 export function generateStaticParams() {
   return [{ uuid: 'placeholder' }]
 }
 
 export default function InvitePage() {
-  return <InviteClient />
+  return (
+    <Suspense fallback={<FallbackSuspense />}>
+      <InviteClient />
+    </Suspense>
+  )
 }

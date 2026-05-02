@@ -4,7 +4,9 @@ import { useEffect } from 'react'
 import { api } from '@/lib/api'
 import { Capacitor } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
+import { useRouter } from 'next/navigation'
 
+export const APP_NAVIGATE_EVENT = 'app:navigate'
 let cachedToken: string | null = null
 
 export class PushNotificationService {
@@ -63,8 +65,8 @@ export class PushNotificationService {
       await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
         const url = action.notification.data?.url
         if (url && typeof window !== 'undefined') {
-          // Use router from providers or window location
-          window.location.href = url
+          // Dispatch custom event for client-side navigation
+          window.dispatchEvent(new CustomEvent(APP_NAVIGATE_EVENT, { detail: { url } }))
         }
       })
 
@@ -94,8 +96,25 @@ export class PushNotificationService {
   }
 }
 
-// Keep the hook for automatic setup if needed, but refactor to use the service
 export function usePushNotifications(isLoggedIn: boolean) {
+  const router = useRouter()
+
+  useEffect(() => {
+    const handleNavigate = (e: any) => {
+      const url = e.detail?.url
+      if (url) {
+        if (url.startsWith('http') || url.startsWith('upward://')) {
+          window.location.href = url
+        } else {
+          router.push(url)
+        }
+      }
+    }
+
+    window.addEventListener(APP_NAVIGATE_EVENT, handleNavigate)
+    return () => window.removeEventListener(APP_NAVIGATE_EVENT, handleNavigate)
+  }, [router])
+
   useEffect(() => {
     const setup = async () => {
       if (!isLoggedIn || !Capacitor.isNativePlatform()) return

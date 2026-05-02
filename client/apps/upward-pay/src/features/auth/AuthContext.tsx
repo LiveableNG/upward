@@ -64,8 +64,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           launchUrl.url.includes('/invite/') ||
           launchUrl.url.includes('invite/') ||
           launchUrl.url.includes('/waitlist/') ||
-          launchUrl.url.includes('waitlist/')
-        ))
+          launchUrl.url.includes('waitlist/') ||
+          launchUrl.url.includes('/welcome/')
+        )) || (
+          pathname?.startsWith('/waitlist/') ||
+          pathname?.startsWith('/pay/') ||
+          pathname?.startsWith('/invite/') ||
+          pathname?.startsWith('/welcome/')
+        )
 
         if (!sessionActive && !isDeepLink) {
           console.log('[Auth] Fresh app launch detected (no active session). Requiring login.')
