@@ -2,12 +2,14 @@
 import { useState, Suspense } from 'react'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
+import { useToast } from '@/components/common/Toast'
 
 function DeleteUserContent() {
   const [email, setEmail] = useState('')
   const [confirmed, setConfirmed] = useState(false)
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+  const toast = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,10 +34,13 @@ function DeleteUserContent() {
         throw new Error(result.message || 'Failed to submit request')
       }
 
+      toast.success('Deletion request received. Please check your email to confirm.')
       setStatus('success')
     } catch (err: any) {
       console.error('Deletion request error:', err)
-      setErrorMessage(err.message || 'Something went wrong. Please try again.')
+      const msg = err.message || 'Something went wrong. Please try again.'
+      setErrorMessage(msg)
+      toast.error(msg)
       setStatus('error')
     }
   }

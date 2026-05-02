@@ -278,3 +278,20 @@ model upward_support_ticket {
   @@index([userId])
   @@index([status])
 }
+
+model upward_feedback {
+  id        Int          @id @default(autoincrement())
+  uuid      String       @unique @default(uuid())
+  userId    Int?
+  email     String?
+  name      String?
+  type      String       // BUG, SUGGESTION, DIFFICULTY, OTHER
+  message   String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  user      upward_user? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}

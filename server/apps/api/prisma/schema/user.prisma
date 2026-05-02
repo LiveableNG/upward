@@ -33,6 +33,7 @@ model upward_user {
   announcementStates   upward_user_announcement_state[]
   contracts            upward_user_contract[]
   properties           upward_user_property[]
+  feedback             upward_feedback[]
 
   @@index([email])
   @@index([createdAt])
