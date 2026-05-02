@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import { StructuredData } from '@/components/layout/structured-data'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import { ToastProvider } from '@/components/common/Toast'
 import './globals.css'
 
 export const viewport: Viewport = {
@@ -112,7 +113,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body suppressHydrationWarning>
         <ThemeProvider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </ThemeProvider>
 
         {GA_ID && (
@@ -131,9 +134,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Script>
           </>
         )}
-        <div id="toast">
-          <span id="toast-msg"></span>
-        </div>
       </body>
     </html>
   )

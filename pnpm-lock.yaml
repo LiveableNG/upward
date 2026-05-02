@@ -272,6 +272,9 @@ importers:
 
   client/apps/web:
     dependencies:
+      '@hookform/resolvers':
+        specifier: ^5.2.2
+        version: 5.2.2(react-hook-form@7.72.1(react@19.2.4))
       '@tailwindcss/postcss':
         specifier: ^4.2.1
         version: 4.2.1
@@ -299,6 +302,9 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.2.4(react@19.2.4)
+      react-hook-form:
+        specifier: ^7.72.1
+        version: 7.72.1(react@19.2.4)
       sharp:
         specifier: ^0.33.5
         version: 0.33.5

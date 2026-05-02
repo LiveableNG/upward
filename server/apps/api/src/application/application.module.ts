@@ -119,6 +119,7 @@ import { GetPendingCredibilityRequestsUseCase } from './pm/use-cases/get-pending
 import { BulkCreateTenantRecordsUseCase } from './pm/use-cases/bulk-create-tenant-records.use-case'
 import { BulkInviteTenantsUseCase } from './pm/use-cases/tenants/bulk-invite-tenants.use-case'
 import { BulkFullImportUseCase } from './pm/use-cases/bulk-full-import.use-case'
+import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
 
 import { RejectCredibilityRequestUseCase } from './use-cases/external/reject-credibility-request.use-case'
 import { AuthModule } from './auth/auth.module'
@@ -303,6 +304,7 @@ const UseCases = [
   BulkFullImportUseCase,
   CreateManualPaymentRequestUseCase,
   RequestDataDeletionUseCase,
+  SubmitFeedbackUseCase,
 
   RejectCredibilityRequestUseCase,
 ]

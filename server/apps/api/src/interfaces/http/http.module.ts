@@ -24,6 +24,7 @@ import { ExternalPaymentController } from './external/external-payment.controlle
 import { PublicCredibilityController } from './public/credibility.controller'
 import { WellKnownController } from './public/well-known.controller'
 import { PublicUserController } from './public/user-data.controller'
+import { FeedbackController } from './public/feedback.controller'
 import { WebhookAdminController } from './admin/webhook-admin.controller'
 import { PmAuthController } from './pm/pm-auth.controller'
 import { PmProfileController } from './pm/pm-profile.controller'
@@ -67,6 +68,7 @@ import { InternalPaymentsController } from './internal/internal-payments.control
     InternalScoreController,
     InternalPaymentsController,
     PublicUserController,
+    FeedbackController,
 
   ],
 })
