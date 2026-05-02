@@ -127,7 +127,10 @@ export class PrismaSavedLandlordRepository implements ISavedLandlordRepository {
 
 @Injectable()
 export class PrismaTransactionRepository implements ITransactionRepository {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private encryption: EncryptionService,
+  ) {}
 
   async create(data: Omit<Transaction, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<Transaction> {
     const prisma = tx || this.prisma
@@ -147,77 +150,104 @@ export class PrismaTransactionRepository implements ITransactionRepository {
         lineItems: (data as any).lineItems || undefined
       },
       include: {
-        paymentRequest: true
+        paymentRequest: {
+          include: {
+            subaccount: true,
+            userProperty: {
+              include: {
+                company: true,
+                location: true,
+              }
+            }
+          }
+        }
       }
     })
-    return {
-      ...res,
-      narration: res.narration ?? undefined,
-      landlordId: res.landlordId ?? undefined,
-      paymentType: res.paymentType ?? undefined,
-      propertyAddress: res.propertyAddress ?? undefined,
-      paymentRequest: res.paymentRequest as any
-    } as unknown as Transaction
+    return this.mapTransaction(res)
   }
 
   async findByUserId(userId: number): Promise<Transaction[]> {
     const res = await this.prisma.upward_transaction.findMany({
       where: { userId },
-      include: { paymentRequest: true },
+      include: {
+        paymentRequest: {
+          include: {
+            subaccount: true,
+            userProperty: {
+              include: {
+                company: true,
+                location: true,
+              }
+            }
+          }
+        }
+      },
       orderBy: { createdAt: 'desc' },
     })
-    return res.map((r) => ({
-      ...r,
-      narration: r.narration ?? undefined,
-      landlordId: r.landlordId ?? undefined,
-      paymentType: r.paymentType ?? undefined,
-      propertyAddress: r.propertyAddress ?? undefined,
-    })) as unknown as Transaction[]
+    return res.map((r) => this.mapTransaction(r))
   }
 
   async findById(id: number): Promise<Transaction | null> {
     const res = await this.prisma.upward_transaction.findUnique({
       where: { id },
-      include: { paymentRequest: true }
+      include: {
+        paymentRequest: {
+          include: {
+            subaccount: true,
+            userProperty: {
+              include: {
+                company: true,
+                location: true,
+              }
+            }
+          }
+        }
+      }
     })
     if (!res) return null
-    return {
-      ...res,
-      narration: res.narration ?? undefined,
-      landlordId: res.landlordId ?? undefined,
-      paymentType: res.paymentType ?? undefined,
-      propertyAddress: res.propertyAddress ?? undefined,
-    } as unknown as Transaction
+    return this.mapTransaction(res)
   }
 
   async findByUuid(uuid: string): Promise<Transaction | null> {
     const res = await this.prisma.upward_transaction.findUnique({
       where: { uuid },
-      include: { paymentRequest: true }
+      include: {
+        paymentRequest: {
+          include: {
+            subaccount: true,
+            userProperty: {
+              include: {
+                company: true,
+                location: true,
+              }
+            }
+          }
+        }
+      }
     })
     if (!res) return null
-    return {
-      ...res,
-      narration: res.narration ?? undefined,
-      landlordId: res.landlordId ?? undefined,
-      paymentType: res.paymentType ?? undefined,
-      propertyAddress: res.propertyAddress ?? undefined,
-    } as unknown as Transaction
+    return this.mapTransaction(res)
   }
 
   async findByReference(reference: string): Promise<Transaction | null> {
     const res = await this.prisma.upward_transaction.findUnique({
       where: { reference },
-      include: { paymentRequest: true }
+      include: {
+        paymentRequest: {
+          include: {
+            subaccount: true,
+            userProperty: {
+              include: {
+                company: true,
+                location: true,
+              }
+            }
+          }
+        }
+      }
     })
     if (!res) return null
-    return {
-      ...res,
-      narration: res.narration ?? undefined,
-      landlordId: res.landlordId ?? undefined,
-      paymentType: res.paymentType ?? undefined,
-      propertyAddress: res.propertyAddress ?? undefined,
-    } as unknown as Transaction
+    return this.mapTransaction(res)
   }
 
   async updateStatus(id: number, status: string, tx?: Prisma.TransactionClient): Promise<Transaction> {
@@ -242,14 +272,55 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       data: {
         status: data.status,
         narration: data.narration,
+        lineItems: (data as any).lineItems || undefined
       },
+      include: {
+        paymentRequest: {
+          include: {
+            subaccount: true,
+            userProperty: {
+              include: {
+                company: true,
+                location: true,
+              }
+            }
+          }
+        }
+      }
     })
+    return this.mapTransaction(res)
+  }
+  
+  private mapTransaction(res: any): Transaction {
+    const pr = res.paymentRequest
+    let mappedPr = null
+    
+    if (pr) {
+      mappedPr = {
+        ...pr,
+        description: pr.description ? (pr.description.includes(':') ? this.encryption.decrypt(pr.description) : pr.description) : pr.description,
+        userPropertyUuid: pr.userProperty?.uuid,
+        companyName: pr.userProperty?.company?.name 
+          ? (pr.userProperty.company.name.includes(':') ? this.encryption.decrypt(pr.userProperty.company.name) : pr.userProperty.company.name)
+          : pr.subaccount?.businessName,
+        propertyLocation: pr.userProperty?.location
+          ? [
+              pr.userProperty.location.address,
+              pr.userProperty.location.area,
+              pr.userProperty.location.state,
+              pr.userProperty.location.country,
+            ].filter(Boolean).join(', ')
+          : undefined,
+      }
+    }
+
     return {
       ...res,
       narration: res.narration ?? undefined,
       landlordId: res.landlordId ?? undefined,
       paymentType: res.paymentType ?? undefined,
-      propertyAddress: res.propertyAddress ?? undefined,
+      propertyAddress: res.propertyAddress ?? (mappedPr?.propertyLocation || undefined),
+      paymentRequest: mappedPr,
     } as unknown as Transaction
   }
 }
