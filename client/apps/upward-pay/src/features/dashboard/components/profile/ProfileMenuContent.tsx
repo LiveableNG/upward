@@ -237,7 +237,7 @@ function ProfileMenuContentInner() {
   }
 
   const handleCopyLink = async () => {
-    const baseUrl = Capacitor.isNativePlatform() ? 'https://upward-pay.vercel.app' : window.location.origin
+    const baseUrl = Capacitor.isNativePlatform() ? 'https://upward.goodtenants.io' : window.location.origin
     const url = `${baseUrl}/profile/${profile?.uuid}`
     
     try {

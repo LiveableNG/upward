@@ -49,7 +49,7 @@ export class RequestCredibilityRecordsUseCase {
     if (requestEmail) {
       const payUrl = this.configService.get<string>('PAY_APP_URL') || 
                      this.configService.get<string>('FRONTEND_URL')?.split(',')[0] || 
-                     'https://upward-pay.vercel.app';
+                     'https://upward.goodtenants.io';
       const requestLink = `${payUrl}/fill-record/${request.uuid}`;
       
       const property = await this.prisma.upward_user_property.findUnique({

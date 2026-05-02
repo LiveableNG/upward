@@ -58,8 +58,8 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
     const identifier = p?.uuid
     
     const baseUrl = Capacitor.isNativePlatform() 
-      ? 'https://upward-pay.vercel.app' 
-      : (typeof window !== 'undefined' ? window.location.origin : 'https://upward-pay.vercel.app')
+      ? 'https://upward.goodtenants.io' 
+      : (typeof window !== 'undefined' ? window.location.origin : 'https://upward.goodtenants.io')
 
     const url = `${baseUrl}/profile/${identifier}`
     
