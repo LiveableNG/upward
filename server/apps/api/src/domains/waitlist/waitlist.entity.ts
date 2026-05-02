@@ -22,6 +22,7 @@ export interface WaitlistEntryProps {
   abVariant?: string | null
   unsubscribed: boolean
   unsubscribedAt?: Date | null
+  uuid: string
 }
 
 export class WaitlistEntry {
@@ -54,6 +55,7 @@ export class WaitlistEntry {
         unsubscribed: false,
         createdAt: new Date(),
         updatedAt: new Date(),
+        uuid: randomUUID(),
       },
       '', // ID will be assigned by DB
     )
@@ -68,7 +70,7 @@ export class WaitlistEntry {
     return this.id
   }
   get uuid() {
-    return this.id // Use internal ID as UUID for convenience if needed, but schema uses ID
+    return this.props.uuid
   }
   get email() {
     return this.props.email

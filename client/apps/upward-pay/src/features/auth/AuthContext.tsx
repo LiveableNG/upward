@@ -62,7 +62,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           launchUrl.url.includes('/pay/') ||
           launchUrl.url.includes('pay/') ||
           launchUrl.url.includes('/invite/') ||
-          launchUrl.url.includes('invite/')
+          launchUrl.url.includes('invite/') ||
+          launchUrl.url.includes('/waitlist/') ||
+          launchUrl.url.includes('waitlist/')
         ))
 
         if (!sessionActive && !isDeepLink) {
@@ -138,6 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         pathname?.startsWith('/complete-profile') ||
         pathname?.startsWith('/profile/') ||
         pathname?.startsWith('/fill-record/') ||
+        pathname?.startsWith('/waitlist/') ||
         ['/login', '/signup', '/forgot-password', '/reset-password'].includes(pathname || '')
 
       if (!isPublicPath) {

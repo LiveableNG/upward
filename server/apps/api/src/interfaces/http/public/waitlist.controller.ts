@@ -93,10 +93,20 @@ export class WaitlistController {
     @Body() data: any,
     @Res({ passthrough: false }) reply: any,
   ) {
+    const waitlistEntry = await this.userAuthService.getWaitlistClaimData(uuid)
+    if (!waitlistEntry || waitlistEntry.email !== data.email) {
+      return reply.status(HttpStatus.FORBIDDEN).send({
+        success: false,
+        message: 'Invalid waitlist claim details'
+      })
+    }
+
     const response = await this.userAuthService.signup({
       ...data,
       isFromWaitlist: true
     })
+
+    await this.userAuthService.deleteWaitlistEntry(uuid)
 
     const isProd = process.env['NODE_ENV'] === 'production' || !!process.env['VERCEL']
     
