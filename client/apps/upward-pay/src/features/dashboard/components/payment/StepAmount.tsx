@@ -329,7 +329,7 @@ export function StepAmount({
                       fontWeight: 600,
                       opacity: idx === 0 ? 0.7 : 1 
                     }}
-                    readOnly={item.label === 'Upward Processing Fee'}
+                    readOnly={idx === 0 || item.label === 'Upward Processing Fee'}
                   />
                   <div
                     style={{
