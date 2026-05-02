@@ -1,13 +1,11 @@
 [
   {
-    "relation": [
-      "delegate_permission/common.handle_all_urls"
-    ],
+    "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
       "package_name": "com.goodtenants.upward",
       "sha256_cert_fingerprints": [
-        "FF:84:A7:2B:E4:97:49:68:76:7B:47:4E:B7:DA:1A:13:DF:5D:32:C3:53:A4:6A:1D:D2:AD:42:7B:2A:E9:88:06"
+        "48:F3:99:02:1B:A5:83:F1:CE:66:66:D9:33:DE:F9:9F:39:9A:87:3B:02:2B:A1:D1:54:22:0D:95:6A:81:D6:A7"
       ]
     }
   }
