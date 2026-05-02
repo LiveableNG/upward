@@ -34,7 +34,11 @@ export class ExternalPaymentController {
   }
 
   @Post(':uuid/confirm')
-  async confirmPayment(@Param('uuid') uuid: string, @Body('reference') reference: string) {
-    return this.confirmExternalPaymentUseCase.execute(uuid, reference)
+  async confirmPayment(
+    @Param('uuid') uuid: string, 
+    @Body('reference') reference: string,
+    @Body('lineItemPayments') lineItemPayments?: any[]
+  ) {
+    return this.confirmExternalPaymentUseCase.execute(uuid, reference, lineItemPayments)
   }
 }

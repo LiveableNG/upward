@@ -113,6 +113,7 @@ export class CreateManualPaymentRequestUseCase {
       userPropertyId,
       isManual: true,
       reference: `MNL_${Date.now()}`,
+      companyName: data.landlordDetails?.name || (data.landlordUuid ? (await this.landlordRepo.findByUuid(data.landlordUuid))?.name : undefined),
     })
 
     return {
@@ -299,6 +300,8 @@ export class RecordTransactionUseCase {
         userId: user.id!,
         amount: paymentAmount,
         status: isVerified ? 'SUCCESS' : 'FAILED',
+        narration: data.narration || pr?.description || 'Property Payment',
+        landlordId: data.landlordId || pr?.subaccount?.uuid || undefined,
       } as any, txClient)
       this.logger.log(`Transaction recorded successfully with ID: ${result.id}`)
 
@@ -359,49 +362,111 @@ export class RecordTransactionUseCase {
             this.logger.error(`Failed to update PM payment request for core request ${pr.id}:`, err);
           }
 
-          // 3. Settle Line Items
-          if (data.lineItems && Array.isArray(data.lineItems)) {
-            const existingItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!)
-            if (existingItems.length === 0) {
-              await this.lineItemRepo.bulkCreate(data.lineItems.map(li => ({
+          const itemsFromData = (data as any).lineItems;
+          const itemsFromPayments = data.lineItemPayments;
+
+          if (pr || (itemsFromData && Array.isArray(itemsFromData))) {
+            let currentItems = pr ? await this.lineItemRepo.findByPaymentRequestId(pr.id!) : [];
+
+            if (pr && currentItems.length === 0 && itemsFromData && Array.isArray(itemsFromData)) {
+              await this.lineItemRepo.bulkCreate(itemsFromData.map((li: any) => ({
                 paymentRequestId: pr.id!,
                 name: li.label || li.name,
                 totalAmount: li.amount,
                 amountPaid: 0,
                 status: 'PENDING'
-              })), txClient)
+              })), txClient);
+              currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!);
             }
 
-            const currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!)
             rentPortion = 0;
+            let remainingPayment = paymentAmount;
+            const allocatedItems: any[] = [];
 
-            let remainingPayment = paymentAmount
-            const allocatedItems: any[] = []
+            // Case A: Specific line item allocations provided by client
+            if (pr && itemsFromPayments && Array.isArray(itemsFromPayments) && itemsFromPayments.length > 0) {
+              for (const lp of itemsFromPayments) {
+                const item = currentItems.find(i => i.id === lp.id || i.name === lp.name);
+                if (item) {
+                  const paymentToItem = Math.min(remainingPayment, lp.amountPaid);
+                  if (paymentToItem > 0) {
+                    const newItemPaid = item.amountPaid + paymentToItem;
+                    await this.lineItemRepo.update(item.id!, {
+                      amountPaid: newItemPaid,
+                      status: newItemPaid >= item.totalAmount ? 'PAID' : 'PARTIAL'
+                    }, txClient);
 
-            for (const item of currentItems) {
-              if (remainingPayment <= 0) break;
-              const need = item.totalAmount - item.amountPaid
-              const paymentToItem = Math.min(remainingPayment, need)
+                    allocatedItems.push({
+                      name: item.name,
+                      label: item.name,
+                      amount: paymentToItem,
+                      category: 'Package'
+                    });
 
-              if (paymentToItem > 0) {
-                const newItemPaid = item.amountPaid + paymentToItem
-                await this.lineItemRepo.update(item.id!, {
-                  amountPaid: newItemPaid,
-                  status: newItemPaid >= item.totalAmount ? 'PAID' : 'PARTIAL'
-                }, txClient)
+                    if (item.name.toLowerCase().includes('rent')) {
+                      rentPortion += paymentToItem;
+                    }
+                    remainingPayment -= paymentToItem;
+                  }
+                }
+              }
+            }
 
+            // Case B: Fallback to greedy distribution (if no specific payments OR if payment remains)
+            if (remainingPayment > 0 && currentItems.length > 0) {
+              // Re-fetch to get updated amountPaid if Case A ran
+              const itemsToAllocate = (itemsFromPayments && itemsFromPayments.length > 0)
+                ? await this.lineItemRepo.findByPaymentRequestId(pr.id!)
+                : currentItems;
+
+              for (const item of itemsToAllocate) {
+                if (remainingPayment <= 0) break;
+                const need = item.totalAmount - item.amountPaid;
+                if (need <= 0) continue;
+
+                const paymentToItem = Math.min(remainingPayment, need);
+                if (paymentToItem > 0) {
+                  const newItemPaid = item.amountPaid + paymentToItem;
+                  await this.lineItemRepo.update(item.id!, {
+                    amountPaid: newItemPaid,
+                    status: newItemPaid >= item.totalAmount ? 'PAID' : 'PARTIAL'
+                  }, txClient);
+
+                  const existingAlloc = allocatedItems.find(a => a.name === item.name);
+                  if (existingAlloc) {
+                    existingAlloc.amount += paymentToItem;
+                  } else {
+                    allocatedItems.push({
+                      name: item.name,
+                      label: item.name,
+                      amount: paymentToItem,
+                      category: 'Package'
+                    });
+                  }
+
+                  if (item.name.toLowerCase().includes('rent')) {
+                    rentPortion += paymentToItem;
+                  }
+                  remainingPayment -= paymentToItem;
+                }
+              }
+            }
+
+            // Case C: Manual payment with line items but no Payment Request
+            if (!pr && itemsFromData && Array.isArray(itemsFromData) && itemsFromData.length > 0) {
+              for (const li of itemsFromData) {
+                if (remainingPayment <= 0) break;
+                const paymentToItem = Math.min(remainingPayment, li.amount);
                 allocatedItems.push({
-                  name: item.name,
-                  label: item.name,
+                  name: li.label || li.name,
+                  label: li.label || li.name,
                   amount: paymentToItem,
                   category: 'Package'
-                })
-
-                if (item.name.toLowerCase().includes('rent')) {
-                  rentPortion += paymentToItem
+                });
+                if ((li.label || li.name || '').toLowerCase().includes('rent')) {
+                  rentPortion += paymentToItem;
                 }
-
-                remainingPayment -= paymentToItem
+                remainingPayment -= paymentToItem;
               }
             }
 

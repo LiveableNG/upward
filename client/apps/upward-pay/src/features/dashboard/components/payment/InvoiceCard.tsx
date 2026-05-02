@@ -2,7 +2,8 @@ import React from 'react'
 import { formatCurrency } from '@/lib/utils'
 
 interface InvoiceCardProps {
-  invoiceNumber: string
+  title?: string
+  invoiceNumber?: string
   notes?: string
   lineItems: Array<{ label: string; amount: number }>
   totalAmount: number
@@ -10,6 +11,7 @@ interface InvoiceCardProps {
 }
 
 export default function InvoiceCard({
+  title = 'Payment Summary',
   invoiceNumber,
   notes,
   lineItems,
@@ -34,7 +36,7 @@ export default function InvoiceCard({
         }}
       >
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
-          Invoice #{invoiceNumber}
+          {invoiceNumber ? `Invoice #${invoiceNumber}` : title}
         </div>
         {isPriority && (
           <span

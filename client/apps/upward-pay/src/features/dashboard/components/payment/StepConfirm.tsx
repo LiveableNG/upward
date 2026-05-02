@@ -20,6 +20,7 @@ export function StepConfirm({
   requestedAmount = 0,
   totalPaidAlready = 0,
   propertyBalance = null,
+  processing = false,
 }: {
   landlord: Landlord
   amount: number
@@ -40,12 +41,11 @@ export function StepConfirm({
     currency: string
     dueDate?: string
   } | null
+  processing?: boolean
 }) {
   const remainingRequested = Math.max(0, requestedAmount - totalPaidAlready)
   const excess = requestedAmount > 0 ? Math.max(0, amount - remainingRequested) : 0
   const appliedToBill = requestedAmount > 0 ? Math.min(amount, remainingRequested) : amount
-
-
 
   return (
     <div style={{ padding: '0 20px 40px' }}>
@@ -131,7 +131,7 @@ export function StepConfirm({
       {lineItems && lineItems.length > 0 && (
         <div style={{ marginBottom: 20 }}>
           <InvoiceCard
-            invoiceNumber={landlord.accountNumber.slice(-6)}
+            title="Payment Summary"
             notes={narration}
             lineItems={lineItems}
             totalAmount={amount}
@@ -149,11 +149,21 @@ export function StepConfirm({
       </div>
 
       <button
+        disabled={processing}
         onClick={onConfirm}
         className="btn btn--primary btn--full"
-        style={{ height: 56, fontSize: 16 }}
+        style={{ 
+          height: 56, 
+          fontSize: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          opacity: processing ? 0.7 : 1
+        }}
       >
-        Confirm & Pay
+        {processing && <div className="animate-spin" style={{ width: 18, height: 18, border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%' }} />}
+        {processing ? 'Processing...' : 'Confirm & Pay'}
       </button>
     </div>
   )

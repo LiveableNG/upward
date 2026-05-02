@@ -155,7 +155,7 @@ export function StepAmount({
       if (isNaN(numVal)) numVal = 0
       
       // Cap rent amount if property balance exists
-      if (index === 0 && propertyBalance && propertyBalance.remainingBalance > 0) {
+      if (index === 0 && propertyBalance) {
         if (numVal > propertyBalance.remainingBalance) {
           numVal = propertyBalance.remainingBalance
         }

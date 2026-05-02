@@ -65,7 +65,7 @@ export default function ReceiptsPage() {
           paidAt: tx.createdAt,
           generatedAt: new Date().toISOString(),
           tenantName: profile ? `${profile.firstName} ${profile.lastName}` : 'Tenant',
-          companyName: (landlord?.accountName && landlord.accountName !== 'account_name') ? landlord.accountName : (landlord?.name || tx.paymentRequest?.companyName || tx.paymentRequest?.managerName || tx.narration),
+          companyName: (landlord?.accountName && landlord.accountName !== 'account_name') ? landlord.accountName : (landlord?.name || tx.paymentRequest?.companyName || tx.paymentRequest?.managerName || tx.paymentRequest?.subaccount?.businessName || tx.narration),
           companyLogo: '',
           paymentType: tx.paymentType || 'Rent Payment',
           propertyAddress: propertyAddress,
