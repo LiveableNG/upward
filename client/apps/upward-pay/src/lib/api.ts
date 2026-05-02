@@ -91,4 +91,6 @@ export const api = {
     }),
   getCredibilityPdf: () =>
     import('./api-client').then((m) => m.requestBlob('/user/credibility/pdf', { method: 'GET' })),
+  getBlob: (url: string, options?: RequestInit) =>
+    import('./api-client').then((m) => m.requestBlob(url, options)),
 }

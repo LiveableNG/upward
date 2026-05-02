@@ -105,9 +105,74 @@ export default function ReceiptsPage() {
       const res = await api.getReceiptPdf(getReceiptPayload(receipt))
       if (res?.url) {
         performFileDownload(res.url, `receipt-${receipt.receiptNumber}.pdf`)
+      } else {
+        await generateClientSidePdf('download')
       }
     } catch (e) {
       console.error('Download failed:', e)
+      await generateClientSidePdf('download')
+    }
+  }
+
+  async function generateClientSidePdf(action: 'download' | 'share') {
+    if (!receipt) return
+    const element = document.getElementById('receipt-printable')
+    if (!element) return
+
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const { jsPDF } = await import('jspdf')
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      })
+      
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      })
+
+      const imgProps = pdf.getImageProperties(imgData)
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+      const filename = `receipt-${receipt.receiptNumber}.pdf`
+
+      if (action === 'download') {
+        pdf.save(filename)
+      } else {
+        const pdfBlob = pdf.output('blob')
+        await shareFile(pdfBlob, filename)
+      }
+    } catch (err) {
+      console.error('Client-side PDF generation failed:', err)
+    }
+  }
+
+  async function shareFile(blob: Blob, filename: string) {
+    if (!receipt) return
+    try {
+      const file = new File([blob], filename, { type: 'application/pdf' })
+      
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Receipt ${receipt.receiptNumber}`,
+          text: `Here is my payment receipt for ${receipt.amount.toLocaleString()} ${receipt.currency}`,
+        })
+      } else {
+        const url = URL.createObjectURL(blob)
+        performFileDownload(url, filename)
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+      }
+    } catch (err) {
+      console.error('Sharing failed:', err)
     }
   }
 
@@ -149,7 +214,6 @@ export default function ReceiptsPage() {
       const res = await api.getReceiptPdf(getReceiptPayload(receipt))
 
       if (res?.url) {
-        // Convert data URL or fetch URL to Blob
         let blob: Blob
         if (res.url.startsWith('data:')) {
           const arr = res.url.split(',')
@@ -162,28 +226,19 @@ export default function ReceiptsPage() {
           }
           blob = new Blob([u8arr], { type: mime })
         } else {
-          const response = await fetch(res.url)
-          blob = await response.blob()
+          // Use our authenticated api.getBlob instead of raw fetch
+          blob = await api.getBlob(res.url)
         }
 
         const filename = `receipt-${receipt.receiptNumber}.pdf`
-        const file = new File([blob], filename, { type: 'application/pdf' })
-
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: `Receipt ${receipt.receiptNumber}`,
-            text: `Here is my payment receipt for ${receipt.amount.toLocaleString()} ${receipt.currency}`,
-          })
-        } else {
-          // Fallback if sharing files is not supported: attempt direct download
-          performFileDownload(res.url, filename)
-        }
+        await shareFile(blob, filename)
+      } else {
+        await generateClientSidePdf('share')
       }
     } catch (e) {
       console.error('Share failed:', e)
-      // Final attempt: try to just open the URL if we have one
-      // But we don't have the URL easily here unless we store it or retry
+      // Fallback to client-side generation
+      await generateClientSidePdf('share')
     }
   }
 
