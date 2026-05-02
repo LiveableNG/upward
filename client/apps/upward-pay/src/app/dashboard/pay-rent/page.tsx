@@ -116,11 +116,14 @@ export default function PayRentPage() {
 
   const amountToDebit = payAmount
 
+  const [processing, setProcessing] = useState(false)
+
   return (
     <div className="pay-rent-layout dashboard--nav-offset">
       <div className="pay-rent-container">
         <style>{`
           @keyframes spin { to { transform: rotate(360deg); } }
+          .animate-spin { animation: spin 1s linear infinite; }
           @keyframes successPop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
           @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -307,7 +310,23 @@ export default function PayRentPage() {
               requestedAmount={requestedAmount}
               totalPaidAlready={totalPaidAlready}
               onConfirm={async () => {
+                setProcessing(true)
                 try {
+                  if (pendingLandlordToSave) {
+                    try {
+                      await api.saveLandlord({
+                        name: pendingLandlordToSave.accountName || pendingLandlordToSave.name,
+                        accountName: pendingLandlordToSave.accountName,
+                        accountNumber: pendingLandlordToSave.accountNumber,
+                        bankName: pendingLandlordToSave.bankName,
+                        bankCode: pendingLandlordToSave.bankCode,
+                        subaccountId: pendingLandlordToSave.subaccountId,
+                      })
+                    } catch (e) {
+                      console.error('Failed to save landlord record:', e)
+                    }
+                  }
+
                   const res = await api.createManualPaymentRequest({
                     amount: payAmount,
                     landlordUuid: selectedLandlord.uuid,
@@ -330,8 +349,10 @@ export default function PayRentPage() {
                   }
                 } catch (e) {
                   console.error('Failed to create manual payment request:', e)
+                  setProcessing(false)
                 }
               }}
+              processing={processing}
               onEditAmount={() => setPayAmount(0)}
               onBack={handleBack}
               lineItems={lineItems}

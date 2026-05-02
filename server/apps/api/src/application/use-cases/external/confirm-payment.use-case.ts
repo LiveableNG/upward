@@ -13,7 +13,7 @@ export class ConfirmExternalPaymentUseCase {
     private readonly recordTransactionUseCase: RecordTransactionUseCase,
   ) {}
 
-  async execute(paymentUuid: string, reference: string): Promise<any> {
+  async execute(paymentUuid: string, reference: string, lineItemPayments?: any[]): Promise<any> {
     const paymentRequest = await this.paymentRequestRepository.findByUuid(paymentUuid)
     if (!paymentRequest) {
       throw new NotFoundException(`Payment request with UUID ${paymentUuid} not found`)
@@ -38,6 +38,8 @@ export class ConfirmExternalPaymentUseCase {
       type: 'RENT',
       paymentRequestId: paymentRequest.id!,
       userPropertyUuid: paymentRequest.userPropertyUuid,
+      lineItemPayments,
+      landlordId: paymentRequest.subaccount?.uuid,
     })
 
     if (!transaction) {
