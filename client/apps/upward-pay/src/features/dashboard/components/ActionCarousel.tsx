@@ -19,7 +19,9 @@ const buildPaymentMessage = (p: PendingPayment) => {
   const dateStr = p.due_date || p.dueDate
   const isOverdue = dateStr ? new Date(dateStr) < new Date() : false
 
-  if (p.isManual) {
+  const isSelfInitiated = p.isManual || (!p.company_name && !p.manager_name) || p.company_name === 'Manual Payment'
+
+  if (isSelfInitiated) {
     if (isOverdue) {
       return {
         title: 'Outstanding Payment',
