@@ -379,9 +379,10 @@ export class RecordTransactionUseCase {
               currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!);
             }
 
-            rentPortion = 0;
+            // rentPortion = 0; // Removed: We initialize it to paymentAmount and only override if we have specific items
             let remainingPayment = paymentAmount;
             const allocatedItems: any[] = [];
+            let foundRentItem = false;
 
             // Case A: Specific line item allocations provided by client
             if (pr && itemsFromPayments && Array.isArray(itemsFromPayments) && itemsFromPayments.length > 0) {
@@ -404,6 +405,10 @@ export class RecordTransactionUseCase {
                     });
 
                     if (item.name.toLowerCase().includes('rent')) {
+                      if (!foundRentItem) {
+                        rentPortion = 0; // First time we find a rent item, reset the default
+                        foundRentItem = true;
+                      }
                       rentPortion += paymentToItem;
                     }
                     remainingPayment -= paymentToItem;
@@ -445,6 +450,10 @@ export class RecordTransactionUseCase {
                   }
 
                   if (item.name.toLowerCase().includes('rent')) {
+                    if (!foundRentItem) {
+                      rentPortion = 0; // First time we find a rent item, reset the default
+                      foundRentItem = true;
+                    }
                     rentPortion += paymentToItem;
                   }
                   remainingPayment -= paymentToItem;
@@ -464,10 +473,25 @@ export class RecordTransactionUseCase {
                   category: 'Package'
                 });
                 if ((li.label || li.name || '').toLowerCase().includes('rent')) {
+                  if (!foundRentItem) {
+                    rentPortion = 0; 
+                    foundRentItem = true;
+                  }
                   rentPortion += paymentToItem;
                 }
                 remainingPayment -= paymentToItem;
               }
+            }
+
+            if (allocatedItems.length === 0 && data.type === 'RENT') {
+              const defaultName = pr?.description || data.narration || 'Rent Payment';
+              allocatedItems.push({
+                name: defaultName,
+                label: defaultName,
+                amount: paymentAmount,
+                category: 'Rent'
+              });
+              rentPortion = paymentAmount;
             }
 
             // Update the transaction record with captured line items
