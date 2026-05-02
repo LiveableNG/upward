@@ -31,6 +31,7 @@ export class PrismaWaitlistRepository implements WaitlistRepository {
       abVariant: model.abVariant,
       unsubscribed: model.unsubscribed,
       unsubscribedAt: model.unsubscribedAt,
+      uuid: model.uuid,
     }
 
     return WaitlistEntry.reconstitute(model.id, props)
@@ -98,6 +99,7 @@ export class PrismaWaitlistRepository implements WaitlistRepository {
       abVariant: props.abVariant,
       unsubscribed: props.unsubscribed,
       unsubscribedAt: props.unsubscribedAt,
+      uuid: props.uuid,
     }
 
     if (id === '') {

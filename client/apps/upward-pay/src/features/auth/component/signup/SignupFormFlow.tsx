@@ -48,7 +48,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   const [step, setStep] = useState<'form' | 'otp'>('form')
   const [isRequestingOTP, setIsRequestingOTP] = useState(false)
   const [otpError, setOtpError] = useState<string | null>(null)
-  const [uuid, setUuid] = useState<string | null>(null)
 
   const emailCheckTimeout = useRef<NodeJS.Timeout | null>(null)
 
@@ -70,7 +69,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           setEmailExists(res.exists)
           setIsInvited(res.isInvited ?? false)
           setIsWaitlist(res.isWaitlist ?? false)
-          setUuid(res.uuid || null)
         } catch (err) {
           console.error('Email check failed', err)
         } finally {
@@ -132,6 +130,8 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     }
   }
 
+
+
   const handleWaitlistProceed = async () => {
     setIsRequestingOTP(true)
     try {
@@ -167,8 +167,8 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           router.push(`/waitlist/${verification.inviteToken}`)
         } else if (effectiveContext === 'INVITE' && verification.inviteToken) {
           router.push(`/invite/${verification.inviteToken}`)
-        } else if (isInvited && uuid) {
-          router.push(`/invite/${uuid}?email=${encodeURIComponent(email)}&name=${encodeURIComponent(`${firstName} ${lastName}`)}`)
+        } else if (isInvited) {
+          setOtpError('Invite verification failed. Please try again.')
         } else {
           signup({ email, password, firstName, lastName })
         }

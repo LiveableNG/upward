@@ -627,7 +627,6 @@ export class UserAuthService extends BaseAuthService {
         return { 
           exists: true, 
           isWaitlist: true, 
-          uuid: waitlistEntry.uuid 
         }
       }
       return { exists: false }
@@ -640,7 +639,6 @@ export class UserAuthService extends BaseAuthService {
       exists: true,
       isInvited: isShadow,
       hasPassword: !!user.passwordHash && user.passwordHash !== '' && !isShadow,
-      uuid: user.uuid,
     }
 
   }
@@ -769,6 +767,12 @@ export class UserAuthService extends BaseAuthService {
                    existingUser?.passwordHash !== PASS_PLACEHOLDERS.SHADOW && 
                    existingUser?.passwordHash.startsWith('$2')
     }
+  }
+
+  async deleteWaitlistEntry(uuid: string) {
+    await this.prisma.upward_waitlist.delete({
+      where: { uuid }
+    })
   }
 
   public async syncTenantStatuses(email: string) {
