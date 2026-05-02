@@ -178,19 +178,31 @@ export default function ContractsPage() {
                           const blob = await import('@/lib/api-client').then(m => 
                             m.requestBlob(`/user/contracts/${contract.uuid}/download`, { method: 'GET' })
                           )
-                          const file = new File([blob], contract.fileName, { type: contract.fileType || 'application/pdf' })
+                          const filename = contract.fileName || 'document.pdf'
+                          const file = new File([blob], filename, { type: contract.fileType || 'application/pdf' })
 
-                          if (require('@capacitor/core').Capacitor.isNativePlatform() && navigator.canShare && navigator.canShare({ files: [file] })) {
-                            await navigator.share({
-                              files: [file],
-                              title: 'Tenancy Document',
-                              text: `Here is the document: ${contract.fileName}`,
-                            })
+                          if (require('@capacitor/core').Capacitor.isNativePlatform()) {
+                            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                              await navigator.share({
+                                files: [file],
+                                title: 'Tenancy Document',
+                                text: `Here is the document: ${filename}`,
+                              })
+                            } else {
+                              const url = window.URL.createObjectURL(blob)
+                              const link = document.createElement('a')
+                              link.href = url
+                              link.download = filename
+                              document.body.appendChild(link)
+                              link.click()
+                              document.body.removeChild(link)
+                              window.URL.revokeObjectURL(url)
+                            }
                           } else {
                             const url = window.URL.createObjectURL(blob)
                             const link = document.createElement('a')
                             link.href = url
-                            link.download = contract.fileName
+                            link.download = filename
                             document.body.appendChild(link)
                             link.click()
                             document.body.removeChild(link)
