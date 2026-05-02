@@ -40,6 +40,7 @@ export default function PayRentPage() {
   const [pendingLandlordToSave, setPendingLandlordToSave] = useState<any>(null)
   const [showRenewalModal, setShowRenewalModal] = useState(false)
   const [renewalPropertyUuid, setRenewalPropertyUuid] = useState<string | null>(null)
+  const [processing, setProcessing] = useState(false)
 
   useEffect(() => {
     if (selectedPropertyUuid) {
@@ -115,8 +116,6 @@ export default function PayRentPage() {
 
 
   const amountToDebit = payAmount
-
-  const [processing, setProcessing] = useState(false)
 
   return (
     <div className="pay-rent-layout dashboard--nav-offset">
