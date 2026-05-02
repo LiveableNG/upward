@@ -312,7 +312,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
         if (res.user && res.accessToken) {
           setCookie('pay_access_token', res.accessToken)
           login(res.user)
-          window.location.href = '/dashboard'
+          router.replace('/dashboard')
         } else {
           router.push('/login')
         }

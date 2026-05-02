@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
   User,
   Mail,
@@ -17,12 +17,16 @@ import {
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
 import { UpwardLogo } from '@/components/PoweredByUpward'
+import { useAuth } from '@/features/auth/AuthContext'
+import { setAccessToken } from '@/lib/auth-token'
 
 export default function WelcomeClient() {
   const params = useParams()
-  const uuid = params.uuid as string
+  const searchParams = useSearchParams()
+  const uuid = (params.uuid as string) || searchParams.get('uuid') || searchParams.get('claim') || ''
   const router = useRouter()
   const { success, error: toastError } = useToast()
+  const { login } = useAuth()
   const [loading, setLoading] = useState(true)
   const [waitlistData, setWaitlistData] = useState<any>(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -83,10 +87,16 @@ export default function WelcomeClient() {
         email: formData.email
       })
 
-      if (res.accessToken) {
+      if (res.success || res.accessToken) {
         success('Welcome to Upward! Your account is ready.')
-        // Redirect to dashboard (AuthContext will pick up cookies)
-        window.location.href = '/dashboard'
+        if (res.user) {
+          if (res.accessToken) setAccessToken(res.accessToken)
+          login(res.user)
+          router.replace('/dashboard')
+        } else {
+          // Fallback if res.user is missing but registration succeeded
+          router.replace('/login')
+        }
       }
     } catch (err: any) {
       toastError(err.message || 'Failed to create account')

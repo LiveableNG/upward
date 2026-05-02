@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ChevronLeft,
   Mail,
@@ -15,6 +15,7 @@ import {
   Sparkles,
   ShieldCheck,
 } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useLogin } from '@/features/auth/hooks/useLogin'
 import { BiometricsService } from '@/features/auth/services/biometricsService'
@@ -27,12 +28,13 @@ import { setCookie } from '@/lib/cookie-utils'
 interface LoginFormFlowProps {
   onBackToWelcome: () => void
   onRedirectToSignup?: (email: string) => void
+  initialEmail?: string
 }
 
-export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup }: LoginFormFlowProps) {
+export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmail = '' }: LoginFormFlowProps) {
   const router = useRouter()
-  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
-  const redirect = searchParams?.get('redirect') || '/dashboard'
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get('redirect') || '/dashboard'
   const { 
     login: doLogin, 
     otpLogin, 
@@ -40,7 +42,13 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup }: LoginForm
     error: loginError 
   } = useLogin(redirect)
 
-  const [loginEmail, setLoginEmail] = useState('')
+  const [loginEmail, setLoginEmail] = useState(initialEmail)
+
+  useEffect(() => {
+    if (initialEmail) {
+      setLoginEmail(initialEmail)
+    }
+  }, [initialEmail])
   const [loginPassword, setLoginPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [biometricAvailable, setBiometricAvailable] = useState(false)
@@ -155,9 +163,19 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup }: LoginForm
         }
 
         if (effectiveContext === 'WAITLIST' && verification.inviteToken) {
-          router.push(`/waitlist/${verification.inviteToken}`)
+          const path = `/waitlist/${verification.inviteToken}`
+          if (Capacitor.isNativePlatform()) {
+            router.push(`/signup?mode=waitlist&uuid=${verification.inviteToken}`)
+          } else {
+            router.push(path)
+          }
         } else if (effectiveContext === 'INVITE' && verification.inviteToken) {
-          router.push(`/invite/${verification.inviteToken}`)
+          const path = `/invite/${verification.inviteToken}`
+          if (Capacitor.isNativePlatform()) {
+            router.push(`/signup?mode=invite&token=${verification.inviteToken}`)
+          } else {
+            router.push(path)
+          }
         }
       } catch (err: any) {
         setOtpError(err.message || 'Verification failed')
@@ -234,7 +252,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup }: LoginForm
             {!isCheckingEmail && loginEmail && loginEmail.includes('@') && !emailExists && (
               <div className="field-hint field-hint--error">
                 <AlertCircle size={12} /> Account not found.{' '}
-                <button type="button" className="field-hint__link" onClick={() => (window.location.href = `/signup?email=${encodeURIComponent(loginEmail)}`)}>
+                <button type="button" className="field-hint__link" onClick={() => router.push(`/signup?email=${encodeURIComponent(loginEmail)}`)}>
                   Sign up instead?
                 </button>
               </div>

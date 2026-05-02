@@ -9,6 +9,9 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { Capacitor } from '@capacitor/core'
 import { App } from '@capacitor/app'
 import PayClient from '@/app/pay/[token]/PayClient'
+import WaitlistClient from '@/app/waitlist/[uuid]/WaitlistClient'
+import InviteClient from '@/app/invite/[uuid]/InviteClient'
+import WelcomeClient from '@/app/welcome/[uuid]/WelcomeClient'
 
 function LandingPageContent() {
   const searchParams = useSearchParams()
@@ -21,6 +24,9 @@ function LandingPageContent() {
   const [invitationData, setInvitationData] = useState<InvitationData | null>(null)
   const [pathToken, setPathToken] = useState<string | null>(null)
   const [isPayRoute, setIsPayRoute] = useState(false)
+  const [isWaitlistRoute, setIsWaitlistRoute] = useState(false)
+  const [isInviteRoute, setIsInviteRoute] = useState(false)
+  const [isWelcomeRoute, setIsWelcomeRoute] = useState(false)
   const [fetchingInvitation, setFetchingInvitation] = useState(!!token)
 
   // On mount, check if we're on a subpath (for Capacitor fallback)
@@ -40,7 +46,24 @@ function LandingPageContent() {
         if (t) {
           console.log('[Landing] Detected invite path on mobile:', t)
           setPathToken(t)
-          setFetchingInvitation(true)
+          setIsInviteRoute(true)
+          setFetchingInvitation(false)
+        }
+      } else if (pathname.includes('/waitlist/')) {
+        const t = pathname.split('/waitlist/')[1]?.split('/')[0]
+        if (t) {
+          console.log('[Landing] Detected waitlist path on mobile:', t)
+          setPathToken(t)
+          setIsWaitlistRoute(true)
+          setFetchingInvitation(false)
+        }
+      } else if (pathname.includes('/welcome/')) {
+        const t = pathname.split('/welcome/')[1]?.split('/')[0]
+        if (t) {
+          console.log('[Landing] Detected welcome path on mobile:', t)
+          setPathToken(t)
+          setIsWelcomeRoute(true)
+          setFetchingInvitation(false)
         }
       }
     }
@@ -78,10 +101,16 @@ function LandingPageContent() {
             launchUrl.url.includes('/pay/') ||
             launchUrl.url.includes('pay/') ||
             launchUrl.url.includes('/invite/') ||
-            launchUrl.url.includes('invite/')
+            launchUrl.url.includes('invite/') ||
+            launchUrl.url.includes('/waitlist/') ||
+            launchUrl.url.includes('waitlist/') ||
+            launchUrl.url.includes('/welcome/') ||
+            launchUrl.url.includes('welcome/')
           )) || (typeof window !== 'undefined' && (
             window.location.pathname.includes('/pay/') ||
-            window.location.pathname.includes('/invite/')
+            window.location.pathname.includes('/invite/') ||
+            window.location.pathname.includes('/waitlist/') ||
+            window.location.pathname.includes('/welcome/')
           ))
 
           if (isDeepLink) {
@@ -118,6 +147,18 @@ function LandingPageContent() {
 
   if (isPayRoute && finalToken) {
     return <PayClient overrideToken={finalToken} />
+  }
+
+  if (isWaitlistRoute && finalToken) {
+    return <WaitlistClient />
+  }
+
+  if (isInviteRoute && finalToken) {
+    return <InviteClient />
+  }
+
+  if (isWelcomeRoute && finalToken) {
+    return <WelcomeClient />
   }
 }
 
