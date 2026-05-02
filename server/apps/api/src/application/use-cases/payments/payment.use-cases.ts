@@ -331,7 +331,7 @@ export class RecordTransactionUseCase {
 
         // 2. Settle Payment Request
         if (pr) {
-          const settlementPortion = paymentAmount - upwardFeeAmount;
+          const settlementPortion = paymentAmount;
           const newAmountPaid = (pr.amountPaid || 0) + settlementPortion
           const newStatus = newAmountPaid >= pr.amount ? 'PAID' : 'PARTIAL'
 
@@ -619,7 +619,7 @@ export class RecordTransactionUseCase {
           const prop = await this.propertyRepo.findById(userPropertyIdToSettle)
           if (prop) {
             const totalRentPaidForProp = (prop.amountPaid || 0) + rentPortion
-            const totalOwedForProp = prop.rentAmount || (pr ? pr.amount : 0)
+            const totalOwedForProp = prop.rentAmount || (pr ? (pr.amount - (upwardFeeAmount || 0)) : 0)
             const newRemaining = Math.max(0, totalOwedForProp - totalRentPaidForProp)
 
             const updateData: any = {
