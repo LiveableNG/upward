@@ -48,6 +48,10 @@ export default function PaystackEmbeddedCheckout({
         ? `Breakdown: ${lineItems.map((item) => `${item.name} (N${item.amount.toLocaleString()})`).join(', ')}`
         : `${paymentType || 'Rent payment'} for ${propertyAddress || companyName}`
 
+    const upwardFee = lineItems.find(i => (i as any).name === 'Upward Processing Fee' || (i as any).label === 'Upward Processing Fee');
+    const totalAmountKobo = Math.round((amount || 0) * 100);
+    const transactionCharge = upwardFee ? Math.min(2000 * 100, totalAmountKobo) : undefined;
+
     return {
       reference: reference || generateId(),
       email: email,
@@ -56,6 +60,7 @@ export default function PaystackEmbeddedCheckout({
       currency: currency || 'NGN',
       channels: ['bank_transfer'],
       subaccount: subaccount,
+      transaction_charge: transactionCharge,
       metadata: {
         custom_fields: [
           {

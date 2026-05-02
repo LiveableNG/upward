@@ -189,7 +189,12 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
       console.log('[PayClient] Load response:', res)
       if (res.success) {
         setPaymentData(res.data)
-        const items = (res.data.payment.lineItemRecords || []) as LineItemRecord[]
+        let items = (res.data.payment.lineItemRecords || []) as LineItemRecord[]
+        // Always ensure 'Upward Processing Fee' is present in the UI for processing
+        const hasFee = items.find(i => i.name === 'Upward Processing Fee')
+        if (!hasFee) {
+          items = [{ id: -2, name: 'Upward Processing Fee', amount: 2000, totalAmount: 2000, amountPaid: 0 } as any, ...items]
+        }
         setLineItems(items)
         const due = res.data.payment.amount - (res.data.payment.amountPaid || 0)
 
@@ -199,7 +204,10 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
           setStep('invoice')
         }
 
-        setAmountInput(due.toString())
+        const baseDue = res.data.payment.amount - (res.data.payment.amountPaid || 0)
+        const hasFeeInPr = (res.data.payment.lineItemRecords || []).some((i: any) => i.name === 'Upward Processing Fee')
+        const finalDue = hasFeeInPr ? baseDue : baseDue + 2000
+        setAmountInput(finalDue.toString())
         setFormData(prev => ({
           ...prev,
           firstName: res.data.user.firstName || '',
@@ -224,7 +232,11 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
   const totalOwed = useMemo(() => {
     if (!paymentData?.payment) return 0
-    return Math.max(0, paymentData.payment.amount - (paymentData.payment.amountPaid || 0))
+    const baseOwed = Math.max(0, paymentData.payment.amount - (paymentData.payment.amountPaid || 0))
+    
+    // If the fee was added on the fly (not in the original PR), add it to the total
+    const hasFeeInPr = (paymentData.payment.lineItemRecords || []).some((i: any) => i.name === 'Upward Processing Fee')
+    return hasFeeInPr ? baseOwed : baseOwed + 2000
   }, [paymentData])
 
   const canPayPartial = !!paymentData?.payment?.allowPartial
