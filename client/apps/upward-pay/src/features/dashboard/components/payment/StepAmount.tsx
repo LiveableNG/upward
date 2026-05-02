@@ -118,18 +118,28 @@ export function StepAmount({
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [showOverpaymentDialog, setShowOverpaymentDialog] = useState(false)
   
-  const [lineItems, setLineItems] = useState<LineItem[]>(initialLineItems && initialLineItems.length > 0 ? initialLineItems : [
-    { 
-      label: 'Rent', 
-      amount: propertyBalance 
-        ? (propertyBalance.remainingBalance > 0 ? propertyBalance.remainingBalance : 0)
-        : (requestedAmount > 0 
-           ? remainingBalance 
-           : (landlord.lastAmount > 0 ? landlord.lastAmount : 0))
-    },
-  ])
+  const [lineItems, setLineItems] = useState<LineItem[]>(() => {
+    const items = initialLineItems && initialLineItems.length > 0 ? [...initialLineItems] : [
+      { 
+        label: 'Rent', 
+        amount: propertyBalance 
+          ? (propertyBalance.remainingBalance > 0 ? propertyBalance.remainingBalance : 0)
+          : (requestedAmount > 0 
+             ? remainingBalance 
+             : (landlord.lastAmount > 0 ? landlord.lastAmount : 0))
+      },
+    ]
 
-  // Sync the 'total' amount with line items
+    const feeItem = items.find(i => i.label === 'Upward Processing Fee')
+    if (!feeItem) {
+      items.unshift({ label: 'Upward Processing Fee', amount: 2000 })
+    } else {
+      feeItem.amount = 2000
+    }
+
+    return items
+  })
+
   useEffect(() => {
     const total = lineItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
     setAmount(String(total))
@@ -140,7 +150,7 @@ export function StepAmount({
   }
 
   const removeLineItem = (index: number) => {
-    if (index === 0) return // Cannot remove Rent
+    if (lineItems[index]?.label === 'Upward Processing Fee') return
     setLineItems(lineItems.filter((_, i) => i !== index))
   }
 
@@ -148,14 +158,16 @@ export function StepAmount({
     const newItems = [...lineItems]
     
     if (field === 'label') {
-      if (index === 0) return // Label for first item is fixed to 'Rent'
+      if (index === 0) return
+      if (newItems[index].label === 'Upward Processing Fee') return
       newItems[index].label = String(val)
     } else {
+      if (newItems[index].label === 'Upward Processing Fee') return
       let numVal = Number(val)
       if (isNaN(numVal)) numVal = 0
       
       // Cap rent amount if property balance exists
-      if (index === 0 && propertyBalance) {
+      if ((newItems[index].label === 'Rent' || index === 0) && propertyBalance) {
         if (numVal > propertyBalance.remainingBalance) {
           numVal = propertyBalance.remainingBalance
         }
@@ -317,7 +329,7 @@ export function StepAmount({
                       fontWeight: 600,
                       opacity: idx === 0 ? 0.7 : 1 
                     }}
-                    readOnly={idx === 0}
+                    readOnly={item.label === 'Upward Processing Fee'}
                   />
                   <div
                     style={{
@@ -351,11 +363,11 @@ export function StepAmount({
                         flex: 'none',
                         opacity: idx === 0 ? 0.7 : 1,
                       }}
-                      readOnly={idx === 0}
+                      readOnly={item.label === 'Upward Processing Fee'}
                     />
                 </div>
               </div>
-              {idx > 0 && (
+              {item.label !== 'Upward Processing Fee' && (
                 <button
                   onClick={() => removeLineItem(idx)}
                   style={{

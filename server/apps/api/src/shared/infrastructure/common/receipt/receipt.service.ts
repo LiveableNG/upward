@@ -116,11 +116,11 @@ export class ReceiptService {
       const PILL_H = 24
       const PILL_X = (W - PILL_W) / 2
       const PILL_Y = 162
-      doc.roundedRect(PILL_X, PILL_Y, PILL_W, PILL_H, 99).fill('rgba(255,255,255,0.25)')
+      doc.roundedRect(PILL_X, PILL_Y, PILL_W, PILL_H, 99).fill(white)
       doc
         .font('Helvetica-Bold')
         .fontSize(9.5)
-        .fillColor(white)
+        .fillColor(clay)
         .text(statusText, PILL_X, PILL_Y + 7.5, { width: PILL_W, align: 'center' })
 
       const dateStr =

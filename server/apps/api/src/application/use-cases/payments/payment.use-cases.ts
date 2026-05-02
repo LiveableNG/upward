@@ -47,6 +47,8 @@ export class CreateManualPaymentRequestUseCase {
     private readonly paymentRequestRepo: IPaymentRequestRepository,
     @Inject(PROPERTY_REPOSITORY)
     private readonly propertyRepo: PropertyRepository,
+    @Inject(PAYMENT_LINE_ITEM_REPOSITORY)
+    private readonly lineItemRepo: IPaymentLineItemRepository,
   ) {}
 
   async execute(data: {
@@ -115,6 +117,16 @@ export class CreateManualPaymentRequestUseCase {
       reference: `MNL_${Date.now()}`,
       companyName: data.landlordDetails?.name || (data.landlordUuid ? (await this.landlordRepo.findByUuid(data.landlordUuid))?.name : undefined),
     })
+
+    if (data.metadata?.lineItems && Array.isArray(data.metadata.lineItems)) {
+      await this.lineItemRepo.bulkCreate(data.metadata.lineItems.map((li: any) => ({
+        paymentRequestId: paymentRequest.id!,
+        name: li.label || li.name,
+        totalAmount: li.amount,
+        amountPaid: 0,
+        status: 'PENDING'
+      })))
+    }
 
     return {
       uuid: paymentRequest.uuid,
@@ -260,22 +272,31 @@ export class RecordTransactionUseCase {
         pr = await this.paymentRequestRepo.findById(data.paymentRequestId)
         if (pr) {
           remaining = Math.max(0, pr.amount - (pr.amountPaid || 0))
-          excess = Math.max(0, data.amount - remaining)
           if (pr.isManual) {
             (data as any).isManual = true
           }
         }
       }
 
-      let paymentAmount = pr ? Math.min(data.amount, remaining) : data.amount
+      let upwardFeeAmount = 0;
+      if (data.lineItemPayments && Array.isArray(data.lineItemPayments)) {
+        const fee = data.lineItemPayments.find(lp => lp.name === 'Upward Processing Fee');
+        if (fee) upwardFeeAmount = Number(fee.amountPaid || 0);
+      }
+
+      let paymentAmount = pr ? Math.min(data.amount - upwardFeeAmount, remaining) + upwardFeeAmount : data.amount;
+      
+      if (pr) {
+        excess = Math.max(0, data.amount - upwardFeeAmount - remaining);
+      }
+
       let userPropertyIdToSettle: number | null = pr?.userPropertyId || null;
       let propertyForCycle: any = null;
 
       if (userPropertyIdToSettle) {
         propertyForCycle = await this.propertyRepo.findById(userPropertyIdToSettle);
       }
-
-      // If PR doesn't have a linked property, try to find it via userPropertyUuid or fallback
+      
       if (!userPropertyIdToSettle && isVerified && data.type === 'RENT') {
         if (data.userPropertyUuid) {
           propertyForCycle = await this.propertyRepo.findByUuid(data.userPropertyUuid);
@@ -310,7 +331,8 @@ export class RecordTransactionUseCase {
 
         // 2. Settle Payment Request
         if (pr) {
-          const newAmountPaid = (pr.amountPaid || 0) + paymentAmount
+          const settlementPortion = paymentAmount - upwardFeeAmount;
+          const newAmountPaid = (pr.amountPaid || 0) + settlementPortion
           const newStatus = newAmountPaid >= pr.amount ? 'PAID' : 'PARTIAL'
 
           await this.paymentRequestRepo.update(pr.id!, {
@@ -388,9 +410,10 @@ export class RecordTransactionUseCase {
             if (pr && itemsFromPayments && Array.isArray(itemsFromPayments) && itemsFromPayments.length > 0) {
               for (const lp of itemsFromPayments) {
                 const item = currentItems.find(i => i.id === lp.id || i.name === lp.name);
-                if (item) {
-                  const paymentToItem = Math.min(remainingPayment, lp.amountPaid);
-                  if (paymentToItem > 0) {
+                const paymentToItem = Math.min(remainingPayment, lp.amountPaid);
+                
+                if (paymentToItem > 0) {
+                  if (item) {
                     const newItemPaid = item.amountPaid + paymentToItem;
                     await this.lineItemRepo.update(item.id!, {
                       amountPaid: newItemPaid,
@@ -406,13 +429,29 @@ export class RecordTransactionUseCase {
 
                     if (item.name.toLowerCase().includes('rent')) {
                       if (!foundRentItem) {
-                        rentPortion = 0; // First time we find a rent item, reset the default
+                        rentPortion = 0;
                         foundRentItem = true;
                       }
                       rentPortion += paymentToItem;
                     }
-                    remainingPayment -= paymentToItem;
+                  } else if (lp.name) {
+                    // Fallback: If item not in DB but client provided a name
+                    allocatedItems.push({
+                      name: lp.name,
+                      label: lp.name,
+                      amount: paymentToItem,
+                      category: 'Package'
+                    });
+
+                    if (lp.name.toLowerCase().includes('rent')) {
+                      if (!foundRentItem) {
+                        rentPortion = 0;
+                        foundRentItem = true;
+                      }
+                      rentPortion += paymentToItem;
+                    }
                   }
+                  remainingPayment -= paymentToItem;
                 }
               }
             }
@@ -485,13 +524,37 @@ export class RecordTransactionUseCase {
 
             if (allocatedItems.length === 0 && data.type === 'RENT') {
               const defaultName = pr?.description || data.narration || 'Rent Payment';
-              allocatedItems.push({
-                name: defaultName,
-                label: defaultName,
-                amount: paymentAmount,
-                category: 'Rent'
-              });
-              rentPortion = paymentAmount;
+              
+              let propRent = 0;
+              if (data.userPropertyUuid) {
+                const p = await this.propertyRepo.findByUuid(data.userPropertyUuid);
+                if (p) propRent = p.rentAmount;
+              }
+
+              if (propRent > 0 && paymentAmount > propRent) {
+
+                allocatedItems.push({
+                  name: 'Rent Payment',
+                  label: 'Rent Payment',
+                  amount: propRent,
+                  category: 'Rent'
+                });
+                allocatedItems.push({
+                  name: 'Service Charge / Other',
+                  label: 'Service Charge / Other',
+                  amount: paymentAmount - propRent,
+                  category: 'Package'
+                });
+                rentPortion = propRent;
+              } else {
+                allocatedItems.push({
+                  name: defaultName,
+                  label: defaultName,
+                  amount: paymentAmount,
+                  category: 'Rent'
+                });
+                rentPortion = paymentAmount;
+              }
             }
 
             // Update the transaction record with captured line items
@@ -564,7 +627,7 @@ export class RecordTransactionUseCase {
               amountRemaining: newRemaining
             }
 
-            if (newRemaining === 0 && totalRentPaidForProp >= totalOwedForProp && totalOwedForProp > 0) {
+            if (rentPortion > 0 && newRemaining === 0 && totalRentPaidForProp >= totalOwedForProp && totalOwedForProp > 0) {
               const overpayment = totalRentPaidForProp - totalOwedForProp;
 
               if (prop.rentEndDate) {
