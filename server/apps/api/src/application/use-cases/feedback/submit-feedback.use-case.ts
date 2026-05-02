@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { FEEDBACK_REPOSITORY, IFeedbackRepository } from '@domains/feedback/feedback.repository'
+import { FEEDBACK_REPOSITORY, IFeedbackRepository } from '../../../domains/feedback/feedback.repository'
 import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 
 export class SubmitFeedbackDto {
