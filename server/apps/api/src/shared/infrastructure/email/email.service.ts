@@ -731,6 +731,53 @@ export class EmailService {
       return false;
     }
   }
+  async sendDataDeletionRequestConfirmation(email: string) {
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward Privacy <hello@${domain}>`
+
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: #f9fafb; padding: 40px; border-radius: 16px;">
+        <div style="margin-bottom:32px;">
+          <span style="color:#d97757;font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Upward</span>
+          <div style="color:#6B7280;font-size:12px;margin-top:4px;">by GoodTenants</div>
+        </div>
+        <h2 style="color: #111827; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">Data Deletion Request</h2>
+        <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Hello,</p>
+        <p style="font-size: 16px; color: #4b5563;">We have received a request to delete all data associated with this email address from our systems.</p>
+        
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 24px; border-radius: 12px; margin: 32px 0;">
+          <p style="font-size: 14px; color: #4b5563; margin: 0; line-height: 1.5;">
+            <strong>Important:</strong> This process is irreversible. Once we proceed, your Rent Passport, payment history, and all account details will be permanently removed.
+          </p>
+        </div>
+
+        <p style="font-size: 16px; color: #4b5563;">
+          To ensure the security of your data, we require you to confirm this request by replying to this email or clicking the button below (if available). 
+          If you did not initiate this request, please ignore this email and your data will remain safe.
+        </p>
+
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-top: 32px;">
+          Best regards,<br>
+          The Upward Privacy Team
+        </p>
+      </div>
+    `
+
+    try {
+      await this.mg.messages.create(domain, {
+        from,
+        to: [email],
+        subject: 'Confirm your data deletion request',
+        html,
+      })
+      this.logger.log(`Data deletion request confirmation sent to ${email}`)
+      return { success: true }
+    } catch (error) {
+      this.logger.error(`Failed to send data deletion confirmation to ${email}`, error)
+      this.bugsnag.notify(error, { email, type: 'DATA_DELETION_REQUEST' })
+      throw error
+    }
+  }
 }
 
  
