@@ -21,7 +21,6 @@ export default function PayRentPage() {
   const { refreshUser } = useAuth()
   const [loading, setLoading] = useState(true)
   const [step, setStep] = useState<PayRentStep>('select')
-  const [savedLandlords, setSavedLandlords] = useState<Landlord[]>([])
   const [selectedLandlord, setSelectedLandlord] = useState<Landlord | null>(null)
   const [payAmount, setPayAmount] = useState(0)
   const [narration, setNarration] = useState('')
@@ -37,7 +36,6 @@ export default function PayRentPage() {
   const [userProperties, setUserProperties] = useState<any[]>([])
   const [selectedPropertyUuid, setSelectedPropertyUuid] = useState<string | null>(null)
   const [propertyBalance, setPropertyBalance] = useState<any>(null)
-  const [pendingLandlordToSave, setPendingLandlordToSave] = useState<any>(null)
   const [showRenewalModal, setShowRenewalModal] = useState(false)
   const [renewalPropertyUuid, setRenewalPropertyUuid] = useState<string | null>(null)
   const [processing, setProcessing] = useState(false)
@@ -58,9 +56,8 @@ export default function PayRentPage() {
   useEffect(() => {
     // Fetch user, saved landlords and pending payments
     setLoading(true)
-    Promise.all([api.getSavedLandlords(), api.getProfile(), api.getPendingPayments()])
-      .then(([landlords, profile, pending]) => {
-        setSavedLandlords(landlords)
+    Promise.all([api.getProfile(), api.getPendingPayments()])
+      .then(([profile, pending]) => {
         if (profile?.email) setUserEmail(profile.email)
         
         const props = profile?.properties || []
@@ -119,17 +116,25 @@ export default function PayRentPage() {
   }
 
   function handleBack() {
-    if (step === 'property-select') setStep('select')
-    else if (step === 'new') setStep('property-select')
+    if (step === 'property-select') {
+      setSelectedLandlord(null)
+      setStep('select')
+    } else if (step === 'new') {
+      setStep('property-select')
+    }
     else if (step === 'confirm') {
       if (payAmount > 0) {
         setPayAmount(0)
       } else if ((selectedLandlord as any)?.isNewLocal) {
         setStep('new')
       } else {
-        setStep('property-select')
+        setSelectedLandlord(null)
+        setStep('select')
       }
-    } else router.push('/dashboard')
+    } else {
+      setSelectedLandlord(null)
+      router.push('/dashboard')
+    }
   }
 
 
@@ -215,7 +220,6 @@ export default function PayRentPage() {
 
       {step === 'select' && (
         <StepSelect
-          saved={savedLandlords.filter(s => !pmLandlords.some(p => p.accountNumber === s.accountNumber))}
           pm={pmLandlords}
           pending={pendingPayments}
           onSelectPending={handleSelectPending}
@@ -293,9 +297,8 @@ export default function PayRentPage() {
 
       {step === 'new' && (
         <StepNewLandlord
+          isVerifiedUser={!!selectedPropertyUuid}
           onContinue={async (data) => {
-            setPendingLandlordToSave(data.save ? data : null)
-            
             let finalLandlord = data as Landlord
             if (data.accountNumber && data.bankCode) {
               try {
@@ -356,21 +359,6 @@ export default function PayRentPage() {
               onConfirm={async () => {
                 setProcessing(true)
                 try {
-                  if (pendingLandlordToSave) {
-                    try {
-                      await api.saveLandlord({
-                        name: pendingLandlordToSave.accountName || pendingLandlordToSave.name,
-                        accountName: pendingLandlordToSave.accountName,
-                        accountNumber: pendingLandlordToSave.accountNumber,
-                        bankName: pendingLandlordToSave.bankName,
-                        bankCode: pendingLandlordToSave.bankCode,
-                        subaccountId: pendingLandlordToSave.subaccountId,
-                      })
-                    } catch (e) {
-                      console.error('Failed to save landlord record:', e)
-                    }
-                  }
-
                   const res = await api.createManualPaymentRequest({
                     amount: payAmount,
                     landlordUuid: selectedLandlord.uuid,

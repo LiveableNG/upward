@@ -161,10 +161,10 @@ export function StepAmount({
     
     if (field === 'label') {
       if (index === 0) return
-      if (newItems[index].label === 'Upward Processing Fee') return
+      if (newItems[index].label === 'Upward Processing Fee' || newItems[index].label === 'Rent') return
       newItems[index].label = String(val)
     } else {
-      if (newItems[index].label === 'Upward Processing Fee') return
+      if (newItems[index].label === 'Upward Processing Fee' || newItems[index].label === 'Rent') return
       let numVal = Number(val)
       if (isNaN(numVal)) numVal = 0
       
@@ -331,7 +331,7 @@ export function StepAmount({
                       fontWeight: 600,
                       opacity: idx === 0 ? 0.7 : 1 
                     }}
-                    readOnly={idx === 0 || item.label === 'Upward Processing Fee'}
+                    readOnly={idx === 0 || item.label === 'Upward Processing Fee' || item.label === 'Rent'}
                   />
                   <div
                     style={{
@@ -365,7 +365,7 @@ export function StepAmount({
                         flex: 'none',
                         opacity: idx === 0 ? 0.7 : 1,
                       }}
-                      readOnly={item.label === 'Upward Processing Fee'}
+                      readOnly={item.label === 'Upward Processing Fee' || item.label === 'Rent'}
                     />
                 </div>
               </div>

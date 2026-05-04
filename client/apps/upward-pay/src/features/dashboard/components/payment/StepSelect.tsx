@@ -4,26 +4,23 @@ import { type Landlord } from './types'
 import { LandlordCard } from './LandlordCard'
 
 export function StepSelect({
-  saved,
   pm,
   pending = [],
   onSelect,
   onNew,
   onSelectPending,
 }: {
-  saved: Landlord[]
   pm: Landlord[]
   pending?: any[]
   onSelect: (l: Landlord) => void
   onNew: () => void
   onSelectPending?: (p: any) => void
 }) {
-  const all = [...pm, ...saved]
   return (
     <div style={{ padding: '0 0 32px' }}>
       <div style={{ padding: '20px 20px 12px' }}>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-          Select a saved recipient or add a new payment destination.
+          Select a property or add a new payment destination.
         </p>
       </div>
       {pending.length > 0 && (
@@ -101,49 +98,6 @@ export function StepSelect({
             </div>
           ))}
         </div>
-      )}
-
-      {all.length > 0 && (
-        <>
-          {pm.length > 0 && (
-            <div style={{ padding: '0 20px 8px' }}>
-              <p
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  color: 'var(--text-muted)',
-                  marginBottom: 10,
-                }}
-              >
-                Verified Properties
-              </p>
-              {pm.map((l) => (
-                <LandlordCard key={l.id} landlord={l} onSelect={onSelect} tag="VERIFIED" />
-              ))}
-            </div>
-          )}
-          {saved.length > 0 && (
-            <div style={{ padding: '0 20px 8px' }}>
-              <p
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  color: 'var(--text-muted)',
-                  marginBottom: 10,
-                }}
-              >
-                Previously paid
-              </p>
-              {saved.map((l) => (
-                <LandlordCard key={l.id} landlord={l} onSelect={onSelect} />
-              ))}
-            </div>
-          )}
-        </>
       )}
       <div style={{ padding: '12px 20px 0' }}>
         <button
