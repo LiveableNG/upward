@@ -87,6 +87,7 @@ The request follows a nested structure to coordinate between companies, users, a
 | `location` | `Object` | **Yes** | Physical location of the unit. |
 | `rent` | `Object` | **Yes** | Financial terms of the lease. |
 | `manager` | `Object` | No | The manager responsible (Optional). |
+| `paymentAccount`| `Object` | No | Direct settlement details (Optional). |
 
 ### Location Object
 | Field | Type | Required | Description |
@@ -110,6 +111,16 @@ The request follows a nested structure to coordinate between companies, users, a
 | `uuid` | `string` | No | Upward Manager UUID (if already known). |
 | `phone` | `string` | No | Manager's phone number. |
 | `email` | `string` | Cond. | Required if `uuid` is not provided. |
+
+### Payment Account Object (Direct Settlement)
+This object allows you to pre-configure where the funds for this property should be settled. Providing this during invitation ensures the tenant doesn't have to enter bank details manually.
+
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `bank_code` | `string` | **Yes** | 3-digit bank code (e.g. "058" or "999992"). |
+| `account_number`| `string` | **Yes** | 10-digit NUBAN account number. |
+| `account_name` | `string` | No | Verified name on the account. |
+| `bank_name` | `string` | No | Human-readable bank name. |
 
 ---
 
@@ -143,7 +154,14 @@ The request follows a nested structure to coordinate between companies, users, a
         "manager": {
           "firstName": "Bisi",
           "lastName": "Manager",
-          "email": "bisi@globalprop.ng"
+          "email": "bisi@globalprop.ng",
+          "phone": "+2349030303030"
+        },
+        "paymentAccount": {
+          "bank_name": "OPay Digital Services Limited (OPay)",
+          "bank_code": "999992",
+          "account_name": "AFONYA AFOKE OMERHI",
+          "account_number": "8034094074"
         }
       }
     ]
@@ -304,7 +322,11 @@ Use this if the tenant has not been invited to Upward yet. This will create the 
 2. **Entity Persistence**: If a company or manager with the same details exists, Upward will link to the existing record.
 3. **Mandatory Rent**: For invitations, `rentAmount`, `rentStartDate`, and `rentEndDate` must be provided.
 4. **API Security**: Raw API keys are hashed on the server.
-5. **Automated Settlement**: Providing `bankCode` and `accountNumber` in a payment request triggers automated settlement routing. Upward resolves or creates a persistent Paystack subaccount linked (via business name) to the **Company** (or its **Manager** if no company info is available).
+5. **Automated Settlement**: Providing `paymentAccount` (during invite) or `bankCode`/`accountNumber` (in a payment request) triggers automated settlement. Upward resolves or creates a persistent Paystack subaccount. Settlement priority:
+    1. `paymentAccount` details specified in the property invitation.
+    2. Explicit `bankCode`/`accountNumber` provided in an individual payment request.
+    3. Property Manager's primary settlement account (if assigned).
+    4. Company's primary settlement account.
 6. **Robust Property Matching**: To prevent duplicate property records, Upward matches invitations against existing records using a combination of **User + Company + Address**. If an exact match is found (even with a different manager), the existing record is updated and reused.
 7. **Optional Managers**: If a property is managed directly by a company without a specific assigned staff member, the `manager` object in invitations/add-property can be omitted.
 8. **Partial & Overpayments**: 

@@ -103,6 +103,24 @@ export class ManagerInfoDto {
   phone?: string
 }
 
+export class PaymentAccountDto {
+  @IsOptional()
+  @IsString()
+  bank_name?: string
+
+  @IsString()
+  @IsNotEmpty()
+  bank_code!: string
+
+  @IsOptional()
+  @IsString()
+  account_name?: string
+
+  @IsString()
+  @IsNotEmpty()
+  account_number!: string
+}
+
 export class UserPropertyContextDto {
   @ValidateNested()
   @Type(() => LocationInfoDto)
@@ -116,6 +134,19 @@ export class UserPropertyContextDto {
   @ValidateNested()
   @Type(() => ManagerInfoDto)
   manager?: ManagerInfoDto
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PaymentAccountDto)
+  paymentAccount?: PaymentAccountDto
+
+  @IsOptional()
+  @IsString()
+  bankCode?: string
+
+  @IsOptional()
+  @IsString()
+  accountNumber?: string
 }
 
 export class InviteContextDto {

@@ -96,6 +96,9 @@ export class PrismaPropertyRepository implements PropertyRepository {
       isPastTenancy: property.isPastTenancy,
       pmId: property.pmId,
       pmUnitId: property.pmUnitId,
+      subaccountId: property.subaccountId,
+      amountPaid: property.amountPaid,
+      amountRemaining: property.amountRemaining,
     }
     const record = property.id
       ? await prisma.upward_user_property.update({

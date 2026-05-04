@@ -56,6 +56,12 @@ export class PrismaUserRepository implements UserRepository {
           lastName: p.manager.lastName ? this.encryption.decrypt(p.manager.lastName) : undefined,
           email: p.manager.email ? this.encryption.decrypt(p.manager.email) : undefined,
           phone: p.manager.phone ? this.encryption.decrypt(p.manager.phone) : undefined,
+        } : undefined,
+        subaccount: p.subaccount ? {
+          subaccountCode: p.subaccount.subaccountCode,
+          accountNumber: p.subaccount.accountNumber,
+          bankCode: p.subaccount.bankCode,
+          businessName: p.subaccount.businessName
         } : undefined
       })) : [],
       companyUsers: model.companyUsers ? model.companyUsers.map((cu: any) => ({
@@ -82,7 +88,8 @@ export class PrismaUserRepository implements UserRepository {
           include: {
             location: true,
             company: true,
-            manager: true
+            manager: true,
+            subaccount: true
           }
         },
         companyUsers: {
@@ -103,7 +110,8 @@ export class PrismaUserRepository implements UserRepository {
           include: {
             location: true,
             company: true,
-            manager: true
+            manager: true,
+            subaccount: true
           }
         },
         companyUsers: {
@@ -124,7 +132,8 @@ export class PrismaUserRepository implements UserRepository {
           include: {
             location: true,
             company: true,
-            manager: true
+            manager: true,
+            subaccount: true
           }
         },
         companyUsers: {
@@ -145,7 +154,8 @@ export class PrismaUserRepository implements UserRepository {
           include: {
             location: true,
             company: true,
-            manager: true
+            manager: true,
+            subaccount: true
           }
         },
         companyUsers: {
@@ -165,7 +175,8 @@ export class PrismaUserRepository implements UserRepository {
           include: {
             location: true,
             company: true,
-            manager: true
+            manager: true,
+            subaccount: true
           }
         },
         companyUsers: {
@@ -246,7 +257,8 @@ export class PrismaUserRepository implements UserRepository {
           include: {
             location: true,
             company: true,
-            manager: true
+            manager: true,
+            subaccount: true
           }
         },
         companyUsers: {

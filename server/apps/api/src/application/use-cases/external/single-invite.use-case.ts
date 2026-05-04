@@ -16,13 +16,14 @@ import {
   LOCATION_REPOSITORY,
   LocationRepository
 } from '../../../domains/companies/property.repository'
+import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../domains/payments/payment.repository'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
 import { randomUUID } from 'crypto'
 
-import { 
-  InviteRequestDto as InviteRequest, 
-  UserPropertyContextDto as InvitePropertyInfo 
+import {
+  InviteRequestDto as InviteRequest,
+  UserPropertyContextDto as InvitePropertyInfo
 } from './external-api.dto'
 
 export { InviteRequest, InvitePropertyInfo }
@@ -45,6 +46,7 @@ export class SingleInviteUseCase {
     @Inject(PROPERTY_REPOSITORY) private readonly propertyRepository: PropertyRepository,
     @Inject(LOCATION_REPOSITORY) private readonly locationRepository: LocationRepository,
     @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
+    @Inject(PAYMENT_GATEWAY) private readonly paymentGateway: IPaymentGateway,
     private readonly notificationService: NotificationService,
   ) { }
 
@@ -212,12 +214,32 @@ export class SingleInviteUseCase {
         p.companyId === company.id! && p.locationId === location!.id!
       )
 
+      let subaccountId = null
+      const bankCode = propData.paymentAccount?.bank_code || propData.bankCode
+      const accountNumber = propData.paymentAccount?.account_number || propData.accountNumber
+
+      if (bankCode && accountNumber) {
+        const subaccount = await this.paymentGateway.findOrCreateSubaccount({
+          businessName: propData.paymentAccount?.account_name ||
+            (propData.manager?.firstName
+              ? `${propData.manager.firstName} ${propData.manager.lastName || ''}`
+              : (company.name || 'Property Owner')),
+          bankCode: bankCode,
+          accountNumber: accountNumber
+        })
+        if (subaccount) {
+          subaccountId = subaccount.id
+        }
+      }
+
       if (property) {
         property = await this.propertyRepository.update(property.id!, {
           rentAmount: rentData.rentAmount,
           managerId: manager?.id || property.managerId, // Use existing if not provided
           rentEndDate: new Date(rentData.rentEndDate),
           rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : property.rentStartDate,
+          subaccountId: subaccountId || property.subaccountId,
+          amountRemaining: rentData.rentAmount,
           isVerified: true
         })
       } else {
@@ -231,6 +253,8 @@ export class SingleInviteUseCase {
           rentEndDate: new Date(rentData.rentEndDate),
           rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : undefined,
           currency: (rentData as any).currency || 'NGN',
+          subaccountId: subaccountId || undefined,
+          amountRemaining: rentData.rentAmount,
           isVerified: true,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -245,7 +269,7 @@ export class SingleInviteUseCase {
       if (daysUntilDue <= 14) {
         const amountStr = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(rentData.rentAmount)
         const urgencyMsg = daysUntilDue < 0 ? 'is OVERDUE' : daysUntilDue === 0 ? 'is DUE TODAY' : `is due in ${daysUntilDue} days`
-        
+
         await this.notificationService.notifyUser(user.id, {
           title: 'Rent Reminder',
           message: `Your rent for ${locData.address || locData.area} ${urgencyMsg}. Amount: ${amountStr}`,

@@ -90,6 +90,13 @@ export class CreateManualPaymentRequestUseCase {
       subaccountId = subaccount?.id
     }
 
+    if (!subaccountId && data.propertyUuid) {
+      const prop = await this.propertyRepo.findByUuid(data.propertyUuid)
+      if (prop && prop.subaccountId) {
+        subaccountId = prop.subaccountId
+      }
+    }
+
     let userPropertyId: number | undefined
     let dueDate = new Date()
 
@@ -967,9 +974,10 @@ export class GetPropertyBalanceUseCase {
     // Source of Truth: The property record fields themselves (settled by RecordTransactionUseCase)
     const totalOwed = prop.rentAmount || requestTotal || 0
     const amountPaid = prop.amountPaid || 0
-    const remainingBalance = prop.amountRemaining !== null && prop.amountRemaining !== undefined
-      ? prop.amountRemaining
-      : Math.max(0, totalOwed - amountPaid)
+    const remainingBalance = (prop.amountRemaining === 0 && amountPaid < totalOwed)
+      ? Math.max(0, totalOwed - amountPaid)
+      : (prop.amountRemaining ?? Math.max(0, totalOwed - amountPaid))
+
 
     return {
       propertyUuid: prop.uuid,
