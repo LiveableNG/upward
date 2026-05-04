@@ -74,6 +74,24 @@ export function StepConfirm({
             </span>
           </div>
         )}
+        
+        {landlord.accountNumber && (
+          <div style={{ 
+            marginTop: 4, padding: '12px 16px', background: 'var(--surface2)', 
+            borderRadius: 16, border: '1px solid var(--border-solid)' 
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Wallet size={12} />
+              Settlement Account
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 2 }}>
+              {landlord.accountName}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              {landlord.bankName || 'Verified Bank'} • {landlord.accountNumber}
+            </div>
+          </div>
+        )}
       </div>
 
 

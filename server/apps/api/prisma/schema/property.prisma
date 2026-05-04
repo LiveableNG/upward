@@ -19,6 +19,7 @@ model upward_user_property {
   pmUnitId               Int?
   rentReminderEnabled    Boolean                      @default(false)
   rentReminderDaysBefore Int?                         @db.SmallInt
+  subaccountId           Int?
   paymentRequests        upward_payment_request[]
   infractions            upward_property_infraction[]
   inspections            upward_property_inspection[]
@@ -29,6 +30,7 @@ model upward_user_property {
   manager                upward_manager?              @relation(fields: [managerId], references: [id])
   pm                     upward_property_manager?     @relation(fields: [pmId], references: [id])
   pmUnit                 upward_pm_unit?              @relation(fields: [pmUnitId], references: [id])
+  subaccount             upward_paystack_subaccount?  @relation(fields: [subaccountId], references: [id])
   user                   upward_user                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 

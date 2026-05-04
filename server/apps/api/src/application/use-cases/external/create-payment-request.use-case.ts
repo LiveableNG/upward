@@ -46,16 +46,12 @@ export class CreateExternalPaymentRequestUseCase {
       throw new BadRequestException('Either userPropertyUuid or invite data must be provided')
     }
 
-    if (!payload.bankCode || !payload.accountNumber) {
-      throw new BadRequestException('bankCode and accountNumber are required for settlement routing')
-    }
+    const amount = payload.amount || property.rentAmount
+    const currency = payload.currency || property.currency || 'NGN'
 
     if (payload.minAmount && !payload.allowPartial) {
       throw new BadRequestException('minAmount can only be set if allowPartial is true')
     }
-
-    const amount = payload.amount || property.rentAmount
-    const currency = payload.currency || property.currency || 'NGN'
 
     if (payload.lineItems && payload.lineItems.length > 0) {
       const lineItemsTotal = payload.lineItems.reduce((sum, item) => sum + item.amount, 0)
@@ -66,7 +62,8 @@ export class CreateExternalPaymentRequestUseCase {
       }
     }
 
-    let subaccountId: number | undefined
+    let subaccountId: number | undefined = property.subaccountId || undefined
+
     if (payload.bankCode && payload.accountNumber) {
       const businessName = property.company?.name ||
         (property.manager ? `${property.manager.firstName} ${property.manager.lastName}` : null)
@@ -83,7 +80,7 @@ export class CreateExternalPaymentRequestUseCase {
       if (subaccount) {
         subaccountId = subaccount.id
       } else {
-        this.logger.warn(`Subaccount resolution failed for ${payload.accountNumber}. Proceeding without settlement routing for testing.`)
+        this.logger.warn(`Subaccount resolution failed for ${payload.accountNumber}. Proceeding with existing property settlement if any.`)
       }
     }
 

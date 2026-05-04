@@ -129,6 +129,7 @@ model upward_paystack_subaccount {
   updatedAt       DateTime                 @updatedAt
   paymentRequests upward_payment_request[]
   savedLandlords  upward_saved_landlord[]
+  properties      upward_user_property[]
 
   @@unique([accountNumber, bankCode])
   @@index([accountNumber, bankCode])

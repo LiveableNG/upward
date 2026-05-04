@@ -7,6 +7,7 @@ import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.s
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 import { LOCATION_REPOSITORY, LocationRepository } from '../../../../domains/companies/property.repository';
 import { COMPANY_REPOSITORY, CompanyRepository, MANAGER_REPOSITORY, ManagerRepository } from '../../../../domains/companies/company.repository';
+import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../../domains/payments/payment.repository';
 
 @Injectable()
 export class SyncUnitToUpwardUseCase {
@@ -27,6 +28,8 @@ export class SyncUnitToUpwardUseCase {
     private readonly companyRepo: CompanyRepository,
     @Inject(MANAGER_REPOSITORY)
     private readonly managerRepo: ManagerRepository,
+    @Inject(PAYMENT_GATEWAY)
+    private readonly paymentGateway: IPaymentGateway,
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
   ) { }
@@ -91,9 +94,21 @@ export class SyncUnitToUpwardUseCase {
       } as any);
     }
 
+    // 4. Resolve Subaccount for PM
+    let subaccountId: number | undefined;
+    if (pmRecord.accountNumber && pmRecord.bankCode) {
+      const subaccount = await this.paymentGateway.findOrCreateSubaccount({
+        businessName: pmRecord.accountName || pmBusinessName,
+        bankCode: pmRecord.bankCode,
+        accountNumber: pmRecord.accountNumber,
+      });
+      if (subaccount) {
+        subaccountId = subaccount.id;
+      }
+    }
+
     // Perform transaction
     await this.prisma.$transaction(async (tx) => {
-      // 1. Check for existing record to avoid duplicates
       const existingUserProperty = await tx.upward_user_property.findFirst({
         where: {
           userId: upwardUser.id!,
@@ -104,7 +119,6 @@ export class SyncUnitToUpwardUseCase {
       let userProperty;
 
       if (existingUserProperty) {
-        // Update existing record
         userProperty = await tx.upward_user_property.update({
           where: { id: existingUserProperty.id },
           data: {
@@ -117,6 +131,7 @@ export class SyncUnitToUpwardUseCase {
             isVerified: true,
             isPastTenancy: false,
             amountRemaining: unit.rentAmount,
+            subaccountId: subaccountId || existingUserProperty.subaccountId,
           }
         });
       } else {
@@ -147,6 +162,7 @@ export class SyncUnitToUpwardUseCase {
             amountRemaining: unit.rentAmount,
             pmId,
             pmUnitId: unit.id,
+            subaccountId: subaccountId,
           }
         });
       }

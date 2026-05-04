@@ -105,13 +105,15 @@ export function StepAmount({
       setAmount(String(propertyBalance.remainingBalance))
       setLineItems(prev => {
         const newItems = [...prev];
-        if (newItems.length > 0 && newItems[0].label === 'Rent') {
-            newItems[0].amount = propertyBalance.remainingBalance;
-        } else if (newItems.length === 0) {
-            newItems.push({ label: 'Rent', amount: propertyBalance.remainingBalance });
+        const rentItem = newItems.find(i => i.label === 'Rent');
+        if (rentItem) {
+          rentItem.amount = propertyBalance.remainingBalance;
+        } else {
+          newItems.push({ label: 'Rent', amount: propertyBalance.remainingBalance });
         }
         return newItems;
       });
+
     }
   }, [propertyBalance])
   const [paymentType, setPaymentType] = useState(initialPaymentType)

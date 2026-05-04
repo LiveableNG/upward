@@ -89,6 +89,17 @@ export function StepPropertySelect({
                    (prop.manager?.firstName ? `${prop.manager.firstName} ${prop.manager.lastName || ''}` : null) ||
                    prop.managerName || 
                    'Private Landlord'}
+                  {prop.isManaged && prop.subaccount && (
+                    <span style={{ 
+                      marginLeft: 8, padding: '2px 8px', background: 'var(--clay-faint)', 
+                      color: 'var(--clay)', borderRadius: 12, fontSize: 10, fontWeight: 800,
+                      textTransform: 'uppercase', letterSpacing: '0.05em', verticalAlign: 'middle',
+                      display: 'inline-flex', alignItems: 'center', gap: 4
+                    }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clay)' }} />
+                      Verified
+                    </span>
+                  )}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
                   {fullAddr || 'Address not set'}

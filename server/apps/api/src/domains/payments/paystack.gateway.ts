@@ -220,6 +220,29 @@ export class PaystackGateway implements IPaymentGateway {
       
       if (!res.ok) {
         this.logger.error(`Subaccount creation failed: ${res.status} - ${JSON.stringify(responseData)}`)
+        
+        if (responseData.message?.toLowerCase().includes('already exists')) {
+          this.logger.log(`Subaccount likely exists on Paystack. Attempting to fetch...`)
+          const listRes = await fetch(`${this.baseUrl}/subaccount?perPage=100`, {
+            method: 'GET',
+            headers: this.headers,
+          })
+          const listData = await listRes.json()
+          if (listRes.ok && listData.status && Array.isArray(listData.data)) {
+            const found = listData.data.find((s: any) => 
+              s.settlement_bank === data.bankCode && s.account_number === data.accountNumber
+            )
+            if (found) {
+              this.logger.log(`Successfully recovered subaccount from Paystack: ${found.subaccount_code}`)
+              return await this.subaccountRepository.create({
+                accountNumber: data.accountNumber,
+                bankCode: data.bankCode,
+                subaccountCode: found.subaccount_code,
+                businessName: data.businessName,
+              })
+            }
+          }
+        }
         return null
       }
 

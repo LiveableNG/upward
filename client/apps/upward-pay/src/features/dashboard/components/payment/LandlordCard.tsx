@@ -56,8 +56,8 @@ export function LandlordCard({
                 fontWeight: 800,
                 textTransform: 'uppercase',
                 padding: '2px 6px',
-                background: 'rgba(59,130,246,0.1)',
-                color: '#3b82f6',
+                background: 'var(--clay-faint)',
+                color: 'var(--clay)',
                 borderRadius: 4,
                 letterSpacing: '0.05em',
               }}

@@ -117,10 +117,10 @@ export function StepSelect({
                   marginBottom: 10,
                 }}
               >
-                From your property manager
+                Verified Properties
               </p>
               {pm.map((l) => (
-                <LandlordCard key={l.id} landlord={l} onSelect={onSelect} tag="PM" />
+                <LandlordCard key={l.id} landlord={l} onSelect={onSelect} tag="VERIFIED" />
               ))}
             </div>
           )}
@@ -185,9 +185,9 @@ export function StepSelect({
             <Plus size={20} />
           </div>
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>New recipient</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Select a Property</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              Bank account or property manager
+              Pay for rent or other fees
             </div>
           </div>
           <div style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>

@@ -53,6 +53,7 @@ export default function PayRentPage() {
   }, [selectedPropertyUuid])
 
   const [pendingPayments, setPendingPayments] = useState<any[]>([])
+  const [pmLandlords, setPmLandlords] = useState<Landlord[]>([])
   
   useEffect(() => {
     // Fetch user, saved landlords and pending payments
@@ -64,6 +65,24 @@ export default function PayRentPage() {
         
         const props = profile?.properties || []
         setUserProperties(props)
+
+        // Derive PM landlords from verified properties
+        const derivedPms = props
+          .filter((p: any) => p.isManaged && p.subaccount)
+          .map((p: any) => ({
+            id: `verified-${p.uuid}`,
+            uuid: 'verified',
+            propertyUuid: p.uuid,
+            name: p.company?.name || (p.manager?.firstName ? `${p.manager.firstName} ${p.manager.lastName}` : 'Property Owner'),
+            accountName: p.subaccount.businessName,
+            accountNumber: p.subaccount.accountNumber,
+            bankCode: p.subaccount.bankCode,
+            subaccountCode: p.subaccount.subaccountCode,
+            isVerified: true,
+            avatar: (p.company?.name || p.manager?.firstName || 'P')[0].toUpperCase(),
+            address: [p.address, p.location?.area].filter(Boolean).join(', ')
+          }))
+        setPmLandlords(derivedPms as any[])
 
         // Check for propertyUuid in URL
         const searchParams = new URLSearchParams(window.location.search)
@@ -196,15 +215,28 @@ export default function PayRentPage() {
 
       {step === 'select' && (
         <StepSelect
-          saved={savedLandlords}
-          pm={[]}
+          saved={savedLandlords.filter(s => !pmLandlords.some(p => p.accountNumber === s.accountNumber))}
+          pm={pmLandlords}
           pending={pendingPayments}
           onSelectPending={handleSelectPending}
-          onSelect={(l) => {
-            setSelectedLandlord(l)
+          onSelect={(l: any) => {
             setPayAmount(0)
             setLineItems([])
-            setStep('property-select')
+            if (l.isVerified && l.propertyUuid) {
+              setSelectedLandlord(l)
+              setSelectedPropertyUuid(l.propertyUuid)
+              // Find and set property address
+              const prop = userProperties.find((p: any) => p.uuid === l.propertyUuid)
+              if (prop) {
+                const loc = prop.location
+                const fullAddr = [prop.address, loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
+                setPropertyAddress(fullAddr)
+              }
+              setStep('confirm')
+            } else {
+              setSelectedLandlord(l)
+              setStep('property-select')
+            }
           }}
           onNew={() => {
             setSelectedLandlord(null)
@@ -237,7 +269,20 @@ export default function PayRentPage() {
                setShowRenewalModal(true)
              }
 
-             if (selectedLandlord) {
+             if (prop.isManaged && prop.subaccount) {
+               const managedLandlord = {
+                 uuid: 'verified',
+                 name: prop.company?.name || prop.manager?.firstName ? `${prop.manager.firstName} ${prop.manager.lastName}` : 'Property Owner',
+                 accountName: prop.subaccount.businessName,
+                 accountNumber: prop.subaccount.accountNumber,
+                 bankName: '', // Optional
+                 bankCode: prop.subaccount.bankCode,
+                 subaccountCode: prop.subaccount.subaccountCode,
+                 isVerified: true
+               }
+               setSelectedLandlord(managedLandlord as any)
+               setStep('confirm')
+             } else if (selectedLandlord) {
                setStep('confirm')
              } else {
                setStep('new')

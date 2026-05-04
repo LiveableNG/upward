@@ -14,6 +14,7 @@ import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '@shared/infrastructure/common/encryption.service'
 import { NotificationService } from '@shared/infrastructure/common/notification.service'
 import { VERIFICATION_TOKEN_REPOSITORY, VerificationTokenRepository } from '@domains/auth/verification-token.repository'
+import { IPaymentGateway } from '@domains/payments/payment.repository'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -147,6 +148,7 @@ describe('SingleInviteUseCase', () => {
   let locationRepository: jest.Mocked<LocationRepository>
   let notificationService: jest.Mocked<NotificationService>
   let tokenRepository: jest.Mocked<VerificationTokenRepository>
+  let paymentGateway: jest.Mocked<IPaymentGateway>
 
   beforeEach(() => {
     prisma = {} as any
@@ -201,6 +203,10 @@ describe('SingleInviteUseCase', () => {
       notifyUser: jest.fn(),
     } as any
 
+    paymentGateway = {
+      findOrCreateSubaccount: jest.fn().mockResolvedValue(null),
+    } as any
+
     tokenRepository = {
       create: jest.fn(),
       findByToken: jest.fn(),
@@ -219,6 +225,7 @@ describe('SingleInviteUseCase', () => {
       propertyRepository,
       locationRepository,
       tokenRepository,
+      paymentGateway,
       notificationService,
     )
   })
@@ -298,12 +305,12 @@ describe('SingleInviteUseCase', () => {
       setupHappyPath()
       const existingCompany = makeCompany({ uuid: 'company-uuid-001' })
       companyRepository.findByUuid.mockResolvedValue(existingCompany as any)
- 
+
       const payload: InviteRequest = { ...validInviteRequest() }
       payload.company = { uuid: 'company-uuid-001' }
- 
+
       await useCase.setupInviteContext(payload)
- 
+
       expect(companyRepository.findByUuid).toHaveBeenCalledWith('company-uuid-001')
       expect(companyRepository.save).not.toHaveBeenCalled()
     })
@@ -403,12 +410,12 @@ describe('SingleInviteUseCase', () => {
       setupCompany()
       setupUser()
       managerRepository.findByUuid.mockResolvedValue(makeManager() as any)
- 
+
       const payload = validInviteRequest()
       payload.invite.properties[0].manager = { uuid: 'manager-uuid-001' }
- 
+
       await useCase.setupInviteContext(payload)
- 
+
       expect(managerRepository.findByUuid).toHaveBeenCalledWith('manager-uuid-001')
       expect(managerRepository.save).not.toHaveBeenCalled()
     })
@@ -443,7 +450,7 @@ describe('SingleInviteUseCase', () => {
       managerRepository.findByEmail.mockResolvedValue(null)
 
       const payload = validInviteRequest()
-      payload.invite.properties[0].manager = { email: 'missing@fields.com' } 
+      payload.invite.properties[0].manager = { email: 'missing@fields.com' }
 
       await expect(useCase.setupInviteContext(payload)).rejects.toThrow(BadRequestException)
     })
@@ -649,7 +656,7 @@ describe('SingleInviteUseCase', () => {
       setupPre()
 
       const payload = validInviteRequest()
-      ;(payload.invite.properties[0].rent as any).rentAmount = 0
+        ; (payload.invite.properties[0].rent as any).rentAmount = 0
 
       await expect(useCase.setupInviteContext(payload)).rejects.toThrow(BadRequestException)
     })
@@ -678,7 +685,7 @@ describe('SingleInviteUseCase', () => {
   // ── Return Value ───────────────────────────────────────────────────────────
 
   describe('setupInviteContext return value', () => {
-    it('should return all five entities: user, company, manager, property, location', async () => {
+    it('should return entities: user, company and properties', async () => {
       companyRepository.findByName.mockResolvedValue(makeCompany() as any)
       managerRepository.findByEmail.mockResolvedValue(makeManager() as any)
       userRepository.findByEmail.mockResolvedValue(makeUser() as any)
@@ -691,9 +698,8 @@ describe('SingleInviteUseCase', () => {
 
       expect(context).toHaveProperty('user')
       expect(context).toHaveProperty('company')
-      expect(context).toHaveProperty('manager')
-      expect(context).toHaveProperty('property')
-      expect(context).toHaveProperty('location')
+      expect(context).toHaveProperty('properties')
+      expect(Array.isArray(context.properties)).toBe(true)
     })
   })
 })

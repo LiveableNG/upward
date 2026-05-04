@@ -24,6 +24,7 @@ export interface Property {
   pmUnitId?: number
   pm?: { firstName: string; lastName: string; businessName?: string }
   pmUnit?: { unitName: string; property?: { name: string } }
+  subaccountId?: number
 }
 
 export interface Location {

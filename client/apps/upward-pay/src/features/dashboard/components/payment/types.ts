@@ -13,6 +13,7 @@ export type Landlord = {
   role?: string
   address?: string
   subaccountCode?: string
+  isVerified?: boolean
 }
 
 export type PayRentStep = 'select' | 'property-select' | 'new' | 'confirm'
