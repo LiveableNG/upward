@@ -51,22 +51,22 @@ const inputStyle: React.CSSProperties = {
 export function StepNewLandlord({
   onContinue,
   onBack,
+  isVerifiedUser = false,
 }: {
   onContinue: (
     data: Partial<Landlord> & {
       amount: number
       narration: string
-      save: boolean
     },
   ) => void
   onBack: () => void
+  isVerifiedUser?: boolean
 }) {
   const [banks, setBanks] = useState<{ code: string; name: string }[]>([])
   const [form, setForm] = useState({
     accountNumber: '',
     bankCode: '',
     accountName: '',
-    save: true,
   })
 
   const [resolving, setResolving] = useState(false)
@@ -274,42 +274,6 @@ export function StepNewLandlord({
       )}
 
 
-      {/* Save Toggle */}
-      <div
-        onClick={() => set('save', !form.save)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: '14px 16px',
-          border: '1px solid var(--border-solid)',
-          borderRadius: 'var(--radius-md)',
-          cursor: 'pointer',
-          marginBottom: 24,
-        }}
-      >
-        <div
-          style={{
-            width: 22,
-            height: 22,
-            borderRadius: 6,
-            border: `2px solid ${form.save ? 'var(--clay)' : 'var(--border-solid)'}`,
-            background: form.save ? 'var(--clay)' : 'transparent',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {form.save && <Check size={13} />}
-        </div>
-
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>Save for future payments</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-            Quickly pay this landlord next time
-          </div>
-        </div>
-      </div>
 
       {/* Continue */}
       <button
@@ -329,7 +293,6 @@ export function StepNewLandlord({
             narration: '',
             lastPaid: null,
             lastAmount: 0,
-            save: form.save,
             isNewLocal: true,
           } as any)
         }}
