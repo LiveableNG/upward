@@ -317,7 +317,59 @@ Use this if the tenant has not been invited to Upward yet. This will create the 
 
 ---
 
-## Implementation Notes
+## 5. Credibility Verification
+This section allows platforms to verify and provide historical tenancy data for their users upon request. When a tenant requests their credibility history for a property managed on your platform, Upward will notify you via a webhook.
+
+### Fulfill a Credibility Request
+Use this endpoint to provide the requested tenancy records.
+
+**Method**: `POST`  
+**Endpoint**: `/api/v1/credibility/request/:uuid/fulfill`
+
+#### Path Parameters
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `uuid` | `string` | The `requestUuid` received in the webhook. |
+
+#### Request Body
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `records` | `Array<Object>` | **Yes** | List of payment records to ingest. |
+
+### Record Object
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `amount` | `number` | **Yes** | Amount paid. |
+| `dueDate` | `string` | **Yes** | ISO-8601 date when the payment was due. |
+| `paidDate` | `string` | **Yes** | ISO-8601 date when the payment was made. |
+
+#### Request Example
+```json
+{
+  "records": [
+    {
+      "amount": 450000,
+      "dueDate": "2024-01-01T00:00:00Z",
+      "paidDate": "2024-01-03T10:00:00Z"
+    },
+    {
+      "amount": 450000,
+      "dueDate": "2024-02-01T00:00:00Z",
+      "paidDate": "2024-02-01T09:00:00Z"
+    }
+  ]
+}
+```
+
+### Reject a Credibility Request
+If you cannot fulfill the request (e.g., the user was never at that property), you can explicitly reject it.
+
+**Method**: `POST`  
+**Endpoint**: `/api/v1/credibility/request/:uuid/reject`
+
+---
+
+## 6. Implementation Notes
 1. **Case Insensitivity**: Company name searches are case-insensitive.
 2. **Entity Persistence**: If a company or manager with the same details exists, Upward will link to the existing record.
 3. **Mandatory Rent**: For invitations, `rentAmount`, `rentStartDate`, and `rentEndDate` must be provided.
@@ -332,10 +384,13 @@ Use this if the tenant has not been invited to Upward yet. This will create the 
 8. **Partial & Overpayments**: 
     *   **Partial**: Tenants can pay less than the requested amount. The platform will receive a `payment.updated` webhook with the `remainingAmount`.
     *   **Overpayment**: If a tenant pays more than the total requested amount, the excess is recorded as a "Future Credit" in Upward. This credit is tracked and can be applied to future bills.
+9. **Credibility Workflow**: When a platform receives a `past_tenancy_record.requested` webhook, they can either:
+    *   **Automate**: Fetch the user's payment history from their own DB and call the `/fulfill` endpoint programmatically.
+    *   **Redirect**: Provide the `fillingPageLink` to their internal property managers to fill the records manually via the Upward UI.
 
 ---
 
-## 6. Webhook Notifications
+## 7. Webhook Notifications
 Upward sends asynchronous notifications to the `webhookUrl` provided during platform registration to keep your system in sync.
 
 ### Event: `payment.updated`
@@ -396,9 +451,27 @@ Triggered when a tenant successfully signs up and activates their account via th
 }
 ```
 
+### Event: `past_tenancy_record.requested`
+Triggered when a tenant requests their past tenancy history for a property managed on your platform.
+
+#### Payload Structure
+```json
+{
+  "event": "past_tenancy_record.requested",
+  "data": {
+    "requestUuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "propertyUuid": "5cab404a-df37-4408-826b-e8b820e26fac",
+    "propertyAddress": "Bourdillon Road, Ikoyi",
+    "tenantName": "John Doe",
+    "tenantEmail": "john.doe@gmail.com",
+    "fillingPageLink": "https://upward.goodtenants.io/fill-record/3fa85f64-..."
+  }
+}
+```
+
 ---
 
-## 7. Constraints & Validation Rules
+## 8. Constraints & Validation Rules
 
 To ensure a smooth integration, please adhere to the following technical constraints. Requests failing these rules will return a `400 Bad Request` or `409 Conflict`.
 
@@ -419,9 +492,13 @@ To ensure a smooth integration, please adhere to the following technical constra
 *   **Settlement Routing**: `bankCode` and `accountNumber` are required for every payment request. This allows Upward to route funds to the specific landlord's account automatically.
 *   **Idempotency (Upsert)**: Sending a payment request with the same `userPropertyUuid`, `amount`, and `dueDate` as a pending one will **update** the existing request rather than creating a duplicate.
 
+### Credibility Verification
+*   **Sequential Records**: Ensure records are provided in a logical chronological order for best user experience on the tenant's profile.
+*   **Data Accuracy**: Fulfilling a request marks it as `COMPLETED`. This data is used to calculate the user's Rent Score.
+
 ---
 
-## 8. Webhook Delivery Details
+## 9. Webhook Delivery Details
 1. **Method**: `POST`
 2. **Content-Type**: `application/json`
 3. **Expectation**: Your server should return a `200 OK` response within 5 seconds.
