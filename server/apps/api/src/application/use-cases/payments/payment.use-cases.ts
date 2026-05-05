@@ -260,6 +260,7 @@ export class RecordTransactionUseCase {
       let pr: any = null
       let excess = 0
       let remaining = 0
+      let rentPortion = 0
 
       if (isVerified && data.type === 'RENT' && !data.paymentRequestId && data.userPropertyUuid) {
         const prop = await this.propertyRepo.findByUuid(data.userPropertyUuid)
@@ -334,7 +335,7 @@ export class RecordTransactionUseCase {
       this.logger.log(`Transaction recorded successfully with ID: ${result.id}`)
 
       if (isVerified && result.status === 'SUCCESS') {
-        let rentPortion = paymentAmount;
+        rentPortion = paymentAmount;
 
         // 2. Settle Payment Request
         if (pr) {
@@ -732,28 +733,47 @@ export class RecordTransactionUseCase {
           }
         }
       }
-      if (result.status === 'SUCCESS' && pr?.platformId) {
+      if (result.status === 'SUCCESS' && pr?.platformId && rentPortion > 0) {
         try {
-          const platformPortion = paymentAmount - upwardFeeAmount;
-          const updatedPrAmountPaid = Math.min(pr.amount, (pr.amountPaid || 0) + platformPortion);
-          const statusForWebhook = updatedPrAmountPaid >= pr.amount ? 'PAID' : 'PARTIAL';
-          const remainingAmount = Math.max(0, pr.amount - updatedPrAmountPaid);
+          // Calculate Rent-specific totals for the webhook
+          const currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!);
+          const rentItems = currentItems.filter(i => i.name.toLowerCase().includes('rent'));
+          
+          let totalRentPaid = rentItems.reduce((sum, i) => sum + i.amountPaid, 0);
+          let totalRentAmount = rentItems.reduce((sum, i) => sum + i.totalAmount, 0);
+          
+          // Fallback if no specific rent items found (treat whole PR as rent if type is RENT)
+          if (rentItems.length === 0 && data.type === 'RENT') {
+            totalRentPaid = pr.amountPaid || 0;
+            totalRentAmount = pr.amount;
+          }
+
+          const statusForWebhook = totalRentPaid >= totalRentAmount ? 'PAID' : 'PARTIAL';
+          const remainingAmount = Math.max(0, totalRentAmount - totalRentPaid);
+
+          const isFirstPayment = (pr.amountPaid || 0) === 0; 
+          const webhookPayload: any = {
+            paymentUuid: pr.uuid,
+            reference: result.reference,
+            amountPaid: rentPortion, 
+            totalPaid: totalRentPaid,
+            remainingAmount: remainingAmount,
+            overpaymentAmount: excess,
+            currency: result.currency || pr.currency || 'NGN',
+            status: statusForWebhook,
+            paidAt: new Date(),
+            customerEmail: user.email
+          };
+
+          if (isFirstPayment && propertyForCycle) {
+            webhookPayload.rentStartDate = propertyForCycle.rentStartDate;
+            webhookPayload.rentEndDate = propertyForCycle.rentEndDate;
+          }
 
           this.eventBus.publish(new PaymentUpdatedEvent(
             pr.platformId,
             'payment.updated',
-            {
-              paymentUuid: pr.uuid,
-              reference: result.reference,
-              amountPaid: platformPortion, 
-              totalPaid: updatedPrAmountPaid,
-              remainingAmount: remainingAmount,
-              overpaymentAmount: excess,
-              currency: result.currency || pr.currency || 'NGN',
-              status: statusForWebhook,
-              paidAt: new Date(),
-              customerEmail: user.email
-            }
+            webhookPayload
           ));
           this.logger.log(`Payment webhook event 'payment.updated' (${statusForWebhook}) published for platform ${pr.platformId}`);
         } catch (e) {
