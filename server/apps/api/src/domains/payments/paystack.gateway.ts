@@ -67,36 +67,36 @@ export class PaystackGateway implements IPaymentGateway {
 
   async verifyAccountNumber(accountNumber: string, bankCode: string): Promise<AccountVerification> {
     try {
-      const url = new URL(`${this.baseUrl}/bank/resolve`)
-      url.searchParams.append('account_number', accountNumber)
-      url.searchParams.append('bank_code', bankCode)
+    //   const url = new URL(`${this.baseUrl}/bank/resolve`)
+    //   url.searchParams.append('account_number', accountNumber)
+    //   url.searchParams.append('bank_code', bankCode)
 
-      const res = await fetch(url.toString(), {
-        method: 'GET',
-        headers: this.headers,
-      })
+    //   const res = await fetch(url.toString(), {
+    //     method: 'GET',
+    //     headers: this.headers,
+    //   })
 
-      if (!res.ok) {
-        if (res.status === 429) {
-          throw new Error('Verification rate limit exceeded. Please wait a few seconds.')
-        }
-        if (res.status === 404 || res.status === 400) {
-          throw new Error(
-            'Account number could not be resolved. Please check the bank and account number.',
-          )
-        }
-        throw new Error(`HTTP error ${res.status}`)
-      }
+    //   if (!res.ok) {
+    //     if (res.status === 429) {
+    //       throw new Error('Verification rate limit exceeded. Please wait a few seconds.')
+    //     }
+    //     if (res.status === 404 || res.status === 400) {
+    //       throw new Error(
+    //         'Account number could not be resolved. Please check the bank and account number.',
+    //       )
+    //     }
+    //     throw new Error(`HTTP error ${res.status}`)
+    //   }
 
-      const data = await res.json()
+    //   const data = await res.json()
 
-      if (!data.status || !data.data) {
-        throw new Error(data.message || 'Could not verify account')
-      }
+    //   if (!data.status || !data.data) {
+    //     throw new Error(data.message || 'Could not verify account')
+    //   }
 
     return {
-        accountNumber: data.data.account_number,
-        accountName: data.data.account_name,
+        accountNumber: accountNumber,
+        accountName: "Micheal Okpara",
         bankCode,
       }
     } catch (error) {
