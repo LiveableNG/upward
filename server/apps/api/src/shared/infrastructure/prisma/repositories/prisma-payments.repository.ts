@@ -147,7 +147,8 @@ export class PrismaTransactionRepository implements ITransactionRepository {
         propertyAddress: data.propertyAddress,
         paymentRequestId: data.paymentRequestId,
         currency: data.currency || 'NGN',
-        lineItems: (data as any).lineItems || undefined
+        lineItems: (data as any).lineItems || undefined,
+        isManual: (data as any).isManual ?? false,
       },
       include: {
         paymentRequest: {
@@ -272,7 +273,8 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       data: {
         status: data.status,
         narration: data.narration,
-        lineItems: (data as any).lineItems || undefined
+        lineItems: (data as any).lineItems || undefined,
+        isManual: (data as any).isManual,
       },
       include: {
         paymentRequest: {

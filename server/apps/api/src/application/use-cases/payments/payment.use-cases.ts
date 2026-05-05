@@ -734,7 +734,8 @@ export class RecordTransactionUseCase {
       }
       if (result.status === 'SUCCESS' && pr?.platformId) {
         try {
-          const updatedPrAmountPaid = (pr.amountPaid || 0) + paymentAmount;
+          const platformPortion = paymentAmount - upwardFeeAmount;
+          const updatedPrAmountPaid = Math.min(pr.amount, (pr.amountPaid || 0) + platformPortion);
           const statusForWebhook = updatedPrAmountPaid >= pr.amount ? 'PAID' : 'PARTIAL';
           const remainingAmount = Math.max(0, pr.amount - updatedPrAmountPaid);
 
@@ -744,7 +745,7 @@ export class RecordTransactionUseCase {
             {
               paymentUuid: pr.uuid,
               reference: result.reference,
-              amountPaid: result.amount, 
+              amountPaid: platformPortion, 
               totalPaid: updatedPrAmountPaid,
               remainingAmount: remainingAmount,
               overpaymentAmount: excess,
