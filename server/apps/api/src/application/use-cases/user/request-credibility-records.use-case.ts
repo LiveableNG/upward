@@ -86,7 +86,6 @@ export class RequestCredibilityRecordsUseCase {
             propertyAddress,
             tenantName,
             tenantEmail: user.email,
-            fillingPageLink: requestLink,
           }
         ));
       }
