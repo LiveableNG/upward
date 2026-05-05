@@ -191,11 +191,16 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
       if (res.success) {
         setPaymentData(res.data)
         let items = (res.data.payment.lineItemRecords || []) as LineItemRecord[]
-        // Always ensure 'Upward Processing Fee' is present in the UI for processing
-        const hasFee = items.find(i => i.name === 'Upward Processing Fee')
-        if (!hasFee) {
+        
+        // Ensure 'Upward Processing Fee' is present and at the very top for priority allocation
+        const feeIndex = items.findIndex(i => i.name === 'Upward Processing Fee')
+        if (feeIndex > -1) {
+          const [fee] = items.splice(feeIndex, 1)
+          items = [fee, ...items]
+        } else {
           items = [{ id: -2, name: 'Upward Processing Fee', amount: 2000, totalAmount: 2000, amountPaid: 0 } as any, ...items]
         }
+        
         setLineItems(items)
         const due = res.data.payment.amount - (res.data.payment.amountPaid || 0)
 
@@ -245,7 +250,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
   const currency = paymentData?.payment?.currency || 'NGN'
 
   const parsedAmount = parseFloat(amountInput) || 0
-  const isBelowMin = minRequired > 0 && parsedAmount > 0 && parsedAmount < minRequired
+  const isBelowMin = minRequired > 0 && parsedAmount > 0 && parsedAmount < minRequired && parsedAmount < totalOwed
   const isValidAmount = parsedAmount > 0 && !isBelowMin && parsedAmount <= totalOwed
 
   const autoAllocs = useMemo(() =>
@@ -285,7 +290,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
   const handleAllocationChange = (id: number, amount: number) => {
     const item = effectiveAllocs.find(a => a.id === id)
-    if (!item) return
+    if (!item || item.name === 'Upward Processing Fee' || item.id === -2) return
 
     // Cap at remaining balance (except for Invoice Balance catch-all which shouldn't happen here usually)
     let finalAmount = Math.max(0, amount)

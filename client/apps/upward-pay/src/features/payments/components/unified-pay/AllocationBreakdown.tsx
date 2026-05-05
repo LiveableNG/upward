@@ -43,19 +43,18 @@ export function AllocationBreakdown({
         <div className="pay-breakdown__list">
           {effectiveAllocs.map(alloc => {
             const isPaid = lineItems.find(i => i.id === alloc.id)?.status === 'PAID'
-            if (isPaid) return null
             const pct = alloc.remaining > 0 ? Math.min(100, ((alloc.amountPaid + alloc.allocated) / alloc.totalAmount) * 100) : 100
 
             return (
-              <div key={alloc.id} className="pay-breakdown-item">
+              <div key={alloc.id} className={`pay-breakdown-item ${isPaid ? 'is-settled' : ''}`}>
                 <div className="pay-breakdown-item__row">
                   <div className="pay-breakdown-item__info">
                     <span className="pay-breakdown-item__name">{alloc.name}</span>
                     <span className="pay-breakdown-item__stats">
-                      {alloc.allocated >= alloc.remaining ? 'Full Settlement' : 'Partial Payment'}
+                      {isPaid ? 'Settled' : alloc.allocated >= alloc.remaining ? 'Full Settlement' : 'Partial Payment'}
                     </span>
                   </div>
-                  {canPayPartial && onAllocationChange && alloc.id !== -2 ? (
+                  {!isPaid && canPayPartial && onAllocationChange && alloc.id !== -2 && alloc.name !== 'Upward Processing Fee' ? (
                     <div className="pay-breakdown-item__action">
                       <div className="pay-breakdown-item__amount-container">
                         <span className="pay-breakdown-item__currency-small">{currency}</span>
@@ -74,13 +73,16 @@ export function AllocationBreakdown({
                       </span>
                     </div>
                   ) : (
-                    <span className="pay-breakdown-item__amount">
-                      {alloc.allocated > 0 ? formatCurrency(alloc.allocated, currency) : '—'}
-                    </span>
+                    <div className="pay-breakdown-item__final">
+                      <span className={`pay-breakdown-item__amount ${isPaid ? 'is-paid' : ''}`}>
+                        {isPaid ? formatCurrency(alloc.totalAmount, currency) : alloc.allocated > 0 ? formatCurrency(alloc.allocated, currency) : '—'}
+                      </span>
+                      {isPaid && <div className="pay-breakdown-item__check">✓</div>}
+                    </div>
                   )}
                 </div>
                 <div className="pay-breakdown-item__progress">
-                  <div className="pay-breakdown-item__bar" style={{ width: `${pct}%` }} />
+                  <div className={`pay-breakdown-item__bar ${isPaid ? 'is-paid' : ''}`} style={{ width: `${pct}%` }} />
                 </div>
               </div>
             )
@@ -220,6 +222,39 @@ export function AllocationBreakdown({
           opacity: 0.6;
         }
 
+        .pay-breakdown-item.is-settled {
+          background: rgba(0,0,0,0.01);
+          opacity: 0.7;
+        }
+        .pay-breakdown-item.is-settled:hover {
+          background: rgba(0,0,0,0.02);
+        }
+        .pay-breakdown-item__final {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .pay-breakdown-item__check {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: var(--clay);
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          font-weight: 900;
+          box-shadow: 0 4px 12px var(--clay-glow);
+        }
+        .pay-breakdown-item__amount.is-paid {
+          color: var(--clay);
+          font-weight: 900;
+        }
+        .pay-breakdown-item__bar.is-paid {
+          opacity: 1;
+          background: var(--clay);
+        }
         .pay-breakdown-item__action {
           display: flex;
           flex-direction: column;
