@@ -247,3 +247,21 @@ export class AddPropertyPayloadDto {
   @Type(() => UserPropertyContextDto)
   properties!: UserPropertyContextDto[]
 }
+
+export class CredibilityRecordDto {
+  @IsNumber()
+  amount!: number
+
+  @IsDateString()
+  dueDate!: string
+
+  @IsDateString()
+  paidDate!: string
+}
+
+export class FulfillCredibilityRequestDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CredibilityRecordDto)
+  records!: CredibilityRecordDto[]
+}
