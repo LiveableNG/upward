@@ -53,8 +53,6 @@ interface LineItemAllocation {
 
 function distributeAmount(amount: number, items: LineItemRecord[], totalOwed: number): LineItemAllocation[] {
   const itemSum = items.reduce((acc, i) => acc + Math.max(0, i.totalAmount - i.amountPaid), 0)
-  const discrepancy = Math.max(0, totalOwed - itemSum)
-
   const allocs: LineItemAllocation[] = items.map(i => ({
     id: i.id,
     name: i.name,
@@ -63,17 +61,6 @@ function distributeAmount(amount: number, items: LineItemRecord[], totalOwed: nu
     remaining: Math.max(0, i.totalAmount - i.amountPaid),
     allocated: 0
   }))
-
-  if (discrepancy > 0) {
-    allocs.push({
-      id: -1,
-      name: 'Invoice Balance',
-      totalAmount: discrepancy,
-      amountPaid: 0,
-      remaining: discrepancy,
-      allocated: 0
-    })
-  }
 
   let remaining = amount
   for (const item of allocs) {
