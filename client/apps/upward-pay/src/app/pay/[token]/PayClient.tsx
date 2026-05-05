@@ -245,19 +245,43 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     , [parsedAmount, lineItems, totalOwed])
 
   const effectiveAllocs: LineItemAllocation[] = useMemo(() => {
-    if (Object.keys(manualAllocs).length > 0) {
-      return autoAllocs.map(a => ({
-        ...a,
-        allocated: manualAllocs[a.id] !== undefined ? manualAllocs[a.id] : a.allocated
-      }))
+    if (Object.keys(manualAllocs).length === 0) {
+      return autoAllocs
     }
-    return autoAllocs
-  }, [autoAllocs, manualAllocs])
+
+    // Manual Override Mode: Priority Fee + Manual Overrides
+    const total = parsedAmount
+    const feeItem = lineItems.find(i => i.name === 'Upward Processing Fee' || i.id === -2)
+    const feeRemaining = feeItem ? Math.max(0, feeItem.totalAmount - feeItem.amountPaid) : 0
+    const feePayment = Math.min(total, feeRemaining)
+
+    return lineItems.map(item => {
+      const isFee = item.name === 'Upward Processing Fee' || item.id === -2
+      if (isFee) {
+        return {
+          id: item.id,
+          name: item.name,
+          totalAmount: item.totalAmount,
+          amountPaid: item.amountPaid,
+          remaining: feeRemaining,
+          allocated: feePayment
+        }
+      }
+      return {
+        id: item.id,
+        name: item.name,
+        totalAmount: item.totalAmount,
+        amountPaid: item.amountPaid,
+        remaining: Math.max(0, item.totalAmount - item.amountPaid),
+        allocated: manualAllocs[item.id] || 0
+      }
+    })
+  }, [autoAllocs, manualAllocs, lineItems, parsedAmount])
 
   const finalAmount = parsedAmount
 
   const finalLineItemPayments = effectiveAllocs
-    .filter(a => a.allocated > 0 && a.id !== -1)
+    .filter(a => a.allocated > 0)
     .map(a => ({ id: a.id, amountPaid: a.allocated, name: a.name }))
 
   const progressPct = totalOwed > 0
@@ -276,28 +300,22 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
   }
 
   const handleAllocationChange = (id: number, amount: number) => {
-    const item = effectiveAllocs.find(a => a.id === id)
-    if (!item || item.name === 'Upward Processing Fee' || item.id === -2) return
+    const item = lineItems.find(a => a.id === id)
+    if (!item || item.name === 'Upward Processing Fee' || item.id === -2 || item.status === 'PAID') return
 
-    // Cap at remaining balance (except for Invoice Balance catch-all which shouldn't happen here usually)
-    let finalAmount = Math.max(0, amount)
-    if (id !== -1 && finalAmount > item.remaining) {
-      finalAmount = item.remaining
-    }
+    // Cap at remaining balance
+    const remainingForThisItem = Math.max(0, item.totalAmount - item.amountPaid)
+    const finalAmountForThisItem = Math.min(Math.max(0, amount), remainingForThisItem)
 
-    const newManual = { ...manualAllocs }
-    
-    // Initialize from effectiveAllocs if empty
-    if (Object.keys(newManual).length === 0) {
-      effectiveAllocs.forEach(a => {
-        newManual[a.id] = a.allocated
-      })
-    }
-
-    newManual[id] = finalAmount
+    const newManual = { ...manualAllocs, [id]: finalAmountForThisItem }
     setManualAllocs(newManual)
     
-    const newTotal = Object.values(newManual).reduce((acc, val) => acc + val, 0)
+    // Calculate total: Sum of manual items + Fee
+    const manualSum = Object.values(newManual).reduce((acc, val) => acc + val, 0)
+    const feeItem = lineItems.find(i => i.name === 'Upward Processing Fee' || i.id === -2)
+    const feeRemaining = feeItem ? Math.max(0, feeItem.totalAmount - feeItem.amountPaid) : 0
+    
+    const newTotal = manualSum + feeRemaining
     setAmountInput(newTotal.toString())
   }
 
