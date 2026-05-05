@@ -108,6 +108,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [amountInput, setAmountInput] = useState('')
+  const [manualAllocs, setManualAllocs] = useState<Record<number, number>>({})
   const [showBreakdown, setShowBreakdown] = useState(false)
 
   const [formData, setFormData] = useState({
@@ -252,8 +253,14 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     , [parsedAmount, lineItems, totalOwed])
 
   const effectiveAllocs: LineItemAllocation[] = useMemo(() => {
+    if (Object.keys(manualAllocs).length > 0) {
+      return autoAllocs.map(a => ({
+        ...a,
+        allocated: manualAllocs[a.id] !== undefined ? manualAllocs[a.id] : a.allocated
+      }))
+    }
     return autoAllocs
-  }, [autoAllocs])
+  }, [autoAllocs, manualAllocs])
 
   const finalAmount = parsedAmount
 
@@ -266,6 +273,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     : 0
 
   const handleAmountChange = (val: string) => {
+    setManualAllocs({})
     let n = parseFloat(val) || 0
     if (n > totalOwed) {
       n = totalOwed
@@ -273,6 +281,32 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     } else {
       setAmountInput(val)
     }
+  }
+
+  const handleAllocationChange = (id: number, amount: number) => {
+    const item = effectiveAllocs.find(a => a.id === id)
+    if (!item) return
+
+    // Cap at remaining balance (except for Invoice Balance catch-all which shouldn't happen here usually)
+    let finalAmount = Math.max(0, amount)
+    if (id !== -1 && finalAmount > item.remaining) {
+      finalAmount = item.remaining
+    }
+
+    const newManual = { ...manualAllocs }
+    
+    // Initialize from effectiveAllocs if empty
+    if (Object.keys(newManual).length === 0) {
+      effectiveAllocs.forEach(a => {
+        newManual[a.id] = a.allocated
+      })
+    }
+
+    newManual[id] = finalAmount
+    setManualAllocs(newManual)
+    
+    const newTotal = Object.values(newManual).reduce((acc, val) => acc + val, 0)
+    setAmountInput(newTotal.toString())
   }
 
   const handlePaymentSuccess = async (reference: string) => {
@@ -432,6 +466,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                         effectiveAllocs={effectiveAllocs}
                         currency={currency}
                         lineItems={lineItems}
+                        canPayPartial={canPayPartial}
+                        onAllocationChange={handleAllocationChange}
                       />
                     </>
                   )}
@@ -456,6 +492,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                         effectiveAllocs={effectiveAllocs}
                         currency={currency}
                         lineItems={lineItems}
+                        canPayPartial={canPayPartial}
+                        onAllocationChange={handleAllocationChange}
                       />
                     </>
                   )}

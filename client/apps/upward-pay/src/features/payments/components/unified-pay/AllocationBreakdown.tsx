@@ -10,6 +10,8 @@ interface AllocationBreakdownProps {
   effectiveAllocs: any[]
   currency: string
   lineItems: any[]
+  canPayPartial?: boolean
+  onAllocationChange?: (id: number, amount: number) => void
 }
 
 export function AllocationBreakdown({
@@ -18,6 +20,8 @@ export function AllocationBreakdown({
   effectiveAllocs,
   currency,
   lineItems,
+  canPayPartial,
+  onAllocationChange
 }: AllocationBreakdownProps) {
   return (
     <div className="pay-breakdown">
@@ -51,9 +55,29 @@ export function AllocationBreakdown({
                       {alloc.allocated >= alloc.remaining ? 'Full Settlement' : 'Partial Payment'}
                     </span>
                   </div>
-                  <span className="pay-breakdown-item__amount">
-                    {alloc.allocated > 0 ? formatCurrency(alloc.allocated, currency) : '—'}
-                  </span>
+                  {canPayPartial && onAllocationChange && alloc.id !== -2 ? (
+                    <div className="pay-breakdown-item__action">
+                      <div className="pay-breakdown-item__amount-container">
+                        <span className="pay-breakdown-item__currency-small">{currency}</span>
+                        <input
+                          type="number"
+                          className="pay-breakdown-item__amount-input"
+                          value={alloc.allocated || ''}
+                          onChange={(e) => onAllocationChange(alloc.id, parseFloat(e.target.value) || 0)}
+                          onFocus={(e) => e.target.select()}
+                          max={alloc.remaining}
+                          min={0}
+                        />
+                      </div>
+                      <span className="pay-breakdown-item__limit">
+                        Max {formatCurrency(alloc.remaining, currency)}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="pay-breakdown-item__amount">
+                      {alloc.allocated > 0 ? formatCurrency(alloc.allocated, currency) : '—'}
+                    </span>
+                  )}
                 </div>
                 <div className="pay-breakdown-item__progress">
                   <div className="pay-breakdown-item__bar" style={{ width: `${pct}%` }} />
@@ -196,6 +220,47 @@ export function AllocationBreakdown({
           opacity: 0.6;
         }
 
+        .pay-breakdown-item__action {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
+        }
+        .pay-breakdown-item__limit {
+          font-size: 10px;
+          font-weight: 700;
+          color: var(--clay);
+          opacity: 0.8;
+          letter-spacing: 0.02em;
+        }
+        .pay-breakdown-item__amount-container {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .pay-breakdown-item__currency-small {
+          font-size: 10px;
+          font-weight: 800;
+          color: var(--text-muted);
+        }
+        .pay-breakdown-item__amount-input {
+          background: var(--surface);
+          border: 1px solid var(--border-solid);
+          border-radius: 8px;
+          padding: 6px 10px;
+          font-size: 14px;
+          font-weight: 950;
+          color: var(--text);
+          text-align: right;
+          width: 100px;
+          outline: none;
+          transition: all 0.2s;
+        }
+        .pay-breakdown-item__amount-input:focus {
+          border-color: var(--clay);
+          background: var(--bg);
+          box-shadow: 0 0 0 2px var(--clay-glow);
+        }
         .pay-breakdown-item__label-input {
           background: none;
           border: none;
