@@ -438,50 +438,6 @@ Triggered whenever a payment is made towards a request. Use the `status` field t
 Triggered when a tenant successfully signs up and activates their account via the invite link.
 
 #### Payload Structure
-```json
-{
-  "event": "invite.accepted",
-  "data": {
-    "userUuid": "b7a71853-2d7a-4399-af09-115a6c1406ce",
-    "customerEmail": "jane.doe@example.com",
-    "firstName": "Jane",
-    "lastName": "Doe",
-    "registeredAt": "2024-06-15T14:30:00Z"
-  }
-}
-```
-
-### Event: `past_tenancy_record.requested`
-Triggered when a tenant requests their past tenancy history for a property managed on your platform.
-
-#### Payload Structure
-```json
-{
-  "event": "past_tenancy_record.requested",
-  "data": {
-    "requestUuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "propertyUuid": "5cab404a-df37-4408-826b-e8b820e26fac",
-    "propertyAddress": "Bourdillon Road, Ikoyi",
-    "tenantName": "John Doe",
-    "tenantEmail": "john.doe@gmail.com",
-    "fillingPageLink": "https://upward.goodtenants.io/fill-record/3fa85f64-..."
-  }
-}
-```
-
----
-
-## 8. Constraints & Validation Rules
-
-To ensure a smooth integration, please adhere to the following technical constraints. Requests failing these rules will return a `400 Bad Request` or `409 Conflict`.
-
-### Platform Registration
-*   **Unique Email**: Each platform must be registered with a unique contact email.
-*   **Webhook URL**: A valid, accessible HTTPS URL is required to receive asynchronous updates.
-
-### Tenant Invitations & Adding Properties
-*   **Rent Details**: `rentAmount` and `rentEndDate` (ISO-8601) are strictly mandatory.
-*   **Identity**: The `email` field in the user object is the primary key. If a user with that email already exists, they will be linked to the new property.
 *   **Company/Manager Resolution**: 
     *   Providing a `uuid` will attempt to link to an existing record.
     *   If no `uuid` is provided, `name` (for companies) or `email` (for managers) is used to find or create the record. Full details are required for creation.
