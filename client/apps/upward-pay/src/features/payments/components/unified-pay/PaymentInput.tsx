@@ -52,8 +52,7 @@ export function PaymentInput({
             onChange={e => onAmountChange(e.target.value)}
             placeholder="0.00"
             min={0}
-            autoFocus={canPayPartial}
-            readOnly={!canPayPartial}
+            readOnly={true}
           />
           {!canPayPartial && (
             <div className="pay-amount-field__fixed-badge">
@@ -90,7 +89,7 @@ export function PaymentInput({
               { label: '25%', value: Math.round(totalOwed * 0.25) },
               { label: '50%', value: Math.round(totalOwed * 0.5) },
               { label: '75%', value: Math.round(totalOwed * 0.75) },
-              { label: 'Full', value: totalOwed },
+              { label: formatCurrency(totalOwed, currency), value: totalOwed },
             ].map(opt => (
               <button
                 key={opt.label}
