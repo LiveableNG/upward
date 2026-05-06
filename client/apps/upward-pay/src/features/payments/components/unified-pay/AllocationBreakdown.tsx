@@ -35,6 +35,9 @@ export function AllocationBreakdown({
       >
         <div className="pay-breakdown__header-left">
            <span className="pay-breakdown__label">Invoice Breakdown</span>
+           {canPayPartial && (
+             <span className="pay-breakdown__tip">Edit items to adjust payment</span>
+           )}
         </div>
         <ChevronDown size={14} className={`pay-breakdown__chevron ${showBreakdown ? 'is-open' : ''}`} />
       </div>
@@ -115,6 +118,16 @@ export function AllocationBreakdown({
           color: var(--text);
           text-transform: uppercase;
           letter-spacing: 0.05em;
+        }
+        .pay-breakdown__tip {
+          font-size: 9px;
+          font-weight: 700;
+          color: var(--clay);
+          background: var(--clay-faint);
+          padding: 2px 10px;
+          border-radius: 100px;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
         }
         .pay-breakdown__chevron {
           color: var(--text-muted);

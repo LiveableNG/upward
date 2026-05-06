@@ -46,8 +46,39 @@ export class CreateExternalPaymentRequestUseCase {
       throw new BadRequestException('Either userPropertyUuid or invite data must be provided')
     }
 
-    const amount = payload.amount || property.rentAmount
-    const currency = payload.currency || property.currency || 'NGN'
+    const UPWARD_FEE = 2000;
+    const isFirstPayment = (property.amountPaid || 0) === 0;
+
+    let amount = payload.amount || property.rentAmount;
+    const currency = payload.currency || property.currency || 'NGN';
+
+    // Ensure Upward Processing Fee is included in the first payment
+    if (isFirstPayment) {
+      const hasFee = payload.lineItems?.some(li => li.name === 'Upward Processing Fee');
+      if (!hasFee) {
+        const originalAmount = amount;
+        amount += UPWARD_FEE;
+        this.logger.log(`Added Upward Processing Fee (${UPWARD_FEE}) to the first payment request for property ${property.uuid}`);
+
+        if (!payload.lineItems || payload.lineItems.length === 0) {
+          payload.lineItems = [
+            { name: payload.description || 'Rent Payment', amount: originalAmount },
+            { name: 'Upward Processing Fee', amount: UPWARD_FEE }
+          ];
+        } else {
+          payload.lineItems.push({
+            name: 'Upward Processing Fee',
+            amount: UPWARD_FEE
+          });
+        }
+      }
+
+      // Fallback for minAmount if partial payments are allowed
+      if (payload.allowPartial && !payload.minAmount) {
+        payload.minAmount = UPWARD_FEE;
+        this.logger.log(`Set fallback minAmount to ${UPWARD_FEE} for first payment on property ${property.uuid}`);
+      }
+    }
 
     if (payload.minAmount && !payload.allowPartial) {
       throw new BadRequestException('minAmount can only be set if allowPartial is true')
