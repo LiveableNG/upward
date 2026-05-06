@@ -50,8 +50,12 @@ export class PrismaPaymentLineItemRepository implements IPaymentLineItemReposito
     return Promise.all(items.map((item) => this.create(item, tx)))
   }
 
-  async findByPaymentRequestId(paymentRequestId: number): Promise<PaymentLineItem[]> {
-    const rows = await this.prisma.upward_payment_line_item.findMany({
+  async findByPaymentRequestId(
+    paymentRequestId: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<PaymentLineItem[]> {
+    const prisma = tx || this.prisma
+    const rows = await prisma.upward_payment_line_item.findMany({
       where: { paymentRequestId },
       orderBy: { sortOrder: 'asc' },
     })

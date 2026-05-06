@@ -115,7 +115,7 @@ export interface PaymentLineItem {
 
 export interface IPaymentLineItemRepository {
   create(data: Omit<PaymentLineItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<PaymentLineItem>
-  findByPaymentRequestId(paymentRequestId: number): Promise<PaymentLineItem[]>
+  findByPaymentRequestId(paymentRequestId: number, tx?: Prisma.TransactionClient): Promise<PaymentLineItem[]>
   update(id: number, data: Partial<PaymentLineItem>, tx?: Prisma.TransactionClient): Promise<PaymentLineItem>
   bulkCreate(items: Omit<PaymentLineItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>[], tx?: Prisma.TransactionClient): Promise<PaymentLineItem[]>
   deleteByPaymentRequestId(paymentRequestId: number, tx?: Prisma.TransactionClient): Promise<void>
