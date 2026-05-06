@@ -53,8 +53,7 @@ export function AllocationBreakdown({
                 <div className="pay-breakdown-item__row">
                   <div className="pay-breakdown-item__info">
                     <span className="pay-breakdown-item__name">{alloc.name}</span>
-                    <span className="pay-break
-                    down-item__stats">
+                    <span className="pay-breakdown-item__stats">
                       {isPaid ? 'Settled' : alloc.allocated >= alloc.remaining ? 'Full Settlement' : 'Partial Payment'}
                     </span>
                   </div>
