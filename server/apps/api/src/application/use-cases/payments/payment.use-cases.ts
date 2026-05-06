@@ -287,6 +287,21 @@ export class RecordTransactionUseCase {
       }
 
       let upwardFeeAmount = 0;
+      let totalPrFee = 0;
+
+      if (pr) {
+        const prItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!);
+        const feeItem = prItems.find(i => i.name === 'Upward Processing Fee');
+        if (feeItem) {
+          totalPrFee = feeItem.totalAmount;
+          // For webhooks/manual payments without specific allocations, prioritize the fee
+          if (!data.lineItemPayments || data.lineItemPayments.length === 0) {
+            const remainingFee = Math.max(0, feeItem.totalAmount - feeItem.amountPaid);
+            upwardFeeAmount = Math.min(data.amount, remainingFee);
+          }
+        }
+      }
+
       if (data.lineItemPayments && Array.isArray(data.lineItemPayments)) {
         const fee = data.lineItemPayments.find(lp => lp.name === 'Upward Processing Fee');
         if (fee) upwardFeeAmount = Number(fee.amountPaid || 0);
@@ -322,7 +337,6 @@ export class RecordTransactionUseCase {
           }
         }
       }
-
       // 1. Create Transaction (SUCCESS or FAILED based on verification)
       const result = await this.txRepo.create({
         ...data,
@@ -335,7 +349,7 @@ export class RecordTransactionUseCase {
       this.logger.log(`Transaction recorded successfully with ID: ${result.id}`)
 
       if (isVerified && result.status === 'SUCCESS') {
-        rentPortion = paymentAmount;
+        rentPortion = Math.max(0, paymentAmount - upwardFeeAmount);
 
         // 2. Settle Payment Request
         if (pr) {
@@ -467,9 +481,16 @@ export class RecordTransactionUseCase {
             // Case B: Fallback to greedy distribution (if no specific payments OR if payment remains)
             if (remainingPayment > 0 && currentItems.length > 0) {
               // Re-fetch to get updated amountPaid if Case A ran
-              const itemsToAllocate = (itemsFromPayments && itemsFromPayments.length > 0)
+              let itemsToAllocate = (itemsFromPayments && itemsFromPayments.length > 0)
                 ? await this.lineItemRepo.findByPaymentRequestId(pr.id!)
                 : currentItems;
+
+              // Sort to ensure Upward Processing Fee is always settled first
+              itemsToAllocate = [...itemsToAllocate].sort((a, b) => {
+                if (a.name === 'Upward Processing Fee') return -1;
+                if (b.name === 'Upward Processing Fee') return 1;
+                return 0;
+              });
 
               for (const item of itemsToAllocate) {
                 if (remainingPayment <= 0) break;
@@ -627,7 +648,7 @@ export class RecordTransactionUseCase {
           const prop = await this.propertyRepo.findById(userPropertyIdToSettle)
           if (prop) {
             const totalRentPaidForProp = (prop.amountPaid || 0) + rentPortion
-            const totalOwedForProp = prop.rentAmount || (pr ? (pr.amount - (upwardFeeAmount || 0)) : 0)
+            const totalOwedForProp = prop.rentAmount || (pr ? (pr.amount - (totalPrFee || 0)) : 0)
             const newRemaining = Math.max(0, totalOwedForProp - totalRentPaidForProp)
 
             const updateData: any = {
