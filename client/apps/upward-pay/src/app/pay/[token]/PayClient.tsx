@@ -74,6 +74,16 @@ function distributeAmount(amount: number, items: LineItemRecord[], totalOwed: nu
   return allocs
 }
 
+function calculatePaystackFee(netAmount: number): number {
+  if (netAmount <= 0) return 0
+  const threshold = 2462.5
+  const isAboveThreshold = netAmount >= threshold
+  const gross = isAboveThreshold ? (netAmount + 100) / 0.985 : netAmount / 0.985
+  const fee = gross - netAmount
+  const cappedFee = Math.min(2000, fee)
+  return Math.ceil(cappedFee)
+}
+
 export default function PayClient({ overrideToken }: { overrideToken?: string }) {
   const router = useRouter()
   const params = useParams()
@@ -270,7 +280,12 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     })
   }, [autoAllocs, manualAllocs, lineItems, parsedAmount])
 
-  const finalAmount = parsedAmount
+  const gatewayFee = useMemo(() => {
+    if (currency !== 'NGN' || parsedAmount <= 0) return 0
+    return calculatePaystackFee(parsedAmount)
+  }, [parsedAmount, currency])
+
+  const finalAmount = parsedAmount + gatewayFee
 
   const finalLineItemPayments = effectiveAllocs
     .filter(a => a.allocated > 0)
@@ -314,9 +329,14 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
   const handlePaymentSuccess = async (reference: string) => {
     setStep('processing')
     try {
+      const lineItemPayments = [
+        ...finalLineItemPayments,
+        ...(gatewayFee > 0 ? [{ id: -100, name: 'Paystack Gateway Fee', amountPaid: gatewayFee }] : [])
+      ]
+
       const res = await api.post(`/payment-request/${uuid}/confirm`, {
         reference,
-        lineItemPayments: finalLineItemPayments
+        lineItemPayments
       })
       if (res.success) {
         success('Payment successful!')
@@ -470,6 +490,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                         lineItems={lineItems}
                         canPayPartial={canPayPartial}
                         onAllocationChange={handleAllocationChange}
+                        gatewayFee={gatewayFee}
                       />
                     </>
                   )}
@@ -496,6 +517,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                         lineItems={lineItems}
                         canPayPartial={canPayPartial}
                         onAllocationChange={handleAllocationChange}
+                        gatewayFee={gatewayFee}
                       />
                     </>
                   )}
@@ -792,6 +814,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             <PaystackEmbeddedCheckout
               email={paymentData.user.email}
               amount={finalAmount}
+              gatewayFee={gatewayFee}
               currency={currency}
               companyName={paymentData.company?.name}
               reference={generateId()}

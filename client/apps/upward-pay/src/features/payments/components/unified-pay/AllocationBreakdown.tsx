@@ -12,6 +12,7 @@ interface AllocationBreakdownProps {
   lineItems: any[]
   canPayPartial?: boolean
   onAllocationChange?: (id: number, amount: number) => void
+  gatewayFee?: number
 }
 
 export function AllocationBreakdown({
@@ -21,7 +22,8 @@ export function AllocationBreakdown({
   currency,
   lineItems,
   canPayPartial,
-  onAllocationChange
+  onAllocationChange,
+  gatewayFee = 0,
 }: AllocationBreakdownProps) {
   return (
     <div className="pay-breakdown">
@@ -90,7 +92,25 @@ export function AllocationBreakdown({
               </div>
             )
           })}
-
+          
+          {gatewayFee > 0 && (
+            <div className="pay-breakdown-item is-gateway-fee">
+              <div className="pay-breakdown-item__row">
+                <div className="pay-breakdown-item__info">
+                  <span className="pay-breakdown-item__name">Paystack Gateway Fee</span>
+                  <span className="pay-breakdown-item__stats">Applied by payment provider</span>
+                </div>
+                <div className="pay-breakdown-item__final">
+                  <span className="pay-breakdown-item__amount">
+                    {formatCurrency(gatewayFee, currency)}
+                  </span>
+                </div>
+              </div>
+              <div className="pay-breakdown-item__progress">
+                <div className="pay-breakdown-item__bar" style={{ width: '100%', opacity: 0.3 }} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
