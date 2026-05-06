@@ -32,7 +32,7 @@ export function PaymentInput({
       {canPayPartial && (
         <div className="pay-input-notice">
           <Info size={14} className="pay-input-notice__icon" />
-          <span className="pay-input-notice__text">Partial payments are accepted for this invoice.</span>
+          <span className="pay-input-notice__text">Partial payments are accepted. You can also edit line items below to adjust your total.</span>
         </div>
       )}
 
