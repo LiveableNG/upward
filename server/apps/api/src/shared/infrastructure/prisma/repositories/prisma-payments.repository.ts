@@ -334,6 +334,56 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
     private encryption: EncryptionService,
   ) {}
 
+  private get paymentRequestInclude() {
+    return {
+      subaccount: true,
+      userProperty: {
+        include: {
+          company: {
+            include: {
+              platform: true,
+            },
+          },
+          location: true,
+          manager: true,
+        },
+      },
+    }
+  }
+
+  private mapPaymentRequest(res: any): PaymentRequest {
+    if (!res) return null as any
+    return {
+      ...res,
+      description: res.description ? (res.description.includes(':') ? this.encryption.decrypt(res.description) : res.description) : res.description,
+      reference: res.reference ?? undefined,
+      userPropertyId: res.userPropertyId ?? undefined,
+      subaccountId: res.subaccountId ?? undefined,
+      subaccount: res.subaccount as unknown as PaystackSubaccount,
+      platformId: res.userProperty?.company?.platform?.id || res.userProperty?.company?.platformId,
+      platformName: res.userProperty?.company?.platform?.name,
+      userPropertyUuid: res.userProperty?.uuid,
+      companyName: res.userProperty?.company?.name 
+        ? (res.userProperty.company.name.includes(':') ? this.encryption.decrypt(res.userProperty.company.name) : res.userProperty.company.name)
+        : undefined,
+      managerName: res.userProperty?.manager
+        ? (this.encryption.decrypt(res.userProperty.manager.firstName) +
+          ' ' +
+          this.encryption.decrypt(res.userProperty.manager.lastName))
+        : undefined,
+      propertyLocation: res.userProperty?.location
+        ? [
+            res.userProperty.location.address,
+            res.userProperty.location.area,
+            res.userProperty.location.state,
+            res.userProperty.location.country,
+          ]
+            .filter(Boolean)
+            .join(', ')
+        : undefined,
+    } as unknown as PaymentRequest
+  }
+
   async create(
     data: Omit<PaymentRequest, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
     tx?: Prisma.TransactionClient,
@@ -355,194 +405,45 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
         subaccountId: data.subaccountId,
         isManual: data.isManual,
       },
+      include: this.paymentRequestInclude,
     })
-    return {
-      ...res,
-      description: res.description ?? undefined,
-      reference: res.reference ?? undefined,
-      userPropertyId: res.userPropertyId ?? undefined,
-      subaccountId: res.subaccountId ?? undefined,
-    } as unknown as PaymentRequest
+    return this.mapPaymentRequest(res)
   }
 
   async findById(id: number): Promise<PaymentRequest | null> {
     const res = await this.prisma.upward_payment_request.findUnique({
       where: { id },
-      include: {
-        subaccount: true,
-        userProperty: {
-          include: {
-            company: {
-              include: {
-                platform: true,
-              },
-            },
-            location: true,
-          },
-        },
-      },
+      include: this.paymentRequestInclude,
     })
     if (!res) return null
-    return {
-      ...res,
-      description: res.description ? (res.description.includes(':') ? this.encryption.decrypt(res.description) : res.description) : res.description,
-      reference: res.reference ?? undefined,
-      userPropertyId: res.userPropertyId ?? undefined,
-      subaccountId: res.subaccountId ?? undefined,
-      subaccount: res.subaccount as unknown as PaystackSubaccount,
-      platformId: (res.userProperty as any)?.company?.platform?.id,
-      userPropertyUuid: res.userProperty?.uuid,
-      companyName: (res.userProperty as any)?.company?.name,
-      managerName: (res.userProperty as any)?.manager
-        ? (this.encryption.decrypt((res.userProperty as any).manager.firstName) +
-          ' ' +
-          this.encryption.decrypt((res.userProperty as any).manager.lastName))
-        : undefined,
-      propertyLocation: res.userProperty?.location
-        ? [
-            res.userProperty.location.address,
-            res.userProperty.location.area,
-            res.userProperty.location.state,
-            res.userProperty.location.country,
-          ]
-            .filter(Boolean)
-            .join(', ')
-        : undefined,
-    } as unknown as PaymentRequest
+    return this.mapPaymentRequest(res)
   }
 
   async findByUuid(uuid: string): Promise<PaymentRequest | null> {
     const res = await this.prisma.upward_payment_request.findUnique({
       where: { uuid },
-      include: {
-        subaccount: true,
-        userProperty: {
-          include: {
-            company: {
-              include: {
-                platform: true,
-              },
-            },
-            location: true,
-          },
-        },
-      },
+      include: this.paymentRequestInclude,
     })
     if (!res) return null
-    return {
-      ...res,
-      description: res.description ? (res.description.includes(':') ? this.encryption.decrypt(res.description) : res.description) : res.description,
-      reference: res.reference ?? undefined,
-      userPropertyId: res.userPropertyId ?? undefined,
-      subaccountId: res.subaccountId ?? undefined,
-      subaccount: res.subaccount as unknown as PaystackSubaccount,
-      platformId: (res.userProperty as any)?.company?.platform?.id,
-      userPropertyUuid: res.userProperty?.uuid,
-      companyName: (res.userProperty as any)?.company?.name,
-      managerName: (res.userProperty as any)?.manager
-        ? (this.encryption.decrypt((res.userProperty as any).manager.firstName) +
-          ' ' +
-          this.encryption.decrypt((res.userProperty as any).manager.lastName))
-        : undefined,
-      propertyLocation: res.userProperty?.location
-        ? [
-            res.userProperty.location.address,
-            res.userProperty.location.area,
-            res.userProperty.location.state,
-            res.userProperty.location.country,
-          ]
-            .filter(Boolean)
-            .join(', ')
-        : undefined,
-    } as unknown as PaymentRequest
+    return this.mapPaymentRequest(res)
   }
 
   async findByUserId(userId: number): Promise<PaymentRequest[]> {
     const res = await this.prisma.upward_payment_request.findMany({
       where: { userId },
-      include: {
-        subaccount: true,
-        userProperty: {
-          include: {
-            company: true,
-            manager: true,
-            location: true,
-          },
-        },
-      },
+      include: this.paymentRequestInclude,
       orderBy: { createdAt: 'desc' },
     })
-    return res.map((r) => ({
-      ...r,
-      description: r.description ? (r.description.includes(':') ? this.encryption.decrypt(r.description) : r.description) : r.description,
-      reference: r.reference ?? undefined,
-      userPropertyId: r.userPropertyId ?? undefined,
-      companyName: (r.userProperty as any)?.company?.name
-        ? ((r.userProperty as any).company.name.includes(':') ? this.encryption.decrypt((r.userProperty as any).company.name) : (r.userProperty as any).company.name)
-        : undefined,
-      managerName: (r.userProperty as any)?.manager
-        ? (this.encryption.decrypt((r.userProperty as any).manager.firstName) +
-          ' ' +
-          this.encryption.decrypt((r.userProperty as any).manager.lastName))
-        : undefined,
-      propertyLocation: (r.userProperty as any)?.location
-        ? [
-            (r.userProperty as any).location.address,
-            (r.userProperty as any).location.area,
-            (r.userProperty as any).location.state,
-            (r.userProperty as any).location.country,
-          ]
-            .filter(Boolean)
-            .join(', ')
-        : undefined,
-      subaccountId: r.subaccountId ?? undefined,
-      subaccount: r.subaccount as unknown as PaystackSubaccount,
-      userPropertyUuid: (r.userProperty as any)?.uuid,
-    })) as unknown as PaymentRequest[]
+    return res.map((r) => this.mapPaymentRequest(r))
   }
 
   async findByUserIdAndStatus(userId: number, status: string): Promise<PaymentRequest[]> {
     const res = await this.prisma.upward_payment_request.findMany({
       where: { userId, status },
-      include: {
-        subaccount: true,
-        userProperty: {
-          include: {
-            company: true,
-            manager: true,
-            location: true,
-          },
-        },
-      },
+      include: this.paymentRequestInclude,
       orderBy: { createdAt: 'desc' },
     })
-    return res.map((r) => ({
-      ...r,
-      description: r.description ? (r.description.includes(':') ? this.encryption.decrypt(r.description) : r.description) : r.description,
-      reference: r.reference ?? undefined,
-      userPropertyId: r.userPropertyId ?? undefined,
-      companyName: (r.userProperty as any)?.company?.name
-        ? ((r.userProperty as any).company.name.includes(':') ? this.encryption.decrypt((r.userProperty as any).company.name) : (r.userProperty as any).company.name)
-        : undefined,
-      managerName: (r.userProperty as any)?.manager
-        ? (this.encryption.decrypt((r.userProperty as any).manager.firstName) +
-          ' ' +
-          this.encryption.decrypt((r.userProperty as any).manager.lastName))
-        : undefined,
-      propertyLocation: (r.userProperty as any)?.location
-        ? [
-            (r.userProperty as any).location.address,
-            (r.userProperty as any).location.area,
-            (r.userProperty as any).location.state,
-            (r.userProperty as any).location.country,
-          ]
-            .filter(Boolean)
-            .join(', ')
-        : undefined,
-      subaccountId: r.subaccountId ?? undefined,
-      subaccount: r.subaccount as unknown as PaystackSubaccount,
-      userPropertyUuid: (r.userProperty as any)?.uuid,
-    })) as unknown as PaymentRequest[]
+    return res.map((r) => this.mapPaymentRequest(r))
   }
 
   async update(
@@ -565,14 +466,9 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
         allowPartial: data.allowPartial,
         minAmount: data.minAmount,
       },
+      include: this.paymentRequestInclude,
     })
-    return {
-      ...res,
-      description: res.description ?? undefined,
-      reference: res.reference ?? undefined,
-      userPropertyId: res.userPropertyId ?? undefined,
-      subaccountId: res.subaccountId ?? undefined,
-    } as unknown as PaymentRequest
+    return this.mapPaymentRequest(res)
   }
 
   async delete(id: number, tx?: Prisma.TransactionClient): Promise<void> {
