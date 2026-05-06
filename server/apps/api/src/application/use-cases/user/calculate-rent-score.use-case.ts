@@ -173,7 +173,16 @@ export class CalculateRentScoreUseCase {
           longestStreak: longestStreak,
           totalCycles: allCycles.length,
           historyYears: parseFloat(yearsOfHistory.toFixed(1)),
-          discipline: D * 100
+          discipline: D * 100,
+          avgDaysLeadTime: (() => {
+            const paidCycles = scoredCycles.filter((c: any) => c.paidDate && (c.status === 'PAID_ON_TIME' || c.status === 'PAID_LATE'));
+            if (paidCycles.length === 0) return 0;
+            const totalLeadTime = paidCycles.reduce((acc, c) => {
+              const diff = c.dueDate.getTime() - c.paidDate!.getTime();
+              return acc + Math.floor(diff / (1000 * 60 * 60 * 24));
+            }, 0);
+            return Math.round(totalLeadTime / paidCycles.length);
+          })()
         },
         profile: {
           name: `${user.firstName} ${user.lastName}`,
@@ -251,7 +260,8 @@ export class CalculateRentScoreUseCase {
           longestStreak: 0,
           totalCycles: 0,
           historyYears: 0,
-          discipline: 0
+          discipline: 0,
+          avgDaysLeadTime: 0
         },
         profile: {
           name: `${user.firstName} ${user.lastName}`,
