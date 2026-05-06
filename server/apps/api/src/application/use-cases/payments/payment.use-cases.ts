@@ -422,12 +422,11 @@ export class RecordTransactionUseCase {
               currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!);
             }
 
-            // rentPortion = 0; // Removed: We initialize it to paymentAmount and only override if we have specific items
+            rentPortion = 0; 
             let remainingPayment = paymentAmount;
             const allocatedItems: any[] = [];
             let foundRentItem = false;
 
-            // Case A: Specific line item allocations provided by client
             if (pr && itemsFromPayments && Array.isArray(itemsFromPayments) && itemsFromPayments.length > 0) {
               for (const lp of itemsFromPayments) {
                 const item = currentItems.find(i => i.id === lp.id || i.name === lp.name);
@@ -763,8 +762,8 @@ export class RecordTransactionUseCase {
           let totalRentPaid = rentItems.reduce((sum, i) => sum + i.amountPaid, 0);
           let totalRentAmount = rentItems.reduce((sum, i) => sum + i.totalAmount, 0);
           
-          // Fallback if no specific rent items found (treat whole PR as rent if type is RENT)
-          if (rentItems.length === 0 && data.type === 'RENT') {
+          // Fallback if no specific line items found at all (treat whole PR as rent if type is RENT)
+          if (rentItems.length === 0 && currentItems.length === 0 && data.type === 'RENT') {
             totalRentPaid = pr.amountPaid || 0;
             totalRentAmount = pr.amount;
           }
