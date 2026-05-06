@@ -1,6 +1,5 @@
 'use client'
 
-import React from 'react'
 import { Info, AlertCircle, Check } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
@@ -79,26 +78,6 @@ export function PaymentInput({
           <div className="pay-input-feedback is-success">
             <Check size={14} />
             <span>Paying in full</span>
-          </div>
-        )}
-
-
-        {canPayPartial && (
-          <div className="pay-quick-select">
-            {[
-              { label: '25%', value: Math.round(totalOwed * 0.25) },
-              { label: '50%', value: Math.round(totalOwed * 0.5) },
-              { label: '75%', value: Math.round(totalOwed * 0.75) },
-              { label: formatCurrency(totalOwed, currency), value: totalOwed },
-            ].map(opt => (
-              <button
-                key={opt.label}
-                className={`pay-quick-select__btn ${amountNum === opt.value ? 'is-active' : ''}`}
-                onClick={() => onAmountChange(String(opt.value))}
-              >
-                {opt.label}
-              </button>
-            ))}
           </div>
         )}
       </div>
@@ -283,37 +262,6 @@ export function PaymentInput({
           font-size: 11px;
           font-weight: 800;
           text-transform: uppercase;
-        }
-
-        .pay-quick-select {
-          display: flex;
-          gap: 10px;
-          margin-top: 20px;
-        }
-        .pay-quick-select__btn {
-          flex: 1;
-          padding: 12px 0;
-          border-radius: 16px;
-          border: 1.5px solid var(--border-solid);
-          background: var(--bg);
-          font-size: 12px;
-          font-weight: 800;
-          color: var(--text-secondary);
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          cursor: pointer;
-        }
-        .pay-quick-select__btn:hover {
-          background: var(--surface);
-          color: var(--text);
-          border-color: var(--text-muted);
-        }
-
-        .pay-quick-select__btn.is-active {
-          background: var(--clay);
-          color: #fff;
-          border-color: var(--clay);
-          box-shadow: 0 8px 20px var(--clay-glow);
-          transform: translateY(-1px);
         }
       `}</style>
     </div>

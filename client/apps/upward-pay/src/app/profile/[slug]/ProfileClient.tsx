@@ -60,7 +60,7 @@ export default function ProfileClient() {
   const isFaded = !isScorable
   
   const streak = metrics.longestStreak
-  const onTime = Math.round(metrics.ptPercentage)
+  const avgLead = metrics.avgDaysLeadTime
   const savingsImpact = metrics.discipline
   const fullName = userData.name
 
@@ -153,12 +153,16 @@ export default function ProfileClient() {
 
               <div className="metrics-grid">
                 <div className="metric-card">
-                  <div className="metric-card__icon" style={{ color: '#22c55e' }}>
+                  <div className="metric-card__icon" style={{ color: avgLead >= 0 ? '#22c55e' : '#f59e0b' }}>
                     <CheckCircle2 size={22} />
                   </div>
                   <div className="metric-card__content">
-                    <span className="m-val">{onTime}%</span>
-                    <span className="m-lbl">On-Time Payment Rate</span>
+                    <span className="m-val">
+                      {avgLead === 0 ? 'On Time' : `${Math.abs(avgLead)} ${Math.abs(avgLead) === 1 ? 'Day' : 'Days'}`}
+                    </span>
+                    <span className="m-lbl">
+                      {avgLead === 0 ? 'Average Payment' : avgLead > 0 ? 'Before Due Date' : 'After Due Date'}
+                    </span>
                   </div>
                 </div>
                 <div className="metric-card">
