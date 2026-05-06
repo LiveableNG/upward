@@ -293,7 +293,7 @@ export class RecordTransactionUseCase {
       }
 
       if (upwardFeeAmount === 0 && pr) {
-        const prItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!);
+        const prItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!, txClient);
         const feeItem = prItems.find(i => i.name === 'Upward Processing Fee');
         if (feeItem) {
           const need = feeItem.totalAmount - feeItem.amountPaid;
@@ -356,7 +356,7 @@ export class RecordTransactionUseCase {
           const newAmountPaid = (pr.amountPaid || 0) + settlementPortion
           const newStatus = newAmountPaid >= pr.amount ? 'PAID' : 'PARTIAL'
 
-          await this.paymentRequestRepo.update(pr.id!, {
+          pr = await this.paymentRequestRepo.update(pr.id!, {
             amountPaid: Math.min(newAmountPaid, pr.amount),
             status: newStatus,
             paidAt: newStatus === 'PAID' ? new Date() : undefined,
@@ -409,7 +409,7 @@ export class RecordTransactionUseCase {
           const itemsFromPayments = data.lineItemPayments;
 
           if (pr || (itemsFromData && Array.isArray(itemsFromData))) {
-            let currentItems = pr ? await this.lineItemRepo.findByPaymentRequestId(pr.id!) : [];
+            let currentItems = pr ? await this.lineItemRepo.findByPaymentRequestId(pr.id!, txClient) : [];
 
             if (pr && currentItems.length === 0 && itemsFromData && Array.isArray(itemsFromData)) {
               await this.lineItemRepo.bulkCreate(itemsFromData.map((li: any) => ({
@@ -419,7 +419,7 @@ export class RecordTransactionUseCase {
                 amountPaid: 0,
                 status: 'PENDING'
               })), txClient);
-              currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!);
+              currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!, txClient);
             }
 
             rentPortion = 0; 
@@ -480,7 +480,7 @@ export class RecordTransactionUseCase {
             if (remainingPayment > 0 && currentItems.length > 0) {
               // Re-fetch to get updated amountPaid if Case A ran
               const itemsToAllocate = (itemsFromPayments && itemsFromPayments.length > 0)
-                ? await this.lineItemRepo.findByPaymentRequestId(pr.id!)
+                ? await this.lineItemRepo.findByPaymentRequestId(pr.id!, txClient)
                 : currentItems;
 
               for (const item of itemsToAllocate) {
@@ -756,7 +756,7 @@ export class RecordTransactionUseCase {
       if (result.status === 'SUCCESS' && pr?.platformId && rentPortion > 0) {
         try {
           // Calculate Rent-specific totals for the webhook
-          const currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!);
+          const currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!, txClient);
           const rentItems = currentItems.filter(i => i.name.toLowerCase().includes('rent'));
           
           let totalRentPaid = rentItems.reduce((sum, i) => sum + i.amountPaid, 0);
