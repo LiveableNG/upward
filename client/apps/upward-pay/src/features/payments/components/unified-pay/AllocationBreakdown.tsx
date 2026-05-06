@@ -53,11 +53,12 @@ export function AllocationBreakdown({
                 <div className="pay-breakdown-item__row">
                   <div className="pay-breakdown-item__info">
                     <span className="pay-breakdown-item__name">{alloc.name}</span>
-                    <span className="pay-breakdown-item__stats">
+                    <span className="pay-break
+                    down-item__stats">
                       {isPaid ? 'Settled' : alloc.allocated >= alloc.remaining ? 'Full Settlement' : 'Partial Payment'}
                     </span>
                   </div>
-                  {!isPaid && canPayPartial && onAllocationChange && alloc.id !== -2 && alloc.name !== 'Upward Processing Fee' ? (
+                  {!isPaid && canPayPartial && onAllocationChange && alloc.name !== 'Upward Processing Fee' ? (
                     <div className="pay-breakdown-item__action">
                       <div className="pay-breakdown-item__amount-container">
                         <span className="pay-breakdown-item__currency-small">{currency}</span>
