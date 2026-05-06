@@ -21,6 +21,7 @@ interface PaystackEmbeddedProps {
   //eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: any
   lineItems?: Array<{ name: string; amount: number }>
+  gatewayFee?: number
 }
 
 const PAYSTACK_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || ''
@@ -38,6 +39,7 @@ export default function PaystackEmbeddedCheckout({
   subaccount,
   metadata = {},
   lineItems = [],
+  gatewayFee = 0,
 }: PaystackEmbeddedProps) {
   const [init, setInit] = useState(false)
   const triggered = useRef(false)
@@ -50,12 +52,17 @@ export default function PaystackEmbeddedCheckout({
 
     const upwardFee = lineItems.find(i => (i as any).name === 'Upward Processing Fee' || (i as any).label === 'Upward Processing Fee');
     const totalAmountKobo = Math.round((amount || 0) * 100);
-    const transactionCharge = upwardFee ? Math.min(2000 * 100, totalAmountKobo) : undefined;
+    
+    const upwardFeeKobo = upwardFee ? Math.round((upwardFee as any).amount * 100) : 0;
+    const gatewayFeeKobo = Math.round((gatewayFee || 0) * 100);
+    const transactionCharge = (upwardFeeKobo > 0 || gatewayFeeKobo > 0) 
+      ? Math.min(upwardFeeKobo + gatewayFeeKobo, totalAmountKobo) 
+      : undefined;
 
     return {
       reference: reference || generateId(),
       email: email,
-      amount: Math.round((amount || 0) * 100), // Paystack expects Kobo as integer
+      amount: totalAmountKobo,
       publicKey: PAYSTACK_PUBLIC_KEY,
       currency: currency || 'NGN',
       channels: ['bank_transfer'],

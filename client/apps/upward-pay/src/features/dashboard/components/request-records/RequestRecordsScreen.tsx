@@ -332,7 +332,17 @@ export function RequestRecordsScreen() {
                                       <span className="amount">{formatCurrency(rec.amount, 'NGN')}</span>
                                     </div>
                                     <div className={`record-mini-badge ${rec.isLate ? 'late' : 'on-time'}`}>
-                                      {rec.isLate ? 'Late' : 'On-Time'}
+                                      {(() => {
+                                        if (rec.paidAt && rec.dueDate) {
+                                          const dueDate = new Date(rec.dueDate);
+                                          const paidAt = new Date(rec.paidAt);
+                                          const diffTime = dueDate.getTime() - paidAt.getTime();
+                                          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                                          if (!rec.isLate && diffDays > 0) return `${diffDays} days before due date`;
+                                          if (rec.isLate && diffDays < 0) return `${Math.abs(diffDays)} days after due date`;
+                                        }
+                                        return rec.isLate ? 'Late' : 'On-Time';
+                                      })()}
                                     </div>
                                   </div>
                                 ))}

@@ -303,7 +303,21 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                             </p>
                           </div>
                           <span className={`${t.ptValue >= 1 ? 'status-tag--perfect' : t.ptValue >= 0.7 ? 'status-tag--grace' : 'status-tag--late'} kyc-report__status-tag`}>
-                             {t.ptValue >= 1 ? 'On-Time' : t.ptValue >= 0.7 ? 'Grace' : 'Late'}
+                             {(() => {
+                               const isPerfect = t.ptValue >= 1;
+                               const isGrace = t.ptValue >= 0.7 && t.ptValue < 1;
+                               const isLate = t.ptValue < 0.7;
+                               if (isGrace) return 'Grace';
+                               if (t.paidDate && t.dueDate) {
+                                 const dueDate = new Date(t.dueDate);
+                                 const paidDate = new Date(t.paidDate);
+                                 const diffTime = dueDate.getTime() - paidDate.getTime();
+                                 const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                                 if (isPerfect && diffDays > 0) return `${diffDays} days before due date`;
+                                 if (isLate && diffDays < 0) return `${Math.abs(diffDays)} days after due date`;
+                               }
+                               return isPerfect ? 'On-Time' : 'Late';
+                             })()}
                           </span>
                         </div>
                       </div>
