@@ -25,7 +25,7 @@ export function AllocationBreakdown({
 }: AllocationBreakdownProps) {
   return (
     <div className="pay-breakdown">
-      <div 
+      <div
         className="pay-breakdown__header"
         onClick={() => {
           if (window.innerWidth < 1024) {
@@ -34,10 +34,10 @@ export function AllocationBreakdown({
         }}
       >
         <div className="pay-breakdown__header-left">
-           <span className="pay-breakdown__label">Invoice Breakdown</span>
-           {canPayPartial && (
-             <span className="pay-breakdown__tip">Edit items to adjust payment</span>
-           )}
+          <span className="pay-breakdown__label">Invoice Breakdown</span>
+          {canPayPartial && (
+            <span className="pay-breakdown__tip">Edit items to adjust payment</span>
+          )}
         </div>
         <ChevronDown size={14} className={`pay-breakdown__chevron ${showBreakdown ? 'is-open' : ''}`} />
       </div>
@@ -92,7 +92,7 @@ export function AllocationBreakdown({
               </div>
             )
           })}
-          
+
 
         </div>
       </div>
