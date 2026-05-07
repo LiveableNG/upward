@@ -17,7 +17,6 @@ import {
 import { usePaymentRequests } from '../../hooks/usePayments'
 import { useProperties } from '../../hooks/useProperties'
 import { useToast } from '@/components/common/Toast'
-import '@/styles/payments.css'
 
 function PaymentsTable({ searchQuery, dateFilter, requestsOverride }: { searchQuery: string, dateFilter: string, requestsOverride?: any[] }) {
   const { data: initialRequests } = usePaymentRequests()

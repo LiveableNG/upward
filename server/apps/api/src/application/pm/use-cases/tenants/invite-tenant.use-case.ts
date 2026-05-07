@@ -35,6 +35,10 @@ export class InviteTenantUseCase {
       throw new Error('Tenant has no email address');
     }
 
+    if (tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED') {
+      throw new Error('Tenant is already on Upward. No reminder needed.');
+    }
+
     const pm = await this.pmRepo.findById(pmId);
     if (!pm) throw new NotFoundException('Property Manager not found');
 

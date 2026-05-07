@@ -13,10 +13,14 @@ import {
   PlusCircle,
   Clock,
   MapPin,
-  Globe
+  Globe,
+  MoreVertical,
+  UserPlus,
+  Unlink
 } from 'lucide-react'
 import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useAddUnitPayment } from '@/features/pm/hooks/useProperties'
 import { usePaymentRequests } from '@/features/pm/hooks/usePayments'
+import { useTenants, useTenantActions } from '@/features/pm/hooks/useTenants'
 import { TenantAssignmentSection } from '@/features/pm/components/tenants/TenantAssignmentSection'
 import { AddRentRecordModal } from '@/features/pm/components/properties/modals/AddRentRecordModal'
 import { useToast } from '@/components/common/Toast'
@@ -32,12 +36,18 @@ function UnitDetailContent() {
   const { data: unit } = useUnit(uuid as string)
   const { data: payments = [] } = useUnitPayments(uuid as string)
   const { data: allRequests = [] } = usePaymentRequests()
+  const { data: tenants = [] } = useTenants()
+  const { assignTenant, unassignTenant } = useTenantActions()
+  
   const updateUnitMutation = useUpdateUnit()
   const deleteUnitMutation = useDeleteUnit()
   const addPaymentMutation = useAddUnitPayment()
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
+  const [isUnassignConfirmOpen, setIsUnassignConfirmOpen] = useState(false)
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const [formData, setFormData] = useState<any>(() => ({
     unitName: unit.unitName,
@@ -72,6 +82,34 @@ function UnitDetailContent() {
         setIsEditing(false)
       },
       onError: () => error('Failed to update unit')
+    })
+  }
+
+  const handleUnassign = () => {
+    if (unit?.tenant?.uuid) {
+      unassignTenant.mutate({ 
+        tenantUuid: unit.tenant.uuid, 
+        unitUuid: uuid as string 
+      }, {
+        onSuccess: () => {
+          setIsUnassignConfirmOpen(false)
+          info('Tenant unassigned')
+        },
+        onError: () => error('Failed to unassign tenant')
+      })
+    }
+  }
+
+  const handleAssign = (tenantUuid: string) => {
+    assignTenant.mutate({ 
+      tenantUuid, 
+      unitUuid: uuid as string 
+    }, {
+      onSuccess: () => {
+        setIsAssignModalOpen(false)
+        success('Tenant assigned successfully')
+      },
+      onError: () => error('Failed to assign tenant')
     })
   }
 
@@ -111,18 +149,108 @@ function UnitDetailContent() {
             <ChevronLeft size={16} /> Back
           </button>
           
-          <div className="unit-detail__actions">
+          <div className="unit-detail__actions" style={{ position: 'relative' }}>
             <button className="btn btn--primary" onClick={() => setIsEditing(!isEditing)} style={{ borderRadius: 100 }}>
               <Save size={16} style={{ marginRight: 6 }}/> {isEditing ? 'Save Changes' : 'Edit Unit'}
             </button>
+            
             <button 
               className="btn btn--secondary btn--icon" 
-              onClick={() => setIsDeleteConfirmOpen(true)}
-              title="Delete Unit"
-              style={{ borderRadius: '50%' }}
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              style={{ borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              <Trash2 size={16} />
+              <MoreVertical size={20} />
             </button>
+
+            {isMenuOpen && (
+              <>
+                <div 
+                  style={{ position: 'fixed', inset: 0, zIndex: 90 }} 
+                  onClick={() => setIsMenuOpen(false)} 
+                />
+                <div className="glass shadow-lg" style={{ 
+                  position: 'absolute', 
+                  top: '100%', 
+                  right: 0, 
+                  marginTop: 8, 
+                  width: 220, 
+                  zIndex: 100, 
+                  borderRadius: 12, 
+                  padding: 8,
+                  border: '1px solid var(--border)'
+                }}>
+                  {unit?.tenant ? (
+                    <button 
+                      className="dropdown-item" 
+                      onClick={() => {
+                        setIsMenuOpen(false)
+                        setIsUnassignConfirmOpen(true)
+                      }}
+                      style={{ 
+                        width: '100%', 
+                        textAlign: 'left', 
+                        padding: '10px 12px', 
+                        borderRadius: 8, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 10,
+                        fontSize: 13,
+                        color: 'var(--text)'
+                      }}
+                    >
+                      <Unlink size={16} color="var(--error)" />
+                      Remove Tenant
+                    </button>
+                  ) : (
+                    <button 
+                      className="dropdown-item" 
+                      onClick={() => {
+                        setIsMenuOpen(false)
+                        setIsAssignModalOpen(true)
+                      }}
+                      style={{ 
+                        width: '100%', 
+                        textAlign: 'left', 
+                        padding: '10px 12px', 
+                        borderRadius: 8, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 10,
+                        fontSize: 13,
+                        color: 'var(--text)'
+                      }}
+                    >
+                      <UserPlus size={16} color="var(--forest)" />
+                      Assign Tenant
+                    </button>
+                  )}
+                  
+                  <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+                  
+                  <button 
+                    className="dropdown-item" 
+                    onClick={() => {
+                      setIsMenuOpen(false)
+                      setIsDeleteConfirmOpen(true)
+                    }}
+                    style={{ 
+                      width: '100%', 
+                      textAlign: 'left', 
+                      padding: '10px 12px', 
+                      borderRadius: 8, 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 10,
+                      fontSize: 13,
+                      color: 'var(--error)'
+                    }}
+                  >
+                    <Trash2 size={16} />
+                    Delete Unit
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -381,6 +509,58 @@ function UnitDetailContent() {
         type="danger"
         isPending={deleteUnitMutation.isPending}
       />
+
+      <ConfirmationModal 
+        isOpen={isUnassignConfirmOpen}
+        onClose={() => setIsUnassignConfirmOpen(false)}
+        onConfirm={handleUnassign}
+        title="Remove Tenant"
+        message={`Are you sure you want to remove ${unit?.tenant?.firstName} from this unit? They will no longer be linked to this residence.`}
+        confirmText="Remove Tenant"
+        type="danger"
+        isPending={unassignTenant.isPending}
+      />
+
+      {isAssignModalOpen && (
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div className="glass" style={{ width: '100%', maxWidth: 450, borderRadius: 24, padding: 32, background: 'white' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <h3 style={{ fontSize: 20, fontWeight: 700 }}>Assign Tenant</h3>
+              <button onClick={() => setIsAssignModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: 'var(--text-muted)' }}>&times;</button>
+            </div>
+            
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 24 }}>Select a tenant to assign to <strong>{unit?.unitName}</strong></p>
+            
+            <div style={{ maxHeight: 350, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 16 }}>
+              {tenants.map(tenant => (
+                <div 
+                  key={tenant.uuid} 
+                  onClick={() => handleAssign(tenant.uuid)}
+                  style={{ 
+                    padding: '16px', 
+                    borderBottom: '1px solid var(--border)', 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s'
+                  }}
+                  className="hover-bg-faint"
+                >
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{tenant.firstName} {tenant.lastName}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tenant.email}</div>
+                  </div>
+                  <UserPlus size={16} color="var(--forest)" />
+                </div>
+              ))}
+              {tenants.length === 0 && (
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No tenants available.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .unit-detail {

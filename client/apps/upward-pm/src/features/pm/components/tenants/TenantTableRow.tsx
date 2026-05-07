@@ -1,4 +1,5 @@
 import React from 'react'
+import { useRouter } from 'next/navigation'
 import { Mail, Phone, Building2, Send, CheckCircle2, Loader2 } from 'lucide-react'
 import { Tenant } from '../../services/tenantService'
 import { useTenantActions } from '../../hooks/useTenants'
@@ -11,6 +12,7 @@ interface TenantTableRowProps {
 }
 
 export const TenantTableRow: React.FC<TenantTableRowProps> = ({ tenant, isSelected, onSelect }) => {
+  const router = useRouter()
   const { inviteTenant } = useTenantActions()
 
   const getInitials = (firstName: string | null, lastName: string | null) => {
@@ -29,7 +31,7 @@ export const TenantTableRow: React.FC<TenantTableRowProps> = ({ tenant, isSelect
   return (
     <tr 
       className={`tenant-table-row ${isSelected ? 'selected' : ''}`} 
-      onClick={() => onSelect?.(tenant.uuid, !isSelected)}
+      onClick={() => router.push(`/tenants/${tenant.uuid}`)}
       style={{ cursor: 'pointer' }}
     >
       <td style={{ padding: '20px 32px' }}>
@@ -75,28 +77,61 @@ export const TenantTableRow: React.FC<TenantTableRowProps> = ({ tenant, isSelect
         )}
       </td>
       <td className="col-actions" style={{ padding: '20px 32px', textAlign: 'right' }}>
-        <button 
-          style={{ 
-            background: 'transparent', 
-            border: 'none', 
-            color: 'var(--dark)', 
-            cursor: 'pointer',
-            padding: 8,
-            borderRadius: 8,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-          onClick={(e) => {
-            e.stopPropagation()
-            // Toggle menu or navigate
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <div style={{ width: 18, height: 2, background: 'currentColor', borderRadius: 2 }} />
-            <div style={{ width: 14, height: 2, background: 'currentColor', borderRadius: 2, marginLeft: 'auto' }} />
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
+          {isOnUpward ? (
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 6, 
+              color: 'var(--forest)', 
+              background: 'var(--forest-faint)', 
+              padding: '6px 12px', 
+              borderRadius: 20,
+              fontSize: 12,
+              fontWeight: 700
+            }}>
+              <CheckCircle2 size={14} />
+              ON UPWARD
+            </div>
+          ) : (
+            <button 
+              className="btn btn--sm"
+              onClick={handleInvite}
+              disabled={inviteTenant.isPending}
+              style={{ 
+                fontSize: 12, 
+                padding: '6px 16px',
+                background: tenant.inviteSentAt ? 'var(--ivory-dark)' : 'var(--forest)',
+                color: tenant.inviteSentAt ? 'var(--text-muted)' : 'white'
+              }}
+            >
+              {inviteTenant.isPending ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : tenant.inviteSentAt ? (
+                'Remind'
+              ) : (
+                'Invite'
+              )}
+            </button>
+          )}
+          
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            padding: 4, 
+            cursor: 'pointer' 
+          }} onClick={(e) => {
+            e.stopPropagation();
+            onSelect?.(tenant.uuid, !isSelected);
+          }}>
+             <input 
+               type="checkbox" 
+               checked={isSelected} 
+               onChange={() => {}} 
+               style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--forest)' }} 
+             />
           </div>
-        </button>
+        </div>
       </td>
     </tr>
   )

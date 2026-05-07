@@ -10,6 +10,9 @@ import "../styles/dashboard.css";
 import "../styles/settings.css";
 import "../styles/splash.css";
 import "../styles/properties.css";
+import "../styles/tenants.css";
+import "../styles/payments.css";
+import "../styles/toast.css";
 
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileHeader } from "@/components/layout/MobileHeader";

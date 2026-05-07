@@ -56,6 +56,7 @@ export const useTenantActions = () => {
       queryClient.invalidateQueries({ queryKey: ['tenants'] })
       queryClient.invalidateQueries({ queryKey: ['tenant', variables.tenantUuid] })
       queryClient.invalidateQueries({ queryKey: ['pm-units'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-unit'] })
       toast.success('Tenant assigned successfully')
     },
     onError: (error: any) => {
@@ -70,6 +71,7 @@ export const useTenantActions = () => {
       queryClient.invalidateQueries({ queryKey: ['tenants'] })
       queryClient.invalidateQueries({ queryKey: ['tenant', variables.tenantUuid] })
       queryClient.invalidateQueries({ queryKey: ['pm-units'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-unit'] })
       toast.success('Tenant unassigned successfully')
     },
     onError: (error: any) => {
@@ -94,7 +96,7 @@ export const useTenantActions = () => {
     mutationFn: (tenantUuids: string[]) => tenantService.bulkInvite(tenantUuids),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenants'] })
-      toast.success('Bulk invitation process started in background')
+      toast.success('Tenant reminders are being processed.')
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to start bulk invitation')

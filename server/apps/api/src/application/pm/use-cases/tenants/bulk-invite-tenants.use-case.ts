@@ -21,18 +21,21 @@ export class BulkInviteTenantsUseCase {
   async execute(pmId: number, dto: BulkInviteDto): Promise<{ bulkInviteId: string }> {
     const { tenantUuids } = dto;
 
-    if (!tenantUuids || tenantUuids.length === 0) {
-      throw new Error('No tenants selected for invitation');
+    const tenants = await this.tenantRepo.findByUuids(tenantUuids);
+    const eligibleTenants = tenants.filter(t => t.inviteStatus !== 'ON_UPWARD' && t.inviteStatus !== 'ACCEPTED');
+
+    if (eligibleTenants.length === 0) {
+      throw new Error('No eligible tenants selected for invitation. Selected tenants are already on Upward.');
     }
     
     const bulkInvite = await this.bulkInviteRepo.create({
       pmId,
       status: 'PENDING',
-      totalTenants: tenantUuids.length,
+      totalTenants: eligibleTenants.length,
       sentCount: 0,
       failedCount: 0,
-      items: tenantUuids.map(uuid => ({
-        tenantUuid: uuid,
+      items: eligibleTenants.map(t => ({
+        tenantUuid: t.uuid,
         status: 'PENDING',
         retries: 0,
       })) as any

@@ -20,7 +20,7 @@ export const ImportModeModal: React.FC<ImportModeModalProps> = ({ isOpen, onClos
       error("No properties found. Please use Full Import or add a property first.")
       return
     }
-    router.push(`/properties/import?mode=${mode}`)
+    router.push(`/settings?tab=import&mode=${mode}`)
     onClose()
   }
 
