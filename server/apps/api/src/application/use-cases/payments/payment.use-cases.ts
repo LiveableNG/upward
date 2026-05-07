@@ -291,13 +291,13 @@ export class RecordTransactionUseCase {
 
       let upwardFeeAmount = 0;
       if (data.lineItemPayments && Array.isArray(data.lineItemPayments)) {
-        const fee = data.lineItemPayments.find(lp => lp.name === 'Upward Processing Fee');
+        const fee = data.lineItemPayments.find(lp => ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(lp.name || ''));
         if (fee) upwardFeeAmount = Number(fee.amountPaid || 0);
       }
 
       if (upwardFeeAmount === 0 && pr) {
         const prItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!, txClient);
-        const feeItem = prItems.find(i => i.name === 'Upward Processing Fee' || i.name === 'Upward & Provider Fee');
+        const feeItem = prItems.find(i => ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name));
         if (feeItem) {
           const need = feeItem.totalAmount - feeItem.amountPaid;
           if (need > 0) {
@@ -578,8 +578,8 @@ export class RecordTransactionUseCase {
                 });
                 if (upwardFeeAmount > 0) {
                   allocatedItems.push({
-                    name: 'Upward Processing Fee',
-                    label: 'Upward Processing Fee',
+                    name: 'Processing Fee',
+                    label: 'Processing Fee',
                     amount: upwardFeeAmount,
                     category: 'Package'
                   });

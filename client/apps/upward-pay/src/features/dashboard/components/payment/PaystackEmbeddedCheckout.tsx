@@ -50,7 +50,10 @@ export default function PaystackEmbeddedCheckout({
         ? `Breakdown: ${lineItems.map((item) => `${item.name} (N${item.amount.toLocaleString()})`).join(', ')}`
         : `${paymentType || 'Rent payment'} for ${propertyAddress || companyName}`
 
-    const upwardFee = lineItems.find(i => (i as any).name === 'Upward Processing Fee' || (i as any).label === 'Upward Processing Fee');
+    const upwardFee = lineItems.find(i => 
+      ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes((i as any).name) || 
+      ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes((i as any).label)
+    );
     const totalAmountKobo = Math.round((amount || 0) * 100);
     
     const upwardFeeKobo = upwardFee ? Math.round((upwardFee as any).amount * 100) : 0;

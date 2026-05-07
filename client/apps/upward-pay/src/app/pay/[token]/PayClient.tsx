@@ -74,15 +74,7 @@ function distributeAmount(amount: number, items: LineItemRecord[], totalOwed: nu
   return allocs
 }
 
-function calculatePaystackFee(netAmount: number): number {
-  if (netAmount <= 0) return 0
-  const threshold = 2462.5
-  const isAboveThreshold = netAmount >= threshold
-  const gross = isAboveThreshold ? (netAmount + 100) / 0.985 : netAmount / 0.985
-  const fee = gross - netAmount
-  const cappedFee = Math.min(2000, fee)
-  return Math.ceil(cappedFee)
-}
+
 
 export default function PayClient({ overrideToken }: { overrideToken?: string }) {
   const router = useRouter()
@@ -190,7 +182,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
         let items = (res.data.payment.lineItemRecords || []) as LineItemRecord[]
         
         // Ensure Processing Fee is present and at the very top for priority allocation
-        const feeIndex = items.findIndex(i => i.name === 'Upward Processing Fee' || i.name === 'Upward & Provider Fee')
+        const feeIndex = items.findIndex(i => ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name))
         if (feeIndex > -1) {
           const [fee] = items.splice(feeIndex, 1)
           items = [fee, ...items]
@@ -253,12 +245,12 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
     // Manual Override Mode: Priority Fee + Manual Overrides
     const total = parsedAmount
-    const feeItem = lineItems.find(i => i.name === 'Upward Processing Fee' || i.name === 'Upward & Provider Fee' || i.id === -2)
+    const feeItem = lineItems.find(i => ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name) || i.id === -2)
     const feeRemaining = feeItem ? Math.max(0, feeItem.totalAmount - feeItem.amountPaid) : 0
     const feePayment = Math.min(total, feeRemaining)
 
     return lineItems.map(item => {
-      const isFee = item.name === 'Upward Processing Fee' || item.name === 'Upward & Provider Fee' || item.id === -2
+      const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name) || item.id === -2
       if (isFee) {
         return {
           id: item.id,
@@ -280,12 +272,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     })
   }, [autoAllocs, manualAllocs, lineItems, parsedAmount])
 
-  const gatewayFee = useMemo(() => {
-    if (currency !== 'NGN' || parsedAmount <= 0) return 0
-    return calculatePaystackFee(parsedAmount)
-  }, [parsedAmount, currency])
 
-  const finalAmount = parsedAmount + gatewayFee
 
   const finalLineItemPayments = effectiveAllocs
     .filter(a => a.allocated > 0)
@@ -308,7 +295,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
   const handleAllocationChange = (id: number, amount: number) => {
     const item = lineItems.find(a => a.id === id)
-    if (!item || item.name === 'Upward Processing Fee' || item.name === 'Upward & Provider Fee' || item.id === -2 || item.status === 'PAID') return
+    if (!item || ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name) || item.id === -2 || item.status === 'PAID') return
 
     // Cap at remaining balance
     const remainingForThisItem = Math.max(0, item.totalAmount - item.amountPaid)
@@ -319,7 +306,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     
     // Calculate total: Sum of manual items + Fee
     const manualSum = Object.values(newManual).reduce((acc, val) => acc + val, 0)
-    const feeItem = lineItems.find(i => i.name === 'Upward Processing Fee' || i.name === 'Upward & Provider Fee' || i.id === -2)
+    const feeItem = lineItems.find(i => ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name) || i.id === -2)
     const feeRemaining = feeItem ? Math.max(0, feeItem.totalAmount - feeItem.amountPaid) : 0
     
     const newTotal = manualSum + feeRemaining
@@ -331,14 +318,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     try {
       let lineItemPayments = [...finalLineItemPayments]
       
-      // Merge gatewayFee into 'Upward & Provider Fee' if it exists, otherwise send as separate
-      const feeItemIdx = lineItemPayments.findIndex(lp => lp.name === 'Upward & Provider Fee' || lp.name === 'Upward Processing Fee')
-      
-      if (feeItemIdx > -1 && gatewayFee > 0) {
-        lineItemPayments[feeItemIdx].amountPaid += gatewayFee
-      } else if (gatewayFee > 0) {
-        lineItemPayments.push({ id: -100, name: 'Paystack Gateway Fee', amountPaid: gatewayFee } as any)
-      }
+
 
       const res = await api.post(`/payment-request/${uuid}/confirm`, {
         reference,
@@ -410,7 +390,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
       const ctaLabel = () => {
         if (parsedAmount === 0) return 'Enter amount to continue'
         if (isBelowMin) return `Minimum is ${formatCurrency(minRequired, currency)}`
-        return `Pay ${formatCurrency(finalAmount, currency)} now`
+        return `Pay ${formatCurrency(parsedAmount, currency)} now`
       }
 
       const ctaDisabled = !isValidAmount
@@ -496,7 +476,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                         lineItems={lineItems}
                         canPayPartial={canPayPartial}
                         onAllocationChange={handleAllocationChange}
-                        gatewayFee={gatewayFee}
                       />
                     </>
                   )}
@@ -523,7 +502,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                         lineItems={lineItems}
                         canPayPartial={canPayPartial}
                         onAllocationChange={handleAllocationChange}
-                        gatewayFee={gatewayFee}
                       />
                     </>
                   )}
@@ -819,8 +797,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
           <div className="w-full max-w-[500px] bg-white rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
             <PaystackEmbeddedCheckout
               email={paymentData.user.email}
-              amount={finalAmount}
-              gatewayFee={gatewayFee}
+              amount={parsedAmount}
+              gatewayFee={0}
               currency={currency}
               companyName={paymentData.company?.name}
               reference={generateId()}
@@ -845,7 +823,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
           companyName={paymentData.company?.name || 'Upward Platform'}
           handleActivation={handleActivation}
           type={paymentData.payment?.amount === paymentData.payment?.amountPaid ? 'invite' : 'payment'}
-          remainingBalance={totalOwed - finalAmount}
+          remainingBalance={totalOwed - parsedAmount}
           currency={currency}
         />
       )
@@ -869,7 +847,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     if (step === 'success') {
       return (
         <SuccessStep
-          finalAmount={finalAmount}
+          finalAmount={parsedAmount}
           currency={currency}
           companyName={paymentData.company.name}
           onDone={() => router.push('/dashboard')}

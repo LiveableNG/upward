@@ -132,8 +132,9 @@ export class PaystackGateway implements IPaymentGateway {
         this.logger.log(`Transaction ${reference} verified successfully. Amount: ${data.data.amount}`)
         return {
           status: true,
-          amount: data.data.amount / 100, // Paystack returns kobo
+          amount: data.data.amount / 100, 
           currency: data.data.currency,
+          fees: data.data.fees / 100, // Paystack returns kobo
         }
       } else {
         this.logger.warn(
