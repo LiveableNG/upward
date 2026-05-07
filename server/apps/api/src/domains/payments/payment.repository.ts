@@ -135,6 +135,8 @@ export interface PaymentRequest {
   amountPaid?: number
   allowPartial?: boolean
   minAmount?: number
+  rentStartDate?: Date
+  rentEndDate?: Date
   paidAt?: Date
   reference?: string
   companyName?: string

@@ -14,7 +14,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Contact
+  Contact,
+  FileText
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/common/UpwardLogo'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -25,6 +26,7 @@ const navItems = [
   { icon: Building2, label: 'Properties', href: '/properties' },
   { icon: Contact, label: 'Landlords', href: '/landlords' },
   { icon: Users, label: 'Tenants', href: '/tenants' },
+  { icon: FileText, label: 'Documents', href: '/documents' },
   { icon: CreditCard, label: 'Payments', href: '/payments' },
   { icon: Settings, label: 'Settings', href: '/settings' },
 ]

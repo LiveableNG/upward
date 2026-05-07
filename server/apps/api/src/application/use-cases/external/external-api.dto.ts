@@ -231,6 +231,14 @@ export class ExternalPaymentRequestPayloadDto {
   @IsOptional()
   @IsNumber()
   minAmount?: number
+
+  @IsOptional()
+  @IsDateString()
+  rentStartDate?: string
+
+  @IsOptional()
+  @IsDateString()
+  rentEndDate?: string
 }
 
 export class AddPropertyPayloadDto {

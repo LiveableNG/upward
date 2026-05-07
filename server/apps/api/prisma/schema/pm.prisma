@@ -26,6 +26,8 @@ model upward_property_manager {
   tenants         upward_pm_tenant[]
   userProperties  upward_user_property[]
   landlordReports upward_pm_landlord_report[]
+  sentDocuments   upward_pm_sent_document[]
+  documentTemplates upward_pm_document_template[]
 
   @@index([email])
 }
@@ -92,6 +94,7 @@ model upward_pm_unit {
   rentType         String                      @default("Monthly")
   paymentRequests  upward_pm_payment_request[]
   rentPayments     upward_pm_rent_payment[]
+  sentDocuments    upward_pm_sent_document[]
   property         upward_pm_property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   tenant           upward_pm_tenant?           @relation(fields: [tenantId], references: [id])
   userProperties   upward_user_property[]
@@ -132,6 +135,7 @@ model upward_pm_tenant {
   createdAt          DateTime                    @default(now())
   updatedAt          DateTime                    @updatedAt
   paymentRequests    upward_pm_payment_request[]
+  sentDocuments      upward_pm_sent_document[]
   pm                 upward_property_manager     @relation(fields: [pmId], references: [id], onDelete: Cascade)
   units              upward_pm_unit[]
 
@@ -174,6 +178,8 @@ model upward_pm_payment_request {
   amountPaid       Float                   @default(0)
   allowPartial     Boolean                 @default(false)
   minAmount        Float?
+  rentStartDate    DateTime?
+  rentEndDate      DateTime?
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
   paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
