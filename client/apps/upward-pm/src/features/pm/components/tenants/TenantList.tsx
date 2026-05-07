@@ -114,13 +114,16 @@ export const TenantList: React.FC = () => {
         </div>
 
         <div className="filter-select" style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '0 16px' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginRight: 12 }}>Employee:</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginRight: 12 }}>Property:</span>
           <select 
             value={propertyFilter}
             onChange={(e) => setPropertyFilter(e.target.value)}
             style={{ border: 'none', background: 'transparent', padding: '12px 0', fontSize: 14, fontWeight: 600 }}
           >
-            <option value="all">All Employees</option>
+            <option value="all">All Properties</option>
+            {properties.map(p => (
+              <option key={p.uuid} value={p.uuid}>{p.name}</option>
+            ))}
           </select>
         </div>
       </div>

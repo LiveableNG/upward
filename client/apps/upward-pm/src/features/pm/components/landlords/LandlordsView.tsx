@@ -4,12 +4,13 @@ import React, { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Search, MoreVertical, User, Building2, Mail, Phone } from 'lucide-react'
 import { useProperties } from '@/features/pm/hooks/useProperties'
-import { cn } from '@/lib/utils'
+import { AddLandlordModal } from './modals/AddLandlordModal'
 
 export function LandlordsView() {
   const router = useRouter()
   const { data: properties = [] } = useProperties()
   const [searchQuery, setSearchQuery] = useState('')
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
   // Aggregate unique landlords from properties
   const landlords = useMemo(() => {
@@ -46,11 +47,20 @@ export function LandlordsView() {
           <h1 className="dashboard__title" style={{ fontSize: 28 }}>Landlords</h1>
           <p className="dashboard__subtitle" style={{ fontSize: 14 }}>Manage your landlord database and portfolio assignments.</p>
         </div>
-        <button className="btn btn--primary" style={{ borderRadius: 100, padding: '14px 32px', height: 'fit-content' }}>
+        <button 
+          className="btn btn--primary" 
+          style={{ borderRadius: 100, padding: '14px 32px', height: 'fit-content' }}
+          onClick={() => setIsAddModalOpen(true)}
+        >
           <Plus size={20} style={{ marginRight: 10 }} />
           Add a landlord
         </button>
       </header>
+
+      <AddLandlordModal 
+        isOpen={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+      />
 
       {/* Stats Summary - Based on screenshot concept */}
       <div style={{ 

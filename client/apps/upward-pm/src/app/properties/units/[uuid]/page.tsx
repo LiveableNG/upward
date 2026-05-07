@@ -16,16 +16,20 @@ import {
   Globe,
   MoreVertical,
   UserPlus,
-  Unlink
+  Unlink,
+  Search,
+  Filter as FilterIcon,
+  Download
 } from 'lucide-react'
 import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useAddUnitPayment } from '@/features/pm/hooks/useProperties'
-import { usePaymentRequests } from '@/features/pm/hooks/usePayments'
+import { usePaymentRequests, useCreatePaymentRequest } from '@/features/pm/hooks/usePayments'
 import { useTenants, useTenantActions } from '@/features/pm/hooks/useTenants'
 import { TenantAssignmentSection } from '@/features/pm/components/tenants/TenantAssignmentSection'
 import { AddRentRecordModal } from '@/features/pm/components/properties/modals/AddRentRecordModal'
+import { CreatePaymentRequestModal } from '@/features/pm/components/payments/modals/CreatePaymentRequestModal'
 import { useToast } from '@/components/common/Toast'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import { Splash } from '@/components/common/Splash'
 
 function UnitDetailContent() {
@@ -42,28 +46,52 @@ function UnitDetailContent() {
   const updateUnitMutation = useUpdateUnit()
   const deleteUnitMutation = useDeleteUnit()
   const addPaymentMutation = useAddUnitPayment()
+  const createPaymentRequestMutation = useCreatePaymentRequest()
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [isUnassignConfirmOpen, setIsUnassignConfirmOpen] = useState(false)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
-  const [formData, setFormData] = useState<any>(() => ({
-    unitName: unit.unitName,
-    rentAmount: unit.rentAmount,
-    rentType: unit.rentType,
-    status: unit.status,
-    rentStartDate: unit.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : '',
-    rentDueDate: unit.rentDueDate ? new Date(unit.rentDueDate).toISOString().split('T')[0] : '',
-    address: unit.property?.address || '',
-    state: unit.property?.state || '',
-    country: unit.property?.country || 'Nigeria',
-    area: unit.property?.area || '',
-  }))
+  const [formData, setFormData] = useState<any>({
+    unitName: '',
+    rentAmount: 0,
+    rentType: 'Monthly',
+    status: 'VACANT',
+    rentStartDate: '',
+    rentDueDate: '',
+    address: '',
+    state: '',
+    country: 'Nigeria',
+    area: '',
+  })
+
+  useEffect(() => {
+    if (unit) {
+      setFormData({
+        unitName: unit.unitName || '',
+        rentAmount: unit.rentAmount || 0,
+        rentType: unit.rentType || 'Monthly',
+        status: unit.status || 'VACANT',
+        rentStartDate: unit.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : '',
+        rentDueDate: unit.rentDueDate ? new Date(unit.rentDueDate).toISOString().split('T')[0] : '',
+        address: unit.property?.address || '',
+        state: unit.property?.state || '',
+        country: unit.property?.country || 'Nigeria',
+        area: unit.property?.area || '',
+      })
+    }
+  }, [unit])
   
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'rent'>('overview')
+  const [rentFilters, setRentFilters] = useState({
+    startDate: '',
+    endDate: '',
+    status: 'all'
+  })
 
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
   const lastPayment = payments[0] || null
@@ -126,6 +154,14 @@ function UnitDetailContent() {
 
   const addRentRecord = () => {
     setIsAddModalOpen(true)
+  }
+
+  const requestRent = () => {
+    if (!unit?.tenant) {
+      error("No tenant assigned to this unit. Cannot request rent.")
+      return
+    }
+    setIsRequestModalOpen(true)
   }
 
   const handleSavePayment = (data: any) => {
@@ -275,23 +311,47 @@ function UnitDetailContent() {
       </div>
 
       {/* Tabs */}
-      <div className="unit-tabs" style={{ marginBottom: 24, gap: 32 }}>
-        <button className={cn("unit-tab", activeTab === 'overview' && "unit-tab--active")} onClick={() => setActiveTab('overview')}>Overview</button>
-        <button className={cn("unit-tab", activeTab === 'rent' && "unit-tab--active")} onClick={() => setActiveTab('rent')}>Rent History</button>
+      <div className="unit-tabs" style={{ marginBottom: 32, display: 'flex', gap: 40, borderBottom: '1px solid var(--border)' }}>
+        {['Overview', 'Inspection', 'Asset Register', 'Wallet', 'Rent History', 'Notes'].map(tab => {
+          const tabKey = tab.toLowerCase().replace(' ', '') === 'renthistory' ? 'rent' : tab.toLowerCase().replace(' ', '');
+          return (
+            <button 
+              key={tab}
+              className={cn("unit-tab", activeTab === tabKey && "unit-tab--active")} 
+              onClick={() => setActiveTab(tabKey as any)}
+              style={{ 
+                padding: '12px 4px', 
+                fontSize: 14, 
+                fontWeight: 600, 
+                color: activeTab === tabKey ? 'var(--forest)' : 'var(--text-muted)',
+                borderBottom: activeTab === tabKey ? '2px solid var(--forest)' : '2px solid transparent',
+                transition: 'all 0.2s',
+                background: 'none',
+                borderTop: 'none',
+                borderLeft: 'none',
+                borderRight: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              {tab}
+            </button>
+          )
+        })}
       </div>
 
       {activeTab === 'overview' && (
         <>
-          {/* Collect Rent Banner */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '16px 24px', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-              <div style={{ color: 'var(--info)', marginTop: 2 }}>↗</div>
+          <div style={{ background: 'var(--ivory-dim)', border: '1px solid var(--border)', padding: '24px', borderRadius: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+              <div style={{ color: 'var(--forest)', marginTop: 4, fontSize: 20, fontWeight: 700 }}>↗</div>
               <div>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>Manage Unit Payments</h3>
-                <p style={{ fontSize: 13, color: '#64748b' }}>Generate rent requests or record manual payments easily from this panel.</p>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', marginBottom: 4 }}>Automate Unit Payments</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 500 }}>
+                  Request rent from your tenant on this unit. Payments made through Upward are automatically tracked and reconciled here.
+                </p>
               </div>
             </div>
-            <button className="btn btn--primary" style={{ borderRadius: 100 }} onClick={addRentRecord}>Record Payment</button>
+            <button className="btn btn--primary" style={{ height: 48, padding: '0 24px', borderRadius: 12 }} onClick={requestRent}>Request Rent</button>
           </div>
 
           <div className="unit-detail__grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
@@ -428,60 +488,141 @@ function UnitDetailContent() {
       )}
 
       {activeTab === 'rent' && (
-        <div className="unit-rent-view animate-fade-in">
-          <div className="rent-stats">
-            <div className="rent-stat-card glass">
-              <span className="rent-stat-card__label">Total Paid to Date</span>
-              <span className="rent-stat-card__value">₦{(totalPaid || 0).toLocaleString()}</span>
+        <div className="unit-rent-view animate-fade-in" style={{ paddingBottom: 60 }}>
+          <div style={{ background: 'var(--ivory-dim)', border: '1px solid var(--border)', padding: '24px', borderRadius: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+              <div style={{ color: 'var(--forest)', marginTop: 4, fontSize: 20, fontWeight: 700 }}>↗</div>
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', marginBottom: 4 }}>Automate Unit Payments</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                  Request rent from your tenant on this unit. Payments made through Upward are automatically tracked and reconciled here.
+                </p>
+              </div>
             </div>
-            <div className="rent-stat-card glass">
-              <span className="rent-stat-card__label">Outstanding Balance</span>
-              <span className={cn("rent-stat-card__value", amountRemaining > 0 ? "text-error" : "text-forest")}>
-                ₦{(amountRemaining || 0).toLocaleString()}
-              </span>
-              {activeRequest && <span className="rent-stat-card__meta">Due: {new Date(activeRequest.dueDate).toLocaleDateString()}</span>}
+            <button className="btn btn--primary" style={{ height: 48, padding: '0 24px', borderRadius: 12 }} onClick={requestRent}>Request Rent</button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 24, marginBottom: 32 }}>
+            <div className="glass" style={{ padding: 24, borderRadius: 16 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: '0.5px' }}>Total Paid to Date</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--forest)' }}>
+                {formatCurrency(totalPaid || 0, unit?.currency || 'NGN')}
+              </div>
             </div>
-            <div className="rent-stat-card glass">
-              <span className="rent-stat-card__label">Rent Status</span>
-              <span className={cn("rent-stat-card__value", amountRemaining === 0 ? "text-forest" : "text-accent")}>
-                {amountRemaining === 0 ? 'Fully Paid' : 'Partial/Pending'}
-              </span>
-              {unit?.rentDueDate && <span className="rent-stat-card__meta">Next Cycle: {new Date(unit.rentDueDate).toLocaleDateString()}</span>}
+            <div className="glass" style={{ padding: 24, borderRadius: 16 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: '0.5px' }}>Outstanding Balance</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: amountRemaining > 0 ? 'var(--error)' : 'var(--forest)' }}>
+                {formatCurrency(amountRemaining || 0, unit?.currency || 'NGN')}
+              </div>
             </div>
           </div>
 
-          <div className="rent-history glass">
-            <div className="rent-history__header">
-              <h3>Rent Payment History</h3>
-              <button className="btn btn--primary btn--sm" onClick={addRentRecord}>
-                <PlusCircle size={14} /> Add Record
-              </button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dark)' }}>Rent Payment History</h2>
+            <button className="btn btn--primary" onClick={addRentRecord} style={{ borderRadius: 12, height: 42 }}>
+               Enter Rent Payment
+            </button>
+          </div>
+
+          {/* Filters Bar */}
+          <div style={{ display: 'flex', gap: 16, marginBottom: 24, alignItems: 'center' }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Calendar size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input 
+                type="date" 
+                className="form-input" 
+                style={{ paddingLeft: 40, height: 42, borderRadius: 12 }} 
+                value={rentFilters.startDate}
+                onChange={e => setRentFilters({...rentFilters, startDate: e.target.value})}
+              />
             </div>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Calendar size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input 
+                type="date" 
+                className="form-input" 
+                style={{ paddingLeft: 40, height: 42, borderRadius: 12 }} 
+                value={rentFilters.endDate}
+                onChange={e => setRentFilters({...rentFilters, endDate: e.target.value})}
+              />
+            </div>
+            <select 
+              className="form-input" 
+              style={{ width: 180, height: 42, borderRadius: 12 }}
+              value={rentFilters.status}
+              onChange={e => setRentFilters({...rentFilters, status: e.target.value})}
+            >
+              <option value="all">Status</option>
+              <option value="paid">Paid</option>
+              <option value="part-payment">Part-Payment</option>
+            </select>
+            <button className="btn btn--primary" style={{ height: 42, padding: '0 24px', borderRadius: 12 }}>Filter</button>
+          </div>
+
+          <div className="rent-history glass" style={{ padding: 0, overflow: 'hidden', borderRadius: 16 }}>
             <div className="rent-history__table-container">
-              <table className="rent-history__table">
-                <thead>
+              <table className="rent-history__table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead style={{ background: 'var(--ivory-dim)' }}>
                   <tr>
-                    <th>Date</th>
-                    <th>Amount</th>
-                    <th>Period</th>
-                    <th>Method</th>
-                    <th>Status</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Tenant Name</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Rent Period</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Date Paid</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Amount Paid</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Status</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {payments.length > 0 ? payments.map(row => (
-                    <tr key={row.uuid}>
-                      <td>{new Date(row.paymentDate).toLocaleDateString()}</td>
-                      <td>₦{row.amount.toLocaleString()}</td>
-                      <td>{row.periodStart ? `${new Date(row.periodStart).toLocaleDateString()} - ${new Date(row.periodEnd).toLocaleDateString()}` : 'N/A'}</td>
-                      <td>{row.method}</td>
-                      <td>
-                        <span className="badge badge--on-upward">{row.status}</span>
-                      </td>
-                    </tr>
-                  )) : (
+                  {payments.length > 0 ? payments.map(row => {
+                    const isPartial = row.amount < (unit?.rentAmount || 0)
+                    const balance = (unit?.rentAmount || 0) - row.amount
+                    const statusLabel = isPartial ? 'Part-Payment' : 'Paid'
+                    
+                    return (
+                      <tr key={row.uuid} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td style={{ padding: '20px 24px', fontSize: 14, color: 'var(--dark)', fontWeight: 500 }}>
+                          {unit?.tenant?.firstName} {unit?.tenant?.lastName}
+                        </td>
+                        <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-muted)' }}>
+                          {row.periodStart ? `${new Date(row.periodStart).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} - ${new Date(row.periodEnd).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : 'N/A'}
+                        </td>
+                        <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-muted)' }}>
+                          {new Date(row.paymentDate).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td style={{ padding: '20px 24px' }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>
+                            {formatCurrency(row.amount, unit?.currency || 'NGN')}
+                          </div>
+                          {isPartial && balance > 0 && (
+                            <div style={{ fontSize: 11, color: 'var(--error)', marginTop: 2, fontWeight: 500 }}>
+                              Bal. {formatCurrency(balance, unit?.currency || 'NGN')}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '20px 24px' }}>
+                          <span style={{ 
+                            fontSize: 12, 
+                            fontWeight: 600, 
+                            color: isPartial ? 'var(--text-muted)' : 'var(--forest)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6
+                          }}>
+                            {statusLabel}
+                          </span>
+                        </td>
+                        <td style={{ padding: '20px 24px', textAlign: 'right' }}>
+                          <button className="btn-icon">
+                            <MoreVertical size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  }) : (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', padding: '32px' }}>No payment history found.</td>
+                      <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        No rent payments recorded yet.
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -498,6 +639,14 @@ function UnitDetailContent() {
         isPending={addPaymentMutation.isPending}
         unitName={unit?.unitName || ''}
       />
+
+      {unit && (
+        <CreatePaymentRequestModal
+          isOpen={isRequestModalOpen}
+          onClose={() => setIsRequestModalOpen(false)}
+          unit={unit}
+        />
+      )}
 
       <ConfirmationModal 
         isOpen={isDeleteConfirmOpen}
