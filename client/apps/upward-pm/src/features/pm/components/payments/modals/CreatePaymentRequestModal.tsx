@@ -3,16 +3,19 @@
 import React, { useState, useEffect } from 'react'
 import { X, Plus, Trash2, CreditCard } from 'lucide-react'
 import { Unit } from '../../../services/propertyService'
-import { useCreatePaymentRequest } from '../../../hooks/usePayments'
+import { useCreatePaymentRequest, useUpdatePaymentRequest } from '../../../hooks/usePayments'
 import { useToast } from '@/components/common/Toast'
+import { PmPaymentRequest } from '../../../services/paymentService'
 
 interface CreatePaymentRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
   unit: Unit | null;
+  existingRequest?: PmPaymentRequest;
 }
 
-export function CreatePaymentRequestModal({ isOpen, onClose, unit }: CreatePaymentRequestModalProps) {
+export function CreatePaymentRequestModal({ isOpen, onClose, unit, existingRequest }: CreatePaymentRequestModalProps) {
+  const isEditing = !!existingRequest
   const [amount, setAmount] = useState<string>('')
   const [dueDate, setDueDate] = useState<string>('')
   const [description, setDescription] = useState<string>('')
@@ -24,9 +27,23 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit }: CreatePayme
 
   const { success, error } = useToast()
   const createMutation = useCreatePaymentRequest()
+  const updateMutation = useUpdatePaymentRequest()
 
   useEffect(() => {
-    if (unit) {
+    if (existingRequest) {
+      setAmount(existingRequest.amount.toString())
+      setDueDate(new Date(existingRequest.dueDate).toISOString().split('T')[0])
+      setDescription(existingRequest.description || '')
+      setAllowPartial(existingRequest.allowPartial)
+      setMinAmount(existingRequest.minAmount?.toString() || '')
+      
+      if (existingRequest.lineItems) {
+        setLineItems(existingRequest.lineItems.map(li => ({
+          name: li.name,
+          amount: li.amount.toString()
+        })))
+      }
+    } else if (unit) {
       const items = [{ name: 'Rent', amount: unit.rentAmount.toString() }]
       if (unit.managementFee && unit.managementFee > 0) {
         items.push({ name: 'Management Fee', amount: unit.managementFee.toString() })
@@ -40,7 +57,7 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit }: CreatePayme
       date.setDate(date.getDate() + 7)
       setDueDate(date.toISOString().split('T')[0])
     }
-  }, [unit])
+  }, [unit, existingRequest])
 
   if (!isOpen || !unit) return null
 
@@ -73,26 +90,43 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit }: CreatePayme
     if (!amount || parseFloat(amount) <= 0) return error('Please enter a valid amount')
     if (!dueDate) return error('Please select a due date')
 
-    createMutation.mutate({
-      unitUuid: unit.uuid,
+    const payload = {
+      unitUuid: unit!.uuid,
       amount: parseFloat(amount),
       dueDate,
-      description: description || `Payment request for Unit ${unit.unitName}`,
+      description: description || `Payment request for Unit ${unit!.unitName}`,
       allowPartial,
       minAmount: allowPartial ? parseFloat(minAmount) || 0 : undefined,
       lineItems: lineItems.filter(li => li.name && li.amount).map(li => ({
         name: li.name,
         amount: parseFloat(li.amount)
       }))
-    }, {
-      onSuccess: () => {
-        success('Payment request sent successfully!')
-        onClose()
-      },
-      onError: (err: any) => {
-        error(err?.message || 'Failed to send payment request')
-      }
-    })
+    }
+
+    if (isEditing && existingRequest) {
+      updateMutation.mutate({
+        uuid: existingRequest.uuid,
+        data: payload
+      }, {
+        onSuccess: () => {
+          success('Payment request updated successfully!')
+          onClose()
+        },
+        onError: (err: any) => {
+          error(err?.message || 'Failed to update payment request')
+        }
+      })
+    } else {
+      createMutation.mutate(payload, {
+        onSuccess: () => {
+          success('Payment request sent successfully!')
+          onClose()
+        },
+        onError: (err: any) => {
+          error(err?.message || 'Failed to send payment request')
+        }
+      })
+    }
   }
 
   return (
@@ -104,7 +138,7 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit }: CreatePayme
               <CreditCard size={20} />
             </div>
             <div>
-              <h2 className="modal__title">Request Payment</h2>
+              <h2 className="modal__title">{isEditing ? 'Edit Payment Request' : 'Request Payment'}</h2>
               <p className="modal__desc">Unit {unit.unitName} • {unit.tenant ? `${unit.tenant.firstName} ${unit.tenant.lastName}` : 'No Tenant'}</p>
               {!unit.isSynced && (
                 <p style={{ fontSize: 11, color: 'var(--error)', marginTop: 4, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -235,9 +269,9 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit }: CreatePayme
             className="btn btn--primary" 
             style={{ flex: 1 }} 
             onClick={handleSubmit} 
-            disabled={createMutation.isPending || !unit.isSynced}
+            disabled={createMutation.isPending || updateMutation.isPending || !unit.isSynced}
           >
-            {createMutation.isPending ? 'Sending...' : !unit.isSynced ? 'Sync Required' : 'Send Request'}
+            {createMutation.isPending || updateMutation.isPending ? 'Processing...' : !unit.isSynced ? 'Sync Required' : isEditing ? 'Update Request' : 'Send Request'}
           </button>
         </div>
       </div>

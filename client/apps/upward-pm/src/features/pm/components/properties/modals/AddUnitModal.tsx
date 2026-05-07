@@ -47,6 +47,29 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
     (u: any) => u.unitName.trim().toLowerCase() === formData.unitName.trim().toLowerCase()
   )
 
+  // Auto-calculate Rent Due Date (End Date)
+  React.useEffect(() => {
+    if (formData.rentStartDate && formData.rentType) {
+      const start = new Date(formData.rentStartDate)
+      if (isNaN(start.getTime())) return
+
+      const end = new Date(start)
+      if (formData.rentType === 'Monthly') {
+        end.setMonth(end.getMonth() + 1)
+      } else if (formData.rentType === 'Annually') {
+        end.setFullYear(end.getFullYear() + 1)
+      }
+      
+      // Usually rent ends the day before the next period starts
+      end.setDate(end.getDate() - 1)
+      
+      const formattedEnd = end.toISOString().split('T')[0]
+      if (formattedEnd !== formData.rentDueDate) {
+        setFormData({ ...formData, rentDueDate: formattedEnd })
+      }
+    }
+  }, [formData.rentStartDate, formData.rentType])
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
@@ -115,6 +138,17 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
           <div className="form-group">
+            <label className="form-label">Rent Type</label>
+            <select
+              className="form-input"
+              value={formData.rentType}
+              onChange={e => setFormData({ ...formData, rentType: e.target.value })}
+            >
+              <option value="Monthly">Monthly</option>
+              <option value="Annually">Annually</option>
+            </select>
+          </div>
+          <div className="form-group">
             <label className="form-label">Start Date</label>
             <input
               type="date"
@@ -131,19 +165,6 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
               value={formData.rentDueDate}
               onChange={e => setFormData({ ...formData, rentDueDate: e.target.value })}
             />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Rent Type</label>
-            <select
-              className="form-input"
-              value={formData.rentType}
-              onChange={e => setFormData({ ...formData, rentType: e.target.value })}
-            >
-              <option value="Monthly">Monthly</option>
-              <option value="Quarterly">Quarterly</option>
-              <option value="Bi-Annually">Bi-Annually</option>
-              <option value="Annually">Annually</option>
-            </select>
           </div>
         </div>
         

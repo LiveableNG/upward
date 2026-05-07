@@ -117,6 +117,7 @@ import { UpdateTenantUseCase } from './pm/use-cases/tenants/update-tenant.use-ca
 import { SyncUnitToUpwardUseCase } from './pm/use-cases/units/sync-unit.use-case'
 import { CreatePmPaymentRequestUseCase } from './pm/use-cases/payments/create-pm-payment-request.use-case'
 import { GetPmPaymentRequestsUseCase } from './pm/use-cases/payments/get-pm-payment-requests.use-case'
+import { UpdatePmPaymentRequestUseCase } from './pm/use-cases/payments/update-pm-payment-request.use-case'
 import { GetPendingCredibilityRequestsUseCase } from './pm/use-cases/get-pending-credibility-requests.use-case'
 import { BulkCreateTenantRecordsUseCase } from './pm/use-cases/bulk-create-tenant-records.use-case'
 import { BulkInviteTenantsUseCase } from './pm/use-cases/tenants/bulk-invite-tenants.use-case'
@@ -305,6 +306,7 @@ const UseCases = [
   SyncUnitToUpwardUseCase,
   CreatePmPaymentRequestUseCase,
   GetPmPaymentRequestsUseCase,
+  UpdatePmPaymentRequestUseCase,
   GetPendingCredibilityRequestsUseCase,
   BulkCreateTenantRecordsUseCase,
   BulkInviteTenantsUseCase,

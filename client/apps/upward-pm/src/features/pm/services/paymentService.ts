@@ -18,12 +18,22 @@ export interface PmPaymentRequest {
   minAmount: number | null;
   coreRequestUuid?: string | null;
   createdAt: string;
+  lineItems?: { name: string; amount: number }[];
 }
 
 export interface CreatePaymentRequestDto {
   unitUuid: string;
   amount: number;
   dueDate: string;
+  description?: string;
+  allowPartial?: boolean;
+  minAmount?: number;
+  lineItems?: { name: string; amount: number }[];
+}
+
+export interface UpdatePmPaymentRequestDto {
+  amount?: number;
+  dueDate?: string;
   description?: string;
   allowPartial?: boolean;
   minAmount?: number;
@@ -37,6 +47,13 @@ export const getPaymentRequests = () => {
 export const createPaymentRequest = (data: CreatePaymentRequestDto) => {
   return request<PmPaymentRequest>('/pm/payment-requests', {
     method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
+export const updatePaymentRequest = (uuid: string, data: UpdatePmPaymentRequestDto) => {
+  return request<PmPaymentRequest>(`/pm/payment-requests/${uuid}`, {
+    method: 'PATCH',
     body: JSON.stringify(data)
   })
 }
