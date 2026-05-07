@@ -1,5 +1,5 @@
 
-import api from '@/lib/api';
+import { api } from '@/lib/api';
 
 export interface DocumentTemplate {
   uuid: string;
@@ -31,17 +31,14 @@ export interface SentDocument {
 
 export const documentService = {
   getDocuments: async () => {
-    const response = await api.get('/pm/documents');
-    return response.data;
+    return api.get('/pm/documents');
   },
 
   saveTemplate: async (data: Partial<DocumentTemplate>) => {
-    const response = await api.post('/pm/documents/templates', data);
-    return response.data;
+    return api.post('/pm/documents/templates', data);
   },
 
   sendDocument: async (data: any) => {
-    const response = await api.post('/pm/documents/send', data);
-    return response.data;
+    return api.post('/pm/documents/send', data);
   }
 };
