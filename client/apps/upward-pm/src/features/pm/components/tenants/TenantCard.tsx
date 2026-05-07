@@ -23,8 +23,8 @@ export const TenantCard: React.FC<TenantCardProps> = ({ tenant, isSelected, onSe
     inviteTenant.mutate(tenant.uuid)
   }
 
-  const isInvited = tenant.inviteStatus === 'SENT'
   const isOnUpward = tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED'
+  const isProcessing = !isOnUpward && !tenant.inviteSentAt
 
   return (
     <div className={`tenant-group-card ${isSelected ? 'tenant-group-card--selected' : ''}`}>
@@ -62,32 +62,23 @@ export const TenantCard: React.FC<TenantCardProps> = ({ tenant, isSelected, onSe
               <CheckCircle2 size={12} style={{ marginRight: 4 }} />
               On Upward
             </span>
-          ) : isInvited ? (
+          ) : isProcessing ? (
+            <span className="badge badge--pending" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Loader2 size={12} className="animate-spin" />
+              Processing...
+            </span>
+          ) : (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span className="badge badge--sent">Invite Sent</span>
+              <span className="badge badge--sent">Pending Acceptance</span>
               <button 
                 className="btn btn--secondary btn--sm"
                 onClick={handleInvite}
                 disabled={inviteTenant.isPending}
+                title="Remind tenant to accept invitation"
               >
-                {inviteTenant.isPending ? <Loader2 size={14} className="animate-spin" /> : 'Resend'}
+                {inviteTenant.isPending ? <Loader2 size={14} className="animate-spin" /> : 'Remind'}
               </button>
             </div>
-          ) : (
-            <button 
-              className="btn btn--primary btn--sm" 
-              onClick={handleInvite}
-              disabled={inviteTenant.isPending}
-            >
-              {inviteTenant.isPending ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <>
-                  <Send size={14} style={{ marginRight: 6 }} />
-                  Send Invite
-                </>
-              )}
-            </button>
           )}
           <Link href={`/tenants/${tenant.uuid}`} className="btn btn--secondary btn--sm">
             View Profile

@@ -22,9 +22,15 @@ export const useTenantActions = () => {
 
   const createTenant = useMutation({
     mutationFn: (dto: CreateTenantDto) => tenantService.createTenant(dto),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tenants'] })
-      toast.success('Tenant added successfully')
+      if (data.inviteStatus === 'SENT') {
+        toast.success('Tenant added and invitation sent!')
+      } else if (data.inviteStatus === 'ON_UPWARD') {
+        toast.success('Tenant added (User already on Upward)')
+      } else {
+        toast.success('Tenant added successfully')
+      }
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to add tenant')

@@ -11,7 +11,7 @@ export const TenantList: React.FC = () => {
   
   const [searchQuery, setSearchQuery] = useState('')
   const [propertyFilter, setPropertyFilter] = useState<string>('all')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'on_upward' | 'sent' | 'not_sent'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'on_upward' | 'pending'>('all')
   const [selectedTenants, setSelectedTenants] = useState<Set<string>>(new Set())
 
   const filteredTenants = useMemo(() => {
@@ -27,14 +27,13 @@ export const TenantList: React.FC = () => {
 
       const matchesStatus = statusFilter === 'all' || 
         (statusFilter === 'on_upward' && (t.inviteStatus === 'ON_UPWARD' || t.inviteStatus === 'ACCEPTED')) ||
-        (statusFilter === 'sent' && t.inviteStatus === 'SENT') ||
-        (statusFilter === 'not_sent' && t.inviteStatus !== 'SENT' && t.inviteStatus !== 'ON_UPWARD' && t.inviteStatus !== 'ACCEPTED')
+        (statusFilter === 'pending' && t.inviteStatus !== 'ON_UPWARD' && t.inviteStatus !== 'ACCEPTED')
 
       return matchesSearch && matchesProperty && matchesStatus
     })
   }, [tenants, searchQuery, propertyFilter, statusFilter])
 
-  const invitableTenants = useMemo(() => {
+  const pendingTenants = useMemo(() => {
     return filteredTenants.filter(t => t.inviteStatus !== 'ON_UPWARD' && t.inviteStatus !== 'ACCEPTED')
   }, [filteredTenants])
 
@@ -49,10 +48,10 @@ export const TenantList: React.FC = () => {
   }
 
   const handleSelectAll = () => {
-    if (selectedTenants.size === invitableTenants.length && invitableTenants.length > 0) {
+    if (selectedTenants.size === pendingTenants.length && pendingTenants.length > 0) {
       setSelectedTenants(new Set())
     } else {
-      setSelectedTenants(new Set(invitableTenants.map(t => t.uuid)))
+      setSelectedTenants(new Set(pendingTenants.map(t => t.uuid)))
     }
   }
 
@@ -101,14 +100,8 @@ export const TenantList: React.FC = () => {
             All
           </button>
           <button 
-            className={`filter-tab ${statusFilter === 'not_sent' ? 'active' : ''}`}
-            onClick={() => setStatusFilter('not_sent')}
-          >
-            To Invite
-          </button>
-          <button 
-            className={`filter-tab ${statusFilter === 'sent' ? 'active' : ''}`}
-            onClick={() => setStatusFilter('sent')}
+            className={`filter-tab ${statusFilter === 'pending' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('pending')}
           >
             Pending
           </button>
@@ -140,7 +133,7 @@ export const TenantList: React.FC = () => {
               ) : (
                 <>
                   <Send size={16} />
-                  Invite Selected
+                  Remind Selected
                 </>
               )}
             </button>
@@ -150,12 +143,12 @@ export const TenantList: React.FC = () => {
 
       <div className="tenants-list-header">
         <div className="select-all-container" onClick={handleSelectAll}>
-          {selectedTenants.size === invitableTenants.length && invitableTenants.length > 0 ? (
+          {selectedTenants.size === pendingTenants.length && pendingTenants.length > 0 ? (
             <CheckSquare size={18} className="text-forest" />
           ) : (
             <Square size={18} className="text-muted" />
           )}
-          <span>Select Invitable ({invitableTenants.length})</span>
+          <span>Select Pending ({pendingTenants.length})</span>
         </div>
       </div>
 

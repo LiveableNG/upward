@@ -128,7 +128,7 @@ export const syncToUpward = (unitUuid: string) => {
   })
 }
 
-export const bulkFullImport = (data: { rows: any[]; inviteAfterImport?: boolean }) => {
+export const bulkFullImport = (data: { rows: any[] }) => {
   return request<{ success: boolean; propertiesCreated: number; unitsCreated: number; bulkInviteId: string | null }>('/pm/import/bulk', {
     method: 'POST',
     body: JSON.stringify(data)

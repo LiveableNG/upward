@@ -91,7 +91,6 @@ function ImportContent() {
 
   const [targetPropertyUuid, setTargetPropertyUuid] = useState('')
   const [previewRows, setPreviewRows] = useState<any[]>([])
-  const [inviteAfterImport, setInviteAfterImport] = useState(true)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
 
   const columns = useMemo(() => mode === 'full' ? FULL_COLUMNS : UNIT_COLUMNS, [mode])
@@ -202,7 +201,7 @@ function ImportContent() {
 
     if (mode === 'full') {
       const rowsToSend = previewRows.map(({ id, ...rest }) => rest)
-      bulkFullImportMutation.mutate({ rows: rowsToSend, inviteAfterImport }, {
+      bulkFullImportMutation.mutate({ rows: rowsToSend }, {
         onSuccess: (res) => {
           success(`Imported ${res.unitsCreated} units across ${res.propertiesCreated} properties!`)
           router.push('/properties')
@@ -212,8 +211,7 @@ function ImportContent() {
       const unitsToSend = previewRows.map(({ id, ...rest }) => rest)
       bulkCreateUnitsMutation.mutate({ 
         propertyUuid: targetPropertyUuid, 
-        units: unitsToSend,
-        inviteAfterImport 
+        units: unitsToSend
       } as any, {
         onSuccess: () => {
           success('Units imported successfully!')
@@ -268,17 +266,7 @@ function ImportContent() {
               </div>
             )}
             
-            <div className="import-toggles">
-              <div className="toggle-item">
-                <input 
-                  type="checkbox" 
-                  id="inviteToggle" 
-                  checked={inviteAfterImport} 
-                  onChange={e => setInviteAfterImport(e.target.checked)}
-                />
-                <label htmlFor="inviteToggle">Invite tenants to Upward immediately</label>
-              </div>
-            </div>
+            <div></div>
 
             <div style={{ display: 'flex', gap: 12 }}>
               <label className={cn('btn btn--primary', (mode === 'units' && !targetPropertyUuid) && 'btn--disabled')}>

@@ -98,7 +98,7 @@ export class BulkCreateUnitsUseCase {
       }
     }
 
-    if (dto.inviteAfterImport && createdTenantUuids.length > 0) {
+    if (createdTenantUuids.length > 0) {
       await this.bulkInviteUseCase.execute(pmId, {
         tenantUuids: [...new Set(createdTenantUuids)]
       });

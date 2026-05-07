@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PM_TENANT_REPOSITORY, ITenantRepository, TenantEntity } from '../../../../domains/pm/IPropertyRepository';
 import { USER_REPOSITORY, UserRepository } from '../../../../domains/users/user.repository';
+import { InviteTenantUseCase } from './invite-tenant.use-case';
 
 export interface CreateTenantDto {
   firstName: string;
@@ -16,6 +17,7 @@ export class CreateTenantUseCase {
     private readonly tenantRepo: ITenantRepository,
     @Inject(USER_REPOSITORY)
     private readonly userRepo: UserRepository,
+    private readonly inviteTenantUseCase: InviteTenantUseCase,
   ) {}
 
   async execute(pmId: number, data: CreateTenantDto): Promise<TenantEntity> {
@@ -25,11 +27,23 @@ export class CreateTenantUseCase {
     const existingUser = await this.userRepo.findByEmail(data.email);
     const initialStatus = existingUser ? 'ON_UPWARD' : 'PENDING';
 
-    return this.tenantRepo.create({
+    const tenant = await this.tenantRepo.create({
       pmId,
       ...data,
       inviteStatus: initialStatus,
       inviteSentAt: null,
     });
+
+    if (initialStatus === 'PENDING') {
+      try {
+        await this.inviteTenantUseCase.execute(pmId, tenant.uuid);
+      } catch (error) {
+        console.error(`[CreateTenantUseCase] Failed to auto-invite tenant ${tenant.uuid}:`, error);
+        // We don't throw here to avoid failing the tenant creation if the invite fails (e.g. email error)
+      }
+    }
+
+    return tenant;
   }
 }
+
