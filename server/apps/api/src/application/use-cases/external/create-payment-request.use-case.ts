@@ -47,37 +47,46 @@ export class CreateExternalPaymentRequestUseCase {
     }
 
     const UPWARD_FEE = 2000;
-    const isFirstPayment = (property.amountPaid || 0) === 0;
+    
+    const calculateCombinedFee = (netAmount: number) => {
+      if (netAmount <= 0) return 0;
+      // Paystack Gross-up formula: (net + 100) / 0.985
+      const threshold = 2462.5;
+      const isAboveThreshold = netAmount >= threshold;
+      const gross = isAboveThreshold ? (netAmount + 100) / 0.985 : netAmount / 0.985;
+      const paystackFee = Math.ceil(Math.min(2000, gross - netAmount));
+      return UPWARD_FEE + paystackFee;
+    };
 
     let amount = payload.amount || property.rentAmount;
     const currency = payload.currency || property.currency || 'NGN';
 
-    // Ensure Upward Processing Fee is included in the first payment
-    if (isFirstPayment) {
-      const hasFee = payload.lineItems?.some(li => li.name === 'Upward Processing Fee');
-      if (!hasFee) {
-        const originalAmount = amount;
-        amount += UPWARD_FEE;
-        this.logger.log(`Added Upward Processing Fee (${UPWARD_FEE}) to the first payment request for property ${property.uuid}`);
+    // Ensure Upward & Provider Fee is included in every payment request
+    const feeName = 'Upward & Provider Fee';
+    const hasFee = payload.lineItems?.some(li => li.name === feeName || li.name === 'Upward Processing Fee');
+    
+    if (!hasFee) {
+      const combinedFee = calculateCombinedFee(amount);
+      const originalAmount = amount;
+      amount += combinedFee;
+      this.logger.log(`Added Combined Fee (${combinedFee}) to the payment request for property ${property.uuid}`);
 
-        if (!payload.lineItems || payload.lineItems.length === 0) {
-          payload.lineItems = [
-            { name: payload.description || 'Rent Payment', amount: originalAmount },
-            { name: 'Upward Processing Fee', amount: UPWARD_FEE }
-          ];
-        } else {
-          payload.lineItems.push({
-            name: 'Upward Processing Fee',
-            amount: UPWARD_FEE
-          });
-        }
+      if (!payload.lineItems || payload.lineItems.length === 0) {
+        payload.lineItems = [
+          { name: payload.description || 'Rent Payment', amount: originalAmount },
+          { name: feeName, amount: combinedFee }
+        ];
+      } else {
+        payload.lineItems.push({
+          name: feeName,
+          amount: combinedFee
+        });
       }
+    }
 
-      // Fallback for minAmount if partial payments are allowed
-      if (payload.allowPartial && !payload.minAmount) {
-        payload.minAmount = UPWARD_FEE;
-        this.logger.log(`Set fallback minAmount to ${UPWARD_FEE} for first payment on property ${property.uuid}`);
-      }
+    // Fallback for minAmount if partial payments are allowed
+    if (payload.allowPartial && !payload.minAmount) {
+      payload.minAmount = 5000; // Sensible default for partial payments
     }
 
     if (payload.minAmount && !payload.allowPartial) {

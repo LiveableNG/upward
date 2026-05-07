@@ -16,16 +16,18 @@ export class PrismaPropertyRepository implements PropertyRepository {
     private readonly encryption: EncryptionService,
   ) {}
 
-  async findById(id: number): Promise<Property | null> {
-    const record = await this.prisma.upward_user_property.findUnique({
+  async findById(id: number, tx?: Prisma.TransactionClient): Promise<Property | null> {
+    const prisma = tx || this.prisma
+    const record = await prisma.upward_user_property.findUnique({
       where: { id },
       include: { location: true }
     })
     return record as unknown as Property | null
   }
 
-  async findByUuid(uuid: string): Promise<Property | null> {
-    const record = await this.prisma.upward_user_property.findUnique({
+  async findByUuid(uuid: string, tx?: Prisma.TransactionClient): Promise<Property | null> {
+    const prisma = tx || this.prisma
+    const record = await prisma.upward_user_property.findUnique({
       where: { uuid },
       include: {
         company: true,
@@ -57,8 +59,9 @@ export class PrismaPropertyRepository implements PropertyRepository {
     return result as unknown as Property
   }
 
-  async findByUserId(userId: number): Promise<Property[]> {
-    const records = await this.prisma.upward_user_property.findMany({
+  async findByUserId(userId: number, tx?: Prisma.TransactionClient): Promise<Property[]> {
+    const prisma = tx || this.prisma
+    const records = await prisma.upward_user_property.findMany({
       where: { userId },
       include: { 
         location: true,

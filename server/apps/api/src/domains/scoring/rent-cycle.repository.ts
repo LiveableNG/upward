@@ -21,9 +21,9 @@ export interface RentCycle {
 export interface IRentCycleRepository {
   create(data: Omit<RentCycle, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<RentCycle>
   update(id: number, data: Partial<RentCycle>, tx?: Prisma.TransactionClient): Promise<RentCycle>
-  findByUserId(userId: number): Promise<RentCycle[]>
-  findByUserPropertyId(propertyId: number): Promise<RentCycle[]>
-  findByPaymentRequestId(paymentRequestId: number): Promise<RentCycle | null>
+  findByUserId(userId: number, tx?: Prisma.TransactionClient): Promise<RentCycle[]>
+  findByUserPropertyId(propertyId: number, tx?: Prisma.TransactionClient): Promise<RentCycle[]>
+  findByPaymentRequestId(paymentRequestId: number, tx?: Prisma.TransactionClient): Promise<RentCycle | null>
   upsertByPaymentRequestId(paymentRequestId: number, data: Partial<Omit<RentCycle, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>>, tx?: Prisma.TransactionClient): Promise<RentCycle>
 }
 

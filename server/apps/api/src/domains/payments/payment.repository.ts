@@ -50,10 +50,10 @@ export interface Transaction {
 
 export interface ITransactionRepository {
   create(data: Omit<Transaction, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<Transaction>
-  findByUserId(userId: number): Promise<Transaction[]>
-  findById(id: number): Promise<Transaction | null>
-  findByUuid(uuid: string): Promise<Transaction | null>
-  findByReference(reference: string): Promise<Transaction | null>
+  findByUserId(userId: number, tx?: Prisma.TransactionClient): Promise<Transaction[]>
+  findById(id: number, tx?: Prisma.TransactionClient): Promise<Transaction | null>
+  findByUuid(uuid: string, tx?: Prisma.TransactionClient): Promise<Transaction | null>
+  findByReference(reference: string, tx?: Prisma.TransactionClient): Promise<Transaction | null>
   updateStatus(id: number, status: string, tx?: Prisma.TransactionClient): Promise<Transaction>
   update(id: number, data: Partial<Transaction>, tx?: Prisma.TransactionClient): Promise<Transaction>
 }
@@ -153,10 +153,10 @@ export interface PaymentRequest {
 
 export interface IPaymentRequestRepository {
   create(data: Omit<PaymentRequest, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<PaymentRequest>
-  findById(id: number): Promise<PaymentRequest | null>
-  findByUuid(uuid: string): Promise<PaymentRequest | null>
-  findByUserId(userId: number): Promise<PaymentRequest[]>
-  findByUserIdAndStatus(userId: number, status: string): Promise<PaymentRequest[]>
+  findById(id: number, tx?: Prisma.TransactionClient): Promise<PaymentRequest | null>
+  findByUuid(uuid: string, tx?: Prisma.TransactionClient): Promise<PaymentRequest | null>
+  findByUserId(userId: number, tx?: Prisma.TransactionClient): Promise<PaymentRequest[]>
+  findByUserIdAndStatus(userId: number, status: string, tx?: Prisma.TransactionClient): Promise<PaymentRequest[]>
   update(id: number, data: Partial<PaymentRequest>, tx?: Prisma.TransactionClient): Promise<PaymentRequest>
   delete(id: number, tx?: Prisma.TransactionClient): Promise<void>
 }
@@ -224,7 +224,7 @@ export interface Overpayment {
 
 export interface IOverpaymentRepository {
   create(data: Omit<Overpayment, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<Overpayment>
-  findByUserId(userId: number): Promise<Overpayment[]>
+  findByUserId(userId: number, tx?: Prisma.TransactionClient): Promise<Overpayment[]>
 }
 
 export const SAVED_LANDLORD_REPOSITORY = Symbol('SAVED_LANDLORD_REPOSITORY')
