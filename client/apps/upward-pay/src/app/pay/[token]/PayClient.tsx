@@ -181,9 +181,15 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
         let items = (res.data.payment.lineItemRecords || []) as LineItemRecord[]
         
         // Ensure Processing Fee is present and at the very top for priority allocation
-        const feeIndex = items.findIndex(i => ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name))
+        const feeIndex = items.findIndex(i => ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name) || i.id === -2)
         if (feeIndex > -1) {
           const [fee] = items.splice(feeIndex, 1)
+          
+          if (res.data.payment.status !== 'PAID') {
+            fee.status = 'PENDING'
+            fee.amountPaid = 0
+          }
+          
           items = [fee, ...items]
         }
         
