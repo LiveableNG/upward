@@ -214,6 +214,55 @@
   border-color: var(--text-muted);
 }
 
+.period-input-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.period-separator {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.calculated-due-date {
+  font-size: 11px;
+  color: var(--clay);
+  font-weight: 600;
+  margin-top: 4px;
+  margin-left: 2px;
+}
+
+.summary-row td {
+  background: var(--surface);
+  border-top: 2px solid var(--border) !important;
+  padding: var(--space-4) !important;
+}
+
+.total-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.total-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--dark-surface);
+  margin-top: 2px;
+}
+
+.record-count {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-align: right;
+}
+
 .records-footer {
   margin-top: var(--space-8);
   display: flex;
