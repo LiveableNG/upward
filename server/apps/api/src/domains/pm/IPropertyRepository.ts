@@ -50,6 +50,16 @@ export interface TenantEntity {
   phone?: string | null;
   inviteStatus: string;
   inviteSentAt: Date | null;
+  formerAddress?: string | null;
+  nextOfKinName?: string | null;
+  nextOfKinEmail?: string | null;
+  nextOfKinPhone?: string | null;
+  guarantorName?: string | null;
+  guarantorEmail?: string | null;
+  guarantorPhone?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactEmail?: string | null;
+  emergencyContactPhone?: string | null;
   units?: UnitEntity[];
 }
 

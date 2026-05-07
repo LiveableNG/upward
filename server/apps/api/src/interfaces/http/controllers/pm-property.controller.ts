@@ -4,6 +4,7 @@ import { CreatePropertyUseCase } from '../../../application/pm/use-cases/create-
 import { UpdatePropertyUseCase } from '../../../application/pm/use-cases/update-property.use-case';
 import { DeletePropertyUseCase } from '../../../application/pm/use-cases/delete-property.use-case';
 import { GetPmPropertiesUseCase } from '../../../application/pm/use-cases/get-pm-properties.use-case';
+import { GetPmPropertyUseCase } from '../../../application/pm/use-cases/get-pm-property.use-case';
 import { BulkCreateUnitsUseCase } from '../../../application/pm/use-cases/bulk-create-units.use-case';
 import { GetPmUnitsUseCase } from '../../../application/pm/use-cases/get-pm-units.use-case';
 import { GetUnitUseCase } from '../../../application/pm/use-cases/get-unit.use-case';
@@ -17,7 +18,12 @@ import { CreatePmPaymentRequestUseCase, CreatePmPaymentRequestDto } from '../../
 import { GetPmPaymentRequestsUseCase } from '../../../application/pm/use-cases/payments/get-pm-payment-requests.use-case';
 import { BulkFullImportUseCase } from '../../../application/pm/use-cases/bulk-full-import.use-case';
 import { BulkInviteTenantsUseCase } from '../../../application/pm/use-cases/tenants/bulk-invite-tenants.use-case';
+import { SendLandlordReportUseCase } from '../../../application/pm/use-cases/send-landlord-report.use-case';
+import { GetLandlordReportsUseCase } from '../../../application/pm/use-cases/get-landlord-reports.use-case';
+import { GetLandlordReportUseCase } from '../../../application/pm/use-cases/get-landlord-report.use-case';
+import { PmBulkRentReminderUseCase } from '../../../application/pm/use-cases/pm-bulk-rent-reminder.use-case';
 import { CreatePropertyDto, UpdatePropertyDto, BulkCreateUnitsDto, BulkFullImportDto } from '../../../application/pm/dtos/property.dto';
+import { SendLandlordReportDto } from '../../../application/pm/dtos/landlord.dto';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 import { Inject, UnauthorizedException, Delete } from '@nestjs/common';
 
@@ -29,6 +35,7 @@ export class PmPropertyController {
     private readonly updatePropertyUseCase: UpdatePropertyUseCase,
     private readonly deletePropertyUseCase: DeletePropertyUseCase,
     private readonly getPmPropertiesUseCase: GetPmPropertiesUseCase,
+    private readonly getPmPropertyUseCase: GetPmPropertyUseCase,
     private readonly bulkCreateUnitsUseCase: BulkCreateUnitsUseCase,
     private readonly getPmUnitsUseCase: GetPmUnitsUseCase,
     private readonly getUnitUseCase: GetUnitUseCase,
@@ -42,6 +49,10 @@ export class PmPropertyController {
     private readonly getPmPaymentRequestsUseCase: GetPmPaymentRequestsUseCase,
     private readonly bulkFullImportUseCase: BulkFullImportUseCase,
     private readonly bulkInviteTenantsUseCase: BulkInviteTenantsUseCase,
+    private readonly sendLandlordReportUseCase: SendLandlordReportUseCase,
+    private readonly getLandlordReportsUseCase: GetLandlordReportsUseCase,
+    private readonly getLandlordReportUseCase: GetLandlordReportUseCase,
+    private readonly pmBulkRentReminderUseCase: PmBulkRentReminderUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -75,6 +86,12 @@ export class PmPropertyController {
   async getProperties(@Req() req: any) {
     const pmId = await this.getPmId(req);
     return this.getPmPropertiesUseCase.execute(pmId);
+  }
+
+  @Get('properties/:propertyUuid')
+  async getProperty(@Req() req: any, @Param('propertyUuid') propertyUuid: string) {
+    const pmId = await this.getPmId(req);
+    return this.getPmPropertyUseCase.execute(pmId, propertyUuid);
   }
 
   @Post('units/bulk')
@@ -147,5 +164,29 @@ export class PmPropertyController {
   async getPaymentRequests(@Req() req: any) {
     const pmId = await this.getPmId(req);
     return this.getPmPaymentRequestsUseCase.execute(pmId);
+  }
+
+  @Post('landlords/send-report')
+  async sendLandlordReport(@Req() req: any, @Body() dto: SendLandlordReportDto) {
+    const pmId = await this.getPmId(req);
+    return this.sendLandlordReportUseCase.execute(pmId, dto);
+  }
+
+  @Get('landlords/:landlordEmail/reports')
+  async getLandlordReports(@Req() req: any, @Param('landlordEmail') landlordEmail: string) {
+    const pmId = await this.getPmId(req);
+    return this.getLandlordReportsUseCase.execute(pmId, landlordEmail);
+  }
+
+  @Get('landlords/reports/:uuid')
+  async getLandlordReport(@Req() req: any, @Param('uuid') uuid: string) {
+    const pmId = await this.getPmId(req);
+    return this.getLandlordReportUseCase.execute(pmId, uuid);
+  }
+
+  @Post('landlords/:landlordEmail/bulk-reminders')
+  async sendBulkReminders(@Req() req: any, @Param('landlordEmail') landlordEmail: string) {
+    const pmId = await this.getPmId(req);
+    return this.pmBulkRentReminderUseCase.execute(pmId, landlordEmail);
   }
 }

@@ -15,7 +15,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Contact
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/common/UpwardLogo'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -24,6 +25,7 @@ import { cn } from '@/lib/utils'
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Building2, label: 'Properties', href: '/properties' },
+  { icon: Contact, label: 'Landlords', href: '/landlords' },
   { icon: Users, label: 'Tenants', href: '/tenants' },
   { icon: CreditCard, label: 'Payments', href: '/payments' },
   { icon: ClipboardList, label: 'Requests', href: '/requests' },

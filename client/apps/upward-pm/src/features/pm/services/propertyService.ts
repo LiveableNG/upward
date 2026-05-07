@@ -55,6 +55,10 @@ export const getProperties = () => {
   return request<Property[]>('/pm/properties')
 }
 
+export const getProperty = (uuid: string) => {
+  return request<Property>(`/pm/properties/${uuid}`)
+}
+
 export const createProperty = (data: Partial<Property>) => {
   return request<Property>('/pm/properties', {
     method: 'POST',

@@ -19,9 +19,14 @@ export const api = {
   getBanks: pmService.getBanks,
   changePmPassword: pmService.changePassword,
   getPmAvatarUploadUrl: pmService.getAvatarUploadUrl,
+  sendLandlordReport: pmService.sendLandlordReport,
+  getLandlordReports: pmService.getLandlordReports,
+  getLandlordReport: pmService.getLandlordReport,
+  sendBulkReminders: pmService.sendBulkReminders,
 
   // Properties & Units
   getProperties: propertyService.getProperties,
+  getProperty: propertyService.getProperty,
   createProperty: propertyService.createProperty,
   updateProperty: propertyService.updateProperty,
   deleteProperty: propertyService.deleteProperty,

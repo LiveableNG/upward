@@ -526,3 +526,131 @@
   animation: fade-only 0.4s ease-out forwards;
 }
 
+/* Tenant Table Styles */
+.tenant-table-container {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+  margin-top: 16px;
+}
+
+.tenant-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.tenant-table th {
+  padding: 16px;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.5px;
+  background: var(--surface);
+}
+
+.tenant-table td {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.tenant-table tbody tr {
+  transition: background-color 0.2s;
+}
+
+.tenant-table tbody tr:hover {
+  background-color: var(--surface-hover);
+}
+
+.tenant-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tenant-table tbody tr.selected {
+  background-color: var(--forest-faint);
+}
+
+.col-checkbox {
+  width: 48px;
+  text-align: center;
+}
+
+.tenant-cell-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tenant-avatar-small {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--forest);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.tenant-name-email {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tenant-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.tenant-email {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.tenant-phone {
+  color: var(--text-secondary);
+}
+
+.tenant-units-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.unit-mini-badge {
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--ivory-dim);
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.unit-more {
+  font-size: 11px;
+  color: var(--forest);
+  font-weight: 600;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.col-actions {
+  text-align: right;
+}
+
+

@@ -25,6 +25,7 @@ model upward_property_manager {
   properties      upward_pm_property[]
   tenants         upward_pm_tenant[]
   userProperties  upward_user_property[]
+  landlordReports upward_pm_landlord_report[]
 
   @@index([email])
 }
@@ -116,6 +117,16 @@ model upward_pm_tenant {
   /// @encrypted
   phoneEncrypted     String?
   phoneHash          String?
+  formerAddress      String?
+  nextOfKinName      String?
+  nextOfKinEmail     String?
+  nextOfKinPhone     String?
+  guarantorName      String?
+  guarantorEmail     String?
+  guarantorPhone     String?
+  emergencyContactName String?
+  emergencyContactEmail String?
+  emergencyContactPhone String?
   inviteStatus       String                      @default("PENDING")
   inviteSentAt       DateTime?
   createdAt          DateTime                    @default(now())
@@ -205,4 +216,18 @@ model upward_pm_bulk_invite_item {
 
   @@index([bulkInviteId])
   @@index([status])
+}
+
+model upward_pm_landlord_report {
+  id              Int                     @id @default(autoincrement())
+  uuid            String                  @unique @default(uuid())
+  pmId            Int
+  landlordEmail   String
+  reportType      String
+  reportData      Json
+  createdAt       DateTime                @default(now())
+  pm              upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+
+  @@index([pmId])
+  @@index([landlordEmail])
 }

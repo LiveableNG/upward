@@ -6,6 +6,16 @@ export interface UpdateTenantDto {
   lastName?: string;
   email?: string;
   phone?: string;
+  formerAddress?: string;
+  nextOfKinName?: string;
+  nextOfKinEmail?: string;
+  nextOfKinPhone?: string;
+  guarantorName?: string;
+  guarantorEmail?: string;
+  guarantorPhone?: string;
+  emergencyContactName?: string;
+  emergencyContactEmail?: string;
+  emergencyContactPhone?: string;
 }
 
 @Injectable()
