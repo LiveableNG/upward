@@ -359,8 +359,11 @@ export default function PayRentPage() {
               onConfirm={async () => {
                 setProcessing(true)
                 try {
+                  const feeItem = lineItems.find(i => (i.label || i.name) === 'Processing Fee')
+                  const feeAmount = feeItem ? Number(feeItem.amount || 0) : 0
+                  
                   const res = await api.createManualPaymentRequest({
-                    amount: payAmount,
+                    amount: payAmount - feeAmount,
                     landlordUuid: selectedLandlord.uuid,
                     landlordDetails: (selectedLandlord as any).isNewLocal ? {
                       accountNumber: selectedLandlord.accountNumber,
@@ -373,7 +376,7 @@ export default function PayRentPage() {
                       propertyAddress,
                       userPropertyUuid: selectedPropertyUuid || undefined,
                       paymentType,
-                      lineItems: lineItems.length > 0 ? lineItems : undefined,
+                      lineItems: lineItems.length > 0 ? lineItems.filter(i => (i.label || i.name) !== 'Processing Fee') : undefined,
                     }
                   })
                   if (res.uuid) {

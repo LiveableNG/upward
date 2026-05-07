@@ -284,7 +284,7 @@ export class RecordTransactionUseCase {
         if (pr) {
           const prItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!, txClient);
           const rentRemaining = prItems.reduce((sum, item) => {
-            const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name);
+            const isFee = item.name === 'Processing Fee';
             if (isFee) return sum;
             return sum + Math.max(0, item.totalAmount - item.amountPaid);
           }, 0);
@@ -298,13 +298,13 @@ export class RecordTransactionUseCase {
 
       let upwardFeeAmount = 0;
       if (data.lineItemPayments && Array.isArray(data.lineItemPayments)) {
-        const fee = data.lineItemPayments.find(lp => ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(lp.name || ''));
+        const fee = data.lineItemPayments.find(lp => lp.name === 'Processing Fee');
         if (fee) upwardFeeAmount = Number(fee.amountPaid || 0);
       }
 
       if (upwardFeeAmount === 0 && pr) {
         const prItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!, txClient);
-        const feeItem = prItems.find(i => ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name));
+        const feeItem = prItems.find(i => i.name === 'Processing Fee');
         if (feeItem) {
           const need = feeItem.totalAmount - feeItem.amountPaid;
           if (need > 0) {
@@ -366,7 +366,7 @@ export class RecordTransactionUseCase {
         
           const currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!, txClient);
           const totalRentOwed = currentItems.reduce((sum, i) => {
-             if (['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name)) return sum;
+             if (i.name === 'Processing Fee') return sum;
              return sum + i.totalAmount;
           }, 0);
           

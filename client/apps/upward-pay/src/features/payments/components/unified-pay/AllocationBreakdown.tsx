@@ -48,7 +48,7 @@ export function AllocationBreakdown({
             const isPaid = lineItems.find(i => i.id === alloc.id)?.status === 'PAID'
             const pct = alloc.remaining > 0 ? Math.min(100, ((alloc.amountPaid + alloc.allocated) / alloc.totalAmount) * 100) : 100
 
-            const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(alloc.name)
+            const isFee = alloc.name === 'Processing Fee'
 
             return (
               <div key={alloc.id} className={`pay-breakdown-item ${isPaid ? 'is-settled' : ''}`}>
@@ -59,7 +59,7 @@ export function AllocationBreakdown({
                       {isPaid ? 'Settled' : isFee ? 'Upward & Provider' : alloc.allocated >= alloc.remaining ? 'Full Payment' : 'Partial Payment'}
                     </span>
                   </div>
-                  {!isPaid && canPayPartial && onAllocationChange && !['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(alloc.name) ? (
+                  {!isPaid && canPayPartial && onAllocationChange && alloc.name !== 'Processing Fee' ? (
                     <div className="pay-breakdown-item__action">
                       <div className="pay-breakdown-item__amount-container">
                         <span className="pay-breakdown-item__currency-small">{currency}</span>

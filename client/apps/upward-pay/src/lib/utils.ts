@@ -68,3 +68,13 @@ export function generateId(prefix = ''): string {
 
   return prefix ? `${prefix}_${uuid}` : uuid
 }
+
+export function calculateCombinedFee(netAmount: number): number {
+  if (netAmount <= 0) return 0;
+  const UPWARD_FEE = 2000;
+  const threshold = 2462.5;
+  const isAboveThreshold = netAmount >= threshold;
+  const gross = isAboveThreshold ? (netAmount + 100) / 0.985 : netAmount / 0.985;
+  const paystackFee = Math.ceil(Math.min(2000, gross - netAmount));
+  return UPWARD_FEE + paystackFee;
+}
