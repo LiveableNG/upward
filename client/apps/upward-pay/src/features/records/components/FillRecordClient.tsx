@@ -22,6 +22,8 @@ import '../styles/records.css'
 interface Record {
   id: string
   amount: number
+  startDate: string
+  endDate: string
   dueDate: string
   paidDate: string
 }
@@ -38,7 +40,7 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid }) => {
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'manual' | 'bulk'>('manual')
   const [records, setRecords] = useState<Record[]>([
-    { id: Math.random().toString(36).substr(2, 9), amount: 0, dueDate: '', paidDate: '' }
+    { id: Math.random().toString(36).substr(2, 9), amount: 0, startDate: '', endDate: '', dueDate: '', paidDate: '' }
   ])
   
   const { success: toastSuccess, error: toastError } = useToast()
@@ -58,7 +60,7 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid }) => {
   }, [uuid])
 
   const handleAddRow = () => {
-    setRecords([...records, { id: Math.random().toString(36).substr(2, 9), amount: 0, dueDate: '', paidDate: '' }])
+    setRecords([...records, { id: Math.random().toString(36).substr(2, 9), amount: 0, startDate: '', endDate: '', dueDate: '', paidDate: '' }])
   }
 
   const handleRemoveRow = (id: string) => {
@@ -67,7 +69,16 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid }) => {
   }
 
   const handleUpdateRecord = (id: string, field: keyof Record, value: any) => {
-    setRecords(records.map(r => r.id === id ? { ...r, [field]: value } : r))
+    setRecords(records.map(r => {
+      if (r.id === id) {
+        const updated = { ...r, [field]: value }
+        if (field === 'startDate') {
+          updated.dueDate = value
+        }
+        return updated
+      }
+      return r
+    }))
   }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,18 +95,20 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid }) => {
       const dataLines = lines[0].toLowerCase().includes('amount') ? lines.slice(1) : lines
 
       const newRecords: Record[] = dataLines.map(line => {
-        const [amount, dueDate, paidDate] = line.split(',').map(s => s.trim())
+        const [amount, startDate, endDate, paidDate] = line.split(',').map(s => s.trim())
         return {
           id: Math.random().toString(36).substr(2, 9),
           amount: parseFloat(amount) || 0,
-          dueDate: dueDate || '',
+          startDate: startDate || '',
+          endDate: endDate || '',
+          dueDate: startDate || '', // Calculated from startDate
           paidDate: paidDate || ''
         }
       })
 
       if (newRecords.length > 0) {
         setRecords(newRecords)
-        setActiveTab('manual') // Switch to manual to see/edit the imported records
+        setActiveTab('manual')
         toastSuccess(`${newRecords.length} records imported successfully.`)
       }
     }
@@ -103,8 +116,8 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid }) => {
   }
 
   const downloadTemplate = () => {
-    const headers = 'Amount,Due Date (YYYY-MM-DD),Paid Date (YYYY-MM-DD)\n'
-    const example = '150000,2024-01-01,2024-01-05\n'
+    const headers = 'Amount,Rent Start (YYYY-MM-DD),Rent End (YYYY-MM-DD),Paid Date (YYYY-MM-DD)\n'
+    const example = '150000,2024-01-01,2024-01-31,2024-01-05\n'
     const blob = new Blob([headers + example], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -116,9 +129,9 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid }) => {
 
   const handleSubmit = async () => {
     // Basic validation
-    const validRecords = records.filter(r => r.amount > 0 && r.dueDate && r.paidDate)
+    const validRecords = records.filter(r => r.amount > 0 && r.startDate && r.endDate && r.paidDate)
     if (validRecords.length === 0) {
-      toastError('Please fill in at least one valid record (Amount, Due Date, and Paid Date are required).')
+      toastError('Please fill in at least one valid record (Amount, Period, and Paid Date are required).')
       return
     }
 
@@ -126,7 +139,7 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid }) => {
     try {
       await fulfillPublicRequest(uuid, validRecords.map(r => ({
         amount: r.amount,
-        dueDate: r.dueDate,
+        dueDate: r.dueDate, // The calculated due date
         paidDate: r.paidDate
       })))
       setSuccess(true)
@@ -137,6 +150,8 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid }) => {
       setSubmitting(false)
     }
   }
+
+  const totalAmount = records.reduce((sum, r) => sum + (r.amount || 0), 0)
 
   if (loading) {
     return (
@@ -249,8 +264,9 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid }) => {
 
               <div style={{ marginTop: 32, padding: 16, background: 'var(--clay-faint)', borderRadius: 12 }}>
                 <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                  <strong>Note:</strong> Ensure your CSV follows the template format. Dates should be in YYYY-MM-DD format. 
-                  After uploading, you'll be able to review and edit the data before submitting.
+                  <strong>Note:</strong> Ensure your CSV follows the template format. 
+                  Expected columns: Amount, Rent Start Date, Rent End Date, Paid Date.
+                  After uploading, you can review and edit the data before submitting.
                 </p>
               </div>
             </div>
@@ -260,8 +276,8 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid }) => {
                 <table className="records-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '35%' }}>Amount (₦)</th>
-                      <th style={{ width: '25%' }}>Due Date</th>
+                      <th style={{ width: '25%' }}>Amount (₦)</th>
+                      <th style={{ width: '40%' }}>Rent Period</th>
                       <th style={{ width: '25%' }}>Paid Date</th>
                       <th style={{ width: '10%', textAlign: 'center' }}></th>
                     </tr>
@@ -283,12 +299,28 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid }) => {
                           </div>
                         </td>
                         <td>
-                          <input 
-                            type="date" 
-                            className="table-input" 
-                            value={record.dueDate}
-                            onChange={(e) => handleUpdateRecord(record.id, 'dueDate', e.target.value)}
-                          />
+                          <div className="period-input-group">
+                            <input 
+                              type="date" 
+                              className="table-input" 
+                              title="Start Date"
+                              value={record.startDate}
+                              onChange={(e) => handleUpdateRecord(record.id, 'startDate', e.target.value)}
+                            />
+                            <span className="period-separator">to</span>
+                            <input 
+                              type="date" 
+                              className="table-input" 
+                              title="End Date"
+                              value={record.endDate}
+                              onChange={(e) => handleUpdateRecord(record.id, 'endDate', e.target.value)}
+                            />
+                          </div>
+                          {record.startDate && (
+                            <div className="calculated-due-date">
+                               Due: {new Date(record.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </div>
+                          )}
                         </td>
                         <td>
                           <input 
@@ -310,6 +342,17 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid }) => {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr className="summary-row">
+                      <td colSpan={1}>
+                        <div className="total-label">Total Amount:</div>
+                        <div className="total-value">₦{totalAmount.toLocaleString()}</div>
+                      </td>
+                      <td colSpan={3}>
+                         <div className="record-count">{records.length} Record{records.length !== 1 ? 's' : ''}</div>
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
 
@@ -334,3 +377,4 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid }) => {
     </main>
   )
 }
+
