@@ -7,7 +7,6 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { ClipboardList, AlertCircle, ExternalLink } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
-import '@/styles/tenants.css' // Import shared PM table styles
 
 export default function RequestsPage() {
   const router = useRouter()

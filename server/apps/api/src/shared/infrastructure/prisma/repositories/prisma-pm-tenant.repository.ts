@@ -100,6 +100,18 @@ export class PrismaPmTenantRepository implements ITenantRepository {
     return this.mapTenant(tenant);
   }
 
+  async findByUuids(uuids: string[]): Promise<TenantEntity[]> {
+    const tenants = await this.prisma.upward_pm_tenant.findMany({
+      where: { uuid: { in: uuids } },
+      include: { 
+        units: {
+          include: { property: true }
+        }
+      }
+    });
+    return tenants.map(t => this.mapTenant(t));
+  }
+
   async findByEmailHash(pmId: number, emailHash: string): Promise<TenantEntity | null> {
     const tenant = await this.prisma.upward_pm_tenant.findFirst({
       where: { pmId, emailHash },

@@ -5,7 +5,6 @@ import { Users } from 'lucide-react'
 import { TenantList } from '@/features/pm/components/tenants/TenantList'
 import { AddTenantModal } from '@/features/pm/components/tenants/modals/AddTenantModal'
 import { Splash } from '@/components/common/Splash'
-import '@/styles/tenants.css'
 
 export default function TenantsPage() {
   const [showAddModal, setShowAddModal] = useState(false)
