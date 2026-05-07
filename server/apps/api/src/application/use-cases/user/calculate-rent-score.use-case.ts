@@ -93,9 +93,9 @@ export class CalculateRentScoreUseCase {
 
     let currentStreak = 0
     let longestStreak = 0
+    const monthsMap: Record<string, any[]> = {}
 
     if (scoredCount > 0) {
-      const monthsMap: Record<string, any[]> = {}
       scoredCycles.forEach(c => {
         const monthKey = `${c.dueDate.getFullYear()}-${c.dueDate.getMonth()}`
         if (!monthsMap[monthKey]) monthsMap[monthKey] = []
@@ -134,8 +134,9 @@ export class CalculateRentScoreUseCase {
     // Calculate A: PT
     const PT = scoredCount > 0 ? (totalPTScore / scoredCount) : 0
 
-    // Calculate B: PS (Streak / Total Scored)
-    const PS = scoredCount > 0 ? (longestStreak / scoredCount) : 0
+    // Calculate B: PS (Streak / Total Months Scored)
+    const scoredMonthsCount = Object.keys(monthsMap).length
+    const PS = scoredMonthsCount > 0 ? (longestStreak / scoredMonthsCount) : 0
 
     // Calculate C: T (Tenure) - Years of history using first scorable cycle
     let yearsOfHistory = 0
