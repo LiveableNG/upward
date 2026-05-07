@@ -109,7 +109,7 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit }: Prop
 
       {/* Navigation Tabs */}
       <div className="glass" style={{ padding: '6px', borderRadius: 14, marginBottom: 32, display: 'flex', gap: 4, background: 'white', width: 'fit-content' }}>
-        {['Unit', 'Wallet', 'Inspection', 'Notes', 'Assets Register', 'Settlement'].map(tab => (
+        {['Unit'].map(tab => (
           <button 
             key={tab}
             onClick={() => setActiveTab(tab)}

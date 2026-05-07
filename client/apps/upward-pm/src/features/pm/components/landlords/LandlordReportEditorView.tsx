@@ -3,22 +3,18 @@
 import React, { useState } from 'react'
 import { 
   ChevronLeft, 
-  Mail, 
   FileText, 
   CheckCircle2, 
   Circle, 
-  Send, 
   Eye, 
-  Plus, 
   X,
-  Type,
   Bold,
   Italic,
   AlignLeft,
   AlignCenter,
   AlignRight,
   List,
-  Table as TableIcon
+  Download
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -28,7 +24,7 @@ interface LandlordReportEditorViewProps {
   landlordEmail: string
   initialContent: string
   onBack: () => void
-  onSend: (data: any) => void
+  onDone: () => void
 }
 
 export function LandlordReportEditorView({ 
@@ -36,13 +32,10 @@ export function LandlordReportEditorView({
   landlordEmail, 
   initialContent, 
   onBack,
-  onSend 
+  onDone 
 }: LandlordReportEditorViewProps) {
   const [content, setContent] = useState(initialContent)
-  const [sendType, setSendType] = useState<'pdf' | 'email'>('pdf')
   const [includeLetterhead, setIncludeLetterhead] = useState(true)
-  const [recipientEmail, setRecipientEmail] = useState(landlordEmail)
-  const [isSending, setIsSending] = useState(false)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
 
   const handleDownloadPdf = async () => {
@@ -89,22 +82,8 @@ export function LandlordReportEditorView({
     }
   }
 
-  const handleSend = async () => {
-    setIsSending(true)
-    try {
-      await api.sendLandlordReport({
-        landlordEmail: recipientEmail,
-        landlordName: landlordName,
-        subject: `Property Performance Report - ${landlordName}`,
-        content: content
-      })
-      onSend({ content, sendType, includeLetterhead, recipientEmail })
-    } catch (err) {
-      console.error('Failed to send report:', err)
-      // We could add a toast error here
-    } finally {
-      setIsSending(false)
-    }
+  const execCommand = (command: string, value?: string) => {
+    document.execCommand(command, false, value);
   }
 
   return (
@@ -118,40 +97,14 @@ export function LandlordReportEditorView({
 
       <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 40, alignItems: 'start' }}>
         
-        {/* Left: Sending Options */}
+        {/* Left: Configuration Options */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div className="glass" style={{ padding: 24, borderRadius: 24, border: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 20 }}>Send document as</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 20 }}>Document Options</h3>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
-              <div 
-                onClick={() => setSendType('pdf')}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
-              >
-                <div style={{ color: sendType === 'pdf' ? 'var(--forest)' : 'var(--border)' }}>
-                  {sendType === 'pdf' ? <CheckCircle2 size={20} /> : <Circle size={20} />}
-                </div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>PDF attachment</div>
-                </div>
-              </div>
-
-              <div 
-                onClick={() => setSendType('email')}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
-              >
-                <div style={{ color: sendType === 'email' ? 'var(--forest)' : 'var(--border)' }}>
-                  {sendType === 'email' ? <CheckCircle2 size={20} /> : <Circle size={20} />}
-                </div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>E-mail</div>
-                </div>
-              </div>
-            </div>
-
             <div 
               onClick={() => setIncludeLetterhead(!includeLetterhead)}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', paddingTop: 16, borderTop: '1px solid var(--border)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
             >
               <div style={{ color: includeLetterhead ? 'var(--forest)' : 'var(--border)' }}>
                 {includeLetterhead ? <CheckCircle2 size={18} /> : <Circle size={18} />}
@@ -160,56 +113,25 @@ export function LandlordReportEditorView({
             </div>
           </div>
 
-          <div className="glass" style={{ padding: 24, borderRadius: 24, border: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 20 }}>Recipient</h3>
-            
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, display: 'block' }}>FROM</label>
-              <select className="form-input" style={{ width: '100%', background: 'var(--ivory-dim)', border: 'none' }}>
-                <option>Default - noreply@goodtenants.io</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, display: 'block' }}>TO</label>
-              <div style={{ 
-                background: 'var(--forest-faint)', 
-                padding: '12px 16px', 
-                borderRadius: 12, 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                color: 'var(--forest)',
-                fontWeight: 600,
-                fontSize: 13
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--forest)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>{landlordName[0]}</div>
-                  {landlordName}
-                </div>
-                <X size={14} style={{ cursor: 'pointer' }} />
-              </div>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{landlordEmail}</p>
-            </div>
-          </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <button 
-              className="btn btn--secondary" 
+              className="btn btn--primary" 
               onClick={handleDownloadPdf}
               disabled={isGeneratingPdf}
-              style={{ width: '100%', borderRadius: 100, padding: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+              style={{ width: '100%', borderRadius: 100, padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, height: 56, fontSize: 15 }}
             >
-              <Eye size={18} /> {isGeneratingPdf ? 'Generating...' : 'Preview / Download PDF'}
+              <Download size={20} /> {isGeneratingPdf ? 'Generating PDF...' : 'Download PDF Report'}
             </button>
             <button 
-              className="btn btn--primary" 
-              onClick={handleSend}
-              disabled={isSending}
+              className="btn btn--secondary" 
+              onClick={onDone}
               style={{ width: '100%', borderRadius: 100, padding: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
             >
-              {isSending ? 'Sending...' : <><Send size={18} /> Send Report</>}
+              Done / Return
             </button>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '0 20px' }}>
+              Finalize your edits and download the report as a PDF to share with the landlord.
+            </p>
           </div>
         </div>
 
@@ -228,20 +150,54 @@ export function LandlordReportEditorView({
             color: 'var(--text-secondary)'
           }}>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button style={{ padding: 6, borderRadius: 6, background: '#f1f5f9' }}><Bold size={16} /></button>
-              <button style={{ padding: 6, borderRadius: 6 }}><Italic size={16} /></button>
-              <button style={{ padding: 6, borderRadius: 6 }}><Type size={16} /></button>
+              <button 
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); execCommand('bold'); }}
+                style={{ padding: 6, borderRadius: 6, background: '#f1f5f9' }}
+              >
+                <Bold size={16} />
+              </button>
+              <button 
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); execCommand('italic'); }}
+                style={{ padding: 6, borderRadius: 6 }}
+              >
+                <Italic size={16} />
+              </button>
             </div>
             <div style={{ width: 1, height: 20, background: 'var(--border)' }} />
             <div style={{ display: 'flex', gap: 8 }}>
-              <button style={{ padding: 6, borderRadius: 6 }}><AlignLeft size={16} /></button>
-              <button style={{ padding: 6, borderRadius: 6 }}><AlignCenter size={16} /></button>
-              <button style={{ padding: 6, borderRadius: 6 }}><AlignRight size={16} /></button>
+              <button 
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); execCommand('justifyLeft'); }}
+                style={{ padding: 6, borderRadius: 6 }}
+              >
+                <AlignLeft size={16} />
+              </button>
+              <button 
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); execCommand('justifyCenter'); }}
+                style={{ padding: 6, borderRadius: 6 }}
+              >
+                <AlignCenter size={16} />
+              </button>
+              <button 
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); execCommand('justifyRight'); }}
+                style={{ padding: 6, borderRadius: 6 }}
+              >
+                <AlignRight size={16} />
+              </button>
             </div>
             <div style={{ width: 1, height: 20, background: 'var(--border)' }} />
             <div style={{ display: 'flex', gap: 8 }}>
-              <button style={{ padding: 6, borderRadius: 6 }}><List size={16} /></button>
-              <button style={{ padding: 6, borderRadius: 6 }}><TableIcon size={16} /></button>
+              <button 
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); execCommand('insertUnorderedList'); }}
+                style={{ padding: 6, borderRadius: 6 }}
+              >
+                <List size={16} />
+              </button>
             </div>
           </div>
 

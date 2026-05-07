@@ -120,7 +120,6 @@ export function LandlordsView() {
               <th style={{ padding: '20px 24px' }}>NAME</th>
               <th style={{ padding: '20px 24px' }}>EMAIL</th>
               <th style={{ padding: '20px 24px' }}>PHONE NUMBER</th>
-              <th className="col-actions" style={{ textAlign: 'right', padding: '20px 24px' }}>ACTIONS</th>
             </tr>
           </thead>
           <tbody>
@@ -170,11 +169,6 @@ export function LandlordsView() {
                     <Phone size={16} color="var(--text-muted)" style={{ opacity: 0.7 }} />
                     {landlord.phone || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 13 }}>No phone</span>}
                   </div>
-                </td>
-                <td className="col-actions" style={{ padding: '24px', textAlign: 'right' }}>
-                  <button className="btn btn--ghost btn--sm" style={{ borderRadius: 12, height: 40, width: 40, padding: 0, display: 'inline-flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <MoreVertical size={20} color="var(--text-muted)" />
-                  </button>
                 </td>
               </tr>
             ))}

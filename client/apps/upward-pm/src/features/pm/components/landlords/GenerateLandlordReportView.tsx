@@ -89,7 +89,7 @@ export function GenerateLandlordReportView({
             onGenerate(previewEl?.innerHTML || '')
           }}
         >
-          Proceed to Send
+          Proceed to Editor
         </button>
       </header>
 

@@ -14,8 +14,6 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  ClipboardList,
-  FileSpreadsheet,
   Contact
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/common/UpwardLogo'
@@ -28,8 +26,6 @@ const navItems = [
   { icon: Contact, label: 'Landlords', href: '/landlords' },
   { icon: Users, label: 'Tenants', href: '/tenants' },
   { icon: CreditCard, label: 'Payments', href: '/payments' },
-  { icon: ClipboardList, label: 'Requests', href: '/requests' },
-  { icon: FileSpreadsheet, label: 'Tenant Records', href: '/tenants/records' },
   { icon: Settings, label: 'Settings', href: '/settings' },
 ]
 
@@ -56,7 +52,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
         <div className="sidebar__header">
           <Link href="/dashboard" className="sidebar__logo" onClick={onClose}>
             <UpwardLogo size={32} color="var(--forest)" />
-            {(!isCollapsed || isOpen) && <span className="sidebar__brand">{user?.firstName || 'Upward'}</span>}
+            {(!isCollapsed || isOpen) && <span className="sidebar__brand">{user?.pmType || 'Property Manager'}</span>}
           </Link>
           {isOpen && (
             <button className="sidebar__close" onClick={onClose}>

@@ -5,7 +5,7 @@ import {
   PM_UNIT_REPOSITORY,
   IUnitRepository
 } from '../../../../domains/pm/IPropertyRepository';
-import { USER_REPOSITORY, UserRepository } from '../../../../domains/users/user.repository';
+import { USER_REPOSITORY, UserRepository, PASS_PLACEHOLDERS } from '../../../../domains/users/user.repository';
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../../domains/pm/property-manager.repository';
 import { EmailService } from '../../../../shared/infrastructure/email/email.service';
 import { SingleInviteUseCase, InviteRequest } from '../../../use-cases/external/single-invite.use-case';
@@ -42,11 +42,15 @@ export class InviteTenantUseCase {
     const pm = await this.pmRepo.findById(pmId);
     if (!pm) throw new NotFoundException('Property Manager not found');
 
-    // Check if user already exists on Upward
     const existingUser = await this.userRepo.findByEmail(tenant.email);
-    const initialStatus = existingUser ? 'ON_UPWARD' : 'SENT';
+    
+    const isActuallyOnUpward = existingUser && 
+      existingUser.passwordHash !== PASS_PLACEHOLDERS.INVITED && 
+      existingUser.passwordHash !== PASS_PLACEHOLDERS.SHADOW;
 
-    if (existingUser) {
+    const initialStatus = isActuallyOnUpward ? 'ON_UPWARD' : 'SENT';
+
+    if (isActuallyOnUpward) {
       // User already exists, update status immediately
       await this.tenantRepo.update(tenantUuid, {
         inviteStatus: 'ON_UPWARD',

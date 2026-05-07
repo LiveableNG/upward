@@ -312,7 +312,7 @@ function UnitDetailContent() {
 
       {/* Tabs */}
       <div className="unit-tabs" style={{ marginBottom: 32, display: 'flex', gap: 40, borderBottom: '1px solid var(--border)' }}>
-        {['Overview', 'Inspection', 'Asset Register', 'Wallet', 'Rent History', 'Notes'].map(tab => {
+        {['Overview', 'Rent History'].map(tab => {
           const tabKey = tab.toLowerCase().replace(' ', '') === 'renthistory' ? 'rent' : tab.toLowerCase().replace(' ', '');
           return (
             <button 

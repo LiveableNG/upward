@@ -42,6 +42,11 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
     ? 'Invalid international phone number'
     : undefined
 
+  const selectedProperty = properties.find(p => p.uuid === targetPropertyUuid)
+  const isDuplicateUnit = !!formData.unitName && !!selectedProperty?.units?.some(
+    (u: any) => u.unitName.trim().toLowerCase() === formData.unitName.trim().toLowerCase()
+  )
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
@@ -73,7 +78,16 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
             placeholder="e.g. Apt 4B"
             value={formData.unitName}
             onChange={e => setFormData({ ...formData, unitName: e.target.value })}
+            style={{ 
+              borderColor: isDuplicateUnit ? 'var(--error)' : undefined,
+              background: isDuplicateUnit ? 'var(--error-bg)' : undefined
+            }}
           />
+          {isDuplicateUnit && (
+            <p style={{ color: 'var(--error)', fontSize: 11, marginTop: 4, fontWeight: 600 }}>
+              This unit name already exists in the selected property.
+            </p>
+          )}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -251,7 +265,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
             className="btn btn--primary" 
             style={{ flex: 1 }} 
             onClick={onSave} 
-            disabled={isPending || (!!formData.tenantPhone && !!phoneError)}
+            disabled={isPending || (!!formData.tenantPhone && !!phoneError) || isDuplicateUnit || !formData.unitName || !targetPropertyUuid}
           >
             {isPending ? 'Saving...' : 'Save Unit'}
           </button>

@@ -100,6 +100,14 @@ export class BulkFullImportUseCase {
       }
 
       // 3. Create Unit
+      const existingUnits = await this.unitRepository.findByPropertyId(property.id);
+      const duplicateUnit = existingUnits.find(u => u.unitName.trim().toLowerCase() === row.unitName.trim().toLowerCase());
+
+      if (duplicateUnit) {
+        // Skip duplicate unit creation
+        continue;
+      }
+
       const newUnit = await this.unitRepository.create({
         propertyId: property.id,
         unitName: row.unitName.trim(),

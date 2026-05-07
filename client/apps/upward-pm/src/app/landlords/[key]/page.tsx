@@ -52,10 +52,7 @@ function LandlordDetailPageContent() {
 
   const representativeProp = landlordProperties[0]
 
-  const handleSendReport = (data: any) => {
-    success(`Report sent successfully to ${data.recipientEmail}`)
-    setStep('detail')
-  }
+
 
   if (step === 'configure') {
     return (
@@ -79,7 +76,7 @@ function LandlordDetailPageContent() {
         landlordEmail={representativeProp.landlordEmail || ''}
         initialContent={reportContent}
         onBack={() => setStep('configure')}
-        onSend={handleSendReport}
+        onDone={() => setStep('detail')}
       />
     )
   }
