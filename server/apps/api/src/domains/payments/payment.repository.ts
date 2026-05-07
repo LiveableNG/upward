@@ -73,6 +73,7 @@ export interface TransactionVerification {
   status: boolean
   amount?: number
   currency?: string
+  fees?: number
 }
 
 export interface IPaymentGateway {

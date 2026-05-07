@@ -132,9 +132,9 @@ export function StepAmount({
       },
     ]
 
-    const feeItem = items.find(i => i.label === 'Upward Processing Fee')
+    const feeItem = items.find(i => i.label === 'Processing Fee')
     if (!feeItem) {
-      items.unshift({ label: 'Upward Processing Fee', amount: 2000 })
+      items.unshift({ label: 'Processing Fee', amount: 2000 })
     } else {
       feeItem.amount = 2000
     }
@@ -152,7 +152,7 @@ export function StepAmount({
   }
 
   const removeLineItem = (index: number) => {
-    if (lineItems[index]?.label === 'Upward Processing Fee') return
+    if (lineItems[index]?.label === 'Processing Fee') return
     setLineItems(lineItems.filter((_, i) => i !== index))
   }
 
@@ -161,10 +161,10 @@ export function StepAmount({
     
     if (field === 'label') {
       if (index === 0) return
-      if (newItems[index].label === 'Upward Processing Fee' || newItems[index].label === 'Rent') return
+      if (newItems[index].label === 'Processing Fee' || newItems[index].label === 'Rent') return
       newItems[index].label = String(val)
     } else {
-      if (newItems[index].label === 'Upward Processing Fee' || newItems[index].label === 'Rent') return
+      if (newItems[index].label === 'Processing Fee' || newItems[index].label === 'Rent') return
       let numVal = Number(val)
       if (isNaN(numVal)) numVal = 0
       
@@ -331,7 +331,7 @@ export function StepAmount({
                       fontWeight: 600,
                       opacity: idx === 0 ? 0.7 : 1 
                     }}
-                    readOnly={idx === 0 || item.label === 'Upward Processing Fee' || item.label === 'Rent'}
+                    readOnly={idx === 0 || item.label === 'Processing Fee' || item.label === 'Rent'}
                   />
                   <div
                     style={{
@@ -365,11 +365,11 @@ export function StepAmount({
                         flex: 'none',
                         opacity: idx === 0 ? 0.7 : 1,
                       }}
-                      readOnly={item.label === 'Upward Processing Fee' || item.label === 'Rent'}
+                      readOnly={item.label === 'Processing Fee' || item.label === 'Rent'}
                     />
                 </div>
               </div>
-              {item.label !== 'Upward Processing Fee' && (
+              {item.label !== 'Processing Fee' && (
                 <button
                   onClick={() => removeLineItem(idx)}
                   style={{

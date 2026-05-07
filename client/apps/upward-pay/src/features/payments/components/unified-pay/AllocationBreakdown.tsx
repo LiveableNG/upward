@@ -12,7 +12,6 @@ interface AllocationBreakdownProps {
   lineItems: any[]
   canPayPartial?: boolean
   onAllocationChange?: (id: number, amount: number) => void
-  gatewayFee?: number
 }
 
 export function AllocationBreakdown({
@@ -23,7 +22,6 @@ export function AllocationBreakdown({
   lineItems,
   canPayPartial,
   onAllocationChange,
-  gatewayFee = 0,
 }: AllocationBreakdownProps) {
   return (
     <div className="pay-breakdown">
@@ -50,16 +48,18 @@ export function AllocationBreakdown({
             const isPaid = lineItems.find(i => i.id === alloc.id)?.status === 'PAID'
             const pct = alloc.remaining > 0 ? Math.min(100, ((alloc.amountPaid + alloc.allocated) / alloc.totalAmount) * 100) : 100
 
+            const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(alloc.name)
+
             return (
               <div key={alloc.id} className={`pay-breakdown-item ${isPaid ? 'is-settled' : ''}`}>
                 <div className="pay-breakdown-item__row">
                   <div className="pay-breakdown-item__info">
                     <span className="pay-breakdown-item__name">{alloc.name}</span>
                     <span className="pay-breakdown-item__stats">
-                      {isPaid ? 'Settled' : alloc.allocated >= alloc.remaining ? 'Full Settlement' : 'Partial Payment'}
+                      {isPaid ? 'Settled' : isFee ? 'Upward & Provider' : alloc.allocated >= alloc.remaining ? 'Full Payment' : 'Partial Payment'}
                     </span>
                   </div>
-                  {!isPaid && canPayPartial && onAllocationChange && alloc.name !== 'Upward Processing Fee' ? (
+                  {!isPaid && canPayPartial && onAllocationChange && !['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(alloc.name) ? (
                     <div className="pay-breakdown-item__action">
                       <div className="pay-breakdown-item__amount-container">
                         <span className="pay-breakdown-item__currency-small">{currency}</span>
@@ -93,24 +93,7 @@ export function AllocationBreakdown({
             )
           })}
           
-          {gatewayFee > 0 && (
-            <div className="pay-breakdown-item is-gateway-fee">
-              <div className="pay-breakdown-item__row">
-                <div className="pay-breakdown-item__info">
-                  <span className="pay-breakdown-item__name">Paystack Gateway Fee</span>
-                  <span className="pay-breakdown-item__stats">Applied by payment provider</span>
-                </div>
-                <div className="pay-breakdown-item__final">
-                  <span className="pay-breakdown-item__amount">
-                    {formatCurrency(gatewayFee, currency)}
-                  </span>
-                </div>
-              </div>
-              <div className="pay-breakdown-item__progress">
-                <div className="pay-breakdown-item__bar" style={{ width: '100%', opacity: 0.3 }} />
-              </div>
-            </div>
-          )}
+
         </div>
       </div>
 

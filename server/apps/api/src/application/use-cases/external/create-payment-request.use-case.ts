@@ -62,7 +62,7 @@ export class CreateExternalPaymentRequestUseCase {
     const currency = payload.currency || property.currency || 'NGN';
 
     // Ensure Upward & Provider Fee is included in every payment request
-    const feeName = 'Upward & Provider Fee';
+    const feeName = 'Processing Fee';
     const hasFee = payload.lineItems?.some(li => li.name === feeName || li.name === 'Upward Processing Fee');
     
     if (!hasFee) {
