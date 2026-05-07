@@ -45,8 +45,8 @@ export const TenantDetailView: React.FC = () => {
     inviteTenant.mutate(tenant.uuid)
   }
 
-  const isInvited = tenant.inviteStatus === 'SENT'
   const isOnUpward = tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED'
+  const isProcessing = !isOnUpward && !tenant.inviteSentAt
 
   return (
     <div className="unit-detail animate-fade-in">
@@ -73,32 +73,23 @@ export const TenantDetailView: React.FC = () => {
               <CheckCircle2 size={14} style={{ marginRight: 6 }} />
               Active on Upward
             </span>
-          ) : isInvited ? (
+          ) : isProcessing ? (
+            <span className="badge badge--pending" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Loader2 size={14} className="animate-spin" />
+              Processing...
+            </span>
+          ) : (
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <span className="badge badge--sent">Invite Sent</span>
+              <span className="badge badge--sent">Pending Acceptance</span>
               <button 
                 className="btn btn--secondary"
                 onClick={handleInvite}
                 disabled={inviteTenant.isPending}
+                title="Remind tenant to accept invitation"
               >
-                {inviteTenant.isPending ? <Loader2 size={18} className="animate-spin" /> : 'Resend Invite'}
+                {inviteTenant.isPending ? <Loader2 size={18} className="animate-spin" /> : 'Remind'}
               </button>
             </div>
-          ) : (
-            <button 
-              className="btn btn--primary" 
-              onClick={handleInvite}
-              disabled={inviteTenant.isPending}
-            >
-              {inviteTenant.isPending ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <>
-                  <Send size={18} style={{ marginRight: 8 }} />
-                  Send Invitation
-                </>
-              )}
-            </button>
           )}
         </div>
       </header>

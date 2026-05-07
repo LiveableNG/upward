@@ -94,7 +94,7 @@ export class BulkFullImportUseCase {
         tenantId = tenant.id;
         tenantUuid = tenant.uuid;
 
-        if (tenant.inviteStatus === 'PENDING' && inviteAfterImport) {
+        if (tenant.inviteStatus === 'PENDING') {
           createdTenantUuids.push(tenant.uuid);
         }
       }
@@ -131,9 +131,9 @@ export class BulkFullImportUseCase {
       }
     }
 
-    // 4. Kick off bulk invite for PENDING tenants if toggle is ON
+    // 4. Kick off bulk invite for PENDING tenants automatically
     let bulkInviteId: string | null = null;
-    if (inviteAfterImport && createdTenantUuids.length > 0) {
+    if (createdTenantUuids.length > 0) {
       const result = await this.bulkInviteUseCase.execute(pmId, {
         tenantUuids: [...new Set(createdTenantUuids)],
       });

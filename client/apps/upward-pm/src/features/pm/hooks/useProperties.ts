@@ -126,7 +126,7 @@ export const useBulkFullImport = () => {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: (data: { rows: any[]; inviteAfterImport?: boolean }) => 
+    mutationFn: (data: { rows: any[] }) => 
       api.bulkFullImport(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pm-units'] })
