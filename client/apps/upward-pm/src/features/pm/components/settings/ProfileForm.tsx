@@ -11,6 +11,7 @@ const profileSchema = z.object({
   firstName: z.string().min(2, 'First name is too short'),
   lastName: z.string().min(2, 'Last name is too short'),
   businessName: z.string().optional(),
+  pmType: z.string().optional(),
   phone: z.string().refine((val) => !val || isValidPhoneNumber(val), {
     message: 'Invalid international phone number (e.g. +234...)'
   }),
@@ -28,6 +29,7 @@ export function ProfileForm() {
       firstName: user?.firstName || '',
       lastName: user?.lastName || '',
       businessName: user?.businessName || '',
+      pmType: user?.pmType || '',
       phone: user?.phone || '',
     }
   })
@@ -38,6 +40,7 @@ export function ProfileForm() {
         firstName: user.firstName,
         lastName: user.lastName,
         businessName: user.businessName || '',
+        pmType: user.pmType || '',
         phone: user.phone || '',
       })
     }
@@ -81,6 +84,24 @@ export function ProfileForm() {
               placeholder="Enter business name"
             />
           </div>
+          <div className="settings__field">
+            <label className="settings__label">Account Type</label>
+            <select 
+              {...register('pmType')}
+              className="settings__input"
+            >
+              <option value="">Select account type</option>
+              <option value="Landlord">Landlord</option>
+              <option value="Caretaker">Caretaker</option>
+              <option value="Lawyer">Lawyer</option>
+              <option value="Estate Agent">Estate Agent</option>
+              <option value="Property Manager">Property Manager</option>
+              <option value="Company">Property Management Company</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="settings__grid">
           <div className="settings__field">
             <Controller
               name="phone"

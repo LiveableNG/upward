@@ -11,6 +11,13 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  Briefcase,
+  Home,
+  Scale,
+  Building,
+  Wrench,
+  ShieldCheck,
+  MapPin,
 } from 'lucide-react'
 import { useSignup } from '../hooks/useSignup'
 import { useRequestOTP, useVerifyOTP, useOtpLogin } from '../hooks/useOtp'
@@ -25,6 +32,7 @@ export const SignupForm = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    pmType: '',
   })
 
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
@@ -46,6 +54,11 @@ export const SignupForm = () => {
 
   const handleInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!formData.pmType) {
+      setPasswordError('Please select your role')
+      return
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setPasswordError('Passwords do not match')
@@ -184,6 +197,31 @@ export const SignupForm = () => {
 
       {stage === 'info' ? (
         <form onSubmit={handleInfoSubmit}>
+          <div className="form-group">
+            <label className="form-label">
+              I am a...
+            </label>
+            <div className="role-grid">
+              {[
+                { id: 'Landlord', icon: Home, label: 'Landlord' },
+                { id: 'Caretaker', icon: Wrench, label: 'Caretaker' },
+                { id: 'Lawyer', icon: Scale, label: 'Lawyer' },
+                { id: 'Estate Agent', icon: MapPin, label: 'Estate Agent' },
+                { id: 'Property Manager', icon: Briefcase, label: 'Property Manager' },
+                { id: 'Company', icon: Building, label: 'Management Co.' },
+              ].map((role) => (
+                <div
+                  key={role.id}
+                  className={`role-card ${formData.pmType === role.id ? 'role-card--selected' : ''}`}
+                  onClick={() => setFormData({ ...formData, pmType: role.id })}
+                >
+                  <role.icon size={24} className="role-card__icon" />
+                  <span className="role-card__label">{role.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div
             style={{
               display: 'grid',
