@@ -1,9 +1,9 @@
 
 import { Controller, Get, Post, Patch, Body, UseGuards, Request } from '@nestjs/common';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { GetPmDocumentsUseCase } from '../../../../application/pm/use-cases/documents/get-pm-documents.use-case';
-import { SaveDocumentTemplateUseCase, SaveDocumentTemplateDto } from '../../../../application/pm/use-cases/documents/save-document-template.use-case';
-import { SendDocumentUseCase, SendDocumentDto } from '../../../../application/pm/use-cases/documents/send-document.use-case';
+import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
+import { GetPmDocumentsUseCase } from '../../../application/pm/use-cases/documents/get-pm-documents.use-case';
+import { SaveDocumentTemplateUseCase, SaveDocumentTemplateDto } from '../../../application/pm/use-cases/documents/save-document-template.use-case';
+import { SendDocumentUseCase, SendDocumentDto } from '../../../application/pm/use-cases/documents/send-document.use-case';
 
 @Controller('pm/documents')
 @UseGuards(JwtAuthGuard)
