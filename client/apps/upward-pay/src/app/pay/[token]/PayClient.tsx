@@ -10,7 +10,7 @@ import {
   ChevronRight
 } from 'lucide-react'
 import { api } from '@/lib/api'
-import { formatCurrency, generateId } from '@/lib/utils'
+import { formatCurrency, generateId, calculateCombinedFee } from '@/lib/utils'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { UpwardLogo } from '@/components/PoweredByUpward'
@@ -51,17 +51,6 @@ interface LineItemAllocation {
   remaining: number
 }
 
-const UPWARD_FEE = 2000;
-
-const calculateCombinedFee = (netAmount: number) => {
-  if (netAmount <= 0) return 0;
-
-  const threshold = 2462.5;
-  const isAboveThreshold = netAmount >= threshold;
-  const gross = isAboveThreshold ? (netAmount + 100) / 0.985 : netAmount / 0.985;
-  const paystackFee = Math.ceil(Math.min(2000, gross - netAmount));
-  return UPWARD_FEE + paystackFee;
-};
 
 function distributeAmount(amount: number, items: LineItemRecord[], totalOwed: number): LineItemAllocation[] {
   const allocs: LineItemAllocation[] = items.map(i => ({
@@ -75,7 +64,7 @@ function distributeAmount(amount: number, items: LineItemRecord[], totalOwed: nu
 
   let remaining = amount
   
-  const feeItem = allocs.find(a => ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(a.name) || a.id === -2)
+  const feeItem = allocs.find(a => a.name === 'Processing Fee' || a.id === -2)
   if (feeItem) {
 
     const estimatedNet = Math.max(0, amount - 2000)
@@ -91,7 +80,7 @@ function distributeAmount(amount: number, items: LineItemRecord[], totalOwed: nu
 
 
   for (const item of allocs) {
-    if (['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name) || item.id === -2) continue
+    if (item.name === 'Processing Fee' || item.id === -2) continue
     if (item.remaining <= 0) continue
     const pay = Math.min(remaining, item.remaining)
     item.allocated = pay
@@ -209,18 +198,14 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
         setPaymentData(res.data)
         let items = (res.data.payment.lineItemRecords || []) as LineItemRecord[]
         
-        // Ensure Processing Fee is present and at the very top for priority allocation
-        const feeIndex = items.findIndex(i => ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name) || i.id === -2)
-        if (feeIndex > -1) {
-          const [fee] = items.splice(feeIndex, 1)
-          
-          if (res.data.payment.status !== 'PAID') {
-            fee.status = 'PENDING'
-            fee.amountPaid = 0
-          }
-          
-          items = [fee, ...items]
-        }
+        // Insert dynamic Processing Fee since backend does not include it
+        items.unshift({
+          id: -2,
+          name: 'Processing Fee',
+          totalAmount: 0,
+          amountPaid: 0,
+          status: 'PENDING'
+        })
         
         setLineItems(items)
         const due = res.data.payment.amount - (res.data.payment.amountPaid || 0)
@@ -232,7 +217,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
         }
 
         const rentRemaining = items.reduce((sum, item) => {
-          const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name)
+          const isFee = item.name === 'Processing Fee' || item.id === -2
           if (isFee) return sum
           return sum + Math.max(0, item.totalAmount - item.amountPaid)
         }, 0)
@@ -266,7 +251,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     
     const items = paymentData.payment.lineItemRecords || []
     const rentRemaining = items.reduce((sum: number, item: any) => {
-      const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name)
+      const isFee = item.name === 'Processing Fee' || item.id === -2
       if (isFee) return sum
       return sum + Math.max(0, item.totalAmount - item.amountPaid)
     }, 0)
@@ -295,7 +280,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
     // Manual Override Mode: Priority Fee + Manual Overrides
     const total = parsedAmount
-    const feeItem = lineItems.find(i => ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name) || i.id === -2)
+    const feeItem = lineItems.find(i => i.name === 'Processing Fee' || i.id === -2)
     
     // Calculate dynamic fee for the manual total
     const estimatedNet = Math.max(0, total - 2000)
@@ -304,7 +289,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     const feePayment = Math.min(total, dynamicFee)
 
     return lineItems.map(item => {
-      const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name) || item.id === -2
+      const isFee = item.name === 'Processing Fee' || item.id === -2
       if (isFee) {
         return {
           id: item.id,
@@ -349,7 +334,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
   const handleAllocationChange = (id: number, amount: number) => {
     const item = lineItems.find(a => a.id === id)
-    if (!item || ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name) || item.id === -2 || item.status === 'PAID') return
+    if (!item || item.name === 'Processing Fee' || item.id === -2 || item.status === 'PAID') return
 
     // Cap at remaining balance
     const remainingForThisItem = Math.max(0, item.totalAmount - item.amountPaid)
@@ -359,7 +344,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     
     if (Object.keys(newManual).length === 0) {
       autoAllocs.forEach(a => {
-        const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(a.name) || a.id === -2
+        const isFee = a.name === 'Processing Fee' || a.id === -2
         if (!isFee) {
           newManual[a.id] = a.allocated
         }
@@ -371,7 +356,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     
     // Calculate total: Sum of manual items + Fee
     const manualSum = Object.values(newManual).reduce((acc, val) => acc + val, 0)
-    const feeItem = lineItems.find(i => ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name) || i.id === -2)
+    const feeItem = lineItems.find(i => i.name === 'Processing Fee' || i.id === -2)
     const feeRemaining = feeItem ? Math.max(0, feeItem.totalAmount - feeItem.amountPaid) : 0
     
     const newTotal = manualSum + feeRemaining

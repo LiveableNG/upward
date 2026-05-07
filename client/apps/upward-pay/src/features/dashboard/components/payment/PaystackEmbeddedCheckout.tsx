@@ -51,8 +51,8 @@ export default function PaystackEmbeddedCheckout({
         : `${paymentType || 'Rent payment'} for ${propertyAddress || companyName}`
 
     const upwardFee = lineItems.find(i => 
-      ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes((i as any).name) || 
-      ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes((i as any).label)
+      (i as any).name === 'Processing Fee' || 
+      (i as any).label === 'Processing Fee'
     );
     const totalAmountKobo = Math.round((amount || 0) * 100);
     

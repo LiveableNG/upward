@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { LandlordAvatar } from './LandlordAvatar'
 import { type Landlord, type LineItem } from './types'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, calculateCombinedFee } from '@/lib/utils'
 import { Plus, Trash2, Info, ChevronRight } from 'lucide-react'
 
 const labelStyle: React.CSSProperties = {
@@ -119,16 +119,6 @@ export function StepAmount({
   const [paymentType, setPaymentType] = useState(initialPaymentType)
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [showOverpaymentDialog, setShowOverpaymentDialog] = useState(false)
-  
-  const calculateCombinedFee = (netAmount: number) => {
-    if (netAmount <= 0) return 0;
-    const UPWARD_FEE = 2000;
-    const threshold = 2462.5;
-    const isAboveThreshold = netAmount >= threshold;
-    const gross = isAboveThreshold ? (netAmount + 100) / 0.985 : netAmount / 0.985;
-    const paystackFee = Math.ceil(Math.min(2000, gross - netAmount));
-    return UPWARD_FEE + paystackFee;
-  };
 
   const [lineItems, setLineItems] = useState<LineItem[]>(() => {
     const items = initialLineItems && initialLineItems.length > 0 ? [...initialLineItems] : [
@@ -142,8 +132,8 @@ export function StepAmount({
       },
     ]
 
-    const rentAmount = items.find(i => i.label === 'Rent')?.amount || 0
-    const feeAmount = calculateCombinedFee(Number(rentAmount))
+    const nonFeeTotal = items.reduce((sum, i) => i.label === 'Processing Fee' ? sum : sum + (Number(i.amount) || 0), 0)
+    const feeAmount = calculateCombinedFee(nonFeeTotal)
     
     const feeItem = items.find(i => i.label === 'Processing Fee')
     if (!feeItem) {
@@ -156,14 +146,18 @@ export function StepAmount({
   })
 
   useEffect(() => {
-    const rentItem = lineItems.find(i => i.label === 'Rent');
-    if (rentItem) {
-      const newFee = calculateCombinedFee(Number(rentItem.amount));
-      setLineItems(prev => prev.map(item => 
+    const nonFeeTotal = lineItems.reduce((sum, i) => i.label === 'Processing Fee' ? sum : sum + (Number(i.amount) || 0), 0)
+    const newFee = calculateCombinedFee(nonFeeTotal);
+    
+    setLineItems(prev => {
+      const currentFee = prev.find(i => i.label === 'Processing Fee')?.amount;
+      if (currentFee === newFee) return prev;
+      return prev.map(item => 
         item.label === 'Processing Fee' ? { ...item, amount: newFee } : item
-      ));
-    }
-  }, [lineItems.find(i => i.label === 'Rent')?.amount]);
+      );
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineItems.filter(i => i.label !== 'Processing Fee').map(i => i.amount).join(',')]);
 
   useEffect(() => {
     const total = lineItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
