@@ -79,9 +79,10 @@ export class PrismaUserRepository implements UserRepository {
     }
   }
 
-  async findByEmail(email: string): Promise<User | null> {
+  async findByEmail(email: string, tx?: any): Promise<User | null> {
+    const prisma = tx || this.prisma
     const emailHash = this.encryption.hash(email)
-    const record = await this.prisma.upward_user.findUnique({
+    const record = await prisma.upward_user.findUnique({
       where: { emailHash },
       include: {
         properties: {
@@ -102,8 +103,9 @@ export class PrismaUserRepository implements UserRepository {
     return record ? this.toDomain(record) : null
   }
 
-  async findById(id: number): Promise<User | null> {
-    const record = await this.prisma.upward_user.findUnique({
+  async findById(id: number, tx?: any): Promise<User | null> {
+    const prisma = tx || this.prisma
+    const record = await prisma.upward_user.findUnique({
       where: { id },
       include: {
         properties: {
@@ -124,8 +126,9 @@ export class PrismaUserRepository implements UserRepository {
     return record ? this.toDomain(record) : null
   }
 
-  async findByUuid(uuid: string): Promise<User | null> {
-    const record = await this.prisma.upward_user.findUnique({
+  async findByUuid(uuid: string, tx?: any): Promise<User | null> {
+    const prisma = tx || this.prisma
+    const record = await prisma.upward_user.findUnique({
       where: { uuid },
       include: {
         properties: {
@@ -146,8 +149,9 @@ export class PrismaUserRepository implements UserRepository {
     return record ? this.toDomain(record) : null
   }
 
-  async findBySlug(profileSlug: string): Promise<User | null> {
-    const record = await this.prisma.upward_user.findUnique({
+  async findBySlug(profileSlug: string, tx?: any): Promise<User | null> {
+    const prisma = tx || this.prisma
+    const record = await prisma.upward_user.findUnique({
       where: { profileSlug },
       include: {
         properties: {
@@ -168,8 +172,9 @@ export class PrismaUserRepository implements UserRepository {
     return record ? this.toDomain(record) : null
   }
 
-  async findAll(): Promise<User[]> {
-    const records = await this.prisma.upward_user.findMany({
+  async findAll(tx?: any): Promise<User[]> {
+    const prisma = tx || this.prisma
+    const records = await prisma.upward_user.findMany({
       include: {
         properties: {
           include: {
@@ -189,8 +194,9 @@ export class PrismaUserRepository implements UserRepository {
     return records.map((record) => this.toDomain(record))
   }
 
-  async save(user: User): Promise<User> {
-    const record = await this.prisma.upward_user.create({
+  async save(user: User, tx?: any): Promise<User> {
+    const prisma = tx || this.prisma
+    const record = await prisma.upward_user.create({
       data: {
         uuid: user.uuid,
         email: this.encryption.encrypt(user.email),
@@ -216,7 +222,8 @@ export class PrismaUserRepository implements UserRepository {
     return this.toDomain(record)
   }
 
-  async update(id: number, data: Partial<User>): Promise<User> {
+  async update(id: number, data: Partial<User>, tx?: any): Promise<User> {
+    const prisma = tx || this.prisma
     const updateData: any = {}
     
     // Pick direct scalar fields
@@ -249,7 +256,7 @@ export class PrismaUserRepository implements UserRepository {
       updateData.phoneHash = this.encryption.hash(data.phone)
     }
 
-    const record = await this.prisma.upward_user.update({
+    const record = await prisma.upward_user.update({
       where: { id },
       data: updateData,
       include: {

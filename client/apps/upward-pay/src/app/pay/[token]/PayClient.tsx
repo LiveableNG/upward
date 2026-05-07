@@ -189,8 +189,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
         setPaymentData(res.data)
         let items = (res.data.payment.lineItemRecords || []) as LineItemRecord[]
         
-        // Ensure 'Upward Processing Fee' is present and at the very top for priority allocation
-        const feeIndex = items.findIndex(i => i.name === 'Upward Processing Fee')
+        // Ensure Processing Fee is present and at the very top for priority allocation
+        const feeIndex = items.findIndex(i => i.name === 'Upward Processing Fee' || i.name === 'Upward & Provider Fee')
         if (feeIndex > -1) {
           const [fee] = items.splice(feeIndex, 1)
           items = [fee, ...items]
@@ -253,12 +253,12 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
     // Manual Override Mode: Priority Fee + Manual Overrides
     const total = parsedAmount
-    const feeItem = lineItems.find(i => i.name === 'Upward Processing Fee' || i.id === -2)
+    const feeItem = lineItems.find(i => i.name === 'Upward Processing Fee' || i.name === 'Upward & Provider Fee' || i.id === -2)
     const feeRemaining = feeItem ? Math.max(0, feeItem.totalAmount - feeItem.amountPaid) : 0
     const feePayment = Math.min(total, feeRemaining)
 
     return lineItems.map(item => {
-      const isFee = item.name === 'Upward Processing Fee' || item.id === -2
+      const isFee = item.name === 'Upward Processing Fee' || item.name === 'Upward & Provider Fee' || item.id === -2
       if (isFee) {
         return {
           id: item.id,
@@ -308,7 +308,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
   const handleAllocationChange = (id: number, amount: number) => {
     const item = lineItems.find(a => a.id === id)
-    if (!item || item.name === 'Upward Processing Fee' || item.id === -2 || item.status === 'PAID') return
+    if (!item || item.name === 'Upward Processing Fee' || item.name === 'Upward & Provider Fee' || item.id === -2 || item.status === 'PAID') return
 
     // Cap at remaining balance
     const remainingForThisItem = Math.max(0, item.totalAmount - item.amountPaid)
@@ -319,7 +319,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     
     // Calculate total: Sum of manual items + Fee
     const manualSum = Object.values(newManual).reduce((acc, val) => acc + val, 0)
-    const feeItem = lineItems.find(i => i.name === 'Upward Processing Fee' || i.id === -2)
+    const feeItem = lineItems.find(i => i.name === 'Upward Processing Fee' || i.name === 'Upward & Provider Fee' || i.id === -2)
     const feeRemaining = feeItem ? Math.max(0, feeItem.totalAmount - feeItem.amountPaid) : 0
     
     const newTotal = manualSum + feeRemaining
@@ -329,10 +329,16 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
   const handlePaymentSuccess = async (reference: string) => {
     setStep('processing')
     try {
-      const lineItemPayments = [
-        ...finalLineItemPayments,
-        ...(gatewayFee > 0 ? [{ id: -100, name: 'Paystack Gateway Fee', amountPaid: gatewayFee }] : [])
-      ]
+      let lineItemPayments = [...finalLineItemPayments]
+      
+      // Merge gatewayFee into 'Upward & Provider Fee' if it exists, otherwise send as separate
+      const feeItemIdx = lineItemPayments.findIndex(lp => lp.name === 'Upward & Provider Fee' || lp.name === 'Upward Processing Fee')
+      
+      if (feeItemIdx > -1 && gatewayFee > 0) {
+        lineItemPayments[feeItemIdx].amountPaid += gatewayFee
+      } else if (gatewayFee > 0) {
+        lineItemPayments.push({ id: -100, name: 'Paystack Gateway Fee', amountPaid: gatewayFee } as any)
+      }
 
       const res = await api.post(`/payment-request/${uuid}/confirm`, {
         reference,

@@ -63,24 +63,27 @@ export class PrismaRentCycleRepository implements IRentCycleRepository {
     return this.toDomain(record)
   }
 
-  async findByUserId(userId: number): Promise<RentCycle[]> {
-    const records = await this.prisma.upward_rent_cycle.findMany({
+  async findByUserId(userId: number, tx?: Prisma.TransactionClient): Promise<RentCycle[]> {
+    const prisma = tx || this.prisma
+    const records = await prisma.upward_rent_cycle.findMany({
       where: { userId },
       orderBy: { dueDate: 'desc' },
     })
     return records.map((r) => this.toDomain(r))
   }
 
-  async findByUserPropertyId(propertyId: number): Promise<RentCycle[]> {
-    const records = await this.prisma.upward_rent_cycle.findMany({
+  async findByUserPropertyId(propertyId: number, tx?: Prisma.TransactionClient): Promise<RentCycle[]> {
+    const prisma = tx || this.prisma
+    const records = await prisma.upward_rent_cycle.findMany({
       where: { userPropertyId: propertyId },
       orderBy: { dueDate: 'desc' },
     })
     return records.map((r) => this.toDomain(r))
   }
 
-  async findByPaymentRequestId(paymentRequestId: number): Promise<RentCycle | null> {
-    const record = await this.prisma.upward_rent_cycle.findFirst({
+  async findByPaymentRequestId(paymentRequestId: number, tx?: Prisma.TransactionClient): Promise<RentCycle | null> {
+    const prisma = tx || this.prisma
+    const record = await prisma.upward_rent_cycle.findFirst({
       where: { paymentRequestId },
     })
     return record ? this.toDomain(record) : null

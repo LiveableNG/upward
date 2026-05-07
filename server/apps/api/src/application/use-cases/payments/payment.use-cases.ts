@@ -256,14 +256,17 @@ export class RecordTransactionUseCase {
       data.amount = verifiedData.amount
     }
 
+    this.logger.log(`[Settlement] Starting settlement for ref: ${data.reference}. Amount: ${data.amount}`);
+
     return await this.prisma.$transaction(async (txClient) => {
+      this.logger.log(`[Settlement] DB Transaction started for ref: ${data.reference}`);
       let pr: any = null
       let excess = 0
       let remaining = 0
       let rentPortion = 0
 
       if (isVerified && data.type === 'RENT' && !data.paymentRequestId && data.userPropertyUuid) {
-        const prop = await this.propertyRepo.findByUuid(data.userPropertyUuid)
+        const prop = await this.propertyRepo.findByUuid(data.userPropertyUuid, txClient)
         if (prop) {
           const existingPending = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PENDING');
           const existingPartial = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PARTIAL');
@@ -294,12 +297,12 @@ export class RecordTransactionUseCase {
 
       if (upwardFeeAmount === 0 && pr) {
         const prItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!, txClient);
-        const feeItem = prItems.find(i => i.name === 'Upward Processing Fee');
+        const feeItem = prItems.find(i => i.name === 'Upward Processing Fee' || i.name === 'Upward & Provider Fee');
         if (feeItem) {
           const need = feeItem.totalAmount - feeItem.amountPaid;
           if (need > 0) {
             upwardFeeAmount = Math.min(data.amount, need);
-            this.logger.log(`Prioritizing ${upwardFeeAmount} for Upward Processing Fee from payment ${data.reference}`);
+            this.logger.log(`Prioritizing ${upwardFeeAmount} for ${feeItem.name} from payment ${data.reference}`);
           }
         }
       }
@@ -314,12 +317,12 @@ export class RecordTransactionUseCase {
       let propertyForCycle: any = null;
 
       if (userPropertyIdToSettle) {
-        propertyForCycle = await this.propertyRepo.findById(userPropertyIdToSettle);
+        propertyForCycle = await this.propertyRepo.findById(userPropertyIdToSettle, txClient);
       }
       
       if (!userPropertyIdToSettle && isVerified && data.type === 'RENT') {
         if (data.userPropertyUuid) {
-          propertyForCycle = await this.propertyRepo.findByUuid(data.userPropertyUuid);
+          propertyForCycle = await this.propertyRepo.findByUuid(data.userPropertyUuid, txClient);
           if (propertyForCycle) {
             userPropertyIdToSettle = propertyForCycle.id!;
           }
@@ -327,7 +330,7 @@ export class RecordTransactionUseCase {
         
         // Final fallback: If user has only ONE property, link it to that
         if (!userPropertyIdToSettle && user) {
-          const userProps = await this.propertyRepo.findByUserId(user.id!);
+          const userProps = await this.propertyRepo.findByUserId(user.id!, txClient);
           if (userProps.length === 1) {
             propertyForCycle = userProps[0];
             userPropertyIdToSettle = propertyForCycle.id!;
@@ -547,7 +550,7 @@ export class RecordTransactionUseCase {
               
               let propRent = 0;
               if (data.userPropertyUuid) {
-                const p = await this.propertyRepo.findByUuid(data.userPropertyUuid);
+                const p = await this.propertyRepo.findByUuid(data.userPropertyUuid, txClient);
                 if (p) propRent = p.rentAmount;
               }
 
@@ -597,7 +600,7 @@ export class RecordTransactionUseCase {
           // 4. Handle Excess as Overpayment
           if (excess > 0) {
             const futureCreditRef = `FC_${data.reference}`
-            const existingFc = await this.txRepo.findByReference(futureCreditRef)
+            const existingFc = await this.txRepo.findByReference(futureCreditRef, txClient)
             if (!existingFc) {
               const futureCreditName = data.futureCreditName || 'Future Credit'
               await this.txRepo.create({
@@ -644,7 +647,7 @@ export class RecordTransactionUseCase {
         }
 
         if (userPropertyIdToSettle && data.type === 'RENT') {
-          const prop = await this.propertyRepo.findById(userPropertyIdToSettle)
+          const prop = await this.propertyRepo.findById(userPropertyIdToSettle, txClient)
           if (prop) {
             const totalRentPaidForProp = (prop.amountPaid || 0) + rentPortion
             const totalOwedForProp = prop.rentAmount || (pr ? (pr.amount - (upwardFeeAmount || 0)) : 0)
@@ -720,7 +723,7 @@ export class RecordTransactionUseCase {
               }, txClient)
             } else {
               // Manual match based on property and due date
-              const existingCycles = await this.rentCycleRepo.findByUserId(user.id!)
+              const existingCycles = await this.rentCycleRepo.findByUserId(user.id!, txClient)
               const matchingCycle = existingCycles.find(c =>
                 c.userPropertyId === prop.id &&
                 new Date(c.dueDate).getTime() === cycleDueDate.getTime()
@@ -801,8 +804,11 @@ export class RecordTransactionUseCase {
         }
       }
 
-      return result;
-    })
+        this.logger.log(`[Settlement] Transaction committed for ref: ${data.reference}`);
+        return result;
+      }, {
+        timeout: 15000 // Increase timeout to 15s for large transactions
+      })
   }
 }
 

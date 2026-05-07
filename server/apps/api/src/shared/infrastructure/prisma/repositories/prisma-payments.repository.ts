@@ -167,8 +167,9 @@ export class PrismaTransactionRepository implements ITransactionRepository {
     return this.mapTransaction(res)
   }
 
-  async findByUserId(userId: number): Promise<Transaction[]> {
-    const res = await this.prisma.upward_transaction.findMany({
+  async findByUserId(userId: number, tx?: Prisma.TransactionClient): Promise<Transaction[]> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_transaction.findMany({
       where: { userId },
       include: {
         paymentRequest: {
@@ -188,8 +189,9 @@ export class PrismaTransactionRepository implements ITransactionRepository {
     return res.map((r) => this.mapTransaction(r))
   }
 
-  async findById(id: number): Promise<Transaction | null> {
-    const res = await this.prisma.upward_transaction.findUnique({
+  async findById(id: number, tx?: Prisma.TransactionClient): Promise<Transaction | null> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_transaction.findUnique({
       where: { id },
       include: {
         paymentRequest: {
@@ -209,8 +211,9 @@ export class PrismaTransactionRepository implements ITransactionRepository {
     return this.mapTransaction(res)
   }
 
-  async findByUuid(uuid: string): Promise<Transaction | null> {
-    const res = await this.prisma.upward_transaction.findUnique({
+  async findByUuid(uuid: string, tx?: Prisma.TransactionClient): Promise<Transaction | null> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_transaction.findUnique({
       where: { uuid },
       include: {
         paymentRequest: {
@@ -230,8 +233,9 @@ export class PrismaTransactionRepository implements ITransactionRepository {
     return this.mapTransaction(res)
   }
 
-  async findByReference(reference: string): Promise<Transaction | null> {
-    const res = await this.prisma.upward_transaction.findUnique({
+  async findByReference(reference: string, tx?: Prisma.TransactionClient): Promise<Transaction | null> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_transaction.findUnique({
       where: { reference },
       include: {
         paymentRequest: {
@@ -410,8 +414,9 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
     return this.mapPaymentRequest(res)
   }
 
-  async findById(id: number): Promise<PaymentRequest | null> {
-    const res = await this.prisma.upward_payment_request.findUnique({
+  async findById(id: number, tx?: Prisma.TransactionClient): Promise<PaymentRequest | null> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_payment_request.findUnique({
       where: { id },
       include: this.paymentRequestInclude,
     })
@@ -419,8 +424,9 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
     return this.mapPaymentRequest(res)
   }
 
-  async findByUuid(uuid: string): Promise<PaymentRequest | null> {
-    const res = await this.prisma.upward_payment_request.findUnique({
+  async findByUuid(uuid: string, tx?: Prisma.TransactionClient): Promise<PaymentRequest | null> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_payment_request.findUnique({
       where: { uuid },
       include: this.paymentRequestInclude,
     })
@@ -428,8 +434,9 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
     return this.mapPaymentRequest(res)
   }
 
-  async findByUserId(userId: number): Promise<PaymentRequest[]> {
-    const res = await this.prisma.upward_payment_request.findMany({
+  async findByUserId(userId: number, tx?: Prisma.TransactionClient): Promise<PaymentRequest[]> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_payment_request.findMany({
       where: { userId },
       include: this.paymentRequestInclude,
       orderBy: { createdAt: 'desc' },
@@ -437,8 +444,9 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
     return res.map((r) => this.mapPaymentRequest(r))
   }
 
-  async findByUserIdAndStatus(userId: number, status: string): Promise<PaymentRequest[]> {
-    const res = await this.prisma.upward_payment_request.findMany({
+  async findByUserIdAndStatus(userId: number, status: string, tx?: Prisma.TransactionClient): Promise<PaymentRequest[]> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_payment_request.findMany({
       where: { userId, status },
       include: this.paymentRequestInclude,
       orderBy: { createdAt: 'desc' },
@@ -651,8 +659,9 @@ export class PrismaOverpaymentRepository implements IOverpaymentRepository {
     return res as unknown as Overpayment
   }
 
-  async findByUserId(userId: number): Promise<Overpayment[]> {
-    const res = await this.prisma.upward_overpayment.findMany({
+  async findByUserId(userId: number, tx?: Prisma.TransactionClient): Promise<Overpayment[]> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_overpayment.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     })

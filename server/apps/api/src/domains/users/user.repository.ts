@@ -29,13 +29,13 @@ export interface User {
 }
 
 export interface UserRepository {
-  findByEmail(email: string): Promise<User | null>
-  findById(id: number): Promise<User | null>
-  findByUuid(uuid: string): Promise<User | null>
-  findBySlug(slug: string): Promise<User | null>
-  findAll(): Promise<User[]>
-  save(user: User): Promise<User>
-  update(id: number, data: Partial<User>): Promise<User>
+  findByEmail(email: string, tx?: any): Promise<User | null>
+  findById(id: number, tx?: any): Promise<User | null>
+  findByUuid(uuid: string, tx?: any): Promise<User | null>
+  findBySlug(slug: string, tx?: any): Promise<User | null>
+  findAll(tx?: any): Promise<User[]>
+  save(user: User, tx?: any): Promise<User>
+  update(id: number, data: Partial<User>, tx?: any): Promise<User>
 }
 
 export const USER_REPOSITORY = Symbol('USER_REPOSITORY')

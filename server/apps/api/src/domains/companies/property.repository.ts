@@ -40,9 +40,9 @@ export interface Location {
 }
 
 export interface PropertyRepository {
-  findById(id: number): Promise<Property | null>
-  findByUuid(uuid: string): Promise<Property | null>
-  findByUserId(userId: number): Promise<Property[]>
+  findById(id: number, tx?: Prisma.TransactionClient): Promise<Property | null>
+  findByUuid(uuid: string, tx?: Prisma.TransactionClient): Promise<Property | null>
+  findByUserId(userId: number, tx?: Prisma.TransactionClient): Promise<Property[]>
   save(property: Property, tx?: Prisma.TransactionClient): Promise<Property>
   update(id: number, data: Partial<Property>, tx?: Prisma.TransactionClient): Promise<Property>
 }
