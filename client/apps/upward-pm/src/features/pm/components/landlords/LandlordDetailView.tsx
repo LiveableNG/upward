@@ -278,7 +278,6 @@ export function LandlordDetailView({
             { id: 'properties', label: 'Properties', icon: Building2 },
             { id: 'units', label: 'Units', icon: Home },
             { id: 'rent', label: 'Rent Tracker', icon: TrendingUp },
-            { id: 'actions', label: 'Actions', icon: FileText },
           ].map(tab => (
             <button 
               key={tab.id}
@@ -382,98 +381,7 @@ export function LandlordDetailView({
             </div>
           )}
 
-          {activeTab === 'actions' && (
-            <div style={{ padding: 32 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 24 }}>
-                {[
-                  { 
-                    title: 'Bulk Rent Reminders', 
-                    desc: 'Send automated reminders to all tenants with overdue or upcoming rent.',
-                    icon: Mail,
-                    color: 'var(--forest)',
-                    action: isSendingReminders ? 'Sending...' : 'Send Reminders',
-                    onClick: handleSendReminders,
-                    disabled: isSendingReminders
-                  },
-                  { 
-                    title: 'Generate Next Invoices', 
-                    desc: 'Automatically create and send payment requests for the upcoming period.',
-                    icon: CreditCard,
-                    color: 'var(--accent)',
-                    action: 'Batch Generate'
-                  },
-                  { 
-                    title: 'Portfolio Export', 
-                    desc: 'Download a CSV of all properties, units, and tenant details for this landlord.',
-                    icon: Download,
-                    color: 'var(--dark)',
-                    action: 'Export Data'
-                  },
-                  { 
-                    title: 'Statement of Account', 
-                    desc: 'Generate a detailed transaction log for the selected date range.',
-                    icon: FileText,
-                    color: '#6366f1',
-                    action: 'Generate Statement'
-                  }
-                ].map((item, i) => (
-                  <div 
-                    key={i} 
-                    className="glass"
-                    style={{ 
-                      padding: 24, 
-                      borderRadius: 20, 
-                      border: '1px solid var(--border)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 16,
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-4px)'
-                      e.currentTarget.style.borderColor = item.color
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.borderColor = 'var(--border)'
-                    }}
-                  >
-                    <div style={{ 
-                      width: 48, 
-                      height: 48, 
-                      borderRadius: 14, 
-                      background: `${item.color}10`, 
-                      color: item.color,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <item.icon size={24} />
-                    </div>
-                    <div>
-                      <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--dark)', marginBottom: 4 }}>{item.title}</h3>
-                      <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>{item.desc}</p>
-                    </div>
-                    <button 
-                      className="btn btn--secondary" 
-                      onClick={item.onClick}
-                      disabled={(item as any).disabled}
-                      style={{ 
-                        marginTop: 'auto', 
-                        width: '100%', 
-                        fontSize: 12, 
-                        fontWeight: 700, 
-                        borderRadius: 12,
-                        padding: '10px'
-                      }}
-                    >
-                      {item.action}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+
         </div>
       </div>
 

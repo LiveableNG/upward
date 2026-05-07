@@ -170,8 +170,35 @@ export const DataImportTab: React.FC = () => {
           
           return mappedRow
         })
-        setPreviewRows(rows)
-        info(`Previewing ${rows.length} records.`)
+        
+        // Filter out duplicates (within the CSV and against the system)
+        const seenUnits = new Set<string>()
+        const filteredRows = rows.filter((row: any) => {
+          const propertyKey = mode === 'full' ? (row.propertyName || '').trim().toLowerCase() : (properties.find(p => p.uuid === targetPropertyUuid)?.name || '').trim().toLowerCase()
+          const unitKey = (row.unitName || '').trim().toLowerCase()
+          const fullKey = `${propertyKey}|${unitKey}`
+          
+          if (seenUnits.has(fullKey)) return false
+          
+          // Check against system
+          const existingProp = properties.find(p => p.name.trim().toLowerCase() === propertyKey)
+          const unitExists = existingProp?.units?.some((u: any) => u.unitName.trim().toLowerCase() === unitKey)
+          
+          if (unitExists) return false
+          
+          seenUnits.add(fullKey)
+          return true
+        })
+
+        setPreviewRows(filteredRows)
+        revalidateDuplicates(filteredRows)
+        
+        const filteredCount = rows.length - filteredRows.length
+        if (filteredCount > 0) {
+          info(`Previewing ${filteredRows.length} records. ${filteredCount} duplicates were filtered out.`)
+        } else {
+          info(`Previewing ${filteredRows.length} records.`)
+        }
       }
     })
     e.target.value = ''
@@ -182,6 +209,76 @@ export const DataImportTab: React.FC = () => {
     updated[index][field] = value
     setPreviewRows(updated)
     validateCell(updated[index].id, field, value)
+    
+    // If unitName or propertyName changed, re-validate duplicates
+    if (field === 'unitName' || field === 'propertyName') {
+      revalidateDuplicates(updated)
+    }
+  }
+
+  const revalidateDuplicates = (rows: any[]) => {
+    const unitMap = new Map<string, number[]>() // key -> array of row indexes
+    
+    rows.forEach((row, idx) => {
+      const propertyKey = mode === 'full' ? (row.propertyName || '').trim().toLowerCase() : (properties.find(p => p.uuid === targetPropertyUuid)?.name || '').trim().toLowerCase()
+      const unitKey = (row.unitName || '').trim().toLowerCase()
+      
+      if (unitKey) {
+        const fullKey = `${propertyKey}|${unitKey}`
+        if (!unitMap.has(fullKey)) unitMap.set(fullKey, [])
+        unitMap.get(fullKey)!.push(idx)
+
+      }
+    })
+
+    setValidationErrors(prev => {
+      const next = { ...prev }
+      // Clear all existing duplicate errors first
+      Object.keys(next).forEach(key => {
+        if (key.endsWith('-unitName') && (next[key] === 'Duplicate unit' || next[key] === 'Unit already exists in system')) {
+          delete next[key]
+        }
+      })
+
+      unitMap.forEach((indexes, fullKey) => {
+        if (indexes.length > 1) {
+          indexes.forEach(idx => {
+            const rowId = rows[idx].id
+            next[`${rowId}-unitName`] = 'Duplicate unit'
+          })
+        } else {
+          // Check against system for single occurrences
+          const idx = indexes[0]
+          const row = rows[idx]
+          const [propertyKey, unitKey] = fullKey.split('|')
+          
+          const existingProp = properties.find(p => p.name.trim().toLowerCase() === propertyKey)
+          const unitExists = existingProp?.units?.some((u: any) => u.unitName.trim().toLowerCase() === unitKey)
+          
+          if (unitExists) {
+            next[`${row.id}-unitName`] = 'Unit already exists in system'
+          }
+        }
+      })
+      return next
+    })
+  }
+
+  const handleAddRow = () => {
+    const rowId = Date.now()
+    const newRow: any = { id: rowId }
+    columns.forEach(col => {
+      newRow[col.key] = col.type === 'number' ? 0 : ''
+    })
+    
+    const updated = [...previewRows, newRow]
+    setPreviewRows(updated)
+    revalidateDuplicates(updated)
+    
+    // Initial validation for the new row
+    columns.forEach(col => {
+      validateCell(rowId, col.key, newRow[col.key], col)
+    })
   }
 
   const handleConfirmImport = () => {
@@ -273,6 +370,9 @@ export const DataImportTab: React.FC = () => {
             <button className="btn btn--secondary" onClick={handleDownloadTemplate} style={{ height: 42, borderRadius: 12 }}>
               <Download size={18} style={{ marginRight: 8 }} /> Template
             </button>
+            <button className="btn btn--secondary" onClick={handleAddRow} style={{ height: 42, borderRadius: 12, background: 'var(--forest-faint)', color: 'var(--forest)', borderColor: 'rgba(0,102,68,0.2)' }}>
+              <Plus size={18} style={{ marginRight: 8 }} /> Add Row
+            </button>
           </div>
         </div>
 
@@ -342,6 +442,11 @@ export const DataImportTab: React.FC = () => {
             <p style={{ fontSize: 14, color: 'var(--text-muted)', maxWidth: 400, margin: '0 auto 24px' }}>
               Download the template, fill in your data, and upload it here to preview before saving.
             </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button className="btn btn--primary" onClick={handleAddRow} style={{ borderRadius: 12, padding: '12px 32px' }}>
+                <Plus size={18} style={{ marginRight: 8 }} /> Start with Manual Entry
+              </button>
+            </div>
           </div>
         )}
       </div>

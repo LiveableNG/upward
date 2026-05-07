@@ -115,22 +115,24 @@ export const TenantTableRow: React.FC<TenantTableRowProps> = ({ tenant, isSelect
             </button>
           )}
           
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            padding: 4, 
-            cursor: 'pointer' 
-          }} onClick={(e) => {
-            e.stopPropagation();
-            onSelect?.(tenant.uuid, !isSelected);
-          }}>
-             <input 
-               type="checkbox" 
-               checked={isSelected} 
-               onChange={() => {}} 
-               style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--forest)' }} 
-             />
-          </div>
+          {!isOnUpward && (
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              padding: 4, 
+              cursor: 'pointer' 
+            }} onClick={(e) => {
+              e.stopPropagation();
+              onSelect?.(tenant.uuid, !isSelected);
+            }}>
+               <input 
+                 type="checkbox" 
+                 checked={isSelected} 
+                 onChange={() => {}} 
+                 style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--forest)' }} 
+               />
+            </div>
+          )}
         </div>
       </td>
     </tr>

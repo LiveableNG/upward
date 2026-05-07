@@ -14,6 +14,7 @@ export interface Property {
   landlordName?: string;
   landlordEmail?: string;
   landlordPhone?: string;
+  units?: Unit[];
 }
 
 export interface Tenant {
