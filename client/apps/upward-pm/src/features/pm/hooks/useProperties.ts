@@ -9,6 +9,13 @@ export const useProperties = () => {
   })
 }
 
+export const useProperty = (uuid: string) => {
+  return useSuspenseQuery({
+    queryKey: ['pm-property', uuid],
+    queryFn: () => api.getProperty(uuid)
+  })
+}
+
 export const useCreateProperty = () => {
   const queryClient = useQueryClient()
   

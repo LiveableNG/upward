@@ -99,6 +99,7 @@ import { CreatePropertyUseCase } from './pm/use-cases/create-property.use-case'
 import { UpdatePropertyUseCase } from './pm/use-cases/update-property.use-case'
 import { DeletePropertyUseCase } from './pm/use-cases/delete-property.use-case'
 import { GetPmPropertiesUseCase } from './pm/use-cases/get-pm-properties.use-case'
+import { GetPmPropertyUseCase } from './pm/use-cases/get-pm-property.use-case'
 import { BulkCreateUnitsUseCase } from './pm/use-cases/bulk-create-units.use-case'
 import { GetPmUnitsUseCase } from './pm/use-cases/get-pm-units.use-case'
 import { GetUnitUseCase } from './pm/use-cases/get-unit.use-case'
@@ -120,6 +121,10 @@ import { GetPendingCredibilityRequestsUseCase } from './pm/use-cases/get-pending
 import { BulkCreateTenantRecordsUseCase } from './pm/use-cases/bulk-create-tenant-records.use-case'
 import { BulkInviteTenantsUseCase } from './pm/use-cases/tenants/bulk-invite-tenants.use-case'
 import { BulkFullImportUseCase } from './pm/use-cases/bulk-full-import.use-case'
+import { SendLandlordReportUseCase } from './pm/use-cases/send-landlord-report.use-case'
+import { GetLandlordReportsUseCase } from './pm/use-cases/get-landlord-reports.use-case'
+import { GetLandlordReportUseCase } from './pm/use-cases/get-landlord-report.use-case'
+import { PmBulkRentReminderUseCase } from './pm/use-cases/pm-bulk-rent-reminder.use-case'
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
 
 import { RejectCredibilityRequestUseCase } from './use-cases/external/reject-credibility-request.use-case'
@@ -282,6 +287,7 @@ const UseCases = [
   UpdatePropertyUseCase,
   DeletePropertyUseCase,
   GetPmPropertiesUseCase,
+  GetPmPropertyUseCase,
   BulkCreateUnitsUseCase,
   GetPmUnitsUseCase,
   GetUnitUseCase,
@@ -303,6 +309,10 @@ const UseCases = [
   BulkCreateTenantRecordsUseCase,
   BulkInviteTenantsUseCase,
   BulkFullImportUseCase,
+  SendLandlordReportUseCase,
+  GetLandlordReportsUseCase,
+  GetLandlordReportUseCase,
+  PmBulkRentReminderUseCase,
   CreateManualPaymentRequestUseCase,
   RequestDataDeletionUseCase,
   SubmitFeedbackUseCase,

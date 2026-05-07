@@ -12,9 +12,19 @@ const tenantSchema = z.object({
   firstName: z.string().min(2, 'First name is required'),
   lastName: z.string().min(2, 'Last name is required'),
   email: z.string().email('Invalid email address'),
-  phone: z.string().refine((val) => !val || isValidPhoneNumber(val), {
-    message: 'Invalid international phone number (e.g. +234...)'
-  })
+  phone: z.string().optional().refine((val) => !val || isValidPhoneNumber(val), {
+    message: 'Invalid international phone number'
+  }),
+  formerAddress: z.string().optional(),
+  nextOfKinName: z.string().optional(),
+  nextOfKinEmail: z.string().optional(),
+  nextOfKinPhone: z.string().optional(),
+  guarantorName: z.string().optional(),
+  guarantorEmail: z.string().optional(),
+  guarantorPhone: z.string().optional(),
+  emergencyContactName: z.string().optional(),
+  emergencyContactEmail: z.string().optional(),
+  emergencyContactPhone: z.string().optional(),
 })
 
 type TenantFormData = z.infer<typeof tenantSchema>
@@ -40,7 +50,17 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
       firstName: '',
       lastName: '',
       email: '',
-      phone: ''
+      phone: '',
+      formerAddress: '',
+      nextOfKinName: '',
+      nextOfKinEmail: '',
+      nextOfKinPhone: '',
+      guarantorName: '',
+      guarantorEmail: '',
+      guarantorPhone: '',
+      emergencyContactName: '',
+      emergencyContactEmail: '',
+      emergencyContactPhone: ''
     }
   })
 
@@ -50,7 +70,17 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
         firstName: tenant.firstName || '',
         lastName: tenant.lastName || '',
         email: tenant.email || '',
-        phone: tenant.phone || ''
+        phone: tenant.phone || '',
+        formerAddress: tenant.formerAddress || '',
+        nextOfKinName: tenant.nextOfKinName || '',
+        nextOfKinEmail: tenant.nextOfKinEmail || '',
+        nextOfKinPhone: tenant.nextOfKinPhone || '',
+        guarantorName: tenant.guarantorName || '',
+        guarantorEmail: tenant.guarantorEmail || '',
+        guarantorPhone: tenant.guarantorPhone || '',
+        emergencyContactName: tenant.emergencyContactName || '',
+        emergencyContactEmail: tenant.emergencyContactEmail || '',
+        emergencyContactPhone: tenant.emergencyContactPhone || ''
       })
     }
   }, [tenant, isOpen, reset])
@@ -79,54 +109,105 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
           <button onClick={onClose} className="btn-icon"><X size={20} /></button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} style={{ marginTop: 24 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div className="form-group">
-              <label className="form-label">First Name</label>
-              <input 
-                type="text" 
-                className={`form-input ${errors.firstName ? 'form-input--error' : ''}`}
-                placeholder="e.g. John" 
-                {...register('firstName')}
-              />
-              {errors.firstName && <span className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px' }}>{errors.firstName.message}</span>}
-            </div>
-            <div className="form-group">
-              <label className="form-label">Last Name</label>
-              <input 
-                type="text" 
-                className={`form-input ${errors.lastName ? 'form-input--error' : ''}`}
-                placeholder="e.g. Doe" 
-                {...register('lastName')}
-              />
-              {errors.lastName && <span className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px' }}>{errors.lastName.message}</span>}
-            </div>
-          </div>
-
-          <div className="form-group" style={{ marginTop: 16 }}>
-            <label className="form-label">Email Address</label>
-            <input 
-              type="email" 
-              className={`form-input ${errors.email ? 'form-input--error' : ''}`}
-              placeholder="tenant@example.com" 
-              {...register('email')}
-            />
-            {errors.email && <span className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px' }}>{errors.email.message}</span>}
-          </div>
-
-          <div style={{ marginTop: 16 }}>
-            <Controller
-              name="phone"
-              control={control}
-              render={({ field }) => (
-                <PhoneInput
-                  {...field}
-                  label="Phone Number"
-                  placeholder="e.g. +234 800 000 0000"
-                  error={errors.phone?.message}
+        <form onSubmit={handleSubmit(onSubmit)} style={{ marginTop: 24, display: 'flex', flexDirection: 'column', maxHeight: '70vh' }}>
+          <div style={{ overflowY: 'auto', paddingRight: 8, flex: 1 }}>
+            {/* Section: Personal Info */}
+            <div style={{ marginBottom: 32 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 16 }}>Personal Information</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="form-group">
+                  <label className="form-label">First Name</label>
+                  <input type="text" className="form-input" {...register('firstName')} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Last Name</label>
+                  <input type="text" className="form-input" {...register('lastName')} />
+                </div>
+              </div>
+              <div className="form-group" style={{ marginTop: 16 }}>
+                <label className="form-label">Email Address</label>
+                <input type="email" className="form-input" {...register('email')} />
+              </div>
+              <div style={{ marginTop: 16 }}>
+                <Controller
+                  name="phone"
+                  control={control}
+                  render={({ field }) => (
+                    <PhoneInput
+                      {...field}
+                      label="Phone Number"
+                      error={errors.phone?.message}
+                    />
+                  )}
                 />
-              )}
-            />
+              </div>
+            </div>
+
+            {/* Section: Address */}
+            <div style={{ marginBottom: 32 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 16 }}>Address</h3>
+              <div className="form-group">
+                <label className="form-label">Former Address</label>
+                <input type="text" className="form-input" {...register('formerAddress')} />
+              </div>
+            </div>
+
+            {/* Section: Next of Kin */}
+            <div style={{ marginBottom: 32 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 16 }}>Next of Kin</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="form-group">
+                  <label className="form-label">Name</label>
+                  <input type="text" className="form-input" {...register('nextOfKinName')} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Phone</label>
+                  <input type="text" className="form-input" {...register('nextOfKinPhone')} />
+                </div>
+              </div>
+              <div className="form-group" style={{ marginTop: 16 }}>
+                <label className="form-label">Email</label>
+                <input type="text" className="form-input" {...register('nextOfKinEmail')} />
+              </div>
+            </div>
+
+            {/* Section: Guarantor */}
+            <div style={{ marginBottom: 32 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 16 }}>Guarantor Information</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="form-group">
+                  <label className="form-label">Name</label>
+                  <input type="text" className="form-input" {...register('guarantorName')} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Phone</label>
+                  <input type="text" className="form-input" {...register('guarantorPhone')} />
+                </div>
+              </div>
+              <div className="form-group" style={{ marginTop: 16 }}>
+                <label className="form-label">Email</label>
+                <input type="text" className="form-input" {...register('guarantorEmail')} />
+              </div>
+            </div>
+
+            {/* Section: Emergency Contact */}
+            <div style={{ marginBottom: 32 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 16 }}>Emergency Contact</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="form-group">
+                  <label className="form-label">Name</label>
+                  <input type="text" className="form-input" {...register('emergencyContactName')} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Phone</label>
+                  <input type="text" className="form-input" {...register('emergencyContactPhone')} />
+                </div>
+              </div>
+              <div className="form-group" style={{ marginTop: 16 }}>
+                <label className="form-label">Email</label>
+                <input type="text" className="form-input" {...register('emergencyContactEmail')} />
+              </div>
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>

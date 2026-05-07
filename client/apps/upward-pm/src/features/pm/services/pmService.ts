@@ -40,3 +40,28 @@ export const getAvatarUploadUrl = async (contentType: string, filename: string) 
     body: JSON.stringify({ contentType, filename })
   })
 }
+
+export const sendLandlordReport = async (data: any) => {
+  return request('/pm/landlords/send-report', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
+export const getLandlordReports = async (landlordEmail: string) => {
+  return request<any[]>(`/pm/landlords/${encodeURIComponent(landlordEmail)}/reports`, {
+    method: 'GET'
+  })
+}
+
+export const getLandlordReport = async (uuid: string) => {
+  return request<any>(`/pm/landlords/reports/${uuid}`, {
+    method: 'GET'
+  })
+}
+
+export const sendBulkReminders = async (landlordEmail: string) => {
+  return request<{ sentCount: number }>(`/pm/landlords/${encodeURIComponent(landlordEmail)}/bulk-reminders`, {
+    method: 'POST'
+  })
+}

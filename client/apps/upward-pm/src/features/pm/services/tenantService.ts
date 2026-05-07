@@ -16,6 +16,16 @@ export interface Tenant {
   phone?: string;
   inviteStatus: string;
   inviteSentAt: string | null;
+  formerAddress?: string;
+  nextOfKinName?: string;
+  nextOfKinEmail?: string;
+  nextOfKinPhone?: string;
+  guarantorName?: string;
+  guarantorEmail?: string;
+  guarantorPhone?: string;
+  emergencyContactName?: string;
+  emergencyContactEmail?: string;
+  emergencyContactPhone?: string;
   units?: Array<{
     id: number;
     uuid: string;

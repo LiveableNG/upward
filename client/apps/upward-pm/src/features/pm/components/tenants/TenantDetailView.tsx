@@ -32,6 +32,7 @@ export const TenantDetailView: React.FC = () => {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [showPaymentRequestModal, setShowPaymentRequestModal] = useState(false)
   const [selectedUnitForPayment, setSelectedUnitForPayment] = useState<any>(null)
+  const [activeDetailTab, setActiveDetailTab] = useState<'profile' | 'rent' | 'actions' | 'documents'>('profile')
 
   const handleOpenPaymentRequest = (unit: any) => {
     setSelectedUnitForPayment({
@@ -49,166 +50,210 @@ export const TenantDetailView: React.FC = () => {
   const isProcessing = !isOnUpward && !tenant.inviteSentAt
 
   return (
-    <div className="unit-detail animate-fade-in">
-      <header className="unit-detail__header">
-        <div className="unit-detail__nav">
-          <button className="btn-icon" onClick={() => router.back()}>
-            <ChevronLeft size={20} />
-          </button>
-          <div>
-            <h1 className="dashboard__title">{tenant.firstName} {tenant.lastName}</h1>
-            <p className="dashboard__subtitle">Tenant Profile</p>
-          </div>
-        </div>
-        <div className="unit-detail__actions">
-          <button 
-            className="btn btn--secondary" 
-            onClick={() => setIsEditModalOpen(true)}
-          >
-            <Edit size={18} style={{ marginRight: 8 }} />
-            Edit Profile
-          </button>
-          {isOnUpward ? (
-            <span className="badge badge--on-upward">
-              <CheckCircle2 size={14} style={{ marginRight: 6 }} />
-              Active on Upward
-            </span>
-          ) : isProcessing ? (
-            <span className="badge badge--pending" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Loader2 size={14} className="animate-spin" />
-              Processing...
-            </span>
-          ) : (
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <span className="badge badge--sent">Pending Acceptance</span>
-              <button 
-                className="btn btn--secondary"
-                onClick={handleInvite}
-                disabled={inviteTenant.isPending}
-                title="Remind tenant to accept invitation"
-              >
-                {inviteTenant.isPending ? <Loader2 size={18} className="animate-spin" /> : 'Remind'}
-              </button>
-            </div>
-          )}
-        </div>
+    <div className="tenant-detail-view animate-fade-in" style={{ paddingBottom: 60 }}>
+      {/* Top Navigation */}
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+        <button 
+          onClick={() => router.back()} 
+          style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
+        >
+          <ChevronLeft size={18} /> Back
+        </button>
+        
+        <button 
+          className="btn btn--primary" 
+          style={{ borderRadius: 100, padding: '10px 24px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}
+          onClick={() => setIsEditModalOpen(true)}
+        >
+          <Edit size={16} /> Edit Tenant
+        </button>
       </header>
 
-      <div className="tenant-detail__content animate-fade-in">
-        <section className="detail-section glass">
-          <h2 className="section-title">Contact Information</h2>
-          <div className="info-cards">
-            <div className="info-card">
-              <Mail size={18} className="info-card__icon" />
-              <div className="info-card__content">
-                <span className="info-card__label">Email Address</span>
-                <span className="info-card__value">{tenant.email || 'Not provided'}</span>
+      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 40, alignItems: 'start' }}>
+        {/* Left Profile Card */}
+        <div style={{ background: 'white', borderRadius: 24, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ height: 100, background: '#f59e0b' }} />
+          <div style={{ padding: '0 24px 32px 24px', marginTop: -50, textAlign: 'center' }}>
+            <div style={{ 
+              width: 100, 
+              height: 100, 
+              borderRadius: '50%', 
+              background: 'var(--dark)', 
+              color: 'white', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              fontSize: 36, 
+              fontWeight: 800, 
+              margin: '0 auto 20px auto',
+              border: '6px solid white',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
+            }}>
+              {(tenant.firstName || 'T')[0].toUpperCase()}
+            </div>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)', marginBottom: 12 }}>{tenant.firstName} {tenant.lastName}</h1>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', color: 'var(--text-secondary)', fontSize: 13, marginBottom: 32 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Phone size={14} color="var(--forest)" /> {tenant.phone || 'N/A'}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Mail size={14} color="var(--forest)" /> {tenant.email || 'N/A'}
               </div>
             </div>
-            <div className="info-card">
-              <Phone size={18} className="info-card__icon" />
-              <div className="info-card__content">
-                <span className="info-card__label">Phone Number</span>
-                <span className="info-card__value">{tenant.phone || 'Not provided'}</span>
-              </div>
-            </div>
-            <div className="info-card">
-              <Calendar size={18} className="info-card__icon" />
-              <div className="info-card__content">
-                <span className="info-card__label">Member Since</span>
-                <span className="info-card__value">
-                  {new Date(tenant.inviteSentAt || tenant.inviteSentAt || Date.now()).toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  })}
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
 
-        <section className="detail-section glass" style={{ marginTop: 32 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <h2 className="section-title" style={{ margin: 0 }}>Assigned Units</h2>
-            <button 
-              className="btn btn--secondary btn--sm" 
-              onClick={() => setIsAssignModalOpen(true)}
-            >
-              <Plus size={16} style={{ marginRight: 6 }} />
-              Assign Unit
-            </button>
-          </div>
-          <div className="tenants-list">
-            {tenant.units?.map((unit) => {
-              const pendingRequest = paymentRequests?.filter(r => r.unitId === unit.id && r.status !== 'PAID')
-                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-                
-              return (
-                <div key={unit.uuid} className="tenant-group-card">
-                  <div style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                      <div className="tenant-avatar-large" style={{ width: 48, height: 48, borderRadius: 14 }}>
-                        <Building2 size={24} />
-                      </div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <h4 style={{ margin: '0 0 4px 0', fontSize: 17, fontWeight: 700 }}>Unit {unit.unitName}</h4>
-                          {pendingRequest && (
-                            <div style={{ 
-                              fontSize: 9, 
-                              fontWeight: 800, 
-                              color: 'var(--clay)', 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: 4,
-                              background: 'rgba(239, 68, 68, 0.05)',
-                              padding: '2px 6px',
-                              borderRadius: 4,
-                              border: '1px solid rgba(239, 68, 68, 0.1)'
-                            }}>
-                               <div className="pulse-dot"></div>
-                               PAYMENT {pendingRequest.status}
-                            </div>
-                          )}
-                        </div>
-                        <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)' }}>{unit.property.name}</p>
-                      </div>
+            <div style={{ padding: '16px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', marginBottom: 32 }}>
+              <span>Tenant ID</span>
+              <span style={{ fontWeight: 600, color: 'var(--dark)' }}>{tenant.uuid.split('-')[0].toUpperCase()}</span>
+            </div>
+
+            {/* Units List */}
+            <div style={{ textAlign: 'left' }}>
+              {tenant.units?.map((unit: any) => (
+                <div key={unit.uuid} style={{ marginBottom: 24 }}>
+                  <h4 style={{ fontSize: 14, fontWeight: 800, color: 'var(--dark)', marginBottom: 12 }}>{unit.unitName}</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Rent</span>
+                      <span style={{ fontWeight: 700, color: 'var(--dark)' }}>₦{unit.rentAmount.toLocaleString()}</span>
                     </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                    <span className={`badge badge--${unit.status.toLowerCase()}`}>
-                      {unit.status.replace('-', ' ')}
-                    </span>
-                    {unit.status === 'OCCUPIED' && tenant.email && (
-                      <button 
-                        className="btn btn--secondary btn--sm"
-                        onClick={() => unit.isSynced && handleOpenPaymentRequest(unit)}
-                        disabled={!unit.isSynced}
-                        title={!unit.isSynced ? "Sync required to request payment" : ""}
-                        style={{ 
-                          opacity: unit.isSynced ? 1 : 0.6,
-                          cursor: unit.isSynced ? 'pointer' : 'not-allowed'
-                        }}
-                      >
-                        <CreditCard size={14} style={{ marginRight: 6 }} />
-                        {unit.isSynced ? 'Request Payment' : 'Not Synced'}
-                      </button>
-                    )}
-                    <Link href={`/properties/units/${unit.uuid}`} className="btn btn--icon btn--secondary">
-                      <ExternalLink size={18} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Rent Start Date</span>
+                      <span style={{ fontWeight: 600 }}>{unit.tenancyStartDate ? new Date(unit.tenancyStartDate).toLocaleDateString() : 'N/A'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Rent Expires</span>
+                      <span style={{ fontWeight: 600 }}>{unit.rentEndDate ? new Date(unit.rentEndDate).toLocaleDateString() : 'N/A'}</span>
+                    </div>
+                    <Link 
+                      href={`/properties/units/${unit.uuid}`}
+                      style={{ fontSize: 12, fontWeight: 700, color: 'var(--forest)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, textDecoration: 'none' }}
+                    >
+                      Go to unit <ChevronLeft size={14} style={{ transform: 'rotate(180deg)' }} />
                     </Link>
                   </div>
                 </div>
-              </div>
-            )
-          })}
-            {(!tenant.units || tenant.units.length === 0) && (
-              <div className="empty-state" style={{ textAlign: 'center', padding: '48px', background: 'var(--ivory-dim)', borderRadius: '16px' }}>
-                <p style={{ color: 'var(--text-muted)', fontSize: '15px' }}>No units currently assigned to this tenant.</p>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
-        </section>
+        </div>
+
+        {/* Right Details Panel */}
+        <div>
+          {/* Tabs */}
+          <div style={{ display: 'flex', gap: 32, borderBottom: '1px solid var(--border)', marginBottom: 40 }}>
+            {[
+              { id: 'profile', label: 'Profile' },
+              { id: 'rent', label: 'Rent Details' },
+              { id: 'actions', label: 'Actions' },
+              { id: 'documents', label: 'Sent Documents' }
+            ].map(tab => (
+              <button 
+                key={tab.id}
+                onClick={() => setActiveDetailTab(tab.id as any)}
+                style={{ 
+                  padding: '12px 4px', 
+                  fontSize: 14, 
+                  fontWeight: 700, 
+                  color: activeDetailTab === tab.id ? 'var(--dark)' : 'var(--text-muted)',
+                  borderBottom: activeDetailTab === tab.id ? '2px solid var(--forest)' : '2px solid transparent',
+                  background: 'none',
+                  borderTop: 'none',
+                  borderLeft: 'none',
+                  borderRight: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {activeDetailTab === 'profile' && (
+            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
+              {/* Address Section */}
+              <div>
+                <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)', marginBottom: 24 }}>Address</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Former Address</label>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)' }}>{tenant.formerAddress || 'N/A'}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Next of Kin */}
+              <div>
+                <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)', marginBottom: 24 }}>Next of Kin Information</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
+                  {[
+                    { label: 'Next of Kin Name', value: tenant.nextOfKinName },
+                    { label: 'Next of Kin Email', value: tenant.nextOfKinEmail },
+                    { label: 'Next of Kin Phone Number', value: tenant.nextOfKinPhone }
+                  ].map((field, i) => (
+                    <div key={i}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{field.label}</label>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)' }}>{field.value || 'N/A'}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Guarantor */}
+              <div>
+                <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)', marginBottom: 24 }}>Guarantor Information</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
+                  {[
+                    { label: 'Guarantor Name', value: tenant.guarantorName },
+                    { label: 'Guarantor Contact', value: tenant.guarantorPhone },
+                    { label: 'Guarantor Email', value: tenant.guarantorEmail }
+                  ].map((field, i) => (
+                    <div key={i}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{field.label}</label>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)' }}>{field.value || 'N/A'}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Contact Persons */}
+              <div>
+                <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)', marginBottom: 24 }}>Contact Persons Information</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
+                  {[
+                    { label: 'Contact Person Name', value: tenant.emergencyContactName },
+                    { label: 'Contact Person Contact', value: tenant.emergencyContactPhone },
+                    { label: 'Contact Person Email', value: tenant.emergencyContactEmail }
+                  ].map((field, i) => (
+                    <div key={i}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{field.label}</label>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)' }}>{field.value || 'N/A'}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Documents */}
+              <div>
+                <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)', marginBottom: 24 }}>Documents</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }}>
+                  <div style={{ padding: '32px', background: 'var(--ivory-dim)', borderRadius: 16, textAlign: 'center', border: '1px dashed var(--border)' }}>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>No documents uploaded for this tenant.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeDetailTab === 'rent' && (
+             <div className="animate-fade-in" style={{ padding: '32px', background: 'white', borderRadius: 24, border: '1px solid var(--border)' }}>
+               <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--dark)', marginBottom: 24 }}>Tenancy History</h3>
+               {/* Rent Tracker Component could go here */}
+               <p style={{ color: 'var(--text-muted)' }}>Detailed rent payment history and upcoming schedules will appear here.</p>
+             </div>
+          )}
+        </div>
       </div>
 
       <EditTenantModal 
