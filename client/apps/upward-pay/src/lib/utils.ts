@@ -76,7 +76,8 @@ export function calculateCombinedFee(netAmount: number): number {
   const isAboveThreshold = netAmount >= threshold;
   const gross = isAboveThreshold ? (netAmount + 100) / 0.985 : netAmount / 0.985;
   const paystackFee = Math.ceil(Math.min(2000, gross - netAmount));
-  return UPWARD_FEE + paystackFee;
+  // return UPWARD_FEE + paystackFee;
+  return 2000;
 }
 export function getNetAmountFromTotal(total: number): number {
   if (total <= 0) return 0;

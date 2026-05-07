@@ -790,7 +790,7 @@ export class RecordTransactionUseCase {
           const statusForWebhook = totalRentPaid >= totalRentAmount ? 'PAID' : 'PARTIAL';
           const remainingAmount = Math.max(0, totalRentAmount - totalRentPaid);
 
-          const isFirstPayment = (pr.amountPaid || 0) === 0;
+          const isInitialPayment = totalRentPaid === rentPortion;
           const webhookPayload: any = {
             paymentUuid: pr.uuid,
             reference: result.reference,
@@ -800,11 +800,12 @@ export class RecordTransactionUseCase {
             overpaymentAmount: excess,
             currency: result.currency || pr.currency || 'NGN',
             status: statusForWebhook,
+            isInitialPayment,
             paidAt: new Date(),
             customerEmail: user.email
           };
 
-          if (isFirstPayment && propertyForCycle) {
+          if (isInitialPayment && propertyForCycle) {
             webhookPayload.rentStartDate = propertyForCycle.rentStartDate;
             webhookPayload.rentEndDate = propertyForCycle.rentEndDate;
           }
