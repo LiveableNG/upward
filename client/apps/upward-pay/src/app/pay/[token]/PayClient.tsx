@@ -301,7 +301,18 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     const remainingForThisItem = Math.max(0, item.totalAmount - item.amountPaid)
     const finalAmountForThisItem = Math.min(Math.max(0, amount), remainingForThisItem)
 
-    const newManual = { ...manualAllocs, [id]: finalAmountForThisItem }
+    let newManual = { ...manualAllocs }
+    
+    if (Object.keys(newManual).length === 0) {
+      autoAllocs.forEach(a => {
+        const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(a.name) || a.id === -2
+        if (!isFee) {
+          newManual[a.id] = a.allocated
+        }
+      })
+    }
+
+    newManual[id] = finalAmountForThisItem
     setManualAllocs(newManual)
     
     // Calculate total: Sum of manual items + Fee
