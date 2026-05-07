@@ -1,6 +1,7 @@
 export const PM_PROPERTY_REPOSITORY = Symbol('PM_PROPERTY_REPOSITORY');
 export const PM_UNIT_REPOSITORY = Symbol('PM_UNIT_REPOSITORY');
 export const PM_PAYMENT_REQUEST_REPOSITORY = Symbol('PM_PAYMENT_REQUEST_REPOSITORY');
+export const PM_DOCUMENT_REPOSITORY = Symbol('PM_DOCUMENT_REPOSITORY');
 
 export interface PropertyEntity {
   id: number;
@@ -128,6 +129,8 @@ export interface PmPaymentRequestEntity {
   amountPaid: number;
   allowPartial: boolean;
   minAmount: number | null;
+  rentStartDate: Date | null;
+  rentEndDate: Date | null;
   createdAt: Date;
   updatedAt: Date;
   
@@ -142,3 +145,47 @@ export interface IPmPaymentRequestRepository {
   findByPaymentRequestId(paymentRequestId: number, tx?: any): Promise<PmPaymentRequestEntity | null>;
   update(uuid: string, data: Partial<PmPaymentRequestEntity>, tx?: any): Promise<PmPaymentRequestEntity>;
 }
+
+export interface DocumentTemplateEntity {
+  id: number;
+  uuid: string;
+  pmId: number;
+  name: string;
+  content: string;
+  type: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SentDocumentEntity {
+  id: number;
+  uuid: string;
+  pmId: number;
+  tenantId: number | null;
+  unitId: number | null;
+  subject: string;
+  content: string;
+  documentType: string;
+  recipientName: string;
+  recipientEmail: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  
+  tenant?: TenantEntity;
+  unit?: UnitEntity;
+}
+
+export interface IPmDocumentRepository {
+  // Templates
+  findTemplatesByPmId(pmId: number): Promise<DocumentTemplateEntity[]>;
+  findTemplateByUuid(uuid: string): Promise<DocumentTemplateEntity | null>;
+  saveTemplate(data: Omit<DocumentTemplateEntity, 'id' | 'uuid' | 'createdAt' | 'updatedAt'> & { uuid?: string }): Promise<DocumentTemplateEntity>;
+  deleteTemplate(uuid: string): Promise<boolean>;
+
+  // Sent Documents
+  findSentDocumentsByPmId(pmId: number): Promise<SentDocumentEntity[]>;
+  findSentDocumentByUuid(uuid: string): Promise<SentDocumentEntity | null>;
+  saveSentDocument(data: Omit<SentDocumentEntity, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<SentDocumentEntity>;
+}
+

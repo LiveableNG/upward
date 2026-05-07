@@ -408,6 +408,8 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
         reference: data.reference,
         subaccountId: data.subaccountId,
         isManual: data.isManual,
+        rentStartDate: data.rentStartDate,
+        rentEndDate: data.rentEndDate,
       },
       include: this.paymentRequestInclude,
     })
@@ -473,6 +475,8 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
         amountPaid: data.amountPaid,
         allowPartial: data.allowPartial,
         minAmount: data.minAmount,
+        rentStartDate: data.rentStartDate,
+        rentEndDate: data.rentEndDate,
       },
       include: this.paymentRequestInclude,
     })

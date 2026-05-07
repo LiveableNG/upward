@@ -43,6 +43,8 @@ model upward_payment_request {
   allowPartial      Boolean                     @default(false)
   amountPaid        Float                       @default(0)
   minAmount         Float?
+  rentStartDate     DateTime?
+  rentEndDate       DateTime?
   isManual          Boolean                     @default(false)
   overpayments      upward_overpayment[]
   lineItemRecords   upward_payment_line_item[]

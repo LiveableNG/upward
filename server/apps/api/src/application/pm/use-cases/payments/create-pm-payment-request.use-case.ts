@@ -16,6 +16,8 @@ export interface CreatePmPaymentRequestDto {
   unitUuid: string;
   amount: number;
   dueDate: string;
+  rentStartDate?: string;
+  rentEndDate?: string;
   description?: string;
   allowPartial?: boolean;
   minAmount?: number;
@@ -59,7 +61,9 @@ export class CreatePmPaymentRequestUseCase {
     const payload: ExternalPaymentRequestPayloadDto = {
       userPropertyUuid: unit.userPropertyUuid ?? undefined,
       amount: data.amount,
-      dueDate: data.dueDate,
+      dueDate: data.rentEndDate || data.dueDate,
+      rentStartDate: data.rentStartDate,
+      rentEndDate: data.rentEndDate,
       description: data.description,
       allowPartial: data.allowPartial,
       minAmount: data.minAmount,
@@ -83,7 +87,9 @@ export class CreatePmPaymentRequestUseCase {
       amount: data.amount,
       currency: unit.currency || 'NGN',
       description: data.description || null,
-      dueDate: new Date(data.dueDate),
+      dueDate: new Date(data.rentEndDate || data.dueDate),
+      rentStartDate: data.rentStartDate ? new Date(data.rentStartDate) : null,
+      rentEndDate: data.rentEndDate ? new Date(data.rentEndDate) : null,
       status: 'PENDING',
       amountPaid: 0,
       allowPartial: data.allowPartial || false,

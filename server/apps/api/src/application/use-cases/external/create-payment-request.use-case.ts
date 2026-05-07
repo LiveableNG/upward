@@ -100,6 +100,9 @@ export class CreateExternalPaymentRequestUseCase {
       // Upsert: update existing pending request with new metadata/settings
       paymentRequest = await this.paymentRequestRepository.update(paymentRequest.id!, {
         description: payload.description,
+        dueDate: new Date(payload.dueDate),
+        rentStartDate: payload.rentStartDate ? new Date(payload.rentStartDate) : undefined,
+        rentEndDate: payload.rentEndDate ? new Date(payload.rentEndDate) : undefined,
         allowPartial: payload.allowPartial ?? paymentRequest.allowPartial,
         minAmount: payload.minAmount || paymentRequest.minAmount,
         subaccountId: subaccountId,
@@ -128,6 +131,8 @@ export class CreateExternalPaymentRequestUseCase {
         currency: currency,
         description: payload.description,
         dueDate: new Date(payload.dueDate),
+        rentStartDate: payload.rentStartDate ? new Date(payload.rentStartDate) : undefined,
+        rentEndDate: payload.rentEndDate ? new Date(payload.rentEndDate) : undefined,
         status: 'PENDING',
         reference: `EXT_${randomUUID()}_${Date.now()}`,
         subaccountId: subaccountId,

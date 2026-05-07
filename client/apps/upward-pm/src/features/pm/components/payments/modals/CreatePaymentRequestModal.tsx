@@ -18,6 +18,8 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit, existingReque
   const isEditing = !!existingRequest
   const [amount, setAmount] = useState<string>('')
   const [dueDate, setDueDate] = useState<string>('')
+  const [rentStartDate, setRentStartDate] = useState<string>('')
+  const [rentEndDate, setRentEndDate] = useState<string>('')
   const [description, setDescription] = useState<string>('')
   const [allowPartial, setAllowPartial] = useState(false)
   const [minAmount, setMinAmount] = useState<string>('')
@@ -33,6 +35,8 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit, existingReque
     if (existingRequest) {
       setAmount(existingRequest.amount.toString())
       setDueDate(new Date(existingRequest.dueDate).toISOString().split('T')[0])
+      if (existingRequest.rentStartDate) setRentStartDate(new Date(existingRequest.rentStartDate).toISOString().split('T')[0])
+      if (existingRequest.rentEndDate) setRentEndDate(new Date(existingRequest.rentEndDate).toISOString().split('T')[0])
       setDescription(existingRequest.description || '')
       setAllowPartial(existingRequest.allowPartial)
       setMinAmount(existingRequest.minAmount?.toString() || '')
@@ -53,9 +57,17 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit, existingReque
       const total = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
       setAmount(total.toString())
       
-      const date = new Date()
-      date.setDate(date.getDate() + 7)
-      setDueDate(date.toISOString().split('T')[0])
+      if (unit.rentStartDate) {
+        setRentStartDate(new Date(unit.rentStartDate).toISOString().split('T')[0])
+      }
+      if (unit.rentDueDate) {
+        setRentEndDate(new Date(unit.rentDueDate).toISOString().split('T')[0])
+        setDueDate(new Date(unit.rentDueDate).toISOString().split('T')[0])
+      } else {
+        const date = new Date()
+        date.setDate(date.getDate() + 7)
+        setDueDate(date.toISOString().split('T')[0])
+      }
     }
   }, [unit, existingRequest])
 
@@ -93,7 +105,9 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit, existingReque
     const payload = {
       unitUuid: unit!.uuid,
       amount: parseFloat(amount),
-      dueDate,
+      dueDate: rentEndDate || dueDate,
+      rentStartDate,
+      rentEndDate,
       description: description || `Payment request for Unit ${unit!.unitName}`,
       allowPartial,
       minAmount: allowPartial ? parseFloat(minAmount) || 0 : undefined,
@@ -188,6 +202,30 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit, existingReque
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div className="form-group">
+            <label className="form-label">Rent Start Date</label>
+            <input 
+              type="date" 
+              value={rentStartDate} 
+              onChange={(e) => setRentStartDate(e.target.value)}
+              className="form-input" 
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Rent End Date (Due Date)</label>
+            <input 
+              type="date" 
+              value={rentEndDate} 
+              onChange={(e) => {
+                setRentEndDate(e.target.value)
+                setDueDate(e.target.value)
+              }}
+              className="form-input" 
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="form-group">
             <label className="form-label">Total Amount (₦)</label>
             <input 
               type="number" 
@@ -198,7 +236,7 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit, existingReque
             />
           </div>
           <div className="form-group">
-            <label className="form-label">Due Date</label>
+            <label className="form-label">Payment Due Date</label>
             <input 
               type="date" 
               value={dueDate} 

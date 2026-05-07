@@ -32,6 +32,7 @@ import { PrismaPmTenantRepository } from './repositories/prisma-pm-tenant.reposi
 import { PrismaPmPaymentRequestRepository } from './repositories/prisma-pm-payment-request.repository'
 import { PrismaBulkInviteRepository } from './repositories/prisma-bulk-invite.repository'
 import { PrismaFeedbackRepository } from './repositories/prisma-feedback.repository'
+import { PrismaPmDocumentRepository } from './repositories/prisma-pm-document.repository'
 
 import { PaystackGateway } from '../../../domains/payments/paystack.gateway'
 import { WAITLIST_REPOSITORY } from '../../../domains/waitlist/waitlist.repository'
@@ -63,7 +64,7 @@ import { CONTRACT_REPOSITORY } from '../../../domains/contracts/contract.reposit
 import { SUPPORT_TICKET_REPOSITORY } from '../../../domains/support/support.repository'
 import { VERIFICATION_TOKEN_REPOSITORY } from '../../../domains/auth/verification-token.repository'
 import { PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository'
-import { PM_PROPERTY_REPOSITORY, PM_UNIT_REPOSITORY, PM_TENANT_REPOSITORY, PM_PAYMENT_REQUEST_REPOSITORY } from '../../../domains/pm/IPropertyRepository'
+import { PM_PROPERTY_REPOSITORY, PM_UNIT_REPOSITORY, PM_TENANT_REPOSITORY, PM_PAYMENT_REQUEST_REPOSITORY, PM_DOCUMENT_REPOSITORY } from '../../../domains/pm/IPropertyRepository'
 import { BULK_INVITE_REPOSITORY } from '../../../domains/pm/IBulkInviteRepository'
 import { FEEDBACK_REPOSITORY } from '../../../domains/feedback/feedback.repository'
 
@@ -179,6 +180,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       useClass: PrismaPmPaymentRequestRepository,
     },
     {
+      provide: PM_DOCUMENT_REPOSITORY,
+      useClass: PrismaPmDocumentRepository,
+    },
+    {
       provide: BULK_INVITE_REPOSITORY,
       useClass: PrismaBulkInviteRepository,
     },
@@ -216,6 +221,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     PM_UNIT_REPOSITORY,
     PM_TENANT_REPOSITORY,
     PM_PAYMENT_REQUEST_REPOSITORY,
+    PM_DOCUMENT_REPOSITORY,
     BULK_INVITE_REPOSITORY,
     FEEDBACK_REPOSITORY,
   ],

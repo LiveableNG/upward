@@ -12,6 +12,8 @@ export interface PmPaymentRequest {
   currency: string;
   description: string | null;
   dueDate: string;
+  rentStartDate?: string | null;
+  rentEndDate?: string | null;
   status: 'PENDING' | 'PARTIAL' | 'PAID';
   amountPaid: number;
   allowPartial: boolean;
@@ -25,6 +27,8 @@ export interface CreatePaymentRequestDto {
   unitUuid: string;
   amount: number;
   dueDate: string;
+  rentStartDate?: string;
+  rentEndDate?: string;
   description?: string;
   allowPartial?: boolean;
   minAmount?: number;
@@ -34,6 +38,8 @@ export interface CreatePaymentRequestDto {
 export interface UpdatePmPaymentRequestDto {
   amount?: number;
   dueDate?: string;
+  rentStartDate?: string;
+  rentEndDate?: string;
   description?: string;
   allowPartial?: boolean;
   minAmount?: number;

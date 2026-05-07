@@ -34,6 +34,7 @@ import { PmTenantController } from './controllers/pm-tenant.controller'
 import { PmCredibilityController } from './controllers/pm-credibility.controller'
 import { InternalScoreController } from './internal/internal-score.controller'
 import { InternalPaymentsController } from './internal/internal-payments.controller'
+import { PmDocumentController } from './controllers/pm-document.controller'
 
 
 @Module({
@@ -69,6 +70,7 @@ import { InternalPaymentsController } from './internal/internal-payments.control
     PmCredibilityController,
     InternalScoreController,
     InternalPaymentsController,
+    PmDocumentController,
     PublicUserController,
     FeedbackController,
 
