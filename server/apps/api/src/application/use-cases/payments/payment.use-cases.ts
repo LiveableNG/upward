@@ -282,7 +282,14 @@ export class RecordTransactionUseCase {
       if (isVerified && data.paymentRequestId) {
         pr = await this.paymentRequestRepo.findById(data.paymentRequestId)
         if (pr) {
-          remaining = Math.max(0, pr.amount - (pr.amountPaid || 0))
+          const prItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!, txClient);
+          const rentRemaining = prItems.reduce((sum, item) => {
+            const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name);
+            if (isFee) return sum;
+            return sum + Math.max(0, item.totalAmount - item.amountPaid);
+          }, 0);
+          
+          remaining = rentRemaining;
           if (pr.isManual) {
             (data as any).isManual = true
           }
@@ -350,18 +357,23 @@ export class RecordTransactionUseCase {
       this.logger.log(`Transaction recorded successfully with ID: ${result.id}`)
 
       if (isVerified && result.status === 'SUCCESS') {
-        // Default rent portion excludes the processing fee
         rentPortion = Math.max(0, paymentAmount - upwardFeeAmount);
 
-        // 2. Settle Payment Request
         if (pr) {
 
           const settlementPortion = Math.max(0, paymentAmount - upwardFeeAmount);
           const newAmountPaid = (pr.amountPaid || 0) + settlementPortion
-          const newStatus = newAmountPaid >= pr.amount ? 'PAID' : 'PARTIAL'
+        
+          const currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!, txClient);
+          const totalRentOwed = currentItems.reduce((sum, i) => {
+             if (['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name)) return sum;
+             return sum + i.totalAmount;
+          }, 0);
+          
+          const newStatus = newAmountPaid >= totalRentOwed ? 'PAID' : 'PARTIAL'
 
           pr = await this.paymentRequestRepo.update(pr.id!, {
-            amountPaid: Math.min(newAmountPaid, pr.amount),
+            amountPaid: Math.min(newAmountPaid, totalRentOwed),
             status: newStatus,
             paidAt: newStatus === 'PAID' ? new Date() : undefined,
           }, txClient)
