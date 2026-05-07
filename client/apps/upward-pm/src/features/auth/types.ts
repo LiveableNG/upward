@@ -4,6 +4,7 @@ export interface PropertyManagerProfile {
   firstName: string;
   lastName: string;
   businessName?: string;
+  pmType?: string;
   phone?: string;
   profilePic?: string;
   bankName?: string;
