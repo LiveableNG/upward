@@ -44,6 +44,7 @@ export const api = {
   // Payments
   getPaymentRequests: paymentService.getPaymentRequests,
   createPaymentRequest: paymentService.createPaymentRequest,
+  updatePaymentRequest: paymentService.updatePaymentRequest,
 
   // Generic Helpers
   get: <T = any>(url: string) => request<T>(url, { method: 'GET' }),

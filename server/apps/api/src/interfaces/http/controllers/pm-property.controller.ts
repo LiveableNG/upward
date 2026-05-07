@@ -16,6 +16,7 @@ import { GetPropertyImageUploadUrlUseCase } from '../../../application/pm/use-ca
 import { SyncUnitToUpwardUseCase } from '../../../application/pm/use-cases/units/sync-unit.use-case';
 import { CreatePmPaymentRequestUseCase, CreatePmPaymentRequestDto } from '../../../application/pm/use-cases/payments/create-pm-payment-request.use-case';
 import { GetPmPaymentRequestsUseCase } from '../../../application/pm/use-cases/payments/get-pm-payment-requests.use-case';
+import { UpdatePmPaymentRequestUseCase, UpdatePmPaymentRequestDto } from '../../../application/pm/use-cases/payments/update-pm-payment-request.use-case';
 import { BulkFullImportUseCase } from '../../../application/pm/use-cases/bulk-full-import.use-case';
 import { BulkInviteTenantsUseCase } from '../../../application/pm/use-cases/tenants/bulk-invite-tenants.use-case';
 import { SendLandlordReportUseCase } from '../../../application/pm/use-cases/send-landlord-report.use-case';
@@ -47,6 +48,7 @@ export class PmPropertyController {
     private readonly syncUnitToUpwardUseCase: SyncUnitToUpwardUseCase,
     private readonly createPmPaymentRequestUseCase: CreatePmPaymentRequestUseCase,
     private readonly getPmPaymentRequestsUseCase: GetPmPaymentRequestsUseCase,
+    private readonly updatePmPaymentRequestUseCase: UpdatePmPaymentRequestUseCase,
     private readonly bulkFullImportUseCase: BulkFullImportUseCase,
     private readonly bulkInviteTenantsUseCase: BulkInviteTenantsUseCase,
     private readonly sendLandlordReportUseCase: SendLandlordReportUseCase,
@@ -164,6 +166,12 @@ export class PmPropertyController {
   async getPaymentRequests(@Req() req: any) {
     const pmId = await this.getPmId(req);
     return this.getPmPaymentRequestsUseCase.execute(pmId);
+  }
+
+  @Patch('payment-requests/:uuid')
+  async updatePaymentRequest(@Req() req: any, @Param('uuid') uuid: string, @Body() dto: UpdatePmPaymentRequestDto) {
+    const pmId = await this.getPmId(req);
+    return this.updatePmPaymentRequestUseCase.execute(pmId, uuid, dto);
   }
 
   @Post('landlords/send-report')

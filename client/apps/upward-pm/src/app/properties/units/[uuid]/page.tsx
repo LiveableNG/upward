@@ -50,6 +50,7 @@ function UnitDetailContent() {
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false)
+  const [selectedRequestForEdit, setSelectedRequestForEdit] = useState<any>(null)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [isUnassignConfirmOpen, setIsUnassignConfirmOpen] = useState(false)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
@@ -99,6 +100,28 @@ function UnitDetailContent() {
   const unitRequests = allRequests.filter(r => r.unitId === unit?.id)
   const activeRequest = unitRequests.find(r => r.status !== 'PAID')
   const amountRemaining = activeRequest ? (activeRequest.amount - activeRequest.amountPaid) : 0
+
+  // Auto-calculate Rent Due Date (End Date)
+  useEffect(() => {
+    if (isEditing && formData.rentStartDate && formData.rentType) {
+      const start = new Date(formData.rentStartDate)
+      if (isNaN(start.getTime())) return
+
+      const end = new Date(start)
+      if (formData.rentType === 'Monthly') {
+        end.setMonth(end.getMonth() + 1)
+      } else if (formData.rentType === 'Annually' || formData.rentType === 'Yearly') {
+        end.setFullYear(end.getFullYear() + 1)
+      }
+      
+      end.setDate(end.getDate() - 1)
+      
+      const formattedEnd = end.toISOString().split('T')[0]
+      if (formattedEnd !== formData.rentDueDate) {
+        setFormData((prev: any) => ({ ...prev, rentDueDate: formattedEnd }))
+      }
+    }
+  }, [formData.rentStartDate, formData.rentType, isEditing])
 
   const handleUpdate = () => {
     updateUnitMutation.mutate({ 
@@ -161,6 +184,12 @@ function UnitDetailContent() {
       error("No tenant assigned to this unit. Cannot request rent.")
       return
     }
+    setSelectedRequestForEdit(null)
+    setIsRequestModalOpen(true)
+  }
+
+  const handleEditPaymentRequest = (request: any) => {
+    setSelectedRequestForEdit(request)
     setIsRequestModalOpen(true)
   }
 
@@ -375,13 +404,6 @@ function UnitDetailContent() {
                           <option value="MAINTENANCE">Maintenance</option>
                         </select>
                       </div>
-                      <div className="form-group">
-                        <label className="form-label text-muted">Rent Type</label>
-                        <select className="form-input" value={formData.rentType} onChange={e => setFormData({...formData, rentType: e.target.value})}>
-                          <option value="Monthly">Monthly</option>
-                          <option value="Yearly">Yearly</option>
-                        </select>
-                      </div>
                     </>
                   ) : (
                     <>
@@ -440,6 +462,13 @@ function UnitDetailContent() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 16px' }}>
                       {isEditing ? (
                         <>
+                          <div className="form-group">
+                            <label className="form-label text-muted">Rent Type</label>
+                            <select className="form-input" value={formData.rentType} onChange={e => setFormData({...formData, rentType: e.target.value})}>
+                              <option value="Monthly">Monthly</option>
+                              <option value="Annually">Annually</option>
+                            </select>
+                          </div>
                           <div className="form-group">
                             <label className="form-label text-muted">Rent Amount (₦)</label>
                             <input type="number" className="form-input" value={formData.rentAmount} onChange={e => setFormData({...formData, rentAmount: parseFloat(e.target.value) || 0})} />
@@ -516,6 +545,15 @@ function UnitDetailContent() {
               </div>
             </div>
           </div>
+
+          {/* Pending Digital Requests Section */}
+          <Suspense fallback={null}>
+            <DigitalRequestsSection 
+              unitId={unit?.id} 
+              onEdit={handleEditPaymentRequest} 
+              unitCurrency={unit?.currency}
+            />
+          </Suspense>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
             <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dark)' }}>Rent Payment History</h2>
@@ -638,6 +676,7 @@ function UnitDetailContent() {
         onSave={handleSavePayment}
         isPending={addPaymentMutation.isPending}
         unitName={unit?.unitName || ''}
+        rentType={unit?.rentType}
       />
 
       {unit && (
@@ -645,6 +684,7 @@ function UnitDetailContent() {
           isOpen={isRequestModalOpen}
           onClose={() => setIsRequestModalOpen(false)}
           unit={unit}
+          existingRequest={selectedRequestForEdit}
         />
       )}
 
@@ -846,6 +886,50 @@ function UnitDetailContent() {
     </div>
   )
 }
+
+function DigitalRequestsSection({ unitId, onEdit, unitCurrency }: { unitId?: number; onEdit: (req: any) => void; unitCurrency?: string }) {
+  const { data: allRequests } = usePaymentRequests()
+  const unitRequests = allRequests?.filter(r => r.unitId === unitId && r.status !== 'PAID') || []
+
+  if (unitRequests.length === 0) return null
+
+  return (
+    <div style={{ marginBottom: 48 }}>
+      <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dark)', marginBottom: 20 }}>Pending Digital Invoices</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+        {unitRequests.map(req => (
+          <div key={req.uuid} className="glass animate-fade-in" style={{ padding: 20, borderRadius: 16, border: '1px solid var(--border)', position: 'relative' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', marginBottom: 4 }}>{req.description || 'Rent Payment Request'}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Due {new Date(req.dueDate).toLocaleDateString()}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--forest)' }}>
+                  ₦{req.amount.toLocaleString()}
+                </div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: req.status === 'PARTIAL' ? 'var(--clay)' : 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  {req.status}
+                </div>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: 10 }}>
+               <button 
+                onClick={() => onEdit(req)}
+                className="btn btn--secondary btn--sm" 
+                style={{ width: '100%', borderRadius: 10, fontSize: 12, height: 36 }}
+              >
+                Edit Request
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 
 export default function UnitDetailPage() {
   return (

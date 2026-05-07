@@ -57,15 +57,15 @@ export class CreatePmPaymentRequestUseCase {
     }
 
     const payload: ExternalPaymentRequestPayloadDto = {
-      userPropertyUuid: unit.userPropertyUuid,
+      userPropertyUuid: unit.userPropertyUuid ?? undefined,
       amount: data.amount,
       dueDate: data.dueDate,
       description: data.description,
       allowPartial: data.allowPartial,
       minAmount: data.minAmount,
       lineItems: data.lineItems,
-      bankCode: pm.bankCode,
-      accountNumber: pm.accountNumber,
+      bankCode: pm.bankCode ?? undefined,
+      accountNumber: pm.accountNumber ?? undefined,
     };
 
     const result = await this.createExternalPaymentRequestUseCase.execute(payload, 0); 
