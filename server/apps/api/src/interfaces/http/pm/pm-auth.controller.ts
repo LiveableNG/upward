@@ -77,6 +77,7 @@ export class PmAuthController {
       password: string;
       firstName: string;
       lastName: string;
+      pmType?: string;
       businessName?: string;
       phone?: string;
     },

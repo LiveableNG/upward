@@ -23,6 +23,7 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
       lastName: this.encryption.decrypt(model.lastName),
       lastNameHash: model.lastNameHash,
       businessName: model.businessName ? this.encryption.decrypt(model.businessName) : undefined,
+      pmType: model.pmType,
       phone: model.phone ? this.encryption.decrypt(model.phone) : undefined,
       phoneHash: model.phoneHash,
       profilePic: model.profilePic,
@@ -69,6 +70,7 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
         lastName: this.encryption.encrypt(pm.lastName),
         lastNameHash: pm.lastNameHash ?? this.encryption.hash(pm.lastName),
         businessName: pm.businessName ? this.encryption.encrypt(pm.businessName) : null,
+        pmType: pm.pmType,
         phone: pm.phone ? this.encryption.encrypt(pm.phone) : null,
         phoneHash: pm.phone ? this.encryption.hash(pm.phone) : null,
         profilePic: pm.profilePic,
@@ -100,6 +102,9 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
     }
     if (data.businessName) {
       updateData.businessName = this.encryption.encrypt(data.businessName)
+    }
+    if (data.pmType !== undefined) {
+      updateData.pmType = data.pmType
     }
     if (data.phone) {
       updateData.phone = this.encryption.encrypt(data.phone)

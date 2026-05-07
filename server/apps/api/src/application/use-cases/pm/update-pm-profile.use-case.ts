@@ -17,6 +17,7 @@ export class UpdatePmProfileUseCase {
     lastName?: string
     phone?: string
     businessName?: string
+    pmType?: string
     profilePic?: string
   }) {
     const pm = await this.pmRepository.findByUuid(pmUuid)

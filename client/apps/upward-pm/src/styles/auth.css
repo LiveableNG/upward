@@ -282,3 +282,67 @@
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Role Selector ── */
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: var(--space-6);
+}
+
+.role-card {
+  padding: 16px 8px;
+  border: 1.5px solid var(--ivory-dark);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.role-card:hover {
+  border-color: var(--forest-light);
+  background: var(--ivory-dim);
+  transform: translateY(-2px);
+}
+
+.role-card--selected {
+  border-color: var(--forest);
+  background: var(--forest-faint);
+  box-shadow: 0 4px 12px var(--forest-faint);
+}
+
+.role-card__icon {
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+
+.role-card--selected .role-card__icon {
+  color: var(--forest);
+  transform: scale(1.1);
+}
+
+.role-card__label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+
+.role-card--selected .role-card__label {
+  color: var(--forest);
+}
+
+@media (max-width: 480px) {
+  .role-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+

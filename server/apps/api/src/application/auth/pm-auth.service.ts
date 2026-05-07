@@ -79,6 +79,7 @@ export class PmAuthService extends BaseAuthService {
     password: string
     firstName: string
     lastName: string
+    pmType?: string
     businessName?: string
     phone?: string
   }): Promise<any> {
@@ -98,6 +99,7 @@ export class PmAuthService extends BaseAuthService {
       firstNameHash: this.encryption.hash(dto.firstName),
       lastName: dto.lastName,
       lastNameHash: this.encryption.hash(dto.lastName),
+      pmType: dto.pmType,
       businessName: dto.businessName,
       phone: dto.phone,
       phoneHash: dto.phone ? this.encryption.hash(dto.phone) : null,

@@ -9,6 +9,7 @@ export interface PropertyManager {
   lastName: string
   lastNameHash?: string | null
   businessName?: string | null
+  pmType?: string | null
   phone?: string | null
   phoneHash?: string | null
   profilePic?: string | null

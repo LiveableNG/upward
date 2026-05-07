@@ -9,6 +9,7 @@ model upward_property_manager {
   lastName        String
   lastNameHash    String?
   businessName    String?
+  pmType          String?
   phone           String?
   phoneHash       String?
   profilePic      String?
