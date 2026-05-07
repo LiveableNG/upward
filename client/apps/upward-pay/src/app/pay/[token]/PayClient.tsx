@@ -51,6 +51,18 @@ interface LineItemAllocation {
   remaining: number
 }
 
+const UPWARD_FEE = 2000;
+
+const calculateCombinedFee = (netAmount: number) => {
+  if (netAmount <= 0) return 0;
+
+  const threshold = 2462.5;
+  const isAboveThreshold = netAmount >= threshold;
+  const gross = isAboveThreshold ? (netAmount + 100) / 0.985 : netAmount / 0.985;
+  const paystackFee = Math.ceil(Math.min(2000, gross - netAmount));
+  return UPWARD_FEE + paystackFee;
+};
+
 function distributeAmount(amount: number, items: LineItemRecord[], totalOwed: number): LineItemAllocation[] {
   const allocs: LineItemAllocation[] = items.map(i => ({
     id: i.id,
@@ -62,7 +74,24 @@ function distributeAmount(amount: number, items: LineItemRecord[], totalOwed: nu
   }))
 
   let remaining = amount
+  
+  const feeItem = allocs.find(a => ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(a.name) || a.id === -2)
+  if (feeItem) {
+
+    const estimatedNet = Math.max(0, amount - 2000)
+    const dynamicFee = calculateCombinedFee(estimatedNet)
+    
+    feeItem.totalAmount = dynamicFee
+    feeItem.remaining = dynamicFee
+    
+    const pay = Math.min(remaining, dynamicFee)
+    feeItem.allocated = pay
+    remaining -= pay
+  }
+
+
   for (const item of allocs) {
+    if (['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name) || item.id === -2) continue
     if (item.remaining <= 0) continue
     const pay = Math.min(remaining, item.remaining)
     item.allocated = pay
@@ -202,7 +231,13 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
           setStep('invoice')
         }
 
-        const finalDue = res.data.payment.amount - (res.data.payment.amountPaid || 0)
+        const originalFeeItem = (res.data.payment.lineItemRecords || []).find((i: any) => 
+          ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name)
+        )
+        const originalFee = originalFeeItem ? originalFeeItem.totalAmount : 0
+        const rentRemaining = Math.max(0, (res.data.payment.amount - originalFee) - (res.data.payment.amountPaid || 0))
+        const finalDue = rentRemaining > 0 ? rentRemaining + calculateCombinedFee(rentRemaining) : 0
+        
         setAmountInput(finalDue.toString())
         setFormData(prev => ({
           ...prev,
@@ -228,7 +263,16 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
   const totalOwed = useMemo(() => {
     if (!paymentData?.payment) return 0
-    return Math.max(0, paymentData.payment.amount - (paymentData.payment.amountPaid || 0))
+    
+    const originalFeeItem = (paymentData.payment.lineItemRecords || []).find((i: any) => 
+      ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name)
+    )
+    const originalFee = originalFeeItem ? originalFeeItem.totalAmount : 0
+    const rentRemaining = Math.max(0, (paymentData.payment.amount - originalFee) - (paymentData.payment.amountPaid || 0))
+    
+    if (rentRemaining <= 0) return 0
+    
+    return rentRemaining + calculateCombinedFee(rentRemaining)
   }, [paymentData])
 
   const canPayPartial = !!paymentData?.payment?.allowPartial
@@ -251,8 +295,12 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     // Manual Override Mode: Priority Fee + Manual Overrides
     const total = parsedAmount
     const feeItem = lineItems.find(i => ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name) || i.id === -2)
-    const feeRemaining = feeItem ? Math.max(0, feeItem.totalAmount - feeItem.amountPaid) : 0
-    const feePayment = Math.min(total, feeRemaining)
+    
+    // Calculate dynamic fee for the manual total
+    const estimatedNet = Math.max(0, total - 2000)
+    const dynamicFee = calculateCombinedFee(estimatedNet)
+    
+    const feePayment = Math.min(total, dynamicFee)
 
     return lineItems.map(item => {
       const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name) || item.id === -2
@@ -260,9 +308,9 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
         return {
           id: item.id,
           name: item.name,
-          totalAmount: item.totalAmount,
+          totalAmount: dynamicFee,
           amountPaid: item.amountPaid,
-          remaining: feeRemaining,
+          remaining: dynamicFee,
           allocated: feePayment
         }
       }

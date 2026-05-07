@@ -120,6 +120,16 @@ export function StepAmount({
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [showOverpaymentDialog, setShowOverpaymentDialog] = useState(false)
   
+  const calculateCombinedFee = (netAmount: number) => {
+    if (netAmount <= 0) return 0;
+    const UPWARD_FEE = 2000;
+    const threshold = 2462.5;
+    const isAboveThreshold = netAmount >= threshold;
+    const gross = isAboveThreshold ? (netAmount + 100) / 0.985 : netAmount / 0.985;
+    const paystackFee = Math.ceil(Math.min(2000, gross - netAmount));
+    return UPWARD_FEE + paystackFee;
+  };
+
   const [lineItems, setLineItems] = useState<LineItem[]>(() => {
     const items = initialLineItems && initialLineItems.length > 0 ? [...initialLineItems] : [
       { 
@@ -132,15 +142,28 @@ export function StepAmount({
       },
     ]
 
+    const rentAmount = items.find(i => i.label === 'Rent')?.amount || 0
+    const feeAmount = calculateCombinedFee(Number(rentAmount))
+    
     const feeItem = items.find(i => i.label === 'Processing Fee')
     if (!feeItem) {
-      items.unshift({ label: 'Processing Fee', amount: 2000 })
+      items.unshift({ label: 'Processing Fee', amount: feeAmount })
     } else {
-      feeItem.amount = 2000
+      feeItem.amount = feeAmount
     }
 
     return items
   })
+
+  useEffect(() => {
+    const rentItem = lineItems.find(i => i.label === 'Rent');
+    if (rentItem) {
+      const newFee = calculateCombinedFee(Number(rentItem.amount));
+      setLineItems(prev => prev.map(item => 
+        item.label === 'Processing Fee' ? { ...item, amount: newFee } : item
+      ));
+    }
+  }, [lineItems.find(i => i.label === 'Rent')?.amount]);
 
   useEffect(() => {
     const total = lineItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
