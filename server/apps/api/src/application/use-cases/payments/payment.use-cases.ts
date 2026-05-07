@@ -49,7 +49,7 @@ export class CreateManualPaymentRequestUseCase {
     private readonly propertyRepo: PropertyRepository,
     @Inject(PAYMENT_LINE_ITEM_REPOSITORY)
     private readonly lineItemRepo: IPaymentLineItemRepository,
-  ) {}
+  ) { }
 
   async execute(data: {
     userId: string
@@ -308,7 +308,7 @@ export class RecordTransactionUseCase {
       }
 
       let paymentAmount = pr ? Math.min(data.amount - upwardFeeAmount, remaining) + upwardFeeAmount : data.amount;
-      
+
       if (pr) {
         excess = Math.max(0, data.amount - upwardFeeAmount - remaining);
       }
@@ -319,7 +319,7 @@ export class RecordTransactionUseCase {
       if (userPropertyIdToSettle) {
         propertyForCycle = await this.propertyRepo.findById(userPropertyIdToSettle, txClient);
       }
-      
+
       if (!userPropertyIdToSettle && isVerified && data.type === 'RENT') {
         if (data.userPropertyUuid) {
           propertyForCycle = await this.propertyRepo.findByUuid(data.userPropertyUuid, txClient);
@@ -327,7 +327,7 @@ export class RecordTransactionUseCase {
             userPropertyIdToSettle = propertyForCycle.id!;
           }
         }
-        
+
         // Final fallback: If user has only ONE property, link it to that
         if (!userPropertyIdToSettle && user) {
           const userProps = await this.propertyRepo.findByUserId(user.id!, txClient);
@@ -355,7 +355,8 @@ export class RecordTransactionUseCase {
 
         // 2. Settle Payment Request
         if (pr) {
-          const settlementPortion = paymentAmount;
+
+          const settlementPortion = Math.max(0, paymentAmount - upwardFeeAmount);
           const newAmountPaid = (pr.amountPaid || 0) + settlementPortion
           const newStatus = newAmountPaid >= pr.amount ? 'PAID' : 'PARTIAL'
 
@@ -365,7 +366,6 @@ export class RecordTransactionUseCase {
             paidAt: newStatus === 'PAID' ? new Date() : undefined,
           }, txClient)
 
-          // Update PM record if it exists
           try {
             const pmPr = await this.pmPaymentRepo.findByPaymentRequestId(pr.id!, txClient);
             if (pmPr) {
@@ -374,7 +374,7 @@ export class RecordTransactionUseCase {
                 status: newStatus,
               }, txClient);
 
-              // Record payment in PM history
+
               await txClient.upward_pm_rent_payment.create({
                 data: {
                   unitId: pmPr.unitId,
@@ -391,8 +391,8 @@ export class RecordTransactionUseCase {
                 const unit = await txClient.upward_pm_unit.findUnique({ where: { id: pmPr.unitId } });
                 if (unit && unit.rentDueDate) {
                   const newDueDate = new Date(unit.rentDueDate);
-                  
-                  newDueDate.setFullYear(newDueDate.getFullYear() + 1); 
+
+                  newDueDate.setFullYear(newDueDate.getFullYear() + 1);
 
                   await txClient.upward_pm_unit.update({
                     where: { id: unit.id },
@@ -425,7 +425,7 @@ export class RecordTransactionUseCase {
               currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!, txClient);
             }
 
-            rentPortion = 0; 
+            rentPortion = 0;
             let remainingPayment = paymentAmount;
             const allocatedItems: any[] = [];
             let foundRentItem = false;
@@ -434,7 +434,7 @@ export class RecordTransactionUseCase {
               for (const lp of itemsFromPayments) {
                 const item = currentItems.find(i => i.id === lp.id || i.name === lp.name);
                 const paymentToItem = Math.min(remainingPayment, lp.amountPaid);
-                
+
                 if (paymentToItem > 0) {
                   if (item) {
                     const newItemPaid = item.amountPaid + paymentToItem;
@@ -488,16 +488,20 @@ export class RecordTransactionUseCase {
 
               for (const item of itemsToAllocate) {
                 if (remainingPayment <= 0) break;
+                const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name);
                 const need = item.totalAmount - item.amountPaid;
-                if (need <= 0) continue;
-
+                if (need <= 0 && !isFee) continue;
                 const paymentToItem = Math.min(remainingPayment, need);
                 if (paymentToItem > 0) {
                   const newItemPaid = item.amountPaid + paymentToItem;
-                  await this.lineItemRepo.update(item.id!, {
-                    amountPaid: newItemPaid,
-                    status: newItemPaid >= item.totalAmount ? 'PAID' : 'PARTIAL'
-                  }, txClient);
+
+                  // If it's a fee, we don't mark it as paid so it stays active for next time
+                  if (!isFee) {
+                    await this.lineItemRepo.update(item.id!, {
+                      amountPaid: newItemPaid,
+                      status: newItemPaid >= item.totalAmount ? 'PAID' : 'PARTIAL'
+                    }, txClient);
+                  }
 
                   const existingAlloc = allocatedItems.find(a => a.name === item.name);
                   if (existingAlloc) {
@@ -536,7 +540,7 @@ export class RecordTransactionUseCase {
                 });
                 if ((li.label || li.name || '').toLowerCase().includes('rent')) {
                   if (!foundRentItem) {
-                    rentPortion = 0; 
+                    rentPortion = 0;
                     foundRentItem = true;
                   }
                   rentPortion += paymentToItem;
@@ -547,7 +551,7 @@ export class RecordTransactionUseCase {
 
             if (allocatedItems.length === 0 && data.type === 'RENT') {
               const defaultName = pr?.description || data.narration || 'Rent Payment';
-              
+
               let propRent = 0;
               if (data.userPropertyUuid) {
                 const p = await this.propertyRepo.findByUuid(data.userPropertyUuid, txClient);
@@ -699,12 +703,12 @@ export class RecordTransactionUseCase {
             // --- 6. Rent Cycle Source of Truth Update ---
             const cycleDueDate = pr ? new Date(pr.dueDate) : (prop.rentEndDate ? new Date(prop.rentEndDate) : new Date())
             const paidAt = new Date()
-            
+
             // amountOwed should be the specific request amount if it's a PR, or the property rent if manual
             const amountOwedForCycle = pr ? pr.amount : (prop.rentAmount || 0);
-            
+
             const currentTotalPaid = pr ? (pr.amountPaid || 0) + rentPortion : rentPortion;
-            const cycleStatus = currentTotalPaid >= amountOwedForCycle 
+            const cycleStatus = currentTotalPaid >= amountOwedForCycle
               ? (paidAt <= cycleDueDate ? 'PAID_ON_TIME' : 'PAID_LATE')
               : (paidAt <= cycleDueDate ? 'PARTIAL_ON_TIME' : 'PARTIAL_LATE')
 
@@ -761,10 +765,10 @@ export class RecordTransactionUseCase {
           // Calculate Rent-specific totals for the webhook
           const currentItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!, txClient);
           const rentItems = currentItems.filter(i => i.name.toLowerCase().includes('rent'));
-          
+
           let totalRentPaid = rentItems.reduce((sum, i) => sum + i.amountPaid, 0);
           let totalRentAmount = rentItems.reduce((sum, i) => sum + i.totalAmount, 0);
-          
+
           // Fallback if no specific line items found at all (treat whole PR as rent if type is RENT)
           if (rentItems.length === 0 && currentItems.length === 0 && data.type === 'RENT') {
             totalRentPaid = pr.amountPaid || 0;
@@ -774,11 +778,11 @@ export class RecordTransactionUseCase {
           const statusForWebhook = totalRentPaid >= totalRentAmount ? 'PAID' : 'PARTIAL';
           const remainingAmount = Math.max(0, totalRentAmount - totalRentPaid);
 
-          const isFirstPayment = (pr.amountPaid || 0) === 0; 
+          const isFirstPayment = (pr.amountPaid || 0) === 0;
           const webhookPayload: any = {
             paymentUuid: pr.uuid,
             reference: result.reference,
-            amountPaid: rentPortion, 
+            amountPaid: rentPortion,
             totalPaid: totalRentPaid,
             remainingAmount: remainingAmount,
             overpaymentAmount: excess,
@@ -804,11 +808,11 @@ export class RecordTransactionUseCase {
         }
       }
 
-        this.logger.log(`[Settlement] Transaction committed for ref: ${data.reference}`);
-        return result;
-      }, {
-        timeout: 15000 // Increase timeout to 15s for large transactions
-      })
+      this.logger.log(`[Settlement] Transaction committed for ref: ${data.reference}`);
+      return result;
+    }, {
+      timeout: 15000 // Increase timeout to 15s for large transactions
+    })
   }
 }
 
