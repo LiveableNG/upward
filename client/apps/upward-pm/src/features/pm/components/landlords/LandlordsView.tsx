@@ -1,11 +1,13 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, Search, MoreVertical, User, Building2, Mail, Phone } from 'lucide-react'
 import { useProperties } from '@/features/pm/hooks/useProperties'
 import { cn } from '@/lib/utils'
 
 export function LandlordsView() {
+  const router = useRouter()
   const { data: properties = [] } = useProperties()
   const [searchQuery, setSearchQuery] = useState('')
 
