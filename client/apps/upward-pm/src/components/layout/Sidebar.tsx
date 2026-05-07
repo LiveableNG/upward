@@ -65,8 +65,8 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
           )}
         </div>
 
-        <nav className="sidebar__nav">
-          <div className="sidebar__section">
+        <nav className="sidebar__nav" style={{ padding: 0 }}>
+          <div className="sidebar__section" style={{ marginTop: 24 }}>
             {(!isCollapsed || isOpen) && <p className="sidebar__section-title">Main Menu</p>}
             <ul className="sidebar__list">
               {navItems.map((item) => {
@@ -83,7 +83,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
                       title={isCollapsed ? item.label : undefined}
                       onClick={onClose}
                     >
-                      <Icon size={20} />
+                      <Icon size={20} strokeWidth={1.5} />
                       {(!isCollapsed || isOpen) && <span>{item.label}</span>}
                     </Link>
                   </li>

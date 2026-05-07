@@ -5,3 +5,12 @@ export function generateId(prefix: string = 'id'): string {
 export function cn(...inputs: any[]) {
   return inputs.filter(Boolean).join(' ');
 }
+
+export function formatCurrency(amount: number, currency: string = 'NGN') {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
+}

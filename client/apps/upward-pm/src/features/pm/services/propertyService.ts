@@ -47,6 +47,7 @@ export interface Unit {
   managementFee: number;
   notes?: string;
   status: string;
+  currency: string;
   isSynced: boolean;
   userPropertyUuid: string | null;
 }
