@@ -191,7 +191,7 @@ export class PrismaUserRepository implements UserRepository {
         }
       }
     })
-    return records.map((record) => this.toDomain(record))
+    return records.map((record: any) => this.toDomain(record))
   }
 
   async save(user: User, tx?: any): Promise<User> {
