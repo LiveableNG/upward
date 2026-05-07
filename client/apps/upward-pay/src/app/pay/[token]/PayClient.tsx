@@ -231,13 +231,13 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
           setStep('invoice')
         }
 
-        const originalFeeItem = (res.data.payment.lineItemRecords || []).find((i: any) => 
-          ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name)
-        )
-        const originalFee = originalFeeItem ? originalFeeItem.totalAmount : 0
-        const rentRemaining = Math.max(0, (res.data.payment.amount - originalFee) - (res.data.payment.amountPaid || 0))
+        const rentRemaining = items.reduce((sum, item) => {
+          const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name)
+          if (isFee) return sum
+          return sum + Math.max(0, item.totalAmount - item.amountPaid)
+        }, 0)
+
         const finalDue = rentRemaining > 0 ? rentRemaining + calculateCombinedFee(rentRemaining) : 0
-        
         setAmountInput(finalDue.toString())
         setFormData(prev => ({
           ...prev,
@@ -264,11 +264,12 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
   const totalOwed = useMemo(() => {
     if (!paymentData?.payment) return 0
     
-    const originalFeeItem = (paymentData.payment.lineItemRecords || []).find((i: any) => 
-      ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(i.name)
-    )
-    const originalFee = originalFeeItem ? originalFeeItem.totalAmount : 0
-    const rentRemaining = Math.max(0, (paymentData.payment.amount - originalFee) - (paymentData.payment.amountPaid || 0))
+    const items = paymentData.payment.lineItemRecords || []
+    const rentRemaining = items.reduce((sum: number, item: any) => {
+      const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name)
+      if (isFee) return sum
+      return sum + Math.max(0, item.totalAmount - item.amountPaid)
+    }, 0)
     
     if (rentRemaining <= 0) return 0
     
