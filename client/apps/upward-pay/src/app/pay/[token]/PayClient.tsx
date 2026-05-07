@@ -10,7 +10,7 @@ import {
   ChevronRight
 } from 'lucide-react'
 import { api } from '@/lib/api'
-import { formatCurrency, generateId, calculateCombinedFee } from '@/lib/utils'
+import { formatCurrency, generateId, calculateCombinedFee, getNetAmountFromTotal } from '@/lib/utils'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { UpwardLogo } from '@/components/PoweredByUpward'
@@ -67,7 +67,7 @@ function distributeAmount(amount: number, items: LineItemRecord[], totalOwed: nu
   const feeItem = allocs.find(a => a.name === 'Processing Fee' || a.id === -2)
   if (feeItem) {
 
-    const estimatedNet = Math.max(0, amount - 2000)
+    const estimatedNet = getNetAmountFromTotal(amount)
     const dynamicFee = calculateCombinedFee(estimatedNet)
     
     feeItem.totalAmount = dynamicFee
@@ -279,14 +279,14 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     }
 
     // Manual Override Mode: Priority Fee + Manual Overrides
-    const total = parsedAmount
+    const manualSum = Object.values(manualAllocs).reduce((acc, val) => acc + val, 0)
     const feeItem = lineItems.find(i => i.name === 'Processing Fee' || i.id === -2)
     
-    // Calculate dynamic fee for the manual total
-    const estimatedNet = Math.max(0, total - 2000)
-    const dynamicFee = calculateCombinedFee(estimatedNet)
+    // Calculate dynamic fee exactly from the net amount allocated manually
+    const dynamicFee = calculateCombinedFee(manualSum)
     
-    const feePayment = Math.min(total, dynamicFee)
+    // The total amount applied towards the fee is whatever is leftover after manual rent items, capped at the dynamicFee
+    const feePayment = Math.min(parsedAmount - manualSum, dynamicFee)
 
     return lineItems.map(item => {
       const isFee = item.name === 'Processing Fee' || item.id === -2
@@ -354,12 +354,11 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     newManual[id] = finalAmountForThisItem
     setManualAllocs(newManual)
     
-    // Calculate total: Sum of manual items + Fee
+    // Calculate total: Sum of manual items + exact dynamic fee for that sum
     const manualSum = Object.values(newManual).reduce((acc, val) => acc + val, 0)
-    const feeItem = lineItems.find(i => i.name === 'Processing Fee' || i.id === -2)
-    const feeRemaining = feeItem ? Math.max(0, feeItem.totalAmount - feeItem.amountPaid) : 0
+    const dynamicFee = calculateCombinedFee(manualSum)
     
-    const newTotal = manualSum + feeRemaining
+    const newTotal = manualSum + dynamicFee
     setAmountInput(newTotal.toString())
   }
 

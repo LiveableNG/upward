@@ -78,3 +78,16 @@ export function calculateCombinedFee(netAmount: number): number {
   const paystackFee = Math.ceil(Math.min(2000, gross - netAmount));
   return UPWARD_FEE + paystackFee;
 }
+export function getNetAmountFromTotal(total: number): number {
+  if (total <= 0) return 0;
+  if (total >= 128666) {
+    return total - 4000;
+  }
+  if (total >= 4500) {
+    return Math.round((total - 2000) * 0.985 - 100);
+  }
+  if (total > 2000) {
+    return Math.round((total - 2000) * 0.985);
+  }
+  return 0;
+}
