@@ -68,6 +68,8 @@ export function CreateTemplateModal({ isOpen, onClose }: CreateTemplateModalProp
           borderRadius: 32, 
           width: '96vw', 
           height: '94vh', 
+          maxWidth: 'none',
+          maxHeight: 'none',
           display: 'flex', 
           flexDirection: 'column',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
@@ -86,10 +88,10 @@ export function CreateTemplateModal({ isOpen, onClose }: CreateTemplateModalProp
         </div>
 
         {/* Body */}
-        <div style={{ padding: '40px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 32 }}>
+        <div style={{ padding: '40px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           
-          <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 40 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 40, flex: 1, minHeight: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24, overflowY: 'auto', paddingRight: 10 }}>
               <div>
                 <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Template Type</label>
                 <div style={{ position: 'relative' }}>
@@ -128,7 +130,7 @@ export function CreateTemplateModal({ isOpen, onClose }: CreateTemplateModalProp
               </div>
             </div>
 
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '65vh' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
               <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Document Content</label>
               <div style={{ flex: 1, borderRadius: 20, overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
                 <RichTextEditor 
