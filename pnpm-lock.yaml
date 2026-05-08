@@ -217,18 +217,21 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.72.1(react@19.2.4))
+      '@hugerte/hugerte-react':
+        specifier: ^2.0.2
+        version: 2.0.2(hugerte@1.0.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@tanstack/react-query':
         specifier: ^5.96.2
         version: 5.96.2(react@19.2.4)
-      '@tinymce/tinymce-react':
-        specifier: ^6.3.0
-        version: 6.3.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
       html2canvas:
         specifier: ^1.4.1
         version: 1.4.1
+      hugerte:
+        specifier: ^1.0.10
+        version: 1.0.10
       jspdf:
         specifier: ^2.5.1
         version: 2.5.2
@@ -1456,6 +1459,21 @@ packages:
     resolution: {integrity: sha512-A/IxlMLShx3KjV/HeTcTfaMxdwy690+L/ZADoeaTltLx+CVuzkeVIPuybK3jrRfw7YZnmdKsVVHAlEPIAEUNlA==}
     peerDependencies:
       react-hook-form: ^7.55.0
+
+  '@hugerte/framework-integration-shared@1.2.0':
+    resolution: {integrity: sha512-ogcvVO0dFcb/HQAY7itj8xnmeMcHZmtMaOj9uC34ZYopnvj12TGWnfRQwbt8jZMlmoZk2z1TTLmJgvQBuH013A==}
+    peerDependencies:
+      hugerte: ^1.0.4
+
+  '@hugerte/hugerte-react@2.0.2':
+    resolution: {integrity: sha512-vIVEX2mpxX/Vl9pvzhOd4bKEktS2sSOrd8smS6lIqgqETsuWTfLbjvXWni99i2a+VEMfWvK+nLqP8AmYhcELBQ==}
+    peerDependencies:
+      hugerte: ^1.0.6
+      react: ^19.0.0 || ^18.0.0 || ^17.0.1 || ^16.7.0
+      react-dom: ^19.0.0 || ^18.0.0 || ^17.0.1 || ^16.7.0
+    peerDependenciesMeta:
+      hugerte:
+        optional: true
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -2896,16 +2914,6 @@ packages:
   '@testing-library/dom@10.4.1':
     resolution: {integrity: sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==}
     engines: {node: '>=18'}
-
-  '@tinymce/tinymce-react@6.3.0':
-    resolution: {integrity: sha512-E++xnn0XzDzpKr40jno2Kj7umfAE6XfINZULEBBeNjTMvbACWzA6CjiR6V8eTDc9yVmdVhIPqVzV4PqD5TZ/4g==}
-    peerDependencies:
-      react: ^19.0.0 || ^18.0.0 || ^17.0.1 || ^16.7.0
-      react-dom: ^19.0.0 || ^18.0.0 || ^17.0.1 || ^16.7.0
-      tinymce: ^8.0.0 || ^7.0.0 || ^6.0.0 || ^5.5.1
-    peerDependenciesMeta:
-      tinymce:
-        optional: true
 
   '@tokenizer/inflate@0.4.1':
     resolution: {integrity: sha512-2mAv+8pkG6GIZiF1kNg1jAjh27IDxEPKwdGul3snfztFerfPGI1LjDezZp3i7BElXompqEtPmoPx6c2wgtWsOA==}
@@ -4740,6 +4748,9 @@ packages:
   http-errors@2.0.1:
     resolution: {integrity: sha512-4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrjQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ==}
     engines: {node: '>= 0.8'}
+
+  hugerte@1.0.10:
+    resolution: {integrity: sha512-Uk7drnB4mqJUuXCtgDLDmBNSHNp7CH5juM3MGXE8HVJZwySW77xcdRaPss23vzneXY+dDoRABQcuFsBoa6s4CQ==}
 
   human-signals@2.1.0:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
@@ -8384,6 +8395,18 @@ snapshots:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.72.1(react@19.2.4)
 
+  '@hugerte/framework-integration-shared@1.2.0(hugerte@1.0.10)':
+    dependencies:
+      hugerte: 1.0.10
+
+  '@hugerte/hugerte-react@2.0.2(hugerte@1.0.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      '@hugerte/framework-integration-shared': 1.2.0(hugerte@1.0.10)
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+    optionalDependencies:
+      hugerte: 1.0.10
+
   '@humanfs/core@0.19.1': {}
 
   '@humanfs/node@0.16.7':
@@ -9840,12 +9863,6 @@ snapshots:
       lz-string: 1.5.0
       picocolors: 1.1.1
       pretty-format: 27.5.1
-
-  '@tinymce/tinymce-react@6.3.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
-    dependencies:
-      prop-types: 15.8.1
-      react: 19.2.4
-      react-dom: 19.2.4(react@19.2.4)
 
   '@tokenizer/inflate@0.4.1':
     dependencies:
@@ -12059,6 +12076,8 @@ snapshots:
       setprototypeof: 1.2.0
       statuses: 2.0.2
       toidentifier: 1.0.1
+
+  hugerte@1.0.10: {}
 
   human-signals@2.1.0: {}
 
