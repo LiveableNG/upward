@@ -1,8 +1,7 @@
-
 'use client'
 
 import React, { useRef } from 'react'
-import { Editor } from '@tinymce/tinymce-react'
+import { Editor } from '@hugerte/hugerte-react'
 
 interface RichTextEditorProps {
   value: string
