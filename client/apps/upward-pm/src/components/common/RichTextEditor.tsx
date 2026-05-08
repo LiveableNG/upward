@@ -1,0 +1,79 @@
+
+'use client'
+
+import React, { useRef } from 'react'
+import { Editor } from '@tinymce/tinymce-react'
+
+interface RichTextEditorProps {
+  value: string
+  onChange: (value: string) => void
+  height?: number | string
+  placeholder?: string
+  menubar?: boolean
+  toolbar?: string
+}
+
+export function RichTextEditor({ 
+  value, 
+  onChange, 
+  height = 500, 
+  placeholder = 'Start typing...',
+  menubar = true,
+  toolbar
+}: RichTextEditorProps) {
+  const editorRef = useRef<any>(null)
+
+  const defaultToolbar = 'undo redo | blocks | ' +
+    'bold italic forecolor | alignleft aligncenter ' +
+    'alignright alignjustify | bullist numlist outdent indent | ' +
+    'removeformat | signatures placeholders | help'
+
+  return (
+    <div className="rich-text-editor-container" style={{ height, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
+      <Editor
+        onInit={(evt, editor) => editorRef.current = editor}
+        value={value}
+        init={{
+          height: '100%',
+          menubar,
+          placeholder,
+          plugins: [
+            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+            'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+            'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+          ],
+          toolbar: toolbar || defaultToolbar,
+          content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; color:#1e293b; padding: 20px; }',
+          setup: (editor: any) => {
+            editor.ui.registry.addButton('signatures', {
+              text: 'Signatures',
+              icon: 'signature',
+              onAction: () => {
+                editor.insertContent('<strong>[SIGNATURE_PLACEHOLDER]</strong>');
+              }
+            });
+
+            editor.ui.registry.addMenuButton('placeholders', {
+              text: 'Placeholders',
+              fetch: (callback: any) => {
+                const items = [
+                  { type: 'menuitem', text: 'Tenant Name', onAction: () => editor.insertContent('[Tenant Name]') },
+                  { type: 'menuitem', text: 'Unit Name', onAction: () => editor.insertContent('[Unit Name]') },
+                  { type: 'menuitem', text: 'Rent Amount', onAction: () => editor.insertContent('[Rent Amount]') },
+                  { type: 'menuitem', text: 'Property Name', onAction: () => editor.insertContent('[Property Name]') },
+                  { type: 'menuitem', text: 'Today\'s Date', onAction: () => editor.insertContent('[Date]') }
+                ];
+                callback(items as any);
+              }
+            });
+          },
+          branding: false,
+          promotion: false,
+          skin: 'oxide',
+          content_css: 'default'
+        }}
+        onEditorChange={onChange}
+      />
+    </div>
+  )
+}

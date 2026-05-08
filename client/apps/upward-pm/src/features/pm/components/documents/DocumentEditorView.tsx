@@ -1,29 +1,18 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { 
   ChevronLeft, 
-  Bold, 
-  Italic, 
-  AlignLeft, 
-  AlignCenter, 
-  AlignRight, 
-  List, 
   Download,
   Send,
-  PlusCircle,
-  User,
-  Building,
   Mail,
-  CheckCircle2,
   AlertCircle
 } from 'lucide-react'
+import { RichTextEditor } from '@/components/common/RichTextEditor'
 import { useTenants } from '../../hooks/useTenants'
-import { useUnit } from '../../hooks/useProperties'
 import { useDocuments } from '../../hooks/useDocuments'
 import { useToast } from '@/components/common/Toast'
-import { cn } from '@/lib/utils'
 
 interface DocumentEditorViewProps {
   initialContent?: string
@@ -51,10 +40,6 @@ export function DocumentEditorView({
   const [isSending, setIsSending] = useState(false)
 
   const selectedTenant = tenants.find(t => t.uuid === selectedTenantUuid)
-
-  const execCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
-  }
 
   const handleSend = async () => {
     if (!subject) return error('Please enter a subject')
@@ -243,121 +228,18 @@ export function DocumentEditorView({
           <div className="glass" style={{ padding: 20, borderRadius: 24, border: '1px solid var(--border)', background: 'var(--ivory-dim)', display: 'flex', gap: 12 }}>
             <AlertCircle size={20} color="var(--clay)" style={{ flexShrink: 0 }} />
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              Use the editor to format your document. You can include dynamic placeholders like [Tenant Name] which will be replaced when sending.
+              Use the professional editor to format your document. You can include dynamic placeholders like [Tenant Name] which will be replaced when sending.
             </p>
           </div>
         </div>
 
-        {/* Right Panel: Editor */}
-        <div style={{ display: 'flex', flexDirection: 'column', height: '800px', boxShadow: 'var(--shadow-lg)', borderRadius: 24 }}>
-          {/* Toolbar */}
-          <div style={{ 
-            background: 'white', 
-            padding: '16px 32px', 
-            borderRadius: '24px 24px 0 0', 
-            border: '1px solid var(--border)',
-            borderBottom: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 24,
-            color: 'var(--text-secondary)'
-          }}>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button 
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); execCommand('bold'); }}
-                style={{ padding: 8, borderRadius: 8, background: '#f1f5f9', border: 'none', cursor: 'pointer' }}
-                title="Bold"
-              >
-                <Bold size={18} />
-              </button>
-              <button 
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); execCommand('italic'); }}
-                style={{ padding: 8, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'none' }}
-                title="Italic"
-              >
-                <Italic size={18} />
-              </button>
-            </div>
-            <div style={{ width: 1, height: 24, background: 'var(--border)' }} />
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button 
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); execCommand('justifyLeft'); }}
-                style={{ padding: 8, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'none' }}
-                title="Align Left"
-              >
-                <AlignLeft size={18} />
-              </button>
-              <button 
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); execCommand('justifyCenter'); }}
-                style={{ padding: 8, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'none' }}
-                title="Align Center"
-              >
-                <AlignCenter size={18} />
-              </button>
-              <button 
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); execCommand('justifyRight'); }}
-                style={{ padding: 8, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'none' }}
-                title="Align Right"
-              >
-                <AlignRight size={18} />
-              </button>
-            </div>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button 
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); execCommand('insertUnorderedList'); }}
-                style={{ padding: 8, borderRadius: 8, border: '1px solid var(--border)', cursor: 'pointer', background: 'white' }}
-                title="List"
-              >
-                <List size={18} />
-              </button>
-            </div>
-            <div style={{ width: 1, height: 24, background: 'var(--border)' }} />
-            <button 
-              type="button"
-              className="hover-bg-faint"
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'white', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}
-            >
-              <PlusCircle size={16} color="var(--clay)" />
-              Signatures
-            </button>
-          </div>
-
-          {/* Editor Body */}
-          <div style={{ 
-            background: 'white', 
-            flex: 1, 
-            borderRadius: '0 0 24px 24px', 
-            border: '1px solid var(--border)',
-            padding: '60px',
-            overflowY: 'auto',
-            position: 'relative'
-          }}>
-            <div 
-              contentEditable 
-              suppressContentEditableWarning
-              onInput={(e) => setContent(e.currentTarget.innerHTML)}
-              style={{ 
-                outline: 'none', 
-                fontSize: 16, 
-                lineHeight: 1.8, 
-                color: '#1e293b',
-                minHeight: '100%',
-                fontFamily: "'Inter', sans-serif"
-              }}
-              dangerouslySetInnerHTML={{ __html: content }}
-            />
-            {!content && (
-               <div style={{ position: 'absolute', top: 60, left: 60, color: '#94a3b8', pointerEvents: 'none', fontSize: 16 }}>
-                 Start typing your document here...
-               </div>
-            )}
-          </div>
+        {/* Right Panel: Rich Text Editor */}
+        <div style={{ height: '800px', boxShadow: 'var(--shadow-lg)', borderRadius: 24, background: 'white' }}>
+          <RichTextEditor
+            value={content}
+            onChange={(newContent) => setContent(newContent)}
+            height="100%"
+          />
         </div>
       </div>
     </div>
