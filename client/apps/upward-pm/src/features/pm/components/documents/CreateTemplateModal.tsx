@@ -88,16 +88,16 @@ export function CreateTemplateModal({ isOpen, onClose }: CreateTemplateModalProp
         </div>
 
         {/* Body */}
-        <div style={{ padding: '40px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ padding: '32px 40px', flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', gap: 32 }}>
           
-          <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 40, flex: 1, minHeight: 0 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24, overflowY: 'auto', paddingRight: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }}>
               <div>
                 <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Template Type</label>
                 <div style={{ position: 'relative' }}>
                   <select 
                     className="form-input" 
-                    style={{ borderRadius: 12, paddingRight: 40, appearance: 'none', height: 52, background: '#f1f5f9', border: 'none' }}
+                    style={{ borderRadius: 12, paddingRight: 40, appearance: 'none', height: 52, background: '#f1f5f9', border: 'none', width: '100%' }}
                     value={type}
                     onChange={(e) => setType(e.target.value)}
                   >
@@ -116,23 +116,16 @@ export function CreateTemplateModal({ isOpen, onClose }: CreateTemplateModalProp
                   type="text" 
                   placeholder="e.g. Standard Rent Increase Notice" 
                   className="form-input" 
-                  style={{ borderRadius: 12, height: 52, background: '#f1f5f9', border: 'none' }}
+                  style={{ borderRadius: 12, height: 52, background: '#f1f5f9', border: 'none', width: '100%' }}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
               </div>
-              
-              <div className="glass" style={{ padding: 20, borderRadius: 20, background: 'var(--forest-faint)', border: '1px solid var(--forest-glow)' }}>
-                <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--forest)', marginBottom: 8 }}>Pro Tip</h4>
-                <p style={{ fontSize: 12, color: 'var(--accent)', lineHeight: 1.5 }}>
-                  Use the <strong>Placeholders</strong> menu in the editor to insert tags like [Tenant Name]. These will be automatically filled when you send the document.
-                </p>
-              </div>
             </div>
-
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-              <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Document Content</label>
-              <div style={{ flex: 1, borderRadius: 20, overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', minHeight: 600, flex: 1 }}>
+              <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Template Content</label>
+              <div style={{ flex: 1, borderRadius: 20, overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', minHeight: 500 }}>
                 <RichTextEditor 
                   value={content}
                   onChange={setContent}
@@ -140,6 +133,13 @@ export function CreateTemplateModal({ isOpen, onClose }: CreateTemplateModalProp
                   placeholder="Begin drafting your document..."
                 />
               </div>
+            </div>
+
+            <div className="glass" style={{ padding: '16px 24px', borderRadius: 16, background: 'var(--forest-faint)', border: '1px solid var(--forest-glow)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ background: 'var(--forest)', color: 'white', width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800 }}>!</div>
+              <p style={{ fontSize: 13, color: 'var(--accent)', lineHeight: 1.5, margin: 0 }}>
+                <strong>Pro Tip:</strong> Use the <strong>Placeholders</strong> menu in the editor to insert tags like [Tenant Name]. These will be automatically filled when you send the document.
+              </p>
             </div>
           </div>
         </div>
