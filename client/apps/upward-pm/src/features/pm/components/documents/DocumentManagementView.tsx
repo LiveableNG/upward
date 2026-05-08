@@ -7,14 +7,13 @@ import {
   Search, 
   FileText, 
   MoreVertical, 
-  Clock, 
   Download,
   ChevronRight,
-  Filter,
-  Send
+  Filter
 } from 'lucide-react'
 import { useDocuments } from '../../hooks/useDocuments'
 import { format } from 'date-fns'
+import { CreateTemplateModal } from './CreateTemplateModal'
 
 interface DocumentManagementViewProps {
   onNewDocument: () => void
@@ -24,6 +23,7 @@ interface DocumentManagementViewProps {
 export function DocumentManagementView({ onNewDocument, onSelectTemplate }: DocumentManagementViewProps) {
   const { documents, templates, isLoading } = useDocuments()
   const [searchQuery, setSearchQuery] = useState('')
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
   const filteredHistory = documents.filter((doc:any) => 
     doc.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -37,20 +37,51 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate }: Docu
           <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)' }}>Document Management</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Manage your document templates and track sent items.</p>
         </div>
-        <button 
-          onClick={onNewDocument}
-          className="btn btn--primary" 
-          style={{ borderRadius: 12, padding: '0 24px', height: 48, display: 'flex', alignItems: 'center', gap: 8 }}
-        >
-          <Plus size={20} /> Create Custom Document
-        </button>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button 
+            onClick={() => document.getElementById('word-upload')?.click()}
+            className="btn btn--secondary" 
+            style={{ borderRadius: 12, padding: '0 24px', height: 48, display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <Download size={20} /> Import Word Doc
+          </button>
+          <input 
+            id="word-upload" 
+            type="file" 
+            accept=".docx" 
+            style={{ display: 'none' }} 
+            onChange={async (e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              
+              try {
+                const mammoth = (await import('mammoth')).default
+                const arrayBuffer = await file.arrayBuffer()
+                const result = await mammoth.convertToHtml({ arrayBuffer })
+                onSelectTemplate({ 
+                  name: file.name.replace('.docx', ''), 
+                  content: result.value 
+                })
+              } catch (err) {
+                console.error('Failed to convert word doc:', err)
+              }
+            }}
+          />
+          <button 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="btn btn--primary" 
+            style={{ borderRadius: 12, padding: '0 24px', height: 48, display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <Plus size={20} /> Create Custom Template
+          </button>
+        </div>
       </header>
 
       {/* Recent Templates */}
       <section style={{ marginBottom: 48 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)' }}>Recent Templates</h2>
-          <button style={{ color: 'var(--clay)', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <button style={{ color: 'var(--clay)', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer' }}>
             View All Templates <ChevronRight size={16} />
           </button>
         </div>
@@ -89,7 +120,7 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate }: Docu
           </div>
         </div>
 
-        <div className="glass" style={{ borderRadius: 20, overflow: 'hidden', border: '1px solid var(--border)' }}>
+        <div className="glass" style={{ borderRadius: 20, overflow: 'hidden', border: '1px solid var(--border)', background: 'white' }}>
           <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', background: 'var(--ivory-dim)', display: 'flex', alignItems: 'center', gap: 16 }}>
             <div style={{ position: 'relative', flex: 1 }}>
               <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -167,6 +198,11 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate }: Docu
           </table>
         </div>
       </section>
+
+      <CreateTemplateModal 
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
 
       <style jsx>{`
         .hover-bg-faint:hover {

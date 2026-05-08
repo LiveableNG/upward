@@ -1,23 +1,14 @@
+
 'use client'
 
 import React, { useState } from 'react'
 import { 
   ChevronLeft, 
-  FileText, 
   CheckCircle2, 
   Circle, 
-  Eye, 
-  X,
-  Bold,
-  Italic,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  List,
   Download
 } from 'lucide-react'
-import { api } from '@/lib/api'
-import { cn } from '@/lib/utils'
+import { RichTextEditor } from '@/components/common/RichTextEditor'
 
 interface LandlordReportEditorViewProps {
   landlordName: string
@@ -82,14 +73,10 @@ export function LandlordReportEditorView({
     }
   }
 
-  const execCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
-  }
-
   return (
     <div className="report-editor animate-fade-in">
       <header style={{ marginBottom: 32 }}>
-        <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 8 }}>
+        <button onClick={onBack} style={{ border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 8 }}>
           <ChevronLeft size={18} /> Back to Configuration
         </button>
         <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)' }}>Send Landlord Report</h1>
@@ -99,7 +86,7 @@ export function LandlordReportEditorView({
         
         {/* Left: Configuration Options */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div className="glass" style={{ padding: 24, borderRadius: 24, border: '1px solid var(--border)' }}>
+          <div className="glass" style={{ padding: 24, borderRadius: 24, border: '1px solid var(--border)', background: 'white' }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 20 }}>Document Options</h3>
             
             <div 
@@ -136,95 +123,13 @@ export function LandlordReportEditorView({
         </div>
 
         {/* Right: Rich Editor */}
-        <div style={{ display: 'flex', flexDirection: 'column', height: '800px' }}>
-          {/* Toolbar */}
-          <div style={{ 
-            background: 'white', 
-            padding: '12px 24px', 
-            borderRadius: '24px 24px 0 0', 
-            border: '1px solid var(--border)',
-            borderBottom: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 20,
-            color: 'var(--text-secondary)'
-          }}>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button 
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); execCommand('bold'); }}
-                style={{ padding: 6, borderRadius: 6, background: '#f1f5f9' }}
-              >
-                <Bold size={16} />
-              </button>
-              <button 
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); execCommand('italic'); }}
-                style={{ padding: 6, borderRadius: 6 }}
-              >
-                <Italic size={16} />
-              </button>
-            </div>
-            <div style={{ width: 1, height: 20, background: 'var(--border)' }} />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button 
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); execCommand('justifyLeft'); }}
-                style={{ padding: 6, borderRadius: 6 }}
-              >
-                <AlignLeft size={16} />
-              </button>
-              <button 
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); execCommand('justifyCenter'); }}
-                style={{ padding: 6, borderRadius: 6 }}
-              >
-                <AlignCenter size={16} />
-              </button>
-              <button 
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); execCommand('justifyRight'); }}
-                style={{ padding: 6, borderRadius: 6 }}
-              >
-                <AlignRight size={16} />
-              </button>
-            </div>
-            <div style={{ width: 1, height: 20, background: 'var(--border)' }} />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button 
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); execCommand('insertUnorderedList'); }}
-                style={{ padding: 6, borderRadius: 6 }}
-              >
-                <List size={16} />
-              </button>
-            </div>
-          </div>
-
-          {/* Editor Body */}
-          <div style={{ 
-            background: 'white', 
-            flex: 1, 
-            borderRadius: '0 0 24px 24px', 
-            border: '1px solid var(--border)',
-            padding: '40px',
-            overflowY: 'auto',
-            boxShadow: 'var(--shadow-sm)'
-          }}>
-            <div 
-              contentEditable 
-              suppressContentEditableWarning
-              onInput={(e) => setContent(e.currentTarget.innerHTML)}
-              style={{ 
-                outline: 'none', 
-                fontSize: 15, 
-                lineHeight: 1.8, 
-                color: 'var(--text-secondary)',
-                minHeight: '100%'
-              }}
-              dangerouslySetInnerHTML={{ __html: content }}
-            />
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '800px', boxShadow: 'var(--shadow-lg)', borderRadius: 24, background: 'white' }}>
+          <RichTextEditor
+            value={content}
+            onChange={(newContent) => setContent(newContent)}
+            height="100%"
+            placeholder="Edit report content..."
+          />
         </div>
 
       </div>
