@@ -56,10 +56,15 @@ export function RichTextEditor({
               text: 'Placeholders',
               fetch: (callback: any) => {
                 const items = [
-                  { type: 'menuitem', text: 'Tenant Name', onAction: () => editor.insertContent('[Tenant Name]') },
-                  { type: 'menuitem', text: 'Unit Name', onAction: () => editor.insertContent('[Unit Name]') },
-                  { type: 'menuitem', text: 'Rent Amount', onAction: () => editor.insertContent('[Rent Amount]') },
-                  { type: 'menuitem', text: 'Property Name', onAction: () => editor.insertContent('[Property Name]') },
+                  { type: 'menuitem', text: 'Tenant First Name', onAction: () => editor.insertContent('[TenantFirstName]') },
+                  { type: 'menuitem', text: 'Tenant Last Name', onAction: () => editor.insertContent('[TenantLastName]') },
+                  { type: 'menuitem', text: 'Tenant Phone', onAction: () => editor.insertContent('[TenantPhone]') },
+                  { type: 'menuitem', text: 'Unit Name', onAction: () => editor.insertContent('[UnitName]') },
+                  { type: 'menuitem', text: 'Rent Amount', onAction: () => editor.insertContent('[RentAmount]') },
+                  { type: 'menuitem', text: 'Property Name', onAction: () => editor.insertContent('[PropertyName]') },
+                  { type: 'menuitem', text: 'Rent Start Date', onAction: () => editor.insertContent('[RentStartDate]') },
+                  { type: 'menuitem', text: 'Rent End Date', onAction: () => editor.insertContent('[RentEndDate]') },
+                  { type: 'menuitem', text: 'Manager Name', onAction: () => editor.insertContent('[ManagerName]') },
                   { type: 'menuitem', text: 'Today\'s Date', onAction: () => editor.insertContent('[Date]') }
                 ];
                 callback(items as any);
