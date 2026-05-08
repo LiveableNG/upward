@@ -22,7 +22,7 @@ export function RichTextEditor({
 }: RichTextEditorProps) {
   const editorRef = useRef<any>(null)
 
-  const defaultToolbar = 'undo redo | blocks | ' +
+  const defaultToolbar = 'undo redo | blocks fontfamily fontsize | ' +
     'bold italic forecolor | alignleft aligncenter ' +
     'alignright alignjustify | bullist numlist outdent indent | ' +
     'removeformat | signatures placeholders | help'
