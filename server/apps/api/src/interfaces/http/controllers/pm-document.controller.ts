@@ -44,8 +44,15 @@ export class PmDocumentController {
   }
 
   @Post('generate-pdf')
-  async generatePdf(@Body() data: { content: string }, @Res() res: any) {
-    const buffer = await this.generatePdfUseCase.execute(data.content);
+  async generatePdf(@Request() req: any, @Body() data: { content: string; tenantUuid?: string; unitUuid?: string; recipientName?: string }, @Res() res: any) {
+    const pmId = await this.getPmId(req);
+    const buffer = await this.generatePdfUseCase.execute({
+      content: data.content,
+      pmId,
+      tenantUuid: data.tenantUuid,
+      unitUuid: data.unitUuid,
+      recipientName: data.recipientName,
+    });
     
     // Check if it's Fastify or Express response
     if (typeof res.set === 'function') {
