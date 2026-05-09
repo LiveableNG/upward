@@ -124,8 +124,8 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
               <input type="number" {...register('rentAmount')} className="form-input" />
             </div>
             <div className="form-group">
-              <label className="form-label">Fee (%)</label>
-              <input type="number" {...register('managementFee')} className="form-input" placeholder="0" />
+              <label className="form-label">Management Fee (₦)</label>
+              <input type="number" {...register('managementFee')} className="form-input" placeholder="e.g. 150000" />
             </div>
           </div>
 

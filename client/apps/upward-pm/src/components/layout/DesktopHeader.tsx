@@ -18,10 +18,10 @@ export function DesktopHeader() {
       </div>
 
       <div className="desktop-header__actions">
-        <button className="desktop-header__icon-btn">
+        {/* <button className="desktop-header__icon-btn">
           <Bell size={20} />
           <span className="desktop-header__badge" />
-        </button>
+        </button> */}
 
         <div className="desktop-header__profile">
           <div className="desktop-header__user-info">

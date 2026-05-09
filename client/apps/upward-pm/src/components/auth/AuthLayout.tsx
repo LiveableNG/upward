@@ -44,10 +44,6 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitl
         <main className="auth-shell">
           {children}
         </main>
-
-        <footer className="auth-footer" style={{ marginTop: 'auto', padding: '32px' }}>
-          <p>&copy; {new Date().getFullYear()} Upward by GoodTenants. All rights reserved.</p>
-        </footer>
       </div>
     </div>
   );
