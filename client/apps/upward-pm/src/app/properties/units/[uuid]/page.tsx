@@ -19,7 +19,8 @@ import {
   Unlink,
   Search,
   Filter as FilterIcon,
-  Download
+  Download,
+  Edit
 } from 'lucide-react'
 import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useAddUnitPayment } from '@/features/pm/hooks/useProperties'
 import { usePaymentRequests, useCreatePaymentRequest } from '@/features/pm/hooks/usePayments'
@@ -27,6 +28,7 @@ import { useTenants, useTenantActions } from '@/features/pm/hooks/useTenants'
 import { TenantAssignmentSection } from '@/features/pm/components/tenants/TenantAssignmentSection'
 import { AddRentRecordModal } from '@/features/pm/components/properties/modals/AddRentRecordModal'
 import { CreatePaymentRequestModal } from '@/features/pm/components/payments/modals/CreatePaymentRequestModal'
+import { EditUnitModal } from '@/features/pm/components/properties/modals/EditUnitModal'
 import { DocumentEditorView } from '@/features/pm/components/documents/DocumentEditorView'
 import { useToast } from '@/components/common/Toast'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
@@ -56,6 +58,7 @@ function UnitDetailContent() {
   const [isUnassignConfirmOpen, setIsUnassignConfirmOpen] = useState(false)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   // Payment -> Document Editor Flow
   const [showEditor, setShowEditor] = useState(false)
@@ -129,13 +132,14 @@ function UnitDetailContent() {
     }
   }, [formData.rentStartDate, formData.rentType, isEditing])
 
-  const handleUpdate = () => {
+  const handleUpdate = (data: any) => {
     updateUnitMutation.mutate({ 
       uuid: uuid as string, 
-      data: formData 
+      data: data || formData 
     }, {
       onSuccess: () => {
         success('Unit updated successfully')
+        setIsEditModalOpen(false)
         setIsEditing(false)
       },
       onError: () => error('Failed to update unit')
@@ -246,9 +250,9 @@ function UnitDetailContent() {
             <ChevronLeft size={16} /> Back
           </button>
           
-          <div className="unit-detail__actions" style={{ position: 'relative' }}>
-            <button className="btn btn--primary" onClick={() => setIsEditing(!isEditing)} style={{ borderRadius: 100 }}>
-              <Save size={16} style={{ marginRight: 6 }}/> {isEditing ? 'Save Changes' : 'Edit Unit'}
+          <div className="unit-detail__actions" style={{ position: 'relative', display: 'flex', gap: 12 }}>
+            <button className="btn btn--primary" onClick={() => setIsEditModalOpen(true)} style={{ borderRadius: 100, background: 'var(--dark)', color: 'white', border: 'none' }}>
+              <Edit size={16} style={{ marginRight: 6 }} color="white" /> Edit Unit
             </button>
             
             <button 
@@ -422,31 +426,14 @@ function UnitDetailContent() {
               <div className="glass" style={{ padding: 24, borderRadius: 12 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px 16px' }}>
                   
-                  {isEditing ? (
-                    <>
-                      <div className="form-group">
-                        <label className="form-label text-muted">Unit Name</label>
-                        <input className="form-input" value={formData.unitName} onChange={e => setFormData({...formData, unitName: e.target.value})} />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label text-muted">Status</label>
-                        <select className="form-input" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
-                          <option value="OCCUPIED">Occupied</option>
-                          <option value="VACANT">Vacant</option>
-                          <option value="MAINTENANCE">Maintenance</option>
-                        </select>
-                      </div>
-                    </>
-                  ) : (
-                    <>
                       <div>
                         <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Property</div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{unit?.property?.name || 'N/A'}</div>
                         <a href={`/properties/${unit?.property?.uuid}`} style={{ fontSize: 11, color: 'var(--info)', marginTop: 4, display: 'inline-block' }}>Go to property &gt;</a>
                       </div>
                       <div>
-                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Address</div>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.property?.address || 'N/A'}<br/>{unit?.property?.area}, {unit?.property?.state}</div>
+                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Unit Type</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.unitType || 'N/A'}</div>
                       </div>
                       <div>
                         <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Status</div>
@@ -457,15 +444,13 @@ function UnitDetailContent() {
                         <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.rentType || 'N/A'}</div>
                       </div>
                       <div>
-                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Management Fee</div>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.managementFee ? `₦${unit.managementFee.toLocaleString()}` : '0%'}</div>
+                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Address</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.property?.address || 'N/A'}<br/>{unit?.property?.area}, {unit?.property?.state}</div>
                       </div>
                       <div>
-                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Service Charge</div>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>N/A</div>
+                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Management Fee</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.managementFee ? `${unit.managementFee}%` : '0%'}</div>
                       </div>
-                    </>
-                  )}
                   
                 </div>
               </div>
@@ -492,37 +477,13 @@ function UnitDetailContent() {
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 16px' }}>
-                      {isEditing ? (
-                        <>
-                          <div className="form-group">
-                            <label className="form-label text-muted">Rent Type</label>
-                            <select className="form-input" value={formData.rentType} onChange={e => setFormData({...formData, rentType: e.target.value})}>
-                              <option value="Monthly">Monthly</option>
-                              <option value="Annually">Annually</option>
-                            </select>
-                          </div>
-                          <div className="form-group">
-                            <label className="form-label text-muted">Rent Amount (₦)</label>
-                            <input type="number" className="form-input" value={formData.rentAmount} onChange={e => setFormData({...formData, rentAmount: parseFloat(e.target.value) || 0})} />
-                          </div>
-                          <div className="form-group">
-                            <label className="form-label text-muted">Start Date</label>
-                            <input type="date" className="form-input" value={formData.rentStartDate} onChange={e => setFormData({...formData, rentStartDate: e.target.value})} />
-                          </div>
-                          <div className="form-group">
-                            <label className="form-label text-muted">Due/End Date</label>
-                            <input type="date" className="form-input" value={formData.rentDueDate} onChange={e => setFormData({...formData, rentDueDate: e.target.value})} />
-                          </div>
-                        </>
-                      ) : (
-                        <>
                           <div>
                             <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Occupancy Status</div>
                             <span className="badge badge--occupied" style={{ fontSize: 10, padding: '2px 8px' }}>Active</span>
                           </div>
                           <div>
                             <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Rent</div>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>₦{(unit?.rentAmount || 0).toLocaleString()}</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{formatCurrency(unit?.rentAmount || 0, unit?.currency || 'NGN')}</div>
                           </div>
                           <div>
                             <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Rent Start Date</div>
@@ -532,8 +493,6 @@ function UnitDetailContent() {
                             <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Rent End Date</div>
                             <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.rentDueDate ? new Date(unit.rentDueDate).toDateString() : 'N/A'}</div>
                           </div>
-                        </>
-                      )}
                     </div>
                   </>
                 ) : (
@@ -710,6 +669,16 @@ function UnitDetailContent() {
         unitName={unit?.unitName || ''}
         rentType={unit?.rentType}
       />
+
+      {unit && (
+        <EditUnitModal 
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          unit={unit}
+          onSave={handleUpdate}
+          isPending={updateUnitMutation.isPending}
+        />
+      )}
 
       {unit && (
         <CreatePaymentRequestModal

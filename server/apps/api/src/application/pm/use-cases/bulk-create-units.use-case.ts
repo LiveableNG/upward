@@ -88,6 +88,7 @@ export class BulkCreateUnitsUseCase {
         notes: u.notes || null,
         status: tenantId ? (u.status || 'OCCUPIED') : 'VACANT',
         tenantId,
+        unitType: u.unitType || null,
         isSynced: false,
         userPropertyUuid: null,
       });

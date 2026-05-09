@@ -49,6 +49,8 @@ export interface Unit {
   notes?: string;
   status: string;
   currency: string;
+  unitType?: string;
+
   isSynced: boolean;
   userPropertyUuid: string | null;
 }

@@ -148,6 +148,10 @@ export class UnitImportDto {
   @IsString()
   @IsOptional()
   status?: string;
+
+  @IsString()
+  @IsOptional()
+  unitType?: string;
 }
 
 export class BulkCreateUnitsDto {
@@ -254,6 +258,10 @@ export class FullImportRowDto {
   @IsString()
   @IsOptional()
   unitNotes?: string;
+
+  @IsString()
+  @IsOptional()
+  unitType?: string;
 }
 
 export class BulkFullImportDto {

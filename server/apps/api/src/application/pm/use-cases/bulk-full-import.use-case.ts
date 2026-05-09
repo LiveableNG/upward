@@ -120,6 +120,7 @@ export class BulkFullImportUseCase {
         notes: row.unitNotes || null,
         status: tenantId ? 'OCCUPIED' : 'VACANT',
         tenantId,
+        unitType: row.unitType || null,
         isSynced: false,
         userPropertyUuid: null,
       });

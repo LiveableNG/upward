@@ -39,6 +39,7 @@ export interface UnitEntity {
   tenant?: TenantEntity;
   isSynced: boolean;
   userPropertyUuid: string | null;
+  unitType: string | null;
 }
 
 export interface TenantEntity {
