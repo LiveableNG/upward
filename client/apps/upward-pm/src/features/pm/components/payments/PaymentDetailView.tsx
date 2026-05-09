@@ -18,7 +18,7 @@ import {
   Send,
   MoreVertical
 } from 'lucide-react'
-import { usePaymentRequest } from '../../hooks/usePayments'
+import { usePaymentRequest, useResendPaymentRequest } from '../../hooks/usePayments'
 import { useToast } from '@/components/common/Toast'
 import Link from 'next/link'
 
@@ -27,6 +27,7 @@ export const PaymentDetailView: React.FC = () => {
   const router = useRouter()
   const { success, error } = useToast()
   const { data: request, isLoading } = usePaymentRequest(uuid as string)
+  const { mutate: resendInvoice, isPending: isResending } = useResendPaymentRequest()
   
   const [activeTab, setActiveTab] = useState<'overview' | 'breakdown' | 'history'>('overview')
 
@@ -55,6 +56,18 @@ export const PaymentDetailView: React.FC = () => {
     const link = `${window.location.origin.replace('pm.', '')}/pay/${request.coreRequestUuid}`
     navigator.clipboard.writeText(link)
     success('Payment link copied!')
+  }
+
+  const handleResendInvoice = () => {
+    if (!uuid) return
+    resendInvoice(uuid as string, {
+      onSuccess: (res) => {
+        success(res.message || 'Invoice resent successfully')
+      },
+      onError: (err: any) => {
+        error(err.message || 'Failed to resend invoice')
+      }
+    })
   }
 
   const formatDate = (dateStr: string) => {
@@ -105,8 +118,10 @@ export const PaymentDetailView: React.FC = () => {
           <button 
             className="btn btn--primary" 
             style={{ borderRadius: 12, padding: '10px 24px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}
+            onClick={handleResendInvoice}
+            disabled={isResending || request.status === 'PAID'}
           >
-            <Send size={16} /> Resend Invoice
+            <Send size={16} /> {isResending ? 'Sending...' : 'Resend Invoice'}
           </button>
         </div>
       </header>
@@ -272,29 +287,36 @@ export const PaymentDetailView: React.FC = () => {
             )}
 
             {activeTab === 'history' && (
-              <div className="animate-fade-in glass" style={{ padding: 32, borderRadius: 20, textAlign: 'center' }}>
-                <Clock size={40} color="var(--text-muted)" style={{ marginBottom: 16, opacity: 0.5 }} />
-                <h4 style={{ color: 'var(--dark)', marginBottom: 8 }}>Transaction Logs</h4>
-                <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>All payment attempts and settlements will appear here.</p>
-                
-                {request.status === 'PAID' && (
-                   <div style={{ marginTop: 24, textAlign: 'left', background: 'var(--bg)', padding: 16, borderRadius: 12, border: '1px solid var(--border)' }}>
-                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                         <div style={{ width: 32, height: 32, background: 'var(--forest-faint)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--forest)' }}>
-                           <CheckCircle2 size={16} />
-                         </div>
-                         <div>
-                           <div style={{ fontWeight: 600, fontSize: 13 }}>Full Payment Settled</div>
-                           <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>via Flutterwave • Bank Transfer</div>
-                         </div>
-                       </div>
-                       <div style={{ textAlign: 'right' }}>
-                         <div style={{ fontWeight: 700, fontSize: 13 }}>₦{request.amount.toLocaleString()}</div>
-                         <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatDate(request.createdAt)}</div>
-                       </div>
-                     </div>
-                   </div>
+              <div className="animate-fade-in glass" style={{ padding: 32, borderRadius: 20 }}>
+                {(!request.transactions || request.transactions.length === 0) ? (
+                  <div style={{ textAlign: 'center' }}>
+                    <Clock size={40} color="var(--text-muted)" style={{ marginBottom: 16, opacity: 0.5 }} />
+                    <h4 style={{ color: 'var(--dark)', marginBottom: 8 }}>Transaction Logs</h4>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>All payment attempts and settlements will appear here.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <h4 style={{ color: 'var(--dark)', marginBottom: 8 }}>Recent Payments</h4>
+                    {request.transactions.map((tx: any) => (
+                      <div key={tx.uuid} style={{ background: 'var(--bg)', padding: 16, borderRadius: 12, border: '1px solid var(--border)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                            <div style={{ width: 32, height: 32, background: 'var(--forest-faint)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--forest)' }}>
+                              <CheckCircle2 size={16} />
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 600, fontSize: 13 }}>Payment Settle Success</div>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>via {tx.method} • Ref: {tx.reference}</div>
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontWeight: 700, fontSize: 13 }}>₦{tx.amount.toLocaleString()}</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatDate(tx.createdAt)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}

@@ -346,7 +346,7 @@ export const TenantDetailView: React.FC = () => {
                {tenant.units && tenant.units.length > 0 ? (
                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                    {tenant.units.map((unit: any) => {
-                     const unitRequests = paymentRequests?.filter(r => r.unitId === unit.id) || [];
+                     const unitRequests = paymentRequests?.filter(r => r.unitId === unit.id && r.status !== 'PAID') || [];
                      const pendingAmount = unitRequests
                        .filter(r => r.status !== 'PAID')
                        .reduce((sum, r) => sum + (r.amount - r.amountPaid), 0);
@@ -399,9 +399,18 @@ export const TenantDetailView: React.FC = () => {
                                      </div>
                                      {req.status !== 'PAID' && (
                                        <button 
-                                         onClick={() => handleEditPaymentRequest(req, unit)}
-                                         style={{ padding: 8, borderRadius: 8, background: 'white', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer' }}
-                                         title="Edit Request"
+                                         onClick={() => req.amountPaid === 0 && handleEditPaymentRequest(req, unit)}
+                                         style={{ 
+                                           padding: 8, 
+                                           borderRadius: 8, 
+                                           background: req.amountPaid > 0 ? 'var(--bg)' : 'white', 
+                                           border: '1px solid var(--border)', 
+                                           color: 'var(--text-muted)', 
+                                           cursor: req.amountPaid > 0 ? 'not-allowed' : 'pointer',
+                                           opacity: req.amountPaid > 0 ? 0.5 : 1
+                                         }}
+                                         title={req.amountPaid > 0 ? "Edit Locked (Payment Received)" : "Edit Request"}
+                                         disabled={req.amountPaid > 0}
                                        >
                                          <Edit size={14} />
                                        </button>

@@ -18,6 +18,7 @@ import { SyncUnitToUpwardUseCase } from '../../../application/pm/use-cases/units
 import { CreatePmPaymentRequestUseCase, CreatePmPaymentRequestDto } from '../../../application/pm/use-cases/payments/create-pm-payment-request.use-case';
 import { GetPmPaymentRequestsUseCase } from '../../../application/pm/use-cases/payments/get-pm-payment-requests.use-case';
 import { GetPmPaymentRequestUseCase } from '../../../application/pm/use-cases/payments/get-pm-payment-request.use-case';
+import { ResendPmPaymentRequestUseCase } from '../../../application/pm/use-cases/payments/resend-pm-payment-request.use-case';
 import { UpdatePmPaymentRequestUseCase, UpdatePmPaymentRequestDto } from '../../../application/pm/use-cases/payments/update-pm-payment-request.use-case';
 import { BulkFullImportUseCase } from '../../../application/pm/use-cases/bulk-full-import.use-case';
 import { BulkInviteTenantsUseCase } from '../../../application/pm/use-cases/tenants/bulk-invite-tenants.use-case';
@@ -52,6 +53,7 @@ export class PmPropertyController {
     private readonly createPmPaymentRequestUseCase: CreatePmPaymentRequestUseCase,
     private readonly getPmPaymentRequestsUseCase: GetPmPaymentRequestsUseCase,
     private readonly getPmPaymentRequestUseCase: GetPmPaymentRequestUseCase,
+    private readonly resendPmPaymentRequestUseCase: ResendPmPaymentRequestUseCase,
     private readonly updatePmPaymentRequestUseCase: UpdatePmPaymentRequestUseCase,
     private readonly bulkFullImportUseCase: BulkFullImportUseCase,
     private readonly bulkInviteTenantsUseCase: BulkInviteTenantsUseCase,
@@ -182,6 +184,12 @@ export class PmPropertyController {
   async getPaymentRequest(@Req() req: any, @Param('uuid') uuid: string) {
     const pmId = await this.getPmId(req);
     return this.getPmPaymentRequestUseCase.execute(pmId, uuid);
+  }
+
+  @Post('payment-requests/:uuid/resend')
+  async resendPaymentRequest(@Req() req: any, @Param('uuid') uuid: string) {
+    const pmId = await this.getPmId(req);
+    return this.resendPmPaymentRequestUseCase.execute(pmId, uuid);
   }
 
   @Patch('payment-requests/:uuid')

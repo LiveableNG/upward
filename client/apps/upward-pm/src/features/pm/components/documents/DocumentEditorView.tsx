@@ -123,8 +123,8 @@ export function DocumentEditorView({
       
       success(paymentContext ? 'Payment request and document sent successfully' : 'Document sent and recorded successfully')
       onBack()
-    } catch (err) {
-      error(paymentContext ? 'Failed to process payment request' : 'Failed to send document')
+    } catch (err: any) {
+      error(err.message || (paymentContext ? 'Failed to process payment request' : 'Failed to send document'))
     } finally {
       setIsSending(false)
     }

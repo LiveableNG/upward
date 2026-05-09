@@ -40,3 +40,9 @@ export const useUpdatePaymentRequest = () => {
     }
   })
 }
+
+export const useResendPaymentRequest = () => {
+  return useMutation({
+    mutationFn: (uuid: string) => api.resendPaymentRequest(uuid)
+  })
+}

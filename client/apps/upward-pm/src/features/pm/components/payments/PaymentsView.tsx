@@ -19,51 +19,23 @@ import { usePaymentRequests } from '../../hooks/usePayments'
 import { useProperties } from '../../hooks/useProperties'
 import { useToast } from '@/components/common/Toast'
 
-function PaymentsTable({ searchQuery, dateFilter, requestsOverride }: { searchQuery: string, dateFilter: string, requestsOverride?: any[] }) {
-  const { data: initialRequests } = usePaymentRequests()
-  const requests = requestsOverride || initialRequests
+function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests }: { searchQuery: string, dateFilter: string, requestsOverride?: any[], allRequests?: any[] }) {
   const { success, error, info } = useToast()
   const router = useRouter()
 
-  const filteredRequests = (requests || []).filter(req => {
-    const unitName = req.unit?.unitName || ''
-    const tenantName = `${req.tenant?.firstName || ''} ${req.tenant?.lastName || ''}`
-    const propertyName = req.unit?.property?.name || ''
-    
-    const matchesSearch = 
-      unitName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tenantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      propertyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      req.uuid.toLowerCase().includes(searchQuery.toLowerCase())
+  const displayRequests = requestsOverride || []
+  const statsSource = allRequests || displayRequests
 
-    if (dateFilter === 'All Time') return matchesSearch
-    
-    const reqDate = new Date(req.createdAt)
-    const now = new Date()
-    
-    if (dateFilter === 'This Month') {
-      return matchesSearch && reqDate.getMonth() === now.getMonth() && reqDate.getFullYear() === now.getFullYear()
-    }
-    
-    if (dateFilter === 'Last 30 Days') {
-      const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(now.getDate() - 30)
-      return matchesSearch && reqDate >= thirtyDaysAgo
-    }
-
-    return matchesSearch
-  })
-
-  // Calculate stats
-  const totalCollected = (requests || [])
+  // Calculate stats based on ALL requests for this PM
+  const totalCollected = statsSource
     .filter(r => r.status === 'PAID' || r.status === 'PARTIAL')
     .reduce((sum, r) => sum + r.amountPaid, 0)
     
-  const outstanding = (requests || [])
+  const outstanding = statsSource
     .filter(r => r.status !== 'PAID')
     .reduce((sum, r) => sum + (r.amount - r.amountPaid), 0)
 
-  const pendingCount = (requests || []).filter(r => r.status === 'PENDING').length
+  const pendingCount = statsSource.filter(r => r.status === 'PENDING').length
 
   const formatDate = (dateStr: string) => {
     return new Intl.DateTimeFormat('en-US', {
@@ -99,7 +71,7 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride }: { searchQu
         </div>
         <div className="stat-card">
           <p className="stat-card__label">Total Requests</p>
-          <h3 className="stat-card__value">{requests?.length || 0}</h3>
+          <h3 className="stat-card__value">{statsSource.length}</h3>
         </div>
       </div>
 
@@ -117,7 +89,7 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride }: { searchQu
             </tr>
           </thead>
           <tbody>
-            {filteredRequests.map((req) => (
+            {displayRequests.map((req) => (
               <tr 
                 key={req.uuid} 
                 onClick={() => router.push(`/payments/${req.uuid}`)}
@@ -181,7 +153,7 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride }: { searchQu
                 </td>
               </tr>
             ))}
-            {filteredRequests.length === 0 && (
+            {displayRequests.length === 0 && (
               <tr>
                 <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                   No payment requests found.
@@ -235,11 +207,50 @@ export function PaymentsView() {
     success('Statement exported successfully!')
   }
 
-  // Combine filters for table
-  const finalFilteredRequests = (requests || []).filter(req => {
-    const matchesStatus = statusFilter === 'All' || req.status === statusFilter
+  // Consolidated filtering logic
+  const filteredRequests = (requests || []).filter(req => {
+    // 1. Status Filter (including derived OVERDUE)
+    const isOverdue = req.status === 'PENDING' && new Date(req.dueDate) < new Date()
+    const matchesStatus = 
+      statusFilter === 'All' || 
+      (statusFilter === 'OVERDUE' ? isOverdue : req.status === statusFilter)
+
+    if (!matchesStatus) return false
+
+    // 2. Property Filter
     const matchesProperty = propertyFilter === 'All' || req.unit?.property?.uuid === propertyFilter
-    return matchesStatus && matchesProperty
+    if (!matchesProperty) return false
+
+    // 3. Search Filter
+    const unitName = req.unit?.unitName || ''
+    const tenantName = `${req.tenant?.firstName || ''} ${req.tenant?.lastName || ''}`
+    const propertyName = req.unit?.property?.name || ''
+    const matchesSearch = 
+      !searchQuery ||
+      unitName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tenantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      propertyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      req.uuid.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    if (!matchesSearch) return false
+
+    // 4. Date Filter
+    if (dateFilter === 'All Time') return true
+    
+    const reqDate = new Date(req.createdAt)
+    const now = new Date()
+    
+    if (dateFilter === 'This Month') {
+      return reqDate.getMonth() === now.getMonth() && reqDate.getFullYear() === now.getFullYear()
+    }
+    
+    if (dateFilter === 'Last 30 Days') {
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(now.getDate() - 30)
+      return reqDate >= thirtyDaysAgo
+    }
+
+    return true
   })
 
   return (
@@ -367,7 +378,12 @@ export function PaymentsView() {
         </div>
       </div>
 
-      <PaymentsTable searchQuery={searchQuery} dateFilter={dateFilter} requestsOverride={finalFilteredRequests} />
+      <PaymentsTable 
+        searchQuery={searchQuery} 
+        dateFilter={dateFilter} 
+        requestsOverride={filteredRequests} 
+        allRequests={requests || []} 
+      />
     </div>
   )
 }
