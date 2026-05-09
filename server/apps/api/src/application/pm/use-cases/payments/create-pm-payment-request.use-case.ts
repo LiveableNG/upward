@@ -7,10 +7,9 @@ import { PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository as ICorePaymentRe
 import { CreateExternalPaymentRequestUseCase } from '../../../use-cases/external/create-payment-request.use-case';
 import { ExternalPaymentRequestPayloadDto } from '../../../use-cases/external/external-api.dto';
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../../domains/pm/property-manager.repository';
-import { EmailService } from '../../../../shared/infrastructure/email/email.service';
-import { NotificationService } from '../../../../shared/infrastructure/common/notification.service';
 import { PM_TENANT_REPOSITORY, ITenantRepository } from '../../../../domains/pm/IPropertyRepository';
-import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import { EVENT_BUS, EventBus } from '../../../events/domain-event';
+import { PmPaymentNotificationEvent } from '../../../events/definition/pm-payment-notification.event';
 
 export interface CreatePmPaymentRequestDto {
   unitUuid: string;
@@ -38,10 +37,9 @@ export class CreatePmPaymentRequestUseCase {
     private readonly corePaymentRepo: ICorePaymentRequestRepository,
     @Inject(PM_TENANT_REPOSITORY)
     private readonly pmTenantRepo: ITenantRepository,
+    @Inject(EVENT_BUS)
+    private readonly eventBus: EventBus,
     private readonly createExternalPaymentRequestUseCase: CreateExternalPaymentRequestUseCase,
-    private readonly emailService: EmailService,
-    private readonly notificationService: NotificationService,
-    private readonly prisma: PrismaService,
   ) {}
 
   async execute(pmId: number, data: CreatePmPaymentRequestDto): Promise<any> {
@@ -99,43 +97,25 @@ export class CreatePmPaymentRequestUseCase {
       minAmount: data.minAmount || null,
     });
 
-    try {
-      if (unit.tenantId) {
-        const tenant = await this.pmTenantRepo.findById(unit.tenantId);
-        if (tenant) {
-          const tenantEmail = tenant.email || null;
-          const tenantName = tenant.firstName || 'Tenant';
+    // Trigger Notification Event asynchronously
+    if (unit.tenantId) {
+      this.pmTenantRepo.findById(unit.tenantId).then(tenant => {
+        if (tenant && tenant.email) {
           const pmName = pm.businessName || `${pm.firstName} ${pm.lastName}`;
-
-          if (tenantEmail) {
-            await this.emailService.sendPaymentRequestEmail({
-              email: tenantEmail,
-              tenantName,
-              pmName,
-              amount: data.amount,
-              currency: unit.currency || 'NGN',
-              dueDate: data.dueDate,
-              description: data.description,
-              paymentLink: result.paymentLink,
-            });
-            
-            const coreUser = await this.prisma.upward_user.findFirst({
-              where: { email: tenantEmail }
-            });
-            
-            if (coreUser) {
-              await this.notificationService.notifyUser(coreUser.id, {
-                title: 'New Payment Request',
-                message: `You have a new payment request for ${pmPR.currency} ${pmPR.amount.toLocaleString()} from ${pmName}.`,
-                type: 'PAYMENT',
-                url: `/pay/${corePR.uuid}`,
-              });
-            }
-          }
+          this.eventBus.publish(new PmPaymentNotificationEvent(
+            tenant.email,
+            tenant.firstName || 'Tenant',
+            pmName,
+            data.amount,
+            unit.currency || 'NGN',
+            data.rentEndDate || data.dueDate,
+            data.description,
+            result.paymentLink,
+            corePR.uuid,
+            false
+          ));
         }
-      }
-    } catch (err) {
-      console.error('Failed to send payment request notifications:', err);
+      }).catch(err => console.error('Failed to trigger payment notification event:', err));
     }
 
     return pmPR;
