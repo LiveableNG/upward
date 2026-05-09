@@ -449,7 +449,7 @@ function UnitDetailContent() {
                       </div>
                       <div>
                         <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Management Fee</div>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.managementFee ? `${unit.managementFee}%` : '0%'}</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{formatCurrency(unit?.managementFee || 0, unit?.currency || 'NGN')}</div>
                       </div>
                   
                 </div>

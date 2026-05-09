@@ -37,17 +37,6 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
   const { data: tenants = [] } = useTenants()
   const [useExistingTenant, setUseExistingTenant] = React.useState(false)
 
-  if (!isOpen) return null;
-
-  const phoneError = formData.tenantPhone && !isValidPhoneNumber(formData.tenantPhone)
-    ? 'Invalid international phone number'
-    : undefined
-
-  const selectedProperty = properties.find(p => p.uuid === targetPropertyUuid)
-  const isDuplicateUnit = !!formData.unitName && !!selectedProperty?.units?.some(
-    (u: any) => u.unitName.trim().toLowerCase() === formData.unitName.trim().toLowerCase()
-  )
-
   // Auto-calculate Rent Due Date (End Date)
   React.useEffect(() => {
     if (formData.rentStartDate && formData.rentType) {
@@ -69,7 +58,18 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
         setFormData({ ...formData, rentDueDate: formattedEnd })
       }
     }
-  }, [formData.rentStartDate, formData.rentType])
+  }, [formData.rentStartDate, formData.rentType, formData.rentDueDate, setFormData])
+
+  if (!isOpen) return null;
+
+  const phoneError = formData.tenantPhone && !isValidPhoneNumber(formData.tenantPhone)
+    ? 'Invalid international phone number'
+    : undefined
+
+  const selectedProperty = properties.find(p => p.uuid === targetPropertyUuid)
+  const isDuplicateUnit = !!formData.unitName && !!selectedProperty?.units?.some(
+    (u: any) => u.unitName.trim().toLowerCase() === formData.unitName.trim().toLowerCase()
+  )
 
   return (
     <div className="modal-overlay" onClick={onClose}>
