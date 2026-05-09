@@ -35,9 +35,9 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
       } else if (rentType === 'Annually' || rentType === 'Yearly') {
         end.setFullYear(end.getFullYear() + 1)
       }
-      
+
       end.setDate(end.getDate() - 1)
-      
+
       const formattedEnd = end.toISOString().split('T')[0]
       if (formattedEnd !== formData.periodEnd) {
         setFormData(prev => ({ ...prev, periodEnd: formattedEnd }))
@@ -136,10 +136,10 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
           <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
             Cancel
           </button>
-          <button 
-            className="btn btn--primary" 
-            style={{ flex: 1 }} 
-            onClick={handleSubmit} 
+          <button
+            className="btn btn--primary"
+            style={{ flex: 1 }}
+            onClick={handleSubmit}
             disabled={isPending || !formData.amount}
           >
             {isPending ? 'Saving...' : 'Add Record'}

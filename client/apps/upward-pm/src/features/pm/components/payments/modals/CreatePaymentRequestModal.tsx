@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { X, Plus, Trash2, CreditCard } from 'lucide-react'
+import { X, Plus, Trash2, CreditCard, AlertCircle } from 'lucide-react'
 import { Unit } from '../../../services/propertyService'
 import { useCreatePaymentRequest, useUpdatePaymentRequest } from '../../../hooks/usePayments'
 import { useToast } from '@/components/common/Toast'
 import { PmPaymentRequest } from '../../../services/paymentService'
 import { useDocuments } from '../../../hooks/useDocuments'
+import { useAuth } from '@/features/auth/AuthContext'
 
 interface CreatePaymentRequestModalProps {
   isOpen: boolean;
@@ -16,12 +17,12 @@ interface CreatePaymentRequestModalProps {
   onProceedToEditor?: (template: any, paymentContext: any) => void;
 }
 
-export function CreatePaymentRequestModal({ 
-  isOpen, 
-  onClose, 
-  unit, 
+export function CreatePaymentRequestModal({
+  isOpen,
+  onClose,
+  unit,
   existingRequest,
-  onProceedToEditor 
+  onProceedToEditor
 }: CreatePaymentRequestModalProps) {
   const isEditing = !!existingRequest
   const [amount, setAmount] = useState<string>('')
@@ -39,8 +40,11 @@ export function CreatePaymentRequestModal({
   const { templates } = useDocuments()
 
   const { success, error } = useToast()
+  const { user } = useAuth()
   const createMutation = useCreatePaymentRequest()
   const updateMutation = useUpdatePaymentRequest()
+
+  const hasBankDetails = !!(user?.bankCode && user?.accountNumber)
 
   useEffect(() => {
     if (existingRequest) {
@@ -51,7 +55,7 @@ export function CreatePaymentRequestModal({
       setDescription(existingRequest.description || '')
       setAllowPartial(existingRequest.allowPartial)
       setMinAmount(existingRequest.minAmount?.toString() || '')
-      
+
       if (existingRequest.lineItems) {
         setLineItems(existingRequest.lineItems.map(li => ({
           name: li.name,
@@ -63,13 +67,13 @@ export function CreatePaymentRequestModal({
       if (unit.managementFee && unit.managementFee > 0) {
         items.push({ name: 'Management Fee', amount: unit.managementFee.toString() })
       }
-      
+
       setLineItems(items)
       const total = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
       setAmount(total.toString())
       const type = unit.rentType?.toUpperCase() || 'ANNUALLY'
       setRentType(type)
-      
+
       // The NEXT cycle starts when the current one ends
       const startDate = unit.rentDueDate || unit.rentStartDate || new Date()
       const startDateStr = new Date(startDate).toISOString().split('T')[0]
@@ -91,7 +95,7 @@ export function CreatePaymentRequestModal({
   // Update End Date when Rent Type changes
   useEffect(() => {
     if (isEditing || !rentStartDate) return
-    
+
     const endDate = new Date(rentStartDate)
     if (rentType === 'MONTHLY') {
       endDate.setMonth(endDate.getMonth() + 1)
@@ -119,7 +123,7 @@ export function CreatePaymentRequestModal({
     const newItems = [...lineItems]
     newItems[index][field] = value
     setLineItems(newItems)
-    
+
     if (field === 'amount') {
       updateTotalFromItems(newItems)
     }
@@ -133,6 +137,7 @@ export function CreatePaymentRequestModal({
   const handleSubmit = () => {
     if (!amount || parseFloat(amount) <= 0) return error('Please enter a valid amount')
     if (!dueDate) return error('Please select a due date')
+    if (!hasBankDetails) return error('Please set up your bank information in settings to receive payments')
     if (!selectedTemplateUuid) return error('Please select a document template')
 
     const paymentContext = {
@@ -204,23 +209,44 @@ export function CreatePaymentRequestModal({
           <button onClick={onClose}><X size={20} /></button>
         </div>
 
+        {!hasBankDetails && (
+          <div style={{
+            background: 'var(--error-faint)',
+            padding: '12px 16px',
+            borderRadius: 12,
+            fontSize: 13,
+            color: 'var(--error)',
+            marginBottom: 20,
+            border: '1px solid var(--error-border)',
+            display: 'flex',
+            gap: 10,
+            alignItems: 'center'
+          }}>
+            <AlertCircle size={20} />
+            <div>
+              <p style={{ margin: 0, fontWeight: 700 }}>Missing Bank Details</p>
+              <p style={{ margin: 0, fontSize: 12 }}>You must set up your bank account in Settings to receive payments.</p>
+            </div>
+          </div>
+        )}
+
         <div className="form-group">
           <label className="form-label">Breakdown</label>
           <div style={{ background: 'var(--surface-hover)', padding: 16, borderRadius: 12, border: '1px solid var(--border)' }}>
             {lineItems.map((item, index) => (
               <div key={index} style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'center' }}>
-                <input 
-                  type="text" 
-                  placeholder="Item name (e.g. Rent)" 
+                <input
+                  type="text"
+                  placeholder="Item name (e.g. Rent)"
                   value={item.name}
                   onChange={(e) => handleLineItemChange(index, 'name', e.target.value)}
                   className="form-input"
                   style={{ flex: 2, background: (item.name === 'Rent' || item.name === 'Management Fee') ? 'var(--ivory-dim)' : undefined }}
                   readOnly={item.name === 'Rent' || item.name === 'Management Fee'}
                 />
-                <input 
-                  type="number" 
-                  placeholder="Amount" 
+                <input
+                  type="number"
+                  placeholder="Amount"
                   value={item.amount}
                   onChange={(e) => handleLineItemChange(index, 'amount', e.target.value)}
                   className="form-input"
@@ -239,11 +265,11 @@ export function CreatePaymentRequestModal({
             </button>
           </div>
         </div>
-        
+
         {lineItems.some(item => item.name === 'Rent') && (
           <div className="form-group" style={{ marginTop: 8, marginBottom: 24 }}>
             <label className="form-label">Rent Type (Frequency)</label>
-            <select 
+            <select
               className="form-input"
               value={rentType}
               onChange={(e) => setRentType(e.target.value)}
@@ -258,40 +284,40 @@ export function CreatePaymentRequestModal({
           </div>
         )}
 
-        <div style={{ 
-          background: 'var(--ivory-dim)', 
-          padding: '12px 16px', 
-          borderRadius: 12, 
-          fontSize: 12, 
+        <div style={{
+          background: 'var(--ivory-dim)',
+          padding: '12px 16px',
+          borderRadius: 12,
+          fontSize: 12,
           color: 'var(--text-muted)',
           marginBottom: 20,
           borderLeft: '3px solid var(--clay)',
           lineHeight: 1.6
         }}>
           <p style={{ margin: 0 }}>
-            <strong>Cycle Dates:</strong> The <span style={{ color: 'var(--dark)', fontWeight: 600 }}>Start Date</span> is pre-set based on the tenant's current expiration. 
+            <strong>Cycle Dates:</strong> The <span style={{ color: 'var(--dark)', fontWeight: 600 }}>Start Date</span> is pre-set based on the tenant's current expiration.
             The <span style={{ color: 'var(--dark)', fontWeight: 600 }}>End Date</span> is automatically calculated based on your <strong>Rent Type</strong> (Annually/Monthly).
             Once paid, the tenant's next due date will be updated to the End Date shown below.
           </p>
         </div>
-        
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div className="form-group">
             <label className="form-label">Rent Start Date</label>
-            <input 
-              type="date" 
-              value={rentStartDate} 
-              className="form-input" 
+            <input
+              type="date"
+              value={rentStartDate}
+              className="form-input"
               readOnly
               style={{ background: 'var(--ivory-dim)', cursor: 'not-allowed' }}
             />
           </div>
           <div className="form-group">
             <label className="form-label">Rent End Date</label>
-            <input 
-              type="date" 
-              value={rentEndDate} 
-              className="form-input" 
+            <input
+              type="date"
+              value={rentEndDate}
+              className="form-input"
               readOnly
               style={{ background: 'var(--ivory-dim)', cursor: 'not-allowed', fontWeight: 600 }}
             />
@@ -301,21 +327,21 @@ export function CreatePaymentRequestModal({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div className="form-group">
             <label className="form-label">Total Amount (₦)</label>
-            <input 
-              type="number" 
-              value={amount} 
-              className="form-input" 
-              readOnly 
+            <input
+              type="number"
+              value={amount}
+              className="form-input"
+              readOnly
               style={{ background: 'var(--surface-hover)', fontWeight: 700 }}
             />
           </div>
           <div className="form-group">
             <label className="form-label">Payment Due Date</label>
-            <input 
-              type="date" 
-              value={dueDate} 
+            <input
+              type="date"
+              value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="form-input" 
+              className="form-input"
             />
             <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>When should this payment be settled?</p>
           </div>
@@ -323,7 +349,7 @@ export function CreatePaymentRequestModal({
 
         <div className="form-group">
           <label className="form-label">Description (Optional)</label>
-          <input 
+          <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -334,37 +360,37 @@ export function CreatePaymentRequestModal({
 
         <div className="form-group">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <input 
-              type="checkbox" 
-              id="allowPartial" 
-              checked={allowPartial} 
-              onChange={(e) => setAllowPartial(e.target.checked)} 
+            <input
+              type="checkbox"
+              id="allowPartial"
+              checked={allowPartial}
+              onChange={(e) => setAllowPartial(e.target.checked)}
               style={{ width: 18, height: 18 }}
             />
             <label htmlFor="allowPartial" className="form-label" style={{ marginBottom: 0 }}>Allow Partial Payments</label>
           </div>
-          
+
           {allowPartial && (
             <div style={{ marginTop: 12 }}>
-              <div style={{ 
-                background: 'var(--ivory-dim)', 
-                padding: '12px 16px', 
-                borderRadius: 10, 
-                fontSize: 12, 
+              <div style={{
+                background: 'var(--ivory-dim)',
+                padding: '12px 16px',
+                borderRadius: 10,
+                fontSize: 12,
                 color: 'var(--text-muted)',
                 marginBottom: 16,
                 borderLeft: '3px solid var(--clay)',
                 lineHeight: 1.5
               }}>
                 <p style={{ margin: 0 }}>
-                  <strong>How it works:</strong> Enabling this allows the tenant to pay in installments. 
-                  The unit's <strong>due date</strong> will only advance once the total 
+                  <strong>How it works:</strong> Enabling this allows the tenant to pay in installments.
+                  The unit's <strong>due date</strong> will only advance once the total
                   ₦{parseFloat(amount || '0').toLocaleString()} is fully settled.
                 </p>
               </div>
               <label className="form-label">Minimum Amount (₦)</label>
-              <input 
-                type="number" 
+              <input
+                type="number"
                 placeholder="e.g. 50000"
                 value={minAmount}
                 onChange={(e) => setMinAmount(e.target.value)}
@@ -380,8 +406,8 @@ export function CreatePaymentRequestModal({
             {selectedTemplateUuid && <span style={{ fontSize: 11, color: 'var(--forest)', fontWeight: 700 }}>Template Selected</span>}
           </label>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>Choose a document template to send along with this payment request.</p>
-          <select 
-            className="form-input" 
+          <select
+            className="form-input"
             style={{ borderRadius: 12, background: 'white' }}
             value={selectedTemplateUuid}
             onChange={(e) => setSelectedTemplateUuid(e.target.value)}
@@ -397,16 +423,16 @@ export function CreatePaymentRequestModal({
           <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
             Cancel
           </button>
-          <button 
-            className="btn btn--primary" 
-            style={{ flex: 1 }} 
-            onClick={handleSubmit} 
+          <button
+            className="btn btn--primary"
+            style={{ flex: 1 }}
+            onClick={handleSubmit}
             disabled={createMutation.isPending || updateMutation.isPending || !unit.isSynced}
           >
-            {createMutation.isPending || updateMutation.isPending ? 'Processing...' : 
-             !unit.isSynced ? 'Sync Required' : 
-             selectedTemplateUuid ? 'Proceed to Editor' :
-             isEditing ? 'Update Request' : 'Send Request'}
+            {createMutation.isPending || updateMutation.isPending ? 'Processing...' :
+              !unit.isSynced ? 'Sync Required' :
+                selectedTemplateUuid ? 'Proceed to Editor' :
+                  isEditing ? 'Update Request' : 'Send Request'}
           </button>
         </div>
       </div>

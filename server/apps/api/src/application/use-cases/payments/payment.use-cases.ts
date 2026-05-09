@@ -390,42 +390,9 @@ export class RecordTransactionUseCase {
               }, txClient);
 
 
-              await txClient.upward_pm_rent_payment.create({
-                data: {
-                  unitId: pmPr.unitId,
-                  tenantId: pmPr.tenantId,
-                  amount: paymentAmount,
-                  paymentDate: new Date(),
-                  method: 'PAYSTACK',
-                  status: 'SUCCESS',
-                  notes: `Payment for request ${pmPr.uuid.slice(-8)}`,
-                  periodStart: pr.dueDate ? new Date(pr.dueDate) : null,
-                  periodEnd: pr.rentEndDate ? new Date(pr.rentEndDate) : null,
-                }
-              });
-
-              if (newStatus === 'PAID') {
-                const unit = await txClient.upward_pm_unit.findUnique({ where: { id: pmPr.unitId } });
-                if (unit && unit.rentDueDate) {
-                  const newDueDate = pmPr.rentEndDate ? new Date(pmPr.rentEndDate) : new Date(unit.rentDueDate);
-                  
-                  if (!pmPr.rentEndDate) {
-                    if (pmPr.rentType === 'MONTHLY') {
-                      newDueDate.setMonth(newDueDate.getMonth() + 1);
-                    } else {
-                      newDueDate.setFullYear(newDueDate.getFullYear() + 1);
-                    }
-                  }
-
-                  await txClient.upward_pm_unit.update({
-                    where: { id: unit.id },
-                    data: { rentDueDate: newDueDate }
-                  });
-                  this.logger.log(`Updated unit ${unit.id} due date to ${newDueDate.toISOString()}`);
-                }
-              }
-
-              this.logger.log(`Updated PM payment request ${pmPr.uuid} and recorded history for core request ${pr.id}`);
+              // Updated: We now move the Rent History creation to after line item distribution 
+              // to accurately capture only the 'rent' portion of the payment.
+              this.logger.log(`Updated PM payment request ${pmPr.uuid} for core request ${pr.id}`);
             }
           } catch (err) {
             this.logger.error(`Failed to update PM payment request for core request ${pr.id}:`, err);
@@ -502,12 +469,18 @@ export class RecordTransactionUseCase {
               }
             }
 
-            // Case B: Fallback to greedy distribution (if no specific payments OR if payment remains)
             if (remainingPayment > 0 && currentItems.length > 0) {
-              // Re-fetch to get updated amountPaid if Case A ran
-              const itemsToAllocate = (itemsFromPayments && itemsFromPayments.length > 0)
+              const rawItems = (itemsFromPayments && itemsFromPayments.length > 0)
                 ? await this.lineItemRepo.findByPaymentRequestId(pr.id!, txClient)
                 : currentItems;
+              
+              const itemsToAllocate = [...rawItems].sort((a, b) => {
+                const aIsRent = a.name.toLowerCase().includes('rent');
+                const bIsRent = b.name.toLowerCase().includes('rent');
+                if (aIsRent && !bIsRent) return -1;
+                if (!aIsRent && bIsRent) return 1;
+                return 0;
+              });
 
               for (const item of itemsToAllocate) {
                 if (remainingPayment <= 0) break;
@@ -518,7 +491,6 @@ export class RecordTransactionUseCase {
                 if (paymentToItem > 0) {
                   const newItemPaid = item.amountPaid + paymentToItem;
 
-                  // If it's a fee, we don't mark it as paid so it stays active for next time
                   if (!isFee) {
                     await this.lineItemRepo.update(item.id!, {
                       amountPaid: newItemPaid,
@@ -622,9 +594,57 @@ export class RecordTransactionUseCase {
               }, txClient)
               result.lineItems = allocatedItems
             }
-          }
 
-          // 4. Handle Excess as Overpayment
+            // --- Record in PM Rent History if there was a Rent Portion ---
+            if (rentPortion > 0) {
+              const pmPr = await this.pmPaymentRepo.findByPaymentRequestId(pr.id!, txClient);
+              if (pmPr) {
+                await txClient.upward_pm_rent_payment.create({
+                  data: {
+                    unitId: pmPr.unitId,
+                    tenantId: pmPr.tenantId,
+                    amount: rentPortion, // ONLY the rent portion
+                    paymentDate: new Date(),
+                    method: 'PAYSTACK',
+                    status: 'SUCCESS',
+                    notes: `Rent Portion for request ${pmPr.uuid.slice(-8)}`,
+                    periodStart: pr.rentStartDate ? new Date(pr.rentStartDate) : (pr.dueDate ? new Date(pr.dueDate) : null),
+                    periodEnd: pr.rentEndDate ? new Date(pr.rentEndDate) : null,
+                  }
+                });
+
+                const allItems = await this.lineItemRepo.findByPaymentRequestId(pr.id!, txClient);
+                const rentItems = allItems.filter(i => 
+                  i.name.toLowerCase().includes('rent') || 
+                  i.name.toLowerCase().includes('lease') ||
+                  i.name.toLowerCase().includes('tenancy')
+                );
+
+                const isRentFullyPaid = rentItems.length > 0 && rentItems.every(i => i.status === 'PAID');
+
+                if (isRentFullyPaid) {
+                  const unit = await txClient.upward_pm_unit.findUnique({ where: { id: pmPr.unitId } });
+                  if (unit && unit.rentDueDate) {
+                    const newDueDate = pmPr.rentEndDate ? new Date(pmPr.rentEndDate) : new Date(unit.rentDueDate);
+                    
+                    if (!pmPr.rentEndDate) {
+                      if (pmPr.rentType === 'MONTHLY') {
+                        newDueDate.setMonth(newDueDate.getMonth() + 1);
+                      } else {
+                        newDueDate.setFullYear(newDueDate.getFullYear() + 1);
+                      }
+                    }
+
+                    await txClient.upward_pm_unit.update({
+                      where: { id: unit.id },
+                      data: { rentDueDate: newDueDate }
+                    });
+                    this.logger.log(`Rent fully paid for unit ${unit.id}. Advanced due date to ${newDueDate.toISOString()}`);
+                  }
+                }
+              }
+            }
+          }
           if (excess > 0) {
             const futureCreditRef = `FC_${data.reference}`
             const existingFc = await this.txRepo.findByReference(futureCreditRef, txClient)

@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect, Suspense } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { 
-  ChevronLeft, 
-  User, 
-  CreditCard, 
-  Calendar, 
-  Trash2, 
-  Save, 
+import {
+  ChevronLeft,
+  User,
+  CreditCard,
+  Calendar,
+  Trash2,
+  Save,
   Hash,
   PlusCircle,
   Clock,
@@ -38,13 +38,13 @@ function UnitDetailContent() {
   const { uuid } = useParams()
   const router = useRouter()
   const { success, error, info } = useToast()
-  
+
   const { data: unit } = useUnit(uuid as string)
   const { data: payments = [] } = useUnitPayments(uuid as string)
   const { data: allRequests = [] } = usePaymentRequests()
   const { data: tenants = [] } = useTenants()
   const { assignTenant, unassignTenant } = useTenantActions()
-  
+
   const updateUnitMutation = useUpdateUnit()
   const deleteUnitMutation = useDeleteUnit()
   const addPaymentMutation = useAddUnitPayment()
@@ -97,7 +97,7 @@ function UnitDetailContent() {
       })
     }
   }, [unit])
-  
+
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'rent'>('overview')
   const [rentFilters, setRentFilters] = useState({
@@ -108,7 +108,7 @@ function UnitDetailContent() {
 
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
   const lastPayment = payments[0] || null
-  
+
   const unitRequests = allRequests.filter(r => r.unitId === unit?.id)
   const activeRequest = unitRequests.find(r => r.status !== 'PAID')
   const amountRemaining = activeRequest ? (activeRequest.amount - activeRequest.amountPaid) : 0
@@ -125,9 +125,9 @@ function UnitDetailContent() {
       } else if (formData.rentType === 'Annually' || formData.rentType === 'Yearly') {
         end.setFullYear(end.getFullYear() + 1)
       }
-      
+
       end.setDate(end.getDate() - 1)
-      
+
       const formattedEnd = end.toISOString().split('T')[0]
       if (formattedEnd !== formData.rentDueDate) {
         setFormData((prev: any) => ({ ...prev, rentDueDate: formattedEnd }))
@@ -136,9 +136,9 @@ function UnitDetailContent() {
   }, [formData.rentStartDate, formData.rentType, isEditing])
 
   const handleUpdate = (data: any) => {
-    updateUnitMutation.mutate({ 
-      uuid: uuid as string, 
-      data: data || formData 
+    updateUnitMutation.mutate({
+      uuid: uuid as string,
+      data: data || formData
     }, {
       onSuccess: () => {
         success('Unit updated successfully')
@@ -151,9 +151,9 @@ function UnitDetailContent() {
 
   const handleUnassign = () => {
     if (unit?.tenant?.uuid) {
-      unassignTenant.mutate({ 
-        tenantUuid: unit.tenant.uuid, 
-        unitUuid: uuid as string 
+      unassignTenant.mutate({
+        tenantUuid: unit.tenant.uuid,
+        unitUuid: uuid as string
       }, {
         onSuccess: () => {
           setIsUnassignConfirmOpen(false)
@@ -165,9 +165,9 @@ function UnitDetailContent() {
   }
 
   const handleAssign = (tenantUuid: string) => {
-    assignTenant.mutate({ 
-      tenantUuid, 
-      unitUuid: uuid as string 
+    assignTenant.mutate({
+      tenantUuid,
+      unitUuid: uuid as string
     }, {
       onSuccess: () => {
         setIsAssignModalOpen(false)
@@ -250,7 +250,7 @@ function UnitDetailContent() {
   if (showEditor) {
     return (
       <div className="container" style={{ padding: '20px 0' }}>
-        <DocumentEditorView 
+        <DocumentEditorView
           initialTemplate={editingTemplate}
           initialRecipient={unit?.tenant ? {
             type: 'existing',
@@ -273,14 +273,14 @@ function UnitDetailContent() {
           <button className="btn btn--secondary btn--sm" onClick={() => router.back()} style={{ display: 'flex', alignItems: 'center', gap: 6, border: 'none', background: 'transparent', padding: 0 }}>
             <ChevronLeft size={16} /> Back
           </button>
-          
+
           <div className="unit-detail__actions" style={{ position: 'relative', display: 'flex', gap: 12 }}>
             <button className="btn btn--primary" onClick={() => setIsEditModalOpen(true)} style={{ borderRadius: 100, background: 'var(--forest)', color: 'white', border: 'none' }}>
               <Edit size={16} style={{ marginRight: 6 }} color="white" /> Edit Unit
             </button>
-            
-            <button 
-              className="btn btn--secondary" 
+
+            <button
+              className="btn btn--secondary"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               style={{ borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
             >
@@ -289,35 +289,35 @@ function UnitDetailContent() {
 
             {isMenuOpen && (
               <>
-                <div 
-                  style={{ position: 'fixed', inset: 0, zIndex: 90 }} 
-                  onClick={() => setIsMenuOpen(false)} 
+                <div
+                  style={{ position: 'fixed', inset: 0, zIndex: 90 }}
+                  onClick={() => setIsMenuOpen(false)}
                 />
-                <div className="glass shadow-lg" style={{ 
-                  position: 'absolute', 
-                  top: '100%', 
-                  right: 0, 
-                  marginTop: 8, 
-                  width: 220, 
-                  zIndex: 100, 
-                  borderRadius: 12, 
+                <div className="glass shadow-lg" style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: 8,
+                  width: 220,
+                  zIndex: 100,
+                  borderRadius: 12,
                   padding: 8,
                   border: '1px solid var(--border)'
                 }}>
                   {unit?.tenant ? (
-                    <button 
-                      className="dropdown-item" 
+                    <button
+                      className="dropdown-item"
                       onClick={() => {
                         setIsMenuOpen(false)
                         setIsUnassignConfirmOpen(true)
                       }}
-                      style={{ 
-                        width: '100%', 
-                        textAlign: 'left', 
-                        padding: '10px 12px', 
-                        borderRadius: 8, 
-                        display: 'flex', 
-                        alignItems: 'center', 
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '10px 12px',
+                        borderRadius: 8,
+                        display: 'flex',
+                        alignItems: 'center',
                         gap: 10,
                         fontSize: 13,
                         color: 'var(--text)'
@@ -327,19 +327,19 @@ function UnitDetailContent() {
                       Remove Tenant
                     </button>
                   ) : (
-                    <button 
-                      className="dropdown-item" 
+                    <button
+                      className="dropdown-item"
                       onClick={() => {
                         setIsMenuOpen(false)
                         setIsAssignModalOpen(true)
                       }}
-                      style={{ 
-                        width: '100%', 
-                        textAlign: 'left', 
-                        padding: '10px 12px', 
-                        borderRadius: 8, 
-                        display: 'flex', 
-                        alignItems: 'center', 
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '10px 12px',
+                        borderRadius: 8,
+                        display: 'flex',
+                        alignItems: 'center',
                         gap: 10,
                         fontSize: 13,
                         color: 'var(--text)'
@@ -349,22 +349,22 @@ function UnitDetailContent() {
                       Assign Tenant
                     </button>
                   )}
-                  
+
                   <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
-                  
-                  <button 
-                    className="dropdown-item" 
+
+                  <button
+                    className="dropdown-item"
                     onClick={() => {
                       setIsMenuOpen(false)
                       setIsDeleteConfirmOpen(true)
                     }}
-                    style={{ 
-                      width: '100%', 
-                      textAlign: 'left', 
-                      padding: '10px 12px', 
-                      borderRadius: 8, 
-                      display: 'flex', 
-                      alignItems: 'center', 
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '10px 12px',
+                      borderRadius: 8,
+                      display: 'flex',
+                      alignItems: 'center',
                       gap: 10,
                       fontSize: 13,
                       color: 'var(--error)'
@@ -404,14 +404,14 @@ function UnitDetailContent() {
         {['Overview', 'Rent History'].map(tab => {
           const tabKey = tab.toLowerCase().replace(' ', '') === 'renthistory' ? 'rent' : tab.toLowerCase().replace(' ', '');
           return (
-            <button 
+            <button
               key={tab}
-              className={cn("unit-tab", activeTab === tabKey && "unit-tab--active")} 
+              className={cn("unit-tab", activeTab === tabKey && "unit-tab--active")}
               onClick={() => setActiveTab(tabKey as any)}
-              style={{ 
-                padding: '12px 4px', 
-                fontSize: 14, 
-                fontWeight: 600, 
+              style={{
+                padding: '12px 4px',
+                fontSize: 14,
+                fontWeight: 600,
                 color: activeTab === tabKey ? 'var(--forest)' : 'var(--text-muted)',
                 borderBottom: activeTab === tabKey ? '2px solid var(--forest)' : '2px solid transparent',
                 transition: 'all 0.2s',
@@ -449,33 +449,33 @@ function UnitDetailContent() {
               <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, color: '#333' }}>Unit Information</h3>
               <div className="glass" style={{ padding: 24, borderRadius: 12 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px 16px' }}>
-                  
-                      <div>
-                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Property</div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{unit?.property?.name || 'N/A'}</div>
-                        <a href={`/properties/${unit?.property?.uuid}`} style={{ fontSize: 11, color: 'var(--info)', marginTop: 4, display: 'inline-block' }}>Go to property &gt;</a>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Unit Type</div>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.unitType || 'N/A'}</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Status</div>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: unit?.status === 'OCCUPIED' ? 'var(--success)' : 'var(--text-muted)' }}>{unit?.status?.replace('-', ' ') || 'N/A'}</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Rent Type</div>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.rentType || 'N/A'}</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Address</div>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.property?.address || 'N/A'}<br/>{unit?.property?.area}, {unit?.property?.state}</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Management Fee</div>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{formatCurrency(unit?.managementFee || 0, unit?.currency || 'NGN')}</div>
-                      </div>
-                  
+
+                  <div>
+                    <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Property</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{unit?.property?.name || 'N/A'}</div>
+                    <a href={`/properties/${unit?.property?.uuid}`} style={{ fontSize: 11, color: 'var(--info)', marginTop: 4, display: 'inline-block' }}>Go to property &gt;</a>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Unit Type</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.unitType || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Status</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: unit?.status === 'OCCUPIED' ? 'var(--success)' : 'var(--text-muted)' }}>{unit?.status?.replace('-', ' ') || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Rent Type</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.rentType || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Address</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.property?.address || 'N/A'}<br />{unit?.property?.area}, {unit?.property?.state}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Management Fee</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{formatCurrency(unit?.managementFee || 0, unit?.currency || 'NGN')}</div>
+                  </div>
+
                 </div>
               </div>
             </div>
@@ -501,22 +501,22 @@ function UnitDetailContent() {
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 16px' }}>
-                          <div>
-                            <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Occupancy Status</div>
-                            <span className="badge badge--occupied" style={{ fontSize: 10, padding: '2px 8px' }}>Active</span>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Rent</div>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{formatCurrency(unit?.rentAmount || 0, unit?.currency || 'NGN')}</div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Rent Start Date</div>
-                            <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.rentStartDate ? new Date(unit.rentStartDate).toDateString() : 'N/A'}</div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Rent End Date</div>
-                            <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.rentDueDate ? new Date(unit.rentDueDate).toDateString() : 'N/A'}</div>
-                          </div>
+                      <div>
+                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Occupancy Status</div>
+                        <span className="badge badge--occupied" style={{ fontSize: 10, padding: '2px 8px' }}>Active</span>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Rent</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{formatCurrency(unit?.rentAmount || 0, unit?.currency || 'NGN')}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Rent Start Date</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.rentStartDate ? new Date(unit.rentStartDate).toDateString() : 'N/A'}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Rent End Date</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{unit?.rentDueDate ? new Date(unit.rentDueDate).toDateString() : 'N/A'}</div>
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -563,9 +563,9 @@ function UnitDetailContent() {
 
           {/* Pending Digital Requests Section */}
           <Suspense fallback={null}>
-            <DigitalRequestsSection 
-              unitId={unit?.id} 
-              onEdit={handleEditPaymentRequest} 
+            <DigitalRequestsSection
+              unitId={unit?.id}
+              onEdit={handleEditPaymentRequest}
               unitCurrency={unit?.currency}
             />
           </Suspense>
@@ -573,7 +573,7 @@ function UnitDetailContent() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
             <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dark)' }}>Rent Payment History</h2>
             <button className="btn btn--primary" onClick={addRentRecord} style={{ borderRadius: 12, height: 42 }}>
-               Enter Rent Payment
+              Enter Rent Payment
             </button>
           </div>
 
@@ -581,29 +581,29 @@ function UnitDetailContent() {
           <div style={{ display: 'flex', gap: 16, marginBottom: 24, alignItems: 'center' }}>
             <div style={{ position: 'relative', flex: 1 }}>
               <Calendar size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input 
-                type="date" 
-                className="form-input" 
-                style={{ paddingLeft: 40, height: 42, borderRadius: 12 }} 
+              <input
+                type="date"
+                className="form-input"
+                style={{ paddingLeft: 40, height: 42, borderRadius: 12 }}
                 value={rentFilters.startDate}
-                onChange={e => setRentFilters({...rentFilters, startDate: e.target.value})}
+                onChange={e => setRentFilters({ ...rentFilters, startDate: e.target.value })}
               />
             </div>
             <div style={{ position: 'relative', flex: 1 }}>
               <Calendar size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input 
-                type="date" 
-                className="form-input" 
-                style={{ paddingLeft: 40, height: 42, borderRadius: 12 }} 
+              <input
+                type="date"
+                className="form-input"
+                style={{ paddingLeft: 40, height: 42, borderRadius: 12 }}
                 value={rentFilters.endDate}
-                onChange={e => setRentFilters({...rentFilters, endDate: e.target.value})}
+                onChange={e => setRentFilters({ ...rentFilters, endDate: e.target.value })}
               />
             </div>
-            <select 
-              className="form-input" 
+            <select
+              className="form-input"
               style={{ width: 180, height: 42, borderRadius: 12 }}
               value={rentFilters.status}
-              onChange={e => setRentFilters({...rentFilters, status: e.target.value})}
+              onChange={e => setRentFilters({ ...rentFilters, status: e.target.value })}
             >
               <option value="all">Status</option>
               <option value="paid">Paid</option>
@@ -626,17 +626,31 @@ function UnitDetailContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {payments.length > 0 ? (payments as any[]).map(row => {
-                    const isPartial = row.amount < (unit?.rentAmount || 0)
-                    const balance = (unit?.rentAmount || 0) - row.amount
-                    const statusLabel = isPartial ? 'Part-Payment' : 'Paid'
+                  {payments.length > 0 ? (payments as any[]).map((row, index) => {
+                    const samePeriodPayments = (payments as any[]).filter(p => 
+                      p.periodStart === row.periodStart && p.periodEnd === row.periodEnd
+                    );
+
+                    const paidUntilThisRow = (payments as any[])
+                      .slice(index)
+                      .filter(p => p.periodStart === row.periodStart && p.periodEnd === row.periodEnd)
+                      .reduce((sum, p) => sum + p.amount, 0);
+
+                    const balance = (unit?.rentAmount || 0) - paidUntilThisRow;
                     
+                    const totalPaidForPeriod = samePeriodPayments.reduce((sum, p) => sum + p.amount, 0);
+                    const isFullyPaid = totalPaidForPeriod >= (unit?.rentAmount || 0);
+                    
+                    const isLatestForPeriod = row.uuid === samePeriodPayments[0]?.uuid;
+                    
+                    const statusLabel = (isFullyPaid && isLatestForPeriod) ? 'Paid' : 'Part-Payment';
+
                     return (
                       <tr key={row.uuid} style={{ borderTop: '1px solid var(--border)' }}>
                         <td style={{ padding: '20px 24px', fontSize: 14, color: 'var(--dark)', fontWeight: 500 }}>
-                          {row.tenant 
-                            ? `${row.tenant.firstName} ${row.tenant.lastName}` 
-                            : unit?.tenant 
+                          {row.tenant
+                            ? `${row.tenant.firstName} ${row.tenant.lastName}`
+                            : unit?.tenant
                               ? `${unit.tenant.firstName} ${unit.tenant.lastName}`
                               : 'N/A'
                           }
@@ -644,10 +658,10 @@ function UnitDetailContent() {
                         <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-muted)' }}>
                           {row.periodStart ? (
                             <>
-                              {new Date(row.periodStart).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} 
+                              {new Date(row.periodStart).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                               {' - '}
-                              {row.periodEnd 
-                                ? new Date(row.periodEnd).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) 
+                              {row.periodEnd
+                                ? new Date(row.periodEnd).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
                                 : '...'
                               }
                             </>
@@ -660,17 +674,17 @@ function UnitDetailContent() {
                           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>
                             {formatCurrency(row.amount, unit?.currency || 'NGN')}
                           </div>
-                          {isPartial && balance > 0 && (
+                          {balance > 0 && (
                             <div style={{ fontSize: 11, color: 'var(--error)', marginTop: 2, fontWeight: 500 }}>
                               Bal. {formatCurrency(balance, unit?.currency || 'NGN')}
                             </div>
                           )}
                         </td>
                         <td style={{ padding: '20px 24px' }}>
-                          <span style={{ 
-                            fontSize: 12, 
-                            fontWeight: 600, 
-                            color: isPartial ? 'var(--text-muted)' : 'var(--forest)',
+                          <span style={{
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: statusLabel === 'Paid' ? 'var(--forest)' : 'var(--text-muted)',
                             display: 'flex',
                             alignItems: 'center',
                             gap: 6
@@ -679,11 +693,11 @@ function UnitDetailContent() {
                           </span>
                         </td>
                         <td style={{ padding: '20px 24px', textAlign: 'right', position: 'relative' }}>
-                          <button 
+                          <button
                             className="btn-icon"
                             onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveMenuId(activeMenuId === row.uuid ? null : row.uuid)
+                              e.stopPropagation();
+                              setActiveMenuId(activeMenuId === row.uuid ? null : row.uuid)
                             }}
                           >
                             <MoreVertical size={16} />
@@ -691,9 +705,9 @@ function UnitDetailContent() {
 
                           {activeMenuId === row.uuid && (
                             <>
-                              <div 
-                                style={{ position: 'fixed', inset: 0, zIndex: 10 }} 
-                                onClick={() => setActiveMenuId(null)} 
+                              <div
+                                style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+                                onClick={() => setActiveMenuId(null)}
                               />
                               <div style={{
                                 position: 'absolute',
@@ -707,7 +721,7 @@ function UnitDetailContent() {
                                 minWidth: 140,
                                 overflow: 'hidden'
                               }}>
-                                <button 
+                                <button
                                   style={{
                                     width: '100%',
                                     padding: '12px 16px',
@@ -753,7 +767,7 @@ function UnitDetailContent() {
         </div>
       )}
 
-      <AddRentRecordModal 
+      <AddRentRecordModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSave={handleSavePayment}
@@ -776,7 +790,7 @@ function UnitDetailContent() {
       />
 
       {unit && (
-        <EditUnitModal 
+        <EditUnitModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
           unit={unit}
@@ -795,7 +809,7 @@ function UnitDetailContent() {
         />
       )}
 
-      <ConfirmationModal 
+      <ConfirmationModal
         isOpen={isDeleteConfirmOpen}
         onClose={() => setIsDeleteConfirmOpen(false)}
         onConfirm={handleDelete}
@@ -806,7 +820,7 @@ function UnitDetailContent() {
         isPending={deleteUnitMutation.isPending}
       />
 
-      <ConfirmationModal 
+      <ConfirmationModal
         isOpen={isUnassignConfirmOpen}
         onClose={() => setIsUnassignConfirmOpen(false)}
         onConfirm={handleUnassign}
@@ -824,19 +838,19 @@ function UnitDetailContent() {
               <h3 style={{ fontSize: 20, fontWeight: 700 }}>Assign Tenant</h3>
               <button onClick={() => setIsAssignModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: 'var(--text-muted)' }}>&times;</button>
             </div>
-            
+
             <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 24 }}>Select a tenant to assign to <strong>{unit?.unitName}</strong></p>
-            
+
             <div style={{ maxHeight: 350, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 16 }}>
               {tenants.map(tenant => (
-                <div 
-                  key={tenant.uuid} 
+                <div
+                  key={tenant.uuid}
                   onClick={() => handleAssign(tenant.uuid)}
-                  style={{ 
-                    padding: '16px', 
-                    borderBottom: '1px solid var(--border)', 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
+                  style={{
+                    padding: '16px',
+                    borderBottom: '1px solid var(--border)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
                     cursor: 'pointer',
                     transition: 'background 0.2s'
@@ -1020,14 +1034,22 @@ function DigitalRequestsSection({ unitId, onEdit, unitCurrency }: { unitId?: num
                 </div>
               </div>
             </div>
-            
+
             <div style={{ display: 'flex', gap: 10 }}>
-               <button 
+              <button
                 onClick={() => onEdit(req)}
-                className="btn btn--secondary btn--sm" 
-                style={{ width: '100%', borderRadius: 10, fontSize: 12, height: 36 }}
+                className="btn btn--secondary btn--sm"
+                style={{ 
+                  width: '100%', 
+                  borderRadius: 10, 
+                  fontSize: 12, 
+                  height: 36,
+                  opacity: req.amountPaid > 0 ? 0.6 : 1,
+                  cursor: req.amountPaid > 0 ? 'not-allowed' : 'pointer'
+                }}
+                disabled={req.amountPaid > 0}
               >
-                Edit Request
+                {req.amountPaid > 0 ? 'Edit Locked (Payment Received)' : 'Edit Request'}
               </button>
             </div>
           </div>

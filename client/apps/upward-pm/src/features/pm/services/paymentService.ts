@@ -21,6 +21,7 @@ export interface PmPaymentRequest {
   coreRequestUuid?: string | null;
   createdAt: string;
   lineItems?: { name: string; amount: number }[];
+  transactions?: any[];
 }
 
 export interface CreatePaymentRequestDto {
@@ -66,4 +67,10 @@ export const updatePaymentRequest = (uuid: string, data: UpdatePmPaymentRequestD
 
 export const getPaymentRequest = (uuid: string) => {
   return request<PmPaymentRequest>(`/pm/payment-requests/${uuid}`)
+}
+
+export const resendPaymentRequest = (uuid: string) => {
+  return request<{ success: boolean; message: string }>(`/pm/payment-requests/${uuid}/resend`, {
+    method: 'POST'
+  })
 }

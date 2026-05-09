@@ -141,6 +141,7 @@ export interface PmPaymentRequestEntity {
   
   unit?: UnitEntity;
   tenant?: TenantEntity;
+  transactions?: any[];
 }
 
 export interface IPmPaymentRequestRepository {

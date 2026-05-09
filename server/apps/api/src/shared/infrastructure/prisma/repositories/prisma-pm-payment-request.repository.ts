@@ -8,7 +8,7 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
   constructor(
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
-  ) {}
+  ) { }
 
   private mapPmPaymentRequest(pr: any): PmPaymentRequestEntity {
     return {
@@ -28,6 +28,14 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
       lineItems: pr.paymentRequest?.lineItemRecords?.map((li: any) => ({
         name: li.name,
         amount: li.totalAmount
+      })) || [],
+      transactions: pr.paymentRequest?.transactions?.map((tx: any) => ({
+        uuid: tx.uuid,
+        amount: tx.amount,
+        status: tx.status,
+        method: tx.method || 'Bank Transfer',
+        createdAt: tx.createdAt,
+        reference: tx.reference
       })) || []
     } as any;
   }
@@ -36,10 +44,18 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     const prisma = tx || this.prisma;
     const pr = await prisma.upward_pm_payment_request.create({
       data,
-      include: { 
-        unit: { include: { property: true } }, 
-        tenant: true, 
-        paymentRequest: { include: { lineItemRecords: true } } 
+      include: {
+        unit: { include: { property: true } },
+        tenant: true,
+        paymentRequest: {
+          include: {
+            lineItemRecords: true,
+            transactions: {
+              where: { status: 'SUCCESS' },
+              orderBy: { createdAt: 'desc' }
+            }
+          }
+        }
       }
     });
     return this.mapPmPaymentRequest(pr);
@@ -48,10 +64,10 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
   async findByPmId(pmId: number): Promise<PmPaymentRequestEntity[]> {
     const requests = await this.prisma.upward_pm_payment_request.findMany({
       where: { pmId },
-      include: { 
-        unit: { include: { property: true } }, 
-        tenant: true, 
-        paymentRequest: { include: { lineItemRecords: true } } 
+      include: {
+        unit: { include: { property: true } },
+        tenant: true,
+        paymentRequest: { include: { lineItemRecords: true } }
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -61,10 +77,10 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
   async findByUuid(uuid: string): Promise<PmPaymentRequestEntity | null> {
     const pr = await this.prisma.upward_pm_payment_request.findUnique({
       where: { uuid },
-      include: { 
-        unit: { include: { property: true } }, 
-        tenant: true, 
-        paymentRequest: { include: { lineItemRecords: true } } 
+      include: {
+        unit: { include: { property: true } },
+        tenant: true,
+        paymentRequest: { include: { lineItemRecords: true } }
       },
     });
     return pr ? this.mapPmPaymentRequest(pr) : null;
@@ -74,10 +90,10 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     const prisma = tx || this.prisma;
     const pr = await prisma.upward_pm_payment_request.findFirst({
       where: { paymentRequestId },
-      include: { 
-        unit: { include: { property: true } }, 
-        tenant: true, 
-        paymentRequest: { include: { lineItemRecords: true } } 
+      include: {
+        unit: { include: { property: true } },
+        tenant: true,
+        paymentRequest: { include: { lineItemRecords: true } }
       },
     });
     return pr ? this.mapPmPaymentRequest(pr) : null;
@@ -88,10 +104,18 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     const pr = await prisma.upward_pm_payment_request.update({
       where: { uuid },
       data,
-      include: { 
-        unit: { include: { property: true } }, 
-        tenant: true, 
-        paymentRequest: { include: { lineItemRecords: true } } 
+      include: {
+        unit: { include: { property: true } },
+        tenant: true,
+        paymentRequest: {
+          include: {
+            lineItemRecords: true,
+            transactions: {
+              where: { status: 'SUCCESS' },
+              orderBy: { createdAt: 'desc' }
+            }
+          }
+        }
       }
     });
     return this.mapPmPaymentRequest(pr);
