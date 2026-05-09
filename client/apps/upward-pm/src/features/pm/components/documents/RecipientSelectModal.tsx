@@ -1,8 +1,7 @@
-
 'use client'
 
 import React, { useState, useMemo } from 'react'
-import { X, Search, ChevronDown, User, Building, Users, Check } from 'lucide-react'
+import { X, Search, ChevronDown, User, Building, Check } from 'lucide-react'
 import { useTenants } from '../../hooks/useTenants'
 import { useProperties } from '../../hooks/useProperties'
 
@@ -48,14 +47,11 @@ export function RecipientSelectModal({ isOpen, onClose, onSelect }: RecipientSel
         type: 'TENANT' as const
       }))
     } else {
-      // Landlords are stored in properties
-      // Map properties to landlord entries and filter out duplicates or empty names
-      const landlordMap = new Map();
-      
+      const landlordMap = new Map()
       properties.forEach(p => {
         if (p.landlordName && !landlordMap.has(p.landlordEmail || p.landlordName)) {
           landlordMap.set(p.landlordEmail || p.landlordName, {
-            uuid: `landlord-${p.uuid}`, // Use property-based uuid for selection
+            uuid: `landlord-${p.uuid}`,
             name: p.landlordName,
             email: p.landlordEmail || 'N/A',
             phone: p.landlordPhone || 'N/A',
@@ -63,11 +59,10 @@ export function RecipientSelectModal({ isOpen, onClose, onSelect }: RecipientSel
             propertyTitle: p.name,
             address: p.address,
             type: 'LANDLORD' as const
-          });
+          })
         }
-      });
-      
-      list = Array.from(landlordMap.values());
+      })
+      list = Array.from(landlordMap.values())
     }
 
     return list.filter(item => {
@@ -88,7 +83,7 @@ export function RecipientSelectModal({ isOpen, onClose, onSelect }: RecipientSel
     }}>
       <div className="modal animate-scale-in" onClick={e => e.stopPropagation()} style={{ 
         background: 'white', borderRadius: 28, width: '100%', maxWidth: 580, 
-        height: '85vh', maxHeight: 800, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        height: '95vh', maxHeight: 960, display: 'flex', flexDirection: 'column', overflow: 'hidden',
         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)'
       }}>
         
@@ -101,7 +96,7 @@ export function RecipientSelectModal({ isOpen, onClose, onSelect }: RecipientSel
         </div>
 
         {/* Tabs */}
-        <div style={{ padding: '0 32px 24px' }}>
+        <div style={{ padding: '0 32px 16px' }}>
           <div style={{ background: '#f1f5f9', padding: 6, borderRadius: 16, display: 'flex', gap: 6 }}>
             {[
               { id: 'TENANT', label: 'Tenants', icon: User },
@@ -126,7 +121,7 @@ export function RecipientSelectModal({ isOpen, onClose, onSelect }: RecipientSel
         </div>
 
         {/* Filters */}
-        <div style={{ padding: '0 32px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ padding: '0 32px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ position: 'relative' }}>
             <Search size={20} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
             <input 
@@ -157,7 +152,7 @@ export function RecipientSelectModal({ isOpen, onClose, onSelect }: RecipientSel
 
         {/* List Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 340 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {filteredRecipients.map(item => (
               <div 
                 key={item.uuid}
@@ -211,7 +206,7 @@ export function RecipientSelectModal({ isOpen, onClose, onSelect }: RecipientSel
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '24px 32px 32px', borderTop: '1px solid #f1f5f9', background: 'white' }}>
+        <div style={{ padding: '20px 32px 28px', borderTop: '1px solid #f1f5f9', background: 'white' }}>
           <button 
             className="btn btn--primary" 
             style={{ width: '100%', borderRadius: 18, height: 58, background: 'var(--forest)', fontWeight: 800, fontSize: 16, boxShadow: '0 10px 15px -3px rgba(26, 77, 46, 0.2)' }}
