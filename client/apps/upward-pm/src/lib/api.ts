@@ -43,6 +43,7 @@ export const api = {
   
   // Payments
   getPaymentRequests: paymentService.getPaymentRequests,
+  getPaymentRequest: paymentService.getPaymentRequest,
   createPaymentRequest: paymentService.createPaymentRequest,
   updatePaymentRequest: paymentService.updatePaymentRequest,
 
