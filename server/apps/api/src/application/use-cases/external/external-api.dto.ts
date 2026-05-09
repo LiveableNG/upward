@@ -145,6 +145,10 @@ export class UserPropertyContextDto {
   accountNumber?: string
 
   @IsOptional()
+  @IsString()
+  bankCode?: string
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => RentHistoryDto)
