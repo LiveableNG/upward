@@ -24,11 +24,16 @@ export const useDocuments = () => {
     },
   });
 
+  const generatePdfMutation = useMutation({
+    mutationFn: documentService.generatePdf,
+  });
+
   return {
     documents: documentsQuery.data?.history || [],
     templates: documentsQuery.data?.templates || [],
     isLoading: documentsQuery.isLoading,
     saveTemplate: saveTemplateMutation,
     sendDocument: sendDocumentMutation,
+    generatePdf: generatePdfMutation,
   };
 };

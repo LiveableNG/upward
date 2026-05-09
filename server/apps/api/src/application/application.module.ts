@@ -121,6 +121,7 @@ import { UpdatePmPaymentRequestUseCase } from './pm/use-cases/payments/update-pm
 import { GetPmDocumentsUseCase } from './pm/use-cases/documents/get-pm-documents.use-case'
 import { SaveDocumentTemplateUseCase } from './pm/use-cases/documents/save-document-template.use-case'
 import { SendDocumentUseCase } from './pm/use-cases/documents/send-document.use-case'
+import { GenerateDocumentPdfUseCase } from './pm/use-cases/documents/generate-document-pdf.use-case'
 import { GetPendingCredibilityRequestsUseCase } from './pm/use-cases/get-pending-credibility-requests.use-case'
 import { BulkCreateTenantRecordsUseCase } from './pm/use-cases/bulk-create-tenant-records.use-case'
 import { BulkInviteTenantsUseCase } from './pm/use-cases/tenants/bulk-invite-tenants.use-case'
@@ -313,6 +314,7 @@ const UseCases = [
   GetPmDocumentsUseCase,
   SaveDocumentTemplateUseCase,
   SendDocumentUseCase,
+  GenerateDocumentPdfUseCase,
   GetPendingCredibilityRequestsUseCase,
   BulkCreateTenantRecordsUseCase,
   BulkInviteTenantsUseCase,

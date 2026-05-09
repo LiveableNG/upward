@@ -29,7 +29,7 @@ export function DocumentEditorView({
 }: DocumentEditorViewProps) {
   const { success, error } = useToast()
   const { data: tenants = [] } = useTenants()
-  const { sendDocument } = useDocuments()
+  const { sendDocument, generatePdf } = useDocuments()
   
   const [content, setContent] = useState(initialTemplate?.content || initialContent)
   const [subject, setSubject] = useState(initialTemplate?.name || initialSubject)
@@ -38,8 +38,30 @@ export function DocumentEditorView({
   const [newRecipient, setNewRecipient] = useState({ name: '', email: '' })
   const [deliveryMode, setDeliveryMode] = useState<'pdf' | 'email'>('pdf')
   const [isSending, setIsSending] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
 
   const selectedTenant = tenants.find(t => t.uuid === selectedTenantUuid)
+
+  const handleSaveAsPdf = async () => {
+    if (!content) return error('No content to download')
+    setIsDownloading(true)
+    try {
+      const blob = await generatePdf.mutateAsync(content)
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${subject || 'document'}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      success('PDF downloaded successfully')
+    } catch (err) {
+      error('Failed to generate PDF')
+    } finally {
+      setIsDownloading(false)
+    }
+  }
 
   const handleSend = async () => {
     if (!subject) return error('Please enter a subject')
@@ -83,10 +105,12 @@ export function DocumentEditorView({
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           <button 
+            onClick={handleSaveAsPdf}
+            disabled={isDownloading}
             className="btn btn--secondary" 
             style={{ borderRadius: 12, height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8 }}
           >
-            <Download size={20} /> Save as PDF
+            <Download size={20} /> {isDownloading ? 'Downloading...' : 'Save as PDF'}
           </button>
           <button 
             onClick={handleSend}

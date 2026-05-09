@@ -1,4 +1,3 @@
-
 import { Inject, Injectable } from '@nestjs/common';
 import { 
   PM_DOCUMENT_REPOSITORY, IPmDocumentRepository,
@@ -6,6 +5,9 @@ import {
   PM_UNIT_REPOSITORY, IUnitRepository, UnitEntity
 } from '../../../../domains/pm/IPropertyRepository';
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../../domains/pm/property-manager.repository';
+import { S3Service } from '../../../../shared/infrastructure/common/s3/s3.service';
+import { EmailService } from '../../../../shared/infrastructure/email/email.service';
+import * as crypto from 'crypto';
 
 export interface SendDocumentDto {
   tenantUuid?: string;
@@ -28,6 +30,8 @@ export class SendDocumentUseCase {
     private readonly unitRepo: IUnitRepository,
     @Inject(PROPERTY_MANAGER_REPOSITORY)
     private readonly pmRepo: PropertyManagerRepository,
+    private readonly s3Service: S3Service,
+    private readonly emailService: EmailService,
   ) {}
 
   async execute(pmId: number, data: SendDocumentDto) {
@@ -44,7 +48,6 @@ export class SendDocumentUseCase {
       tenant = await this.tenantRepo.findByUuid(data.tenantUuid);
       if (tenant) {
         tenantId = tenant.id;
-        // If tenant is linked to units, take the first one for context
         if (tenant.units && tenant.units.length > 0) {
           unit = tenant.units[0] || null;
           unitId = unit?.id || null;
@@ -57,7 +60,6 @@ export class SendDocumentUseCase {
       if (unit) unitId = unit.id;
     }
 
-    // Helper to format dates professionally
     const formatDate = (date: Date | null | undefined) => {
       if (!date) return 'N/A';
       return new Date(date).toLocaleDateString('en-GB', { 
@@ -67,7 +69,6 @@ export class SendDocumentUseCase {
       });
     };
 
-    // Calculate Rent End Date (usually 1 year - 1 day after start if not specified)
     const calculateEndDate = (startDate: Date | null | undefined) => {
       if (!startDate) return 'N/A';
       const end = new Date(startDate);
@@ -78,40 +79,72 @@ export class SendDocumentUseCase {
 
     // 2. Perform Placeholder Replacement
     const placeholders: Record<string, string> = {
-      // Tenant Info
       '[Tenant Name]': tenant ? `${tenant.firstName} ${tenant.lastName}` : data.recipientName,
       '[TenantFirstName]': tenant?.firstName || data.recipientName.split(' ')[0] || '',
       '[TenantLastName]': tenant?.lastName || data.recipientName.split(' ').slice(1).join(' ') || '',
       '[TenantPhone]': tenant?.phone || 'N/A',
-      
-      // Property/Unit Info
       '[UnitName]': unit ? unit.unitName : 'N/A',
       '[Unit Name]': unit ? unit.unitName : 'N/A',
       '[RentAmount]': unit ? `${unit.currency || '₦'}${unit.rentAmount.toLocaleString()}` : 'N/A',
       '[Rent Amount]': unit ? `${unit.currency || '₦'}${unit.rentAmount.toLocaleString()}` : 'N/A',
       '[PropertyName]': unit?.property ? unit.property.name : 'N/A',
       '[Property Name]': unit?.property ? unit.property.name : 'N/A',
-      
-      // Dates
       '[RentStartDate]': formatDate(unit?.rentStartDate),
       '[RentEndDate]': calculateEndDate(unit?.rentStartDate),
       '[Date]': formatDate(new Date()),
-      
-      // Manager Info
       '[ManagerName]': pm ? `${pm.firstName} ${pm.lastName}` : 'The Property Manager',
     };
 
-    // Replace all occurrences
     Object.entries(placeholders).forEach(([tag, value]) => {
       content = content.split(tag).join(value);
     });
 
+    // 3. Upload Snapshot to S3
+    const sentUuid = crypto.randomUUID();
+    const s3Key = `pm-docs/sent/pm_${pmId}/${sentUuid}.html`;
+    await this.s3Service.uploadBuffer(
+      Buffer.from(content),
+      s3Key,
+      'text/html'
+    );
+
+    if (data.documentType === 'PDF') {
+      const htmlToPdf = require('html-pdf-node');
+      const options = { format: 'A4', margin: { top: '40px', bottom: '40px', left: '40px', right: '40px' } };
+      const file = { content };
+      
+      const pdfBuffer = await htmlToPdf.generatePdf(file, options);
+      
+      await this.emailService.sendEmailWithRetry({
+        userId: pm?.uuid || '',
+        email: data.recipientEmail,
+        subject: data.subject,
+        html: `<p>Hello ${data.recipientName},</p><p>Please find the attached document: <strong>${data.subject}</strong> from your property manager.</p>`,
+        type: 'DOCUMENT',
+        attachments: [
+          {
+            filename: `${data.subject.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`,
+            content: pdfBuffer,
+          }
+        ]
+      } as any);
+    } else {
+      await this.emailService.sendGenericEmail(
+        data.recipientEmail,
+        data.subject,
+        content,
+        pm?.uuid
+      );
+    }
+
+    // 5. Save the record
     return this.documentRepo.saveSentDocument({
+      uuid: sentUuid,
       pmId,
       tenantId,
       unitId,
       subject: data.subject,
-      content,
+      content: s3Key,
       documentType: data.documentType,
       recipientName: data.recipientName,
       recipientEmail: data.recipientEmail,

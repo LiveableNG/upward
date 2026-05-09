@@ -26,9 +26,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const pathname = usePathname()
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(pathname === '/documents')
+
+  // Automatically collapse sidebar when on documents page to maximize space
+  React.useEffect(() => {
+    if (pathname === '/documents') {
+      setIsSidebarCollapsed(true)
+    }
+  }, [pathname])
   
   const isAuthPage = pathname === '/signup' || pathname === '/login'
 

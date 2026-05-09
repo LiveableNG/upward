@@ -24,11 +24,82 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate }: Docu
   const { documents, templates, isLoading } = useDocuments()
   const [searchQuery, setSearchQuery] = useState('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<'dashboard' | 'all_templates'>('dashboard')
 
   const filteredHistory = documents.filter((doc:any) => 
     doc.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
     doc.recipientName.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  // Group templates by type
+  const groupedTemplates = templates.reduce((acc: any, template: any) => {
+    const type = template.type || 'CUSTOM';
+    if (!acc[type]) acc[type] = [];
+    acc[type].push(template);
+    return acc;
+  }, {});
+
+  const formatTypeName = (type: string) => {
+    return type.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ');
+  };
+
+  if (viewMode === 'all_templates') {
+    return (
+      <div className="document-management animate-fade-in">
+        <header style={{ marginBottom: 40 }}>
+           <button 
+             onClick={() => setViewMode('dashboard')}
+             style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 12, background: 'none', border: 'none', cursor: 'pointer' }}
+           >
+             <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back to Dashboard
+           </button>
+           <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--dark)' }}>All Document Templates</h1>
+           <p style={{ color: 'var(--text-muted)', fontSize: 15 }}>Browse and manage all your property management templates.</p>
+        </header>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
+          {/* Default/System Templates Section */}
+          <section>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 20, letterSpacing: '0.05em' }}>
+              System Templates
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20 }}>
+              <TemplateCard 
+                title="Rent Review" 
+                type="RENT_REVIEW" 
+                onClick={() => onSelectTemplate({ name: 'Rent Review', content: '<h1>Rent Review Notice</h1><p>Dear Tenant,</p><p>This is to inform you of a rent review for your unit...</p>' })} 
+              />
+              <TemplateCard 
+                title="Rent Renewal" 
+                type="RENT_RENEWAL" 
+                onClick={() => onSelectTemplate({ name: 'Rent Renewal', content: '<h1>Rent Renewal Notice</h1><p>Dear Tenant,</p><p>Your lease is due for renewal...</p>' })} 
+              />
+            </div>
+          </section>
+
+          {/* Grouped Custom Templates */}
+          {Object.entries(groupedTemplates).map(([type, items]: [string, any]) => (
+            <section key={type}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', textTransform: 'uppercase', marginBottom: 20, letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 12 }}>
+                {formatTypeName(type)}
+                <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500, background: 'var(--bg)', padding: '2px 8px', borderRadius: 6 }}>{items.length}</span>
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20 }}>
+                {items.map((t: any) => (
+                  <TemplateCard 
+                    key={t.uuid} 
+                    title={t.name} 
+                    type={t.type} 
+                    onClick={() => onSelectTemplate(t)} 
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="document-management animate-fade-in">
@@ -81,7 +152,10 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate }: Docu
       <section style={{ marginBottom: 48 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)' }}>Recent Templates</h2>
-          <button style={{ color: 'var(--clay)', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer' }}>
+          <button 
+            onClick={() => setViewMode('all_templates')}
+            style={{ color: 'var(--clay)', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer' }}
+          >
             View All Templates <ChevronRight size={16} />
           </button>
         </div>
@@ -99,7 +173,7 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate }: Docu
             onClick={() => onSelectTemplate({ name: 'Rent Renewal', content: '<h1>Rent Renewal Notice</h1><p>Dear Tenant,</p><p>Your lease is due for renewal...</p>' })} 
           />
           
-          {templates.map((t: any) => (
+          {templates.slice(0, 4).map((t: any) => (
             <TemplateCard 
               key={t.uuid} 
               title={t.name} 
