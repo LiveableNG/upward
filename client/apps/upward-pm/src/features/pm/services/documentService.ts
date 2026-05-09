@@ -42,7 +42,7 @@ export const documentService = {
     return api.post('/pm/documents/send', data);
   },
   
-  generatePdf: async (content: string) => {
-    return api.post<Blob>('/pm/documents/generate-pdf', { content });
+  generatePdf: async (content: string, tenantUuid?: string, unitUuid?: string, recipientName?: string) => {
+    return api.post<Blob>('/pm/documents/generate-pdf', { content, tenantUuid, unitUuid, recipientName });
   }
 };

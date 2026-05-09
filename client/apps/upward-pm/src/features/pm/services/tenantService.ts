@@ -35,6 +35,7 @@ export interface Tenant {
     property: {
       uuid: string;
       name: string;
+      address?: string;
     }
   }>
 }

@@ -7,12 +7,14 @@ import {
   Download,
   Send,
   Mail,
+  Users,
   AlertCircle
 } from 'lucide-react'
 import { RichTextEditor } from '@/components/common/RichTextEditor'
 import { useTenants } from '../../hooks/useTenants'
 import { useDocuments } from '../../hooks/useDocuments'
 import { useToast } from '@/components/common/Toast'
+import { RecipientSelectModal } from './RecipientSelectModal'
 
 interface DocumentEditorViewProps {
   initialContent?: string
@@ -39,6 +41,7 @@ export function DocumentEditorView({
   const [deliveryMode, setDeliveryMode] = useState<'pdf' | 'email'>('pdf')
   const [isSending, setIsSending] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false)
 
   const selectedTenant = tenants.find(t => t.uuid === selectedTenantUuid)
 
@@ -46,7 +49,15 @@ export function DocumentEditorView({
     if (!content) return error('No content to download')
     setIsDownloading(true)
     try {
-      const blob = await generatePdf.mutateAsync(content)
+      const recipientName = recipientType === 'existing' 
+        ? (selectedTenant ? `${selectedTenant.firstName} ${selectedTenant.lastName}` : undefined)
+        : newRecipient.name;
+
+      const blob = await generatePdf.mutateAsync({ 
+        content, 
+        tenantUuid: recipientType === 'existing' ? (selectedTenantUuid || undefined) : undefined,
+        recipientName: recipientName || undefined
+      })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -192,7 +203,7 @@ export function DocumentEditorView({
                     onClick={() => setRecipientType('existing')}
                     style={{ fontSize: 12, color: recipientType === 'existing' ? 'var(--clay)' : 'var(--text-muted)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
                   >
-                    Existing Tenant
+                    Existing Recipient
                   </button>
                   <button 
                     onClick={() => setRecipientType('new')}
@@ -203,17 +214,25 @@ export function DocumentEditorView({
                 </div>
 
                 {recipientType === 'existing' ? (
-                  <select 
-                    className="form-input" 
-                    style={{ borderRadius: 12 }}
-                    value={selectedTenantUuid}
-                    onChange={(e) => setSelectedTenantUuid(e.target.value)}
+                  <div 
+                    onClick={() => setIsRecipientModalOpen(true)}
+                    style={{ 
+                      width: '100%', 
+                      padding: '12px 16px', 
+                      borderRadius: 14, 
+                      border: '1px solid var(--border)', 
+                      cursor: 'pointer',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: selectedTenant ? 'var(--bg)' : 'white'
+                    }}
                   >
-                    <option value="">Select a tenant...</option>
-                    {tenants.map(t => (
-                      <option key={t.uuid} value={t.uuid}>{t.firstName} {t.lastName}</option>
-                    ))}
-                  </select>
+                    <span style={{ fontSize: 14, color: selectedTenant ? 'var(--dark)' : 'var(--text-muted)', fontWeight: selectedTenant ? 600 : 400 }}>
+                      {selectedTenant ? `${selectedTenant.firstName} ${selectedTenant.lastName}` : 'Select a recipient...'}
+                    </span>
+                    <Users size={18} style={{ color: 'var(--text-muted)' }} />
+                  </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <input 
@@ -266,6 +285,39 @@ export function DocumentEditorView({
           />
         </div>
       </div>
+
+      <RecipientSelectModal 
+        isOpen={isRecipientModalOpen}
+        onClose={() => setIsRecipientModalOpen(false)}
+        onSelect={(r) => {
+          setSelectedTenantUuid(r.uuid)
+          setIsRecipientModalOpen(false)
+        }}
+      />
+
+      <style jsx>{`
+        .document-editor {
+          max-width: 1440px;
+          margin: 0 auto;
+          padding-bottom: 40px;
+        }
+        .glass {
+          backdrop-filter: blur(8px);
+          box-shadow: 0 4px 24px rgba(0,0,0,0.02);
+        }
+        .form-input {
+          width: 100%;
+          height: 48px;
+          padding: 0 16px;
+          border: 1px solid var(--border);
+          outline: none;
+          font-size: 14px;
+          transition: border-color 0.2s;
+        }
+        .form-input:focus {
+          border-color: var(--clay);
+        }
+      `}</style>
     </div>
   )
 }
