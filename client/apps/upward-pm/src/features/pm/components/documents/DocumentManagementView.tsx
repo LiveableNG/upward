@@ -58,26 +58,7 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate }: Docu
         </header>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
-          {/* Default/System Templates Section */}
-          <section>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 20, letterSpacing: '0.05em' }}>
-              System Templates
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20 }}>
-              <TemplateCard 
-                title="Rent Review" 
-                type="RENT_REVIEW" 
-                onClick={() => onSelectTemplate({ name: 'Rent Review', content: '<h1>Rent Review Notice</h1><p>Dear Tenant,</p><p>This is to inform you of a rent review for your unit...</p>' })} 
-              />
-              <TemplateCard 
-                title="Rent Renewal" 
-                type="RENT_RENEWAL" 
-                onClick={() => onSelectTemplate({ name: 'Rent Renewal', content: '<h1>Rent Renewal Notice</h1><p>Dear Tenant,</p><p>Your lease is due for renewal...</p>' })} 
-              />
-            </div>
-          </section>
 
-          {/* Grouped Custom Templates */}
           {Object.entries(groupedTemplates).map(([type, items]: [string, any]) => (
             <section key={type}>
               <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', textTransform: 'uppercase', marginBottom: 20, letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -161,18 +142,6 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate }: Docu
         </div>
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20 }}>
-          {/* Static Default Templates */}
-          <TemplateCard 
-            title="Rent Review" 
-            type="RENT_REVIEW" 
-            onClick={() => onSelectTemplate({ name: 'Rent Review', content: '<h1>Rent Review Notice</h1><p>Dear Tenant,</p><p>This is to inform you of a rent review for your unit...</p>' })} 
-          />
-          <TemplateCard 
-            title="Rent Renewal" 
-            type="RENT_RENEWAL" 
-            onClick={() => onSelectTemplate({ name: 'Rent Renewal', content: '<h1>Rent Renewal Notice</h1><p>Dear Tenant,</p><p>Your lease is due for renewal...</p>' })} 
-          />
-          
           {templates.slice(0, 4).map((t: any) => (
             <TemplateCard 
               key={t.uuid} 
