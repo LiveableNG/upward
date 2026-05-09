@@ -69,22 +69,36 @@ export class GetPmDocumentsUseCase {
       this.documentRepo.findSentDocumentsByPmId(pmId),
     ]);
 
-    const resolvedTemplates = await Promise.all(templates.map(async (t) => {
-      if (t.content && t.content.startsWith('pm-docs/')) {
-        try {
-          const actualContent = await this.s3Service.getFileContent(t.content);
-          return { ...t, content: actualContent };
-        } catch (error) {
-          console.error(`Failed to fetch S3 content for template ${t.uuid}:`, error);
-          return t;
+    const [resolvedTemplates, resolvedHistory] = await Promise.all([
+      Promise.all(templates.map(async (t) => {
+        if (t.content && t.content.startsWith('pm-docs/')) {
+          try {
+            const actualContent = await this.s3Service.getFileContent(t.content);
+            return { ...t, content: actualContent };
+          } catch (error) {
+            console.error(`Failed to fetch S3 content for template ${t.uuid}:`, error);
+            return t;
+          }
         }
-      }
-      return t;
-    }));
+        return t;
+      })),
+      Promise.all(history.map(async (h) => {
+        if (h.content && h.content.startsWith('pm-docs/')) {
+          try {
+            const actualContent = await this.s3Service.getFileContent(h.content);
+            return { ...h, content: actualContent };
+          } catch (error) {
+            console.error(`Failed to fetch S3 content for history ${h.uuid}:`, error);
+            return h;
+          }
+        }
+        return h;
+      }))
+    ]);
 
     return {
       templates: [...DEFAULT_TEMPLATES, ...resolvedTemplates],
-      history,
+      history: resolvedHistory,
     };
   }
 }
