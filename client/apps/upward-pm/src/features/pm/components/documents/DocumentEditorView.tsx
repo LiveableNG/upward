@@ -15,6 +15,8 @@ import { useTenants } from '../../hooks/useTenants'
 import { useDocuments } from '../../hooks/useDocuments'
 import { useToast } from '@/components/common/Toast'
 import { RecipientSelectModal } from './RecipientSelectModal'
+import { useCreatePaymentRequest } from '../../hooks/usePayments'
+import { CreditCard } from 'lucide-react'
 
 interface DocumentEditorViewProps {
   initialContent?: string
@@ -27,6 +29,7 @@ interface DocumentEditorViewProps {
     email?: string
     deliveryMode?: 'pdf' | 'email'
   }
+  paymentContext?: any
   onBack: () => void
 }
 
@@ -35,11 +38,13 @@ export function DocumentEditorView({
   initialSubject = '', 
   initialTemplate,
   initialRecipient,
+  paymentContext,
   onBack 
 }: DocumentEditorViewProps) {
   const { success, error } = useToast()
   const { data: tenants = [] } = useTenants()
   const { sendDocument, generatePdf } = useDocuments()
+  const { mutateAsync: createPaymentRequest } = useCreatePaymentRequest()
   
   const [content, setContent] = useState(initialTemplate?.content || initialContent)
   const [subject, setSubject] = useState(initialTemplate?.name || initialSubject)
@@ -97,6 +102,15 @@ export function DocumentEditorView({
 
     setIsSending(true)
     try {
+      let paymentRequestUuid = undefined;
+
+      if (paymentContext) {
+        // 1. Create Payment Request
+        const resp = await createPaymentRequest(paymentContext);
+        paymentRequestUuid = resp.uuid;
+      }
+
+      // 2. Send Document (linked to payment if context exists)
       await sendDocument.mutateAsync({
         tenantUuid: recipientType === 'existing' ? selectedTenantUuid : undefined,
         subject,
@@ -104,11 +118,13 @@ export function DocumentEditorView({
         documentType: deliveryMode.toUpperCase(),
         recipientName: recipient.name,
         recipientEmail: recipient.email,
+        paymentRequestUuid, // New field
       })
-      success('Document sent and recorded successfully')
+      
+      success(paymentContext ? 'Payment request and document sent successfully' : 'Document sent and recorded successfully')
       onBack()
     } catch (err) {
-      error('Failed to send document')
+      error(paymentContext ? 'Failed to process payment request' : 'Failed to send document')
     } finally {
       setIsSending(false)
     }
@@ -140,7 +156,8 @@ export function DocumentEditorView({
             className="btn btn--primary" 
             style={{ borderRadius: 12, height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8 }}
           >
-            <Send size={20} /> {isSending ? 'Sending...' : 'Send Document'}
+            {paymentContext ? <CreditCard size={20} /> : <Send size={20} />} 
+            {isSending ? 'Processing...' : paymentContext ? 'Request Payment' : 'Send Document'}
           </button>
         </div>
       </header>
@@ -282,7 +299,7 @@ export function DocumentEditorView({
           <div className="glass" style={{ padding: 20, borderRadius: 24, border: '1px solid var(--border)', background: 'var(--ivory-dim)', display: 'flex', gap: 12 }}>
             <AlertCircle size={20} color="var(--clay)" style={{ flexShrink: 0 }} />
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              Use the professional editor to format your document. You can include dynamic placeholders like [Tenant Name] which will be replaced when sending.
+              Use the professional editor to format your document. You can include dynamic placeholders like [Tenant Name] or [PaymentLink] which will be replaced when sending.
             </p>
           </div>
         </div>

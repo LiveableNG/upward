@@ -6,15 +6,23 @@ import { Unit } from '../../../services/propertyService'
 import { useCreatePaymentRequest, useUpdatePaymentRequest } from '../../../hooks/usePayments'
 import { useToast } from '@/components/common/Toast'
 import { PmPaymentRequest } from '../../../services/paymentService'
+import { useDocuments } from '../../../hooks/useDocuments'
 
 interface CreatePaymentRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
   unit: Unit | null;
   existingRequest?: PmPaymentRequest;
+  onProceedToEditor?: (template: any, paymentContext: any) => void;
 }
 
-export function CreatePaymentRequestModal({ isOpen, onClose, unit, existingRequest }: CreatePaymentRequestModalProps) {
+export function CreatePaymentRequestModal({ 
+  isOpen, 
+  onClose, 
+  unit, 
+  existingRequest,
+  onProceedToEditor 
+}: CreatePaymentRequestModalProps) {
   const isEditing = !!existingRequest
   const [amount, setAmount] = useState<string>('')
   const [dueDate, setDueDate] = useState<string>('')
@@ -26,6 +34,8 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit, existingReque
   const [lineItems, setLineItems] = useState<{ name: string; amount: string }[]>([
     { name: 'Rent', amount: '' }
   ])
+  const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>('')
+  const { templates } = useDocuments()
 
   const { success, error } = useToast()
   const createMutation = useCreatePaymentRequest()
@@ -102,7 +112,7 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit, existingReque
     if (!amount || parseFloat(amount) <= 0) return error('Please enter a valid amount')
     if (!dueDate) return error('Please select a due date')
 
-    const payload = {
+    const paymentContext = {
       unitUuid: unit!.uuid,
       amount: parseFloat(amount),
       dueDate: rentEndDate || dueDate,
@@ -117,10 +127,16 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit, existingReque
       }))
     }
 
+    if (selectedTemplateUuid && onProceedToEditor) {
+      const template = templates.find((t: any) => t.uuid === selectedTemplateUuid)
+      onProceedToEditor(template, paymentContext)
+      return
+    }
+
     if (isEditing && existingRequest) {
       updateMutation.mutate({
         uuid: existingRequest.uuid,
-        data: payload
+        data: paymentContext
       }, {
         onSuccess: () => {
           success('Payment request updated successfully!')
@@ -131,7 +147,7 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit, existingReque
         }
       })
     } else {
-      createMutation.mutate(payload, {
+      createMutation.mutate(paymentContext, {
         onSuccess: () => {
           success('Payment request sent successfully!')
           onClose()
@@ -299,6 +315,25 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit, existingReque
           )}
         </div>
 
+        <div className="form-group" style={{ marginTop: 24, padding: '20px', background: 'var(--bg)', borderRadius: 16, border: '1px solid var(--border)' }}>
+          <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Follow-up Document (Optional)</span>
+            {selectedTemplateUuid && <span style={{ fontSize: 11, color: 'var(--forest)', fontWeight: 700 }}>Template Selected</span>}
+          </label>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>Choose a document template to send along with this payment request.</p>
+          <select 
+            className="form-input" 
+            style={{ borderRadius: 12, background: 'white' }}
+            value={selectedTemplateUuid}
+            onChange={(e) => setSelectedTemplateUuid(e.target.value)}
+          >
+            <option value="">No document (Direct Email Only)</option>
+            {templates.map((t: any) => (
+              <option key={t.uuid} value={t.uuid}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+
         <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
           <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
             Cancel
@@ -309,7 +344,10 @@ export function CreatePaymentRequestModal({ isOpen, onClose, unit, existingReque
             onClick={handleSubmit} 
             disabled={createMutation.isPending || updateMutation.isPending || !unit.isSynced}
           >
-            {createMutation.isPending || updateMutation.isPending ? 'Processing...' : !unit.isSynced ? 'Sync Required' : isEditing ? 'Update Request' : 'Send Request'}
+            {createMutation.isPending || updateMutation.isPending ? 'Processing...' : 
+             !unit.isSynced ? 'Sync Required' : 
+             selectedTemplateUuid ? 'Proceed to Editor' :
+             isEditing ? 'Update Request' : 'Send Request'}
           </button>
         </div>
       </div>

@@ -21,6 +21,7 @@ import { AssignUnitModal } from './modals/AssignUnitModal'
 import { Plus, CreditCard } from 'lucide-react'
 import { CreatePaymentRequestModal } from '../payments/modals/CreatePaymentRequestModal'
 import { usePaymentRequests } from '@/features/pm/hooks/usePayments'
+import { DocumentEditorView } from '../documents/DocumentEditorView'
 
 export const TenantDetailView: React.FC = () => {
   const { uuid } = useParams()
@@ -34,6 +35,11 @@ export const TenantDetailView: React.FC = () => {
   const [selectedUnitForPayment, setSelectedUnitForPayment] = useState<any>(null)
   const [selectedRequestForEdit, setSelectedRequestForEdit] = useState<any>(null)
   const [activeDetailTab, setActiveDetailTab] = useState<'profile' | 'rent' | 'actions' | 'documents'>('profile')
+  
+  // Payment -> Document Editor Flow
+  const [showEditor, setShowEditor] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState<any>(null)
+  const [paymentContext, setPaymentContext] = useState<any>(null)
 
   const handleOpenPaymentRequest = (unit: any) => {
     setSelectedRequestForEdit(null)
@@ -57,8 +63,34 @@ export const TenantDetailView: React.FC = () => {
     inviteTenant.mutate(tenant.uuid)
   }
 
+  const handleProceedToEditor = (template: any, context: any) => {
+    setEditingTemplate(template)
+    setPaymentContext(context)
+    setShowPaymentRequestModal(false)
+    setShowEditor(true)
+  }
+
   const isOnUpward = tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED'
   const isProcessing = !isOnUpward && !tenant.inviteSentAt
+
+  if (showEditor) {
+    return (
+      <div className="container" style={{ padding: '20px 0' }}>
+        <DocumentEditorView 
+          initialTemplate={editingTemplate}
+          initialRecipient={{
+            type: 'existing',
+            uuid: tenant.uuid,
+            name: `${tenant.firstName} ${tenant.lastName}`,
+            email: tenant.email,
+            deliveryMode: 'email'
+          }}
+          paymentContext={paymentContext}
+          onBack={() => setShowEditor(false)}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="tenant-detail-view animate-fade-in" style={{ paddingBottom: 60 }}>
@@ -368,6 +400,7 @@ export const TenantDetailView: React.FC = () => {
         onClose={() => setShowPaymentRequestModal(false)}
         unit={selectedUnitForPayment}
         existingRequest={selectedRequestForEdit}
+        onProceedToEditor={handleProceedToEditor}
       />
 
       <style jsx>{`
