@@ -23,6 +23,7 @@ interface RecipientSelectModalProps {
   onSelect: (recipient: Recipient) => void
 }
 
+
 export function RecipientSelectModal({ isOpen, onClose, onSelect }: RecipientSelectModalProps) {
   const { data: tenants = [] } = useTenants()
   const { data: properties = [] } = useProperties()

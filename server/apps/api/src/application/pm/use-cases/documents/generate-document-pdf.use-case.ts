@@ -71,6 +71,7 @@ export class GenerateDocumentPdfUseCase {
       content = content.split(tag).join(value);
     });
 
+    
     let browser;
     try {
       if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
