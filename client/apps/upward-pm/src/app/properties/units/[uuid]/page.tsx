@@ -27,6 +27,7 @@ import { useTenants, useTenantActions } from '@/features/pm/hooks/useTenants'
 import { TenantAssignmentSection } from '@/features/pm/components/tenants/TenantAssignmentSection'
 import { AddRentRecordModal } from '@/features/pm/components/properties/modals/AddRentRecordModal'
 import { CreatePaymentRequestModal } from '@/features/pm/components/payments/modals/CreatePaymentRequestModal'
+import { DocumentEditorView } from '@/features/pm/components/documents/DocumentEditorView'
 import { useToast } from '@/components/common/Toast'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import { cn, formatCurrency } from '@/lib/utils'
@@ -55,6 +56,11 @@ function UnitDetailContent() {
   const [isUnassignConfirmOpen, setIsUnassignConfirmOpen] = useState(false)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+  // Payment -> Document Editor Flow
+  const [showEditor, setShowEditor] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState<any>(null)
+  const [paymentContext, setPaymentContext] = useState<any>(null)
 
   const [formData, setFormData] = useState<any>({
     unitName: '',
@@ -193,6 +199,13 @@ function UnitDetailContent() {
     setIsRequestModalOpen(true)
   }
 
+  const handleProceedToEditor = (template: any, context: any) => {
+    setEditingTemplate(template)
+    setPaymentContext(context)
+    setIsRequestModalOpen(false)
+    setShowEditor(true)
+  }
+
   const handleSavePayment = (data: any) => {
     addPaymentMutation.mutate({
       unitUuid: uuid as string,
@@ -204,6 +217,25 @@ function UnitDetailContent() {
       },
       onError: () => error('Failed to add rent record')
     })
+  }
+
+  if (showEditor) {
+    return (
+      <div className="container" style={{ padding: '20px 0' }}>
+        <DocumentEditorView 
+          initialTemplate={editingTemplate}
+          initialRecipient={unit?.tenant ? {
+            type: 'existing',
+            uuid: unit.tenant.uuid,
+            name: `${unit.tenant.firstName} ${unit.tenant.lastName}`,
+            email: unit.tenant.email,
+            deliveryMode: 'email'
+          } : undefined}
+          paymentContext={paymentContext}
+          onBack={() => setShowEditor(false)}
+        />
+      </div>
+    )
   }
 
   return (
@@ -685,6 +717,7 @@ function UnitDetailContent() {
           onClose={() => setIsRequestModalOpen(false)}
           unit={unit}
           existingRequest={selectedRequestForEdit}
+          onProceedToEditor={handleProceedToEditor}
         />
       )}
 

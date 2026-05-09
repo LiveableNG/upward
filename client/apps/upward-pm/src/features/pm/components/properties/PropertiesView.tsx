@@ -29,6 +29,7 @@ import { DeletePropertyModal } from './modals/DeletePropertyModal'
 import { AddUnitModal } from './modals/AddUnitModal'
 import { ImportModeModal } from './modals/ImportModeModal'
 import { CreatePaymentRequestModal } from '../payments/modals/CreatePaymentRequestModal'
+import { DocumentEditorView } from '../documents/DocumentEditorView'
 
 type Tab = 'units' | 'properties'
 
@@ -56,6 +57,11 @@ export function PropertiesView() {
   const [selectedUnitForPayment, setSelectedUnitForPayment] = useState<any>(null)
   const [editingPropertyUuid, setEditingPropertyUuid] = useState('')
   const [targetPropertyUuid, setTargetPropertyUuid] = useState('')
+
+  // Payment -> Document Editor Flow
+  const [showEditor, setShowEditor] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState<any>(null)
+  const [paymentContext, setPaymentContext] = useState<any>(null)
   
   // Data Hooks
   const { data: properties = [] } = useProperties()
@@ -180,6 +186,13 @@ export function PropertiesView() {
     setShowPaymentRequestModal(true)
   }
 
+  const handleProceedToEditor = (template: any, context: any) => {
+    setEditingTemplate(template)
+    setPaymentContext(context)
+    setShowPaymentRequestModal(false)
+    setShowEditor(true)
+  }
+
   // Memoized Filters
   const filteredUnits = useMemo(() => {
     return units.filter(unit => {
@@ -255,6 +268,26 @@ export function PropertiesView() {
     )
   }
 
+  if (showEditor) {
+    const tenant = selectedUnitForPayment?.tenant;
+    return (
+      <div className="container" style={{ padding: '40px' }}>
+        <DocumentEditorView 
+          initialTemplate={editingTemplate}
+          initialRecipient={tenant ? {
+            type: 'existing',
+            uuid: tenant.uuid,
+            name: `${tenant.firstName} ${tenant.lastName}`,
+            email: tenant.email,
+            deliveryMode: 'email'
+          } : undefined}
+          paymentContext={paymentContext}
+          onBack={() => setShowEditor(false)}
+        />
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="properties-page animate-fade-in">
@@ -319,6 +352,7 @@ export function PropertiesView() {
         isOpen={showPaymentRequestModal}
         onClose={() => setShowPaymentRequestModal(false)}
         unit={selectedUnitForPayment}
+        onProceedToEditor={handleProceedToEditor}
       />
 
       <ImportModeModal 

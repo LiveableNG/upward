@@ -1,9 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { 
   PM_DOCUMENT_REPOSITORY, IPmDocumentRepository,
   PM_TENANT_REPOSITORY, ITenantRepository, TenantEntity,
-  PM_UNIT_REPOSITORY, IUnitRepository, UnitEntity
+  PM_UNIT_REPOSITORY, IUnitRepository, UnitEntity,
+  PM_PAYMENT_REQUEST_REPOSITORY, IPmPaymentRequestRepository
 } from '../../../../domains/pm/IPropertyRepository';
+import { PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository } from '../../../../domains/payments/payment.repository';
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../../domains/pm/property-manager.repository';
 import { S3Service } from '../../../../shared/infrastructure/common/s3/s3.service';
 import { EmailService } from '../../../../shared/infrastructure/email/email.service';
@@ -18,6 +21,7 @@ export interface SendDocumentDto {
   documentType: string;
   recipientName: string;
   recipientEmail: string;
+  paymentRequestUuid?: string;
 }
 
 @Injectable()
@@ -31,6 +35,11 @@ export class SendDocumentUseCase {
     private readonly unitRepo: IUnitRepository,
     @Inject(PROPERTY_MANAGER_REPOSITORY)
     private readonly pmRepo: PropertyManagerRepository,
+    @Inject(PM_PAYMENT_REQUEST_REPOSITORY)
+    private readonly pmPaymentRepo: IPmPaymentRequestRepository,
+    @Inject(PAYMENT_REQUEST_REPOSITORY)
+    private readonly corePaymentRepo: IPaymentRequestRepository,
+    private readonly configService: ConfigService,
     private readonly s3Service: S3Service,
     private readonly emailService: EmailService,
   ) {}
@@ -79,7 +88,23 @@ export class SendDocumentUseCase {
       return formatDate(end);
     };
 
-    // 2. Perform Placeholder Replacement
+    let paymentLink = '__________';
+    if (data.paymentRequestUuid) {
+      try {
+        const pmPR = await this.pmPaymentRepo.findByUuid(data.paymentRequestUuid);
+        if (pmPR && pmPR.paymentRequestId) {
+          const corePR = await this.corePaymentRepo.findById(pmPR.paymentRequestId);
+          if (corePR) {
+            const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+            const baseUrl = frontendUrl ? frontendUrl?.split(',')[0]?.trim() : 'https://upward.goodtenants.io';
+            paymentLink = `${baseUrl}/pay/${corePR.uuid}`;
+          }
+        }
+      } catch (err) {
+        console.error('Failed to resolve payment link for document:', err);
+      }
+    }
+
     const placeholders: Record<string, string> = {
       '[Recipient Name]': data.recipientName || (tenant ? `${tenant.firstName} ${tenant.lastName}` : '__________'),
       '[Tenant Name]': tenant ? `${tenant.firstName} ${tenant.lastName}` : (data.recipientName || '__________'),
@@ -102,6 +127,8 @@ export class SendDocumentUseCase {
       '[Date]': formatDate(new Date()),
       '[CurrentDate]': formatDate(new Date()),
       '[ManagerName]': pm ? `${pm.firstName} ${pm.lastName}` : 'The Property Manager',
+      '[PaymentLink]': paymentLink,
+      '[Payment Link]': paymentLink,
     };
 
     Object.entries(placeholders).forEach(([tag, value]) => {
