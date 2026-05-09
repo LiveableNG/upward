@@ -133,7 +133,7 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
             <button type="button" className="btn btn--secondary" onClick={onClose} style={{ borderRadius: 12, padding: '12px 32px' }}>
               Cancel
             </button>
-            <button type="submit" className="btn btn--primary" disabled={isPending} style={{ borderRadius: 12, padding: '12px 40px', background: 'var(--dark)' }}>
+            <button type="submit" className="btn btn--primary" disabled={isPending} style={{ borderRadius: 12, padding: '12px 40px', background: 'var(--forest)' }}>
               {isPending ? 'Saving...' : 'Save Changes'}
             </button>
           </div>

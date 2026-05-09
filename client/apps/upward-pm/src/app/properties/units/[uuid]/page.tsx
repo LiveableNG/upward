@@ -251,16 +251,16 @@ function UnitDetailContent() {
           </button>
           
           <div className="unit-detail__actions" style={{ position: 'relative', display: 'flex', gap: 12 }}>
-            <button className="btn btn--primary" onClick={() => setIsEditModalOpen(true)} style={{ borderRadius: 100, background: 'var(--dark)', color: 'white', border: 'none' }}>
+            <button className="btn btn--primary" onClick={() => setIsEditModalOpen(true)} style={{ borderRadius: 100, background: 'var(--forest)', color: 'white', border: 'none' }}>
               <Edit size={16} style={{ marginRight: 6 }} color="white" /> Edit Unit
             </button>
             
             <button 
-              className="btn btn--secondary btn--icon" 
+              className="btn btn--secondary" 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              style={{ borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
             >
-              <MoreVertical size={20} />
+              <MoreVertical size={20} color="var(--text)" />
             </button>
 
             {isMenuOpen && (
