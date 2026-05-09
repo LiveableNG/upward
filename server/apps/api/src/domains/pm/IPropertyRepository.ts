@@ -86,7 +86,7 @@ export interface RentPaymentEntity {
   reference: string | null;
   status: string;
   notes: string | null;
-  tenantId?: number;
+  tenantId?: number | null;
   tenant?: { firstName: string; lastName: string };
 }
 
