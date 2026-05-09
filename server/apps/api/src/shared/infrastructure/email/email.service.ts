@@ -146,8 +146,9 @@ export class EmailService {
     html: string
     type: string
     sessionId?: string
+    attachments?: Array<{ filename: string; content: Buffer }>
   }) {
-    const { userId, email, subject, text, html, type, sessionId } = params
+    const { userId, email, subject, text, html, type, sessionId, attachments } = params
     const domain = this.configService.get<string>('MAILGUN_DOMAIN')
     if (!domain) {
       this.logger.error('MAILGUN_DOMAIN not configured')
@@ -164,7 +165,7 @@ export class EmailService {
 
     while (retries < this.MAX_RETRIES && !success) {
       try {
-        const response = await this.mg.messages.create(domain, {
+        const mailData: any = {
           from,
           to: [email],
           subject,
@@ -172,7 +173,16 @@ export class EmailService {
           html,
           'h:List-Unsubscribe': `<https://upward.goodtenants.io/unsubscribe?email=${email}>`,
           'h:List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-        })
+        }
+
+        if (attachments && attachments.length > 0) {
+          mailData.attachment = attachments.map(a => ({
+            filename: a.filename,
+            data: a.content
+          }));
+        }
+
+        const response = await this.mg.messages.create(domain, mailData)
         success = true
         mailgunId = response.id
         this.logger.log(`Email ${type} sent to ${email} (Attempt ${retries + 1})`)

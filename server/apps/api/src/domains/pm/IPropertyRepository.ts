@@ -186,6 +186,6 @@ export interface IPmDocumentRepository {
   // Sent Documents
   findSentDocumentsByPmId(pmId: number): Promise<SentDocumentEntity[]>;
   findSentDocumentByUuid(uuid: string): Promise<SentDocumentEntity | null>;
-  saveSentDocument(data: Omit<SentDocumentEntity, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<SentDocumentEntity>;
+  saveSentDocument(data: Omit<SentDocumentEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<SentDocumentEntity>;
 }
 

@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Patch, Body, UseGuards, Request, Inject, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, UseGuards, Request, Inject, UnauthorizedException, Res } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
 import { GetPmDocumentsUseCase } from '../../../application/pm/use-cases/documents/get-pm-documents.use-case';
 import { SaveDocumentTemplateUseCase, SaveDocumentTemplateDto } from '../../../application/pm/use-cases/documents/save-document-template.use-case';
 import { SendDocumentUseCase, SendDocumentDto } from '../../../application/pm/use-cases/documents/send-document.use-case';
+import { GenerateDocumentPdfUseCase } from '../../../application/pm/use-cases/documents/generate-document-pdf.use-case';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 
 @Controller('pm/documents')
@@ -12,6 +13,7 @@ export class PmDocumentController {
     private readonly getDocumentsUseCase: GetPmDocumentsUseCase,
     private readonly saveTemplateUseCase: SaveDocumentTemplateUseCase,
     private readonly sendDocumentUseCase: SendDocumentUseCase,
+    private readonly generatePdfUseCase: GenerateDocumentPdfUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -39,5 +41,26 @@ export class PmDocumentController {
   async sendDocument(@Request() req: any, @Body() data: SendDocumentDto) {
     const pmId = await this.getPmId(req);
     return this.sendDocumentUseCase.execute(pmId, data);
+  }
+
+  @Post('generate-pdf')
+  async generatePdf(@Body() data: { content: string }, @Res() res: any) {
+    const buffer = await this.generatePdfUseCase.execute(data.content);
+    
+    // Check if it's Fastify or Express response
+    if (typeof res.set === 'function') {
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment; filename=document.pdf',
+        'Content-Length': buffer.length,
+      });
+      res.send(buffer);
+    } else {
+      // Fastify style
+      res.header('Content-Type', 'application/pdf');
+      res.header('Content-Disposition', 'attachment; filename=document.pdf');
+      res.header('Content-Length', buffer.length);
+      res.send(buffer);
+    }
   }
 }

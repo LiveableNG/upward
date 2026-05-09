@@ -96,6 +96,11 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       return {} as T
     }
 
+    const contentType = res.headers.get('content-type')
+    if (contentType?.includes('application/pdf')) {
+      return (await res.blob()) as any
+    }
+
     try {
       return await res.json()
     } catch (err) {

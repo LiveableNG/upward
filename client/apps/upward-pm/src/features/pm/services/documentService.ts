@@ -40,5 +40,9 @@ export const documentService = {
 
   sendDocument: async (data: any) => {
     return api.post('/pm/documents/send', data);
+  },
+  
+  generatePdf: async (content: string) => {
+    return api.post<Blob>('/pm/documents/generate-pdf', { content });
   }
 };

@@ -88,8 +88,22 @@ export class S3Service {
       await this.s3Client.send(command)
     } catch (error) {
       console.error('Error deleting object from S3:', error)
-      // We don't throw here to avoid failing the DB delete if S3 delete fails for some reason
-      // but ideally we should have a cleanup job.
+    }
+  }
+
+  async getFileContent(key: string): Promise<string> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      })
+
+      const response = await this.s3Client.send(command)
+      const content = await response.Body?.transformToString()
+      return content || ''
+    } catch (error) {
+      console.error('Error reading file from S3:', error)
+      throw new InternalServerErrorException('Could not read document from storage')
     }
   }
 }
