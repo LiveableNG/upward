@@ -103,13 +103,73 @@ export const TenantDetailView: React.FC = () => {
           <ChevronLeft size={18} /> Back
         </button>
         
-        <button 
-          className="btn btn--primary" 
-          style={{ borderRadius: 100, padding: '10px 24px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}
-          onClick={() => setIsEditModalOpen(true)}
-        >
-          <Edit size={16} /> Edit Tenant
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {isOnUpward ? (
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 6, 
+              color: 'var(--forest)', 
+              background: 'var(--forest-faint)', 
+              padding: '8px 16px', 
+              borderRadius: 100,
+              fontSize: 12,
+              fontWeight: 700
+            }}>
+              <CheckCircle2 size={16} />
+              ON UPWARD
+            </div>
+          ) : tenant.inviteStatus === 'PENDING' || tenant.inviteStatus === 'PROCESSING' ? (
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 6, 
+              color: 'var(--clay)', 
+              background: 'var(--clay-faint)', 
+              padding: '8px 16px', 
+              borderRadius: 100,
+              fontSize: 12,
+              fontWeight: 700
+            }}>
+              <Loader2 size={16} className="animate-spin" />
+              PROCESSING
+            </div>
+          ) : (
+            <button 
+              className="btn"
+              onClick={handleInvite}
+              disabled={inviteTenant.isPending}
+              style={{ 
+                fontSize: 13, 
+                padding: '10px 24px',
+                borderRadius: 100,
+                background: tenant.inviteSentAt ? 'var(--ivory-dark)' : 'var(--forest)',
+                color: tenant.inviteSentAt ? 'var(--text-muted)' : 'white',
+                border: tenant.inviteSentAt ? '1px solid var(--border)' : 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}
+            >
+              {inviteTenant.isPending ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <>
+                  <Send size={16} />
+                  {tenant.inviteSentAt ? 'Remind' : 'Send Invite'}
+                </>
+              )}
+            </button>
+          )}
+
+          <button 
+            className="btn btn--secondary" 
+            style={{ borderRadius: 100, padding: '10px 24px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}
+            onClick={() => setIsEditModalOpen(true)}
+          >
+            <Edit size={16} /> Edit Tenant
+          </button>
+        </div>
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 40, alignItems: 'start' }}>

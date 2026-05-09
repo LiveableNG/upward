@@ -86,6 +86,8 @@ export interface RentPaymentEntity {
   reference: string | null;
   status: string;
   notes: string | null;
+  tenantId?: number;
+  tenant?: { firstName: string; lastName: string };
 }
 
 export interface IUnitRepository {
@@ -100,6 +102,7 @@ export interface IUnitRepository {
   // Rent Payments
   getRentPayments(unitUuid: string): Promise<RentPaymentEntity[]>;
   addRentPayment(unitUuid: string, data: Omit<RentPaymentEntity, 'id' | 'uuid' | 'unitId'>): Promise<RentPaymentEntity>;
+  updateRentPayment(paymentUuid: string, data: Partial<Omit<RentPaymentEntity, 'id' | 'uuid' | 'unitId'>>): Promise<RentPaymentEntity>;
 }
 
 export const PM_TENANT_REPOSITORY = Symbol('PM_TENANT_REPOSITORY');
@@ -132,6 +135,7 @@ export interface PmPaymentRequestEntity {
   minAmount: number | null;
   rentStartDate: Date | null;
   rentEndDate: Date | null;
+  rentType: string | null;
   createdAt: Date;
   updatedAt: Date;
   

@@ -154,10 +154,18 @@ export class PrismaPmUnitRepository implements IUnitRepository {
   }
 
   async getRentPayments(unitUuid: string): Promise<RentPaymentEntity[]> {
-    return this.prisma.upward_pm_rent_payment.findMany({
+    const payments = await this.prisma.upward_pm_rent_payment.findMany({
       where: { unit: { uuid: unitUuid } },
+      include: { tenant: true },
       orderBy: { paymentDate: 'desc' }
     });
+    return payments.map(p => ({
+      ...p,
+      tenant: p.tenant ? {
+        firstName: p.tenant.firstNameEncrypted ? this.encryption.decrypt(p.tenant.firstNameEncrypted) : '',
+        lastName: p.tenant.lastNameEncrypted ? this.encryption.decrypt(p.tenant.lastNameEncrypted) : '',
+      } : undefined
+    }));
   }
 
   async addRentPayment(unitUuid: string, data: any): Promise<RentPaymentEntity> {
@@ -172,5 +180,26 @@ export class PrismaPmUnitRepository implements IUnitRepository {
         unitId: unit.id
       }
     });
+  }
+  
+  async updateRentPayment(paymentUuid: string, data: any): Promise<RentPaymentEntity> {
+    const payment = await this.prisma.upward_pm_rent_payment.update({
+      where: { uuid: paymentUuid },
+      data: {
+        ...data,
+        paymentDate: data.paymentDate ? new Date(data.paymentDate) : undefined,
+        periodStart: data.periodStart !== undefined ? (data.periodStart ? new Date(data.periodStart) : null) : undefined,
+        periodEnd: data.periodEnd !== undefined ? (data.periodEnd ? new Date(data.periodEnd) : null) : undefined,
+      },
+      include: { tenant: true }
+    });
+
+    return {
+      ...payment,
+      tenant: payment.tenant ? {
+        firstName: payment.tenant.firstNameEncrypted ? this.encryption.decrypt(payment.tenant.firstNameEncrypted) : '',
+        lastName: payment.tenant.lastNameEncrypted ? this.encryption.decrypt(payment.tenant.lastNameEncrypted) : '',
+      } : undefined
+    };
   }
 }

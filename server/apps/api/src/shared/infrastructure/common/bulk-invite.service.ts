@@ -2,6 +2,7 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { BULK_INVITE_REPOSITORY, IBulkInviteRepository, BulkInvite } from '../../../domains/pm/IBulkInviteRepository';
 import { InviteTenantUseCase } from '../../../application/pm/use-cases/tenants/invite-tenant.use-case';
+import { PM_TENANT_REPOSITORY, ITenantRepository } from '../../../domains/pm/IPropertyRepository';
 
 @Injectable()
 export class BulkInviteService {
@@ -11,6 +12,8 @@ export class BulkInviteService {
   constructor(
     @Inject(BULK_INVITE_REPOSITORY)
     private readonly bulkInviteRepo: IBulkInviteRepository,
+    @Inject(PM_TENANT_REPOSITORY)
+    private readonly tenantRepo: ITenantRepository,
     private readonly inviteTenantUseCase: InviteTenantUseCase,
   ) {}
 
@@ -71,6 +74,16 @@ export class BulkInviteService {
           retries: item.retries + 1,
           updatedAt: new Date()
         });
+        
+        // Update tenant status to FAILED so PM can see it failed and retry manually
+        try {
+          await this.tenantRepo.update(item.tenantUuid, {
+            inviteStatus: 'FAILED',
+          });
+        } catch (e: any) {
+          this.logger.error(`Failed to update tenant status for ${item.tenantUuid}`, e.message);
+        }
+        
         failedCount++;
       }
 

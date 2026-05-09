@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import {
   Mail,
@@ -12,9 +12,12 @@ import {
   Eye,
   EyeOff,
   Briefcase,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react'
 import { useSignup } from '../hooks/useSignup'
 import { useRequestOTP, useVerifyOTP, useOtpLogin } from '../hooks/useOtp'
+import { checkEmail } from '../services/authService'
 
 export const SignupForm = () => {
   const [stage, setStage] = useState<'info' | 'otp' | 'success'>('info')
@@ -40,6 +43,31 @@ export const SignupForm = () => {
   const verifyOtpMutation = useVerifyOTP()
   const otpLoginMutation = useOtpLogin()
 
+  const [emailExists, setEmailExists] = useState(false)
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false)
+  const emailCheckTimeout = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    setEmailExists(false)
+    if (formData.email && formData.email.includes('@') && formData.email.length > 5) {
+      if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
+      emailCheckTimeout.current = setTimeout(async () => {
+        setIsCheckingEmail(true)
+        try {
+          const res = await checkEmail(formData.email)
+          setEmailExists(res.exists)
+        } catch (err) {
+          console.error('Email check failed', err)
+        } finally {
+          setIsCheckingEmail(false)
+        }
+      }, 800)
+    }
+    return () => {
+      if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
+    }
+  }, [formData.email])
+
   const loading =
     signupMutation.isPending ||
     requestOtpMutation.isPending ||
@@ -48,6 +76,8 @@ export const SignupForm = () => {
 
   const handleInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (emailExists) return
 
     if (!formData.pmType) {
       setPasswordError('Please select your role')
@@ -271,18 +301,36 @@ export const SignupForm = () => {
 
               <input
                 type="email"
-                className="form-input form-input--with-icon"
+                className={`form-input form-input--with-icon ${requestOtpMutation.isError || emailExists ? 'form-input--error' : ''}`}
                 placeholder="segun@company.com"
                 value={formData.email}
-                onChange={(e) =>
+                onChange={(e) => {
+                  if (requestOtpMutation.isError) requestOtpMutation.reset()
                   setFormData({
                     ...formData,
                     email: e.target.value,
                   })
-                }
+                }}
                 required
               />
+              {isCheckingEmail && (
+                <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
+                  <Loader2 size={16} className="animate-spin" />
+                </div>
+              )}
             </div>
+            {(requestOtpMutation.isError || emailExists) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', color: '#ef4444', fontSize: '14px', fontWeight: 500 }}>
+                <AlertCircle size={14} />
+                <span>
+                  {emailExists ? 'This email is already registered.' : (requestOtpMutation.error as any)?.message || 'This email is already registered.'}
+                  {' '}
+                  <Link href="/login" style={{ textDecoration: 'underline', fontWeight: 700, color: 'var(--forest)' }}>
+                    Log in instead?
+                  </Link>
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="form-group">
@@ -410,7 +458,7 @@ export const SignupForm = () => {
           <button
             type="submit"
             className="auth-btn auth-btn--primary"
-            disabled={loading}
+            disabled={loading || emailExists || isCheckingEmail}
           >
             {loading
               ? 'Please wait...'
@@ -427,7 +475,7 @@ export const SignupForm = () => {
         </form>
       ) : (
         <form onSubmit={handleOtpSubmit}>
-          <div className={`otp-group ${verifyOtpMutation.isError || otpLoginMutation.isError ? 'otp-group--error' : ''}`}>
+          <div className={`otp-group ${(verifyOtpMutation.isError || otpLoginMutation.isError) ? 'otp-group--error' : ''}`}>
             {otp.map((digit, i) => (
               <input
                 key={i}
@@ -459,6 +507,21 @@ export const SignupForm = () => {
               />
             ))}
           </div>
+
+          {(verifyOtpMutation.isError || otpLoginMutation.isError) && (
+            <p
+              style={{
+                color: '#ef4444',
+                fontSize: '14px',
+                textAlign: 'center',
+                marginTop: '-24px',
+                marginBottom: '24px',
+                fontWeight: 500,
+              }}
+            >
+              {(verifyOtpMutation.error as any)?.message || (otpLoginMutation.error as any)?.message || 'Invalid verification code'}
+            </p>
+          )}
 
           <button
             type="submit"

@@ -93,6 +93,21 @@ export const TenantTableRow: React.FC<TenantTableRowProps> = ({ tenant, isSelect
               <CheckCircle2 size={14} />
               ON UPWARD
             </div>
+          ) : tenant.inviteStatus === 'PENDING' || tenant.inviteStatus === 'PROCESSING' ? (
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 6, 
+              color: 'var(--clay)', 
+              background: 'var(--clay-faint)', 
+              padding: '6px 12px', 
+              borderRadius: 20,
+              fontSize: 12,
+              fontWeight: 700
+            }}>
+              <Loader2 size={14} className="animate-spin" />
+              PROCESSING
+            </div>
           ) : (
             <button 
               className="btn btn--sm"

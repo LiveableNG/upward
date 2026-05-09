@@ -142,11 +142,33 @@ export class UserPropertyContextDto {
 
   @IsOptional()
   @IsString()
-  bankCode?: string
+  accountNumber?: string
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RentHistoryDto)
+  rentHistory?: RentHistoryDto[]
+}
+
+export class RentHistoryDto {
+  @IsNumber()
+  amount!: number
+
+  @IsDateString()
+  paymentDate!: string
+
+  @IsOptional()
+  @IsDateString()
+  periodStart?: string
+
+  @IsOptional()
+  @IsDateString()
+  periodEnd?: string
 
   @IsOptional()
   @IsString()
-  accountNumber?: string
+  notes?: string
 }
 
 export class InviteContextDto {
@@ -239,6 +261,10 @@ export class ExternalPaymentRequestPayloadDto {
   @IsOptional()
   @IsDateString()
   rentEndDate?: string
+
+  @IsOptional()
+  @IsString()
+  rentType?: string
 }
 
 export class AddPropertyPayloadDto {

@@ -137,6 +137,7 @@ export interface PaymentRequest {
   minAmount?: number
   rentStartDate?: Date
   rentEndDate?: Date
+  rentType?: string
   paidAt?: Date
   reference?: string
   companyName?: string

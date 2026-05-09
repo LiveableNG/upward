@@ -139,6 +139,7 @@ model upward_pm_tenant {
   createdAt          DateTime                    @default(now())
   updatedAt          DateTime                    @updatedAt
   paymentRequests    upward_pm_payment_request[]
+  rentPayments       upward_pm_rent_payment[]
   sentDocuments      upward_pm_sent_document[]
   pm                 upward_property_manager     @relation(fields: [pmId], references: [id], onDelete: Cascade)
   units              upward_pm_unit[]
@@ -162,8 +163,11 @@ model upward_pm_rent_payment {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   unit        upward_pm_unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tenantId    Int?
+  tenant      upward_pm_tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
 
   @@index([unitId])
+  @@index([tenantId])
   @@index([paymentDate])
 }
 
@@ -184,6 +188,7 @@ model upward_pm_payment_request {
   minAmount        Float?
   rentStartDate    DateTime?
   rentEndDate      DateTime?
+  rentType         String?
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
   paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])

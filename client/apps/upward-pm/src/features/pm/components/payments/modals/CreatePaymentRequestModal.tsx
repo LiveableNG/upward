@@ -29,6 +29,7 @@ export function CreatePaymentRequestModal({
   const [rentStartDate, setRentStartDate] = useState<string>('')
   const [rentEndDate, setRentEndDate] = useState<string>('')
   const [description, setDescription] = useState<string>('')
+  const [rentType, setRentType] = useState<string>('ANNUALLY')
   const [allowPartial, setAllowPartial] = useState(false)
   const [minAmount, setMinAmount] = useState<string>('')
   const [lineItems, setLineItems] = useState<{ name: string; amount: string }[]>([
@@ -66,20 +67,41 @@ export function CreatePaymentRequestModal({
       setLineItems(items)
       const total = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
       setAmount(total.toString())
+      const type = unit.rentType?.toUpperCase() || 'ANNUALLY'
+      setRentType(type)
       
-      if (unit.rentStartDate) {
-        setRentStartDate(new Date(unit.rentStartDate).toISOString().split('T')[0])
-      }
-      if (unit.rentDueDate) {
-        setRentEndDate(new Date(unit.rentDueDate).toISOString().split('T')[0])
-        setDueDate(new Date(unit.rentDueDate).toISOString().split('T')[0])
+      // The NEXT cycle starts when the current one ends
+      const startDate = unit.rentDueDate || unit.rentStartDate || new Date()
+      const startDateStr = new Date(startDate).toISOString().split('T')[0]
+      setRentStartDate(startDateStr)
+
+      // Calculate initial end date
+      const endDate = new Date(startDate)
+      if (type === 'MONTHLY') {
+        endDate.setMonth(endDate.getMonth() + 1)
       } else {
-        const date = new Date()
-        date.setDate(date.getDate() + 7)
-        setDueDate(date.toISOString().split('T')[0])
+        endDate.setFullYear(endDate.getFullYear() + 1)
       }
+      const endDateStr = endDate.toISOString().split('T')[0]
+      setRentEndDate(endDateStr)
+      setDueDate(endDateStr)
     }
   }, [unit, existingRequest])
+
+  // Update End Date when Rent Type changes
+  useEffect(() => {
+    if (isEditing || !rentStartDate) return
+    
+    const endDate = new Date(rentStartDate)
+    if (rentType === 'MONTHLY') {
+      endDate.setMonth(endDate.getMonth() + 1)
+    } else {
+      endDate.setFullYear(endDate.getFullYear() + 1)
+    }
+    const endDateStr = endDate.toISOString().split('T')[0]
+    setRentEndDate(endDateStr)
+    setDueDate(endDateStr)
+  }, [rentType, rentStartDate, isEditing])
 
   if (!isOpen || !unit) return null
 
@@ -111,11 +133,13 @@ export function CreatePaymentRequestModal({
   const handleSubmit = () => {
     if (!amount || parseFloat(amount) <= 0) return error('Please enter a valid amount')
     if (!dueDate) return error('Please select a due date')
+    if (!selectedTemplateUuid) return error('Please select a document template')
 
     const paymentContext = {
       unitUuid: unit!.uuid,
       amount: parseFloat(amount),
       dueDate: rentEndDate || dueDate,
+      rentType: lineItems.some(item => item.name === 'Rent') ? rentType : undefined,
       rentStartDate,
       rentEndDate,
       description: description || `Payment request for Unit ${unit!.unitName}`,
@@ -215,27 +239,61 @@ export function CreatePaymentRequestModal({
             </button>
           </div>
         </div>
+        
+        {lineItems.some(item => item.name === 'Rent') && (
+          <div className="form-group" style={{ marginTop: 8, marginBottom: 24 }}>
+            <label className="form-label">Rent Type (Frequency)</label>
+            <select 
+              className="form-input"
+              value={rentType}
+              onChange={(e) => setRentType(e.target.value)}
+              style={{ background: 'var(--surface-hover)', fontWeight: 600, borderRadius: 12 }}
+            >
+              <option value="ANNUALLY">Annually</option>
+              <option value="MONTHLY">Monthly</option>
+            </select>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ color: 'var(--clay)' }}>ℹ️</span> This determines how the next due date is calculated after payment.
+            </p>
+          </div>
+        )}
 
+        <div style={{ 
+          background: 'var(--ivory-dim)', 
+          padding: '12px 16px', 
+          borderRadius: 12, 
+          fontSize: 12, 
+          color: 'var(--text-muted)',
+          marginBottom: 20,
+          borderLeft: '3px solid var(--clay)',
+          lineHeight: 1.6
+        }}>
+          <p style={{ margin: 0 }}>
+            <strong>Cycle Dates:</strong> The <span style={{ color: 'var(--dark)', fontWeight: 600 }}>Start Date</span> is pre-set based on the tenant's current expiration. 
+            The <span style={{ color: 'var(--dark)', fontWeight: 600 }}>End Date</span> is automatically calculated based on your <strong>Rent Type</strong> (Annually/Monthly).
+            Once paid, the tenant's next due date will be updated to the End Date shown below.
+          </p>
+        </div>
+        
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div className="form-group">
             <label className="form-label">Rent Start Date</label>
             <input 
               type="date" 
               value={rentStartDate} 
-              onChange={(e) => setRentStartDate(e.target.value)}
               className="form-input" 
+              readOnly
+              style={{ background: 'var(--ivory-dim)', cursor: 'not-allowed' }}
             />
           </div>
           <div className="form-group">
-            <label className="form-label">Rent End Date (Due Date)</label>
+            <label className="form-label">Rent End Date</label>
             <input 
               type="date" 
               value={rentEndDate} 
-              onChange={(e) => {
-                setRentEndDate(e.target.value)
-                setDueDate(e.target.value)
-              }}
               className="form-input" 
+              readOnly
+              style={{ background: 'var(--ivory-dim)', cursor: 'not-allowed', fontWeight: 600 }}
             />
           </div>
         </div>
@@ -259,6 +317,7 @@ export function CreatePaymentRequestModal({
               onChange={(e) => setDueDate(e.target.value)}
               className="form-input" 
             />
+            <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>When should this payment be settled?</p>
           </div>
         </div>
 
@@ -317,7 +376,7 @@ export function CreatePaymentRequestModal({
 
         <div className="form-group" style={{ marginTop: 24, padding: '20px', background: 'var(--bg)', borderRadius: 16, border: '1px solid var(--border)' }}>
           <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>Follow-up Document (Optional)</span>
+            <span>Follow-up Document</span>
             {selectedTemplateUuid && <span style={{ fontSize: 11, color: 'var(--forest)', fontWeight: 700 }}>Template Selected</span>}
           </label>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>Choose a document template to send along with this payment request.</p>
@@ -327,7 +386,7 @@ export function CreatePaymentRequestModal({
             value={selectedTemplateUuid}
             onChange={(e) => setSelectedTemplateUuid(e.target.value)}
           >
-            <option value="">No document (Direct Email Only)</option>
+            <option value="">Select a document template</option>
             {templates.map((t: any) => (
               <option key={t.uuid} value={t.uuid}>{t.name}</option>
             ))}

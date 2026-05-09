@@ -15,6 +15,7 @@ export interface Property {
   currency: string
   isVerified?: boolean
   isPastTenancy?: boolean
+  rentType?: string
   createdAt: Date
   updatedAt: Date
   company?: { name: string }

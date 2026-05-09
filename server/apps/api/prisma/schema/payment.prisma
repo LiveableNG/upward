@@ -45,6 +45,7 @@ model upward_payment_request {
   minAmount         Float?
   rentStartDate     DateTime?
   rentEndDate       DateTime?
+  rentType          String?
   isManual          Boolean                     @default(false)
   overpayments      upward_overpayment[]
   lineItemRecords   upward_payment_line_item[]

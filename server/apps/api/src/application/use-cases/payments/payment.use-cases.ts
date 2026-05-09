@@ -122,6 +122,9 @@ export class CreateManualPaymentRequestUseCase {
       userPropertyId,
       isManual: true,
       reference: `MNL_${Date.now()}`,
+      rentStartDate: data.metadata?.rentStartDate ? new Date(data.metadata.rentStartDate) : undefined,
+      rentEndDate: data.metadata?.rentEndDate ? new Date(data.metadata.rentEndDate) : undefined,
+      rentType: data.metadata?.rentType,
       companyName: data.landlordDetails?.name || (data.landlordUuid ? (await this.landlordRepo.findByUuid(data.landlordUuid))?.name : undefined),
     })
 
@@ -390,21 +393,29 @@ export class RecordTransactionUseCase {
               await txClient.upward_pm_rent_payment.create({
                 data: {
                   unitId: pmPr.unitId,
+                  tenantId: pmPr.tenantId,
                   amount: paymentAmount,
                   paymentDate: new Date(),
                   method: 'PAYSTACK',
                   status: 'SUCCESS',
                   notes: `Payment for request ${pmPr.uuid.slice(-8)}`,
                   periodStart: pr.dueDate ? new Date(pr.dueDate) : null,
+                  periodEnd: pr.rentEndDate ? new Date(pr.rentEndDate) : null,
                 }
               });
 
               if (newStatus === 'PAID') {
                 const unit = await txClient.upward_pm_unit.findUnique({ where: { id: pmPr.unitId } });
                 if (unit && unit.rentDueDate) {
-                  const newDueDate = new Date(unit.rentDueDate);
-
-                  newDueDate.setFullYear(newDueDate.getFullYear() + 1);
+                  const newDueDate = pmPr.rentEndDate ? new Date(pmPr.rentEndDate) : new Date(unit.rentDueDate);
+                  
+                  if (!pmPr.rentEndDate) {
+                    if (pmPr.rentType === 'MONTHLY') {
+                      newDueDate.setMonth(newDueDate.getMonth() + 1);
+                    } else {
+                      newDueDate.setFullYear(newDueDate.getFullYear() + 1);
+                    }
+                  }
 
                   await txClient.upward_pm_unit.update({
                     where: { id: unit.id },
@@ -678,8 +689,15 @@ export class RecordTransactionUseCase {
               const overpayment = totalRentPaidForProp - totalOwedForProp;
 
               if (prop.rentEndDate) {
-                const newDate = new Date(prop.rentEndDate)
-                newDate.setFullYear(newDate.getFullYear() + 1)
+                const newDate = pr?.rentEndDate ? new Date(pr.rentEndDate) : new Date(prop.rentEndDate)
+                
+                if (!pr?.rentEndDate) {
+                  if (prop.rentType === 'Monthly' || pr?.rentType === 'MONTHLY') {
+                    newDate.setMonth(newDate.getMonth() + 1)
+                  } else {
+                    newDate.setFullYear(newDate.getFullYear() + 1)
+                  }
+                }
                 updateData.rentEndDate = newDate
                 updateData.isPastTenancy = false
 

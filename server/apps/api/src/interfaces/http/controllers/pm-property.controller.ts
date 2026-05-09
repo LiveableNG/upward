@@ -12,6 +12,7 @@ import { UpdateUnitUseCase } from '../../../application/pm/use-cases/update-unit
 import { DeleteUnitUseCase } from '../../../application/pm/use-cases/delete-unit.use-case';
 import { GetUnitPaymentsUseCase } from '../../../application/pm/use-cases/get-unit-payments.use-case';
 import { AddUnitPaymentUseCase } from '../../../application/pm/use-cases/add-unit-payment.use-case';
+import { UpdateRentPaymentUseCase } from '../../../application/pm/use-cases/update-rent-payment.use-case';
 import { GetPropertyImageUploadUrlUseCase } from '../../../application/pm/use-cases/get-property-image-upload-url.use-case';
 import { SyncUnitToUpwardUseCase } from '../../../application/pm/use-cases/units/sync-unit.use-case';
 import { CreatePmPaymentRequestUseCase, CreatePmPaymentRequestDto } from '../../../application/pm/use-cases/payments/create-pm-payment-request.use-case';
@@ -44,6 +45,7 @@ export class PmPropertyController {
     private readonly deleteUnitUseCase: DeleteUnitUseCase,
     private readonly getUnitPaymentsUseCase: GetUnitPaymentsUseCase,
     private readonly addUnitPaymentUseCase: AddUnitPaymentUseCase,
+    private readonly updateRentPaymentUseCase: UpdateRentPaymentUseCase,
     private readonly getPropertyImageUploadUrlUseCase: GetPropertyImageUploadUrlUseCase,
     private readonly syncUnitToUpwardUseCase: SyncUnitToUpwardUseCase,
     private readonly createPmPaymentRequestUseCase: CreatePmPaymentRequestUseCase,
@@ -142,6 +144,12 @@ export class PmPropertyController {
   async addUnitPayment(@Req() req: any, @Param('unitUuid') unitUuid: string, @Body() dto: any) {
     const pmId = await this.getPmId(req);
     return this.addUnitPaymentUseCase.execute(pmId, unitUuid, dto);
+  }
+
+  @Patch('units/:unitUuid/payments/:paymentUuid')
+  async updateUnitPayment(@Req() req: any, @Param('paymentUuid') paymentUuid: string, @Body() dto: any) {
+    const pmId = await this.getPmId(req);
+    return this.updateRentPaymentUseCase.execute(pmId, paymentUuid, dto);
   }
 
   @Post('units/:unitUuid/sync-to-upward')

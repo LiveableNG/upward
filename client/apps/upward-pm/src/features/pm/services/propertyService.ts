@@ -55,6 +55,23 @@ export interface Unit {
   userPropertyUuid: string | null;
 }
 
+export interface RentPayment {
+  id: number;
+  uuid: string;
+  unitId: number;
+  amount: number;
+  paymentDate: string;
+  periodStart: string | null;
+  periodEnd: string | null;
+  method: string;
+  status: string;
+  notes: string | null;
+  tenant?: {
+    firstName: string;
+    lastName: string;
+  };
+}
+
 export const getProperties = () => {
   return request<Property[]>('/pm/properties')
 }
@@ -106,12 +123,19 @@ export const deleteUnit = (uuid: string) => {
 }
 
 export const getUnitPayments = (unitUuid: string) => {
-  return request<any[]>(`/pm/units/${unitUuid}/payments`)
+  return request<RentPayment[]>(`/pm/units/${unitUuid}/payments`)
 }
 
 export const addUnitPayment = (unitUuid: string, data: any) => {
   return request<any>(`/pm/units/${unitUuid}/payments`, {
     method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
+export const updateUnitPayment = (unitUuid: string, paymentUuid: string, data: any) => {
+  return request<any>(`/pm/units/${unitUuid}/payments/${paymentUuid}`, {
+    method: 'PATCH',
     body: JSON.stringify(data)
   })
 }

@@ -130,6 +130,7 @@ import { SendLandlordReportUseCase } from './pm/use-cases/send-landlord-report.u
 import { GetLandlordReportsUseCase } from './pm/use-cases/get-landlord-reports.use-case'
 import { GetLandlordReportUseCase } from './pm/use-cases/get-landlord-report.use-case'
 import { PmBulkRentReminderUseCase } from './pm/use-cases/pm-bulk-rent-reminder.use-case'
+import { UpdateRentPaymentUseCase } from './pm/use-cases/update-rent-payment.use-case'
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
 
 import { RejectCredibilityRequestUseCase } from './use-cases/external/reject-credibility-request.use-case'
@@ -323,6 +324,7 @@ const UseCases = [
   GetLandlordReportsUseCase,
   GetLandlordReportUseCase,
   PmBulkRentReminderUseCase,
+  UpdateRentPaymentUseCase,
   CreateManualPaymentRequestUseCase,
   RequestDataDeletionUseCase,
   SubmitFeedbackUseCase,

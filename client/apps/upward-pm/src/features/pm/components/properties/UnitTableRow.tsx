@@ -1,6 +1,6 @@
 import React from 'react'
 import Link from 'next/link'
-import { User, CreditCard } from 'lucide-react'
+import { User, CreditCard, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Unit } from '../../services/propertyService'
 import { PmPaymentRequest } from '../../services/paymentService'
@@ -82,19 +82,36 @@ export const UnitTableRow: React.FC<UnitTableRowProps> = ({
       <td className="col-actions">
         <div className="action-buttons" style={{ justifyContent: 'flex-end' }}>
           {unit.status === 'OCCUPIED' && unit.tenant?.email && (
-            <button 
-              className={cn('btn btn--sm', unit.isSynced ? 'btn--secondary' : 'btn--disabled')}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (unit.isSynced) onRequestPayment?.(unit);
-              }}
-              title={!unit.isSynced ? "Sync required to request payment" : ""}
-              style={{ fontSize: '12px', padding: '6px 12px' }}
-            >
-              <CreditCard size={12} style={{ marginRight: 4 }} />
-              {unit.isSynced ? 'Request' : 'Not Synced'}
-            </button>
+            unit.tenant.inviteStatus === 'PENDING' || unit.tenant.inviteStatus === 'PROCESSING' ? (
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 6, 
+                color: 'var(--clay)', 
+                background: 'var(--clay-faint)', 
+                padding: '6px 12px', 
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 700
+              }}>
+                <Loader2 size={12} className="animate-spin" />
+                Processing...
+              </div>
+            ) : (
+              <button 
+                className={cn('btn btn--sm', unit.isSynced ? 'btn--secondary' : 'btn--disabled')}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (unit.isSynced) onRequestPayment?.(unit);
+                }}
+                title={!unit.isSynced ? "Sync required to request payment" : ""}
+                style={{ fontSize: '12px', padding: '6px 12px' }}
+              >
+                <CreditCard size={12} style={{ marginRight: 4 }} />
+                {unit.isSynced ? 'Request' : 'Not Synced'}
+              </button>
+            )
           )}
           <Link href={`/properties/units/${unit.uuid}`} className="btn btn--secondary btn--sm" style={{ fontSize: '12px', padding: '6px 12px' }}>
             View

@@ -19,6 +19,7 @@ model upward_user_property {
   pmUnitId               Int?
   rentReminderEnabled    Boolean                      @default(false)
   rentReminderDaysBefore Int?                         @db.SmallInt
+  rentType               String                       @default("Annually")
   subaccountId           Int?
   paymentRequests        upward_payment_request[]
   infractions            upward_property_infraction[]

@@ -105,6 +105,7 @@ export class CreateExternalPaymentRequestUseCase {
         rentEndDate: payload.rentEndDate ? new Date(payload.rentEndDate) : undefined,
         allowPartial: payload.allowPartial ?? paymentRequest.allowPartial,
         minAmount: payload.minAmount || paymentRequest.minAmount,
+        rentType: payload.rentType || paymentRequest.rentType,
         subaccountId: subaccountId,
       })
 
@@ -138,6 +139,7 @@ export class CreateExternalPaymentRequestUseCase {
         subaccountId: subaccountId,
         allowPartial: payload.allowPartial ?? false,
         minAmount: payload.minAmount || undefined,
+        rentType: payload.rentType,
       })
 
       // Create line item records

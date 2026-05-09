@@ -131,6 +131,7 @@ export class SyncUnitToUpwardUseCase {
             isVerified: true,
             isPastTenancy: false,
             amountRemaining: unit.rentAmount,
+            rentType: unit.rentType,
             subaccountId: subaccountId || existingUserProperty.subaccountId,
           }
         });
@@ -162,6 +163,7 @@ export class SyncUnitToUpwardUseCase {
             amountRemaining: unit.rentAmount,
             pmId,
             pmUnitId: unit.id,
+            rentType: unit.rentType,
             subaccountId: subaccountId,
           }
         });
@@ -175,6 +177,33 @@ export class SyncUnitToUpwardUseCase {
           userPropertyUuid: userProperty.uuid,
         }
       });
+
+      const pmPayments = await tx.upward_pm_rent_payment.findMany({
+        where: { unitId: unit.id },
+        orderBy: { paymentDate: 'asc' }
+      });
+
+      if (pmPayments.length > 0) {
+        this.logger.log(`Syncing ${pmPayments.length} historical payments for unit ${unit.id}`);
+        
+        for (const p of pmPayments) {
+          // Check if a similar cycle already exists to prevent duplicates on re-sync (though isSynced check prevents this mostly)
+          await tx.upward_rent_cycle.create({
+            data: {
+              userId: upwardUser.id!,
+              userPropertyId: userProperty.id,
+              amountOwed: p.amount, // Using the paid amount as owed for historical records
+              amountPaid: p.amount,
+              currency: unit.currency,
+              dueDate: p.periodEnd || p.paymentDate,
+              paidAt: p.paymentDate,
+              status: 'PAID',
+              description: p.notes || 'Historical rent payment (PM Sync)',
+              source: 'PM_SYNC',
+            }
+          });
+        }
+      }
 
       // 3. Create Notification for Tenant
       await this.notificationRepo.createNotification({

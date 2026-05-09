@@ -94,6 +94,17 @@ export class BulkCreateUnitsUseCase {
       });
 
       if (u.rentAmountPaid && u.rentAmountPaid > 0) {
+        let periodEnd: Date | null = null;
+        if (newUnit.rentStartDate) {
+          periodEnd = new Date(newUnit.rentStartDate);
+          if (newUnit.rentType === 'Monthly') {
+            periodEnd.setMonth(periodEnd.getMonth() + 1);
+          } else {
+            periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+          }
+          periodEnd.setDate(periodEnd.getDate() - 1);
+        }
+
         await this.unitRepository.addRentPayment(newUnit.uuid, {
           amount: u.rentAmountPaid,
           paymentDate: new Date(),
@@ -101,7 +112,8 @@ export class BulkCreateUnitsUseCase {
           status: 'SUCCESS',
           method: 'Other',
           notes: 'Imported initial payment',
-          periodEnd: null,
+          periodEnd: periodEnd,
+          tenantId: tenantId,
           reference: null
         });
       }
