@@ -25,6 +25,7 @@ interface AddUnitModalProps {
     tenantLastName: string;
     tenantEmail: string;
     tenantPhone: string;
+    unitType: string;
     tenantUuid?: string;
   };
   setFormData: (data: any) => void;
@@ -93,24 +94,60 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
           </select>
         </div>
 
-        <div className="form-group">
-          <label className="form-label">Unit Name / Number</label>
-          <input
-            type="text"
-            className="form-input"
-            placeholder="e.g. Apt 4B"
-            value={formData.unitName}
-            onChange={e => setFormData({ ...formData, unitName: e.target.value })}
-            style={{ 
-              borderColor: isDuplicateUnit ? 'var(--error)' : undefined,
-              background: isDuplicateUnit ? 'var(--error-bg)' : undefined
-            }}
-          />
-          {isDuplicateUnit && (
-            <p style={{ color: 'var(--error)', fontSize: 11, marginTop: 4, fontWeight: 600 }}>
-              This unit name already exists in the selected property.
-            </p>
-          )}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="form-group">
+            <label className="form-label">Unit Name / Number</label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="e.g. Apt 4B"
+              value={formData.unitName}
+              onChange={e => setFormData({ ...formData, unitName: e.target.value })}
+              style={{ 
+                borderColor: isDuplicateUnit ? 'var(--error)' : undefined,
+                background: isDuplicateUnit ? 'var(--error-bg)' : undefined
+              }}
+            />
+            {isDuplicateUnit && (
+              <p style={{ color: 'var(--error)', fontSize: 11, marginTop: 4, fontWeight: 600 }}>
+                This unit name already exists in the selected property.
+              </p>
+            )}
+          </div>
+          <div className="form-group">
+            <label className="form-label">Unit Type</label>
+            <select
+              className="form-input"
+              value={formData.unitType}
+              onChange={e => setFormData({ ...formData, unitType: e.target.value })}
+            >
+              <option value="">Select an option</option>
+              <option value="Flat / Apartment">Flat / Apartment</option>
+              <option value="Duplex">Duplex</option>
+              <option value="Shared Apartment">Shared Apartment</option>
+              <option value="Studio">Studio</option>
+              <option value="Bungalow">Bungalow</option>
+              <option value="4 Bedroom Semi-detached Duplex">4 Bedroom Semi-detached Duplex</option>
+              <option value="Detached Duplex">Detached Duplex</option>
+              <option value="2 Bedroom Flat">2 Bedroom Flat</option>
+              <option value="2 Bedroom Serviced Flat">2 Bedroom Serviced Flat</option>
+              <option value="3 Bedroom Flat">3 Bedroom Flat</option>
+              <option value="3 Bedroom Serviced Flat">3 Bedroom Serviced Flat</option>
+              <option value="2 Bedroom Apartment">2 Bedroom Apartment</option>
+              <option value="Studio / Self Contained Flat">Studio / Self Contained Flat</option>
+              <option value="Mini Flat / 1 Bedroom Flat">Mini Flat / 1 Bedroom Flat</option>
+              <option value="Flats">Flats</option>
+              <option value="Terrace House">Terrace House</option>
+              <option value="Town House">Town House</option>
+              <option value="Detached House">Detached House</option>
+              <option value="Semi-detached Duplex">Semi-detached Duplex</option>
+              <option value="Semi-detached House">Semi-detached House</option>
+              <option value="Shortlet Apartment">Shortlet Apartment</option>
+              <option value="Office Space">Office Space</option>
+              <option value="Studio Room / Self-contain">Studio Room / Self-contain</option>
+              <option value="Block Of Flats">Block Of Flats</option>
+            </select>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

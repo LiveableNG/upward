@@ -83,7 +83,8 @@ export function PropertiesView() {
   const [unitForm, setUnitForm] = useState({
     unitName: '', tenantFirstName: '', tenantLastName: '', tenantEmail: '',
     tenantPhone: '', rentAmount: '', rentStartDate: '', rentDueDate: '',
-    rentType: 'Monthly', managementFee: '', notes: '', tenantUuid: ''
+    rentType: 'Monthly', managementFee: '', notes: '', tenantUuid: '',
+    unitType: ''
   })
 
   // Handlers
@@ -118,7 +119,8 @@ export function PropertiesView() {
         setUnitForm({ 
           unitName: '', tenantFirstName: '', tenantLastName: '', tenantEmail: '',
           tenantPhone: '', rentAmount: '', rentStartDate: '', rentDueDate: '',
-          rentType: 'Monthly', managementFee: '', notes: '', tenantUuid: ''
+          rentType: 'Monthly', managementFee: '', notes: '', tenantUuid: '',
+          unitType: ''
         })
         setTargetPropertyUuid('')
       },
