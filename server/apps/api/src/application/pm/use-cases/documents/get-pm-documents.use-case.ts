@@ -15,7 +15,7 @@ const DEFAULT_TEMPLATES = [
           <p><strong>To:</strong> [Tenant Name]</p>
         </div>
         <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-        <p>Dear Tenant,</p>
+        <p>Dear [TenantFirstName],</p>
         <p>This is to inform you of a rent review for your unit at <strong>[UnitName]</strong>, <strong>[PropertyName]</strong>.</p>
         <p>As part of our commitment to maintaining high standards of property management and in line with current market trends, we have conducted a review of your current rental agreement.</p>
         <p>Your current rent of <strong>[RentAmount]</strong> is being reviewed to ensure it aligns with the value and services provided at the property.</p>
@@ -40,7 +40,7 @@ const DEFAULT_TEMPLATES = [
           <p><strong>To:</strong> [Tenant Name]</p>
         </div>
         <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-        <p>Dear Tenant,</p>
+        <p>Dear [TenantFirstName],</p>
         <p>Your lease is due for renewal for your unit at <strong>[UnitName]</strong>, <strong>[PropertyName]</strong>.</p>
         <p>We have enjoyed having you as a tenant and would like to offer you a renewal of your tenancy agreement. Your current lease is set to expire on <strong>[RentEndDate]</strong>.</p>
         <p>Please contact our office at your earliest convenience to discuss the terms of your renewal and to ensure a seamless transition into your next lease term.</p>

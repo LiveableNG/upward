@@ -28,18 +28,18 @@ export class PrismaPmDocumentRepository implements IPmDocumentRepository {
 
   async saveTemplate(data: any): Promise<DocumentTemplateEntity> {
     const { uuid, ...rest } = data;
-    if (uuid) {
-      const template = await this.prisma.upward_pm_document_template.update({
-        where: { uuid },
-        data: rest,
-      });
-      return this.mapTemplate(template);
-    } else {
-      const template = await this.prisma.upward_pm_document_template.create({
-        data: rest,
-      });
-      return this.mapTemplate(template);
-    }
+    
+    const template = await this.prisma.upward_pm_document_template.upsert({
+      where: { uuid: uuid || 'new' },
+      update: rest,
+      create: {
+        ...rest,
+        // If uuid is a system one, we want a new real uuid, but if it's a real one we're re-creating, keep it
+        uuid: (uuid && !uuid.startsWith('system-')) ? uuid : undefined 
+      },
+    });
+    
+    return this.mapTemplate(template);
   }
 
   async deleteTemplate(uuid: string): Promise<boolean> {

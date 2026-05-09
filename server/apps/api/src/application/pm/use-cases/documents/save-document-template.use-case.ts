@@ -19,7 +19,8 @@ export class SaveDocumentTemplateUseCase {
   ) {}
 
   async execute(pmId: number, data: SaveDocumentTemplateDto) {
-    const uuid = data.uuid || crypto.randomUUID();
+    const isSystemTemplate = data.uuid?.startsWith('system-');
+    const uuid = (!data.uuid || isSystemTemplate) ? crypto.randomUUID() : data.uuid;
     const s3Key = `pm-docs/templates/pm_${pmId}/${uuid}.html`;
 
     await this.s3Service.uploadBuffer(
