@@ -20,6 +20,13 @@ interface DocumentEditorViewProps {
   initialContent?: string
   initialSubject?: string
   initialTemplate?: any
+  initialRecipient?: {
+    type: 'existing' | 'new'
+    uuid?: string
+    name?: string
+    email?: string
+    deliveryMode?: 'pdf' | 'email'
+  }
   onBack: () => void
 }
 
@@ -27,6 +34,7 @@ export function DocumentEditorView({
   initialContent = '', 
   initialSubject = '', 
   initialTemplate,
+  initialRecipient,
   onBack 
 }: DocumentEditorViewProps) {
   const { success, error } = useToast()
@@ -35,10 +43,13 @@ export function DocumentEditorView({
   
   const [content, setContent] = useState(initialTemplate?.content || initialContent)
   const [subject, setSubject] = useState(initialTemplate?.name || initialSubject)
-  const [recipientType, setRecipientType] = useState<'existing' | 'new'>('existing')
-  const [selectedTenantUuid, setSelectedTenantUuid] = useState('')
-  const [newRecipient, setNewRecipient] = useState({ name: '', email: '' })
-  const [deliveryMode, setDeliveryMode] = useState<'pdf' | 'email'>('pdf')
+  const [recipientType, setRecipientType] = useState<'existing' | 'new'>(initialRecipient?.type || 'existing')
+  const [selectedTenantUuid, setSelectedTenantUuid] = useState(initialRecipient?.uuid || '')
+  const [newRecipient, setNewRecipient] = useState({ 
+    name: initialRecipient?.name || '', 
+    email: initialRecipient?.email || '' 
+  })
+  const [deliveryMode, setDeliveryMode] = useState<'pdf' | 'email'>(initialRecipient?.deliveryMode || 'pdf')
   const [isSending, setIsSending] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false)
