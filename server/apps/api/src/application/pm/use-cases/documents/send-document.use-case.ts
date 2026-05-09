@@ -9,6 +9,7 @@ import { S3Service } from '../../../../shared/infrastructure/common/s3/s3.servic
 import { EmailService } from '../../../../shared/infrastructure/email/email.service';
 import * as crypto from 'crypto';
 
+
 export interface SendDocumentDto {
   tenantUuid?: string;
   unitUuid?: string;
