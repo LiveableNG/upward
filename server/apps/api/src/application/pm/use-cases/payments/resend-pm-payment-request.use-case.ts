@@ -5,9 +5,8 @@ import {
   PM_UNIT_REPOSITORY, IUnitRepository
 } from '../../../../domains/pm/IPropertyRepository';
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../../domains/pm/property-manager.repository';
-import { EmailService } from '../../../../shared/infrastructure/email/email.service';
-import { NotificationService } from '../../../../shared/infrastructure/common/notification.service';
-import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import { EVENT_BUS, EventBus } from '../../../events/domain-event';
+import { PmPaymentNotificationEvent } from '../../../events/definition/pm-payment-notification.event';
 
 @Injectable()
 export class ResendPmPaymentRequestUseCase {
@@ -20,9 +19,8 @@ export class ResendPmPaymentRequestUseCase {
     private readonly pmRepo: PropertyManagerRepository,
     @Inject(PM_UNIT_REPOSITORY)
     private readonly unitRepo: IUnitRepository,
-    private readonly emailService: EmailService,
-    private readonly notificationService: NotificationService,
-    private readonly prisma: PrismaService,
+    @Inject(EVENT_BUS)
+    private readonly eventBus: EventBus,
   ) {}
 
   async execute(pmId: number, uuid: string): Promise<any> {
@@ -58,37 +56,22 @@ export class ResendPmPaymentRequestUseCase {
       throw new BadRequestException('Payment link is not available for this request');
     }
 
-    const paymentLink = `https://upward.ng/pay/${coreRequestUuid}`;
+    const paymentLink = `https://upward.goodtenants.io/pay/${coreRequestUuid}`;
 
-    try {
-      await this.emailService.sendPaymentRequestEmail({
-        email: tenantEmail,
-        tenantName,
-        pmName,
-        amount: pmPR.amount,
-        currency: pmPR.currency,
-        dueDate: pmPR.dueDate,
-        description: pmPR.description || undefined,
-        paymentLink,
-      });
+    // Trigger Notification Event asynchronously
+    this.eventBus.publish(new PmPaymentNotificationEvent(
+      tenantEmail,
+      tenantName,
+      pmName,
+      pmPR.amount,
+      pmPR.currency,
+      pmPR.dueDate,
+      pmPR.description || undefined,
+      paymentLink,
+      coreRequestUuid,
+      true // Mark as reminder
+    ));
 
-      const coreUser = await this.prisma.upward_user.findFirst({
-        where: { email: tenantEmail }
-      });
-
-      if (coreUser) {
-        await this.notificationService.notifyUser(coreUser.id, {
-          title: 'Payment Reminder',
-          message: `This is a reminder for your payment of ${pmPR.currency} ${pmPR.amount.toLocaleString()} from ${pmName}.`,
-          type: 'PAYMENT',
-          url: `/pay/${coreRequestUuid}`,
-        });
-      }
-
-      return { success: true, message: 'Invoice resent successfully' };
-    } catch (err) {
-      console.error('Failed to resend payment request:', err);
-      throw new BadRequestException('Failed to send email notification');
-    }
+    return { success: true, message: 'Invoice reminder is being sent' };
   }
 }

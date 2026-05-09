@@ -80,7 +80,15 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
       include: {
         unit: { include: { property: true } },
         tenant: true,
-        paymentRequest: { include: { lineItemRecords: true } }
+        paymentRequest: { 
+          include: { 
+            lineItemRecords: true,
+            transactions: {
+              where: { status: 'SUCCESS' },
+              orderBy: { createdAt: 'desc' }
+            }
+          } 
+        }
       },
     });
     return pr ? this.mapPmPaymentRequest(pr) : null;
@@ -93,7 +101,15 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
       include: {
         unit: { include: { property: true } },
         tenant: true,
-        paymentRequest: { include: { lineItemRecords: true } }
+        paymentRequest: { 
+          include: { 
+            lineItemRecords: true,
+            transactions: {
+              where: { status: 'SUCCESS' },
+              orderBy: { createdAt: 'desc' }
+            }
+          } 
+        }
       },
     });
     return pr ? this.mapPmPaymentRequest(pr) : null;

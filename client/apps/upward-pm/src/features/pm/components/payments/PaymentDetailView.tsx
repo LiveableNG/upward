@@ -53,13 +53,16 @@ export const PaymentDetailView: React.FC = () => {
     if (!request.coreRequestUuid) {
       return error('Payment link not available')
     }
-    const link = `${window.location.origin.replace('pm.', '')}/pay/${request.coreRequestUuid}`
+    const link = `https://upward.goodtenants.io/pay/${request.coreRequestUuid}`
     navigator.clipboard.writeText(link)
     success('Payment link copied!')
   }
 
   const handleResendInvoice = () => {
     if (!uuid) return
+    if (request.status === 'PAID') {
+      return error('Cannot resend an invoice that has already been settled.')
+    }
     resendInvoice(uuid as string, {
       onSuccess: (res) => {
         success(res.message || 'Invoice resent successfully')
@@ -119,7 +122,7 @@ export const PaymentDetailView: React.FC = () => {
             className="btn btn--primary" 
             style={{ borderRadius: 12, padding: '10px 24px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}
             onClick={handleResendInvoice}
-            disabled={isResending || request.status === 'PAID'}
+            disabled={isResending}
           >
             <Send size={16} /> {isResending ? 'Sending...' : 'Resend Invoice'}
           </button>
@@ -354,16 +357,7 @@ export const PaymentDetailView: React.FC = () => {
             </p>
           </div>
 
-          {request.status !== 'PAID' && (
-            <div style={{ padding: '24px', background: 'var(--ivory-dim)', borderRadius: 20, border: '1px dashed var(--border)' }}>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16, textAlign: 'center' }}>
-                Need to cancel this request? This will deactivate the payment link.
-              </p>
-              <button className="btn btn--secondary btn--sm" style={{ width: '100%', color: 'var(--error)', borderColor: 'var(--error-faint)' }}>
-                Cancel Request
-              </button>
-            </div>
-          )}
+
         </div>
       </div>
     </div>
