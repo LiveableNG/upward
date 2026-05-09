@@ -5,13 +5,16 @@ import Link from 'next/link'
 import { 
   Mail, 
   Lock, 
-  ChevronRight
+  ChevronRight,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 import { useLogin } from '../hooks/useLogin'
 import { useRequestOTP } from '../hooks/useOtp'
 
 export const LoginForm = () => {
   const [useOtp, setUseOtp] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
@@ -31,7 +34,7 @@ export const LoginForm = () => {
 
   return (
     <div className="animate-fade-in">
-      <div style={{ marginBottom: '32px' }}>
+      <div className="auth-header">
         <h2 className="auth-card__title">Welcome back</h2>
         <p className="auth-card__subtitle">
           {useOtp 
@@ -65,16 +68,34 @@ export const LoginForm = () => {
                 Forgot?
               </Link>
             </div>
-            <div className="input-wrapper">
+            <div className="input-wrapper" style={{ position: 'relative' }}>
               <Lock size={18} className="input-icon" />
               <input 
-                type="password" 
+                type={showPassword ? 'text' : 'password'} 
                 className="form-input form-input--with-icon" 
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '16px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
         )}

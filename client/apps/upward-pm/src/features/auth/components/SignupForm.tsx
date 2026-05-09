@@ -12,12 +12,6 @@ import {
   Eye,
   EyeOff,
   Briefcase,
-  Home,
-  Scale,
-  Building,
-  Wrench,
-  ShieldCheck,
-  MapPin,
 } from 'lucide-react'
 import { useSignup } from '../hooks/useSignup'
 import { useRequestOTP, useVerifyOTP, useOtpLogin } from '../hooks/useOtp'
@@ -81,17 +75,15 @@ export const SignupForm = () => {
     )
   }
 
-  const handleOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    const otpCode = otp.join('')
+  const triggerVerification = (otpArray: string[]) => {
+    const otpCode = otpArray.join('')
+    if (otpCode.length !== 6) return
 
     if (effectiveContext === 'LOGIN') {
       otpLoginMutation.mutate(
         { email: formData.email, otp: otpCode },
         {
           onSuccess: () => {
-            // Success state or dashboard redirect handled by hook/router
             window.location.href = '/dashboard'
           }
         }
@@ -107,7 +99,6 @@ export const SignupForm = () => {
           onSuccess: (res: any) => {
             if (res.success) {
               const { confirmPassword, ...signupPayload } = formData
-
               signupMutation.mutate(signupPayload, {
                 onSuccess: () => setStage('success'),
               })
@@ -118,7 +109,16 @@ export const SignupForm = () => {
     }
   }
 
+  const handleOtpSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    triggerVerification(otp)
+  }
+
   const handleOtpChange = (index: number, value: string) => {
+    // Reset error state when user starts typing again
+    if (verifyOtpMutation.isError) verifyOtpMutation.reset()
+    if (otpLoginMutation.isError) otpLoginMutation.reset()
+
     if (value.length > 1) value = value[0]
 
     const newOtp = [...otp]
@@ -128,51 +128,27 @@ export const SignupForm = () => {
     if (value && index < 5) {
       document.getElementById(`otp-${index + 1}`)?.focus()
     }
+
+    // Auto-verify if all digits are filled
+    if (newOtp.every(digit => digit !== '') && newOtp.length === 6) {
+      triggerVerification(newOtp)
+    }
   }
 
   if (stage === 'success') {
     return (
-      <div
-        className="animate-fade-in"
-        style={{ textAlign: 'center' }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            marginBottom: '24px',
-          }}
-        >
-          <div
-            style={{
-              padding: '20px',
-              background: 'var(--success-bg)',
-              borderRadius: '50%',
-            }}
-          >
-            <CheckCircle2
-              size={48}
-              color="var(--success)"
-            />
-          </div>
+      <div className="auth-success animate-fade-in">
+        <div className="success-icon-wrapper">
+          <CheckCircle2 size={40} />
         </div>
 
-        <h2 className="auth-card__title">
-          You're all set!
-        </h2>
-
-        <p
-          className="auth-card__subtitle"
-          style={{ marginBottom: '32px' }}
-        >
-          Your account has been created.
+        <h2 className="auth-card__title">You're all set!</h2>
+        <p className="auth-card__subtitle">
+          Your account has been created. <br />
           Welcome to Upward Property Management.
         </p>
 
-        <Link
-          href="/dashboard"
-          className="auth-btn auth-btn--primary"
-        >
+        <Link href="/dashboard" className="auth-btn auth-btn--primary" style={{ marginTop: '32px' }}>
           Go to Dashboard <ArrowRight size={18} />
         </Link>
       </div>
@@ -181,10 +157,10 @@ export const SignupForm = () => {
 
   return (
     <div className="animate-fade-in">
-      <div style={{ marginBottom: '32px' }}>
+      <div className="auth-header">
         <h2 className="auth-card__title">
           {stage === 'info'
-            ? 'Get started with Upward'
+            ? 'Get started'
             : 'Verify your email'}
         </h2>
 
@@ -201,24 +177,22 @@ export const SignupForm = () => {
             <label className="form-label">
               I am a...
             </label>
-            <div className="role-grid">
-              {[
-                { id: 'Landlord', icon: Home, label: 'Landlord' },
-                { id: 'Caretaker', icon: Wrench, label: 'Caretaker' },
-                { id: 'Lawyer', icon: Scale, label: 'Lawyer' },
-                { id: 'Estate Agent', icon: MapPin, label: 'Estate Agent' },
-                { id: 'Property Manager', icon: Briefcase, label: 'Property Manager' },
-                { id: 'Company', icon: Building, label: 'Management Co.' },
-              ].map((role) => (
-                <div
-                  key={role.id}
-                  className={`role-card ${formData.pmType === role.id ? 'role-card--selected' : ''}`}
-                  onClick={() => setFormData({ ...formData, pmType: role.id })}
-                >
-                  <role.icon size={24} className="role-card__icon" />
-                  <span className="role-card__label">{role.label}</span>
-                </div>
-              ))}
+            <div className="input-wrapper">
+              <Briefcase size={18} className="input-icon" />
+              <select 
+                className="form-input form-input--with-icon"
+                value={formData.pmType}
+                onChange={(e) => setFormData({ ...formData, pmType: e.target.value })}
+                required
+              >
+                <option value="" disabled>-- Select your role --</option>
+                <option value="Landlord">Landlord</option>
+                <option value="Caretaker">Caretaker</option>
+                <option value="Lawyer">Lawyer</option>
+                <option value="Estate Agent">Estate Agent</option>
+                <option value="Property Manager">Property Manager</option>
+                <option value="Company">Management Co.</option>
+              </select>
             </div>
           </div>
 
@@ -453,7 +427,7 @@ export const SignupForm = () => {
         </form>
       ) : (
         <form onSubmit={handleOtpSubmit}>
-          <div className="otp-group">
+          <div className={`otp-group ${verifyOtpMutation.isError || otpLoginMutation.isError ? 'otp-group--error' : ''}`}>
             {otp.map((digit, i) => (
               <input
                 key={i}

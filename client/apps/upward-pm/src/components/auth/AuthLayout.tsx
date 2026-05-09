@@ -15,24 +15,51 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitl
       {/* Visual Panel (Desktop) */}
       <div className="auth-layout__visual">
         <div className="auth-layout__visual-content">
-          <div style={{ marginBottom: '40px' }}>
-            <UpwardLogo color="white" size={48} />
-          </div>
-          <h1>Build better tenant relationships.</h1>
-          <p>
-            Onboard tenants, manage payment requests, and track property performance in one premium dashboard.
-          </p>
-          
-          <div className="auth-layout__graphic" style={{ marginTop: '60px' }}>
-            <div className="auth-layout__card-mock">
-               <div style={{ padding: '24px' }}>
-                 <div style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.1)', borderRadius: '12px', marginBottom: '16px' }}></div>
-                 <div style={{ width: '60%', height: '12px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', marginBottom: '12px' }}></div>
-                 <div style={{ width: '40%', height: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }}></div>
-               </div>
+          <header className="auth-layout__visual-header">
+            <UpwardLogo color="white" size={42} />
+          </header>
+
+          <main className="auth-layout__visual-body">
+            <h1 className="auth-layout__visual-title">
+              Manage your <br />
+              <span className="text-gradient">portfolio</span> like a pro.
+            </h1>
+            <p className="auth-layout__visual-desc">
+              Onboard tenants, manage payment requests, and track property performance in one premium dashboard designed for modern property managers.
+            </p>
+            
+            <div className="auth-layout__visual-showcase">
+              <div className="showcase-card showcase-card--1">
+                <div className="showcase-card__icon">
+                  <div className="pulse-dot"></div>
+                </div>
+                <div className="showcase-card__lines">
+                  <div className="line line--long"></div>
+                  <div className="line line--short"></div>
+                </div>
+              </div>
+              
+              <div className="showcase-card showcase-card--2">
+                <div className="showcase-card__header">
+                  <div className="dot"></div>
+                  <div className="dot"></div>
+                </div>
+                <div className="showcase-card__content">
+                  <div className="amount-bar"></div>
+                  <div className="label-bar"></div>
+                </div>
+              </div>
+
+              <div className="showcase-card showcase-card--3">
+                 <div className="check-icon"></div>
+              </div>
             </div>
-          </div>
+          </main>
+
         </div>
+
+        <div className="auth-layout__ambient-blob blob--1"></div>
+        <div className="auth-layout__ambient-blob blob--2"></div>
       </div>
 
       {/* Form Panel */}
