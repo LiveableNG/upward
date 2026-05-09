@@ -117,6 +117,7 @@ import { UpdateTenantUseCase } from './pm/use-cases/tenants/update-tenant.use-ca
 import { SyncUnitToUpwardUseCase } from './pm/use-cases/units/sync-unit.use-case'
 import { CreatePmPaymentRequestUseCase } from './pm/use-cases/payments/create-pm-payment-request.use-case'
 import { GetPmPaymentRequestsUseCase } from './pm/use-cases/payments/get-pm-payment-requests.use-case'
+import { GetPmPaymentRequestUseCase } from './pm/use-cases/payments/get-pm-payment-request.use-case'
 import { UpdatePmPaymentRequestUseCase } from './pm/use-cases/payments/update-pm-payment-request.use-case'
 import { GetPmDocumentsUseCase } from './pm/use-cases/documents/get-pm-documents.use-case'
 import { SaveDocumentTemplateUseCase } from './pm/use-cases/documents/save-document-template.use-case'
@@ -311,6 +312,7 @@ const UseCases = [
   SyncUnitToUpwardUseCase,
   CreatePmPaymentRequestUseCase,
   GetPmPaymentRequestsUseCase,
+  GetPmPaymentRequestUseCase,
   UpdatePmPaymentRequestUseCase,
   GetPmDocumentsUseCase,
   SaveDocumentTemplateUseCase,
