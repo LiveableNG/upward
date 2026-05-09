@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, Suspense } from 'react'
+import { useRouter } from 'next/navigation'
 import { 
   Download, 
   Search, 
@@ -22,6 +23,7 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride }: { searchQu
   const { data: initialRequests } = usePaymentRequests()
   const requests = requestsOverride || initialRequests
   const { success, error, info } = useToast()
+  const router = useRouter()
 
   const filteredRequests = (requests || []).filter(req => {
     const unitName = req.unit?.unitName || ''
@@ -116,7 +118,12 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride }: { searchQu
           </thead>
           <tbody>
             {filteredRequests.map((req) => (
-              <tr key={req.uuid}>
+              <tr 
+                key={req.uuid} 
+                onClick={() => router.push(`/payments/${req.uuid}`)}
+                style={{ cursor: 'pointer' }}
+                className="hover-row"
+              >
                 <td style={{ fontWeight: 600, fontSize: 13 }}>{req.uuid.slice(-8).toUpperCase()}</td>
                 <td>
                   <div className="tenant-cell">
@@ -151,7 +158,10 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride }: { searchQu
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                     <button 
                       className="btn-icon-sm" 
-                      onClick={() => handleCopyLink(req)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleCopyLink(req)
+                      }}
                       title="Copy Payment Link"
                       style={{ color: 'var(--clay)' }}
                     >
@@ -159,7 +169,10 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride }: { searchQu
                     </button>
                     <button 
                       className="btn-icon-sm"
-                      onClick={() => window.location.href = `/properties/units/${req.unit?.uuid}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/properties/units/${req.unit?.uuid}`)
+                      }}
                       title="View Unit"
                     >
                       <Eye size={16} />

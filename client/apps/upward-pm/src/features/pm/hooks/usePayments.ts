@@ -9,6 +9,14 @@ export const usePaymentRequests = () => {
   })
 }
 
+export const usePaymentRequest = (uuid: string) => {
+  return useQuery({
+    queryKey: ['pm-payment-request', uuid],
+    queryFn: () => api.getPaymentRequest(uuid),
+    enabled: !!uuid
+  })
+}
+
 export const useCreatePaymentRequest = () => {
   const queryClient = useQueryClient()
   

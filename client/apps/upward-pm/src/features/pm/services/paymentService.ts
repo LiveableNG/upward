@@ -63,3 +63,7 @@ export const updatePaymentRequest = (uuid: string, data: UpdatePmPaymentRequestD
     body: JSON.stringify(data)
   })
 }
+
+export const getPaymentRequest = (uuid: string) => {
+  return request<PmPaymentRequest>(`/pm/payment-requests/${uuid}`)
+}
