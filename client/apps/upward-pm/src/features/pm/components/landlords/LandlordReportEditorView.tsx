@@ -6,9 +6,15 @@ import {
   ChevronLeft, 
   CheckCircle2, 
   Circle, 
-  Download
+  Download,
+  Send,
+  Mail,
+  User,
+  AlertCircle
 } from 'lucide-react'
 import { RichTextEditor } from '@/components/common/RichTextEditor'
+import { useToast } from '@/components/common/Toast'
+import { api } from '@/lib/api'
 
 interface LandlordReportEditorViewProps {
   landlordName: string
@@ -25,9 +31,12 @@ export function LandlordReportEditorView({
   onBack,
   onDone 
 }: LandlordReportEditorViewProps) {
+  const { success, error } = useToast()
   const [content, setContent] = useState(initialContent)
+  const [subject, setSubject] = useState(`Property Performance Report - ${landlordName}`)
   const [includeLetterhead, setIncludeLetterhead] = useState(true)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  const [isSending, setIsSending] = useState(false)
 
   const handleDownloadPdf = async () => {
     setIsGeneratingPdf(true)
@@ -66,20 +75,63 @@ export function LandlordReportEditorView({
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
       pdf.save(`landlord-report-${landlordName.toLowerCase().replace(/\s+/g, '-')}-${new Date().getTime()}.pdf`)
+      success('PDF report generated successfully')
     } catch (err) {
       console.error('PDF generation failed:', err)
+      error('Failed to generate PDF report')
     } finally {
       setIsGeneratingPdf(false)
     }
   }
 
+  const handleSendEmail = async () => {
+    if (!subject) return error('Please enter a report subject')
+    if (!content) return error('Report content cannot be empty')
+
+    setIsSending(true)
+    try {
+      await api.sendLandlordReport({
+        landlordEmail,
+        landlordName,
+        subject,
+        content
+      })
+      success(`Report successfully sent to ${landlordEmail}`)
+      onDone()
+    } catch (err: any) {
+      error(err.message || 'Failed to send report to landlord')
+    } finally {
+      setIsSending(false)
+    }
+  }
+
   return (
-    <div className="report-editor animate-fade-in">
-      <header style={{ marginBottom: 32 }}>
-        <button onClick={onBack} style={{ border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 8 }}>
-          <ChevronLeft size={18} /> Back to Configuration
-        </button>
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)' }}>Send Landlord Report</h1>
+    <div className="report-editor animate-fade-in" style={{ paddingBottom: 40 }}>
+      <header style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <button onClick={onBack} style={{ border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 8 }}>
+            <ChevronLeft size={18} /> Back to Configuration
+          </button>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)' }}>Review & Send Report</h1>
+        </div>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button 
+            className="btn btn--secondary" 
+            onClick={handleDownloadPdf}
+            disabled={isGeneratingPdf || isSending}
+            style={{ borderRadius: 12, height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <Download size={20} /> {isGeneratingPdf ? 'Generating...' : 'Save as PDF'}
+          </button>
+          <button 
+            className="btn btn--primary" 
+            onClick={handleSendEmail}
+            disabled={isSending || isGeneratingPdf}
+            style={{ borderRadius: 12, height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <Send size={20} /> {isSending ? 'Sending...' : 'Send to Landlord'}
+          </button>
+        </div>
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 40, alignItems: 'start' }}>
@@ -87,37 +139,48 @@ export function LandlordReportEditorView({
         {/* Left: Configuration Options */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div className="glass" style={{ padding: 24, borderRadius: 24, border: '1px solid var(--border)', background: 'white' }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 20 }}>Document Options</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 24 }}>Report Settings</h3>
             
+            <div style={{ marginBottom: 24 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>Recipient Landlord</label>
+                <div style={{ padding: '12px 16px', borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--dark)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>
+                    {landlordName.charAt(0)}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{landlordName}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{landlordEmail}</div>
+                  </div>
+                </div>
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>Report Subject</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="Enter subject..."
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 13 }}
+                />
+            </div>
+
             <div 
               onClick={() => setIncludeLetterhead(!includeLetterhead)}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', paddingTop: 8, borderTop: '1px solid var(--bg)' }}
             >
               <div style={{ color: includeLetterhead ? 'var(--forest)' : 'var(--border)' }}>
                 {includeLetterhead ? <CheckCircle2 size={18} /> : <Circle size={18} />}
               </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Include letterhead</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Include professional letterhead</span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <button 
-              className="btn btn--primary" 
-              onClick={handleDownloadPdf}
-              disabled={isGeneratingPdf}
-              style={{ width: '100%', borderRadius: 100, padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, height: 56, fontSize: 15 }}
-            >
-              <Download size={20} /> {isGeneratingPdf ? 'Generating PDF...' : 'Download PDF Report'}
-            </button>
-            <button 
-              className="btn btn--secondary" 
-              onClick={onDone}
-              style={{ width: '100%', borderRadius: 100, padding: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-            >
-              Done / Return
-            </button>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '0 20px' }}>
-              Finalize your edits and download the report as a PDF to share with the landlord.
+          <div className="glass" style={{ padding: 20, borderRadius: 24, border: '1px solid var(--border)', background: 'var(--ivory-dim)', display: 'flex', gap: 12 }}>
+            <AlertCircle size={20} color="var(--clay)" style={{ flexShrink: 0 }} />
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              Finalize your edits before sending. Reports sent via email will automatically be saved to the landlord's communication history.
             </p>
           </div>
         </div>
@@ -174,6 +237,17 @@ export function LandlordReportEditorView({
           This report was generated securely via Upward Property Management Portal.
         </div>
       </div>
+      
+      <style jsx>{`
+        .glass {
+          backdrop-filter: blur(8px);
+          box-shadow: 0 4px 24px rgba(0,0,0,0.02);
+        }
+        .form-input:focus {
+          border-color: var(--clay) !important;
+          outline: none;
+        }
+      `}</style>
     </div>
   )
 }
