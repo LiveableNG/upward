@@ -261,6 +261,38 @@ export class SingleInviteUseCase {
         } as any)
       }
 
+      // Sync Rent History to Rent Cycles
+      if (propData.rentHistory && propData.rentHistory.length > 0) {
+        this.logger.log(`Syncing ${propData.rentHistory.length} history records for property ${property.uuid}`);
+        for (const history of propData.rentHistory) {
+          // Check for duplicates to prevent double-counting if invited multiple times
+          const existingCycle = await this.prisma.upward_rent_cycle.findFirst({
+            where: {
+              userPropertyId: property.id,
+              paidAt: new Date(history.paymentDate),
+              amountPaid: history.amount
+            }
+          });
+
+          if (!existingCycle) {
+            await this.prisma.upward_rent_cycle.create({
+              data: {
+                userId: user.id,
+                userPropertyId: property.id,
+                amountOwed: history.amount,
+                amountPaid: history.amount,
+                currency: (rentData as any).currency || 'NGN',
+                dueDate: history.periodEnd ? new Date(history.periodEnd) : new Date(history.paymentDate),
+                paidAt: new Date(history.paymentDate),
+                status: 'PAID',
+                description: history.notes || 'Historical rent payment (PM Sync)',
+                source: 'PM_SYNC',
+              }
+            });
+          }
+        }
+      }
+
       const now = new Date()
       const dueDate = new Date(rentData.rentEndDate)
       const diff = dueDate.getTime() - now.getTime()

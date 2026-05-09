@@ -43,8 +43,9 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
     handleSubmit, 
     control,
     reset,
-    formState: { errors } 
+    formState: { errors, isValid } 
   } = useForm<TenantFormData>({
+    mode: 'all',
     resolver: zodResolver(tenantSchema),
     defaultValues: {
       firstName: '',
@@ -218,7 +219,7 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
               type="submit" 
               className="btn btn--primary" 
               style={{ flex: 1 }} 
-              disabled={updateTenant.isPending}
+              disabled={updateTenant.isPending || !isValid}
             >
               {updateTenant.isPending ? (
                 <Loader2 size={18} className="animate-spin" />

@@ -39,7 +39,7 @@ const items: CarouselItem[] = [
   {
     id: 'complete-profile',
     title: 'Complete Profile',
-    description: 'Add your business details and profile picture to build trust.',
+    description: 'Add your business details to build trust and professionalize your dashboard.',
     icon: UserCircle,
     link: '/settings?tab=profile',
     color: 'clay',
@@ -80,7 +80,7 @@ export function ActivityCarousel() {
 
   const carouselItems = dynamicItems.filter(item => {
     if (item.id === 'payment-info') return !user?.bankCode
-    if (item.id === 'complete-profile') return !user?.profilePic
+    if (item.id === 'complete-profile') return !user?.businessName
     if (item.id === 'add-property') return properties.length === 0
     return true
   })

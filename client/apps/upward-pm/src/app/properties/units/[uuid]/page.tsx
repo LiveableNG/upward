@@ -17,16 +17,15 @@ import {
   MoreVertical,
   UserPlus,
   Unlink,
-  Search,
-  Filter as FilterIcon,
   Download,
   Edit
 } from 'lucide-react'
-import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useAddUnitPayment } from '@/features/pm/hooks/useProperties'
+import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useAddUnitPayment, useUpdateUnitPayment } from '@/features/pm/hooks/useProperties'
 import { usePaymentRequests, useCreatePaymentRequest } from '@/features/pm/hooks/usePayments'
 import { useTenants, useTenantActions } from '@/features/pm/hooks/useTenants'
 import { TenantAssignmentSection } from '@/features/pm/components/tenants/TenantAssignmentSection'
 import { AddRentRecordModal } from '@/features/pm/components/properties/modals/AddRentRecordModal'
+import { EditRentRecordModal } from '@/features/pm/components/properties/modals/EditRentRecordModal'
 import { CreatePaymentRequestModal } from '@/features/pm/components/payments/modals/CreatePaymentRequestModal'
 import { EditUnitModal } from '@/features/pm/components/properties/modals/EditUnitModal'
 import { DocumentEditorView } from '@/features/pm/components/documents/DocumentEditorView'
@@ -49,9 +48,13 @@ function UnitDetailContent() {
   const updateUnitMutation = useUpdateUnit()
   const deleteUnitMutation = useDeleteUnit()
   const addPaymentMutation = useAddUnitPayment()
+  const updatePaymentMutation = useUpdateUnitPayment()
   const createPaymentRequestMutation = useCreatePaymentRequest()
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isEditRentModalOpen, setIsEditRentModalOpen] = useState(false)
+  const [selectedRecordForEdit, setSelectedRecordForEdit] = useState<any>(null)
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false)
   const [selectedRequestForEdit, setSelectedRequestForEdit] = useState<any>(null)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
@@ -213,13 +216,34 @@ function UnitDetailContent() {
   const handleSavePayment = (data: any) => {
     addPaymentMutation.mutate({
       unitUuid: uuid as string,
-      data
+      data: {
+        ...data,
+        tenantId: unit?.tenant?.id
+      }
     }, {
       onSuccess: () => {
         success('Rent record added successfully')
         setIsAddModalOpen(false)
       },
       onError: () => error('Failed to add rent record')
+    })
+  }
+
+  const handleUpdatePayment = (data: any) => {
+    if (!selectedRecordForEdit) return
+    updatePaymentMutation.mutate({
+      unitUuid: uuid as string,
+      paymentUuid: selectedRecordForEdit.uuid,
+      data
+    }, {
+      onSuccess: () => {
+        success('Rent record updated successfully')
+        setIsEditRentModalOpen(false)
+        setSelectedRecordForEdit(null)
+      },
+      onError: (err: any) => {
+        error(err.message || 'Failed to update rent record')
+      }
     })
   }
 
@@ -602,7 +626,7 @@ function UnitDetailContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {payments.length > 0 ? payments.map(row => {
+                  {payments.length > 0 ? (payments as any[]).map(row => {
                     const isPartial = row.amount < (unit?.rentAmount || 0)
                     const balance = (unit?.rentAmount || 0) - row.amount
                     const statusLabel = isPartial ? 'Part-Payment' : 'Paid'
@@ -610,10 +634,24 @@ function UnitDetailContent() {
                     return (
                       <tr key={row.uuid} style={{ borderTop: '1px solid var(--border)' }}>
                         <td style={{ padding: '20px 24px', fontSize: 14, color: 'var(--dark)', fontWeight: 500 }}>
-                          {unit?.tenant?.firstName} {unit?.tenant?.lastName}
+                          {row.tenant 
+                            ? `${row.tenant.firstName} ${row.tenant.lastName}` 
+                            : unit?.tenant 
+                              ? `${unit.tenant.firstName} ${unit.tenant.lastName}`
+                              : 'N/A'
+                          }
                         </td>
                         <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-muted)' }}>
-                          {row.periodStart ? `${new Date(row.periodStart).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} - ${new Date(row.periodEnd).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : 'N/A'}
+                          {row.periodStart ? (
+                            <>
+                              {new Date(row.periodStart).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} 
+                              {' - '}
+                              {row.periodEnd 
+                                ? new Date(row.periodEnd).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) 
+                                : '...'
+                              }
+                            </>
+                          ) : 'N/A'}
                         </td>
                         <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-muted)' }}>
                           {new Date(row.paymentDate).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
@@ -640,10 +678,64 @@ function UnitDetailContent() {
                             {statusLabel}
                           </span>
                         </td>
-                        <td style={{ padding: '20px 24px', textAlign: 'right' }}>
-                          <button className="btn-icon">
+                        <td style={{ padding: '20px 24px', textAlign: 'right', position: 'relative' }}>
+                          <button 
+                            className="btn-icon"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenuId(activeMenuId === row.uuid ? null : row.uuid)
+                            }}
+                          >
                             <MoreVertical size={16} />
                           </button>
+
+                          {activeMenuId === row.uuid && (
+                            <>
+                              <div 
+                                style={{ position: 'fixed', inset: 0, zIndex: 10 }} 
+                                onClick={() => setActiveMenuId(null)} 
+                              />
+                              <div style={{
+                                position: 'absolute',
+                                top: '100%',
+                                right: 24,
+                                background: 'white',
+                                borderRadius: 8,
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                                border: '1px solid var(--border)',
+                                zIndex: 11,
+                                minWidth: 140,
+                                overflow: 'hidden'
+                              }}>
+                                <button 
+                                  style={{
+                                    width: '100%',
+                                    padding: '12px 16px',
+                                    textAlign: 'left',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    fontSize: 13,
+                                    fontWeight: 600,
+                                    color: 'var(--dark)',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer'
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                                  onClick={() => {
+                                    setSelectedRecordForEdit(row)
+                                    setIsEditRentModalOpen(true)
+                                    setActiveMenuId(null)
+                                  }}
+                                >
+                                  <Edit size={14} />
+                                  Edit Record
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </td>
                       </tr>
                     )
@@ -668,6 +760,19 @@ function UnitDetailContent() {
         isPending={addPaymentMutation.isPending}
         unitName={unit?.unitName || ''}
         rentType={unit?.rentType}
+      />
+
+      <EditRentRecordModal
+        isOpen={isEditRentModalOpen}
+        onClose={() => {
+          setIsEditRentModalOpen(false)
+          setSelectedRecordForEdit(null)
+        }}
+        onSave={handleUpdatePayment}
+        isPending={updatePaymentMutation.isPending}
+        unitName={unit?.unitName || ''}
+        rentType={unit?.rentType}
+        record={selectedRecordForEdit}
       />
 
       {unit && (

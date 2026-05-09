@@ -15,6 +15,7 @@ export interface UpdatePmPaymentRequestDto {
   allowPartial?: boolean;
   minAmount?: number;
   lineItems?: { name: string; amount: number }[];
+  rentType?: string;
 }
 
 @Injectable()
@@ -51,6 +52,7 @@ export class UpdatePmPaymentRequestUseCase {
       allowPartial: data.allowPartial ?? pmPR.allowPartial,
       minAmount: (data.minAmount ?? pmPR.minAmount) ?? undefined,
       lineItems: data.lineItems,
+      rentType: data.rentType,
       bankCode: pm.bankCode ?? undefined,
       accountNumber: pm.accountNumber ?? undefined,
     };
@@ -64,6 +66,7 @@ export class UpdatePmPaymentRequestUseCase {
       dueDate: data.dueDate ? new Date(data.dueDate) : pmPR.dueDate,
       allowPartial: data.allowPartial ?? pmPR.allowPartial,
       minAmount: data.minAmount ?? pmPR.minAmount,
+      rentType: data.rentType ?? pmPR.rentType,
     });
 
     return updated;

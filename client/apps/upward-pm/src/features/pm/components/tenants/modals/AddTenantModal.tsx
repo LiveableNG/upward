@@ -31,8 +31,9 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose 
     handleSubmit, 
     control,
     reset,
-    formState: { errors } 
+    formState: { errors, isValid } 
   } = useForm<TenantFormData>({
+    mode: 'all',
     resolver: zodResolver(tenantSchema),
     defaultValues: {
       firstName: '',
@@ -122,7 +123,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose 
               type="submit" 
               className="btn btn--primary" 
               style={{ flex: 1 }} 
-              disabled={createTenant.isPending}
+              disabled={createTenant.isPending || !isValid}
             >
               {createTenant.isPending ? (
                 <Loader2 size={18} className="animate-spin" />

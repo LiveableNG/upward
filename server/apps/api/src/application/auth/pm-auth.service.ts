@@ -126,10 +126,7 @@ export class PmAuthService extends BaseAuthService {
   }
 
   async otpLogin(email: string, otp: string): Promise<any> {
-    const verification = await this.verifyOTP(email, otp, 'LOGIN')
-    if (!verification.success) {
-      throw new UnauthorizedException(verification.message)
-    }
+    await this.verifyOTP(email, otp, 'LOGIN')
 
     const pm = await this.pmRepository.findByEmail(email)
     if (!pm) throw new UnauthorizedException('Property manager account not found')
@@ -146,8 +143,7 @@ export class PmAuthService extends BaseAuthService {
     }
 
     if (context === 'SIGNUP' && existing) {
-      // Seamlessly switch to login flow
-      effectiveContext = 'LOGIN'
+      throw new ConflictException('Property manager with this email already exists')
     }
 
     await (this.tokenRepository as any).deleteOldTokens(email, effectiveContext)
@@ -170,11 +166,11 @@ export class PmAuthService extends BaseAuthService {
     const record = await this.tokenRepository.findByIdentifier(email, context)
 
     if (!record || !record.otp || record.expiresAt < new Date()) {
-      return { success: false, message: 'Invalid or expired verification code' }
+      throw new UnauthorizedException('Invalid or expired verification code')
     }
 
     if (record.otp !== otp) {
-      return { success: false, message: 'Invalid verification code' }
+      throw new UnauthorizedException('Invalid verification code')
     }
 
     await this.tokenRepository.delete(record.id!)
@@ -267,5 +263,10 @@ export class PmAuthService extends BaseAuthService {
     }
 
     return clientProfile
+  }
+
+  async checkEmail(email: string): Promise<{ exists: boolean }> {
+    const pm = await this.pmRepository.findByEmail(email)
+    return { exists: !!pm }
   }
 }

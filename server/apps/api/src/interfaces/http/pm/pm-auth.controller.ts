@@ -162,4 +162,10 @@ export class PmAuthController {
     setPmAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(rest)
   }
+
+  @Post('check-email')
+  @HttpCode(HttpStatus.OK)
+  async checkEmail(@Body() body: { email: string }) {
+    return this.pmAuthService.checkEmail(body.email)
+  }
 }

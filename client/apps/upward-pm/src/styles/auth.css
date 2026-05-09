@@ -422,6 +422,15 @@
     0 10px 20px -10px rgba(22, 101, 52, 0.1);
 }
 
+.form-input--error {
+  border-color: #ef4444 !important;
+  background-color: #fffafb;
+}
+
+.form-input--error:focus {
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
 .form-input:focus + .input-icon,
 .input-wrapper:focus-within .input-icon {
   color: var(--forest);

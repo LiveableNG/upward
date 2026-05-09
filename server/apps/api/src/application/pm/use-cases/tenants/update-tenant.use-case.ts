@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PM_TENANT_REPOSITORY, ITenantRepository, TenantEntity } from '../../../../domains/pm/IPropertyRepository';
 
 export interface UpdateTenantDto {
@@ -31,8 +31,20 @@ export class UpdateTenantUseCase {
       throw new NotFoundException('Tenant not found');
     }
 
-    if (data.phone && !/^\+234\d{10}$/.test(data.phone)) {
-      throw new Error('Phone number must be in format +2348000000000');
+    if (data.phone) {
+      let cleaned = data.phone.trim().replace(/\s+/g, '');
+      
+      if (cleaned.startsWith('0') && cleaned.length === 11) {
+        cleaned = '+234' + cleaned.substring(1);
+      } else if (!cleaned.startsWith('+') && cleaned.length === 10) {
+        cleaned = '+234' + cleaned;
+      }
+
+      if (!/^\+234\d{10}$/.test(cleaned)) {
+        throw new BadRequestException('Phone number must be in format +2348000000000 or 08000000000');
+      }
+      
+      data.phone = cleaned;
     }
 
     return this.tenantRepo.update(uuid, data);

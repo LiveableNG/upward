@@ -22,6 +22,7 @@ export interface CreatePmPaymentRequestDto {
   allowPartial?: boolean;
   minAmount?: number;
   lineItems?: { name: string; amount: number }[];
+  rentType?: string;
 }
 
 @Injectable()
@@ -68,6 +69,7 @@ export class CreatePmPaymentRequestUseCase {
       allowPartial: data.allowPartial,
       minAmount: data.minAmount,
       lineItems: data.lineItems,
+      rentType: data.rentType,
       bankCode: pm.bankCode ?? undefined,
       accountNumber: pm.accountNumber ?? undefined,
     };
@@ -90,6 +92,7 @@ export class CreatePmPaymentRequestUseCase {
       dueDate: new Date(data.rentEndDate || data.dueDate),
       rentStartDate: data.rentStartDate ? new Date(data.rentStartDate) : null,
       rentEndDate: data.rentEndDate ? new Date(data.rentEndDate) : null,
+      rentType: data.rentType || null,
       status: 'PENDING',
       amountPaid: 0,
       allowPartial: data.allowPartial || false,

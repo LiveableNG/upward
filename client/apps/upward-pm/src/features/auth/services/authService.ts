@@ -50,3 +50,10 @@ export const logout = async () => {
 export const getMe = async () => {
   return request<any>('/pm/auth/me', { method: 'GET' })
 }
+
+export const checkEmail = async (email: string) => {
+  return request<{ exists: boolean }>('/pm/auth/check-email', {
+    method: 'POST',
+    body: JSON.stringify({ email })
+  })
+}

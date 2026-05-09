@@ -35,8 +35,8 @@ export class InviteTenantUseCase {
       throw new Error('Tenant has no email address');
     }
 
-    if (tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED') {
-      throw new Error('Tenant is already on Upward. No reminder needed.');
+    if ((tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED') && (!tenant.units || tenant.units.length === 0)) {
+      return;
     }
 
     const pm = await this.pmRepo.findById(pmId);
@@ -69,41 +69,54 @@ export class InviteTenantUseCase {
           lastName: tenant.lastName || '',
           phone: tenant.phone || '',
         },
-        properties: tenant.units?.map(unit => ({
-          location: {
-            country: unit.property?.country || 'Nigeria',
-            state: unit.property?.state || '',
-            area: unit.property?.area || unit.property?.name || 'Property',
-            address: unit.property?.address || '',
-          },
-          rent: {
-            rentAmount: unit.rentAmount,
-            rentStartDate: unit.rentStartDate ? new Date(unit.rentStartDate).toISOString() : undefined,
-            rentEndDate: unit.rentDueDate ? new Date(unit.rentDueDate).toISOString() : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-          },
-          manager: {
-            firstName: pm.firstName,
-            lastName: pm.lastName,
-            email: pm.email,
-            phone: pm.phone || undefined,
-          }
+        properties: await Promise.all((tenant.units || []).map(async unit => {
+          const payments = await this.unitRepo.getRentPayments(unit.uuid);
+          return {
+            location: {
+              country: unit.property?.country || 'Nigeria',
+              state: unit.property?.state || '',
+              area: unit.property?.area || unit.property?.name || 'Property',
+              address: unit.property?.address || '',
+            },
+            rent: {
+              rentAmount: unit.rentAmount,
+              rentStartDate: unit.rentStartDate ? new Date(unit.rentStartDate).toISOString() : undefined,
+              rentEndDate: unit.rentDueDate ? new Date(unit.rentDueDate).toISOString() : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+            },
+            rentHistory: payments.map(p => ({
+              amount: p.amount,
+              paymentDate: p.paymentDate.toISOString(),
+              periodStart: p.periodStart?.toISOString(),
+              periodEnd: p.periodEnd?.toISOString(),
+              notes: p.notes || undefined
+            })),
+            manager: {
+              firstName: pm.firstName,
+              lastName: pm.lastName,
+              email: pm.email,
+              phone: pm.phone || undefined,
+            }
+          };
         }))
       }
     };
 
     const inviteResult = await this.singleInviteUseCase.execute(invitePayload);
 
-      const success = await this.emailService.sendTenantInvite({
-      email: tenant.email,
-      tenantName: `${tenant.firstName} ${tenant.lastName}`.trim() || 'Tenant',
-      pmName: pm.businessName || `${pm.firstName} ${pm.lastName}`,
-      inviteLink: inviteResult.inviteLink,
-    });
+    let success = true;
+    if (!isActuallyOnUpward) {
+      success = await this.emailService.sendTenantInvite({
+        email: tenant.email,
+        tenantName: `${tenant.firstName} ${tenant.lastName}`.trim() || 'Tenant',
+        pmName: pm.businessName || `${pm.firstName} ${pm.lastName}`,
+        inviteLink: inviteResult.inviteLink,
+      });
+    }
 
     if (success) {
       await this.tenantRepo.update(tenantUuid, {
         inviteStatus: initialStatus,
-        inviteSentAt: new Date(),
+        inviteSentAt: !isActuallyOnUpward ? new Date() : tenant.inviteSentAt,
       });
 
 
