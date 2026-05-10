@@ -28,7 +28,7 @@ function SettingsContent() {
         <p className="settings__subtitle">Manage your account, payment details and security.</p>
       </header>
 
-      <nav className="settings__nav">
+      <nav className="settings__nav" style={{ position: 'relative', zIndex: 10 }}>
         <button 
           className={cn('settings__nav-item', activeTab === 'profile' && 'settings__nav-item--active')}
           onClick={() => setTab('profile')}
