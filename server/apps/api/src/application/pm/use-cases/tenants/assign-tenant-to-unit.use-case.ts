@@ -7,6 +7,7 @@ import {
 } from '../../../../domains/pm/IPropertyRepository';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import { SyncUnitToUpwardUseCase } from '../units/sync-unit.use-case';
+import { USER_REPOSITORY, UserRepository } from '../../../../domains/users/user.repository';
 
 @Injectable()
 export class AssignTenantToUnitUseCase {
@@ -15,6 +16,8 @@ export class AssignTenantToUnitUseCase {
     private readonly unitRepo: IUnitRepository,
     @Inject(PM_TENANT_REPOSITORY)
     private readonly tenantRepo: ITenantRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo: UserRepository,
     private readonly prisma: PrismaService,
     private readonly syncUnitToUpwardUseCase: SyncUnitToUpwardUseCase,
   ) {}
@@ -35,7 +38,10 @@ export class AssignTenantToUnitUseCase {
         status: 'OCCUPIED'
       });
 
-      if (tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED') {
+      // Check if user exists on Upward Core platform
+      const upwardUser = tenant.email ? await this.userRepo.findByEmail(tenant.email) : null;
+      
+      if (upwardUser || tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED') {
         try {
           await this.syncUnitToUpwardUseCase.execute(unitUuid, pmId);
         } catch (error) {

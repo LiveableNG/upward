@@ -5,6 +5,7 @@ import { BulkCreateUnitsDto } from '../dtos/property.dto';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import { BulkInviteTenantsUseCase } from './tenants/bulk-invite-tenants.use-case';
 import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
+import { SyncUnitToUpwardUseCase } from './units/sync-unit.use-case';
 
 @Injectable()
 export class BulkCreateUnitsUseCase {
@@ -16,6 +17,7 @@ export class BulkCreateUnitsUseCase {
     private readonly encryption: EncryptionService,
     private readonly bulkInviteUseCase: BulkInviteTenantsUseCase,
     private readonly activityLog: ActivityLogService,
+    private readonly syncUnitUseCase: SyncUnitToUpwardUseCase,
   ) {}
 
   async execute(pmId: number, dto: BulkCreateUnitsDto) {
@@ -33,9 +35,11 @@ export class BulkCreateUnitsUseCase {
 
     const unitsToCreate = [];
     const createdTenantUuids: string[] = [];
+    const unitsToSync: string[] = [];
 
     for (const u of dto.units) {
       let tenantId: number | null = null;
+      let initialStatus = 'PENDING';
 
       const email = u.tenantEmail?.trim();
       const firstName = u.tenantFirstName?.trim();
@@ -45,6 +49,7 @@ export class BulkCreateUnitsUseCase {
         const tenant = await this.tenantRepository.findByUuid(u.tenantUuid);
         if (tenant && tenant.pmId === pmId) {
           tenantId = tenant.id;
+          initialStatus = tenant.inviteStatus;
         }
       } else if (email) {
         const emailHash = this.encryption.hash(email);
@@ -52,7 +57,7 @@ export class BulkCreateUnitsUseCase {
 
         if (!tenant) {
           const existingUser = await this.userRepository.findByEmail(email);
-          const initialStatus = existingUser ? 'ON_UPWARD' : 'PENDING';
+          initialStatus = existingUser ? 'ON_UPWARD' : 'PENDING';
 
           tenant = await this.tenantRepository.create({
             pmId,
@@ -63,6 +68,8 @@ export class BulkCreateUnitsUseCase {
             inviteStatus: initialStatus,
             inviteSentAt: null,
           });
+        } else {
+          initialStatus = tenant.inviteStatus;
         }
         tenantId = tenant.id;
         if (tenant.inviteStatus === 'PENDING') {
@@ -74,7 +81,6 @@ export class BulkCreateUnitsUseCase {
       const duplicateUnit = existingUnits.find(exUnit => exUnit.unitName.trim().toLowerCase() === u.unitName.trim().toLowerCase());
 
       if (duplicateUnit) {
-        // Skip duplicate unit creation
         continue;
       }
 
@@ -94,6 +100,11 @@ export class BulkCreateUnitsUseCase {
         isSynced: false,
         userPropertyUuid: null,
       });
+
+      // If tenant is already on upward, mark for sync
+      if (tenantId && (initialStatus === 'ON_UPWARD' || initialStatus === 'ACCEPTED')) {
+        unitsToSync.push(newUnit.uuid);
+      }
 
       if (u.rentAmountPaid && u.rentAmountPaid > 0) {
         let periodEnd: Date | null = null;
@@ -138,6 +149,15 @@ export class BulkCreateUnitsUseCase {
       await this.bulkInviteUseCase.execute(pmId, {
         tenantUuids: [...new Set(createdTenantUuids)]
       });
+    }
+
+    // Process auto-syncs
+    for (const unitUuid of unitsToSync) {
+      try {
+        await this.syncUnitUseCase.execute(unitUuid, pmId);
+      } catch (error) {
+        console.error(`Auto-sync failed for unit ${unitUuid} during bulk create:`, error);
+      }
     }
 
     return { count: dto.units.length };
