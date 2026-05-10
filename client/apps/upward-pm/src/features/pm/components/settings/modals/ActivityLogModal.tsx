@@ -30,10 +30,31 @@ export function ActivityLogModal({ collaboratorUuid, onClose }: ActivityLogModal
   const collaborator = data?.collaborator
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 1100 }}>
-      <div className="modal-container" style={{ maxWidth: 600, width: '90%', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
-        <header className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div className="modal-overlay" style={{ 
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        backdropFilter: 'blur(8px)',
+        zIndex: 1100,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+    }}>
+      <div className="modal-container" style={{ 
+          maxWidth: 600, 
+          width: '100%', 
+          maxHeight: '85vh', 
+          background: 'white',
+          borderRadius: 24,
+          boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
+          display: 'flex', 
+          flexDirection: 'column',
+          overflow: 'hidden',
+          animation: 'modalSlideUp 0.3s ease-out'
+      }}>
+        <header className="modal-header" style={{ padding: '32px 32px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
              <div style={{ 
                  width: 48, 
                  height: 48, 
@@ -42,18 +63,35 @@ export function ActivityLogModal({ collaboratorUuid, onClose }: ActivityLogModal
                  color: 'var(--clay)', 
                  display: 'flex', 
                  alignItems: 'center', 
-                 justifyContent: 'center'
+                 justifyContent: 'center',
+                 border: '1px solid var(--border)'
              }}>
                 <History size={24} />
              </div>
              <div>
-                <h2 className="modal-title">Activity Feed</h2>
-                <p className="modal-subtitle">
+                <h2 className="modal-title" style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)' }}>Activity Feed</h2>
+                <p className="modal-subtitle" style={{ fontSize: 13, color: 'var(--text-muted)' }}>
                     Recent actions by {collaborator ? `${collaborator.firstName} ${collaborator.lastName}` : 'this member'}
                 </p>
              </div>
           </div>
-          <button className="modal-close" onClick={onClose}><X size={20} /></button>
+          <button 
+            className="modal-close" 
+            onClick={onClose}
+            style={{ 
+                width: 32, 
+                height: 32, 
+                borderRadius: 8, 
+                border: '1px solid var(--border)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                color: 'var(--text-muted)',
+                cursor: 'pointer'
+            }}
+          >
+            <X size={18} />
+          </button>
         </header>
 
         <div className="modal-body" style={{ padding: '24px 32px', flex: 1, overflow: 'auto' }}>
@@ -64,8 +102,8 @@ export function ActivityLogModal({ collaboratorUuid, onClose }: ActivityLogModal
                 <div style={{ color: 'var(--text-muted)', opacity: 0.2, marginBottom: 16 }}>
                     <History size={48} style={{ margin: '0 auto' }} />
                 </div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>No activity recorded yet</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: 'var(--dark)' }}>No activity recorded yet</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 300, margin: '0 auto' }}>
                     When this collaborator takes actions in your portfolio, they will appear here.
                 </p>
             </div>
@@ -94,20 +132,24 @@ export function ActivityLogModal({ collaboratorUuid, onClose }: ActivityLogModal
                                 alignItems: 'center', 
                                 justifyContent: 'center',
                                 zIndex: 1,
-                                color: 'var(--text-secondary)'
+                                color: 'var(--text-secondary)',
+                                flexShrink: 0
                             }}>
                                 {getActionIcon(log.action)}
                             </div>
                             
                             <div style={{ flex: 1 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>{log.description}</div>
-                                    <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', marginTop: 3 }}>
+                                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', lineHeight: 1.4 }}>{log.description}</div>
+                                    <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', marginTop: 3, marginLeft: 12 }}>
                                         {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
                                     </div>
                                 </div>
-                                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                                    Target: <span style={{ fontWeight: 600 }}>{log.entityType}</span>
+                                <div style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ opacity: 0.6 }}>Target:</span>
+                                    <span style={{ fontWeight: 700, fontSize: 11, background: 'var(--bg)', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--border)' }}>
+                                        {log.entityType}
+                                    </span>
                                 </div>
                                 {log.metadata && (
                                     <div style={{ 
@@ -115,8 +157,10 @@ export function ActivityLogModal({ collaboratorUuid, onClose }: ActivityLogModal
                                         padding: 12, 
                                         background: 'var(--bg)', 
                                         borderRadius: 12, 
-                                        fontSize: 12, 
-                                        border: '1px solid var(--border)' 
+                                        fontSize: 11, 
+                                        border: '1px solid var(--border)',
+                                        color: 'var(--text-secondary)',
+                                        fontFamily: 'monospace'
                                     }}>
                                         <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
                                             {JSON.stringify(log.metadata, null, 2)}
@@ -131,10 +175,17 @@ export function ActivityLogModal({ collaboratorUuid, onClose }: ActivityLogModal
           )}
         </div>
 
-        <div className="modal-footer" style={{ padding: '20px 32px', borderTop: '1px solid var(--border)' }}>
-            <button className="btn btn--secondary w-full" onClick={onClose}>Close Feed</button>
+        <div className="modal-footer" style={{ padding: '24px 32px', borderTop: '1px solid var(--border)', background: 'var(--bg-faint)' }}>
+            <button className="btn btn--secondary w-full" style={{ height: 48, borderRadius: 12 }} onClick={onClose}>Close Feed</button>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes modalSlideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+      `}</style>
     </div>
   )
 }
