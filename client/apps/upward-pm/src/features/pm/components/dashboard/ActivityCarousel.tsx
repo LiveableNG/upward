@@ -67,7 +67,7 @@ export function ActivityCarousel() {
   let dynamicItems = [...items]
   
   if (credibilityRequests.length > 0) {
-    dynamicItems.push({
+    dynamicItems.unshift({
       id: 'credibility-requests',
       title: 'Past Tenancy Requests',
       description: `You have ${credibilityRequests.length} pending request${credibilityRequests.length > 1 ? 's' : ''} for past payment records from tenants.`,
