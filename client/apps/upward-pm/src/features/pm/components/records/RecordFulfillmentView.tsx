@@ -79,6 +79,19 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
     e.target.value = ''
   }
 
+  const handleMarkAsDone = async () => {
+    setSubmitting(true)
+    try {
+      await api.patch(`/pm/credibility-requests/${uuid}/done`)
+      success('Request marked as done!')
+      setShowSuccess(true)
+    } catch (err) {
+      error('Failed to mark request as done.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const handleAction = async (action: 'fulfill' | 'reject') => {
     if (action === 'fulfill' && previewRecords.length === 0) return error('No records to submit.')
 
@@ -139,7 +152,7 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
         </div>
         <h2 className="text-3xl font-bold mb-4">Request Processed!</h2>
         <p className="text-text-muted text-lg mb-8">
-          Thank you for providing the past payment records. This will significantly help the tenant build their credibility profile.
+          The request status has been updated. This will significantly help the tenant build their credibility profile on Upward.
         </p>
 
         {isPublic && (
@@ -269,13 +282,24 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
         </div>
 
         <div className="import-footer flex justify-between items-center p-6 bg-surface border-t border-border">
-          <button 
-            className="btn btn--secondary text-accent border-accent hover:bg-accent/10" 
-            onClick={() => handleAction('reject')}
-            disabled={submitting}
-          >
-            Decline Request
-          </button>
+          <div className="flex gap-3">
+            <button 
+              className="btn btn--secondary text-accent border-accent hover:bg-accent/10" 
+              onClick={() => handleAction('reject')}
+              disabled={submitting}
+            >
+              Decline
+            </button>
+            {!isPublic && (
+              <button 
+                className="btn btn--secondary text-forest border-forest hover:bg-forest/5" 
+                onClick={handleMarkAsDone}
+                disabled={submitting}
+              >
+                Mark as Done
+              </button>
+            )}
+          </div>
           
           <button 
             className="btn btn--primary" 

@@ -53,7 +53,18 @@ export class RequestCredibilityRecordsUseCase {
       const payUrl = this.configService.get<string>('PAY_APP_URL') || 
                      this.configService.get<string>('FRONTEND_URL')?.split(',')[0] || 
                      'https://upward.goodtenants.io';
-      const requestLink = `${payUrl}/fill-record/${request.uuid}`;
+      
+      const pmUrl = 'https://upward-pm.vercel.app';
+      const emailHash = this.encryption.hash(requestEmail.toLowerCase().trim());
+      
+      const pm = await this.prisma.upward_property_manager.findUnique({
+        where: { emailHash }
+      });
+
+      const isRegisteredPm = !!pm;
+      const requestLink = isRegisteredPm 
+        ? `${pmUrl}/requests` 
+        : `${payUrl}/fill-record/${request.uuid}`;
       
       const property = await this.prisma.upward_user_property.findUnique({
         where: { uuid: input.propertyUuid },
@@ -72,10 +83,10 @@ export class RequestCredibilityRecordsUseCase {
         email: requestEmail,
         tenantName,
         propertyAddress,
-        requestLink
+        requestLink,
+        isRegisteredPm
       });
 
-      // Publish event for webhook if property is verified and belongs to a platform
       if (property?.isVerified && property.company?.platformId) {
         this.eventBus.publish(new CredibilityRequestCreatedEvent(
           property.company.platformId,

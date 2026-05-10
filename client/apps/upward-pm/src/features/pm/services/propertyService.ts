@@ -166,3 +166,10 @@ export const bulkFullImport = (data: { rows: any[] }) => {
     body: JSON.stringify(data)
   })
 }
+
+export const bulkAddRentHistory = (unitUuid: string, rows: any[]) => {
+  return request<any>(`/pm/units/${unitUuid}/payments/bulk`, {
+    method: 'POST',
+    body: JSON.stringify({ rows })
+  })
+}

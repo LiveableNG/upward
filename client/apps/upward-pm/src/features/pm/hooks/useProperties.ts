@@ -154,3 +154,13 @@ export const useBulkFullImport = () => {
     }
   })
 }
+export const useBulkAddRentHistory = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ unitUuid, rows }: { unitUuid: string, rows: any[] }) => 
+      api.bulkAddRentHistory(unitUuid, rows),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pm-unit-payments', variables.unitUuid] })
+    }
+  })
+}

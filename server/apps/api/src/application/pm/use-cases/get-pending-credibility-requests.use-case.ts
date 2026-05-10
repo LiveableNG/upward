@@ -11,7 +11,7 @@ export class GetPendingCredibilityRequestsUseCase {
 
   async execute(pmId: number) {
     // Get PM's email and phone
-    const pm = await this.prisma.upward_user.findUnique({
+    const pm = await this.prisma.upward_property_manager.findUnique({
       where: { id: pmId }
     });
 
