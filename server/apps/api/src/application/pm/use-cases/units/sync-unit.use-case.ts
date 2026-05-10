@@ -56,7 +56,6 @@ export class SyncUnitToUpwardUseCase {
     const upwardUser = await this.userRepo.findByEmail(tenantEmail);
     if (!upwardUser) throw new Error('Tenant user record not found on Upward');
 
-    // Fetch and decrypt PM info for core sync
     const pmRecord = await this.prisma.upward_property_manager.findUnique({
       where: { id: pmId }
     });
@@ -187,21 +186,31 @@ export class SyncUnitToUpwardUseCase {
         this.logger.log(`Syncing ${pmPayments.length} historical payments for unit ${unit.id}`);
         
         for (const p of pmPayments) {
-          // Check if a similar cycle already exists to prevent duplicates on re-sync (though isSynced check prevents this mostly)
-          await tx.upward_rent_cycle.create({
-            data: {
-              userId: upwardUser.id!,
+          const existingCycle = await tx.upward_rent_cycle.findFirst({
+            where: {
               userPropertyId: userProperty.id,
-              amountOwed: p.amount, // Using the paid amount as owed for historical records
-              amountPaid: p.amount,
-              currency: unit.currency,
-              dueDate: p.periodEnd || p.paymentDate,
               paidAt: p.paymentDate,
-              status: 'PAID',
-              description: p.notes || 'Historical rent payment (PM Sync)',
+              amountPaid: p.amount,
               source: 'PM_SYNC',
             }
           });
+
+          if (!existingCycle) {
+            await tx.upward_rent_cycle.create({
+              data: {
+                userId: upwardUser.id!,
+                userPropertyId: userProperty.id,
+                amountOwed: p.amount, // Using the paid amount as owed for historical records
+                amountPaid: p.amount,
+                currency: unit.currency,
+                dueDate: p.periodEnd || p.paymentDate,
+                paidAt: p.paymentDate,
+                status: 'PAID',
+                description: p.notes || 'Historical rent payment (PM Sync)',
+                source: 'PM_SYNC',
+              }
+            });
+          }
         }
       }
 

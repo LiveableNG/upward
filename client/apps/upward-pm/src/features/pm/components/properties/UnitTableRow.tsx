@@ -1,9 +1,11 @@
 import React from 'react'
 import Link from 'next/link'
-import { User, CreditCard, Loader2 } from 'lucide-react'
+import { User, CreditCard, Loader2, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Unit } from '../../services/propertyService'
 import { PmPaymentRequest } from '../../services/paymentService'
+import { useSyncToUpward } from '../../hooks/useProperties'
+import { useToast } from '@/components/common/Toast'
 
 interface UnitTableRowProps {
   unit: Unit;
@@ -20,6 +22,23 @@ export const UnitTableRow: React.FC<UnitTableRowProps> = ({
   onRequestPayment,
   paymentRequests = []
 }) => {
+  const syncMutation = useSyncToUpward();
+  const { error: toastError, success: toastSuccess } = useToast();
+  
+  const handleSync = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (syncMutation.isPending) return;
+
+    try {
+      await syncMutation.mutateAsync(unit.uuid);
+      toastSuccess('Unit synced to Upward successfully');
+    } catch (error: any) {
+      toastError(error.message || 'Failed to sync unit');
+    }
+  };
+
   const pendingRequest = paymentRequests
     .filter(r => r.status !== 'PAID')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
@@ -99,17 +118,21 @@ export const UnitTableRow: React.FC<UnitTableRowProps> = ({
               </div>
             ) : (
               <button 
-                className={cn('btn btn--sm', unit.isSynced ? 'btn--secondary' : 'btn--disabled')}
-                onClick={(e) => {
+                className={cn('btn btn--sm', unit.isSynced ? 'btn--secondary' : 'btn--primary')}
+                onClick={unit.isSynced ? (e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  if (unit.isSynced) onRequestPayment?.(unit);
-                }}
-                title={!unit.isSynced ? "Sync required to request payment" : ""}
+                  onRequestPayment?.(unit);
+                } : handleSync}
+                disabled={syncMutation.isPending}
                 style={{ fontSize: '12px', padding: '6px 12px' }}
               >
-                <CreditCard size={12} style={{ marginRight: 4 }} />
-                {unit.isSynced ? 'Request' : 'Not Synced'}
+                {syncMutation.isPending ? (
+                  <Loader2 size={12} className="animate-spin" style={{ marginRight: 4 }} />
+                ) : (
+                  unit.isSynced ? <CreditCard size={12} style={{ marginRight: 4 }} /> : <RefreshCw size={12} style={{ marginRight: 4 }} />
+                )}
+                {unit.isSynced ? 'Request' : (syncMutation.isPending ? 'Syncing...' : 'Sync Now')}
               </button>
             )
           )}
