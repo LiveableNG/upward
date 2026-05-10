@@ -21,7 +21,7 @@ export class LandlordAuthController {
     }
 
     this.setCookies(res, authResponse.accessToken, authResponse.refreshToken);
-    return authResponse.user;
+    return authResponse;
   }
 
   @Post('request-otp')
@@ -39,7 +39,7 @@ export class LandlordAuthController {
 
     const authResponse = await this.authService.refreshAccessToken(refreshToken);
     this.setCookies(res, authResponse.accessToken, authResponse.refreshToken);
-    return authResponse.user;
+    return authResponse;
   }
 
   private setCookies(res: Response, accessToken: string, refreshToken: string) {

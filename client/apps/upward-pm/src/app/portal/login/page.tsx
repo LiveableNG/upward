@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,6 +9,9 @@ import { Key, Mail, ShieldCheck, Loader2, ArrowRight } from 'lucide-react'
 import { landlordLogin, landlordRequestOTP } from '@/features/auth/services/landlordAuthService'
 import styles from './page.module.css'
 import Link from 'next/link'
+import '@/styles/auth.css'
+import { AuthSkeleton } from '@/features/auth/components/AuthSkeleton'
+import { AuthLayout } from '@/components/auth/AuthLayout'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -18,7 +21,7 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>
 
-export default function LandlordLoginPage() {
+function LandlordLoginForm() {
   const router = useRouter()
   const [loginType, setLoginType] = useState<'PASSWORD' | 'OTP'>('PASSWORD')
   const [otpSent, setOtpSent] = useState(false)
@@ -69,9 +72,12 @@ export default function LandlordLoginPage() {
   }
 
   return (
-    <div className={styles.loginContainer}>
-      <div className={styles.loginCard}>
-        <div className="auth-role-toggle" style={{ margin: '0 0 32px 0' }}>
+    <AuthLayout 
+      title="Landlord Portal"
+      subtitle="Secure access to your property portfolio"
+    >
+      <div className="animate-fade-in">
+        <div className="auth-role-toggle">
           <Link 
             href="/login"
             className="auth-role-toggle__btn"
@@ -86,17 +92,17 @@ export default function LandlordLoginPage() {
           </button>
         </div>
 
-        <div className={styles.header}>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-             <div style={{ background: 'var(--forest-faint)', padding: '12px', borderRadius: '16px' }}>
-                <ShieldCheck size={32} color="var(--forest)" />
-             </div>
-          </div>
-          <h1 className={styles.title}>Landlord Portal</h1>
-          <p className={styles.subtitle}>Secure access to your property portfolio</p>
+        <div className="auth-header">
+           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+              <div style={{ background: 'var(--ivory-dark)', padding: '12px', borderRadius: '16px' }}>
+                 <ShieldCheck size={32} color="var(--dark)" />
+              </div>
+           </div>
+           <h2 className="auth-card__title">Landlord Portal</h2>
+           <p className="auth-card__subtitle">Enter your credentials to access your portfolio.</p>
         </div>
 
-        <div className={styles.toggleContainer}>
+        <div className={styles.toggleContainer} style={{ marginBottom: '32px' }}>
           <button 
             type="button"
             className={`${styles.toggleButton} ${loginType === 'PASSWORD' ? styles.activeToggle : ''}`}
@@ -113,45 +119,45 @@ export default function LandlordLoginPage() {
           </button>
         </div>
 
-        {error && <div className={styles.error}>{error}</div>}
+        {error && <div className="auth-error" style={{ marginBottom: '24px' }}>{error}</div>}
 
-        <form className={styles.form} onSubmit={handleSubmit(onSubmit)}>
-          <div className={styles.inputGroup}>
-            <label className={styles.label}>Email Address</label>
-            <div style={{ position: 'relative' }}>
-               <Mail size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div className="form-group">
+            <label className="form-label">Email Address</label>
+            <div className="form-input-wrapper">
+               <Mail size={18} className="form-input-icon" />
                <input 
                 {...register('email')}
-                className={styles.input} 
+                className="form-input" 
                 placeholder="you@example.com"
-                style={{ paddingLeft: '40px', width: '100%' }}
+                style={{ paddingLeft: '44px' }}
               />
             </div>
-            {errors.email && <span style={{ fontSize: '12px', color: 'var(--error)' }}>{errors.email.message}</span>}
+            {errors.email && <span className="form-error">{errors.email.message}</span>}
           </div>
 
           {loginType === 'PASSWORD' ? (
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>Password</label>
-              <div style={{ position: 'relative' }}>
-                <Key size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <div className="form-input-wrapper">
+                <Key size={18} className="form-input-icon" />
                 <input 
                   {...register('password')}
                   type="password" 
-                  className={styles.input} 
+                  className="form-input" 
                   placeholder="••••••••"
-                  style={{ paddingLeft: '40px', width: '100%' }}
+                  style={{ paddingLeft: '44px' }}
                 />
               </div>
             </div>
           ) : (
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>Verification Code</label>
+            <div className="form-group">
+              <label className="form-label">Verification Code</label>
               {!otpSent ? (
                 <button 
                   type="button" 
-                  className={styles.button} 
-                  style={{ background: 'white', color: 'var(--forest)', border: '1px solid var(--forest)' }}
+                  className="auth-btn auth-btn--ghost" 
+                  style={{ width: '100%', justifyContent: 'center' }}
                   onClick={handleRequestOTP}
                   disabled={loading || !email}
                 >
@@ -161,12 +167,14 @@ export default function LandlordLoginPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                    <input 
                     {...register('otp')}
-                    className={styles.input} 
-                    placeholder="Enter 6-digit code"
+                    className="form-input" 
+                    placeholder="000000"
                     maxLength={6}
                     style={{ textAlign: 'center', letterSpacing: '8px', fontSize: '20px' }}
                   />
-                  <p className={styles.otpHint}>Code sent to your email. Check your inbox.</p>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                    Code sent to your email. Check your inbox.
+                  </p>
                 </div>
               )}
             </div>
@@ -174,7 +182,8 @@ export default function LandlordLoginPage() {
 
           <button 
             type="submit" 
-            className={styles.button}
+            className="auth-btn auth-btn--primary"
+            style={{ width: '100%', marginTop: '24px' }}
             disabled={loading || (loginType === 'OTP' && !otpSent)}
           >
             {loading ? <Loader2 className="animate-spin" /> : (
@@ -186,6 +195,14 @@ export default function LandlordLoginPage() {
           </button>
         </form>
       </div>
-    </div>
+    </AuthLayout>
+  )
+}
+
+export default function LandlordLoginPage() {
+  return (
+    <Suspense fallback={<AuthSkeleton />}>
+      <LandlordLoginForm />
+    </Suspense>
   )
 }
