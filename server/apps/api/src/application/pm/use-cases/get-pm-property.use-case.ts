@@ -13,7 +13,12 @@ export class GetPmPropertyUseCase {
   async execute(pmId: number, propertyUuid: string) {
     const property = await this.propertyRepository.findByUuid(propertyUuid);
     
-    if (!property || property.pmId !== pmId) {
+    if (!property) {
+      throw new NotFoundException('Property not found');
+    }
+
+    const hasAccess = await this.propertyRepository.hasAccessToProperty(pmId, property.id);
+    if (!hasAccess) {
       throw new NotFoundException('Property not found');
     }
 

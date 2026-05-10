@@ -16,11 +16,12 @@ export class GetPmUnitsUseCase {
       if (!property) {
         throw new NotFoundException('Property not found');
       }
-      if (property.pmId !== pmId) {
+      const hasAccess = await this.propertyRepository.hasAccessToProperty(pmId, property.id);
+      if (!hasAccess) {
         throw new ForbiddenException('You do not have access to this property');
       }
       return this.unitRepository.findByPropertyId(property.id);
     }
-    return this.unitRepository.findByPmId(pmId);
+    return this.unitRepository.findAccessibleByPmId(pmId);
   }
 }

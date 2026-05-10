@@ -74,6 +74,40 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     return requests.map(pr => this.mapPmPaymentRequest(pr));
   }
 
+  async findAccessibleByPmId(pmId: number): Promise<PmPaymentRequestEntity[]> {
+    // Team collaborations (ALL access)
+    const teamCollabs = await (this.prisma as any).upward_pm_team_collaboration.findMany({
+      where: { collaboratorPmId: pmId, status: 'ACCEPTED', accessLevel: 'ALL' }
+    });
+    
+    const ownerPmIds = teamCollabs.map((tc: any) => tc.ownerPmId);
+    
+    // Custom property collaborations
+    const propCollabs = await (this.prisma as any).upward_pm_property_collaboration.findMany({
+      where: { collaboratorPmId: pmId }
+    });
+    
+    const collabPropertyIds = propCollabs.map((pc: any) => pc.propertyId);
+
+    const requests = await this.prisma.upward_pm_payment_request.findMany({
+      where: {
+        OR: [
+          { pmId },
+          { pmId: { in: ownerPmIds } },
+          { unit: { propertyId: { in: collabPropertyIds } } }
+        ]
+      },
+      include: {
+        unit: { include: { property: true } },
+        tenant: true,
+        paymentRequest: { include: { lineItemRecords: true } }
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return requests.map(pr => this.mapPmPaymentRequest(pr));
+  }
+
   async findByUuid(uuid: string): Promise<PmPaymentRequestEntity | null> {
     const pr = await this.prisma.upward_pm_payment_request.findUnique({
       where: { uuid },

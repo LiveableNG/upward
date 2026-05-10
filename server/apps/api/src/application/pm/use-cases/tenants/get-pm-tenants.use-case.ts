@@ -9,6 +9,6 @@ export class GetPmTenantsUseCase {
   ) {}
 
   async execute(pmId: number): Promise<TenantEntity[]> {
-    return this.tenantRepo.findByPmId(pmId);
+    return this.tenantRepo.findAccessibleByPmId(pmId);
   }
 }
