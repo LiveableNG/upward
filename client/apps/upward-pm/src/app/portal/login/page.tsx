@@ -130,10 +130,12 @@ function LandlordLoginForm() {
         </div>
 
         <div className="auth-header" style={{ textAlign: 'left' }}>
-           <div className="auth-success-icon" style={{ animation: 'none', margin: '0 0 20px 0' }}>
-              <ShieldCheck size={32} />
-           </div>
-           <h2 className="auth-card__title">Landlord Portal</h2>
+           <h2 className="auth-card__title" style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+              <div style={{ background: 'var(--ivory-dark)', padding: '10px', borderRadius: '12px', display: 'flex' }}>
+                <ShieldCheck size={24} color="var(--dark)" />
+              </div>
+              Landlord Portal
+           </h2>
            <p className="auth-card__subtitle">Enter your credentials to access your portfolio.</p>
         </div>
 
@@ -163,15 +165,20 @@ function LandlordLoginForm() {
                <Mail size={18} className="input-icon" />
                <input 
                 {...register('email')}
-                className="form-input" 
+                className={`form-input ${errors.email || existenceError ? 'form-input--error' : ''}`} 
                 placeholder="you@example.com"
                 style={{ paddingLeft: '52px' }}
               />
             </div>
             {(errors.email || existenceError) && (
-              <span className="form-error" style={{ color: existenceError ? 'var(--error)' : undefined }}>
+              <p style={{ 
+                fontSize: '12px', 
+                color: '#ef4444', 
+                marginTop: '8px', 
+                fontWeight: 400 
+              }}>
                 {errors.email?.message || existenceError}
-              </span>
+              </p>
             )}
           </div>
 

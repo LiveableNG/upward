@@ -32,6 +32,12 @@ export const landlordRefresh = async () => {
   return res
 }
 
+export const landlordLogout = async () => {
+  return request<any>('/landlords/auth/logout', {
+    method: 'POST'
+  })
+}
+
 export const getLandlordPortfolio = async () => {
   return request<any>('/landlords/portfolio/summary', { method: 'GET' })
 }

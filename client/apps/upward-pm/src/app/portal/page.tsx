@@ -12,14 +12,29 @@ import {
   ChevronRight,
   Loader2
 } from 'lucide-react'
-import { getLandlordPortfolio } from '@/features/auth/services/landlordAuthService'
 import styles from './page.module.css'
+import { useRouter } from 'next/navigation'
+import { getLandlordPortfolio, landlordLogout } from '@/features/auth/services/landlordAuthService'
+import { useToast } from '@/components/common/Toast'
 
 export default function LandlordDashboard() {
+  const router = useRouter()
+  const { success: toastSuccess, error: toastError } = useToast()
+  
   const { data, isLoading, error } = useQuery({
     queryKey: ['landlord-portfolio'],
     queryFn: getLandlordPortfolio
   })
+
+  const handleLogout = async () => {
+    try {
+      await landlordLogout()
+      toastSuccess('Logged out successfully')
+      router.push('/portal/login')
+    } catch (err) {
+      toastError('Failed to logout. Please try again.')
+    }
+  }
 
   if (isLoading) {
     return (
@@ -51,7 +66,11 @@ export default function LandlordDashboard() {
             <h1>Portfolio Overview</h1>
             <p>Real-time analysis of your real estate assets</p>
           </div>
-          <button className={styles.button} style={{ background: 'white', color: 'var(--text)', border: '1px solid var(--border)' }}>
+          <button 
+            className={styles.button} 
+            style={{ background: 'white', color: 'var(--text)', border: '1px solid var(--border)' }}
+            onClick={handleLogout}
+          >
             <LogOut size={18} />
             Logout
           </button>
@@ -105,7 +124,12 @@ export default function LandlordDashboard() {
             </thead>
             <tbody>
               {properties.map((p: any) => (
-                <tr key={p.uuid}>
+                <tr 
+                  key={p.uuid} 
+                  onClick={() => router.push(`/portal/properties/${p.uuid}`)}
+                  style={{ cursor: 'pointer' }}
+                  className={styles.clickableRow}
+                >
                   <td>
                     <div style={{ fontWeight: 600, color: 'var(--text)' }}>{p.name}</div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{p.address}</div>
@@ -123,7 +147,7 @@ export default function LandlordDashboard() {
                   <td>
                     <span className={styles.outstanding}>₦{p.outstanding.toLocaleString()}</span>
                   </td>
-                  <td>
+                  <td style={{ textAlign: 'right' }}>
                     <ChevronRight size={20} color="var(--text-muted)" />
                   </td>
                 </tr>

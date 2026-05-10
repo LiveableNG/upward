@@ -47,6 +47,13 @@ export class LandlordAuthController {
     return authResponse;
   }
 
+  @Post('logout')
+  async logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie('landlord_access_token', { path: '/' });
+    res.clearCookie('landlord_refresh_token', { path: '/' });
+    return { success: true };
+  }
+
   private setCookies(res: Response, accessToken: string, refreshToken: string) {
     res.cookie('landlord_access_token', accessToken, {
       httpOnly: true,
