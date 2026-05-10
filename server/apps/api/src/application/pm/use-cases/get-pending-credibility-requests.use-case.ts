@@ -17,11 +17,10 @@ export class GetPendingCredibilityRequestsUseCase {
 
     if (!pm) return [];
 
-    const pmEmail = pm.email?.toLowerCase();
-    const pmPhone = pm.phone; // Assuming standardized format
+    const pmEmail = pm.email?.toLowerCase().trim();
+    const pmPhone = pm.phone?.trim();
 
-    // Fetch all pending requests (since we can't query encrypted columns directly)
-    // In a production system at scale, we'd add an emailHash column.
+    // Fetch all pending requests
     const allPending = await this.prisma.upward_credibility_request.findMany({
       where: { status: 'PENDING' },
       include: {
@@ -34,29 +33,38 @@ export class GetPendingCredibilityRequestsUseCase {
 
     const matchedRequests = allPending.filter((req: any) => {
       let matches = false;
-      if (req.email && pmEmail) {
-        const decryptedEmail = this.encryption.decrypt(req.email);
-        if (decryptedEmail.toLowerCase() === pmEmail) matches = true;
-      }
-      if (!matches && req.phone && pmPhone) {
-        const decryptedPhone = this.encryption.decrypt(req.phone);
-        if (decryptedPhone === pmPhone) matches = true;
+      try {
+        if (req.email && pmEmail) {
+          const decryptedEmail = this.encryption.decrypt(req.email).toLowerCase().trim();
+          if (decryptedEmail === pmEmail) matches = true;
+        }
+        if (!matches && req.phone && pmPhone) {
+          const decryptedPhone = this.encryption.decrypt(req.phone).trim();
+          if (decryptedPhone === pmPhone) matches = true;
+        }
+      } catch (e) {
+        // Skip if decryption fails
+        return false;
       }
       return matches;
     });
 
     return Promise.all(matchedRequests.map(async (req: any) => {
-      // Fetch property details (user's property)
       const property = await this.prisma.upward_user_property.findUnique({
         where: { uuid: req.propertyUuid },
         include: { location: true }
       });
 
+      let tenantName = 'Unknown Tenant';
+      try {
+        tenantName = `${this.encryption.decrypt(req.user.firstName)} ${this.encryption.decrypt(req.user.lastName)}`;
+      } catch (e) {}
+
       return {
         uuid: req.uuid,
         status: req.status,
         createdAt: req.createdAt,
-        tenantName: `${req.user.firstName} ${req.user.lastName}`,
+        tenantName,
         propertyAddress: property?.location?.address || property?.location?.area || 'Unknown Address'
       };
     }));
