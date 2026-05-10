@@ -22,9 +22,6 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
   useEffect(() => {
     const fetchDetails = async () => {
       try {
-        const endpoint = isPublic ? `/public/credibility/request/${uuid}` : `/pm/credibility-requests/${uuid}` // Wait, PM doesn't have /pm/credibility-requests/:uuid endpoint, they just have get all. I can use the public endpoint for BOTH since it's just fetching details by UUID!
-        
-        // Let's use the public endpoint for fetching details always, it just returns request info
         const res = await api.get(`/public/credibility/request/${uuid}`)
         setRequestDetails(res)
       } catch (err) {
@@ -101,7 +98,6 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
         ? { records: previewRecords.map(({ id, ...rest }) => rest) }
         : {}
 
-      // Always use public endpoint to fulfill/reject
       await api.post(`/public/credibility/request/${uuid}/${action}`, payload)
       
       success(action === 'fulfill' ? 'Records submitted successfully!' : 'Request rejected.')
@@ -132,40 +128,40 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
     setPreviewRecords(previewRecords.filter(r => r.id !== id))
   }
 
-  if (loading) return <div className="p-12 text-center animate-pulse">Loading request details...</div>
+  if (loading) return <div className="fulfillment-status animate-pulse">Loading request details...</div>
 
   if (!requestDetails) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center">
-        <AlertCircle size={48} className="text-accent mb-4" />
-        <h2 className="text-xl font-bold mb-2">Request Not Found</h2>
-        <p className="text-text-muted">The credibility request could not be found or has expired.</p>
+      <div className="fulfillment-status">
+        <AlertCircle size={48} className="text-accent" style={{ marginBottom: '16px' }} />
+        <h2 className="fulfillment-status__title">Request Not Found</h2>
+        <p className="fulfillment-status__text">The credibility request could not be found or has expired.</p>
       </div>
     )
   }
 
   if (showSuccess) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center animate-fade-in max-w-2xl mx-auto">
-        <div className="w-20 h-20 bg-forest/10 rounded-full flex items-center justify-center mb-6">
-          <FileSpreadsheet className="text-forest" size={32} />
+      <div className="fulfillment-status">
+        <div className="fulfillment-status__icon-wrapper">
+          <FileSpreadsheet size={32} />
         </div>
-        <h2 className="text-3xl font-bold mb-4">Request Processed!</h2>
-        <p className="text-text-muted text-lg mb-8">
+        <h2 className="fulfillment-status__title">Request Processed!</h2>
+        <p className="fulfillment-status__text">
           The request status has been updated. This will significantly help the tenant build their credibility profile on Upward.
         </p>
 
         {isPublic && (
-          <div className="bg-ivory-dim p-8 rounded-2xl border border-border w-full text-left">
-            <h3 className="font-bold text-xl mb-2 text-forest">Manage your properties easier with Upward PM</h3>
-            <p className="text-text-muted mb-6">
+          <div className="upsell-card">
+            <h3 className="upsell-card__title">Manage your properties easier with Upward PM</h3>
+            <p className="upsell-card__text">
               Upward PM is the modern platform for property managers to automate rent collection, track leases, and find verified tenants.
             </p>
-            <div className="flex gap-4">
-              <button className="btn btn--primary flex-1 py-4" onClick={() => router.push('/signup')}>
+            <div className="upsell-card__actions">
+              <button className="btn btn--primary" onClick={() => router.push('/signup')}>
                 Create Free Account
               </button>
-              <button className="btn btn--secondary flex-1 py-4" onClick={() => router.push('/login')}>
+              <button className="btn btn--secondary" onClick={() => router.push('/login')}>
                 Log In
               </button>
             </div>
@@ -173,7 +169,7 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
         )}
 
         {!isPublic && (
-          <button className="btn btn--primary mt-4" onClick={() => router.push('/requests')}>
+          <button className="btn btn--primary" onClick={() => router.push('/requests')}>
             Back to Requests
           </button>
         )}
@@ -183,12 +179,12 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
 
   if (requestDetails.status !== 'PENDING') {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center">
-        <AlertCircle size={48} className="text-accent mb-4" />
-        <h2 className="text-xl font-bold mb-2">Request Already Processed</h2>
-        <p className="text-text-muted">This request is marked as {requestDetails.status}.</p>
+      <div className="fulfillment-status">
+        <AlertCircle size={48} className="text-accent" style={{ marginBottom: '16px' }} />
+        <h2 className="fulfillment-status__title">Request Already Processed</h2>
+        <p className="fulfillment-status__text">This request is marked as {requestDetails.status}.</p>
         {!isPublic && (
-          <button className="btn btn--primary mt-6" onClick={() => router.push('/requests')}>
+          <button className="btn btn--primary" onClick={() => router.push('/requests')}>
             Back to Requests
           </button>
         )}
@@ -197,73 +193,63 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
   }
 
   return (
-    <div className="import-page animate-fade-in w-full max-w-5xl mx-auto py-8">
-      <header className="import-header mb-6">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          {!isPublic && (
-            <button className="btn-icon" onClick={() => router.back()}>
-              <ChevronLeft size={20} />
-            </button>
-          )}
-          <div>
-            <h1 className="text-2xl font-bold text-forest">Provide Past Records</h1>
-            <p className="text-text-muted">
-              For <strong>{requestDetails.user?.firstName} {requestDetails.user?.lastName}</strong> at <strong>{requestDetails.property?.location?.address || 'Property'}</strong>
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="btn btn--secondary" onClick={handleDownloadTemplate}>
-            <Download size={18} />
-            Template
-          </button>
-        </div>
+    <div className="fulfillment-content">
+      <header className="fulfillment-content__header" style={{ marginBottom: '24px' }}>
+        <h1 className="fulfillment-content__title">Provide Past Records</h1>
+        <p className="fulfillment-content__meta">
+          For <strong>{requestDetails.user?.firstName} {requestDetails.user?.lastName}</strong> at <strong>{requestDetails.propertyAddress}</strong>
+        </p>
       </header>
 
-      <div className="import-container bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
+      <div className="fulfillment-card">
         {previewRecords.length === 0 && (
-          <div className="p-8 border-b border-border bg-ivory-dim">
-            <label className="import-dropzone border-2 border-dashed border-border rounded-xl p-16 flex flex-col items-center justify-center cursor-pointer hover:bg-surface-hover hover:border-forest transition-colors bg-surface">
-              <FileSpreadsheet size={48} className="text-forest mb-4" />
-              <h3 className="font-bold text-lg mb-1">Click to upload CSV</h3>
-              <p className="text-text-muted">Or click 'Add Row' below to enter manually.</p>
+          <div className="dropzone">
+            <label className="dropzone__inner">
+              <FileSpreadsheet size={48} className="dropzone__icon" />
+              <h3 className="dropzone__title">Click to upload CSV</h3>
+              <p className="dropzone__text">Or click 'Add Row' below to enter manually.</p>
               <input type="file" accept=".csv" style={{display: 'none'}} onChange={handleFileUpload} />
             </label>
           </div>
         )}
 
-        <div className="import-preview flex flex-col">
-          <div className="import-preview__header flex justify-between items-center p-6 pb-4">
-            <h3 className="font-bold">Records to Submit ({previewRecords.length})</h3>
-            <button className="btn btn--secondary btn--sm" onClick={addRow}>
-              <Plus size={14} /> Add Row
-            </button>
+        <div className="records-table">
+          <div className="records-table__header">
+            <h3 className="records-table__title">Records to Submit ({previewRecords.length})</h3>
+            <div style={{ display: 'flex', gap: '12px' }}>
+               <button className="btn btn--secondary btn--sm" onClick={handleDownloadTemplate}>
+                <Download size={14} /> Template
+              </button>
+              <button className="btn btn--secondary btn--sm" onClick={addRow}>
+                <Plus size={14} /> Add Row
+              </button>
+            </div>
           </div>
           
-          <div className="import-table-container overflow-x-auto border-t border-border">
-            <table className="w-full text-left text-sm border-collapse">
+          <div className="records-table__container">
+            <table className="table">
               <thead>
-                <tr className="bg-surface-hover text-text-muted uppercase tracking-wider text-xs font-semibold">
-                  <th className="p-3 border-b border-border">Amount (NGN)</th>
-                  <th className="p-3 border-b border-border">Due Date</th>
-                  <th className="p-3 border-b border-border">Paid Date</th>
-                  <th className="p-3 border-b border-border w-16"></th>
+                <tr>
+                  <th>Amount (NGN)</th>
+                  <th>Due Date</th>
+                  <th>Paid Date</th>
+                  <th style={{ width: '50px' }}></th>
                 </tr>
               </thead>
               <tbody>
                 {previewRecords.map((r, i) => (
-                  <tr key={r.id} className="border-b border-border last:border-0 hover:bg-surface-hover transition-colors">
-                    <td className="p-2">
-                      <input type="number" className="form-input w-full" value={r.amount} onChange={e => updateRow(i, 'amount', parseFloat(e.target.value) || 0)} placeholder="e.g. 2000000" />
+                  <tr key={r.id}>
+                    <td>
+                      <input type="number" className="form-input" value={r.amount} onChange={e => updateRow(i, 'amount', parseFloat(e.target.value) || 0)} placeholder="e.g. 2000000" />
                     </td>
-                    <td className="p-2">
-                      <input type="date" className="form-input w-full" value={r.dueDate} onChange={e => updateRow(i, 'dueDate', e.target.value)} />
+                    <td>
+                      <input type="date" className="form-input" value={r.dueDate} onChange={e => updateRow(i, 'dueDate', e.target.value)} />
                     </td>
-                    <td className="p-2">
-                      <input type="date" className="form-input w-full" value={r.paidDate} onChange={e => updateRow(i, 'paidDate', e.target.value)} />
+                    <td>
+                      <input type="date" className="form-input" value={r.paidDate} onChange={e => updateRow(i, 'paidDate', e.target.value)} />
                     </td>
-                    <td className="p-2 text-right">
-                      <button className="text-accent hover:text-accent/80 p-2 rounded-lg hover:bg-accent/10 transition-colors" onClick={() => removeRow(r.id)}>
+                    <td style={{ textAlign: 'center' }}>
+                      <button className="btn-icon" onClick={() => removeRow(r.id)} style={{ color: 'var(--error)' }}>
                         <X size={16} />
                       </button>
                     </td>
@@ -271,7 +257,7 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
                 ))}
                 {previewRecords.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="p-8 text-center text-text-muted">
+                    <td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                       No records added yet. Add a row or upload a CSV.
                     </td>
                   </tr>
@@ -281,10 +267,10 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
           </div>
         </div>
 
-        <div className="import-footer flex justify-between items-center p-6 bg-surface border-t border-border">
-          <div className="flex gap-3">
+        <div className="fulfillment-footer">
+          <div className="fulfillment-footer__group">
             <button 
-              className="btn btn--secondary text-accent border-accent hover:bg-accent/10" 
+              className="btn btn--secondary btn--decline" 
               onClick={() => handleAction('reject')}
               disabled={submitting}
             >
@@ -292,7 +278,7 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
             </button>
             {!isPublic && (
               <button 
-                className="btn btn--secondary text-forest border-forest hover:bg-forest/5" 
+                className="btn btn--secondary btn--forest-outline" 
                 onClick={handleMarkAsDone}
                 disabled={submitting}
               >
