@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { ArrowLeft, Search, Eye, LayoutGrid, Wallet, FileText, ClipboardList, Package, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Search, Eye, LayoutGrid, Wallet, FileText, ClipboardList, Package, ShieldCheck, Edit3 } from 'lucide-react'
 import { Property, Unit } from '../../services/propertyService'
 import { cn } from '@/lib/utils'
 
@@ -10,9 +10,10 @@ interface PropertyDetailViewProps {
   units: Unit[];
   onBack: () => void;
   onViewUnit: (unit: Unit) => void;
+  onEdit: () => void;
 }
 
-export function PropertyDetailView({ property, units, onBack, onViewUnit }: PropertyDetailViewProps) {
+export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit }: PropertyDetailViewProps) {
   const [activeTab, setActiveTab] = useState('Unit')
   const [unitSearch, setUnitSearch] = useState('')
   const [unitFilter, setUnitFilter] = useState<'All' | 'Occupied' | 'Vacant'>('All')
@@ -37,6 +38,14 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit }: Prop
           <ArrowLeft size={18} />
         </button>
         <h2 style={{ fontSize: 18, fontWeight: 600, color: '#334155' }}>Property Detail</h2>
+        
+        <button 
+          onClick={onEdit}
+          className="btn btn--secondary btn--sm" 
+          style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, height: 36, padding: '0 16px', borderRadius: 10 }}
+        >
+          <Edit3 size={16} /> Edit Property
+        </button>
       </div>
 
       {/* Top Section Cards */}

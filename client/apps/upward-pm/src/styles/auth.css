@@ -332,6 +332,8 @@
   margin-bottom: 32px;
   gap: 4px;
   border: 1px solid var(--ivory-dark);
+  position: relative;
+  z-index: 50;
 }
 
 .auth-role-toggle__btn {

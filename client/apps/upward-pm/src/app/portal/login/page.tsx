@@ -8,6 +8,7 @@ import * as z from 'zod'
 import { Key, Mail, ShieldCheck, Loader2, ArrowRight } from 'lucide-react'
 import { landlordLogin, landlordRequestOTP } from '@/features/auth/services/landlordAuthService'
 import styles from './page.module.css'
+import Link from 'next/link'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -70,6 +71,21 @@ export default function LandlordLoginPage() {
   return (
     <div className={styles.loginContainer}>
       <div className={styles.loginCard}>
+        <div className="auth-role-toggle" style={{ margin: '0 0 32px 0' }}>
+          <Link 
+            href="/login"
+            className="auth-role-toggle__btn"
+          >
+            Property Manager
+          </Link>
+          <button 
+            type="button"
+            className="auth-role-toggle__btn auth-role-toggle__btn--active"
+          >
+            Landlord
+          </button>
+        </div>
+
         <div className={styles.header}>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
              <div style={{ background: 'var(--forest-faint)', padding: '12px', borderRadius: '16px' }}>
