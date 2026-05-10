@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Param } from '@nestjs/common';
 import { GetLandlordPortfolioUseCase } from '../../../application/pm/use-cases/landlord/get-landlord-portfolio.use-case';
+import { GetLandlordPropertyDetailsUseCase } from '../../../application/pm/use-cases/landlord/get-landlord-property-details.use-case';
 import { LandlordChangePasswordUseCase } from '../../../application/pm/use-cases/landlord/landlord-change-password.use-case';
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
 
@@ -7,15 +8,20 @@ import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
 export class LandlordPortfolioController {
   constructor(
     private readonly getPortfolioUseCase: GetLandlordPortfolioUseCase,
+    private readonly getPropertyDetailsUseCase: GetLandlordPropertyDetailsUseCase,
     private readonly changePasswordUseCase: LandlordChangePasswordUseCase,
   ) {}
 
   @UseGuards(JwtAuthGuard)
   @Get('summary')
   async getSummary(@Req() req: any) {
-    // req.user is populated by JwtAuthGuard
-    // Ensure role is LANDLORD
     return this.getPortfolioUseCase.execute(req.user.email);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('properties/:uuid')
+  async getPropertyDetails(@Req() req: any, @Param('uuid') uuid: string) {
+    return this.getPropertyDetailsUseCase.execute(req.user.email, uuid);
   }
 
   @UseGuards(JwtAuthGuard)

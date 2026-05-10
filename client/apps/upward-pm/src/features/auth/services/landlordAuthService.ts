@@ -42,6 +42,10 @@ export const getLandlordPortfolio = async () => {
   return request<any>('/landlords/portfolio/summary', { method: 'GET' })
 }
 
+export const getLandlordPropertyDetails = async (uuid: string) => {
+  return request<any>(`/landlords/portfolio/properties/${uuid}`, { method: 'GET' })
+}
+
 export const landlordChangePassword = async (password: string) => {
   return request<any>('/landlords/portfolio/change-password', {
     method: 'POST',
