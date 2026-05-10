@@ -17,8 +17,8 @@ export class GetPendingCredibilityRequestsUseCase {
 
     if (!pm) return [];
 
-    const pmEmail = pm.email?.toLowerCase().trim();
-    const pmPhone = pm.phone?.trim();
+    const pmEmail = pm.email ? this.encryption.decrypt(pm.email).toLowerCase().trim() : null;
+    const pmPhone = pm.phone ? this.encryption.decrypt(pm.phone).trim() : null;
 
     // Fetch all pending requests
     const allPending = await this.prisma.upward_credibility_request.findMany({
