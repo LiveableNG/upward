@@ -9,23 +9,23 @@ export default function RequestFulfillmentPage({ params }: { params: { uuid: str
   const router = useRouter()
   
   return (
-    <div className="min-h-screen">
-      <header className="bg-surface border-b border-border py-4 px-6 mb-6">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+    <div className="fulfillment-portal">
+      <header className="fulfillment-header">
+        <div className="fulfillment-header__container">
           <button 
             onClick={() => router.push('/requests')}
-            className="flex items-center gap-2 text-sm font-medium text-text-muted hover:text-forest transition-colors"
+            className="fulfillment-header__back"
           >
             <ArrowLeft size={18} />
             Back to Requests
           </button>
-          <div className="text-sm font-bold tracking-widest uppercase text-forest">
+          <div className="fulfillment-header__tag">
             Request Fulfillment
           </div>
         </div>
       </header>
 
-      <main className="p-4 md:p-0">
+      <main className="fulfillment-content">
         <RecordFulfillmentView uuid={params.uuid} isPublic={false} />
       </main>
     </div>
