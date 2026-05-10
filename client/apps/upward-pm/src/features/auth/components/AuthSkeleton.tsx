@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import '@/styles/auth.css'
 
 export const AuthSkeleton = () => {
   return (
