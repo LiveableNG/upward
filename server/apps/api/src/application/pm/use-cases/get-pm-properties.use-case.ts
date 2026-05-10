@@ -11,7 +11,7 @@ export class GetPmPropertiesUseCase {
   ) {}
 
   async execute(pmId: number) {
-    const properties = await this.propertyRepository.findByPmId(pmId);
+    const properties = await this.propertyRepository.findAccessibleByPmId(pmId);
     
     return Promise.all(properties.map(async (prop) => {
       if (prop.imageUrl) {

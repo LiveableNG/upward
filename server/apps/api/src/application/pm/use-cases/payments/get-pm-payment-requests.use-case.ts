@@ -9,6 +9,6 @@ export class GetPmPaymentRequestsUseCase {
   ) {}
 
   async execute(pmId: number): Promise<any> {
-    return this.pmPaymentRepo.findByPmId(pmId);
+    return this.pmPaymentRepo.findAccessibleByPmId(pmId);
   }
 }

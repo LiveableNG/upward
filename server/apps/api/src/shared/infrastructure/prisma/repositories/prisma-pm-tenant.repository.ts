@@ -74,6 +74,40 @@ export class PrismaPmTenantRepository implements ITenantRepository {
     return tenants.map(t => this.mapTenant(t));
   }
 
+  async findAccessibleByPmId(pmId: number): Promise<TenantEntity[]> {
+    // Team collaborations (ALL access)
+    const teamCollabs = await (this.prisma as any).upward_pm_team_collaboration.findMany({
+      where: { collaboratorPmId: pmId, status: 'ACCEPTED', accessLevel: 'ALL' }
+    });
+    
+    const ownerPmIds = teamCollabs.map((tc: any) => tc.ownerPmId);
+    
+    // Custom property collaborations
+    const propCollabs = await (this.prisma as any).upward_pm_property_collaboration.findMany({
+      where: { collaboratorPmId: pmId }
+    });
+    
+    const collabPropertyIds = propCollabs.map((pc: any) => pc.propertyId);
+
+    const tenants = await this.prisma.upward_pm_tenant.findMany({
+      where: {
+        OR: [
+          { pmId },
+          { pmId: { in: ownerPmIds } },
+          { units: { some: { propertyId: { in: collabPropertyIds } } } }
+        ]
+      },
+      include: { 
+        units: {
+          include: { property: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return tenants.map(t => this.mapTenant(t));
+  }
+
   async findById(id: number): Promise<TenantEntity | null> {
     const tenant = await this.prisma.upward_pm_tenant.findUnique({
       where: { id },

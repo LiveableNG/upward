@@ -68,6 +68,51 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
     return properties.map(p => this.mapProperty(p));
   }
 
+  async findAccessibleByPmId(pmId: number): Promise<PropertyEntity[]> {
+    // 1. Get owned properties
+    const ownedProperties = await this.prisma.upward_pm_property.findMany({
+      where: { pmId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // 2. Get collaborations
+    const collaborations = await (this.prisma as any).upward_pm_team_collaboration.findMany({
+      where: { 
+        collaboratorPmId: pmId,
+        status: 'ACCEPTED'
+      },
+    });
+
+    const collabProperties: any[] = [];
+
+    for (const collab of collaborations) {
+      if (collab.accessLevel === 'ALL') {
+        const ownerProps = await this.prisma.upward_pm_property.findMany({
+          where: { pmId: collab.ownerPmId },
+        });
+        collabProperties.push(...ownerProps);
+      } else {
+        const customProps = await (this.prisma as any).upward_pm_property_collaboration.findMany({
+          where: { 
+            collaboratorPmId: pmId,
+            ownerPmId: collab.ownerPmId 
+          },
+          include: { property: true }
+        });
+        collabProperties.push(...customProps.map((cp: any) => cp.property));
+      }
+    }
+
+    // 3. Combine and deduplicate
+    const allProperties = [...ownedProperties, ...collabProperties];
+    const uniqueProperties = Array.from(new Map(allProperties.map(p => [p.id, p])).values());
+
+    // Sort by createdAt desc
+    uniqueProperties.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return uniqueProperties.map(p => this.mapProperty(p));
+  }
+
   async findById(id: number): Promise<PropertyEntity | null> {
     const property = await this.prisma.upward_pm_property.findUnique({
       where: { id },
@@ -107,6 +152,41 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
     });
 
     return this.mapProperty(property);
+  }
+
+  async hasAccessToProperty(pmId: number, propertyId: number): Promise<boolean> {
+    const property = await this.prisma.upward_pm_property.findUnique({
+      where: { id: propertyId }
+    });
+
+    if (!property) return false;
+    if (property.pmId === pmId) return true;
+
+    // Check team collaboration (ALL access)
+    const teamCollab = await (this.prisma as any).upward_pm_team_collaboration.findUnique({
+      where: {
+        ownerPmId_collaboratorPmId: {
+          ownerPmId: property.pmId,
+          collaboratorPmId: pmId
+        }
+      }
+    });
+
+    if (teamCollab && teamCollab.status === 'ACCEPTED' && teamCollab.accessLevel === 'ALL') {
+      return true;
+    }
+
+    // Check specific property collaboration
+    const propertyCollab = await (this.prisma as any).upward_pm_property_collaboration.findUnique({
+      where: {
+        propertyId_collaboratorPmId: {
+          propertyId,
+          collaboratorPmId: pmId
+        }
+      }
+    });
+
+    return !!propertyCollab;
   }
 
   async delete(uuid: string): Promise<boolean> {

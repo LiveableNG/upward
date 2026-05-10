@@ -98,6 +98,34 @@ export class PrismaPmUnitRepository implements IUnitRepository {
     return units.map(u => this.mapUnit(u));
   }
 
+  async findAccessibleByPmId(pmId: number): Promise<UnitEntity[]> {
+    const teamCollabs = await (this.prisma as any).upward_pm_team_collaboration.findMany({
+      where: { collaboratorPmId: pmId, status: 'ACCEPTED', accessLevel: 'ALL' }
+    });
+    
+    const ownerPmIds = teamCollabs.map((tc: any) => tc.ownerPmId);
+    
+    const propCollabs = await (this.prisma as any).upward_pm_property_collaboration.findMany({
+      where: { collaboratorPmId: pmId }
+    });
+    
+    const collabPropertyIds = propCollabs.map((pc: any) => pc.propertyId);
+
+    const units = await this.prisma.upward_pm_unit.findMany({
+      where: {
+        OR: [
+          { property: { pmId } },
+          { property: { pmId: { in: ownerPmIds } } },
+          { propertyId: { in: collabPropertyIds } }
+        ]
+      },
+      include: { property: true, tenant: true },
+      orderBy: { unitName: 'asc' },
+    });
+
+    return units.map(u => this.mapUnit(u));
+  }
+
   async update(uuid: string, data: any): Promise<UnitEntity> {
     const allowedFields = [
       'unitName', 'rentAmount', 'rentStartDate', 'rentDueDate', 
