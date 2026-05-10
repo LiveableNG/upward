@@ -7,9 +7,17 @@ interface AuthLayoutProps {
   children: React.ReactNode;
   title?: string;
   subtitle?: string;
+  visualTitle?: React.ReactNode;
+  visualDesc?: string;
 }
 
-export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle }) => {
+export const AuthLayout: React.FC<AuthLayoutProps> = ({ 
+  children, 
+  title, 
+  subtitle,
+  visualTitle,
+  visualDesc 
+}) => {
   return (
     <div className="auth-layout">
       {/* Visual Panel (Desktop) */}
@@ -21,11 +29,15 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitl
 
           <main className="auth-layout__visual-body">
             <h1 className="auth-layout__visual-title">
-              Manage your <br />
-              <span className="text-gradient">portfolio</span> like a pro.
+              {visualTitle || (
+                <>
+                  Manage your <br />
+                  <span className="text-gradient">portfolio</span> like a pro.
+                </>
+              )}
             </h1>
             <p className="auth-layout__visual-desc">
-              Onboard tenants, manage payment requests, and track property performance in one premium dashboard designed for modern property managers.
+              {visualDesc || "Onboard tenants, manage payment requests, and track property performance in one premium dashboard designed for modern property managers."}
             </p>
             
             <div className="auth-layout__visual-showcase">

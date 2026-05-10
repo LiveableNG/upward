@@ -12,6 +12,8 @@ import Link from 'next/link'
 import '@/styles/auth.css'
 import { AuthSkeleton } from '@/features/auth/components/AuthSkeleton'
 import { AuthLayout } from '@/components/auth/AuthLayout'
+import { useToast } from '@/components/common/Toast'
+import { checkLandlordExistence } from '@/features/auth/services/landlordAuthService'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -23,10 +25,13 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 function LandlordLoginForm() {
   const router = useRouter()
+  const { error: toastError, success: toastSuccess } = useToast()
   const [loginType, setLoginType] = useState<'PASSWORD' | 'OTP'>('PASSWORD')
   const [otpSent, setOtpSent] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  
+  const [existenceError, setExistenceError] = useState<string | null>(null)
+  const [isCheckingExistence, setIsCheckingExistence] = useState(false)
 
   const { register, handleSubmit, formState: { errors }, watch } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema)
@@ -34,15 +39,41 @@ function LandlordLoginForm() {
 
   const email = watch('email')
 
+  // Silent existence check
+  React.useEffect(() => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setExistenceError(null)
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setIsCheckingExistence(true)
+      try {
+        const { exists } = await checkLandlordExistence(email)
+        if (!exists) {
+          setExistenceError('Account not found. Please contact your property manager.')
+        } else {
+          setExistenceError(null)
+        }
+      } catch (err) {
+        // Ignore errors for silent check
+      } finally {
+        setIsCheckingExistence(false)
+      }
+    }, 800)
+
+    return () => clearTimeout(timer)
+  }, [email])
+
   const handleRequestOTP = async () => {
     if (!email) return
     setLoading(true)
-    setError(null)
     try {
       await landlordRequestOTP(email)
       setOtpSent(true)
+      toastSuccess('Verification code sent to your email.')
     } catch (err: any) {
-      setError(err.message || 'Failed to send verification code')
+      toastError(err.message || 'Failed to send verification code')
     } finally {
       setLoading(false)
     }
@@ -50,7 +81,6 @@ function LandlordLoginForm() {
 
   const onSubmit = async (data: LoginFormValues) => {
     setLoading(true)
-    setError(null)
     try {
       const response = await landlordLogin({
         email: data.email,
@@ -65,7 +95,7 @@ function LandlordLoginForm() {
         router.push('/portal')
       }
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.')
+      toastError(err.message || 'Login failed. Please check your credentials.')
     } finally {
       setLoading(false)
     }
@@ -75,6 +105,13 @@ function LandlordLoginForm() {
     <AuthLayout 
       title="Landlord Portal"
       subtitle="Secure access to your property portfolio"
+      visualTitle={
+        <>
+          Your properties, <br />
+          <span className="text-gradient">all in one place</span>.
+        </>
+      }
+      visualDesc="Access your property portfolio, view unit performance, and stay connected with your property managers through our premium landlord portal."
     >
       <div className="animate-fade-in">
         <div className="auth-role-toggle">
@@ -92,8 +129,8 @@ function LandlordLoginForm() {
           </button>
         </div>
 
-        <div className="auth-header">
-           <div className="auth-success-icon" style={{ animation: 'none' }}>
+        <div className="auth-header" style={{ textAlign: 'left' }}>
+           <div className="auth-success-icon" style={{ animation: 'none', margin: '0 0 20px 0' }}>
               <ShieldCheck size={32} />
            </div>
            <h2 className="auth-card__title">Landlord Portal</h2>
@@ -117,7 +154,7 @@ function LandlordLoginForm() {
           </button>
         </div>
 
-        {error && <div className="auth-error" style={{ marginBottom: '24px' }}>{error}</div>}
+        {/* Removed on-page error div as we use Toast now */}
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-group">
@@ -131,7 +168,11 @@ function LandlordLoginForm() {
                 style={{ paddingLeft: '52px' }}
               />
             </div>
-            {errors.email && <span className="form-error">{errors.email.message}</span>}
+            {(errors.email || existenceError) && (
+              <span className="form-error" style={{ color: existenceError ? 'var(--error)' : undefined }}>
+                {errors.email?.message || existenceError}
+              </span>
+            )}
           </div>
 
           {loginType === 'PASSWORD' ? (
@@ -157,7 +198,7 @@ function LandlordLoginForm() {
                   className="auth-btn auth-btn--ghost" 
                   style={{ width: '100%', justifyContent: 'center', height: '52px' }}
                   onClick={handleRequestOTP}
-                  disabled={loading || !email}
+                  disabled={loading || !email || !!existenceError}
                 >
                   {loading ? <Loader2 className="animate-spin" /> : 'Get Access Code'}
                 </button>
