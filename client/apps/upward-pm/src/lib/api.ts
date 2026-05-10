@@ -40,6 +40,7 @@ export const api = {
   bulkCreateUnits: propertyService.bulkCreateUnits,
   syncToUpward: propertyService.syncToUpward,
   bulkFullImport: propertyService.bulkFullImport,
+  bulkAddRentHistory: propertyService.bulkAddRentHistory,
   getPropertyImageUploadUrl: propertyService.getPropertyImageUploadUrl,
   
   // Payments

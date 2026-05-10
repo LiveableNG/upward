@@ -57,7 +57,8 @@ export default function RequestsPage() {
                     <td>
                       <span className={cn(
                         "px-2 py-1 rounded-full text-xs font-semibold",
-                        req.status === 'PENDING' ? "bg-warning/20 text-warning" : "bg-accent/20 text-accent"
+                        req.status === 'PENDING' ? "bg-warning/20 text-warning" : 
+                        req.status === 'DONE' ? "bg-forest/20 text-forest" : "bg-accent/20 text-accent"
                       )}>
                         {req.status}
                       </span>

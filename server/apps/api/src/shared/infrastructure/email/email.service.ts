@@ -617,10 +617,20 @@ export class EmailService {
     tenantName: string;
     propertyAddress: string;
     requestLink: string;
+    isRegisteredPm?: boolean;
   }): Promise<boolean> {
-    const { email, tenantName, propertyAddress, requestLink } = params;
+    const { email, tenantName, propertyAddress, requestLink, isRegisteredPm } = params;
     const domain = this.configService.get<string>('MAILGUN_DOMAIN');
     const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
+
+    const ctaText = isRegisteredPm ? 'Open Dashboard' : 'Review & Fulfill Request';
+    const mainText = isRegisteredPm 
+      ? `A past tenant, <strong>${tenantName}</strong>, is requesting their rental history for <strong>${propertyAddress}</strong> to build their credit score on Upward.`
+      : `<strong>${tenantName}</strong> has requested that you verify their past tenancy and payment records for <strong>${propertyAddress}</strong>.`;
+
+    const subText = isRegisteredPm
+      ? 'Since you are already on Upward, you can fulfill this request directly from your dashboard Activity Center.'
+      : 'Providing these records helps your former tenant build their credibility profile on Upward.';
 
     const html = `
       <!DOCTYPE html>
@@ -649,9 +659,9 @@ export class EmailService {
           <div class="content">
             <h1>Past Tenancy Record Request</h1>
             <p>Hello,</p>
-            <p><strong>${tenantName}</strong> has requested that you verify their past tenancy and payment records for <strong>${propertyAddress}</strong>.</p>
-            <p>Providing these records helps your former tenant build their credibility profile on Upward.</p>
-            <a href="${requestLink}" class="btn">Review & Fulfill Request</a>
+            <p>${mainText}</p>
+            <p>${subText}</p>
+            <a href="${requestLink}" class="btn">${ctaText}</a>
           </div>
           <div class="footer">
             <p class="footer-text">
@@ -741,6 +751,70 @@ export class EmailService {
       return false;
     }
   }
+  async sendRecordAddedEmail(params: {
+    email: string;
+    pmName: string;
+    propertyAddress: string;
+  }): Promise<boolean> {
+    const { email, pmName, propertyAddress } = params;
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN');
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+          body { font-family: 'Inter', -apple-system, sans-serif; background-color: #fdfcfb; color: #1a1a1a; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e8e6e1; box-shadow: 0 10px 25px rgba(13, 77, 43, 0.05); }
+          .header { background-color: #0d4d2b; padding: 40px; text-align: left; }
+          .content { padding: 48px; }
+          .logo-text { color: #fdfcfb; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; display: block; }
+          h1 { font-size: 24px; font-weight: 700; color: #0d4d2b; margin-bottom: 24px; line-height: 1.3; }
+          p { font-size: 16px; line-height: 1.7; color: #4a4a4a; margin-bottom: 24px; }
+          .btn { background-color: #0d4d2b; color: #fdfcfb !important; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block; transition: background-color 0.2s; text-align: center; width: 100%; box-sizing: border-box; }
+          .footer { padding: 32px 48px; border-top: 1px solid #f0eee9; background-color: #faf9f6; }
+          .footer-text { font-size: 13px; color: #8c8c8c; line-height: 1.6; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <span class="logo-text">Upward</span>
+          </div>
+          <div class="content">
+            <h1>New Rental Records Added</h1>
+            <p>Hello,</p>
+            <p><strong>${pmName}</strong> has just updated your rental payment history for <strong>${propertyAddress}</strong> on Upward.</p>
+            <p>These records help build your rental credibility score and showcase your consistency as a tenant.</p>
+            <a href="https://upward.goodtenants.io/dashboard" class="btn">View Your Rent Passport</a>
+          </div>
+          <div class="footer">
+            <p class="footer-text">
+              © 2026 Upward by GoodTenants. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    try {
+      const result = await this.mg.messages.create(domain, {
+        from,
+        to: [email],
+        subject: `New rent records added by ${pmName} for ${propertyAddress}`,
+        html,
+      });
+      return !!result.id;
+    } catch (error) {
+      this.logger.error(`Failed to send record added email to ${email}`, error);
+      return false;
+    }
+  }
+
   async sendDataDeletionRequestConfirmation(email: string) {
     const domain = this.configService.get<string>('MAILGUN_DOMAIN')
     const from = this.configService.get<string>('EMAIL_FROM') || `Upward Privacy <hello@${domain}>`

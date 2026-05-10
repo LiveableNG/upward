@@ -139,6 +139,8 @@ import { GetLandlordReportUseCase } from './pm/use-cases/get-landlord-report.use
 import { PmBulkRentReminderUseCase } from './pm/use-cases/pm-bulk-rent-reminder.use-case'
 import { UpdateRentPaymentUseCase } from './pm/use-cases/update-rent-payment.use-case'
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
+import { BulkAddRentHistoryUseCase } from './pm/use-cases/bulk-add-rent-history.use-case'
+import { MarkCredibilityRequestDoneUseCase } from './pm/use-cases/mark-credibility-request-done.use-case'
 
 import { RejectCredibilityRequestUseCase } from './use-cases/external/reject-credibility-request.use-case'
 import { AuthModule } from './auth/auth.module'
@@ -341,6 +343,8 @@ const UseCases = [
   GetTeamMembersUseCase,
   UpdateTeamMemberPermissionsUseCase,
   RevokeTeamMemberUseCase,
+  BulkAddRentHistoryUseCase,
+  MarkCredibilityRequestDoneUseCase,
   ActivityLogService,
 
   RejectCredibilityRequestUseCase,

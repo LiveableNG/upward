@@ -279,3 +279,47 @@ export class BulkFullImportDto {
   @IsOptional()
   inviteAfterImport?: boolean;
 }
+
+export class RentHistoryImportRowDto {
+  @IsString()
+  tenantEmail!: string;
+
+  @IsString()
+  @IsOptional()
+  tenantFirstName?: string;
+
+  @IsString()
+  @IsOptional()
+  tenantLastName?: string;
+
+  @IsNumber()
+  amount!: number;
+
+  @IsString()
+  paymentDate!: string;
+
+  @IsString()
+  periodStart!: string;
+
+  @IsString()
+  @IsOptional()
+  periodEnd?: string;
+
+  @IsString()
+  @IsOptional()
+  method?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class BulkAddRentHistoryDto {
+  @IsString()
+  unitUuid!: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RentHistoryImportRowDto)
+  rows!: RentHistoryImportRowDto[];
+}

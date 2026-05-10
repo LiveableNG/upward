@@ -70,6 +70,7 @@ export class PmPropertyController {
     private readonly getTeamMembersUseCase: GetTeamMembersUseCase,
     private readonly updateTeamMemberPermissionsUseCase: UpdateTeamMemberPermissionsUseCase,
     private readonly revokeTeamMemberUseCase: RevokeTeamMemberUseCase,
+    private readonly bulkAddRentHistoryUseCase: BulkAddRentHistoryUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -79,6 +80,16 @@ export class PmPropertyController {
     const pm = await this.pmRepository.findByUuid(uuid);
     if (!pm || !pm.id) throw new UnauthorizedException('Property Manager not found');
     return pm.id;
+  }
+
+  @Post('units/:unitUuid/payments/bulk')
+  async bulkAddRentHistory(
+    @Req() req: any, 
+    @Param('unitUuid') unitUuid: string, 
+    @Body() dto: any
+  ) {
+    const pmId = await this.getPmId(req);
+    return this.bulkAddRentHistoryUseCase.execute(pmId, { ...dto, unitUuid });
   }
 
   @Post('properties')
