@@ -5,8 +5,9 @@ import { RecordFulfillmentView } from '@/features/pm/components/records/RecordFu
 import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 
-export default function RequestFulfillmentPage({ params }: { params: { uuid: string } }) {
+export default function RequestFulfillmentPage({ params }: { params: Promise<{ uuid: string }> }) {
   const router = useRouter()
+  const { uuid } = React.use(params)
   
   return (
     <div className="fulfillment-portal">
@@ -26,7 +27,7 @@ export default function RequestFulfillmentPage({ params }: { params: { uuid: str
       </header>
 
       <main className="fulfillment-content">
-        <RecordFulfillmentView uuid={params.uuid} isPublic={false} />
+        <RecordFulfillmentView uuid={uuid} isPublic={false} />
       </main>
     </div>
   )
