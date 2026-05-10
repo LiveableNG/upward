@@ -90,9 +90,9 @@ export class LandlordAuthService extends BaseAuthService {
   }
 
   async requestOTP(email: string): Promise<{ success: boolean }> {
-    const existing = await this.landlordRepository.findByEmail(email)
-    if (!existing) {
-      throw new UnauthorizedException('No landlord account found with this email.')
+    const landlord = await this.landlordRepository.findByEmail(email);
+    if (!landlord) {
+      throw new UnauthorizedException('No account found for this email address');
     }
 
     const context = 'LANDLORD_LOGIN'
@@ -125,6 +125,11 @@ export class LandlordAuthService extends BaseAuthService {
 
     await this.tokenRepository.delete(record.id!)
     return { success: true }
+  }
+
+  async checkExistence(email: string): Promise<{ exists: boolean }> {
+    const landlord = await this.landlordRepository.findByEmail(email);
+    return { exists: !!landlord };
   }
 
   async changePassword(landlordUuid: string, newPasswordHash: string): Promise<void> {

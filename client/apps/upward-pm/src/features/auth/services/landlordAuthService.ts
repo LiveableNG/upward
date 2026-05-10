@@ -17,6 +17,13 @@ export const landlordRequestOTP = async (email: string) => {
   })
 }
 
+export const checkLandlordExistence = async (email: string) => {
+  return request<{ exists: boolean }>('/landlords/auth/check-existence', {
+    method: 'POST',
+    body: JSON.stringify({ email })
+  })
+}
+
 export const landlordRefresh = async () => {
   const res = await request<any>('/landlords/auth/refresh', {
     method: 'POST'

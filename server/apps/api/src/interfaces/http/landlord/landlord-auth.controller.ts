@@ -29,6 +29,11 @@ export class LandlordAuthController {
     return this.authService.requestOTP(dto.email);
   }
 
+  @Post('check-existence')
+  async checkExistence(@Body() dto: { email: string }) {
+    return this.authService.checkExistence(dto.email);
+  }
+
   @Post('refresh')
   async refresh(
     @Req() req: Request,
@@ -47,6 +52,7 @@ export class LandlordAuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
+      path: '/',
       maxAge: 15 * 60 * 1000, // 15 mins
     });
 
@@ -54,6 +60,7 @@ export class LandlordAuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
   }
