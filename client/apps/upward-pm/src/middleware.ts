@@ -4,17 +4,36 @@ import type { NextRequest } from 'next/server'
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
-  // Public paths
+  // PM Auth
   const isPublicPath = pathname === '/login' || pathname === '/signup'
   const isPublicRequestPath = pathname.startsWith('/public/requests/')
-  
-  // Check for tokens in cookies
   const accessToken = request.cookies.get('pm_access_token')?.value
   const refreshToken = request.cookies.get('pm_refresh')?.value
-  
   const isLoggedIn = !!accessToken || !!refreshToken
 
-  // Redirect logic
+  // Landlord Auth
+  const isPortalLoginPath = pathname === '/portal/login'
+  const isPortalPath = pathname.startsWith('/portal')
+  const landlordAccessToken = request.cookies.get('landlord_access_token')?.value
+  const landlordRefreshToken = request.cookies.get('landlord_refresh_token')?.value
+  const isLandlordLoggedIn = !!landlordAccessToken || !!landlordRefreshToken
+
+  // Redirect logic for Portal
+  if (isPortalPath) {
+    if (isPortalLoginPath) {
+      if (isLandlordLoggedIn) {
+        return NextResponse.redirect(new URL('/portal', request.url))
+      }
+      return NextResponse.next()
+    }
+    
+    if (!isLandlordLoggedIn) {
+      return NextResponse.redirect(new URL('/portal/login', request.url))
+    }
+    return NextResponse.next()
+  }
+
+  // Redirect logic for PM
   if (isPublicPath && isLoggedIn) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
