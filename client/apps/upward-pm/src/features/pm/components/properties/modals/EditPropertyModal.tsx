@@ -2,6 +2,8 @@ import React from 'react'
 import { X } from 'lucide-react'
 import { ImageUpload } from './ImageUpload'
 import { useCountries, useCities } from '../../../hooks/useLocation'
+import { isValidPhoneNumber } from 'libphonenumber-js'
+import { PhoneInput } from '@/components/common/PhoneInput'
 
 interface EditPropertyModalProps {
   isOpen: boolean;
@@ -30,6 +32,16 @@ export const EditPropertyModal: React.FC<EditPropertyModalProps> = ({
 }) => {
   const { data: countriesData } = useCountries()
   const { data: citiesData, isLoading: isLoadingCities } = useCities(formData.country || '')
+
+  const phoneError = formData.landlordPhone && !isValidPhoneNumber(formData.landlordPhone)
+    ? 'Invalid international phone number'
+    : undefined
+
+  const emailError = formData.landlordEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.landlordEmail)
+    ? 'Invalid email address'
+    : undefined
+
+  const isInvalid = !!phoneError || !!emailError || !formData.name || !formData.address || !formData.totalUnits
 
   if (!isOpen) return null;
 
@@ -156,15 +168,15 @@ export const EditPropertyModal: React.FC<EditPropertyModalProps> = ({
                 value={formData.landlordEmail || ''} 
                 onChange={e => setFormData({ ...formData, landlordEmail: e.target.value })} 
               />
+              {emailError && <p style={{ color: 'var(--error)', fontSize: 11, marginTop: 4 }}>{emailError}</p>}
             </div>
             <div className="form-group">
-              <label className="form-label">Phone Number</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                placeholder="+234..." 
-                value={formData.landlordPhone || ''} 
-                onChange={e => setFormData({ ...formData, landlordPhone: e.target.value })} 
+              <PhoneInput 
+                label="Phone Number" 
+                value={formData.landlordPhone || ''}
+                onValueChange={(val) => setFormData({ ...formData, landlordPhone: val })}
+                placeholder="e.g. +234..."
+                error={phoneError}
               />
             </div>
           </div>
@@ -177,7 +189,7 @@ export const EditPropertyModal: React.FC<EditPropertyModalProps> = ({
           <button className="btn btn--secondary" style={{ marginLeft: 'auto', width: 100 }} onClick={onClose}>
             Cancel
           </button>
-          <button className="btn btn--primary" style={{ width: 140 }} onClick={onSave} disabled={isPending}>
+          <button className="btn btn--primary" style={{ width: 140 }} onClick={onSave} disabled={isPending || isInvalid}>
             {isPending ? 'Saving...' : 'Save Changes'}
           </button>
         </div>

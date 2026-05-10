@@ -71,6 +71,12 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
     (u: any) => u.unitName.trim().toLowerCase() === formData.unitName.trim().toLowerCase()
   )
 
+  const emailError = formData.tenantEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.tenantEmail)
+    ? 'Invalid email address'
+    : undefined
+
+  const isInvalid = !!phoneError || !!emailError || isDuplicateUnit || !formData.unitName || !targetPropertyUuid
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
@@ -300,6 +306,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                     value={formData.tenantEmail}
                     onChange={e => setFormData({ ...formData, tenantEmail: e.target.value })}
                   />
+                  {emailError && <p style={{ color: 'var(--error)', fontSize: 11, marginTop: 4 }}>{emailError}</p>}
                 </div>
                 <div>
                   <PhoneInput
@@ -323,7 +330,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
             className="btn btn--primary" 
             style={{ flex: 1 }} 
             onClick={onSave} 
-            disabled={isPending || (!!formData.tenantPhone && !!phoneError) || isDuplicateUnit || !formData.unitName || !targetPropertyUuid}
+            disabled={isPending || isInvalid}
           >
             {isPending ? 'Saving...' : 'Save Unit'}
           </button>

@@ -309,7 +309,8 @@ export const DataImportTab: React.FC = () => {
         onSuccess: (res) => {
           success(`Imported ${res.unitsCreated} units across ${res.propertiesCreated} properties!`)
           router.push('/properties')
-        }
+        },
+        onError: (err: any) => error(err?.message || 'Failed to import data')
       })
     } else {
       const unitsToSend = previewRows.map(({ id, ...rest }) => rest)
@@ -320,7 +321,8 @@ export const DataImportTab: React.FC = () => {
         onSuccess: () => {
           success('Units imported successfully!')
           router.push('/properties')
-        }
+        },
+        onError: (err: any) => error(err?.message || 'Failed to import units')
       })
     }
   }
