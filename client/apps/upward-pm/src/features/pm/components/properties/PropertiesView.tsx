@@ -77,7 +77,8 @@ export function PropertiesView() {
   const [propForm, setPropForm] = useState({
     name: '', address: '', totalUnits: '', propertyType: 'Residential',
     imageFile: null as File | null, imageUrl: '', country: 'Nigeria',
-    state: '', area: '', landlordName: '', landlordEmail: '', landlordPhone: ''
+    state: '', area: '', landlordName: '', landlordEmail: '', landlordPhone: '',
+    collaborationEnabled: false, collaboratorUuids: [] as string[]
   })
 
   const [unitForm, setUnitForm] = useState({
@@ -178,7 +179,8 @@ export function PropertiesView() {
     setPropForm({ 
       name: '', address: '', totalUnits: '', propertyType: 'Residential', 
       imageFile: null, imageUrl: '', country: 'Nigeria', state: '', area: '',
-      landlordName: '', landlordEmail: '', landlordPhone: '' 
+      landlordName: '', landlordEmail: '', landlordPhone: '',
+      collaborationEnabled: false, collaboratorUuids: []
     })
     setEditingPropertyUuid('')
   }

@@ -9,6 +9,7 @@ import {
   Req,
   UnauthorizedException,
   UseGuards,
+  Param,
 } from '@nestjs/common'
 import { PmAuthService } from '../../../application/auth/pm-auth.service'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
@@ -167,5 +168,20 @@ export class PmAuthController {
   @HttpCode(HttpStatus.OK)
   async checkEmail(@Body() body: { email: string }) {
     return this.pmAuthService.checkEmail(body.email)
+  }
+
+  @Get('invite-details/:uuid')
+  @HttpCode(HttpStatus.OK)
+  async getInviteDetails(@Param('uuid') uuid: string) {
+    return this.pmAuthService.getInviteDetails(uuid)
+  }
+
+  @Post('claim-account/:uuid')
+  @HttpCode(HttpStatus.OK)
+  async claimAccount(
+    @Param('uuid') uuid: string, 
+    @Body() body: { password: string }
+  ) {
+    return this.pmAuthService.claimAccount(uuid, body.password)
   }
 }

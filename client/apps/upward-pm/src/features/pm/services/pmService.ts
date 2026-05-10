@@ -65,3 +65,36 @@ export const sendBulkReminders = async (landlordEmail: string) => {
     method: 'POST'
   })
 }
+
+// Team Collaboration
+export const inviteTeamMember = async (data: any) => {
+  return request('/pm/team/invite', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
+export const getTeamMembers = async () => {
+  return request<any[]>('/pm/team', {
+    method: 'GET'
+  })
+}
+
+export const updateTeamMemberPermissions = async (uuid: string, data: any) => {
+  return request(`/pm/team/${uuid}/permissions`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+  })
+}
+
+export const revokeTeamMember = async (uuid: string) => {
+  return request(`/pm/team/${uuid}`, {
+    method: 'DELETE'
+  })
+}
+
+export const getCollaboratorActivities = async (uuid: string) => {
+  return request<any>(`/pm/team/${uuid}/activities`, {
+    method: 'GET'
+  })
+}

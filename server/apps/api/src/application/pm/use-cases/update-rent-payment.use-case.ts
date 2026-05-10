@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { IUnitRepository, PM_UNIT_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
+import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
 
 @Injectable()
 export class UpdateRentPaymentUseCase {
@@ -8,6 +9,7 @@ export class UpdateRentPaymentUseCase {
     @Inject(PM_UNIT_REPOSITORY)
     private readonly unitRepository: IUnitRepository,
     private readonly prisma: PrismaService,
+    private readonly activityLog: ActivityLogService,
   ) {}
 
   async execute(pmId: number, paymentUuid: string, data: any) {
@@ -23,6 +25,20 @@ export class UpdateRentPaymentUseCase {
 
     // 2. Update the PM record
     const updatedPayment = await this.unitRepository.updateRentPayment(paymentUuid, data);
+
+    // Log Activity
+    await this.activityLog.log({
+        pmId,
+        ownerPmId: payment.unit.property.pmId,
+        action: ActivityAction.UPDATE_RENT,
+        entityType: 'PAYMENT',
+        entityId: paymentUuid,
+        description: `Updated rent payment for ${payment.unit.unitName} (${payment.unit.property.name})`,
+        metadata: {
+            before: { amount: payment.amount, date: payment.paymentDate },
+            after: data
+        }
+    });
 
     // 3. If unit is synced, try to update the corresponding rent cycle in Upward Core
     if (payment.unit.isSynced && payment.unit.userPropertyUuid) {

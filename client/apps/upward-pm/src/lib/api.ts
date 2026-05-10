@@ -48,6 +48,13 @@ export const api = {
   createPaymentRequest: paymentService.createPaymentRequest,
   updatePaymentRequest: paymentService.updatePaymentRequest,
   resendPaymentRequest: paymentService.resendPaymentRequest,
+  
+  // Team Collaboration
+  inviteTeamMember: pmService.inviteTeamMember,
+  getTeamMembers: pmService.getTeamMembers,
+  updateTeamMemberPermissions: pmService.updateTeamMemberPermissions,
+  revokeTeamMember: pmService.revokeTeamMember,
+  getCollaboratorActivities: pmService.getCollaboratorActivities,
 
   // Generic Helpers
   get: <T = any>(url: string) => request<T>(url, { method: 'GET' }),

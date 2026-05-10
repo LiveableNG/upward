@@ -10,6 +10,7 @@ import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../..
 import { PM_TENANT_REPOSITORY, ITenantRepository } from '../../../../domains/pm/IPropertyRepository';
 import { EVENT_BUS, EventBus } from '../../../events/domain-event';
 import { PmPaymentNotificationEvent } from '../../../events/definition/pm-payment-notification.event';
+import { ActivityLogService, ActivityAction } from '../../../../shared/application/activity-log.service';
 
 export interface CreatePmPaymentRequestDto {
   unitUuid: string;
@@ -39,6 +40,7 @@ export class CreatePmPaymentRequestUseCase {
     private readonly pmTenantRepo: ITenantRepository,
     @Inject(EVENT_BUS)
     private readonly eventBus: EventBus,
+    private readonly activityLog: ActivityLogService,
     private readonly createExternalPaymentRequestUseCase: CreateExternalPaymentRequestUseCase,
   ) {}
 
@@ -96,6 +98,28 @@ export class CreatePmPaymentRequestUseCase {
       allowPartial: data.allowPartial || false,
       minAmount: data.minAmount || null,
     });
+
+    // Log Activity
+    const property = await (this.unitRepo as any).prisma.upward_pm_property.findUnique({
+        where: { id: unit.propertyId },
+        select: { pmId: true, name: true }
+    });
+
+    if (property) {
+        await this.activityLog.log({
+            pmId,
+            ownerPmId: property.pmId,
+            action: ActivityAction.SEND_INVOICE,
+            entityType: 'PAYMENT',
+            entityId: pmPR.uuid,
+            description: `Sent invoice of ${data.amount} ${unit.currency || 'NGN'} for ${unit.unitName} (${property.name})`,
+            metadata: {
+                amount: data.amount,
+                unit: unit.unitName,
+                property: property.name
+            }
+        });
+    }
 
     // Trigger Notification Event asynchronously
     if (unit.tenantId) {

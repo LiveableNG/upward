@@ -128,7 +128,12 @@ import { GetPendingCredibilityRequestsUseCase } from './pm/use-cases/get-pending
 import { BulkCreateTenantRecordsUseCase } from './pm/use-cases/bulk-create-tenant-records.use-case'
 import { BulkInviteTenantsUseCase } from './pm/use-cases/tenants/bulk-invite-tenants.use-case'
 import { BulkFullImportUseCase } from './pm/use-cases/bulk-full-import.use-case'
+import { InviteTeamMemberUseCase } from './pm/use-cases/team/invite-team-member.use-case';
+import { GetTeamMembersUseCase } from './pm/use-cases/team/get-team-members.use-case';
+import { UpdateTeamMemberPermissionsUseCase } from './pm/use-cases/team/update-team-member-permissions.use-case';
+import { RevokeTeamMemberUseCase } from './pm/use-cases/team/revoke-team-member.use-case';
 import { SendLandlordReportUseCase } from './pm/use-cases/send-landlord-report.use-case'
+import { ActivityLogService } from '../shared/application/activity-log.service'
 import { GetLandlordReportsUseCase } from './pm/use-cases/get-landlord-reports.use-case'
 import { GetLandlordReportUseCase } from './pm/use-cases/get-landlord-report.use-case'
 import { PmBulkRentReminderUseCase } from './pm/use-cases/pm-bulk-rent-reminder.use-case'
@@ -332,6 +337,11 @@ const UseCases = [
   CreateManualPaymentRequestUseCase,
   RequestDataDeletionUseCase,
   SubmitFeedbackUseCase,
+  InviteTeamMemberUseCase,
+  GetTeamMembersUseCase,
+  UpdateTeamMemberPermissionsUseCase,
+  RevokeTeamMemberUseCase,
+  ActivityLogService,
 
   RejectCredibilityRequestUseCase,
 ]

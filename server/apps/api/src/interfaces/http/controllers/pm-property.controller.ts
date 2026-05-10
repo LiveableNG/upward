@@ -28,6 +28,11 @@ import { GetLandlordReportUseCase } from '../../../application/pm/use-cases/get-
 import { PmBulkRentReminderUseCase } from '../../../application/pm/use-cases/pm-bulk-rent-reminder.use-case';
 import { CreatePropertyDto, UpdatePropertyDto, BulkCreateUnitsDto, BulkFullImportDto } from '../../../application/pm/dtos/property.dto';
 import { SendLandlordReportDto } from '../../../application/pm/dtos/landlord.dto';
+import { InviteTeamMemberDto, UpdateTeamMemberPermissionsDto } from '../../../application/pm/dtos/team.dto';
+import { InviteTeamMemberUseCase } from '../../../application/pm/use-cases/team/invite-team-member.use-case';
+import { GetTeamMembersUseCase } from '../../../application/pm/use-cases/team/get-team-members.use-case';
+import { UpdateTeamMemberPermissionsUseCase } from '../../../application/pm/use-cases/team/update-team-member-permissions.use-case';
+import { RevokeTeamMemberUseCase } from '../../../application/pm/use-cases/team/revoke-team-member.use-case';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 import { Inject, UnauthorizedException, Delete } from '@nestjs/common';
 
@@ -61,6 +66,10 @@ export class PmPropertyController {
     private readonly getLandlordReportsUseCase: GetLandlordReportsUseCase,
     private readonly getLandlordReportUseCase: GetLandlordReportUseCase,
     private readonly pmBulkRentReminderUseCase: PmBulkRentReminderUseCase,
+    private readonly inviteTeamMemberUseCase: InviteTeamMemberUseCase,
+    private readonly getTeamMembersUseCase: GetTeamMembersUseCase,
+    private readonly updateTeamMemberPermissionsUseCase: UpdateTeamMemberPermissionsUseCase,
+    private readonly revokeTeamMemberUseCase: RevokeTeamMemberUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -220,5 +229,35 @@ export class PmPropertyController {
   async sendBulkReminders(@Req() req: any, @Param('landlordEmail') landlordEmail: string) {
     const pmId = await this.getPmId(req);
     return this.pmBulkRentReminderUseCase.execute(pmId, landlordEmail);
+  }
+
+  // --- Team Collaboration ---
+
+  @Post('team/invite')
+  async inviteTeamMember(@Req() req: any, @Body() dto: InviteTeamMemberDto) {
+    const pmId = await this.getPmId(req);
+    return this.inviteTeamMemberUseCase.execute(pmId, dto);
+  }
+
+  @Get('team')
+  async getTeamMembers(@Req() req: any) {
+    const pmId = await this.getPmId(req);
+    return this.getTeamMembersUseCase.execute(pmId);
+  }
+
+  @Patch('team/:uuid/permissions')
+  async updateTeamMemberPermissions(
+    @Req() req: any, 
+    @Param('uuid') uuid: string, 
+    @Body() dto: UpdateTeamMemberPermissionsDto
+  ) {
+    const pmId = await this.getPmId(req);
+    return this.updateTeamMemberPermissionsUseCase.execute(pmId, uuid, dto);
+  }
+
+  @Delete('team/:uuid')
+  async revokeTeamMember(@Req() req: any, @Param('uuid') uuid: string) {
+    const pmId = await this.getPmId(req);
+    return this.revokeTeamMemberUseCase.execute(pmId, uuid);
   }
 }

@@ -788,6 +788,60 @@ export class EmailService {
       throw error
     }
   }
+
+  async sendTeamInvitation(params: {
+    email: string;
+    name: string;
+    inviterName: string;
+    isNewAccount: boolean;
+    claimLink: string;
+  }) {
+    const { email, name, inviterName, isNewAccount, claimLink } = params;
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN');
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
+
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: #f9fafb; padding: 40px; border-radius: 24px;">
+        <div style="margin-bottom:32px;">
+          <span style="color:#d97757;font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Upward</span>
+          <div style="color:#6B7280;font-size:12px;margin-top:4px;">Property Management Collaboration</div>
+        </div>
+        <h2 style="color: #111827; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">Team Invitation</h2>
+        <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Hello ${name},</p>
+        <p style="font-size: 16px; color: #4b5563;">
+          <strong>${inviterName}</strong> has invited you to collaborate on their properties on Upward.
+        </p>
+        
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 32px; border-radius: 16px; margin: 32px 0; text-align: center;">
+          <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
+            ${isNewAccount 
+              ? 'An account has been created for you. Click the button below to claim your account and set your password.' 
+              : 'You can now access these properties from your existing Upward PM dashboard.'}
+          </p>
+          <a href="${claimLink}" style="background-color: #d97757; color: #ffffff; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block;">
+            ${isNewAccount ? 'Claim Your Account' : 'Go to Dashboard'}
+          </a>
+        </div>
+
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; text-align: center;">
+          If you didn't expect this invitation, you can safely ignore this email.
+        </p>
+      </div>
+    `;
+
+    try {
+      await this.mg.messages.create(domain, {
+        from,
+        to: [email],
+        subject: `Collaboration Invite from ${inviterName}`,
+        html,
+      });
+      this.logger.log(`Team invitation sent to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send team invitation to ${email}`, error);
+      throw error;
+    }
+  }
 }
 
  
