@@ -1,5 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { LandlordAuthService } from '../../auth/landlord-auth.service';
+import { LandlordAuthService } from '../../../auth/landlord-auth.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
