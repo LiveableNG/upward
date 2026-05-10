@@ -34,6 +34,7 @@ import { GetTeamMembersUseCase } from '../../../application/pm/use-cases/team/ge
 import { UpdateTeamMemberPermissionsUseCase } from '../../../application/pm/use-cases/team/update-team-member-permissions.use-case';
 import { RevokeTeamMemberUseCase } from '../../../application/pm/use-cases/team/revoke-team-member.use-case';
 import { BulkAddRentHistoryUseCase } from '../../../application/pm/use-cases/bulk-add-rent-history.use-case';
+import { GetPmLandlordsUseCase } from '../../../application/pm/use-cases/landlord/get-pm-landlords.use-case';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 import { Inject, UnauthorizedException, Delete } from '@nestjs/common';
 
@@ -72,6 +73,7 @@ export class PmPropertyController {
     private readonly updateTeamMemberPermissionsUseCase: UpdateTeamMemberPermissionsUseCase,
     private readonly revokeTeamMemberUseCase: RevokeTeamMemberUseCase,
     private readonly bulkAddRentHistoryUseCase: BulkAddRentHistoryUseCase,
+    private readonly getPmLandlordsUseCase: GetPmLandlordsUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -217,6 +219,12 @@ export class PmPropertyController {
   async updatePaymentRequest(@Req() req: any, @Param('uuid') uuid: string, @Body() dto: UpdatePmPaymentRequestDto) {
     const pmId = await this.getPmId(req);
     return this.updatePmPaymentRequestUseCase.execute(pmId, uuid, dto);
+  }
+
+  @Get('landlords')
+  async getLandlords(@Req() req: any) {
+    const pmId = await this.getPmId(req);
+    return this.getPmLandlordsUseCase.execute(pmId);
   }
 
   @Post('landlords/send-report')

@@ -6,6 +6,7 @@ import { BaseAuthService } from './base-auth.service'
 import { AdminAuthService } from './admin-auth.service'
 import { UserAuthService } from './user-auth.service'
 import { PmAuthService } from './pm-auth.service'
+import { LandlordAuthService } from './landlord-auth.service'
 import { JwtStrategy } from './strategies/jwt.strategy'
 import { PrismaModule } from '../../shared/infrastructure/prisma/prisma.module'
 import { S3Module } from '../../shared/infrastructure/common/s3/s3.module'
@@ -23,7 +24,7 @@ import { S3Module } from '../../shared/infrastructure/common/s3/s3.module'
       }),
     }),
   ],
-  providers: [AdminAuthService, UserAuthService, PmAuthService, BaseAuthService, JwtStrategy],
-  exports: [AdminAuthService, UserAuthService, PmAuthService, BaseAuthService, JwtModule],
+  providers: [AdminAuthService, UserAuthService, PmAuthService, LandlordAuthService, BaseAuthService, JwtStrategy],
+  exports: [AdminAuthService, UserAuthService, PmAuthService, LandlordAuthService, BaseAuthService, JwtModule],
 })
 export class AuthModule {}

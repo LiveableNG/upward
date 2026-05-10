@@ -23,6 +23,7 @@ export const useCreateProperty = () => {
     mutationFn: (data: Partial<Property>) => api.createProperty(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pm-properties'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-landlords'] })
     }
   })
 }
@@ -162,5 +163,12 @@ export const useBulkAddRentHistory = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pm-unit-payments', variables.unitUuid] })
     }
+  })
+}
+
+export const useLandlords = () => {
+  return useQuery({
+    queryKey: ['pm-landlords'],
+    queryFn: () => api.getPmLandlords()
   })
 }

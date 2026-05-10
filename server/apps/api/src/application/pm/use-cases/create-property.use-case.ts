@@ -4,6 +4,7 @@ import { CreatePropertyDto } from '../dtos/property.dto';
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
+import { LandlordService } from '../services/landlord.service';
 
 @Injectable()
 export class CreatePropertyUseCase {
@@ -13,6 +14,7 @@ export class CreatePropertyUseCase {
     private readonly s3Service: S3Service,
     private readonly prisma: PrismaService,
     private readonly activityLog: ActivityLogService,
+    private readonly landlordService: LandlordService,
   ) {}
 
   async execute(pmId: number, dto: CreatePropertyDto) {
@@ -31,7 +33,14 @@ export class CreatePropertyUseCase {
       landlordPhone: dto.landlordPhone || null,
     });
 
-    // Handle Collaboration
+    if (dto.landlordEmail) {
+      await this.landlordService.ensureLandlord(
+        dto.landlordEmail, 
+        dto.landlordName, 
+        dto.landlordPhone
+      );
+    }
+
     if (dto.collaboratorUuids && dto.collaboratorUuids.length > 0) {
         const collaborators = await (this.prisma as any).upward_property_manager.findMany({
             where: { uuid: { in: dto.collaboratorUuids } },
@@ -49,16 +58,9 @@ export class CreatePropertyUseCase {
         }
     }
 
-    // Log Activity
     await this.activityLog.log({
         pmId,
-        ownerPmId: pmId, // For now, the creator is the one we track. 
-        // Wait, if pmId is the one creating, and they are a collaborator, 
-        // we need to know the OWNER of the property they are creating it IN.
-        // But property creation is usually done by the owner OR someone with permission.
-        // If a collaborator creates a property, who is the owner?
-        // Usually, collaborators create units/tenants IN an existing property.
-        // If they create a property, it's THEIRS unless specified.
+        ownerPmId: pmId, 
         action: ActivityAction.CREATE_PROPERTY,
         entityType: 'PROPERTY',
         entityId: property.uuid,

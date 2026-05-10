@@ -36,6 +36,8 @@ import { PmCredibilityController } from './controllers/pm-credibility.controller
 import { InternalScoreController } from './internal/internal-score.controller'
 import { InternalPaymentsController } from './internal/internal-payments.controller'
 import { PmDocumentController } from './controllers/pm-document.controller'
+import { LandlordAuthController } from './landlord/landlord-auth.controller'
+import { LandlordPortfolioController } from './landlord/landlord-portfolio.controller'
 
 
 @Module({
@@ -75,6 +77,8 @@ import { PmDocumentController } from './controllers/pm-document.controller'
     PmDocumentController,
     PublicUserController,
     FeedbackController,
+    LandlordAuthController,
+    LandlordPortfolioController,
 
   ],
 })

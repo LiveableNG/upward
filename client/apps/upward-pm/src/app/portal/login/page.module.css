@@ -1,0 +1,141 @@
+.loginContainer {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--ivory);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(22, 101, 52, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(22, 101, 52, 0.05) 0px, transparent 50%);
+  padding: var(--space-4);
+}
+
+.loginCard {
+  width: 100%;
+  max-width: 440px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-lg);
+  padding: var(--space-10);
+  box-shadow: var(--shadow-lg);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: var(--space-8);
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--forest);
+  margin-top: var(--space-4);
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: var(--space-2);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.input {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: white;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--forest);
+  box-shadow: 0 0 0 4px var(--forest-glow);
+}
+
+.button {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--forest);
+  color: white;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.button:hover {
+  background: var(--forest-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-forest);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.toggleContainer {
+  display: flex;
+  background: var(--ivory-dim);
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-6);
+}
+
+.toggleButton {
+  flex: 1;
+  padding: var(--space-2);
+  border-radius: calc(var(--radius-md) - 2px);
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.activeToggle {
+  background: white;
+  color: var(--forest);
+  box-shadow: var(--shadow-sm);
+}
+
+.otpHint {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.error {
+  padding: var(--space-3);
+  background: var(--error-bg);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--error);
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+}

@@ -23,6 +23,7 @@ export const api = {
   getLandlordReports: pmService.getLandlordReports,
   getLandlordReport: pmService.getLandlordReport,
   sendBulkReminders: pmService.sendBulkReminders,
+  getPmLandlords: propertyService.getLandlords,
 
   // Properties & Units
   getProperties: propertyService.getProperties,
