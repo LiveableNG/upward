@@ -801,31 +801,37 @@ export class EmailService {
     const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
 
     const html = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: #f9fafb; padding: 40px; border-radius: 24px;">
-        <div style="margin-bottom:32px;">
-          <span style="color:#d97757;font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Upward</span>
-          <div style="color:#6B7280;font-size:12px;margin-top:4px;">Property Management Collaboration</div>
+      <div style="font-family: 'Inter', -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #0a0a0f; background-color: #faf9f5; padding: 48px; border-radius: 24px; border: 1px solid rgba(0,0,0,0.06);">
+        <div style="margin-bottom: 40px;">
+          <span style="color: #166534; font-size: 14px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;">Upward PM</span>
+          <div style="color: #8a8a8a; font-size: 12px; margin-top: 4px;">Property Management Collaboration</div>
         </div>
-        <h2 style="color: #111827; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">Team Invitation</h2>
-        <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Hello ${name},</p>
-        <p style="font-size: 16px; color: #4b5563;">
-          <strong>${inviterName}</strong> has invited you to collaborate on their properties on Upward.
+        <h2 style="color: #166534; font-size: 24px; font-weight: 800; margin-top: 0; margin-bottom: 16px;">Team Invitation</h2>
+        <p style="font-size: 16px; color: #4a4642; line-height: 1.6; margin-bottom: 24px;">Hello ${name},</p>
+        <p style="font-size: 16px; color: #4a4642; line-height: 1.6; margin-bottom: 32px;">
+          <strong>${inviterName}</strong> has invited you to collaborate on their properties on the Upward PM platform.
         </p>
         
-        <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 32px; border-radius: 16px; margin: 32px 0; text-align: center;">
-          <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
+        <div style="background: #ffffff; border: 1px solid rgba(22, 101, 52, 0.1); padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 8px 24px rgba(22, 101, 52, 0.04);">
+          <p style="font-size: 15px; color: #8a8a8a; margin-bottom: 24px; line-height: 1.5;">
             ${isNewAccount 
-              ? 'An account has been created for you. Click the button below to claim your account and set your password.' 
-              : 'You can now access these properties from your existing Upward PM dashboard.'}
+              ? 'An account has been prepared for you. Click the button below to claim your access and set your password.' 
+              : 'You have been granted access to new properties. You can now manage them from your existing dashboard.'}
           </p>
-          <a href="${claimLink}" style="background-color: #d97757; color: #ffffff; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block;">
-            ${isNewAccount ? 'Claim Your Account' : 'Go to Dashboard'}
+          <a href="${claimLink}" style="background-color: #166534; color: #ffffff; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block; transition: background-color 0.2s;">
+            ${isNewAccount ? 'Claim Your Access' : 'Go to Dashboard'}
           </a>
         </div>
 
-        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; text-align: center;">
-          If you didn't expect this invitation, you can safely ignore this email.
+        <p style="font-size: 14px; color: #8a8a8a; line-height: 1.6; margin-top: 40px; text-align: center;">
+          If you weren't expecting this invitation, you can safely ignore this email.
         </p>
+        
+        <div style="margin-top: 48px; padding-top: 32px; border-top: 1px solid rgba(0,0,0,0.06); text-align: center;">
+          <p style="font-size: 12px; color: #8a8a8a;">
+            &copy; 2026 Upward by GoodTenants. Built for professional property managers.
+          </p>
+        </div>
       </div>
     `;
 
@@ -840,6 +846,66 @@ export class EmailService {
     } catch (error) {
       this.logger.error(`Failed to send team invitation to ${email}`, error);
       throw error;
+    }
+  }
+
+  async sendPmAuthOTP(email: string, otp: string, context: 'SIGNUP' | 'LOGIN') {
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward PM <hello@${domain}>`
+
+    const contexts = {
+      SIGNUP: {
+        title: 'Create Your PM Account',
+        message: 'Welcome to the Upward Property Management platform. Use the code below to verify your email and start managing your properties.',
+        subject: `Verify your Upward PM account: ${otp}`,
+      },
+      LOGIN: {
+        title: 'Secure Portal Login',
+        message: 'A login attempt was made for your Upward PM account. Use the verification code below to securely access your dashboard.',
+        subject: `Your Upward PM Login Code: ${otp}`,
+      },
+    }
+
+    const { title, message, subject } = contexts[context]
+
+    const html = `
+      <div style="font-family: 'Inter', -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #0a0a0f; background-color: #faf9f5; padding: 48px; border-radius: 24px; border: 1px solid rgba(0,0,0,0.06);">
+        <div style="margin-bottom: 40px;">
+          <span style="color: #166534; font-size: 14px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;">Upward PM</span>
+          <div style="color: #8a8a8a; font-size: 12px; margin-top: 4px;">Property Management Platform</div>
+        </div>
+        <h2 style="color: #166534; font-size: 24px; font-weight: 800; margin-top: 0; margin-bottom: 16px;">${title}</h2>
+        <p style="font-size: 16px; color: #4a4642; line-height: 1.6; margin-bottom: 32px;">${message}</p>
+        
+        <div style="background: #ffffff; border: 1px solid rgba(22, 101, 52, 0.1); padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 8px 24px rgba(22, 101, 52, 0.04);">
+          <div style="font-size: 11px; color: #166534; font-weight: 700; text-transform: uppercase; letter-spacing: 0.25em; margin-bottom: 16px;">Verification Code</div>
+          <div style="font-size: 56px; font-weight: 800; color: #166534; letter-spacing: 0.15em; line-height: 1; font-variant-numeric: tabular-nums;">${otp}</div>
+        </div>
+
+        <p style="font-size: 14px; color: #8a8a8a; line-height: 1.6; margin-top: 40px; text-align: center;">
+          This code expires in 10 minutes. If you did not request this, please ignore this email.
+        </p>
+        
+        <div style="margin-top: 48px; padding-top: 32px; border-top: 1px solid rgba(0,0,0,0.06); text-align: center;">
+          <p style="font-size: 12px; color: #8a8a8a;">
+            &copy; 2026 Upward by GoodTenants. Professional Property Management Simplified.
+          </p>
+        </div>
+      </div>
+    `
+
+    try {
+      await this.mg.messages.create(domain, {
+        from,
+        to: [email],
+        subject,
+        html,
+      })
+      this.logger.log(`PM ${context} OTP sent to ${email}`)
+    } catch (error) {
+      this.logger.error(`Failed to send PM ${context} OTP to ${email}`, error)
+      this.bugsnag.notify(error, { email, type: `PM_${context}` })
+      throw error
     }
   }
 }
