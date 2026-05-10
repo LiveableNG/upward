@@ -4,7 +4,9 @@ import React from 'react'
 import { RecordFulfillmentView } from '@/features/pm/components/records/RecordFulfillmentView'
 import { UpwardLogo } from '@/components/common/UpwardLogo'
 
-export default function UnguardedFulfillmentPage({ params }: { params: { uuid: string } }) {
+export default function UnguardedFulfillmentPage({ params }: { params: Promise<{ uuid: string }> }) {
+  const { uuid } = React.use(params)
+
   return (
     <div className="fulfillment-portal">
       <header className="fulfillment-header">
@@ -20,7 +22,7 @@ export default function UnguardedFulfillmentPage({ params }: { params: { uuid: s
       </header>
       
       <main className="fulfillment-content">
-        <RecordFulfillmentView uuid={params.uuid} isPublic={true} />
+        <RecordFulfillmentView uuid={uuid} isPublic={true} />
       </main>
     </div>
   )
