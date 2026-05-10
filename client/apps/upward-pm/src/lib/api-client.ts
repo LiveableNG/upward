@@ -7,12 +7,13 @@ const API_BASE = typeof window !== 'undefined'
 let isRefreshing = false
 let refreshPromise: Promise<string | null> | null = null
 
-async function runRefresh(): Promise<string | null> {
+async function runRefresh(isPortal: boolean): Promise<string | null> {
   try {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 15000)
 
-    const response = await fetch(`${API_BASE}/pm/auth/refresh`, {
+    const refreshPath = isPortal ? '/landlords/auth/refresh' : '/pm/auth/refresh'
+    const response = await fetch(`${API_BASE}${refreshPath}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
@@ -69,17 +70,23 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     const res = await fetch(url, fetchOptions)
     clearTimeout(timeoutId)
     
-    if (res.status === 401 && !path.includes('/pm/auth/refresh') && !path.includes('/pm/auth/login')) {
+    if (res.status === 401 && !path.includes('/auth/refresh') && !path.includes('/auth/login')) {
       if (!isRefreshing) {
         isRefreshing = true
-        refreshPromise = runRefresh()
+        const isPortal = path.startsWith('/landlords')
+        refreshPromise = runRefresh(isPortal)
       }
       
       const newToken = await refreshPromise
       if (newToken) {
         return makeRequest(newToken)
       } else {
-        throw new Error('Session expired')
+        // If it's a 401 on an authenticated route and refresh failed, we don't always want a loud error
+        const isAuthRoute = !path.includes('/auth/')
+        if (isAuthRoute) {
+           throw new Error('Session expired')
+        }
+        return {} as T
       }
     }
 

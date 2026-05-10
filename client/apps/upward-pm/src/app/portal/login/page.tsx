@@ -93,10 +93,8 @@ function LandlordLoginForm() {
         </div>
 
         <div className="auth-header">
-           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-              <div style={{ background: 'var(--ivory-dark)', padding: '12px', borderRadius: '16px' }}>
-                 <ShieldCheck size={32} color="var(--dark)" />
-              </div>
+           <div className="auth-success-icon" style={{ animation: 'none' }}>
+              <ShieldCheck size={32} />
            </div>
            <h2 className="auth-card__title">Landlord Portal</h2>
            <p className="auth-card__subtitle">Enter your credentials to access your portfolio.</p>
@@ -124,13 +122,13 @@ function LandlordLoginForm() {
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-group">
             <label className="form-label">Email Address</label>
-            <div className="form-input-wrapper">
-               <Mail size={18} className="form-input-icon" />
+            <div className="input-wrapper">
+               <Mail size={18} className="input-icon" />
                <input 
                 {...register('email')}
                 className="form-input" 
                 placeholder="you@example.com"
-                style={{ paddingLeft: '44px' }}
+                style={{ paddingLeft: '52px' }}
               />
             </div>
             {errors.email && <span className="form-error">{errors.email.message}</span>}
@@ -139,14 +137,14 @@ function LandlordLoginForm() {
           {loginType === 'PASSWORD' ? (
             <div className="form-group">
               <label className="form-label">Password</label>
-              <div className="form-input-wrapper">
-                <Key size={18} className="form-input-icon" />
+              <div className="input-wrapper">
+                <Key size={18} className="input-icon" />
                 <input 
                   {...register('password')}
                   type="password" 
                   className="form-input" 
                   placeholder="••••••••"
-                  style={{ paddingLeft: '44px' }}
+                  style={{ paddingLeft: '52px' }}
                 />
               </div>
             </div>
@@ -157,7 +155,7 @@ function LandlordLoginForm() {
                 <button 
                   type="button" 
                   className="auth-btn auth-btn--ghost" 
-                  style={{ width: '100%', justifyContent: 'center' }}
+                  style={{ width: '100%', justifyContent: 'center', height: '52px' }}
                   onClick={handleRequestOTP}
                   disabled={loading || !email}
                 >
