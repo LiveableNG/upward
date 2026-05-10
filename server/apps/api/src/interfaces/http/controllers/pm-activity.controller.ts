@@ -3,6 +3,7 @@ import { Controller, Get, Param, Req, UseGuards, NotFoundException } from '@nest
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
 import { ActivityLogService } from '../../../shared/application/activity-log.service';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 
 @Controller('pm/team')
 @UseGuards(JwtAuthGuard)
@@ -10,6 +11,7 @@ export class PmActivityController {
   constructor(
     private readonly activityLog: ActivityLogService,
     private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
   ) {}
 
   @Get(':collaboratorUuid/activities')
@@ -39,8 +41,8 @@ export class PmActivityController {
     
     return {
       collaborator: {
-        firstName: collaborator.firstName,
-        lastName: collaborator.lastName,
+        firstName: this.encryption.decrypt(collaborator.firstName),
+        lastName: this.encryption.decrypt(collaborator.lastName),
       },
       logs
     };

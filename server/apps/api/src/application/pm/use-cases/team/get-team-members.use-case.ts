@@ -1,10 +1,14 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 
 @Injectable()
 export class GetTeamMembersUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+  ) {}
 
   async execute(ownerPmId: number) {
     const collaborations = await (this.prisma as any).upward_pm_team_collaboration.findMany({
@@ -43,12 +47,20 @@ export class GetTeamMembersUseCase {
             properties = propertyCollabs.map((pc: any) => pc.property);
         }
 
+        const member = collab.collaboratorPm;
+        const decryptedMember = {
+            ...member,
+            firstName: this.encryption.decrypt(member.firstName),
+            lastName: this.encryption.decrypt(member.lastName),
+            email: this.encryption.decrypt(member.email)
+        };
+
         return {
             uuid: collab.uuid,
             accessLevel: collab.accessLevel,
             status: collab.status,
             createdAt: collab.createdAt,
-            member: collab.collaboratorPm,
+            member: decryptedMember,
             properties
         };
     }));
