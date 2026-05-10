@@ -33,6 +33,7 @@ import { InviteTeamMemberUseCase } from '../../../application/pm/use-cases/team/
 import { GetTeamMembersUseCase } from '../../../application/pm/use-cases/team/get-team-members.use-case';
 import { UpdateTeamMemberPermissionsUseCase } from '../../../application/pm/use-cases/team/update-team-member-permissions.use-case';
 import { RevokeTeamMemberUseCase } from '../../../application/pm/use-cases/team/revoke-team-member.use-case';
+import { BulkAddRentHistoryUseCase } from '../../../application/pm/use-cases/bulk-add-rent-history.use-case';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 import { Inject, UnauthorizedException, Delete } from '@nestjs/common';
 
