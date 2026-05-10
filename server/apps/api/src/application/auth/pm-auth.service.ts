@@ -158,7 +158,7 @@ export class PmAuthService extends BaseAuthService {
       expiresAt,
     })
 
-    await this.emailService.sendAuthOTP(email, otp, effectiveContext)
+    await this.emailService.sendPmAuthOTP(email, otp, effectiveContext)
     return { context: effectiveContext }
   }
 

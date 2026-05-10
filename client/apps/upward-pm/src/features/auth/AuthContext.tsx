@@ -5,6 +5,7 @@ import { type PropertyManagerProfile } from './types'
 import { getMe, logout as authLogout } from './services/authService'
 import { useRouter } from 'next/navigation'
 import { setAccessToken } from '@/lib/auth-token'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface AuthContextType {
   user: PropertyManagerProfile | null
@@ -21,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<PropertyManagerProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   const refreshUser = async () => {
     try {
@@ -46,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await authLogout()
     } finally {
+      queryClient.clear()
       setAccessToken(null)
       setUser(null)
       router.replace('/login')

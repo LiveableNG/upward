@@ -111,7 +111,7 @@ export class InviteTeamMemberUseCase {
       name: dto.name,
       inviterName: ownerName,
       isNewAccount,
-      claimLink: `${process.env['FRONTEND_URL'] || 'https://pm.goodtenants.io'}/invited/${collaborator!.uuid}`
+      claimLink: `https://upward-pm.vercel.app/invited/${collaborator!.uuid}`
     });
 
     return collaboration;
