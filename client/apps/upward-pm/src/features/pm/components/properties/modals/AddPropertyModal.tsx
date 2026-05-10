@@ -3,6 +3,8 @@ import { X, Users, Check } from 'lucide-react'
 import { ImageUpload } from './ImageUpload'
 import { useCountries, useCities } from '../../../hooks/useLocation'
 import { useTeam } from '@/features/pm/hooks/useTeam'
+import { isValidPhoneNumber } from 'libphonenumber-js'
+import { PhoneInput } from '@/components/common/PhoneInput'
 
 interface AddPropertyModalProps {
   isOpen: boolean;
@@ -33,6 +35,16 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
   const { data: countriesData } = useCountries()
   const { data: citiesData, isLoading: isLoadingCities } = useCities(formData.country || '')
   const { data: team = [] } = useTeam()
+
+  const phoneError = formData.landlordPhone && !isValidPhoneNumber(formData.landlordPhone)
+    ? 'Invalid international phone number'
+    : undefined
+
+  const emailError = formData.landlordEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.landlordEmail)
+    ? 'Invalid email address'
+    : undefined
+
+  const isInvalid = !!phoneError || !!emailError || !formData.name || !formData.address || !formData.totalUnits
 
   if (!isOpen) return null;
 
@@ -162,15 +174,15 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
                 value={formData.landlordEmail || ''} 
                 onChange={e => setFormData({ ...formData, landlordEmail: e.target.value })} 
               />
+              {emailError && <p style={{ color: 'var(--error)', fontSize: 11, marginTop: 4 }}>{emailError}</p>}
             </div>
             <div className="form-group">
-              <label className="form-label">Phone Number</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                placeholder="+234..." 
-                value={formData.landlordPhone || ''} 
-                onChange={e => setFormData({ ...formData, landlordPhone: e.target.value })} 
+              <PhoneInput 
+                label="Phone Number" 
+                value={formData.landlordPhone || ''}
+                onValueChange={(val) => setFormData({ ...formData, landlordPhone: val })}
+                placeholder="e.g. +234..."
+                error={phoneError}
               />
             </div>
           </div>
@@ -260,7 +272,7 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
           <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
             Cancel
           </button>
-          <button className="btn btn--primary" style={{ flex: 1 }} onClick={onSave} disabled={isPending}>
+          <button className="btn btn--primary" style={{ flex: 1 }} onClick={onSave} disabled={isPending || isInvalid}>
             {isPending ? 'Creating...' : 'Create Property'}
           </button>
         </div>

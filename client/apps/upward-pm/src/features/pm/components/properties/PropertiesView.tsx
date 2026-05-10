@@ -139,12 +139,28 @@ export function PropertiesView() {
         await fetch(uploadUrl, { method: 'PUT', body: propForm.imageFile, headers: { 'Content-Type': propForm.imageFile.type } })
         finalImageUrl = publicUrl
       }
-      createPropertyMutation.mutate({ ...propForm, totalUnits: parseInt(propForm.totalUnits) || 0, imageUrl: finalImageUrl || undefined }, {
+      const payload = {
+        name: propForm.name,
+        address: propForm.address,
+        totalUnits: parseInt(propForm.totalUnits) || 0,
+        propertyType: propForm.propertyType,
+        imageUrl: finalImageUrl || undefined,
+        country: propForm.country,
+        state: propForm.state,
+        area: propForm.area,
+        landlordName: propForm.landlordName,
+        landlordEmail: propForm.landlordEmail,
+        landlordPhone: propForm.landlordPhone,
+        collaboratorUuids: propForm.collaboratorUuids,
+      }
+
+      createPropertyMutation.mutate(payload, {
         onSuccess: () => {
           success('Property created successfully!')
           setShowAddPropertyModal(false)
           resetPropForm()
-        }
+        },
+        onError: (err: any) => error(err?.message || 'Failed to create property')
       })
     } catch (err) { error("Failed to upload image") }
   }
@@ -165,12 +181,31 @@ export function PropertiesView() {
         await fetch(uploadUrl, { method: 'PUT', body: propForm.imageFile, headers: { 'Content-Type': propForm.imageFile.type } })
         finalImageUrl = publicUrl
       }
-      updatePropertyMutation.mutate({ uuid: editingPropertyUuid, data: { ...propForm, totalUnits: parseInt(propForm.totalUnits) || 0, imageUrl: finalImageUrl } as any }, {
+      
+      const payload = {
+        name: propForm.name,
+        address: propForm.address,
+        totalUnits: parseInt(propForm.totalUnits) || 0,
+        propertyType: propForm.propertyType,
+        imageUrl: finalImageUrl,
+        country: propForm.country,
+        state: propForm.state,
+        area: propForm.area,
+        landlordName: propForm.landlordName,
+        landlordEmail: propForm.landlordEmail,
+        landlordPhone: propForm.landlordPhone,
+      }
+
+      updatePropertyMutation.mutate({ 
+        uuid: editingPropertyUuid, 
+        data: payload as any 
+      }, {
         onSuccess: () => {
           success('Property updated successfully!')
           setShowEditPropertyModal(false)
           resetPropForm()
-        }
+        },
+        onError: (err: any) => error(err?.message || 'Failed to update property')
       })
     } catch (err) { error("Failed to upload image") }
   }
