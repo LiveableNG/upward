@@ -34,6 +34,21 @@ export const LoginForm = () => {
 
   return (
     <div className="animate-fade-in">
+      <div className="auth-role-toggle">
+        <button 
+          type="button"
+          className="auth-role-toggle__btn auth-role-toggle__btn--active"
+        >
+          Property Manager
+        </button>
+        <Link 
+          href="/portal/login"
+          className="auth-role-toggle__btn"
+        >
+          Landlord
+        </Link>
+      </div>
+
       <div className="auth-header">
         <h2 className="auth-card__title">Welcome back</h2>
         <p className="auth-card__subtitle">

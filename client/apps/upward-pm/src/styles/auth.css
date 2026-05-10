@@ -324,6 +324,45 @@
   line-height: 1.5;
 }
 
+.auth-role-toggle {
+  display: flex;
+  background: var(--ivory-dim);
+  padding: 6px;
+  border-radius: 14px;
+  margin-bottom: 32px;
+  gap: 4px;
+  border: 1px solid var(--ivory-dark);
+}
+
+.auth-role-toggle__btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-role-toggle__btn:hover:not(.auth-role-toggle__btn--active) {
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.auth-role-toggle__btn--active {
+  background: white;
+  color: var(--forest);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
 .auth-header {
   margin-bottom: 40px;
 }

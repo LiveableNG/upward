@@ -1,0 +1,36 @@
+model upward_pm_landlord {
+  id              Int                         @id @default(autoincrement())
+  uuid            String                      @unique @default(uuid())
+  /// @encrypted
+  email           String                      @unique
+  emailHash       String                      @unique
+  passwordHash    String
+  /// @encrypted
+  firstName       String?
+  /// @encrypted
+  lastName        String?
+  /// @encrypted
+  phone           String?
+  phoneHash       String?
+  mustChangePassword Boolean                  @default(true)
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+
+  authSessions    upward_pm_landlord_auth_session[]
+}
+
+model upward_pm_landlord_auth_session {
+  id               String                  @id @default(uuid())
+  landlordId       Int
+  refreshTokenHash String                  @unique
+  userAgent        String?
+  ipAddress        String?
+  deviceId         String?
+  isRevoked        Boolean                 @default(false)
+  expiresAt        DateTime
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  landlord         upward_pm_landlord      @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+
+  @@index([landlordId])
+}

@@ -33,6 +33,7 @@ import { PrismaPmPaymentRequestRepository } from './repositories/prisma-pm-payme
 import { PrismaBulkInviteRepository } from './repositories/prisma-bulk-invite.repository'
 import { PrismaFeedbackRepository } from './repositories/prisma-feedback.repository'
 import { PrismaPmDocumentRepository } from './repositories/prisma-pm-document.repository'
+import { PrismaLandlordRepository } from './repositories/prisma-landlord.repository'
 
 import { PaystackGateway } from '../../../domains/payments/paystack.gateway'
 import { WAITLIST_REPOSITORY } from '../../../domains/waitlist/waitlist.repository'
@@ -65,6 +66,7 @@ import { SUPPORT_TICKET_REPOSITORY } from '../../../domains/support/support.repo
 import { VERIFICATION_TOKEN_REPOSITORY } from '../../../domains/auth/verification-token.repository'
 import { PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository'
 import { PM_PROPERTY_REPOSITORY, PM_UNIT_REPOSITORY, PM_TENANT_REPOSITORY, PM_PAYMENT_REQUEST_REPOSITORY, PM_DOCUMENT_REPOSITORY } from '../../../domains/pm/IPropertyRepository'
+import { PM_LANDLORD_REPOSITORY } from '../../../domains/pm/ILandlordRepository'
 import { BULK_INVITE_REPOSITORY } from '../../../domains/pm/IBulkInviteRepository'
 import { FEEDBACK_REPOSITORY } from '../../../domains/feedback/feedback.repository'
 
@@ -191,6 +193,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: FEEDBACK_REPOSITORY,
       useClass: PrismaFeedbackRepository,
     },
+    {
+      provide: PM_LANDLORD_REPOSITORY,
+      useClass: PrismaLandlordRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -224,6 +230,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     PM_DOCUMENT_REPOSITORY,
     BULK_INVITE_REPOSITORY,
     FEEDBACK_REPOSITORY,
+    PM_LANDLORD_REPOSITORY,
   ],
 })
 export class PrismaModule {}

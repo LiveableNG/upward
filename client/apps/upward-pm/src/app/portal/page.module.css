@@ -1,0 +1,151 @@
+.dashboard {
+  min-height: 100vh;
+  background-color: var(--ivory);
+  padding: var(--space-8);
+}
+
+.maxContent {
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-8);
+}
+
+.welcome {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.welcome h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--forest);
+}
+
+.welcome p {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-6);
+  margin-bottom: var(--space-10);
+}
+
+.statCard {
+  background: white;
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  transition: transform 0.2s;
+}
+
+.statCard:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.statIcon {
+  width: 48px;
+  height: 48px;
+  background: var(--forest-faint);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--forest);
+}
+
+.statValue {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.statLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.section {
+  background: white;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.sectionHeader {
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  text-align: left;
+  padding: var(--space-4) var(--space-6);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  background: var(--ivory-dim);
+}
+
+.table td {
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.managerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.managerName {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.managerBusiness {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.revenue {
+  font-weight: 700;
+  color: var(--forest);
+}
+
+.outstanding {
+  font-weight: 700;
+  color: var(--error);
+}

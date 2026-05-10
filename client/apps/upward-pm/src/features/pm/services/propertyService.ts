@@ -173,3 +173,7 @@ export const bulkAddRentHistory = (unitUuid: string, rows: any[]) => {
     body: JSON.stringify({ rows })
   })
 }
+
+export const getLandlords = () => {
+  return request<{ name: string; email: string; phone: string }[]>('/pm/landlords')
+}

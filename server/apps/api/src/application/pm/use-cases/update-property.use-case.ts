@@ -2,6 +2,7 @@ import { Inject, Injectable, ForbiddenException, NotFoundException } from '@nest
 import { IPropertyRepository, PM_PROPERTY_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
 import { UpdatePropertyDto } from '../dtos/property.dto';
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
+import { LandlordService } from '../services/landlord.service';
 
 @Injectable()
 export class UpdatePropertyUseCase {
@@ -9,6 +10,7 @@ export class UpdatePropertyUseCase {
     @Inject(PM_PROPERTY_REPOSITORY)
     private readonly propertyRepository: IPropertyRepository,
     private readonly s3Service: S3Service,
+    private readonly landlordService: LandlordService,
   ) {}
 
   async execute(pmId: number, propertyUuid: string, dto: UpdatePropertyDto) {
@@ -35,6 +37,14 @@ export class UpdatePropertyUseCase {
       landlordEmail: dto.landlordEmail,
       landlordPhone: dto.landlordPhone,
     });
+    
+    if (dto.landlordEmail && dto.landlordEmail !== property.landlordEmail) {
+        await this.landlordService.ensureLandlord(
+            dto.landlordEmail,
+            dto.landlordName,
+            dto.landlordPhone
+        );
+    }
 
     if (updatedProperty.imageUrl) {
       updatedProperty.imageUrl = await this.s3Service.getDownloadUrl(updatedProperty.imageUrl);

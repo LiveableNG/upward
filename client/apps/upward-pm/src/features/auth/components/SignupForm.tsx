@@ -187,6 +187,21 @@ export const SignupForm = () => {
 
   return (
     <div className="animate-fade-in">
+      <div className="auth-role-toggle">
+        <button 
+          type="button"
+          className="auth-role-toggle__btn auth-role-toggle__btn--active"
+        >
+          Property Manager
+        </button>
+        <Link 
+          href="/portal/login"
+          className="auth-role-toggle__btn"
+        >
+          Landlord
+        </Link>
+      </div>
+
       <div className="auth-header">
         <h2 className="auth-card__title">
           {stage === 'info'
@@ -216,7 +231,6 @@ export const SignupForm = () => {
                 required
               >
                 <option value="" disabled>-- Select your role --</option>
-                <option value="Landlord">Landlord</option>
                 <option value="Caretaker">Caretaker</option>
                 <option value="Lawyer">Lawyer</option>
                 <option value="Estate Agent">Estate Agent</option>
