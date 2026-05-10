@@ -30,6 +30,7 @@ import { WebhookAdminController } from './admin/webhook-admin.controller'
 import { PmAuthController } from './pm/pm-auth.controller'
 import { PmProfileController } from './pm/pm-profile.controller'
 import { PmPropertyController } from './controllers/pm-property.controller'
+import { PmActivityController } from './controllers/pm-activity.controller'
 import { PmTenantController } from './controllers/pm-tenant.controller'
 import { PmCredibilityController } from './controllers/pm-credibility.controller'
 import { InternalScoreController } from './internal/internal-score.controller'
@@ -66,6 +67,7 @@ import { PmDocumentController } from './controllers/pm-document.controller'
     PmAuthController,
     PmProfileController,
     PmPropertyController,
+    PmActivityController,
     PmTenantController,
     PmCredibilityController,
     InternalScoreController,

@@ -6,6 +6,7 @@ import { ProfileForm } from '@/features/pm/components/settings/ProfileForm'
 import { BankInfoForm } from '@/features/pm/components/settings/BankInfoForm'
 import { SecurityForm } from '@/features/pm/components/settings/SecurityForm'
 import { DataImportTab } from '@/features/pm/components/settings/DataImportTab'
+import { TeamTab } from '@/features/pm/components/settings/TeamTab'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
@@ -52,6 +53,12 @@ function SettingsContent() {
         >
           Bulk Import
         </button>
+        <button 
+          className={cn('settings__nav-item', activeTab === 'team' && 'settings__nav-item--active')}
+          onClick={() => setTab('team')}
+        >
+          Team
+        </button>
       </nav>
 
       <div className="settings__content">
@@ -64,6 +71,7 @@ function SettingsContent() {
         {activeTab === 'payment' && <BankInfoForm />}
         {activeTab === 'security' && <SecurityForm />}
         {activeTab === 'import' && <DataImportTab />}
+        {activeTab === 'team' && <TeamTab />}
       </div>
     </div>
   )

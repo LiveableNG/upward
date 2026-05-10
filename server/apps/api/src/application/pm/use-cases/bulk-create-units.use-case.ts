@@ -4,6 +4,7 @@ import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.rep
 import { BulkCreateUnitsDto } from '../dtos/property.dto';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import { BulkInviteTenantsUseCase } from './tenants/bulk-invite-tenants.use-case';
+import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
 
 @Injectable()
 export class BulkCreateUnitsUseCase {
@@ -14,6 +15,7 @@ export class BulkCreateUnitsUseCase {
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     private readonly encryption: EncryptionService,
     private readonly bulkInviteUseCase: BulkInviteTenantsUseCase,
+    private readonly activityLog: ActivityLogService,
   ) {}
 
   async execute(pmId: number, dto: BulkCreateUnitsDto) {
@@ -118,6 +120,19 @@ export class BulkCreateUnitsUseCase {
         });
       }
     }
+
+    // Log Activity
+    await this.activityLog.log({
+        pmId,
+        ownerPmId: property.pmId,
+        action: ActivityAction.CREATE_UNIT,
+        entityType: 'UNIT',
+        description: `Bulk created ${dto.units.length} units in property ${property.name}`,
+        metadata: {
+            property: property.name,
+            count: dto.units.length
+        }
+    });
 
     if (createdTenantUuids.length > 0) {
       await this.bulkInviteUseCase.execute(pmId, {

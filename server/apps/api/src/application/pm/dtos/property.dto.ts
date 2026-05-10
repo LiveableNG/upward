@@ -41,6 +41,11 @@ export class CreatePropertyDto {
   @IsString()
   @IsOptional()
   landlordPhone?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  collaboratorUuids?: string[];
 }
 
 export class UpdatePropertyDto {
