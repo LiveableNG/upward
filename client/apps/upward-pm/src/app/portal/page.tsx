@@ -68,7 +68,6 @@ export default function LandlordDashboard() {
           </div>
           <button 
             className={styles.button} 
-            style={{ background: 'white', color: 'var(--text)', border: '1px solid var(--border)' }}
             onClick={handleLogout}
           >
             <LogOut size={18} />

@@ -33,6 +33,33 @@
   color: var(--text-secondary);
 }
 
+.button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--border);
+  background: white;
+  color: var(--text);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.button:hover {
+  background: var(--ivory-dim);
+  border-color: var(--text-muted);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.button:active {
+  transform: translateY(0);
+}
+
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
