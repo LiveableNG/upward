@@ -145,6 +145,7 @@ import { GetLandlordPortfolioUseCase } from './pm/use-cases/landlord/get-landlor
 import { LandlordChangePasswordUseCase } from './pm/use-cases/landlord/landlord-change-password.use-case'
 import { LandlordService } from './pm/services/landlord.service'
 import { GetPmLandlordsUseCase } from './pm/use-cases/landlord/get-pm-landlords.use-case'
+import { GetLandlordPropertyDetailsUseCase } from './pm/use-cases/landlord/get-landlord-property-details.use-case'
 
 import { RejectCredibilityRequestUseCase } from './use-cases/external/reject-credibility-request.use-case'
 import { AuthModule } from './auth/auth.module'
@@ -352,6 +353,7 @@ const UseCases = [
   GetLandlordPortfolioUseCase,
   LandlordChangePasswordUseCase,
   GetPmLandlordsUseCase,
+  GetLandlordPropertyDetailsUseCase,
   LandlordService,
   ActivityLogService,
 
