@@ -18,6 +18,9 @@ import { useTenants } from '@/features/pm/hooks/useTenants'
 import { usePaymentRequests } from '@/features/pm/hooks/usePayments'
 import { ActivityCarousel } from './ActivityCarousel'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
+import { StatCard } from '@/components/ui/StatCard/StatCard'
+import { StatGrid } from '@/components/ui/StatCard/StatGrid'
 
 export function DashboardView() {
   const router = useRouter()
@@ -77,26 +80,45 @@ export function DashboardView() {
 
   return (
     <div className="dashboard animate-fade-in">
+      <PageHeader 
+        title={`Welcome back!`}
+        subtitle="Here is what is happening with your properties today."
+        actions={
+          <button className="btn btn--primary" onClick={() => router.push('/properties')}>
+            <PlusCircle size={18} /> Add Property
+          </button>
+        }
+      />
+
       <ActivityCarousel />
 
-      <div className="stats-grid">
-        {stats.map((stat) => {
-          const Icon = stat.icon
-          return (
-            <div key={stat.label} className={`stat-card stat-card--${stat.type}`}>
-              <div className="stat-card__icon">
-                <Icon size={24} />
-              </div>
-              <p className="stat-card__label">{stat.label}</p>
-              <h3 className="stat-card__value">{stat.value}</h3>
-              <p className="stat-card__trend">
-                <ArrowUpRight size={12} />
-                <span>{stat.trend}</span>
-              </p>
-            </div>
-          )
-        })}
-      </div>
+      <StatGrid>
+        <StatCard 
+          label="Total Units" 
+          value={totalUnits} 
+          icon={Building2} 
+          trend={{ value: properties.length, label: 'Properties', isUp: true }}
+          variant="accent"
+        />
+        <StatCard 
+          label="Active Tenants" 
+          value={activeTenants} 
+          icon={Users} 
+          trend={{ value: Math.round((activeTenants / (totalUnits || 1)) * 100), label: '% occupancy', isUp: true }}
+        />
+        <StatCard 
+          label="Pending Balance" 
+          value={`₦${pendingAmount.toLocaleString()}`} 
+          icon={CreditCard} 
+          trend={{ value: requests.filter(r => r.status !== 'PAID').length, label: 'open requests', isUp: false }}
+        />
+        <StatCard 
+          label="Total Revenue" 
+          value={`₦${totalRevenue.toLocaleString()}`} 
+          icon={TrendingUp} 
+          trend={{ value: 100, label: 'All time collection', isUp: true }}
+        />
+      </StatGrid>
 
       <div className="dashboard__content">
         <section className="section-card">

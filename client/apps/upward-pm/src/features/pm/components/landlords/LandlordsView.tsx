@@ -6,6 +6,9 @@ import { Plus, Search, User, Building2, Mail, Phone } from 'lucide-react'
 import { useProperties } from '@/features/pm/hooks/useProperties'
 import { AddLandlordModal } from './modals/AddLandlordModal'
 import { DataTable, Column } from '@/components/common/DataTable'
+import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
+import { StatCard } from '@/components/ui/StatCard/StatCard'
+import { StatGrid } from '@/components/ui/StatCard/StatGrid'
 
 interface LandlordData {
   name: string;
@@ -99,53 +102,38 @@ export function LandlordsView() {
 
   return (
     <div className="landlords-page animate-fade-in" style={{ paddingBottom: 40 }}>
-      <header className="properties-header" style={{ marginBottom: 40 }}>
-        <div>
-          <h1 className="dashboard__title">Landlords</h1>
-          <p className="dashboard__subtitle">Manage your landlord database and portfolio assignments.</p>
-        </div>
-        <button 
-          className="btn btn--primary" 
-          style={{ borderRadius: 100, padding: '12px 28px', height: 'fit-content' }}
-          onClick={() => setIsAddModalOpen(true)}
-        >
-          <Plus size={18} style={{ marginRight: 8 }} />
-          Add a landlord
-        </button>
-      </header>
+      <PageHeader 
+        title="Landlords" 
+        subtitle="Manage your landlord database and portfolio assignments."
+        actions={
+          <button 
+            className="btn btn--primary" 
+            style={{ borderRadius: 12 }}
+            onClick={() => setIsAddModalOpen(true)}
+          >
+            <Plus size={18} /> Add a landlord
+          </button>
+        }
+      />
 
       <AddLandlordModal 
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)} 
       />
 
-      <div style={{ 
-        display: 'inline-flex', 
-        alignItems: 'center', 
-        gap: 20, 
-        background: 'var(--forest-faint)', 
-        padding: '24px 32px', 
-        borderRadius: 24, 
-        marginBottom: 48,
-        border: '1px solid var(--forest-glow)',
-        boxShadow: 'var(--shadow-sm)'
-      }}>
-        <div style={{ 
-          background: 'var(--forest-glow)', 
-          padding: 12, 
-          borderRadius: 16,
-          color: 'var(--forest)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <User size={28} strokeWidth={2.5} />
-        </div>
-        <div>
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 4 }}>Total Landlords</p>
-          <p style={{ fontSize: 36, fontWeight: 800, color: 'var(--dark)', lineHeight: 1 }}>{landlords.length}</p>
-        </div>
-      </div>
+      <StatGrid>
+        <StatCard 
+          label="Total Landlords" 
+          value={landlords.length} 
+          icon={User} 
+          variant="accent"
+        />
+        <StatCard 
+          label="Properties Managed" 
+          value={properties.length} 
+          icon={Building2} 
+        />
+      </StatGrid>
 
       <div className="filters-bar" style={{ marginBottom: 32, gap: 24 }}>
         <div className="search-input" style={{ maxWidth: 400, background: 'white' }}>

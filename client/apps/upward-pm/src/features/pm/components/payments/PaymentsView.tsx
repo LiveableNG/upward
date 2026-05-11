@@ -20,6 +20,9 @@ import { useProperties } from '../../hooks/useProperties'
 import { useToast } from '@/components/common/Toast'
 
 import { DataTable, Column } from '@/components/common/DataTable'
+import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
+import { StatCard } from '@/components/ui/StatCard/StatCard'
+import { StatGrid } from '@/components/ui/StatCard/StatGrid'
 
 function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests }: { searchQuery: string, dateFilter: string, requestsOverride?: any[], allRequests?: any[] }) {
   const { success, error, info } = useToast()
@@ -134,24 +137,29 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
 
   return (
     <>
-      <div className="stats-grid" style={{ marginBottom: 32 }}>
-        <div className="stat-card" style={{ background: 'var(--forest-faint)', border: '1px solid var(--forest)' }}>
-          <p className="stat-card__label" style={{ color: 'var(--forest)' }}>Total Collected</p>
-          <h3 className="stat-card__value" style={{ color: 'var(--forest)' }}>₦{totalCollected.toLocaleString()}</h3>
-        </div>
-        <div className="stat-card">
-          <p className="stat-card__label">Outstanding Balance</p>
-          <h3 className="stat-card__value">₦{outstanding.toLocaleString()}</h3>
-        </div>
-        <div className="stat-card">
-          <p className="stat-card__label">Pending Requests</p>
-          <h3 className="stat-card__value">{pendingCount}</h3>
-        </div>
-        <div className="stat-card">
-          <p className="stat-card__label">Total Requests</p>
-          <h3 className="stat-card__value">{statsSource.length}</h3>
-        </div>
-      </div>
+      <StatGrid>
+        <StatCard 
+          label="Total Collected" 
+          value={`₦${totalCollected.toLocaleString()}`} 
+          icon={CreditCard} 
+          variant="accent"
+        />
+        <StatCard 
+          label="Outstanding Balance" 
+          value={`₦${outstanding.toLocaleString()}`} 
+          icon={Calendar} 
+        />
+        <StatCard 
+          label="Pending Requests" 
+          value={pendingCount} 
+          icon={CheckCircle} 
+        />
+        <StatCard 
+          label="Total Requests" 
+          value={statsSource.length} 
+          icon={Eye} 
+        />
+      </StatGrid>
 
       <DataTable
         columns={columns}
@@ -252,18 +260,16 @@ export function PaymentsView() {
 
   return (
     <div className="payments-page animate-fade-in">
-      <header className="properties-header">
-        <div>
-          <h1 className="dashboard__title">Payments & Transactions</h1>
-          <p className="dashboard__subtitle">Track all incoming payments and manage billing flows.</p>
-        </div>
-        <div className="properties-header__actions">
+      <PageHeader 
+        title="Payments & Transactions" 
+        subtitle="Track all incoming payments and manage billing flows."
+        actions={
           <button className="btn btn--secondary" onClick={handleExport}>
             <Download size={18} />
             Export Statement
           </button>
-        </div>
-      </header>
+        }
+      />
 
       <div className="filters-bar">
         <div className="search-input">

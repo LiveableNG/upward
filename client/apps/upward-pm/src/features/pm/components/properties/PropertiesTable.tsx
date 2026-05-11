@@ -1,9 +1,12 @@
 'use client'
 
 import React from 'react'
-import { Plus, Search, Menu } from 'lucide-react'
+import { Plus, Search, Menu, Building2 } from 'lucide-react'
 import { Property, Unit } from '../../services/propertyService'
 import { DataTable, Column } from '@/components/common/DataTable'
+import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
+import { StatCard } from '@/components/ui/StatCard/StatCard'
+import { StatGrid } from '@/components/ui/StatCard/StatGrid'
 
 interface PropertiesTableProps {
   properties: Property[];
@@ -94,22 +97,29 @@ export function PropertiesTable({
 
   return (
     <div className="properties-view-wrapper animate-fade-in">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <h1 className="dashboard__title">Properties</h1>
-        <button className="btn btn--primary" onClick={onAddProperty} style={{ borderRadius: 100 }}>
-          <Plus size={16} style={{ marginRight: 6 }} /> Add a property
-        </button>
-      </div>
+      <PageHeader 
+        title="Properties" 
+        subtitle="Manage your property portfolio and units."
+        actions={
+          <button className="btn btn--primary" onClick={onAddProperty} style={{ borderRadius: 12 }}>
+            <Plus size={18} /> Add Property
+          </button>
+        }
+      />
 
-      <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--forest-faint)', borderRadius: 12, padding: '24px 32px', marginBottom: 32, minWidth: 200, border: '1px solid var(--forest-glow)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: 'var(--forest)' }}>
-          <div style={{ background: 'var(--forest-faint)', padding: 6, borderRadius: '50%' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-          </div>
-          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Total properties</span>
-        </div>
-        <span style={{ fontSize: 32, fontWeight: 700, color: 'var(--text)' }}>{properties.length}</span>
-      </div>
+      <StatGrid>
+        <StatCard 
+          label="Total Properties" 
+          value={properties.length} 
+          icon={Building2} 
+          variant="accent"
+        />
+        <StatCard 
+          label="Total Units" 
+          value={units.length} 
+          icon={Building2} 
+        />
+      </StatGrid>
 
       <div className="filters-bar" style={{ marginBottom: 20, flexWrap: 'wrap' }}>
         <div className="search-input" style={{ flex: '1 1 200px', minWidth: 200 }}>
