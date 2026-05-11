@@ -1,5 +1,8 @@
+'use client'
+
 import React from 'react'
-import { AlertCircle, X } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal/Modal'
 
 interface ConfirmationModalProps {
   isOpen: boolean
@@ -24,28 +27,19 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   type = 'primary',
   isPending = false
 }) => {
-  if (!isOpen) return null
-
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal--confirm" onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div className="modal__icon-title">
-            <div className={`modal__icon modal__icon--${type}`}>
-              <AlertCircle size={24} />
-            </div>
-            <h2 className="modal__title">{title}</h2>
-          </div>
-          <button onClick={onClose} className="btn-icon"><X size={20} /></button>
-        </div>
-
-        <p className="modal__desc" style={{ marginTop: 16 }}>{message}</p>
-
-        <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      icon={AlertCircle}
+      maxWidth={420}
+      footer={
+        <>
           <button 
             type="button" 
             className="btn btn--secondary" 
-            style={{ flex: 1 }} 
+            style={{ flex: 1, height: 48 }} 
             onClick={onClose}
             disabled={isPending}
           >
@@ -54,41 +48,27 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <button 
             type="button" 
             className={`btn ${type === 'danger' ? 'btn--danger' : 'btn--primary'}`} 
-            style={{ flex: 1 }} 
+            style={{ flex: 1, height: 48 }} 
             onClick={onConfirm}
             disabled={isPending}
           >
             {isPending ? 'Processing...' : confirmText}
           </button>
-        </div>
+        </>
+      }
+    >
+      <div style={{ padding: '8px 0' }}>
+        <p style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+          {message}
+        </p>
       </div>
-
+      
       <style jsx>{`
-        .modal--confirm {
-          max-width: 400px;
-        }
-        .modal__icon-title {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .modal__icon {
-          width: 48px;
-          height: 48px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .modal__icon--danger {
-          background: #fef2f2;
-          color: #ef4444;
-        }
-        .modal__icon--primary {
-          background: var(--forest-faint);
-          color: var(--forest);
+        :global(.upward-modal__icon) {
+          background: ${type === 'danger' ? '#fef2f2' : 'var(--bg)'} !important;
+          color: ${type === 'danger' ? '#ef4444' : 'var(--text-secondary)'} !important;
         }
       `}</style>
-    </div>
+    </Modal>
   )
 }
