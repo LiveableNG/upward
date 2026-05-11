@@ -1,9 +1,9 @@
 'use client'
 
 import React from 'react'
-import { Plus, Search } from 'lucide-react'
-import { PropertyTableRow } from './PropertyTableRow'
+import { Plus, Search, Menu } from 'lucide-react'
 import { Property, Unit } from '../../services/propertyService'
+import { DataTable, Column } from '@/components/common/DataTable'
 
 interface PropertiesTableProps {
   properties: Property[];
@@ -26,6 +26,72 @@ export function PropertiesTable({
   onManageUnits,
   onViewPropertyDetail
 }: PropertiesTableProps) {
+  
+  const columns: Column<Property>[] = [
+    {
+      header: 'PROPERTY',
+      render: (prop) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--dark)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600 }}>
+             {prop.name.charAt(0).toUpperCase()}
+          </div>
+          <div className="tenant-name-email">
+            <span className="tenant-name" style={{ fontSize: '14px', fontWeight: 600, color: '#334155' }}>{prop.name}</span>
+            <span className="tenant-email" style={{ fontSize: '11px', color: '#94a3b8' }}>
+              {prop.address}
+            </span>
+          </div>
+        </div>
+      )
+    },
+    {
+      header: 'LANDLORDS',
+      render: (prop) => (
+        <div style={{ fontSize: '13px', color: '#64748b' }}>
+          {prop.landlordName ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#94a3b8' }} />
+              {prop.landlordName}
+            </div>
+          ) : (
+            <span className="text-muted">-</span>
+          )}
+        </div>
+      )
+    },
+    {
+      header: 'UNITS',
+      align: 'center',
+      render: (prop) => {
+        const propUnits = units.filter(u => (u as any).propertyUuid === prop.uuid || u.propertyId === prop.id);
+        return <span style={{ fontSize: '13px', color: '#334155' }}>{propUnits.length || prop.totalUnits || 0}</span>;
+      }
+    },
+    {
+      header: 'TENANTS',
+      align: 'center',
+      render: (prop) => {
+        const propUnits = units.filter(u => (u as any).propertyUuid === prop.uuid || u.propertyId === prop.id);
+        const propTenantsCount = propUnits.filter(u => u.tenant || (u as any).tenantUuid).length;
+        return <span style={{ fontSize: '13px', color: '#334155' }}>{propTenantsCount}</span>;
+      }
+    },
+    {
+      header: 'ACTIONS',
+      align: 'right',
+      render: (prop) => (
+        <div className="action-buttons" style={{ justifyContent: 'flex-end' }}>
+          <button className="btn-icon" onClick={(e) => {
+            e.stopPropagation();
+            onEditProperty(prop);
+          }}>
+            <Menu size={16} color="#64748b" />
+          </button>
+        </div>
+      )
+    }
+  ];
+
   return (
     <div className="properties-view-wrapper animate-fade-in">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
@@ -35,14 +101,14 @@ export function PropertiesTable({
         </button>
       </div>
 
-      <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#e0f2fe', borderRadius: 12, padding: '24px 32px', marginBottom: 32, minWidth: 200 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#0284c7' }}>
-          <div style={{ background: 'rgba(2, 132, 199, 0.1)', padding: 6, borderRadius: '50%' }}>
+      <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--forest-faint)', borderRadius: 12, padding: '24px 32px', marginBottom: 32, minWidth: 200, border: '1px solid var(--forest-glow)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: 'var(--forest)' }}>
+          <div style={{ background: 'var(--forest-faint)', padding: 6, borderRadius: '50%' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
           </div>
-          <span style={{ fontSize: 13, fontWeight: 500, color: '#334155' }}>Total properties</span>
+          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Total properties</span>
         </div>
-        <span style={{ fontSize: 32, fontWeight: 700, color: '#0f172a' }}>{properties.length}</span>
+        <span style={{ fontSize: 32, fontWeight: 700, color: 'var(--text)' }}>{properties.length}</span>
       </div>
 
       <div className="filters-bar" style={{ marginBottom: 20, flexWrap: 'wrap' }}>
@@ -56,55 +122,27 @@ export function PropertiesTable({
           />
         </div>
         <div className="filter-group" style={{ background: 'white', border: '1px solid var(--border)', flex: '1 1 120px' }}>
-          <span style={{ fontSize: 13, color: '#64748b' }}>Service Type:</span>
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Service Type:</span>
           <select className="filter-select-minimal" style={{ border: 'none', background: 'transparent', width: '100%' }}>
             <option>All</option>
           </select>
         </div>
         <div className="filter-group" style={{ background: 'white', border: '1px solid var(--border)', flex: '1 1 120px' }}>
-          <span style={{ fontSize: 13, color: '#64748b' }}>Purpose:</span>
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Purpose:</span>
           <select className="filter-select-minimal" style={{ border: 'none', background: 'transparent', width: '100%' }}>
             <option>All</option>
           </select>
         </div>
       </div>
 
-      <div className="tenant-table-container animate-fade-in" style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-        <table className="tenant-table" style={{ background: 'white' }}>
-          <thead style={{ background: '#f8fafc' }}>
-            <tr>
-              <th>PROPERTY</th>
-              <th>LANDLORDS</th>
-              <th style={{ textAlign: 'center' }}>UNITS</th>
-              <th style={{ textAlign: 'center' }}>TENANTS</th>
-              <th className="col-actions" style={{ textAlign: 'right' }}>ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {properties.map((prop, idx) => {
-              const propUnits = units.filter(u => (u as any).propertyUuid === prop.uuid || u.propertyId === prop.id);
-              const propTenantsCount = propUnits.filter(u => u.tenant || (u as any).tenantUuid).length;
-              
-              return (
-                <PropertyTableRow 
-                  key={prop.uuid} 
-                  property={prop} 
-                  unitCount={propUnits.length || prop.totalUnits || 0}
-                  tenantCount={propTenantsCount}
-                  index={idx + 1}
-                  onEdit={() => onEditProperty(prop)} 
-                  onManageUnits={() => onViewPropertyDetail(prop)} 
-                />
-              )
-            })}
-          </tbody>
-        </table>
-        {properties.length === 0 && (
-          <div className="empty-state" style={{ padding: '40px', textAlign: 'center' }}>
-            <p className="text-muted">No properties found matching your search.</p>
-          </div>
-        )}
-      </div>
+      <DataTable
+        columns={columns}
+        data={properties}
+        onRowClick={(prop) => onViewPropertyDetail(prop)}
+        emptyMessage="No properties found matching your search."
+        keyExtractor={(prop) => prop.uuid}
+        pageSize={10}
+      />
     </div>
   )
 }

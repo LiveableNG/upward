@@ -19,6 +19,8 @@ import { usePaymentRequests } from '../../hooks/usePayments'
 import { useProperties } from '../../hooks/useProperties'
 import { useToast } from '@/components/common/Toast'
 
+import { DataTable, Column } from '@/components/common/DataTable'
+
 function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests }: { searchQuery: string, dateFilter: string, requestsOverride?: any[], allRequests?: any[] }) {
   const { success, error, info } = useToast()
   const router = useRouter()
@@ -54,6 +56,82 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
     success('Payment link copied to clipboard!')
   }
 
+  const columns: Column<any>[] = [
+    {
+      header: 'ID',
+      render: (req) => <span style={{ fontWeight: 600, fontSize: 13 }}>{req.uuid.slice(-8).toUpperCase()}</span>
+    },
+    {
+      header: 'Tenant & Unit',
+      render: (req) => (
+        <div className="tenant-cell">
+          <div className="tenant-avatar">
+            {req.tenant ? `${req.tenant.firstName?.[0] || ''}${req.tenant.lastName?.[0] || ''}` : 'U'}
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, color: 'var(--text)' }}>
+              {req.tenant ? `${req.tenant.firstName} ${req.tenant.lastName}` : 'No Tenant'}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Unit {req.unit?.unitName}</div>
+          </div>
+        </div>
+      )
+    },
+    {
+      header: 'Property',
+      render: (req) => <span style={{ fontSize: 13 }}>{req.unit?.property?.name}</span>
+    },
+    {
+      header: 'Amount',
+      render: (req) => (
+        <div className="amount-text">
+          {req.currency} {req.amountPaid.toLocaleString()} / {req.amount.toLocaleString()}
+        </div>
+      )
+    },
+    {
+      header: 'Due Date',
+      render: (req) => <div style={{ fontSize: 13 }}>{formatDate(req.dueDate)}</div>
+    },
+    {
+      header: 'Status',
+      render: (req) => (
+        <span className={`status-chip status-chip--${req.status.toLowerCase()}`}>
+          {req.status}
+        </span>
+      )
+    },
+    {
+      header: '',
+      align: 'right',
+      render: (req) => (
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button 
+            className="btn-icon-sm" 
+            onClick={(e) => {
+              e.stopPropagation()
+              handleCopyLink(req)
+            }}
+            title="Copy Payment Link"
+            style={{ color: 'var(--accent)' }}
+          >
+            <Copy size={16} />
+          </button>
+          <button 
+            className="btn-icon-sm"
+            onClick={(e) => {
+              e.stopPropagation()
+              router.push(`/properties/units/${req.unit?.uuid}`)
+            }}
+            title="View Unit"
+          >
+            <Eye size={16} />
+          </button>
+        </div>
+      )
+    }
+  ]
+
   return (
     <>
       <div className="stats-grid" style={{ marginBottom: 32 }}>
@@ -75,94 +153,13 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
         </div>
       </div>
 
-      <div className="table-container">
-        <table className="pm-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Tenant & Unit</th>
-              <th>Property</th>
-              <th>Amount</th>
-              <th>Due Date</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayRequests.map((req) => (
-              <tr 
-                key={req.uuid} 
-                onClick={() => router.push(`/payments/${req.uuid}`)}
-                style={{ cursor: 'pointer' }}
-                className="hover-row"
-              >
-                <td style={{ fontWeight: 600, fontSize: 13 }}>{req.uuid.slice(-8).toUpperCase()}</td>
-                <td>
-                  <div className="tenant-cell">
-                    <div className="tenant-avatar">
-                      {req.tenant ? `${req.tenant.firstName?.[0] || ''}${req.tenant.lastName?.[0] || ''}` : 'U'}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>
-                        {req.tenant ? `${req.tenant.firstName} ${req.tenant.lastName}` : 'No Tenant'}
-                      </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Unit {req.unit?.unitName}</div>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <span style={{ fontSize: 13 }}>{req.unit?.property?.name}</span>
-                </td>
-                <td>
-                  <div className="amount-text">
-                    {req.currency} {req.amountPaid.toLocaleString()} / {req.amount.toLocaleString()}
-                  </div>
-                </td>
-                <td>
-                  <div style={{ fontSize: 13 }}>{formatDate(req.dueDate)}</div>
-                </td>
-                <td>
-                  <span className={`status-chip status-chip--${req.status.toLowerCase()}`}>
-                    {req.status}
-                  </span>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                    <button 
-                      className="btn-icon-sm" 
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleCopyLink(req)
-                      }}
-                      title="Copy Payment Link"
-                      style={{ color: 'var(--clay)' }}
-                    >
-                      <Copy size={16} />
-                    </button>
-                    <button 
-                      className="btn-icon-sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        router.push(`/properties/units/${req.unit?.uuid}`)
-                      }}
-                      title="View Unit"
-                    >
-                      <Eye size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {displayRequests.length === 0 && (
-              <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                  No payment requests found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={columns}
+        data={displayRequests}
+        onRowClick={(req) => router.push(`/payments/${req.uuid}`)}
+        emptyMessage="No payment requests found."
+        pageSize={10}
+      />
     </>
   )
 }

@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, FileSpreadsheet, Download, Plus, X, AlertCircle } from 'lucide-react'
+import { FileSpreadsheet, Download, Plus, X, AlertCircle } from 'lucide-react'
 import Papa from 'papaparse'
 import { useToast } from '@/components/common/Toast'
-import { cn } from '@/lib/utils'
 import { api } from '@/lib/api'
-import { format } from 'date-fns'
+import { DataTable, Column } from '@/components/common/DataTable'
 
 export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string, isPublic?: boolean }) {
   const router = useRouter()
@@ -133,6 +132,56 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
     setPreviewRecords(previewRecords.filter(r => r.id !== id))
   }
 
+  const columns: Column<any>[] = [
+    {
+      header: 'Amount (NGN)',
+      render: (r, i) => (
+        <input 
+          type="number" 
+          className="form-input" 
+          value={r.amount} 
+          onChange={e => updateRow(i, 'amount', parseFloat(e.target.value) || 0)} 
+          placeholder="e.g. 2000000" 
+          style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border)' }}
+        />
+      )
+    },
+    {
+      header: 'Due Date',
+      render: (r, i) => (
+        <input 
+          type="date" 
+          className="form-input" 
+          value={r.dueDate} 
+          onChange={e => updateRow(i, 'dueDate', e.target.value)} 
+          style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border)' }}
+        />
+      )
+    },
+    {
+      header: 'Paid Date',
+      render: (r, i) => (
+        <input 
+          type="date" 
+          className="form-input" 
+          value={r.paidDate} 
+          onChange={e => updateRow(i, 'paidDate', e.target.value)} 
+          style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border)' }}
+        />
+      )
+    },
+    {
+      header: '',
+      align: 'center',
+      width: '50px',
+      render: (r) => (
+        <button className="btn-icon" onClick={() => removeRow(r.id)} style={{ color: 'var(--error)' }}>
+          <X size={16} />
+        </button>
+      )
+    }
+  ];
+
   if (loading) return <div className="fulfillment-status animate-pulse">Loading request details...</div>
 
   if (!requestDetails) {
@@ -231,45 +280,12 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
             </div>
           </div>
           
-          <div className="records-table__container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Amount (NGN)</th>
-                  <th>Due Date</th>
-                  <th>Paid Date</th>
-                  <th style={{ width: '50px' }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {previewRecords.map((r, i) => (
-                  <tr key={r.id}>
-                    <td>
-                      <input type="number" className="form-input" value={r.amount} onChange={e => updateRow(i, 'amount', parseFloat(e.target.value) || 0)} placeholder="e.g. 2000000" />
-                    </td>
-                    <td>
-                      <input type="date" className="form-input" value={r.dueDate} onChange={e => updateRow(i, 'dueDate', e.target.value)} />
-                    </td>
-                    <td>
-                      <input type="date" className="form-input" value={r.paidDate} onChange={e => updateRow(i, 'paidDate', e.target.value)} />
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <button className="btn-icon" onClick={() => removeRow(r.id)} style={{ color: 'var(--error)' }}>
-                        <X size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {previewRecords.length === 0 && (
-                  <tr>
-                    <td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                      No records added yet. Add a row or upload a CSV.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={columns}
+            data={previewRecords}
+            emptyMessage="No records added yet. Add a row or upload a CSV."
+            keyExtractor={(r) => r.id}
+          />
         </div>
 
         <div className="fulfillment-footer">
