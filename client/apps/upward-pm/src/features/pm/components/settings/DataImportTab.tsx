@@ -139,7 +139,7 @@ export const DataImportTab: React.FC = () => {
     success('Template downloaded!')
   }
 
-  const validateCell = (rowId: number, field: string, value: any, colDef?: ColumnDef) => {
+  const validateCell = (rowId: number, field: string, value: any, colDef?: ColumnDef, silent = false) => {
     let errorMsg = ''
     const config = colDef || columns.find(c => c.key === field)
     
@@ -153,24 +153,29 @@ export const DataImportTab: React.FC = () => {
       errorMsg = 'Must be a number'
     }
 
-    const key = `${rowId}-${field}`
-    setValidationErrors(prev => {
-      const next = { ...prev }
-      if (errorMsg) next[key] = errorMsg
-      else delete next[key]
-      return next
-    })
-    return !errorMsg
+    if (!silent) {
+      const key = `${rowId}-${field}`
+      setValidationErrors(prev => {
+        const next = { ...prev }
+        if (errorMsg) next[key] = errorMsg
+        else delete next[key]
+        return next
+      })
+    }
+    return errorMsg
   }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
+    setValidationErrors({}) // Clear previous errors
+
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results: any) => {
+        const newErrors: Record<string, string> = {}
         const rows = results.data.map((row: any, index: number) => {
           const rowId = Date.now() + index
           const mappedRow: any = { id: rowId }
@@ -182,13 +187,15 @@ export const DataImportTab: React.FC = () => {
             } else {
               mappedRow[col.key] = val
             }
-            validateCell(rowId, col.key, mappedRow[col.key], col)
+            const errorMsg = validateCell(rowId, col.key, mappedRow[col.key], col, true)
+            if (errorMsg) {
+              newErrors[`${rowId}-${col.key}`] = errorMsg
+            }
           })
           
           return mappedRow
         })
         
-        // Filter out duplicates (within the CSV and against the system)
         const seenUnits = new Set<string>()
         const filteredRows = rows.filter((row: any) => {
           const propertyKey = mode === 'full' ? (row.propertyName || '').trim().toLowerCase() : (properties.find(p => p.uuid === targetPropertyUuid)?.name || '').trim().toLowerCase()
@@ -197,7 +204,6 @@ export const DataImportTab: React.FC = () => {
           
           if (seenUnits.has(fullKey)) return false
           
-          // Check against system
           const existingProp = properties.find(p => p.name.trim().toLowerCase() === propertyKey)
           const unitExists = existingProp?.units?.some((u: any) => u.unitName.trim().toLowerCase() === unitKey)
           
@@ -207,7 +213,17 @@ export const DataImportTab: React.FC = () => {
           return true
         })
 
+        const finalErrors: Record<string, string> = {}
+        filteredRows.forEach((row:any) => {
+          Object.keys(newErrors).forEach(key => {
+            if (key.startsWith(`${row.id}-`)) {
+              finalErrors[key] = newErrors[key]
+            }
+          })
+        })
+
         setPreviewRows(filteredRows)
+        setValidationErrors(finalErrors)
         revalidateDuplicates(filteredRows)
         
         const filteredCount = rows.length - filteredRows.length
@@ -301,7 +317,16 @@ export const DataImportTab: React.FC = () => {
   const handleConfirmImport = () => {
     if (mode === 'units' && !targetPropertyUuid) return error("Select a property first")
     if (previewRows.length === 0) return error("No data to import")
-    if (Object.keys(validationErrors).length > 0) return error("Please fix errors first")
+    
+    if (Object.keys(validationErrors).length > 0) {
+      const firstErrorKey = Object.keys(validationErrors)[0]
+      const [rowId, field] = firstErrorKey.split('-')
+      const rowIndex = previewRows.findIndex(r => r.id.toString() === rowId)
+      const colLabel = columns.find(c => c.key === field)?.label || field
+      const errorMsg = validationErrors[firstErrorKey]
+      
+      return error(`Error at Row ${rowIndex + 1}, Column "${colLabel}": ${errorMsg}`)
+    }
 
     if (mode === 'full') {
       const rowsToSend = previewRows.map(({ id, ...rest }) => rest)
@@ -433,7 +458,22 @@ export const DataImportTab: React.FC = () => {
                         </td>
                       ))}
                       <td style={{ padding: '8px 12px' }}>
-                        <button onClick={() => setPreviewRows(previewRows.filter(r => r.id !== row.id))} style={{ color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        <button 
+                          onClick={() => {
+                            const updated = previewRows.filter(r => r.id !== row.id);
+                            setPreviewRows(updated);
+                            // Clean up errors for this row
+                            setValidationErrors(prev => {
+                              const next = { ...prev };
+                              Object.keys(next).forEach(key => {
+                                if (key.startsWith(`${row.id}-`)) delete next[key];
+                              });
+                              return next;
+                            });
+                            revalidateDuplicates(updated);
+                          }} 
+                          style={{ color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer' }}
+                        >
                           <Trash2 size={16} />
                         </button>
                       </td>
@@ -448,7 +488,7 @@ export const DataImportTab: React.FC = () => {
               </div>
               <div style={{ display: 'flex', gap: 12 }}>
                 <button className="btn btn--secondary" onClick={() => setPreviewRows([])}>Cancel</button>
-                <button className="btn btn--primary" onClick={handleConfirmImport} disabled={bulkFullImportMutation.isPending || bulkCreateUnitsMutation.isPending || Object.keys(validationErrors).length > 0}>
+                <button className="btn btn--primary" onClick={handleConfirmImport} disabled={bulkFullImportMutation.isPending || bulkCreateUnitsMutation.isPending}>
                    {bulkFullImportMutation.isPending || bulkCreateUnitsMutation.isPending ? 'Processing...' : 'Confirm Import'}
                 </button>
               </div>

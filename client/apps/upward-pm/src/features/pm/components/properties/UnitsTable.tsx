@@ -51,7 +51,6 @@ export function UnitsTable({
           <button 
             className="btn btn--secondary" 
             onClick={onAddUnit}
-            disabled={!hasProperties}
           >
             <Plus size={18} />
             Add Unit
