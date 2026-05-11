@@ -282,7 +282,14 @@ export function PropertiesView() {
           setPaymentFilter={setPaymentFilter}
           dueFilter={dueFilter}
           setDueFilter={setDueFilter}
-          onAddUnit={() => setShowAddUnitModal(true)}
+          onAddUnit={() => {
+            if (properties.length === 0) {
+              info("Please add a property first before adding units.")
+              setShowAddPropertyModal(true)
+            } else {
+              setShowAddUnitModal(true)
+            }
+          }}
           onBulkImport={() => setShowImportModeModal(true)}
           onRequestPayment={handleOpenPaymentRequest}
           hasProperties={properties.length > 0}
