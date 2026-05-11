@@ -1,12 +1,15 @@
 'use client'
 
 import React from 'react'
-import { Plus, Search, Menu, Building2 } from 'lucide-react'
+import { Plus, Search, Menu, Building2, Filter } from 'lucide-react'
 import { Property, Unit } from '../../services/propertyService'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
 import { StatCard } from '@/components/ui/StatCard/StatCard'
 import { StatGrid } from '@/components/ui/StatCard/StatGrid'
+import { ControlBar } from '@/components/ui/ControlBar/ControlBar'
+import { SearchInput } from '@/components/ui/ControlBar/SearchInput'
+import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
 
 interface PropertiesTableProps {
   properties: Property[];
@@ -121,29 +124,26 @@ export function PropertiesTable({
         />
       </StatGrid>
 
-      <div className="filters-bar" style={{ marginBottom: 20, flexWrap: 'wrap' }}>
-        <div className="search-input" style={{ flex: '1 1 200px', minWidth: 200 }}>
-          <Search size={18} className="search-icon" />
-          <input 
-            type="text" 
-            placeholder="Search Property" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+      <ControlBar>
+        <SearchInput 
+          value={searchQuery} 
+          onChange={setSearchQuery} 
+          placeholder="Search Property" 
+        />
+        
+        <div style={{ display: 'flex', gap: 12 }}>
+          <FilterDropdown 
+            label="Service Type" 
+            value="All"
+            options={[{ label: 'All', value: 'All' }]}
+          />
+          <FilterDropdown 
+            label="Purpose" 
+            value="All"
+            options={[{ label: 'All', value: 'All' }]}
           />
         </div>
-        <div className="filter-group" style={{ background: 'white', border: '1px solid var(--border)', flex: '1 1 120px' }}>
-          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Service Type:</span>
-          <select className="filter-select-minimal" style={{ border: 'none', background: 'transparent', width: '100%' }}>
-            <option>All</option>
-          </select>
-        </div>
-        <div className="filter-group" style={{ background: 'white', border: '1px solid var(--border)', flex: '1 1 120px' }}>
-          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Purpose:</span>
-          <select className="filter-select-minimal" style={{ border: 'none', background: 'transparent', width: '100%' }}>
-            <option>All</option>
-          </select>
-        </div>
-      </div>
+      </ControlBar>
 
       <DataTable
         columns={columns}

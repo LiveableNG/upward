@@ -11,6 +11,10 @@ import { useRouter } from 'next/navigation'
 import { useSyncToUpward } from '../../hooks/useProperties'
 import { useToast } from '@/components/common/Toast'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
+import { ControlBar } from '@/components/ui/ControlBar/ControlBar'
+import { SearchInput } from '@/components/ui/ControlBar/SearchInput'
+import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
+import { Building2, Filter } from 'lucide-react'
 
 interface UnitsTableProps {
   units: Unit[];
@@ -177,41 +181,51 @@ export function UnitsTable({
         }
       />
 
-      <div className="filters-bar">
-        <div className="search-input">
-          <Search size={18} className="search-icon" />
-          <input 
-            type="text" 
-            placeholder="Search units, tenants, properties..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+      <ControlBar>
+        <SearchInput 
+          value={searchQuery} 
+          onChange={setSearchQuery} 
+          placeholder="Search units, tenants, properties..." 
+        />
+        
+        <div style={{ display: 'flex', gap: 12 }}>
+          <FilterDropdown 
+            label="Property" 
+            value={selectedPropertyFilter}
+            icon={Building2}
+            options={[
+              { label: 'All Properties', value: 'All Properties' },
+              ...properties.map(p => ({ label: p.name, value: p.name }))
+            ]}
+            onChange={setSelectedPropertyFilter}
+          />
+
+          <FilterDropdown 
+            label="Payments" 
+            value={paymentFilter}
+            icon={CreditCardIcon}
+            options={[
+              { label: 'All Payments', value: 'all' },
+              { label: 'Pending Requests', value: 'pending' }
+            ]}
+            onChange={(val) => setPaymentFilter(val as any)}
+          />
+
+          <FilterDropdown 
+            label="Due Date" 
+            value={dueFilter}
+            icon={Calendar}
+            options={[
+              { label: 'Any Due Date', value: 'all' },
+              { label: 'Overdue', value: 'passed' },
+              { label: 'Due in 30 days', value: '30days' },
+              { label: 'Due in 60 days', value: '60days' },
+              { label: 'Due in 90 days', value: '90days' }
+            ]}
+            onChange={(val) => setDueFilter(val as any)}
           />
         </div>
-        
-        <select className="filter-select" value={selectedPropertyFilter} onChange={e => setSelectedPropertyFilter(e.target.value)}>
-          <option>All Properties</option>
-          {properties.map(p => <option key={p.uuid}>{p.name}</option>)}
-        </select>
-
-        <div className="filter-group">
-          <CreditCardIcon size={14} className="filter-group__icon" />
-          <select className="filter-select-minimal" value={paymentFilter} onChange={e => setPaymentFilter(e.target.value as any)}>
-            <option value="all">All Payments</option>
-            <option value="pending">Pending Requests</option>
-          </select>
-        </div>
-
-        <div className="filter-group">
-          <Calendar size={14} className="filter-group__icon" />
-          <select className="filter-select-minimal" value={dueFilter} onChange={e => setDueFilter(e.target.value as any)}>
-            <option value="all">Any Due Date</option>
-            <option value="passed">Overdue</option>
-            <option value="30days">Due in 30 days</option>
-            <option value="60days">Due in 60 days</option>
-            <option value="90days">Due in 90 days</option>
-          </select>
-        </div>
-      </div>
+      </ControlBar>
 
       <DataTable
         columns={columns}

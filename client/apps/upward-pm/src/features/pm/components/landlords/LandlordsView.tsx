@@ -9,6 +9,9 @@ import { DataTable, Column } from '@/components/common/DataTable'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
 import { StatCard } from '@/components/ui/StatCard/StatCard'
 import { StatGrid } from '@/components/ui/StatCard/StatGrid'
+import { ControlBar } from '@/components/ui/ControlBar/ControlBar'
+import { SearchInput } from '@/components/ui/ControlBar/SearchInput'
+import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
 
 interface LandlordData {
   name: string;
@@ -135,25 +138,21 @@ export function LandlordsView() {
         />
       </StatGrid>
 
-      <div className="filters-bar" style={{ marginBottom: 32, gap: 24 }}>
-        <div className="search-input" style={{ maxWidth: 400, background: 'white' }}>
-          <Search size={18} className="search-icon" color="var(--text-muted)" />
-          <input 
-            type="text" 
-            placeholder="Search by name, email, phone..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ fontSize: 14 }}
-          />
-        </div>
+      <ControlBar>
+        <SearchInput 
+          value={searchQuery} 
+          onChange={setSearchQuery} 
+          placeholder="Search by name, email, phone..." 
+        />
         
-        <div className="filter-group" style={{ background: 'white', border: '1px solid var(--border)', padding: '8px 16px', borderRadius: 12 }}>
-          <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>Employee:</span>
-          <select className="filter-select-minimal" style={{ border: 'none', background: 'transparent', marginLeft: 8 }}>
-            <option>All Employees</option>
-          </select>
-        </div>
-      </div>
+        <FilterDropdown 
+          label="All Employees" 
+          value="all"
+          options={[
+            { label: 'All Employees', value: 'all' }
+          ]}
+        />
+      </ControlBar>
 
       <DataTable
         columns={columns}
