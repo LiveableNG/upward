@@ -173,10 +173,15 @@ export const DataImportTab: React.FC = () => {
 
     Papa.parse(file, {
       header: true,
-      skipEmptyLines: true,
+      skipEmptyLines: 'greedy',
       complete: (results: any) => {
         const newErrors: Record<string, string> = {}
-        const rows = results.data.map((row: any, index: number) => {
+        
+        const filteredData = (results.data || []).filter((row: any) => 
+          Object.values(row).some(val => val !== null && val !== undefined && val.toString().trim() !== '')
+        )
+
+        const rows = filteredData.map((row: any, index: number) => {
           const rowId = Date.now() + index
           const mappedRow: any = { id: rowId }
           

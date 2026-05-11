@@ -82,9 +82,14 @@ function TenantRecordsImportContent() {
 
     Papa.parse(file, {
       header: true,
-      skipEmptyLines: true,
+      skipEmptyLines: 'greedy',
       complete: (results: any) => {
-        const parsedRows = results.data.map((row: any, index: number) => ({
+        // Filter out completely empty rows
+        const filteredData = (results.data || []).filter((row: any) => 
+          Object.values(row).some(val => val !== null && val !== undefined && val.toString().trim() !== '')
+        )
+
+        const parsedRows = filteredData.map((row: any, index: number) => ({
           id: Date.now() + index,
           amount: parseFloat((row['Amount'] || '0').toString().replace(/[^0-9.]/g, '')) || 0,
           dueDate: row['DueDate'] || '',
