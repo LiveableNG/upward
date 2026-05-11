@@ -23,6 +23,9 @@ import { DataTable, Column } from '@/components/common/DataTable'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
 import { StatCard } from '@/components/ui/StatCard/StatCard'
 import { StatGrid } from '@/components/ui/StatCard/StatGrid'
+import { ControlBar } from '@/components/ui/ControlBar/ControlBar'
+import { SearchInput } from '@/components/ui/ControlBar/SearchInput'
+import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
 
 function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests }: { searchQuery: string, dateFilter: string, requestsOverride?: any[], allRequests?: any[] }) {
   const { success, error, info } = useToast()
@@ -271,115 +274,86 @@ export function PaymentsView() {
         }
       />
 
-      <div className="filters-bar">
-        <div className="search-input">
-          <Search size={18} className="search-icon" />
-          <input 
-            type="text" 
-            placeholder="Search by Tenant, Unit or Property..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+      <ControlBar>
+        <SearchInput 
+          value={searchQuery} 
+          onChange={setSearchQuery} 
+          placeholder="Search by Tenant, Unit or Property..." 
+        />
+        
         <div style={{ display: 'flex', gap: 12 }}>
-          <div className="dropdown">
-            <button 
-              className="filter-select" 
-              onClick={() => setIsDateOpen(!isDateOpen)}
-            >
-              <Calendar size={14} />
-              {dateFilter}
-              <ChevronDown size={14} className={isDateOpen ? 'rotate-180' : ''} />
-            </button>
-            
-            {isDateOpen && (
-              <>
-                <div className="dropdown-overlay" onClick={() => setIsDateOpen(false)} />
-                <div className="dropdown-menu glass animate-scale-in">
-                  {['All Time', 'This Month', 'Last 30 Days'].map(f => (
+          <FilterDropdown 
+            label="Date Range" 
+            value={dateFilter}
+            icon={Calendar}
+            options={[
+              { label: 'All Time', value: 'All Time' },
+              { label: 'This Month', value: 'This Month' },
+              { label: 'Last 30 Days', value: 'Last 30 Days' }
+            ]}
+            onChange={setDateFilter}
+          />
+
+          <FilterDropdown 
+            label="More Filters" 
+            value={statusFilter !== 'All' || propertyFilter !== 'All' ? 'active' : ''}
+            icon={Filter}
+          >
+            <div className="dropdown-menu--wide animate-scale-in" style={{ padding: 16 }}>
+              <div className="dropdown-section" style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 12, textTransform: 'uppercase' }}>Status</label>
+                <div className="filter-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {['All', 'PAID', 'PENDING', 'PARTIAL', 'OVERDUE'].map(s => (
                     <button 
-                      key={f}
-                      className={`dropdown-item ${dateFilter === f ? 'active' : ''}`}
-                      onClick={() => {
-                        setDateFilter(f)
-                        setIsDateOpen(false)
-                      }}
+                      key={s}
+                      className={`filter-tag ${statusFilter === s ? 'active' : ''}`}
+                      onClick={() => setStatusFilter(s)}
+                      style={{ padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: '1px solid var(--border)', background: statusFilter === s ? 'var(--forest-faint)' : 'white', color: statusFilter === s ? 'var(--forest)' : 'var(--text-secondary)', cursor: 'pointer' }}
                     >
-                      {f}
+                      {s}
                     </button>
                   ))}
                 </div>
-              </>
-            )}
-          </div>
+              </div>
+              
+              <div className="dropdown-section" style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 12, textTransform: 'uppercase' }}>Property</label>
+                <select 
+                  className="form-input" 
+                  value={propertyFilter}
+                  onChange={(e) => setPropertyFilter(e.target.value)}
+                  style={{ width: '100%', height: 40, borderRadius: 8, border: '1px solid var(--border)', padding: '0 12px' }}
+                >
+                  <option value="All">All Properties</option>
+                  {properties?.map(p => (
+                    <option key={p.uuid} value={p.uuid}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="dropdown">
-            <button 
-              className="filter-select" 
-              onClick={() => setIsMoreOpen(!isMoreOpen)}
-            >
-              <Filter size={14} />
-              More Filters
-              {(statusFilter !== 'All' || propertyFilter !== 'All') && (
-                <span className="filter-badge" />
-              )}
-              <ChevronDown size={14} className={isMoreOpen ? 'rotate-180' : ''} />
-            </button>
-
-            {isMoreOpen && (
-              <>
-                <div className="dropdown-overlay" onClick={() => setIsMoreOpen(false)} />
-                <div className="dropdown-menu dropdown-menu--wide glass animate-scale-in">
-                  <div className="dropdown-section">
-                    <label>Status</label>
-                    <div className="filter-tags">
-                      {['All', 'PAID', 'PENDING', 'PARTIAL', 'OVERDUE'].map(s => (
-                        <button 
-                          key={s}
-                          className={`filter-tag ${statusFilter === s ? 'active' : ''}`}
-                          onClick={() => setStatusFilter(s)}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="dropdown-section">
-                    <label>Property</label>
-                    <select 
-                      className="form-input" 
-                      value={propertyFilter}
-                      onChange={(e) => setPropertyFilter(e.target.value)}
-                    >
-                      <option value="All">All Properties</option>
-                      {properties?.map(p => (
-                        <option key={p.uuid} value={p.uuid}>{p.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="dropdown-footer">
-                    <button 
-                      className="btn-text" 
-                      onClick={() => {
-                        setStatusFilter('All')
-                        setPropertyFilter('All')
-                        setIsMoreOpen(false)
-                      }}
-                    >
-                      Reset All
-                    </button>
-                    <button className="btn btn--primary btn--sm" onClick={() => setIsMoreOpen(false)}>
-                      Apply
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+                <button 
+                  className="btn-text" 
+                  onClick={() => {
+                    setStatusFilter('All')
+                    setPropertyFilter('All')
+                  }}
+                  style={{ fontSize: 13, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                  Reset All
+                </button>
+                <button 
+                  className="btn btn--primary btn--sm" 
+                  onClick={() => {}} 
+                  style={{ padding: '6px 16px', borderRadius: 8, fontSize: 13 }}
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </FilterDropdown>
         </div>
-      </div>
+      </ControlBar>
 
       <PaymentsTable 
         searchQuery={searchQuery} 

@@ -10,6 +10,10 @@ import { Tenant } from '../../services/tenantService'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
 import { StatCard } from '@/components/ui/StatCard/StatCard'
 import { StatGrid } from '@/components/ui/StatCard/StatGrid'
+import { ControlBar } from '@/components/ui/ControlBar/ControlBar'
+import { SearchInput } from '@/components/ui/ControlBar/SearchInput'
+import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
+import { Building2 } from 'lucide-react'
 
 export const TenantList: React.FC = () => {
   const router = useRouter()
@@ -228,32 +232,24 @@ export const TenantList: React.FC = () => {
         />
       </StatGrid>
 
-      <div className="filters-bar" style={{ background: 'transparent', padding: 0, marginBottom: 32, border: 'none' }}>
-        <div className="search-input" style={{ maxWidth: 300, background: 'white', border: '1px solid var(--border)', borderRadius: 12 }}>
-          <Search size={18} className="search-icon" color="var(--text-muted)" />
-          <input 
-            type="text" 
-            placeholder="Search Tenant" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ fontSize: 14 }}
-          />
-        </div>
-
-        <div className="filter-select" style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '0 16px' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginRight: 12 }}>Property:</span>
-          <select 
-            value={propertyFilter}
-            onChange={(e) => setPropertyFilter(e.target.value)}
-            style={{ border: 'none', background: 'transparent', padding: '12px 0', fontSize: 14, fontWeight: 600 }}
-          >
-            <option value="all">All Properties</option>
-            {properties.map(p => (
-              <option key={p.uuid} value={p.uuid}>{p.name}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <ControlBar>
+        <SearchInput 
+          value={searchQuery} 
+          onChange={setSearchQuery} 
+          placeholder="Search Tenant" 
+        />
+        
+        <FilterDropdown 
+          label="Property" 
+          value={propertyFilter}
+          icon={Building2}
+          options={[
+            { label: 'All Properties', value: 'all' },
+            ...properties.map(p => ({ label: p.name, value: p.uuid }))
+          ]}
+          onChange={setPropertyFilter}
+        />
+      </ControlBar>
 
       {selectedTenants.size > 0 && (
         <div className="bulk-actions-bar animate-slide-up" style={{ bottom: 32, right: 32, left: 'auto', width: 'auto', borderRadius: 100, padding: '12px 24px', boxShadow: 'var(--shadow-lg)' }}>
