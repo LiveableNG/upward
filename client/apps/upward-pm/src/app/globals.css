@@ -467,3 +467,105 @@ textarea {
 .upward-stat-card__trend--up { color: var(--forest); }
 .upward-stat-card__trend--down { color: var(--error); }
 
+
+/* Modal Styles */
+.upward-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.upward-modal {
+  background: white;
+  width: 100%;
+  border-radius: 24px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.upward-modal__header {
+  padding: 32px 32px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.upward-modal__title-group {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.upward-modal__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.upward-modal__title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--dark);
+  margin: 0;
+}
+
+.upward-modal__subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 4px 0 0;
+}
+
+.upward-modal__close {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: all 0.2s;
+  background: white;
+}
+
+.upward-modal__close:hover {
+  background: var(--bg);
+  color: var(--dark);
+  border-color: var(--text-muted);
+}
+
+.upward-modal__body {
+  padding: 0 32px 32px;
+  overflow-y: auto;
+  max-height: calc(90vh - 160px);
+}
+
+.upward-modal__footer {
+  padding: 24px 32px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+  background: var(--ivory-dim);
+}
+
+@keyframes modalSlideUp {
+  from { transform: translateY(20px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+

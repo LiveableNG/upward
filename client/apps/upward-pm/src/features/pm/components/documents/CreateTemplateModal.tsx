@@ -1,11 +1,11 @@
-
 'use client'
 
 import React, { useState } from 'react'
-import { X, ChevronDown } from 'lucide-react'
+import { ChevronDown, FileText } from 'lucide-react'
 import { RichTextEditor } from '@/components/common/RichTextEditor'
 import { useDocuments } from '../../hooks/useDocuments'
 import { useToast } from '@/components/common/Toast'
+import { Modal } from '@/components/ui/Modal/Modal'
 
 interface CreateTemplateModalProps {
   isOpen: boolean
@@ -20,8 +20,6 @@ export function CreateTemplateModal({ isOpen, onClose }: CreateTemplateModalProp
   const [type, setType] = useState('RENT_REVIEW')
   const [content, setContent] = useState('')
   const [isSaving, setIsSaving] = useState(false)
-
-  if (!isOpen) return null
 
   const handleCreate = async () => {
     if (!name) return error('Please enter a template name')
@@ -47,109 +45,19 @@ export function CreateTemplateModal({ isOpen, onClose }: CreateTemplateModalProp
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ 
-      position: 'fixed', 
-      top: 0, 
-      left: 0, 
-      right: 0, 
-      bottom: 0, 
-      background: 'rgba(0, 0, 0, 0.75)', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      zIndex: 2000, // Higher z-index to cover sidebar
-      backdropFilter: 'blur(8px)'
-    }}>
-      <div 
-        className="modal animate-scale-in" 
-        onClick={e => e.stopPropagation()} 
-        style={{ 
-          background: 'white', 
-          borderRadius: 32, 
-          width: '96vw', 
-          height: '94vh', 
-          maxWidth: 'none',
-          maxHeight: 'none',
-          display: 'flex', 
-          flexDirection: 'column',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-          overflow: 'hidden'
-        }}
-      >
-        {/* Header */}
-        <div style={{ padding: '20px 40px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
-          <div>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)' }}>Create New Template</h2>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>Design your document template with placeholders for dynamic data.</p>
-          </div>
-          <button onClick={onClose} style={{ background: '#e2e8f0', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <X size={24} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div style={{ padding: '32px 40px', flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', gap: 32 }}>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }}>
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Template Type</label>
-                <div style={{ position: 'relative' }}>
-                  <select 
-                    className="form-input" 
-                    style={{ borderRadius: 12, paddingRight: 40, appearance: 'none', height: 52, background: '#f1f5f9', border: 'none', width: '100%' }}
-                    value={type}
-                    onChange={(e) => setType(e.target.value)}
-                  >
-                    <option value="RENT_REVIEW">Rent Review</option>
-                    <option value="RENT_RENEWAL">Rent Renewal</option>
-                    <option value="LEASE_AGREEMENT">Lease Agreement</option>
-                    <option value="EVICTION_NOTICE">Eviction Notice</option>
-                    <option value="CUSTOM">Custom Template</option>
-                  </select>
-                  <ChevronDown size={18} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
-                </div>
-              </div>
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Template Name</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Standard Rent Increase Notice" 
-                  className="form-input" 
-                  style={{ borderRadius: 12, height: 52, background: '#f1f5f9', border: 'none', width: '100%' }}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', minHeight: 600, flex: 1 }}>
-              <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Template Content</label>
-              <div style={{ flex: 1, borderRadius: 20, overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', minHeight: 500 }}>
-                <RichTextEditor 
-                  value={content}
-                  onChange={setContent}
-                  height="100%"
-                  placeholder="Begin drafting your document..."
-                />
-              </div>
-            </div>
-
-            <div className="glass" style={{ padding: '16px 24px', borderRadius: 16, background: 'var(--forest-faint)', border: '1px solid var(--forest-glow)', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ background: 'var(--forest)', color: 'white', width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800 }}>!</div>
-              <p style={{ fontSize: 13, color: 'var(--accent)', lineHeight: 1.5, margin: 0 }}>
-                <strong>Pro Tip:</strong> Use the <strong>Placeholders</strong> menu in the editor to insert tags like [Tenant Name]. These will be automatically filled when you send the document.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div style={{ padding: '24px 40px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 16, background: '#f8fafc' }}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Create New Template"
+      subtitle="Design your document template with placeholders for dynamic data."
+      icon={FileText}
+      maxWidth="1100px"
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, width: '100%' }}>
           <button 
             onClick={onClose} 
             className="btn btn--secondary" 
-            style={{ borderRadius: 16, height: 56, padding: '0 40px', fontWeight: 600, fontSize: 15 }}
+            style={{ borderRadius: 12, height: 48, padding: '0 24px' }}
           >
             Discard Changes
           </button>
@@ -158,22 +66,72 @@ export function CreateTemplateModal({ isOpen, onClose }: CreateTemplateModalProp
             disabled={isSaving}
             className="btn btn--primary" 
             style={{ 
-              borderRadius: 16, 
-              height: 56, 
-              padding: '0 48px', 
-              fontWeight: 700,
-              fontSize: 15,
+              borderRadius: 12, 
+              height: 48, 
+              padding: '0 32px',
               background: 'var(--forest)',
               color: 'white',
               border: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 10px 20px -5px var(--forest-glow)'
+              cursor: 'pointer'
             }}
           >
             {isSaving ? 'Saving Template...' : 'Create Template'}
           </button>
         </div>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '16px 0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+          <div>
+            <label className="form-label" style={{ marginBottom: 10, display: 'block' }}>Template Type</label>
+            <div style={{ position: 'relative' }}>
+              <select 
+                className="form-input" 
+                style={{ borderRadius: 12, paddingRight: 40, height: 52, background: 'var(--bg)', border: '1px solid var(--border)', width: '100%' }}
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+              >
+                <option value="RENT_REVIEW">Rent Review</option>
+                <option value="RENT_RENEWAL">Rent Renewal</option>
+                <option value="LEASE_AGREEMENT">Lease Agreement</option>
+                <option value="EVICTION_NOTICE">Eviction Notice</option>
+                <option value="CUSTOM">Custom Template</option>
+              </select>
+              <ChevronDown size={18} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
+            </div>
+          </div>
+          <div>
+            <label className="form-label" style={{ marginBottom: 10, display: 'block' }}>Template Name</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Standard Rent Increase Notice" 
+              className="form-input" 
+              style={{ borderRadius: 12, height: 52, background: 'var(--bg)', border: '1px solid var(--border)', width: '100%' }}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+        </div>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: 400 }}>
+          <label className="form-label" style={{ marginBottom: 10, display: 'block' }}>Template Content</label>
+          <div style={{ flex: 1, borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', minHeight: 400 }}>
+            <RichTextEditor 
+              value={content}
+              onChange={setContent}
+              height="400px"
+              placeholder="Begin drafting your document..."
+            />
+          </div>
+        </div>
+
+        <div style={{ padding: '16px 24px', borderRadius: 12, background: 'var(--forest-faint)', border: '1px solid var(--forest-glow)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ background: 'var(--forest)', color: 'white', width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800 }}>!</div>
+          <p style={{ fontSize: 13, color: 'var(--accent)', lineHeight: 1.5, margin: 0 }}>
+            <strong>Pro Tip:</strong> Use the <strong>Placeholders</strong> menu in the editor to insert tags like [Tenant Name]. These will be automatically filled when you send the document.
+          </p>
+        </div>
       </div>
-    </div>
+    </Modal>
   )
 }
