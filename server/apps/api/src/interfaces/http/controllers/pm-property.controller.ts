@@ -210,9 +210,13 @@ export class PmPropertyController {
   }
 
   @Post('payment-requests/:uuid/resend')
-  async resendPaymentRequest(@Req() req: any, @Param('uuid') uuid: string) {
+  async resendPaymentRequest(
+    @Req() req: any, 
+    @Param('uuid') uuid: string,
+    @Body() body: { email?: string }
+  ) {
     const pmId = await this.getPmId(req);
-    return this.resendPmPaymentRequestUseCase.execute(pmId, uuid);
+    return this.resendPmPaymentRequestUseCase.execute(pmId, uuid, body.email);
   }
 
   @Patch('payment-requests/:uuid')
