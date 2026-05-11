@@ -97,9 +97,14 @@ export default function BulkRentPage() {
 
     Papa.parse(file, {
       header: true,
-      skipEmptyLines: true,
+      skipEmptyLines: 'greedy',
       complete: (results: any) => {
-        const rows = results.data.map((row: any, index: number) => {
+        // Filter out completely empty rows
+        const filteredData = (results.data || []).filter((row: any) => 
+          Object.values(row).some(val => val !== null && val !== undefined && val.toString().trim() !== '')
+        )
+
+        const rows = filteredData.map((row: any, index: number) => {
           const rowId = Date.now() + index
           const mappedRow: any = { id: rowId }
           
