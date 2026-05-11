@@ -16,7 +16,8 @@ import {
   Receipt,
   FileText,
   Send,
-  MoreVertical
+  MoreVertical,
+  X
 } from 'lucide-react'
 import { usePaymentRequest, useResendPaymentRequest } from '../../hooks/usePayments'
 import { useToast } from '@/components/common/Toast'
@@ -30,6 +31,8 @@ export const PaymentDetailView: React.FC = () => {
   const { mutate: resendInvoice, isPending: isResending } = useResendPaymentRequest()
   
   const [activeTab, setActiveTab] = useState<'overview' | 'breakdown' | 'history'>('overview')
+  const [showResendModal, setShowResendModal] = useState(false)
+  const [resendEmail, setResendEmail] = useState('')
 
   if (isLoading) {
     return (
@@ -63,9 +66,16 @@ export const PaymentDetailView: React.FC = () => {
     if (request.status === 'PAID') {
       return error('Cannot resend an invoice that has already been settled.')
     }
-    resendInvoice(uuid as string, {
+    setResendEmail(request.tenant?.email || '')
+    setShowResendModal(true)
+  }
+
+  const handleConfirmResend = () => {
+    if (!uuid) return
+    resendInvoice({ uuid: uuid as string, email: resendEmail }, {
       onSuccess: (res) => {
         success(res.message || 'Invoice resent successfully')
+        setShowResendModal(false)
       },
       onError: (err: any) => {
         error(err.message || 'Failed to resend invoice')
@@ -360,6 +370,54 @@ export const PaymentDetailView: React.FC = () => {
 
         </div>
       </div>
+
+      {showResendModal && (
+        <div className="modal-overlay" onClick={() => setShowResendModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <div>
+                <h2 className="modal__title">Resend Invoice</h2>
+                <p className="modal__desc">Send a payment reminder to the tenant.</p>
+              </div>
+              <button onClick={() => setShowResendModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Recipient Email</label>
+              <input 
+                type="email" 
+                className="form-input"
+                value={resendEmail}
+                onChange={e => setResendEmail(e.target.value)}
+                placeholder="tenant@example.com"
+              />
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+                You can keep the current email or enter a different one to redirect the invoice.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
+              <button 
+                className="btn btn--secondary" 
+                style={{ flex: 1 }} 
+                onClick={() => setShowResendModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn--primary" 
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} 
+                onClick={handleConfirmResend}
+                disabled={isResending || !resendEmail}
+              >
+                {isResending ? 'Sending...' : 'Send Invoice'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

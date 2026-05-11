@@ -23,7 +23,7 @@ export class ResendPmPaymentRequestUseCase {
     private readonly eventBus: EventBus,
   ) {}
 
-  async execute(pmId: number, uuid: string): Promise<any> {
+  async execute(pmId: number, uuid: string, overrideEmail?: string): Promise<any> {
     const pmPR = await this.pmPaymentRepo.findByUuid(uuid);
     if (!pmPR || pmPR.pmId !== pmId) {
       throw new NotFoundException('Payment request not found');
@@ -42,7 +42,7 @@ export class ResendPmPaymentRequestUseCase {
     const tenant = await this.pmTenantRepo.findById(pmPR.tenantId!);
     if (!tenant) throw new NotFoundException('Tenant not found');
 
-    const tenantEmail = tenant.email || null;
+    const tenantEmail = overrideEmail || tenant.email || null;
     if (!tenantEmail) {
       throw new BadRequestException('Tenant does not have an email address');
     }
