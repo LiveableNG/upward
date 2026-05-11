@@ -108,6 +108,7 @@ export function UnitsTable({
               <th>UNIT & PROPERTY</th>
               <th>TENANT</th>
               <th>RENT AMOUNT</th>
+              <th>DUE DATE</th>
               <th>STATUS</th>
               <th className="col-actions" style={{ textAlign: 'right' }}>ACTIONS</th>
             </tr>

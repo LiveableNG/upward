@@ -1,6 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { User, CreditCard, Loader2, RefreshCw } from 'lucide-react'
+import { format, isBefore, startOfDay } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Unit } from '../../services/propertyService'
 import { PmPaymentRequest } from '../../services/paymentService'
@@ -73,6 +74,24 @@ export const UnitTableRow: React.FC<UnitTableRowProps> = ({
           <span className="tenant-name" style={{ fontSize: '13px', fontWeight: 600 }}>₦{unit.rentAmount?.toLocaleString()}</span>
           <span className="tenant-email">{unit.rentType}</span>
         </div>
+      </td>
+      <td>
+        {unit.rentDueDate ? (
+          <div className="tenant-name-email">
+            <span 
+              className="tenant-name" 
+              style={{ 
+                fontSize: '12px', 
+                fontWeight: 600,
+                color: isBefore(new Date(unit.rentDueDate), startOfDay(new Date())) ? '#ef4444' : 'inherit'
+              }}
+            >
+              {format(new Date(unit.rentDueDate), 'MMM d, yyyy')}
+            </span>
+          </div>
+        ) : (
+          <span className="text-muted" style={{ fontSize: '12px' }}>Not Set</span>
+        )}
       </td>
       <td>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>

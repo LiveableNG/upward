@@ -257,6 +257,11 @@ export function PropertiesView() {
       } else if (dueFilter !== 'all' && !unit.rentDueDate) matchesDue = false
 
       return matchesSearch && matchesProp && matchesPayment && matchesDue
+    }).sort((a, b) => {
+      if (!a.rentDueDate && !b.rentDueDate) return 0;
+      if (!a.rentDueDate) return 1;
+      if (!b.rentDueDate) return -1;
+      return new Date(a.rentDueDate).getTime() - new Date(b.rentDueDate).getTime();
     })
   }, [units, properties, paymentRequests, searchQuery, selectedPropertyFilter, paymentFilter, dueFilter])
 
