@@ -2,9 +2,17 @@
 
 import React, { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, MoreVertical, User, Building2, Mail, Phone } from 'lucide-react'
+import { Plus, Search, User, Building2, Mail, Phone } from 'lucide-react'
 import { useProperties } from '@/features/pm/hooks/useProperties'
 import { AddLandlordModal } from './modals/AddLandlordModal'
+import { DataTable, Column } from '@/components/common/DataTable'
+
+interface LandlordData {
+  name: string;
+  email: string;
+  phone: string;
+  propertiesCount: number;
+}
 
 export function LandlordsView() {
   const router = useRouter()
@@ -14,7 +22,7 @@ export function LandlordsView() {
 
   // Aggregate unique landlords from properties
   const landlords = useMemo(() => {
-    const map = new Map<string, { name: string, email: string, phone: string, propertiesCount: number }>()
+    const map = new Map<string, LandlordData>()
     
     properties.forEach(prop => {
       if (prop.landlordName) {
@@ -40,19 +48,68 @@ export function LandlordsView() {
     )
   }, [properties, searchQuery])
 
+  const columns: Column<LandlordData>[] = [
+    {
+      header: 'NAME',
+      render: (landlord, idx) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ 
+            width: 40, 
+            height: 40, 
+            borderRadius: 12, 
+            background: idx % 3 === 0 ? 'var(--dark)' : idx % 3 === 1 ? 'var(--forest)' : 'var(--accent)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: 14,
+            fontWeight: 700,
+            boxShadow: 'var(--shadow-sm)'
+          }}>
+            {landlord.name.charAt(0)}
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', marginBottom: 2 }}>{landlord.name}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Building2 size={12} /> {landlord.propertiesCount} Properties
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      header: 'EMAIL',
+      render: (landlord) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'var(--text-secondary)' }}>
+          <Mail size={16} color="var(--text-muted)" style={{ opacity: 0.7 }} />
+          {landlord.email || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 13 }}>No email</span>}
+        </div>
+      )
+    },
+    {
+      header: 'PHONE NUMBER',
+      render: (landlord) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'var(--text-secondary)' }}>
+          <Phone size={16} color="var(--text-muted)" style={{ opacity: 0.7 }} />
+          {landlord.phone || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 13 }}>No phone</span>}
+        </div>
+      )
+    }
+  ];
+
   return (
     <div className="landlords-page animate-fade-in" style={{ paddingBottom: 40 }}>
       <header className="properties-header" style={{ marginBottom: 40 }}>
         <div>
-          <h1 className="dashboard__title" style={{ fontSize: 28 }}>Landlords</h1>
-          <p className="dashboard__subtitle" style={{ fontSize: 14 }}>Manage your landlord database and portfolio assignments.</p>
+          <h1 className="dashboard__title">Landlords</h1>
+          <p className="dashboard__subtitle">Manage your landlord database and portfolio assignments.</p>
         </div>
         <button 
           className="btn btn--primary" 
-          style={{ borderRadius: 100, padding: '14px 32px', height: 'fit-content' }}
+          style={{ borderRadius: 100, padding: '12px 28px', height: 'fit-content' }}
           onClick={() => setIsAddModalOpen(true)}
         >
-          <Plus size={20} style={{ marginRight: 10 }} />
+          <Plus size={18} style={{ marginRight: 8 }} />
           Add a landlord
         </button>
       </header>
@@ -62,13 +119,12 @@ export function LandlordsView() {
         onClose={() => setIsAddModalOpen(false)} 
       />
 
-      {/* Stats Summary - Based on screenshot concept */}
       <div style={{ 
         display: 'inline-flex', 
         alignItems: 'center', 
         gap: 20, 
         background: 'var(--forest-faint)', 
-        padding: '28px 36px', 
+        padding: '24px 32px', 
         borderRadius: 24, 
         marginBottom: 48,
         border: '1px solid var(--forest-glow)',
@@ -76,31 +132,30 @@ export function LandlordsView() {
       }}>
         <div style={{ 
           background: 'var(--forest-glow)', 
-          padding: 16, 
+          padding: 12, 
           borderRadius: 16,
           color: 'var(--forest)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          <User size={32} strokeWidth={2.5} />
+          <User size={28} strokeWidth={2.5} />
         </div>
         <div>
-          <p style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 4 }}>Total Landlords</p>
-          <p style={{ fontSize: 40, fontWeight: 800, color: 'var(--dark)', lineHeight: 1 }}>{landlords.length}</p>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 4 }}>Total Landlords</p>
+          <p style={{ fontSize: 36, fontWeight: 800, color: 'var(--dark)', lineHeight: 1 }}>{landlords.length}</p>
         </div>
       </div>
 
-      {/* Control Bar */}
-      <div className="filters-bar" style={{ marginBottom: 32, gap: 24, padding: '20px 24px' }}>
-        <div className="search-input" style={{ maxWidth: 480, background: 'var(--ivory-dim)' }}>
-          <Search size={20} className="search-icon" color="var(--text-muted)" />
+      <div className="filters-bar" style={{ marginBottom: 32, gap: 24 }}>
+        <div className="search-input" style={{ maxWidth: 400, background: 'white' }}>
+          <Search size={18} className="search-icon" color="var(--text-muted)" />
           <input 
             type="text" 
             placeholder="Search by name, email, phone..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ fontSize: 14, background: 'transparent' }}
+            style={{ fontSize: 14 }}
           />
         </div>
         
@@ -112,78 +167,16 @@ export function LandlordsView() {
         </div>
       </div>
 
-      {/* Landlords Table */}
-      <div className="tenant-table-container animate-fade-in" style={{ borderRadius: 24, overflow: 'hidden', border: '1px solid var(--border)', background: 'white', boxShadow: 'var(--shadow-md)' }}>
-        <table className="tenant-table">
-          <thead style={{ background: 'var(--ivory-dim)' }}>
-            <tr>
-              <th style={{ padding: '20px 24px' }}>NAME</th>
-              <th style={{ padding: '20px 24px' }}>EMAIL</th>
-              <th style={{ padding: '20px 24px' }}>PHONE NUMBER</th>
-            </tr>
-          </thead>
-          <tbody>
-            {landlords.map((landlord, idx) => (
-              <tr 
-                key={idx} 
-                className="tenant-table-row" 
-                style={{ cursor: 'pointer' }}
-                onClick={() => {
-                  const key = encodeURIComponent(`${landlord.name.toLowerCase()}-${landlord.email.toLowerCase()}`)
-                  router.push(`/landlords/${key}`)
-                }}
-              >
-                <td style={{ padding: '24px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{ 
-                      width: 44, 
-                      height: 44, 
-                      borderRadius: 14, 
-                      background: idx % 3 === 0 ? 'var(--dark)' : idx % 3 === 1 ? 'var(--forest)' : 'var(--accent)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: 16,
-                      fontWeight: 700,
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-                    }}>
-                      {landlord.name.charAt(0)}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--dark)', marginBottom: 2 }}>{landlord.name}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Building2 size={12} /> {landlord.propertiesCount} Properties
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td style={{ padding: '24px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'var(--text-secondary)' }}>
-                    <Mail size={16} color="var(--text-muted)" style={{ opacity: 0.7 }} />
-                    {landlord.email || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 13 }}>No email</span>}
-                  </div>
-                </td>
-                <td style={{ padding: '24px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'var(--text-secondary)' }}>
-                    <Phone size={16} color="var(--text-muted)" style={{ opacity: 0.7 }} />
-                    {landlord.phone || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 13 }}>No phone</span>}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {landlords.length === 0 && (
-          <div style={{ padding: 100, textAlign: 'center', color: 'var(--text-muted)' }}>
-            <div style={{ background: 'var(--ivory-dim)', width: 80, height: 80, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto' }}>
-              <User size={40} style={{ opacity: 0.2 }} />
-            </div>
-            <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dark)', marginBottom: 8 }}>No Landlords</h3>
-            <p style={{ fontSize: 14, maxWidth: 300, margin: '0 auto' }}>You haven't added any landlords yet or no landlords are associated with your properties.</p>
-          </div>
-        )}
-      </div>
+      <DataTable
+        columns={columns}
+        data={landlords}
+        onRowClick={(landlord) => {
+          const key = encodeURIComponent(`${landlord.name.toLowerCase()}-${landlord.email.toLowerCase()}`)
+          router.push(`/landlords/${key}`)
+        }}
+        emptyMessage="No landlords found. You haven't added any landlords yet or no landlords are associated with your properties."
+        pageSize={10}
+      />
     </div>
   )
 }

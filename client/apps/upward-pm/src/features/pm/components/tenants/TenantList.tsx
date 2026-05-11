@@ -1,13 +1,18 @@
+'use client'
+
 import React, { useState, useMemo } from 'react'
-import { Search, Filter, Send, X, CheckSquare, Square, Home, Users } from 'lucide-react'
+import { Search, X, Home, Users, CheckCircle2, Loader2 } from 'lucide-react'
 import { useTenants, useTenantActions } from '../../hooks/useTenants'
 import { useProperties } from '../../hooks/useProperties'
-import { TenantTableRow } from './TenantTableRow'
+import { DataTable, Column } from '@/components/common/DataTable'
+import { useRouter } from 'next/navigation'
+import { Tenant } from '../../services/tenantService'
 
 export const TenantList: React.FC = () => {
+  const router = useRouter()
   const { data: tenants = [] } = useTenants()
   const { data: properties = [] } = useProperties()
-  const { bulkInvite } = useTenantActions()
+  const { bulkInvite, inviteTenant } = useTenantActions()
   
   const [searchQuery, setSearchQuery] = useState('')
   const [propertyFilter, setPropertyFilter] = useState<string>('all')
@@ -47,14 +52,6 @@ export const TenantList: React.FC = () => {
     setSelectedTenants(newSelection)
   }
 
-  const handleSelectAll = () => {
-    if (selectedTenants.size === pendingTenants.length && pendingTenants.length > 0) {
-      setSelectedTenants(new Set())
-    } else {
-      setSelectedTenants(new Set(pendingTenants.map(t => t.uuid)))
-    }
-  }
-
   const handleBulkInvite = () => {
     if (selectedTenants.size === 0) return
     bulkInvite.mutate(Array.from(selectedTenants), {
@@ -66,9 +63,138 @@ export const TenantList: React.FC = () => {
 
   const clearSelection = () => setSelectedTenants(new Set())
 
+  const columns: Column<Tenant>[] = [
+    {
+      header: 'TENANT NAME',
+      render: (tenant) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <div style={{ 
+            width: 40, 
+            height: 40, 
+            borderRadius: '50%', 
+            background: 'var(--dark)', 
+            color: 'white', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            fontSize: 14,
+            fontWeight: 700,
+            flexShrink: 0
+          }}>
+            {((tenant.firstName || '')[0] || '').toUpperCase()}
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, color: 'var(--dark)', fontSize: 14, marginBottom: 2 }}>
+              {tenant.firstName} {tenant.lastName}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tenant.email}</div>
+          </div>
+        </div>
+      )
+    },
+    {
+      header: 'RESIDENCE',
+      render: (tenant) => (
+        tenant.units && tenant.units.length > 0 ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+            {tenant.units.map((unit) => (
+              <div key={unit.uuid} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>{unit.unitName}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>{unit.property.name}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>N/A</span>
+        )
+      )
+    },
+    {
+      header: 'ACTIONS',
+      align: 'right',
+      render: (tenant) => {
+        const isOnUpward = tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED'
+        const isSelected = selectedTenants.has(tenant.uuid)
+        
+        return (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
+            {isOnUpward ? (
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 6, 
+                color: 'var(--forest)', 
+                background: 'var(--forest-faint)', 
+                padding: '6px 12px', 
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 700
+              }}>
+                <CheckCircle2 size={14} />
+                ON UPWARD
+              </div>
+            ) : tenant.inviteStatus === 'PENDING' || tenant.inviteStatus === 'PROCESSING' ? (
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 6, 
+                color: 'var(--accent)', 
+                background: 'var(--accent-faint)', 
+                padding: '6px 12px', 
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 700
+              }}>
+                <Loader2 size={14} className="animate-spin" />
+                PROCESSING
+              </div>
+            ) : (
+              <button 
+                className="btn btn--sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  inviteTenant.mutate(tenant.uuid)
+                }}
+                disabled={inviteTenant.isPending}
+                style={{ 
+                  fontSize: 12, 
+                  padding: '6px 16px',
+                  background: tenant.inviteSentAt ? 'var(--ivory-dark)' : 'var(--forest)',
+                  color: tenant.inviteSentAt ? 'var(--text-muted)' : 'white'
+                }}
+              >
+                {inviteTenant.isPending ? <Loader2 size={14} className="animate-spin" /> : (tenant.inviteSentAt ? 'Remind' : 'Invite')}
+              </button>
+            )}
+            
+            {!isOnUpward && (
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                padding: 4, 
+                cursor: 'pointer' 
+              }} onClick={(e) => {
+                e.stopPropagation();
+                handleSelectTenant(tenant.uuid, !isSelected);
+              }}>
+                 <input 
+                   type="checkbox" 
+                   checked={isSelected} 
+                   onChange={() => {}} 
+                   style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--forest)' }} 
+                 />
+              </div>
+            )}
+          </div>
+        )
+      }
+    }
+  ]
+
   return (
     <div className="tenants-view animate-fade-in" style={{ padding: '24px 0' }}>
-      {/* Summary Card */}
       <div 
         className="tenant-summary-card" 
         style={{ 
@@ -80,14 +206,14 @@ export const TenantList: React.FC = () => {
           gap: 20,
           marginBottom: 40,
           maxWidth: 300,
-          border: '1px solid rgba(0, 102, 68, 0.1)'
+          border: '1px solid var(--forest-glow)'
         }}
       >
         <div style={{ 
           width: 56, 
           height: 56, 
           borderRadius: 16, 
-          background: 'rgba(0, 102, 68, 0.1)', 
+          background: 'var(--forest-glow)', 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
@@ -147,33 +273,15 @@ export const TenantList: React.FC = () => {
         </div>
       )}
 
-      <div className="tenant-table-container" style={{ background: 'white', borderRadius: 24, border: '1px solid var(--border)', overflow: 'hidden' }}>
-        <table className="tenant-table">
-          <thead style={{ background: 'rgba(240, 249, 255, 0.5)' }}>
-            <tr>
-              <th style={{ padding: '20px 32px', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em' }}>TENANT NAME</th>
-              <th style={{ padding: '20px 32px', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em' }}>RESIDENCE</th>
-              <th className="col-actions" style={{ padding: '20px 32px', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em', textAlign: 'right' }}>ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredTenants.map((tenant) => (
-              <TenantTableRow 
-                key={tenant.uuid} 
-                tenant={tenant} 
-                isSelected={selectedTenants.has(tenant.uuid)}
-                onSelect={handleSelectTenant}
-              />
-            ))}
-          </tbody>
-        </table>
-        {filteredTenants.length === 0 && (
-          <div className="empty-state" style={{ padding: '80px 40px', textAlign: 'center' }}>
-            <Users size={48} color="var(--text-muted)" style={{ opacity: 0.2, marginBottom: 16 }} />
-            <p className="text-muted">No tenants found matching your search.</p>
-          </div>
-        )}
-      </div>
+      <DataTable
+        columns={columns}
+        data={filteredTenants}
+        onRowClick={(tenant) => router.push(`/tenants/${tenant.uuid}`)}
+        emptyMessage="No tenants found matching your search."
+        keyExtractor={(tenant) => tenant.uuid}
+        rowClassName={(tenant) => selectedTenants.has(tenant.uuid) ? 'selected' : ''}
+        pageSize={10}
+      />
     </div>
   )
 }

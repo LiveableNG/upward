@@ -1,4 +1,3 @@
-
 'use client'
 
 import React, { useState } from 'react'
@@ -10,12 +9,12 @@ import {
   Download,
   ChevronRight,
   Filter,
-  Mail,
-  ChevronLeft
+  Mail
 } from 'lucide-react'
 import { useDocuments } from '../../hooks/useDocuments'
 import { format } from 'date-fns'
 import { CreateTemplateModal } from './CreateTemplateModal'
+import { DataTable, Column } from '@/components/common/DataTable'
 
 interface DocumentManagementViewProps {
   onNewDocument: () => void
@@ -31,22 +30,10 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
   const [previewDocument, setPreviewDocument] = useState<any>(null)
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 8
-
-  React.useEffect(() => {
-    setCurrentPage(1)
-  }, [searchQuery])
 
   const filteredHistory = documents.filter((doc: any) =>
     doc.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
     doc.recipientName.toLowerCase().includes(searchQuery.toLowerCase())
-  )
-
-  const totalPages = Math.ceil(filteredHistory.length / itemsPerPage)
-  const paginatedHistory = filteredHistory.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
   )
 
   const handleDownload = async (doc: any) => {
@@ -85,6 +72,116 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
     return type.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ');
   };
 
+  const columns: Column<any>[] = [
+    {
+      header: 'Recipient',
+      render: (doc) => (
+        <div>
+          <div style={{ fontWeight: 600, color: 'var(--dark)', fontSize: 14 }}>{doc.recipientName}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{doc.recipientEmail}</div>
+        </div>
+      )
+    },
+    {
+      header: 'Subject',
+      render: (doc) => <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{doc.subject}</div>
+    },
+    {
+      header: 'Document Type',
+      render: (doc) => (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>{doc.documentType}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>(PDF)</div>
+        </div>
+      )
+    },
+    {
+      header: 'Date Created',
+      render: (doc) => (
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+          {format(new Date(doc.createdAt), 'EEE, MMM d, yyyy')}
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{format(new Date(doc.createdAt), 'hh:mm:ss a')}</div>
+        </div>
+      )
+    },
+    {
+      header: 'Status',
+      render: () => (
+        <span style={{
+          padding: '4px 12px',
+          borderRadius: 100,
+          fontSize: 12,
+          fontWeight: 600,
+          background: 'var(--forest-faint)',
+          color: 'var(--forest)'
+        }}>
+          Sent
+        </span>
+      )
+    },
+    {
+      header: 'Action',
+      align: 'right',
+      render: (doc) => (
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveMenu(activeMenu === doc.uuid ? null : doc.uuid);
+            }}
+            style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 8 }}
+          >
+            <MoreVertical size={20} />
+          </button>
+
+          {activeMenu === doc.uuid && (
+            <>
+              <div
+                style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+                onClick={(e) => { e.stopPropagation(); setActiveMenu(null); }}
+              />
+              <div className="glass" style={{
+                position: 'absolute',
+                right: 0,
+                top: '100%',
+                background: 'white',
+                borderRadius: 12,
+                boxShadow: 'var(--shadow-lg)',
+                zIndex: 11,
+                minWidth: 180,
+                overflow: 'hidden',
+                border: '1px solid var(--border)',
+                textAlign: 'left'
+              }}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setPreviewDocument(doc); setActiveMenu(null); }}
+                  className="dropdown-item"
+                >
+                  <Mail size={16} /> View Email
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDownload(doc); }}
+                  className="dropdown-item"
+                  disabled={isDownloading === doc.uuid}
+                >
+                  <Download size={16} /> {isDownloading === doc.uuid ? 'Downloading...' : 'Download PDF'}
+                </button>
+                <div style={{ height: 1, background: 'var(--border)' }} />
+                <button
+                  onClick={(e) => { e.stopPropagation(); onResendDocument(doc); setActiveMenu(null); }}
+                  className="dropdown-item"
+                  style={{ color: 'var(--clay)' }}
+                >
+                  <Plus size={16} /> Edit & Resend
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )
+    }
+  ];
+
   if (viewMode === 'all_templates') {
     return (
       <div className="document-management animate-fade-in">
@@ -100,7 +197,6 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
         </header>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
-
           {Object.entries(groupedTemplates).map(([type, items]: [string, any]) => (
             <section key={type}>
               <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', textTransform: 'uppercase', marginBottom: 20, letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -149,8 +245,8 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
               if (!file) return
 
               try {
-                const mammoth = (await import('mammoth')).default
                 const arrayBuffer = await file.arrayBuffer()
+                const mammoth = (await import('mammoth')).default
                 const result = await mammoth.convertToHtml({ arrayBuffer })
                 onSelectTemplate({
                   name: file.name.replace('.docx', ''),
@@ -205,7 +301,7 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
           </div>
         </div>
 
-        <div className="glass" style={{ borderRadius: 20, overflow: 'hidden', border: '1px solid var(--border)', background: 'white' }}>
+        <div className="glass" style={{ borderRadius: 24, overflow: 'hidden', border: '1px solid var(--border)', background: 'white', marginBottom: 32 }}>
           <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', background: 'var(--ivory-dim)', display: 'flex', alignItems: 'center', gap: 16 }}>
             <div style={{ position: 'relative', flex: 1 }}>
               <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -223,147 +319,15 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
             </button>
           </div>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-                <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Recipient</th>
-                <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Subject</th>
-                <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Document Type</th>
-                <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Date Created</th>
-                <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Status</th>
-                <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right' }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedHistory.map((doc: any) => (
-                <tr key={doc.uuid} style={{ borderBottom: '1px solid var(--border)' }} className="hover-bg-faint">
-                  <td style={{ padding: '20px 24px' }}>
-                    <div style={{ fontWeight: 600, color: 'var(--dark)', fontSize: 14 }}>{doc.recipientName}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{doc.recipientEmail}</div>
-                  </td>
-                  <td style={{ padding: '20px 24px', fontSize: 14, color: 'var(--text-secondary)' }}>{doc.subject}</td>
-                  <td style={{ padding: '20px 24px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>{doc.documentType}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>(PDF)</div>
-                  </td>
-                  <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-secondary)' }}>
-                    {format(new Date(doc.createdAt), 'EEE, MMM d, yyyy')}
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{format(new Date(doc.createdAt), 'hh:mm:ss a')}</div>
-                  </td>
-                  <td style={{ padding: '20px 24px' }}>
-                    <span style={{
-                      padding: '4px 12px',
-                      borderRadius: 100,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      background: 'var(--forest-dim)',
-                      color: 'var(--forest)'
-                    }}>
-                      Sent
-                    </span>
-                  </td>
-                  <td style={{ padding: '20px 24px', textAlign: 'right', position: 'relative' }}>
-                    <button
-                      onClick={() => setActiveMenu(activeMenu === doc.uuid ? null : doc.uuid)}
-                      style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 8 }}
-                    >
-                      <MoreVertical size={20} />
-                    </button>
-
-                    {activeMenu === doc.uuid && (
-                      <>
-                        <div
-                          style={{ position: 'fixed', inset: 0, zIndex: 10 }}
-                          onClick={() => setActiveMenu(null)}
-                        />
-                        <div className="glass" style={{
-                          position: 'absolute',
-                          right: 24,
-                          top: '100%',
-                          background: 'white',
-                          borderRadius: 12,
-                          boxShadow: 'var(--shadow-lg)',
-                          zIndex: 11,
-                          minWidth: 180,
-                          overflow: 'hidden',
-                          border: '1px solid var(--border)',
-                          textAlign: 'left'
-                        }}>
-                          <button
-                            onClick={() => { setPreviewDocument(doc); setActiveMenu(null); }}
-                            className="dropdown-item"
-                          >
-                            <Mail size={16} /> View Email
-                          </button>
-                          <button
-                            onClick={() => handleDownload(doc)}
-                            className="dropdown-item"
-                            disabled={isDownloading === doc.uuid}
-                          >
-                            <Download size={16} /> {isDownloading === doc.uuid ? 'Downloading...' : 'Download PDF'}
-                          </button>
-                          <div style={{ height: 1, background: 'var(--border)' }} />
-                          <button
-                            onClick={() => { onResendDocument(doc); setActiveMenu(null); }}
-                            className="dropdown-item"
-                            style={{ color: 'var(--clay)' }}
-                          >
-                            <Plus size={16} /> Edit & Resend
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {filteredHistory.length === 0 && (
-                <tr>
-                  <td colSpan={6} style={{ padding: 60, textAlign: 'center' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                      <FileText size={48} color="var(--border)" />
-                      <p style={{ color: 'var(--text-muted)' }}>No documents sent yet.</p>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          <DataTable
+            columns={columns}
+            data={filteredHistory}
+            isLoading={isLoading}
+            emptyMessage="No documents sent yet."
+            pageSize={8}
+            keyExtractor={(doc) => doc.uuid}
+          />
         </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: 24, gap: 12 }}>
-            <button 
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="pagination-btn"
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px' }}
-            >
-              <ChevronLeft size={18} /> Previous
-            </button>
-            
-            <div style={{ display: 'flex', gap: 8 }}>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`pagination-page ${currentPage === page ? 'active' : ''}`}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
-
-            <button 
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="pagination-btn"
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px' }}
-            >
-              Next <ChevronRight size={18} />
-            </button>
-          </div>
-        )}
       </section>
 
       <CreateTemplateModal
@@ -403,9 +367,6 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
       )}
 
       <style jsx>{`
-        .hover-bg-faint:hover {
-          background-color: rgba(0, 0, 0, 0.02);
-        }
         .dropdown-item {
           display: flex;
           align-items: center;
@@ -507,48 +468,6 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
           justify-content: flex-end;
           gap: 12px;
           background: white;
-        }
-
-        .pagination-btn {
-          height: 40px;
-          border-radius: 12px;
-          border: 1px solid var(--border);
-          background: white;
-          color: var(--text-secondary);
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .pagination-btn:hover:not(:disabled) {
-          border-color: var(--clay);
-          color: var(--clay);
-          background: var(--bg);
-        }
-        .pagination-btn:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
-        .pagination-page {
-          width: 40px;
-          height: 40px;
-          border-radius: 12px;
-          border: 1px solid transparent;
-          background: none;
-          color: var(--text-muted);
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .pagination-page:hover:not(.active) {
-          background: var(--bg);
-          color: var(--dark);
-        }
-        .pagination-page.active {
-          background: var(--clay-faint);
-          color: var(--clay);
-          border-color: var(--clay-faint);
         }
       `}</style>
     </div>
