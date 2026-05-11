@@ -38,6 +38,7 @@ import { InternalPaymentsController } from './internal/internal-payments.control
 import { PmDocumentController } from './controllers/pm-document.controller'
 import { LandlordAuthController } from './landlord/landlord-auth.controller'
 import { LandlordPortfolioController } from './landlord/landlord-portfolio.controller'
+import { CronController } from './public/cron.controller'
 
 
 @Module({
@@ -79,6 +80,7 @@ import { LandlordPortfolioController } from './landlord/landlord-portfolio.contr
     FeedbackController,
     LandlordAuthController,
     LandlordPortfolioController,
+    CronController,
 
   ],
 })
