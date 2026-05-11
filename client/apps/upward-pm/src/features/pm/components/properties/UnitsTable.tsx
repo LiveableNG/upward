@@ -10,6 +10,7 @@ import { DataTable, Column } from '@/components/common/DataTable'
 import { useRouter } from 'next/navigation'
 import { useSyncToUpward } from '../../hooks/useProperties'
 import { useToast } from '@/components/common/Toast'
+import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
 
 interface UnitsTableProps {
   units: Unit[];
@@ -153,28 +154,28 @@ export function UnitsTable({
 
   return (
     <div className="units-view-wrapper animate-fade-in">
-      <header className="properties-header">
-        <div>
-          <h1 className="dashboard__title">Units Management</h1>
-          <p className="dashboard__subtitle">Manage your units, invite tenants, and track onboarding.</p>
-        </div>
-        <div className="properties-header__actions">
-          <button 
-            className="btn btn--secondary" 
-            onClick={onAddUnit}
-          >
-            <Plus size={18} />
-            Add Unit
-          </button>
-          <button 
-            className="btn btn--primary" 
-            onClick={onBulkImport}
-          >
-            <FileSpreadsheet size={18} />
-            Bulk Import
-          </button>
-        </div>
-      </header>
+      <PageHeader 
+        title="Units Management" 
+        subtitle="Manage your units, invite tenants, and track onboarding."
+        actions={
+          <>
+            <button 
+              className="btn btn--secondary" 
+              onClick={onAddUnit}
+              style={{ borderRadius: 12 }}
+            >
+              <Plus size={18} /> Add Unit
+            </button>
+            <button 
+              className="btn btn--primary" 
+              onClick={onBulkImport}
+              style={{ borderRadius: 12 }}
+            >
+              <FileSpreadsheet size={18} /> Bulk Import
+            </button>
+          </>
+        }
+      />
 
       <div className="filters-bar">
         <div className="search-input">

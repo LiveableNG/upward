@@ -7,6 +7,9 @@ import { useProperties } from '../../hooks/useProperties'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { useRouter } from 'next/navigation'
 import { Tenant } from '../../services/tenantService'
+import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
+import { StatCard } from '@/components/ui/StatCard/StatCard'
+import { StatGrid } from '@/components/ui/StatCard/StatGrid'
 
 export const TenantList: React.FC = () => {
   const router = useRouter()
@@ -195,37 +198,35 @@ export const TenantList: React.FC = () => {
 
   return (
     <div className="tenants-view animate-fade-in" style={{ padding: '24px 0' }}>
-      <div 
-        className="tenant-summary-card" 
-        style={{ 
-          background: 'var(--forest-faint)', 
-          borderRadius: 20, 
-          padding: '24px 32px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 20,
-          marginBottom: 40,
-          maxWidth: 300,
-          border: '1px solid var(--forest-glow)'
-        }}
-      >
-        <div style={{ 
-          width: 56, 
-          height: 56, 
-          borderRadius: 16, 
-          background: 'var(--forest-glow)', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          color: 'var(--forest)'
-        }}>
-          <Home size={28} />
-        </div>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>Active tenants</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--dark)' }}>{tenants.length}</div>
-        </div>
-      </div>
+      <PageHeader 
+        title="Tenant Directory" 
+        subtitle="Manage your tenants across all properties."
+        actions={
+          selectedTenants.size > 0 && (
+            <button 
+              className="btn btn--primary" 
+              onClick={() => handleBulkInvite()}
+              style={{ borderRadius: 12 }}
+            >
+              <Users size={18} /> Invite Selected ({selectedTenants.size})
+            </button>
+          )
+        }
+      />
+
+      <StatGrid>
+        <StatCard 
+          label="Total Tenants" 
+          value={tenants.length} 
+          icon={Users} 
+          variant="accent"
+        />
+        <StatCard 
+          label="Onboarding Pending" 
+          value={tenants.filter(t => t.inviteStatus === 'PENDING').length} 
+          icon={Home} 
+        />
+      </StatGrid>
 
       <div className="filters-bar" style={{ background: 'transparent', padding: 0, marginBottom: 32, border: 'none' }}>
         <div className="search-input" style={{ maxWidth: 300, background: 'white', border: '1px solid var(--border)', borderRadius: 12 }}>
