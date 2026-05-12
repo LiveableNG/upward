@@ -125,18 +125,25 @@ export function UnitsTable({
             </span>
             {pendingRequest && (
               <div style={{ 
-                fontSize: 9, 
+                fontSize: '9px', 
                 fontWeight: 800, 
                 color: 'var(--forest)', 
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: 4,
-                background: 'rgba(239, 68, 68, 0.05)',
-                padding: '2px 6px',
-                borderRadius: 4,
-                border: '1px solid rgba(239, 68, 68, 0.1)'
+                background: 'var(--forest-faint)',
+                padding: '2px 8px',
+                borderRadius: 6,
+                border: '1px solid rgba(22, 101, 52, 0.1)',
+                width: 'fit-content'
               }}>
-                 <div className="pulse-dot"></div>
+                 <span style={{ 
+                   width: 5, 
+                   height: 5, 
+                   borderRadius: '50%', 
+                   background: 'var(--forest)',
+                   display: 'inline-block'
+                 }}></span>
                  PAYMENT {pendingRequest.status}
               </div>
             )}

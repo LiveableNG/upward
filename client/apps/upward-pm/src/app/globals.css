@@ -399,14 +399,41 @@ textarea {
 /* StatCard Styles */
 .upward-stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  /* Default to 4 columns on desktop to keep them in one row */
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   margin-bottom: 32px;
 }
 
+/* Adjust for sidebar state and screen size */
+@media (max-width: 1440px) {
+  .upward-stat-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
+/* Force 4 columns when sidebar is collapsed on large screens */
+.layout--collapsed .upward-stat-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1024px) {
+  .upward-stat-grid, 
+  .layout--collapsed .upward-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .upward-stat-grid,
+  .layout--collapsed .upward-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .upward-stat-card {
   background: white;
-  padding: 24px;
+  padding: 20px;
   border-radius: 20px;
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
