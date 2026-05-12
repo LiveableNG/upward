@@ -986,7 +986,7 @@ function UnitDetailContent() {
 
 function DigitalRequestsSection({ unitId, onEdit, unitCurrency }: { unitId?: number; onEdit: (req: any) => void; unitCurrency?: string }) {
   const { data: allRequests } = usePaymentRequests()
-  const unitRequests = allRequests?.filter(r => r.unitId === unitId && r.status !== 'PAID') || []
+  const unitRequests = allRequests?.filter(r => r.unitId === unitId && r.status !== 'PAID' && r.status !== 'CANCELLED') || []
 
   if (unitRequests.length === 0) return null
 

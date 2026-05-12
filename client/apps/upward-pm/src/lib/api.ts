@@ -53,6 +53,7 @@ export const api = {
   createPaymentRequest: paymentService.createPaymentRequest,
   updatePaymentRequest: paymentService.updatePaymentRequest,
   resendPaymentRequest: paymentService.resendPaymentRequest,
+  cancelPaymentRequest: paymentService.cancelPaymentRequest,
   
   // Team Collaboration
   inviteTeamMember: pmService.inviteTeamMember,

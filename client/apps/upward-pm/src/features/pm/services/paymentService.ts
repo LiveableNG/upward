@@ -14,7 +14,7 @@ export interface PmPaymentRequest {
   dueDate: string;
   rentStartDate?: string | null;
   rentEndDate?: string | null;
-  status: 'PENDING' | 'PARTIAL' | 'PAID';
+  status: 'PENDING' | 'PARTIAL' | 'PAID' | 'CANCELLED';
   amountPaid: number;
   allowPartial: boolean;
   minAmount: number | null;
@@ -73,5 +73,11 @@ export const resendPaymentRequest = (uuid: string, email?: string) => {
   return request<{ success: boolean; message: string }>(`/pm/payment-requests/${uuid}/resend`, {
     method: 'POST',
     body: JSON.stringify({ email })
+  })
+}
+
+export const cancelPaymentRequest = (uuid: string) => {
+  return request<{ success: boolean; message: string }>(`/pm/payment-requests/${uuid}`, {
+    method: 'DELETE'
   })
 }

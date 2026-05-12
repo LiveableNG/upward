@@ -15,7 +15,7 @@ import {
   Trash2,
   ChevronDown
 } from 'lucide-react'
-import { usePaymentRequests } from '../../hooks/usePayments'
+import { usePaymentRequests, useCancelPaymentRequest } from '../../hooks/usePayments'
 import { useProperties } from '../../hooks/useProperties'
 import { useToast } from '@/components/common/Toast'
 
@@ -26,21 +26,25 @@ import { StatGrid } from '@/components/ui/StatCard/StatGrid'
 import { ControlBar } from '@/components/ui/ControlBar/ControlBar'
 import { SearchInput } from '@/components/ui/ControlBar/SearchInput'
 import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
+import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 
 function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests }: { searchQuery: string, dateFilter: string, requestsOverride?: any[], allRequests?: any[] }) {
   const { success, error, info } = useToast()
   const router = useRouter()
+  const cancelMutation = useCancelPaymentRequest()
+  
+  const [requestToCancel, setRequestToCancel] = useState<any>(null)
 
   const displayRequests = requestsOverride || []
   const statsSource = allRequests || displayRequests
 
-  // Calculate stats based on ALL requests for this PM
+
   const totalCollected = statsSource
     .filter(r => r.status === 'PAID' || r.status === 'PARTIAL')
     .reduce((sum, r) => sum + r.amountPaid, 0)
     
   const outstanding = statsSource
-    .filter(r => r.status !== 'PAID')
+    .filter(r => r.status !== 'PAID' && r.status !== 'CANCELLED')
     .reduce((sum, r) => sum + (r.amount - r.amountPaid), 0)
 
   const pendingCount = statsSource.filter(r => r.status === 'PENDING').length
@@ -112,6 +116,19 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
       align: 'right',
       render: (req) => (
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          {req.status === 'PENDING' && req.amountPaid === 0 && (
+            <button 
+              className="btn-icon-sm" 
+              onClick={(e) => {
+                e.stopPropagation()
+                setRequestToCancel(req)
+              }}
+              title="Cancel Request"
+              style={{ color: 'var(--error)' }}
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
           <button 
             className="btn-icon-sm" 
             onClick={(e) => {
@@ -170,6 +187,29 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
         onRowClick={(req) => router.push(`/payments/${req.uuid}`)}
         emptyMessage="No payment requests found."
         pageSize={10}
+      />
+
+      <ConfirmationModal 
+        isOpen={!!requestToCancel}
+        onClose={() => setRequestToCancel(null)}
+        onConfirm={() => {
+          if (requestToCancel) {
+            cancelMutation.mutate(requestToCancel.uuid, {
+              onSuccess: () => {
+                success('Payment request cancelled')
+                setRequestToCancel(null)
+              },
+              onError: (err: any) => {
+                error(err.message || 'Failed to cancel payment request')
+              }
+            })
+          }
+        }}
+        title="Cancel Payment Request"
+        message="Are you sure you want to cancel this payment request? This action cannot be undone."
+        confirmText="Yes, Cancel Request"
+        type="danger"
+        isPending={cancelMutation.isPending}
       />
     </>
   )

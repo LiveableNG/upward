@@ -12,6 +12,7 @@ export enum ActivityAction {
   SEND_INVOICE = 'SEND_INVOICE',
   UPDATE_RENT = 'UPDATE_RENT',
   SEND_REPORT = 'SEND_REPORT',
+  CANCEL_PAYMENT = 'CANCEL_PAYMENT',
 }
 
 @Injectable()
