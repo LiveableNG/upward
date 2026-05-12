@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: 'Dashboard',
 }
 
+
 export default function Dashboard() {
   return (
     <Suspense fallback={<Splash />}>
