@@ -21,6 +21,7 @@ export interface PmPaymentRequest {
   coreRequestUuid?: string | null;
   createdAt: string;
   lineItems?: { name: string; amount: number }[];
+  reminderFrequency?: string;
   transactions?: any[];
 }
 
@@ -34,6 +35,7 @@ export interface CreatePaymentRequestDto {
   allowPartial?: boolean;
   minAmount?: number;
   lineItems?: { name: string; amount: number }[];
+  reminderFrequency?: string;
 }
 
 export interface UpdatePmPaymentRequestDto {
@@ -45,6 +47,7 @@ export interface UpdatePmPaymentRequestDto {
   allowPartial?: boolean;
   minAmount?: number;
   lineItems?: { name: string; amount: number }[];
+  reminderFrequency?: string;
 }
 
 export const getPaymentRequests = () => {

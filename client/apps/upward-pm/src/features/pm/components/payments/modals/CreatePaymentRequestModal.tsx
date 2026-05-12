@@ -37,6 +37,7 @@ export function CreatePaymentRequestModal({
     { name: 'Rent', amount: '' }
   ])
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>('')
+  const [reminderFrequency, setReminderFrequency] = useState<string>('NONE')
   const { templates } = useDocuments()
 
   const { success, error } = useToast()
@@ -55,6 +56,7 @@ export function CreatePaymentRequestModal({
       setDescription(existingRequest.description || '')
       setAllowPartial(existingRequest.allowPartial)
       setMinAmount(existingRequest.minAmount?.toString() || '')
+      setReminderFrequency(existingRequest.reminderFrequency || 'NONE')
 
       if (existingRequest.lineItems) {
         setLineItems(existingRequest.lineItems.map(li => ({
@@ -73,6 +75,7 @@ export function CreatePaymentRequestModal({
       setAmount(total.toString())
       const type = unit.rentType?.toUpperCase() || 'ANNUALLY'
       setRentType(type)
+      setReminderFrequency('WEEKLY') // Default to weekly for new requests
 
       // The NEXT cycle starts when the current one ends
       const startDate = unit.rentDueDate || unit.rentStartDate || new Date()
@@ -147,6 +150,7 @@ export function CreatePaymentRequestModal({
       rentType: lineItems.some(item => item.name === 'Rent') ? rentType : undefined,
       rentStartDate,
       rentEndDate,
+      reminderFrequency,
       description: description || `Payment request for Unit ${unit!.unitName}`,
       allowPartial,
       minAmount: allowPartial ? parseFloat(minAmount) || 0 : undefined,
@@ -400,23 +404,38 @@ export function CreatePaymentRequestModal({
           )}
         </div>
 
-        <div className="form-group" style={{ marginTop: 24, padding: '20px', background: 'var(--bg)', borderRadius: 16, border: '1px solid var(--border)' }}>
-          <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>Follow-up Document</span>
-            {selectedTemplateUuid && <span style={{ fontSize: 11, color: 'var(--forest)', fontWeight: 700 }}>Template Selected</span>}
-          </label>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>Choose a document template to send along with this payment request.</p>
-          <select
-            className="form-input"
-            style={{ borderRadius: 12, background: 'white' }}
-            value={selectedTemplateUuid}
-            onChange={(e) => setSelectedTemplateUuid(e.target.value)}
-          >
-            <option value="">Select a document template</option>
-            {templates.map((t: any) => (
-              <option key={t.uuid} value={t.uuid}>{t.name}</option>
-            ))}
-          </select>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="form-group">
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <AlertCircle size={14} color="var(--clay)" /> Automated Reminders
+            </label>
+            <select
+              className="form-input"
+              style={{ borderRadius: 12, background: 'var(--surface-hover)', fontWeight: 600 }}
+              value={reminderFrequency}
+              onChange={(e) => setReminderFrequency(e.target.value)}
+            >
+              <option value="NONE">No Reminders</option>
+              <option value="DAILY">Every Day</option>
+              <option value="EVERY_2_DAYS">Every 2 Days</option>
+              <option value="WEEKLY">Every Week</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Follow-up Document</label>
+            <select
+              className="form-input"
+              style={{ borderRadius: 12, background: 'var(--surface-hover)' }}
+              value={selectedTemplateUuid}
+              onChange={(e) => setSelectedTemplateUuid(e.target.value)}
+            >
+              <option value="">Select template (Optional)</option>
+              {templates.map((t: any) => (
+                <option key={t.uuid} value={t.uuid}>{t.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>

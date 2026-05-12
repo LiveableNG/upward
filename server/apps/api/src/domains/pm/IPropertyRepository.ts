@@ -140,6 +140,9 @@ export interface PmPaymentRequestEntity {
   rentStartDate: Date | null;
   rentEndDate: Date | null;
   rentType: string | null;
+  reminderFrequency: string;
+  nextReminderAt: Date | null;
+  reminderCount: number;
   createdAt: Date;
   updatedAt: Date;
   
