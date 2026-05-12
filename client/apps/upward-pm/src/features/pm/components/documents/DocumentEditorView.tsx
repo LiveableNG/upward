@@ -47,7 +47,27 @@ export function DocumentEditorView({
   const { sendDocument, generatePdf } = useDocuments()
   const { mutateAsync: createPaymentRequest } = useCreatePaymentRequest()
   
-  const [content, setContent] = useState(initialTemplate?.content || initialContent)
+  const [content, setContent] = useState(() => {
+    const baseContent = initialTemplate?.content || initialContent;
+    if (paymentContext && !baseContent.includes('[PaymentLink]') && !baseContent.includes('[Payment Link]')) {
+      return baseContent + `
+        <br/><br/>
+        <div style="margin-top: 40px; padding: 32px; background-color: #faf9f5; border-radius: 20px; text-align: center; border: 1px solid #e8e6dd; font-family: sans-serif;">
+          <div style="display: inline-block; width: 48px; height: 48px; background-color: #f0fdf4; border-radius: 50%; color: #16a34a; line-height: 48px; font-size: 24px; margin-bottom: 16px; font-weight: bold;">
+            ✓
+          </div>
+          <h2 style="margin: 0 0 8px 0; color: #0a0a0f; font-size: 18px; font-weight: 700;">Secure Payment Link</h2>
+          <p style="margin: 0 0 24px 0; color: #4a4642; font-size: 14px; line-height: 1.5;">To settle this request, please use the secure payment button below.</p>
+          <a href="[PaymentLink]" style="display: inline-block; background-color: #166534; color: #ffffff; padding: 14px 40px; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 15px;">Pay Securely Now</a>
+          <div style="margin-top: 20px; font-size: 11px; color: #8a8a8a;">
+            Or copy and paste this link into your browser: <br/>
+            <a href="[PaymentLink]" style="color: #166534; text-decoration: underline;">[PaymentLink]</a>
+          </div>
+        </div>
+      `;
+    }
+    return baseContent;
+  })
   const [subject, setSubject] = useState(initialTemplate?.name || initialSubject)
   const [recipientType, setRecipientType] = useState<'existing' | 'new'>(initialRecipient?.type || 'existing')
   const [selectedTenantUuid, setSelectedTenantUuid] = useState(initialRecipient?.uuid || '')
