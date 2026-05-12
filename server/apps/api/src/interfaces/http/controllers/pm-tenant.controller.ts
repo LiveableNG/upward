@@ -58,9 +58,29 @@ export class PmTenantController {
   }
 
   @Post(':uuid/assign')
-  async assignTenant(@Req() req: any, @Param('uuid') tenantUuid: string, @Body() body: { unitUuid: string }) {
+  async assignTenant(
+    @Req() req: any, 
+    @Param('uuid') tenantUuid: string, 
+    @Body() body: { 
+      unitUuid: string; 
+      rentAmountPaid?: number;
+      rentAmount?: number;
+      rentType?: string;
+      rentStartDate?: string;
+      rentDueDate?: string;
+    }
+  ) {
     const pmId = await this.getPmId(req);
-    return this.assignTenantToUnitUseCase.execute(pmId, body.unitUuid, tenantUuid);
+    return this.assignTenantToUnitUseCase.execute(
+      pmId, 
+      body.unitUuid, 
+      tenantUuid, 
+      body.rentAmountPaid,
+      body.rentAmount,
+      body.rentType,
+      body.rentStartDate ? new Date(body.rentStartDate) : undefined,
+      body.rentDueDate ? new Date(body.rentDueDate) : undefined
+    );
   }
 
   @Post(':uuid/unassign')
