@@ -48,3 +48,10 @@ export function useChangePassword() {
     }
   })
 }
+
+export function useLetterheadUploadUrl() {
+  return useMutation({
+    mutationFn: (params: { type: 'header' | 'footer', contentType: string, filename: string }) => 
+      api.getLetterheadUploadUrl(params)
+  })
+}

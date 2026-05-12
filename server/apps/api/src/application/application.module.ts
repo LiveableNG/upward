@@ -95,6 +95,7 @@ import { UpdatePmProfileUseCase } from './use-cases/pm/update-pm-profile.use-cas
 import { UpdatePmBankInfoUseCase } from './use-cases/pm/update-pm-bank-info.use-case'
 import { ChangePmPasswordUseCase } from './use-cases/pm/change-pm-password.use-case'
 import { GetPmAvatarUploadUrlUseCase } from './use-cases/pm/get-pm-avatar-upload-url.use-case'
+import { GetPmLetterheadUploadUrlUseCase } from './use-cases/pm/get-pm-letterhead-upload-url.use-case'
 import { CreatePropertyUseCase } from './pm/use-cases/create-property.use-case'
 import { UpdatePropertyUseCase } from './pm/use-cases/update-property.use-case'
 import { DeletePropertyUseCase } from './pm/use-cases/delete-property.use-case'
@@ -303,6 +304,7 @@ const UseCases = [
   UpdatePmBankInfoUseCase,
   ChangePmPasswordUseCase,
   GetPmAvatarUploadUrlUseCase,
+  GetPmLetterheadUploadUrlUseCase,
   CreatePropertyUseCase,
   UpdatePropertyUseCase,
   DeletePropertyUseCase,

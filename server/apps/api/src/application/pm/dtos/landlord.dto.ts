@@ -16,4 +16,6 @@ export class SendLandlordReportDto {
   @IsString()
   @IsNotEmpty()
   content!: string;
+
+  includeLetterhead?: boolean;
 }

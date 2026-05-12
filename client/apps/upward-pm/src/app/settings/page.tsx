@@ -7,6 +7,7 @@ import { BankInfoForm } from '@/features/pm/components/settings/BankInfoForm'
 import { SecurityForm } from '@/features/pm/components/settings/SecurityForm'
 import { DataImportTab } from '@/features/pm/components/settings/DataImportTab'
 import { TeamTab } from '@/features/pm/components/settings/TeamTab'
+import { BrandingTab } from '@/features/pm/components/settings/BrandingTab'
 import { Splash } from '@/components/common/Splash'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -60,6 +61,12 @@ function SettingsContent() {
         >
           Team
         </button>
+        <button 
+          className={cn('settings__nav-item', activeTab === 'branding' && 'settings__nav-item--active')}
+          onClick={() => setTab('branding')}
+        >
+          Branding
+        </button>
       </nav>
 
       <div className="settings__content">
@@ -73,6 +80,7 @@ function SettingsContent() {
         {activeTab === 'security' && <SecurityForm />}
         {activeTab === 'import' && <DataImportTab />}
         {activeTab === 'team' && <TeamTab />}
+        {activeTab === 'branding' && <BrandingTab />}
       </div>
     </div>
   )

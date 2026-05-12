@@ -25,8 +25,8 @@ export const useDocuments = () => {
   });
 
   const generatePdfMutation = useMutation({
-    mutationFn: ({ content, tenantUuid, unitUuid, recipientName }: { content: string, tenantUuid?: string, unitUuid?: string, recipientName?: string }) => 
-      documentService.generatePdf(content, tenantUuid, unitUuid, recipientName),
+    mutationFn: ({ content, tenantUuid, unitUuid, recipientName, includeLetterhead }: { content: string, tenantUuid?: string, unitUuid?: string, recipientName?: string, includeLetterhead?: boolean }) => 
+      documentService.generatePdf(content, tenantUuid, unitUuid, recipientName, includeLetterhead),
   });
 
   return {

@@ -11,6 +11,8 @@ export interface PropertyManagerProfile {
   bankCode?: string;
   accountNumber?: string;
   accountName?: string;
+  letterheadHeaderUrl?: string;
+  letterheadFooterUrl?: string;
 }
 
 export interface AuthResponse {

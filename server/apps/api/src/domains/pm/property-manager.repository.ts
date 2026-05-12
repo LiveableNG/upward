@@ -17,6 +17,8 @@ export interface PropertyManager {
   bankCode?: string | null
   accountNumber?: string | null
   accountName?: string | null
+  letterheadHeaderUrl?: string | null
+  letterheadFooterUrl?: string | null
   createdAt: Date
   updatedAt: Date
 }

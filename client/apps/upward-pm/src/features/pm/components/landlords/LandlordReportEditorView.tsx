@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { RichTextEditor } from '@/components/common/RichTextEditor'
 import { useToast } from '@/components/common/Toast'
+import { useAuth } from '@/features/auth/AuthContext'
 import { api } from '@/lib/api'
 
 interface LandlordReportEditorViewProps {
@@ -34,7 +35,9 @@ export function LandlordReportEditorView({
   const { success, error } = useToast()
   const [content, setContent] = useState(initialContent)
   const [subject, setSubject] = useState(`Property Performance Report - ${landlordName}`)
-  const [includeLetterhead, setIncludeLetterhead] = useState(true)
+  const { user } = useAuth()
+  const hasBranding = !!(user?.letterheadHeaderUrl || user?.letterheadFooterUrl)
+  const [includeLetterhead, setIncludeLetterhead] = useState(hasBranding)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
   const [isSending, setIsSending] = useState(false)
 
@@ -94,7 +97,8 @@ export function LandlordReportEditorView({
         landlordEmail,
         landlordName,
         subject,
-        content
+        content,
+        includeLetterhead: includeLetterhead && hasBranding
       })
       success(`Report successfully sent to ${landlordEmail}`)
       onDone()
@@ -166,15 +170,27 @@ export function LandlordReportEditorView({
                 />
             </div>
 
-            <div 
-              onClick={() => setIncludeLetterhead(!includeLetterhead)}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', paddingTop: 8, borderTop: '1px solid var(--bg)' }}
-            >
-              <div style={{ color: includeLetterhead ? 'var(--forest)' : 'var(--border)' }}>
-                {includeLetterhead ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+            {hasBranding && (
+              <div 
+                onClick={() => setIncludeLetterhead(!includeLetterhead)}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', paddingTop: 20, marginTop: 20, borderTop: '1px solid var(--bg)' }}
+              >
+                <div style={{ 
+                  width: 18, 
+                  height: 18, 
+                  borderRadius: 4, 
+                  border: `1px solid ${includeLetterhead ? 'var(--forest)' : 'var(--border)'}`,
+                  background: includeLetterhead ? 'var(--forest)' : 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white'
+                }}>
+                  {includeLetterhead && <div style={{ width: 8, height: 8, background: 'white', borderRadius: 1 }}></div>}
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Include custom letterhead</span>
               </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Include professional letterhead</span>
-            </div>
+            )}
           </div>
 
           <div className="glass" style={{ padding: 20, borderRadius: 24, border: '1px solid var(--border)', background: 'var(--ivory-dim)', display: 'flex', gap: 12 }}>
@@ -211,29 +227,42 @@ export function LandlordReportEditorView({
         }}
       >
         {includeLetterhead && (
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            marginBottom: '15mm',
-            borderBottom: '2px solid var(--forest)',
-            paddingBottom: '5mm'
-          }}>
-            <div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--forest)' }}>UPWARD</div>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Property Management Excellence</div>
-            </div>
-            <div style={{ textAlign: 'right', fontSize: 10, color: 'var(--text-muted)' }}>
-              123 Real Estate Plaza, Lagos<br/>
-              contact@goodtenants.io | +234 800 000 0000
-            </div>
+          <div style={{ marginBottom: '10mm' }}>
+            {user?.letterheadHeaderUrl ? (
+              <div style={{ textAlign: 'center', borderBottom: '1px solid #eee', paddingBottom: '5mm', marginBottom: '10mm' }}>
+                <img src={user.letterheadHeaderUrl} style={{ maxWidth: '100%', maxHeight: '40mm' }} alt="Header" />
+              </div>
+            ) : (
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                marginBottom: '15mm',
+                borderBottom: '2px solid var(--forest)',
+                paddingBottom: '5mm'
+              }}>
+                <div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--forest)' }}>UPWARD</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Property Management Excellence</div>
+                </div>
+                <div style={{ textAlign: 'right', fontSize: 10, color: 'var(--text-muted)' }}>
+                  123 Real Estate Plaza, Lagos<br/>
+                  contact@goodtenants.io | +234 800 000 0000
+                </div>
+              </div>
+            )}
           </div>
         )}
         <div 
           style={{ fontSize: '12pt', lineHeight: 1.6, color: '#333' }} 
           dangerouslySetInnerHTML={{ __html: content }} 
         />
-        <div style={{ marginTop: '20mm', borderTop: '1px solid #eee', paddingTop: '5mm', fontSize: 10, color: '#999', textAlign: 'center' }}>
+        {includeLetterhead && user?.letterheadFooterUrl && (
+          <div style={{ marginTop: '20mm', borderTop: '1px solid #eee', paddingTop: '5mm', textAlign: 'center' }}>
+            <img src={user.letterheadFooterUrl} style={{ maxWidth: '100%', maxHeight: '20mm' }} alt="Footer" />
+          </div>
+        )}
+        <div style={{ marginTop: '10mm', fontSize: 10, color: '#999', textAlign: 'center' }}>
           This report was generated securely via Upward Property Management Portal.
         </div>
       </div>

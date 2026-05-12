@@ -100,6 +100,7 @@ export class PrismaPmDocumentRepository implements IPmDocumentRepository {
       recipientName: d.recipientName,
       recipientEmail: d.recipientEmail,
       status: d.status,
+      includeLetterhead: d.includeLetterhead,
       createdAt: d.createdAt,
       updatedAt: d.updatedAt,
       tenant: d.tenant ? {

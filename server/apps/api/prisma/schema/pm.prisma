@@ -17,6 +17,8 @@ model upward_property_manager {
   bankCode        String?
   accountNumber   String?
   accountName     String?
+  letterheadHeaderUrl String?
+  letterheadFooterUrl String?
   createdAt       DateTime                    @default(now())
   updatedAt       DateTime                    @updatedAt
   authSessions    upward_pm_auth_session[]
