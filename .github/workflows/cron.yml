@@ -1,0 +1,13 @@
+name: 10-Minute Cron Job
+on:
+  schedule:
+    - cron: "*/10 * * * *" # Runs every 10 minutes
+  workflow_dispatch: # Allows manual trigger for testing
+
+jobs:
+  ping-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Upward Cron Endpoint
+        run: |
+          curl -X GET "${{ secrets.CRON_TARGET_URL || 'https://upward-dev.vercel.app' }}/api/v1/public/cron/run?secret=ab54714d7103723bafdfbd3a"
