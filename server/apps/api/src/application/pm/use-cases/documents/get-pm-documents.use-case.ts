@@ -22,7 +22,6 @@ const DEFAULT_TEMPLATES = [
         <br />
         <p>Best regards,</p>
         <p><strong>[ManagerName]</strong></p>
-        <p style="font-size: 12px; color: #999; margin-top: 40px; text-align: center;">Generated via Upward Property Management</p>
       </div>
     `,
     updatedAt: new Date().toISOString(),
@@ -47,7 +46,6 @@ const DEFAULT_TEMPLATES = [
         <br />
         <p>Best regards,</p>
         <p><strong>[ManagerName]</strong></p>
-        <p style="font-size: 12px; color: #999; margin-top: 40px; text-align: center;">Generated via Upward Property Management</p>
       </div>
     `,
     updatedAt: new Date().toISOString(),

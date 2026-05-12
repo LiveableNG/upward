@@ -95,11 +95,6 @@ export class GenerateDocumentPdfUseCase {
           <div style="margin-top: 50px; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
             <img src="${footerUrl}" style="max-width: 100%; max-height: 100px; object-fit: contain;" alt="Letterhead Footer" />
           </div>`;
-      } else {
-         wrappedContent += `
-          <div style="margin-top: 50px; border-top: 1px solid #eee; padding-top: 20px; text-align: center; font-size: 10px; color: #999;">
-            Generated via Upward Property Management Portal
-          </div>`;
       }
 
       wrappedContent += `</div>`;
