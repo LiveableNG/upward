@@ -180,10 +180,18 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
           icon={Eye} 
         />
       </StatGrid>
-
+      
+      {/* Status-based sorting: PENDING > PARTIAL > Others, then by Due Date */}
       <DataTable
         columns={columns}
-        data={displayRequests}
+        data={[...displayRequests].sort((a, b) => {
+          const statusPriority: Record<string, number> = { 'PENDING': 0, 'PARTIAL': 1, 'PAID': 2, 'CANCELLED': 3 }
+          const priorityA = statusPriority[a.status] ?? 4
+          const priorityB = statusPriority[b.status] ?? 4
+          
+          if (priorityA !== priorityB) return priorityA - priorityB
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+        })}
         onRowClick={(req) => router.push(`/payments/${req.uuid}`)}
         emptyMessage="No payment requests found."
         pageSize={10}
