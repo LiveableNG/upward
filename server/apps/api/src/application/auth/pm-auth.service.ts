@@ -66,6 +66,12 @@ export class PmAuthService extends BaseAuthService {
     if (clientProfile.profilePic) {
       clientProfile.profilePic = await this.s3Service.getDownloadUrl(clientProfile.profilePic)
     }
+    if (clientProfile.letterheadHeaderUrl) {
+      clientProfile.letterheadHeaderUrl = await this.s3Service.getDownloadUrl(clientProfile.letterheadHeaderUrl)
+    }
+    if (clientProfile.letterheadFooterUrl) {
+      clientProfile.letterheadFooterUrl = await this.s3Service.getDownloadUrl(clientProfile.letterheadFooterUrl)
+    }
 
     return {
       accessToken,
@@ -225,6 +231,12 @@ export class PmAuthService extends BaseAuthService {
     if (clientProfile.profilePic) {
       clientProfile.profilePic = await this.s3Service.getDownloadUrl(clientProfile.profilePic)
     }
+    if (clientProfile.letterheadHeaderUrl) {
+      clientProfile.letterheadHeaderUrl = await this.s3Service.getDownloadUrl(clientProfile.letterheadHeaderUrl)
+    }
+    if (clientProfile.letterheadFooterUrl) {
+      clientProfile.letterheadFooterUrl = await this.s3Service.getDownloadUrl(clientProfile.letterheadFooterUrl)
+    }
 
     return {
       accessToken: newAccessToken,
@@ -260,6 +272,12 @@ export class PmAuthService extends BaseAuthService {
 
     if (clientProfile.profilePic) {
       clientProfile.profilePic = await this.s3Service.getDownloadUrl(clientProfile.profilePic)
+    }
+    if (clientProfile.letterheadHeaderUrl) {
+      clientProfile.letterheadHeaderUrl = await this.s3Service.getDownloadUrl(clientProfile.letterheadHeaderUrl)
+    }
+    if (clientProfile.letterheadFooterUrl) {
+      clientProfile.letterheadFooterUrl = await this.s3Service.getDownloadUrl(clientProfile.letterheadFooterUrl)
     }
 
     return clientProfile
