@@ -20,11 +20,13 @@ import {
   Download,
   Edit
 } from 'lucide-react'
-import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useUpdateUnitPayment } from '@/features/pm/hooks/useProperties'
+import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useUpdateUnitPayment, useAddUnitPayment } from '@/features/pm/hooks/useProperties'
 import { usePaymentRequests, useCreatePaymentRequest } from '@/features/pm/hooks/usePayments'
 import { useTenants, useTenantActions } from '@/features/pm/hooks/useTenants'
 import { TenantAssignmentSection } from '@/features/pm/components/tenants/TenantAssignmentSection'
 import { EditRentRecordModal } from '@/features/pm/components/properties/modals/EditRentRecordModal'
+import { AddRentRecordModal } from '@/features/pm/components/properties/modals/AddRentRecordModal'
+import { RentHistoryEntryModeModal } from '@/features/pm/components/properties/modals/RentHistoryEntryModeModal'
 import { CreatePaymentRequestModal } from '@/features/pm/components/payments/modals/CreatePaymentRequestModal'
 import { EditUnitModal } from '@/features/pm/components/properties/modals/EditUnitModal'
 import { DocumentEditorView } from '@/features/pm/components/documents/DocumentEditorView'
@@ -47,6 +49,7 @@ function UnitDetailContent() {
   const updateUnitMutation = useUpdateUnit()
   const deleteUnitMutation = useDeleteUnit()
   const updatePaymentMutation = useUpdateUnitPayment()
+  const addPaymentMutation = useAddUnitPayment()
   const createPaymentRequestMutation = useCreatePaymentRequest()
 
   const [isEditRentModalOpen, setIsEditRentModalOpen] = useState(false)
@@ -59,6 +62,8 @@ function UnitDetailContent() {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isEntryModeModalOpen, setIsEntryModeModalOpen] = useState(false)
+  const [isAddRecordModalOpen, setIsAddRecordModalOpen] = useState(false)
 
   // Payment -> Document Editor Flow
   const [showEditor, setShowEditor] = useState(false)
@@ -186,7 +191,32 @@ function UnitDetailContent() {
   }
 
   const addRentRecord = () => {
+    setIsEntryModeModalOpen(true)
+  }
+
+  const handleManualEntry = () => {
+    setIsEntryModeModalOpen(false)
+    setIsAddRecordModalOpen(true)
+  }
+
+  const handleBulkEntry = () => {
+    setIsEntryModeModalOpen(false)
     router.push(`/properties/units/${uuid}/bulk-rent`)
+  }
+
+  const handleSaveNewPayment = (data: any) => {
+    addPaymentMutation.mutate({
+      unitUuid: uuid as string,
+      data
+    }, {
+      onSuccess: () => {
+        success('Rent record added successfully')
+        setIsAddRecordModalOpen(false)
+      },
+      onError: (err: any) => {
+        error(err.message || 'Failed to add rent record')
+      }
+    })
   }
 
   const requestRent = () => {
@@ -794,6 +824,22 @@ function UnitDetailContent() {
         confirmText="Delete Unit"
         type="danger"
         isPending={deleteUnitMutation.isPending}
+      />
+
+      <AddRentRecordModal
+        isOpen={isAddRecordModalOpen}
+        onClose={() => setIsAddRecordModalOpen(false)}
+        onSave={handleSaveNewPayment}
+        isPending={addPaymentMutation.isPending}
+        unitName={unit?.unitName || ''}
+        rentType={unit?.rentType}
+      />
+
+      <RentHistoryEntryModeModal
+        isOpen={isEntryModeModalOpen}
+        onClose={() => setIsEntryModeModalOpen(false)}
+        onManualEntry={handleManualEntry}
+        onBulkEntry={handleBulkEntry}
       />
 
       <ConfirmationModal

@@ -50,6 +50,7 @@ export interface Unit {
   status: string;
   currency: string;
   unitType?: string;
+  rentAmountPaid?: number;
 
   isSynced: boolean;
   userPropertyUuid: string | null;
