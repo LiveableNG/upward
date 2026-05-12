@@ -17,6 +17,7 @@ export interface SentDocument {
   recipientName: string;
   recipientEmail: string;
   status: string;
+  includeLetterhead: boolean;
   createdAt: string;
   tenant?: {
     firstName: string;
@@ -42,7 +43,7 @@ export const documentService = {
     return api.post('/pm/documents/send', data);
   },
   
-  generatePdf: async (content: string, tenantUuid?: string, unitUuid?: string, recipientName?: string) => {
-    return api.post<Blob>('/pm/documents/generate-pdf', { content, tenantUuid, unitUuid, recipientName });
+  generatePdf: async (content: string, tenantUuid?: string, unitUuid?: string, recipientName?: string, includeLetterhead?: boolean) => {
+    return api.post<Blob>('/pm/documents/generate-pdf', { content, tenantUuid, unitUuid, recipientName, includeLetterhead });
   }
 };

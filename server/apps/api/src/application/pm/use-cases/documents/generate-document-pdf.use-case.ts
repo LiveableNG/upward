@@ -4,6 +4,7 @@ import {
   PM_UNIT_REPOSITORY, IUnitRepository 
 } from '../../../../domains/pm/IPropertyRepository';
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../../domains/pm/property-manager.repository';
+import { S3Service } from '../../../../shared/infrastructure/common/s3/s3.service';
 
 @Injectable()
 export class GenerateDocumentPdfUseCase {
@@ -11,6 +12,7 @@ export class GenerateDocumentPdfUseCase {
     @Inject(PM_TENANT_REPOSITORY) private readonly tenantRepo: ITenantRepository,
     @Inject(PM_UNIT_REPOSITORY) private readonly unitRepo: IUnitRepository,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepo: PropertyManagerRepository,
+    private readonly s3Service: S3Service,
   ) {}
 
   async execute(params: { 
@@ -19,8 +21,9 @@ export class GenerateDocumentPdfUseCase {
     tenantUuid?: string; 
     unitUuid?: string;
     recipientName?: string;
+    includeLetterhead?: boolean;
   }): Promise<Buffer> {
-    const { content: rawContent, pmId, tenantUuid, unitUuid, recipientName } = params;
+    const { content: rawContent, pmId, tenantUuid, unitUuid, recipientName, includeLetterhead } = params;
     let content = rawContent;
 
     // 1. Fetch Context for Replacement
@@ -70,6 +73,38 @@ export class GenerateDocumentPdfUseCase {
     Object.entries(placeholders).forEach(([tag, value]) => {
       content = content.split(tag).join(value);
     });
+
+    // 1.5 Apply Letterhead if requested
+    if (includeLetterhead && pm) {
+      const headerUrl = pm.letterheadHeaderUrl ? await this.s3Service.getDownloadUrl(pm.letterheadHeaderUrl) : null;
+      const footerUrl = pm.letterheadFooterUrl ? await this.s3Service.getDownloadUrl(pm.letterheadFooterUrl) : null;
+
+      let wrappedContent = `<div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; max-width: 800px; margin: 0 auto;">`;
+      
+      if (headerUrl) {
+        wrappedContent += `
+          <div style="margin-bottom: 30px; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 20px;">
+            <img src="${headerUrl}" style="max-width: 100%; max-height: 150px; object-fit: contain;" alt="Letterhead Header" />
+          </div>`;
+      }
+
+      wrappedContent += `<div style="padding: 10px 0; min-height: 600px;">${content}</div>`;
+
+      if (footerUrl) {
+        wrappedContent += `
+          <div style="margin-top: 50px; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
+            <img src="${footerUrl}" style="max-width: 100%; max-height: 100px; object-fit: contain;" alt="Letterhead Footer" />
+          </div>`;
+      } else {
+         wrappedContent += `
+          <div style="margin-top: 50px; border-top: 1px solid #eee; padding-top: 20px; text-align: center; font-size: 10px; color: #999;">
+            Generated via Upward Property Management Portal
+          </div>`;
+      }
+
+      wrappedContent += `</div>`;
+      content = wrappedContent;
+    }
 
     
     let browser;

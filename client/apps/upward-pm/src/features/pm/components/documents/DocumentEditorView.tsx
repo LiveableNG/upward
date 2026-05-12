@@ -14,6 +14,7 @@ import { RichTextEditor } from '@/components/common/RichTextEditor'
 import { useTenants } from '../../hooks/useTenants'
 import { useDocuments } from '../../hooks/useDocuments'
 import { useToast } from '@/components/common/Toast'
+import { useAuth } from '@/features/auth/AuthContext'
 import { RecipientSelectModal } from './RecipientSelectModal'
 import { useCreatePaymentRequest } from '../../hooks/usePayments'
 import { CreditCard } from 'lucide-react'
@@ -58,6 +59,9 @@ export function DocumentEditorView({
   const [isSending, setIsSending] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false)
+  const [includeLetterhead, setIncludeLetterhead] = useState(true)
+  const { user } = useAuth()
+  const hasLetterhead = !!(user?.letterheadHeaderUrl || user?.letterheadFooterUrl)
 
   const selectedTenant = tenants.find(t => t.uuid === selectedTenantUuid)
 
@@ -72,7 +76,8 @@ export function DocumentEditorView({
       const blob = await generatePdf.mutateAsync({ 
         content, 
         tenantUuid: recipientType === 'existing' ? (selectedTenantUuid || undefined) : undefined,
-        recipientName: recipientName || undefined
+        recipientName: recipientName || undefined,
+        includeLetterhead: hasLetterhead ? includeLetterhead : false
       })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -119,6 +124,7 @@ export function DocumentEditorView({
         recipientName: recipient.name,
         recipientEmail: recipient.email,
         paymentRequestUuid, // New field
+        includeLetterhead: hasLetterhead ? includeLetterhead : false
       })
       
       success(paymentContext ? 'Payment request and document sent successfully' : 'Document sent and recorded successfully')
@@ -186,9 +192,24 @@ export function DocumentEditorView({
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: 4
+                      gap: 4,
+                      position: 'relative'
                     }}
                   >
+                    <div style={{ 
+                        position: 'absolute', 
+                        top: 8, 
+                        left: 8, 
+                        width: 14, 
+                        height: 14, 
+                        borderRadius: '50%', 
+                        border: `1.5px solid ${deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--border)'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                     }}>
+                        {deliveryMode === 'pdf' && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clay)' }}></div>}
+                     </div>
                     <Download size={18} /> PDF Attachment
                   </button>
                   <button 
@@ -205,9 +226,24 @@ export function DocumentEditorView({
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: 4
+                      gap: 4,
+                      position: 'relative'
                     }}
                   >
+                    <div style={{ 
+                        position: 'absolute', 
+                        top: 8, 
+                        left: 8, 
+                        width: 14, 
+                        height: 14, 
+                        borderRadius: '50%', 
+                        border: `1.5px solid ${deliveryMode === 'email' ? 'var(--clay)' : 'var(--border)'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                     }}>
+                        {deliveryMode === 'email' && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clay)' }}></div>}
+                     </div>
                     <Mail size={18} /> Email Body
                   </button>
                 </div>
@@ -294,6 +330,28 @@ export function DocumentEditorView({
                   onChange={(e) => setSubject(e.target.value)}
                 />
              </div>
+
+             {hasLetterhead && (
+               <div 
+                 onClick={() => setIncludeLetterhead(!includeLetterhead)}
+                 style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', paddingTop: 20, marginTop: 20, borderTop: '1px solid var(--bg)' }}
+               >
+                 <div style={{ 
+                   width: 18, 
+                   height: 18, 
+                   borderRadius: 4, 
+                   border: `1px solid ${includeLetterhead ? 'var(--forest)' : 'var(--border)'}`,
+                   background: includeLetterhead ? 'var(--forest)' : 'white',
+                   display: 'flex',
+                   alignItems: 'center',
+                   justifyContent: 'center',
+                   color: 'white'
+                 }}>
+                   {includeLetterhead && <div style={{ width: 8, height: 8, background: 'white', borderRadius: 1 }}></div>}
+                 </div>
+                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Include custom letterhead</span>
+               </div>
+             )}
           </div>
 
           <div className="glass" style={{ padding: 20, borderRadius: 24, border: '1px solid var(--border)', background: 'var(--ivory-dim)', display: 'flex', gap: 12 }}>

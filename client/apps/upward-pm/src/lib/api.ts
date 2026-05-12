@@ -19,6 +19,7 @@ export const api = {
   getBanks: pmService.getBanks,
   changePmPassword: pmService.changePassword,
   getPmAvatarUploadUrl: pmService.getAvatarUploadUrl,
+  getLetterheadUploadUrl: pmService.getLetterheadUploadUrl,
   sendLandlordReport: pmService.sendLandlordReport,
   getLandlordReports: pmService.getLandlordReports,
   getLandlordReport: pmService.getLandlordReport,

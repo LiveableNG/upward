@@ -41,6 +41,13 @@ export const getAvatarUploadUrl = async (contentType: string, filename: string) 
   })
 }
 
+export const getLetterheadUploadUrl = async (params: { type: 'header' | 'footer', contentType: string, filename: string }) => {
+  return request<any>('/pm/profile/letterhead-url', {
+    method: 'POST',
+    body: JSON.stringify(params)
+  })
+}
+
 export const sendLandlordReport = async (data: any) => {
   return request('/pm/landlords/send-report', {
     method: 'POST',

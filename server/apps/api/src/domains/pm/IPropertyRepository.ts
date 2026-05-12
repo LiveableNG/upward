@@ -180,6 +180,7 @@ export interface SentDocumentEntity {
   recipientName: string;
   recipientEmail: string;
   status: string;
+  includeLetterhead: boolean;
   createdAt: Date;
   updatedAt: Date;
   

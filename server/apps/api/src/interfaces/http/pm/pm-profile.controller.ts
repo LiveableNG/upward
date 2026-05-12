@@ -15,6 +15,7 @@ import { UpdatePmProfileUseCase } from '../../../application/use-cases/pm/update
 import { UpdatePmBankInfoUseCase } from '../../../application/use-cases/pm/update-pm-bank-info.use-case'
 import { ChangePmPasswordUseCase } from '../../../application/use-cases/pm/change-pm-password.use-case'
 import { GetPmAvatarUploadUrlUseCase } from '../../../application/use-cases/pm/get-pm-avatar-upload-url.use-case'
+import { GetPmLetterheadUploadUrlUseCase } from '../../../application/use-cases/pm/get-pm-letterhead-upload-url.use-case'
 import { VerifyAccountUseCase, GetBanksUseCase } from '../../../application/use-cases/payments/payment.use-cases'
 
 interface FastifyRequest {
@@ -33,6 +34,7 @@ export class PmProfileController {
     private readonly updateBankInfoUseCase: UpdatePmBankInfoUseCase,
     private readonly changePasswordUseCase: ChangePmPasswordUseCase,
     private readonly getAvatarUrlUseCase: GetPmAvatarUploadUrlUseCase,
+    private readonly getLetterheadUrlUseCase: GetPmLetterheadUploadUrlUseCase,
     private readonly verifyAccountUseCase: VerifyAccountUseCase,
     private readonly getBanksUseCase: GetBanksUseCase,
   ) {}
@@ -78,5 +80,15 @@ export class PmProfileController {
   ) {
     if (!req.user?.sub) throw new UnauthorizedException()
     return this.getAvatarUrlUseCase.execute(req.user.sub, body.contentType, body.filename)
+  }
+
+  @Post('letterhead-url')
+  @HttpCode(HttpStatus.OK)
+  async getLetterheadUrl(
+    @Req() req: FastifyRequest,
+    @Body() body: { type: 'header' | 'footer'; contentType: string; filename: string },
+  ) {
+    if (!req.user?.sub) throw new UnauthorizedException()
+    return this.getLetterheadUrlUseCase.execute(req.user.sub, body.type, body.contentType, body.filename)
   }
 }
