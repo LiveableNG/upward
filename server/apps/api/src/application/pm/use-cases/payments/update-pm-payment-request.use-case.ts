@@ -16,6 +16,7 @@ export interface UpdatePmPaymentRequestDto {
   minAmount?: number;
   lineItems?: { name: string; amount: number }[];
   rentType?: string;
+  reminderFrequency?: string;
 }
 
 @Injectable()
@@ -60,6 +61,17 @@ export class UpdatePmPaymentRequestUseCase {
     const result = await this.createExternalPaymentRequestUseCase.execute(payload, 0); 
     
     // Update local record
+    let nextReminderAt = pmPR.nextReminderAt;
+    if (data.reminderFrequency && data.reminderFrequency !== pmPR.reminderFrequency) {
+        if (data.reminderFrequency === 'NONE') {
+            nextReminderAt = null;
+        } else {
+            nextReminderAt = new Date();
+            nextReminderAt.setDate(nextReminderAt.getDate() + 1);
+            nextReminderAt.setHours(9, 0, 0, 0);
+        }
+    }
+
     const updated = await this.pmPaymentRepo.update(uuid, {
       amount: data.amount ?? pmPR.amount,
       description: data.description ?? pmPR.description,
@@ -67,6 +79,8 @@ export class UpdatePmPaymentRequestUseCase {
       allowPartial: data.allowPartial ?? pmPR.allowPartial,
       minAmount: data.minAmount ?? pmPR.minAmount,
       rentType: data.rentType ?? pmPR.rentType,
+      reminderFrequency: data.reminderFrequency ?? pmPR.reminderFrequency,
+      nextReminderAt,
     });
 
     return updated;

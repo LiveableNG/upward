@@ -47,6 +47,9 @@ model upward_payment_request {
   rentEndDate       DateTime?
   rentType          String?
   isManual          Boolean                     @default(false)
+  reminderFrequency String                      @default("NONE")
+  nextReminderAt    DateTime?
+  reminderCount     Int                         @default(0)
   overpayments      upward_overpayment[]
   lineItemRecords   upward_payment_line_item[]
   subaccount        upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])

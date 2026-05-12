@@ -10,6 +10,7 @@ import { WebhookService } from '../shared/infrastructure/common/webhook/webhook.
 import { BulkInviteService } from '../shared/infrastructure/common/bulk-invite.service'
 import { EncryptionService } from '../shared/infrastructure/common/encryption.service'
 import { KYCModule } from '../shared/infrastructure/common/kyc/kyc.module'
+import { UnifiedReminderService } from '../shared/infrastructure/common/reminder.service'
 
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
@@ -364,6 +365,7 @@ const UseCases = [
   GetLandlordPropertyDetailsUseCase,
   LandlordService,
   ActivityLogService,
+  UnifiedReminderService,
 
   RejectCredibilityRequestUseCase,
 ]
@@ -384,9 +386,10 @@ const UseCases = [
     PushNotificationService,
     NotificationService,
     PrismaDeviceTokenRepository,
+    UnifiedReminderService,
     ...UseCases,
   ],
-  exports: [WebhookService, BulkInviteService, EncryptionService, PushNotificationService, NotificationService, PrismaDeviceTokenRepository, ...UseCases],
+  exports: [WebhookService, BulkInviteService, EncryptionService, PushNotificationService, NotificationService, PrismaDeviceTokenRepository, UnifiedReminderService, ...UseCases],
 
 })
 export class ApplicationModule { }

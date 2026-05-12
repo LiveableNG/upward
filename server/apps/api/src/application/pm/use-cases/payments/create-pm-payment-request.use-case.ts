@@ -23,6 +23,7 @@ export interface CreatePmPaymentRequestDto {
   minAmount?: number;
   lineItems?: { name: string; amount: number }[];
   rentType?: string;
+  reminderFrequency?: string;
 }
 
 @Injectable()
@@ -81,6 +82,15 @@ export class CreatePmPaymentRequestUseCase {
       throw new BadRequestException('Failed to synchronize with payment gateway');
     }
 
+    // Set initial reminder time if enabled
+    let nextReminderAt: Date | null = null;
+    const frequency = data.reminderFrequency || 'NONE';
+    if (frequency !== 'NONE') {
+      nextReminderAt = new Date();
+      nextReminderAt.setDate(nextReminderAt.getDate() + 1); // Start tomorrow
+      nextReminderAt.setHours(9, 0, 0, 0); // 9 AM
+    }
+
     const pmPR = await this.pmPaymentRepo.create({
       pmId,
       unitId: unit.id,
@@ -93,6 +103,9 @@ export class CreatePmPaymentRequestUseCase {
       rentStartDate: data.rentStartDate ? new Date(data.rentStartDate) : null,
       rentEndDate: data.rentEndDate ? new Date(data.rentEndDate) : null,
       rentType: data.rentType || null,
+      reminderFrequency: frequency,
+      nextReminderAt,
+      reminderCount: 0,
       status: 'PENDING',
       amountPaid: 0,
       allowPartial: data.allowPartial || false,
