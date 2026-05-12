@@ -16,50 +16,30 @@ export function BrandingTab() {
     mutationFn: async ({ file, type }: { file: File, type: 'header' | 'footer' }) => {
       setUploadingType(type)
       
-      // -- S3 Logic (Commented out for testing) --
-      /*
-      // 1. Get signed URL
-      const { uploadUrl, publicUrl } = await api.getLetterheadUploadUrl({
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          const base64 = result.split(',')[1]
+          resolve(base64)
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+
+      const { publicUrl } = await api.uploadLetterhead({
         type,
-        contentType: file.type,
-        filename: file.name
+        base64Data,
+        contentType: file.type
       })
 
-      // 2. Upload to S3
-      await fetch(uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type }
-      })
-
-      // 3. Update PM profile
       const updateData = type === 'header' 
         ? { letterheadHeaderUrl: publicUrl }
         : { letterheadFooterUrl: publicUrl }
         
       await api.updatePmProfile(updateData)
+      
       return publicUrl
-      */
-
-      // -- Database/Base64 Logic (For testing without S3 CORS) --
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = async () => {
-          try {
-            const base64 = reader.result as string;
-            const updateData = type === 'header' 
-              ? { letterheadHeaderUrl: base64 }
-              : { letterheadFooterUrl: base64 };
-            
-            await api.updatePmProfile(updateData);
-            resolve(base64);
-          } catch (err) {
-            reject(err);
-          }
-        };
-        reader.onerror = (err) => reject(err);
-      });
     },
     onSuccess: () => {
       success('Letterhead updated successfully')
