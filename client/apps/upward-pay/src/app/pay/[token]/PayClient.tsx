@@ -32,7 +32,7 @@ import { OnboardingStep } from '@/features/payments/components/unified-pay/Onboa
 import { SettledStep } from '@/features/payments/components/unified-pay/SettledStep'
 import { RenewalModal } from '@/features/payments/components/unified-pay/RenewalModal'
 
-type PayStep = 'loading' | 'invoice' | 'checkout' | 'processing' | 'success' | 'onboarding' | 'already-paid' | 'error'
+type PayStep = 'loading' | 'invoice' | 'checkout' | 'processing' | 'success' | 'onboarding' | 'already-paid' | 'cancelled' | 'error'
 
 interface LineItemRecord {
   id: number
@@ -212,6 +212,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
         if (res.data.payment.status === 'PAID' || due <= 0) {
           setStep('already-paid')
+        } else if (res.data.payment.status === 'CANCELLED') {
+          setStep('cancelled')
         } else {
           setStep('invoice')
         }
@@ -424,6 +426,19 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
           <UpwardLogo size={40} className="mx-auto mb-6 opacity-20" />
           <h2 className="text-xl font-extrabold mb-2">Link Expired</h2>
           <p className="text-muted text-sm mb-6">{errorMessage}</p>
+          <button className="btn btn--secondary btn--full" onClick={() => router.push('/')}>Return Home</button>
+        </div>
+      </div>
+    )
+  }
+
+  if (step === 'cancelled') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center p-8 bg-white rounded-3xl shadow-xl max-w-sm border border-solid border-[var(--border-solid)]">
+          <UpwardLogo size={40} className="mx-auto mb-6 opacity-20" />
+          <h2 className="text-xl font-extrabold mb-2">Request Cancelled</h2>
+          <p className="text-muted text-sm mb-6">This payment request has been cancelled by the property manager and is no longer valid.</p>
           <button className="btn btn--secondary btn--full" onClick={() => router.push('/')}>Return Home</button>
         </div>
       </div>

@@ -17,21 +17,25 @@ import {
   FileText,
   Send,
   MoreVertical,
+  Trash2,
   X
 } from 'lucide-react'
-import { usePaymentRequest, useResendPaymentRequest } from '../../hooks/usePayments'
+import { usePaymentRequest, useResendPaymentRequest, useCancelPaymentRequest } from '../../hooks/usePayments'
 import { useToast } from '@/components/common/Toast'
+import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import Link from 'next/link'
 
 export const PaymentDetailView: React.FC = () => {
   const { uuid } = useParams()
   const router = useRouter()
-  const { success, error } = useToast()
+  const { success, error, info } = useToast()
   const { data: request, isLoading } = usePaymentRequest(uuid as string)
   const { mutate: resendInvoice, isPending: isResending } = useResendPaymentRequest()
+  const cancelMutation = useCancelPaymentRequest()
   
   const [activeTab, setActiveTab] = useState<'overview' | 'breakdown' | 'history'>('overview')
   const [showResendModal, setShowResendModal] = useState(false)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [resendEmail, setResendEmail] = useState('')
 
   if (isLoading) {
@@ -91,11 +95,26 @@ export const PaymentDetailView: React.FC = () => {
     }).format(new Date(dateStr))
   }
 
+  const handleCancel = () => {
+    if (!uuid) return
+    cancelMutation.mutate(uuid as string, {
+      onSuccess: () => {
+        success('Payment request cancelled')
+        setShowCancelConfirm(false)
+        router.back()
+      },
+      onError: (err: any) => {
+        error(err.message || 'Failed to cancel payment request')
+      }
+    })
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PAID': return 'var(--forest)';
       case 'PARTIAL': return 'var(--clay)';
       case 'PENDING': return 'var(--text-muted)';
+      case 'CANCELLED': return 'var(--error)';
       default: return 'var(--text-muted)';
     }
   }
@@ -105,6 +124,7 @@ export const PaymentDetailView: React.FC = () => {
       case 'PAID': return <CheckCircle2 size={16} />;
       case 'PARTIAL': return <Clock size={16} />;
       case 'PENDING': return <Clock size={16} />;
+      case 'CANCELLED': return <X size={16} />;
       default: return <AlertCircle size={16} />;
     }
   }
@@ -121,6 +141,15 @@ export const PaymentDetailView: React.FC = () => {
         </button>
         
         <div style={{ display: 'flex', gap: 12 }}>
+          {request.status === 'PENDING' && request.amountPaid === 0 && (
+            <button 
+              className="btn btn--secondary" 
+              style={{ borderRadius: 12, padding: '10px 20px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--error)' }}
+              onClick={() => setShowCancelConfirm(true)}
+            >
+              <Trash2 size={16} /> Cancel Request
+            </button>
+          )}
           <button 
             className="btn btn--secondary" 
             style={{ borderRadius: 12, padding: '10px 20px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}
@@ -128,14 +157,16 @@ export const PaymentDetailView: React.FC = () => {
           >
             <Copy size={16} /> Copy Link
           </button>
-          <button 
-            className="btn btn--primary" 
-            style={{ borderRadius: 12, padding: '10px 24px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}
-            onClick={handleResendInvoice}
-            disabled={isResending}
-          >
-            <Send size={16} /> {isResending ? 'Sending...' : 'Resend Invoice'}
-          </button>
+          {request.status !== 'PAID' && request.status !== 'CANCELLED' && (
+            <button 
+              className="btn btn--primary" 
+              style={{ borderRadius: 12, padding: '10px 24px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}
+              onClick={handleResendInvoice}
+              disabled={isResending}
+            >
+              <Send size={16} /> {isResending ? 'Sending...' : 'Resend Invoice'}
+            </button>
+          )}
         </div>
       </header>
 
@@ -418,6 +449,17 @@ export const PaymentDetailView: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ConfirmationModal 
+        isOpen={showCancelConfirm}
+        onClose={() => setShowCancelConfirm(false)}
+        onConfirm={handleCancel}
+        title="Cancel Payment Request"
+        message="Are you sure you want to cancel this payment request? This action cannot be undone and the payment link will no longer be valid for the tenant."
+        confirmText="Yes, Cancel Request"
+        type="danger"
+        isPending={cancelMutation.isPending}
+      />
     </div>
   )
 }

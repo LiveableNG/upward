@@ -46,3 +46,15 @@ export const useResendPaymentRequest = () => {
     mutationFn: ({ uuid, email }: { uuid: string; email?: string }) => api.resendPaymentRequest(uuid, email)
   })
 }
+
+export const useCancelPaymentRequest = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (uuid: string) => api.cancelPaymentRequest(uuid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pm-payment-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-units'] })
+    }
+  })
+}

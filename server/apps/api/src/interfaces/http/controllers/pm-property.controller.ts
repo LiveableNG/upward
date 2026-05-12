@@ -20,6 +20,7 @@ import { GetPmPaymentRequestsUseCase } from '../../../application/pm/use-cases/p
 import { GetPmPaymentRequestUseCase } from '../../../application/pm/use-cases/payments/get-pm-payment-request.use-case';
 import { ResendPmPaymentRequestUseCase } from '../../../application/pm/use-cases/payments/resend-pm-payment-request.use-case';
 import { UpdatePmPaymentRequestUseCase, UpdatePmPaymentRequestDto } from '../../../application/pm/use-cases/payments/update-pm-payment-request.use-case';
+import { CancelPmPaymentRequestUseCase } from '../../../application/pm/use-cases/payments/cancel-pm-payment-request.use-case';
 import { BulkFullImportUseCase } from '../../../application/pm/use-cases/bulk-full-import.use-case';
 import { BulkInviteTenantsUseCase } from '../../../application/pm/use-cases/tenants/bulk-invite-tenants.use-case';
 import { SendLandlordReportUseCase } from '../../../application/pm/use-cases/send-landlord-report.use-case';
@@ -62,6 +63,7 @@ export class PmPropertyController {
     private readonly getPmPaymentRequestUseCase: GetPmPaymentRequestUseCase,
     private readonly resendPmPaymentRequestUseCase: ResendPmPaymentRequestUseCase,
     private readonly updatePmPaymentRequestUseCase: UpdatePmPaymentRequestUseCase,
+    private readonly cancelPmPaymentRequestUseCase: CancelPmPaymentRequestUseCase,
     private readonly bulkFullImportUseCase: BulkFullImportUseCase,
     private readonly bulkInviteTenantsUseCase: BulkInviteTenantsUseCase,
     private readonly sendLandlordReportUseCase: SendLandlordReportUseCase,
@@ -223,6 +225,12 @@ export class PmPropertyController {
   async updatePaymentRequest(@Req() req: any, @Param('uuid') uuid: string, @Body() dto: UpdatePmPaymentRequestDto) {
     const pmId = await this.getPmId(req);
     return this.updatePmPaymentRequestUseCase.execute(pmId, uuid, dto);
+  }
+
+  @Delete('payment-requests/:uuid')
+  async cancelPaymentRequest(@Req() req: any, @Param('uuid') uuid: string) {
+    const pmId = await this.getPmId(req);
+    return this.cancelPmPaymentRequestUseCase.execute(pmId, uuid);
   }
 
   @Get('landlords')
