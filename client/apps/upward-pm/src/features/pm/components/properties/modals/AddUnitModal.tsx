@@ -79,7 +79,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
+      <div className="modal" style={{ maxWidth: 640 }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h2 className="modal__title">Add New Unit</h2>
@@ -179,7 +179,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 1fr) 1fr 1fr', gap: 12 }}>
           <div className="form-group">
             <label className="form-label">Rent Type</label>
             <select

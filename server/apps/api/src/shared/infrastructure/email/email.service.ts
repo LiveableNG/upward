@@ -468,19 +468,19 @@ export class EmailService {
         <meta charset="UTF-8">
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-          body { font-family: 'Inter', -apple-system, sans-serif; background-color: #fdfcfb; color: #1a1a1a; margin: 0; padding: 0; }
-          .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e8e6e1; box-shadow: 0 10px 25px rgba(13, 77, 43, 0.05); }
-          .header { background-color: #0d4d2b; padding: 40px; text-align: left; }
+          body { font-family: 'Inter', -apple-system, sans-serif; background-color: #faf9f5; color: #1a1a1a; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e8e6e1; box-shadow: 0 10px 25px rgba(22, 101, 52, 0.05); }
+          .header { background-color: #166534; padding: 40px; text-align: left; }
           .content { padding: 48px; }
-          .logo-text { color: #fdfcfb; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; display: block; }
-          .logo-sub { color: rgba(253, 252, 251, 0.7); font-size: 12px; }
-          h1 { font-size: 24px; font-weight: 700; color: #0d4d2b; margin-bottom: 24px; line-height: 1.3; }
-          p { font-size: 16px; line-height: 1.7; color: #4a4a4a; margin-bottom: 24px; }
-          .manager-badge { background-color: #f0f7f2; border: 1px solid #d1e7d8; padding: 16px 20px; border-radius: 12px; margin-bottom: 32px; display: inline-block; }
-          .manager-label { font-size: 12px; font-weight: 700; color: #0d4d2b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; display: block; }
-          .manager-name { font-size: 16px; font-weight: 600; color: #1a1a1a; }
-          .btn { background-color: #0d4d2b; color: #fdfcfb !important; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block; transition: background-color 0.2s; }
-          .footer { padding: 32px 48px; border-top: 1px solid #f0eee9; background-color: #faf9f6; }
+          .logo-text { color: #faf9f5; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; display: block; }
+          .logo-sub { color: rgba(250, 249, 245, 0.7); font-size: 12px; }
+          h1 { font-size: 22px; font-weight: 700; color: #166534; margin-bottom: 24px; line-height: 1.3; }
+          p { font-size: 16px; line-height: 1.7; color: #4a4a4a; margin-bottom: 20px; }
+          .bullet-list { margin-bottom: 24px; padding-left: 0; list-style: none; }
+          .bullet-item { font-size: 16px; color: #4a4a4a; margin-bottom: 12px; position: relative; padding-left: 24px; line-height: 1.6; }
+          .bullet-item::before { content: "•"; color: #166534; font-weight: bold; position: absolute; left: 0; }
+          .btn { background-color: #166534; color: #faf9f5 !important; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block; transition: background-color 0.2s; }
+          .footer { padding: 32px 48px; border-top: 1px solid #f0eee9; background-color: #faf9f5; }
           .footer-text { font-size: 13px; color: #8c8c8c; line-height: 1.6; }
         </style>
       </head>
@@ -491,21 +491,23 @@ export class EmailService {
             <span class="logo-sub">Property Management</span>
           </div>
           <div class="content">
-            <h1>Hello ${tenantName},</h1>
-            <p>You've been invited to manage your rental experience and payments through <strong>Upward</strong>.</p>
+            <h1>Dear ${tenantName},</h1>
+            <p>We’re pleased to inform you that <strong>${pmName}</strong> now uses Upward to manage rent payments and tenant records.</p>
             
-            <div class="manager-badge">
-              <span class="manager-label">Invited by Manager</span>
-              <span class="manager-name">${pmName}</span>
+            <p>With Upward, you can conveniently:</p>
+            <div class="bullet-list">
+              <div class="bullet-item">Pay your rent securely</div>
+              <div class="bullet-item">View your payment history anytime</div>
+              <div class="bullet-item">Build a trusted rental record that strengthens your rental credibility</div>
             </div>
- 
-            <p>With Upward, you can securely pay rent, view your payment history, and build your rental credibility all in one place.</p>
+
+            <p style="margin-bottom: 32px;">Please click the button below to access your Upward account and get started.</p>
             
-            <a href="${inviteLink}" class="btn">Accept Invitation & Get Started</a>
+            <a href="${inviteLink}" class="btn">Access Your Upward Account</a>
           </div>
           <div class="footer">
             <p class="footer-text">
-              If you have any questions, reply to this email or visit our website.<br>
+              If you have any questions, please contact your property manager or reply to this email.<br>
               © 2026 Upward by GoodTenants. All rights reserved.
             </p>
           </div>
@@ -549,20 +551,20 @@ export class EmailService {
         <meta charset="UTF-8">
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-          body { font-family: 'Inter', -apple-system, sans-serif; background-color: #fdfcfb; color: #1a1a1a; margin: 0; padding: 0; }
-          .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e8e6e1; box-shadow: 0 10px 25px rgba(13, 77, 43, 0.05); }
-          .header { background-color: #0d4d2b; padding: 40px; text-align: left; }
+          body { font-family: 'Inter', -apple-system, sans-serif; background-color: #faf9f5; color: #1a1a1a; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e8e6e1; box-shadow: 0 10px 25px rgba(22, 101, 52, 0.05); }
+          .header { background-color: #166534; padding: 40px; text-align: left; }
           .content { padding: 48px; }
-          .logo-text { color: #fdfcfb; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; display: block; }
-          .logo-sub { color: rgba(253, 252, 251, 0.7); font-size: 12px; }
-          h1 { font-size: 24px; font-weight: 700; color: #0d4d2b; margin-bottom: 24px; line-height: 1.3; }
+          .logo-text { color: #faf9f5; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; display: block; }
+          .logo-sub { color: rgba(250, 249, 245, 0.7); font-size: 12px; }
+          h1 { font-size: 24px; font-weight: 700; color: #166534; margin-bottom: 24px; line-height: 1.3; }
           p { font-size: 16px; line-height: 1.7; color: #4a4a4a; margin-bottom: 24px; }
           .payment-badge { background-color: #f0f7f2; border: 1px solid #d1e7d8; padding: 24px; border-radius: 16px; margin-bottom: 32px; }
-          .payment-label { font-size: 11px; font-weight: 700; color: #0d4d2b; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; display: block; }
+          .payment-label { font-size: 11px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; display: block; }
           .payment-amount { font-size: 32px; font-weight: 800; color: #1a1a1a; margin-bottom: 8px; display: block; }
           .payment-meta { font-size: 14px; color: #666; display: block; margin-top: 4px; }
-          .btn { background-color: #0d4d2b; color: #fdfcfb !important; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block; transition: background-color 0.2s; text-align: center; width: 100%; box-sizing: border-box; }
-          .footer { padding: 32px 48px; border-top: 1px solid #f0eee9; background-color: #faf9f6; }
+          .btn { background-color: #166534; color: #faf9f5 !important; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block; transition: background-color 0.2s; text-align: center; width: 100%; box-sizing: border-box; }
+          .footer { padding: 32px 48px; border-top: 1px solid #f0eee9; background-color: #faf9f5; }
           .footer-text { font-size: 13px; color: #8c8c8c; line-height: 1.6; }
         </style>
       </head>
@@ -639,15 +641,15 @@ export class EmailService {
         <meta charset="UTF-8">
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-          body { font-family: 'Inter', -apple-system, sans-serif; background-color: #fdfcfb; color: #1a1a1a; margin: 0; padding: 0; }
-          .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e8e6e1; box-shadow: 0 10px 25px rgba(13, 77, 43, 0.05); }
-          .header { background-color: #0d4d2b; padding: 40px; text-align: left; }
+          body { font-family: 'Inter', -apple-system, sans-serif; background-color: #faf9f5; color: #1a1a1a; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e8e6e1; box-shadow: 0 10px 25px rgba(22, 101, 52, 0.05); }
+          .header { background-color: #166534; padding: 40px; text-align: left; }
           .content { padding: 48px; }
-          .logo-text { color: #fdfcfb; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; display: block; }
-          h1 { font-size: 24px; font-weight: 700; color: #0d4d2b; margin-bottom: 24px; line-height: 1.3; }
+          .logo-text { color: #faf9f5; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; display: block; }
+          h1 { font-size: 24px; font-weight: 700; color: #166534; margin-bottom: 24px; line-height: 1.3; }
           p { font-size: 16px; line-height: 1.7; color: #4a4a4a; margin-bottom: 24px; }
-          .btn { background-color: #0d4d2b; color: #fdfcfb !important; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block; transition: background-color 0.2s; text-align: center; width: 100%; box-sizing: border-box; }
-          .footer { padding: 32px 48px; border-top: 1px solid #f0eee9; background-color: #faf9f6; }
+          .btn { background-color: #166534; color: #faf9f5 !important; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block; transition: background-color 0.2s; text-align: center; width: 100%; box-sizing: border-box; }
+          .footer { padding: 32px 48px; border-top: 1px solid #f0eee9; background-color: #faf9f5; }
           .footer-text { font-size: 13px; color: #8c8c8c; line-height: 1.6; }
         </style>
       </head>
@@ -704,15 +706,15 @@ export class EmailService {
         <meta charset="UTF-8">
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-          body { font-family: 'Inter', -apple-system, sans-serif; background-color: #fdfcfb; color: #1a1a1a; margin: 0; padding: 0; }
-          .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e8e6e1; box-shadow: 0 10px 25px rgba(13, 77, 43, 0.05); }
-          .header { background-color: #0d4d2b; padding: 40px; text-align: left; }
+          body { font-family: 'Inter', -apple-system, sans-serif; background-color: #faf9f5; color: #1a1a1a; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e8e6e1; box-shadow: 0 10px 25px rgba(22, 101, 52, 0.05); }
+          .header { background-color: #166534; padding: 40px; text-align: left; }
           .content { padding: 48px; }
-          .logo-text { color: #fdfcfb; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; display: block; }
-          h1 { font-size: 24px; font-weight: 700; color: #0d4d2b; margin-bottom: 24px; line-height: 1.3; }
+          .logo-text { color: #faf9f5; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; display: block; }
+          h1 { font-size: 24px; font-weight: 700; color: #166534; margin-bottom: 24px; line-height: 1.3; }
           p { font-size: 16px; line-height: 1.7; color: #4a4a4a; margin-bottom: 24px; }
-          .btn { background-color: #0d4d2b; color: #fdfcfb !important; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block; transition: background-color 0.2s; text-align: center; width: 100%; box-sizing: border-box; }
-          .footer { padding: 32px 48px; border-top: 1px solid #f0eee9; background-color: #faf9f6; }
+          .btn { background-color: #166534; color: #faf9f5 !important; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block; transition: background-color 0.2s; text-align: center; width: 100%; box-sizing: border-box; }
+          .footer { padding: 32px 48px; border-top: 1px solid #f0eee9; background-color: #faf9f5; }
           .footer-text { font-size: 13px; color: #8c8c8c; line-height: 1.6; }
         </style>
       </head>
@@ -768,18 +770,18 @@ export class EmailService {
         <meta charset="UTF-8">
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-          body { font-family: 'Inter', -apple-system, sans-serif; background-color: #fdfcfb; color: #1a1a1a; margin: 0; padding: 0; }
-          .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e8e6e1; box-shadow: 0 10px 25px rgba(13, 77, 43, 0.05); }
-          .header { background-color: #0d4d2b; padding: 40px; text-align: left; }
+          body { font-family: 'Inter', -apple-system, sans-serif; background-color: #faf9f5; color: #1a1a1a; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e8e6e1; box-shadow: 0 10px 25px rgba(22, 101, 52, 0.05); }
+          .header { background-color: #166534; padding: 40px; text-align: left; }
           .content { padding: 48px; }
-          .logo-text { color: #fdfcfb; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; display: block; }
-          h1 { font-size: 24px; font-weight: 700; color: #0d4d2b; margin-bottom: 24px; line-height: 1.3; }
+          .logo-text { color: #faf9f5; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; display: block; }
+          h1 { font-size: 24px; font-weight: 700; color: #166534; margin-bottom: 24px; line-height: 1.3; }
           p { font-size: 16px; line-height: 1.7; color: #4a4a4a; margin-bottom: 24px; }
           .badge { background-color: #f0f7f2; border: 1px solid #d1e7d8; padding: 24px; border-radius: 16px; margin-bottom: 32px; }
-          .label { font-size: 11px; font-weight: 700; color: #0d4d2b; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; display: block; }
+          .label { font-size: 11px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; display: block; }
           .password { font-size: 24px; font-weight: 800; color: #1a1a1a; margin-bottom: 8px; display: block; font-family: monospace; }
-          .btn { background-color: #0d4d2b; color: #fdfcfb !important; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block; transition: background-color 0.2s; text-align: center; width: 100%; box-sizing: border-box; }
-          .footer { padding: 32px 48px; border-top: 1px solid #f0eee9; background-color: #faf9f6; }
+          .btn { background-color: #166534; color: #faf9f5 !important; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block; transition: background-color 0.2s; text-align: center; width: 100%; box-sizing: border-box; }
+          .footer { padding: 32px 48px; border-top: 1px solid #f0eee9; background-color: #faf9f5; }
           .footer-text { font-size: 13px; color: #8c8c8c; line-height: 1.6; }
         </style>
       </head>
