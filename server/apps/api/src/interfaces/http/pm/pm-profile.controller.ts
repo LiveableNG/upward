@@ -15,7 +15,9 @@ import { UpdatePmProfileUseCase } from '../../../application/use-cases/pm/update
 import { UpdatePmBankInfoUseCase } from '../../../application/use-cases/pm/update-pm-bank-info.use-case'
 import { ChangePmPasswordUseCase } from '../../../application/use-cases/pm/change-pm-password.use-case'
 import { GetPmAvatarUploadUrlUseCase } from '../../../application/use-cases/pm/get-pm-avatar-upload-url.use-case'
+import { UploadPmAvatarUseCase } from '../../../application/use-cases/pm/upload-pm-avatar.use-case'
 import { GetPmLetterheadUploadUrlUseCase } from '../../../application/use-cases/pm/get-pm-letterhead-upload-url.use-case'
+import { UploadPmLetterheadUseCase } from '../../../application/use-cases/pm/upload-pm-letterhead.use-case'
 import { VerifyAccountUseCase, GetBanksUseCase } from '../../../application/use-cases/payments/payment.use-cases'
 
 interface FastifyRequest {
@@ -34,7 +36,9 @@ export class PmProfileController {
     private readonly updateBankInfoUseCase: UpdatePmBankInfoUseCase,
     private readonly changePasswordUseCase: ChangePmPasswordUseCase,
     private readonly getAvatarUrlUseCase: GetPmAvatarUploadUrlUseCase,
+    private readonly uploadAvatarUseCase: UploadPmAvatarUseCase,
     private readonly getLetterheadUrlUseCase: GetPmLetterheadUploadUrlUseCase,
+    private readonly uploadLetterheadUseCase: UploadPmLetterheadUseCase,
     private readonly verifyAccountUseCase: VerifyAccountUseCase,
     private readonly getBanksUseCase: GetBanksUseCase,
   ) {}
@@ -82,6 +86,16 @@ export class PmProfileController {
     return this.getAvatarUrlUseCase.execute(req.user.sub, body.contentType, body.filename)
   }
 
+  @Post('avatar-upload')
+  @HttpCode(HttpStatus.OK)
+  async uploadAvatar(
+    @Req() req: FastifyRequest,
+    @Body() body: { base64Data: string; contentType: string },
+  ) {
+    if (!req.user?.sub) throw new UnauthorizedException()
+    return this.uploadAvatarUseCase.execute(req.user.sub, body.base64Data, body.contentType)
+  }
+
   @Post('letterhead-url')
   @HttpCode(HttpStatus.OK)
   async getLetterheadUrl(
@@ -90,5 +104,15 @@ export class PmProfileController {
   ) {
     if (!req.user?.sub) throw new UnauthorizedException()
     return this.getLetterheadUrlUseCase.execute(req.user.sub, body.type, body.contentType, body.filename)
+  }
+
+  @Post('letterhead-upload')
+  @HttpCode(HttpStatus.OK)
+  async uploadLetterhead(
+    @Req() req: FastifyRequest,
+    @Body() body: { type: 'header' | 'footer'; base64Data: string; contentType: string },
+  ) {
+    if (!req.user?.sub) throw new UnauthorizedException()
+    return this.uploadLetterheadUseCase.execute(req.user.sub, body.type, body.base64Data, body.contentType)
   }
 }

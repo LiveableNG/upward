@@ -41,8 +41,22 @@ export const getAvatarUploadUrl = async (contentType: string, filename: string) 
   })
 }
 
+export const uploadAvatar = async (params: { base64Data: string, contentType: string }) => {
+  return request<{ publicUrl: string }>('/pm/profile/avatar-upload', {
+    method: 'POST',
+    body: JSON.stringify(params)
+  })
+}
+
 export const getLetterheadUploadUrl = async (params: { type: 'header' | 'footer', contentType: string, filename: string }) => {
   return request<any>('/pm/profile/letterhead-url', {
+    method: 'POST',
+    body: JSON.stringify(params)
+  })
+}
+
+export const uploadLetterhead = async (params: { type: 'header' | 'footer', base64Data: string, contentType: string }) => {
+  return request<{ publicUrl: string }>('/pm/profile/letterhead-upload', {
     method: 'POST',
     body: JSON.stringify(params)
   })
