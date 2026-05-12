@@ -17,6 +17,8 @@ export function AvatarUpload() {
     mutationFn: async (file: File) => {
       setIsUploading(true)
       
+      // -- S3 Logic (Commented out for testing) --
+      /*
       // 1. Get signed URL
       const { uploadUrl, publicUrl } = await api.getPmAvatarUploadUrl(file.type, file.name)
 
@@ -29,8 +31,24 @@ export function AvatarUpload() {
 
       // 3. Update PM profile with public URL
       await api.updatePmProfile({ profilePic: publicUrl })
-      
       return publicUrl
+      */
+
+      // -- Database/Base64 Logic (For testing without S3 CORS) --
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+          try {
+            const base64 = reader.result as string;
+            await api.updatePmProfile({ profilePic: base64 });
+            resolve(base64);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        reader.onerror = (err) => reject(err);
+      });
     },
     onSuccess: () => {
       success('Profile picture updated')
