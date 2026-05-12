@@ -258,9 +258,21 @@ export function PropertiesView() {
 
       return matchesSearch && matchesProp && matchesPayment && matchesDue
     }).sort((a, b) => {
+      const aRequests = paymentRequests?.filter(r => r.unitId === a.id) || []
+      const bRequests = paymentRequests?.filter(r => r.unitId === b.id) || []
+      const aHasPending = aRequests.some(r => r.status !== 'PAID' && r.status !== 'CANCELLED')
+      const bHasPending = bRequests.some(r => r.status !== 'PAID' && r.status !== 'CANCELLED')
+
+      // Prioritize units with pending payment requests
+      if (aHasPending && !bHasPending) return -1
+      if (!aHasPending && bHasPending) return 1
+
+      // Then handle units with no due date (often considered pending setup)
       if (!a.rentDueDate && !b.rentDueDate) return 0;
-      if (!a.rentDueDate) return 1;
-      if (!b.rentDueDate) return -1;
+      if (!a.rentDueDate) return -1;
+      if (!b.rentDueDate) return 1;
+
+      // Finally sort by due date ascending
       return new Date(a.rentDueDate).getTime() - new Date(b.rentDueDate).getTime();
     })
   }, [units, properties, paymentRequests, searchQuery, selectedPropertyFilter, paymentFilter, dueFilter])
