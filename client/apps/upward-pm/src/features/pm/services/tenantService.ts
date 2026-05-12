@@ -62,10 +62,16 @@ export const tenantService = {
     })
   },
 
-  assignTenant: (tenantUuid: string, unitUuid: string) => {
+  assignTenant: (tenantUuid: string, unitUuid: string, rentDetails?: {
+    rentAmountPaid?: number;
+    rentAmount?: number;
+    rentType?: string;
+    rentStartDate?: string;
+    rentDueDate?: string;
+  }) => {
     return request<void>(`/pm/tenants/${tenantUuid}/assign`, {
       method: 'POST',
-      body: JSON.stringify({ unitUuid })
+      body: JSON.stringify({ unitUuid, ...rentDetails })
     })
   },
 

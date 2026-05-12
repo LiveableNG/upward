@@ -85,7 +85,7 @@ export function PropertiesView() {
     unitName: '', tenantFirstName: '', tenantLastName: '', tenantEmail: '',
     tenantPhone: '', rentAmount: '', rentStartDate: '', rentDueDate: '',
     rentType: 'Monthly', managementFee: '', notes: '', tenantUuid: '',
-    unitType: ''
+    unitType: '', rentAmountPaid: ''
   })
 
   // Handlers
@@ -110,6 +110,7 @@ export function PropertiesView() {
       units: [{
         ...unitForm,
         rentAmount: parseFloat(unitForm.rentAmount) || 0,
+        rentAmountPaid: parseFloat(unitForm.rentAmountPaid) || 0,
         managementFee: parseFloat(unitForm.managementFee) || 0,
         status: (unitForm.tenantEmail?.trim() || unitForm.tenantFirstName?.trim() || unitForm.tenantLastName?.trim() || unitForm.tenantUuid) ? 'OCCUPIED' : 'VACANT'
       }]
@@ -121,7 +122,7 @@ export function PropertiesView() {
           unitName: '', tenantFirstName: '', tenantLastName: '', tenantEmail: '',
           tenantPhone: '', rentAmount: '', rentStartDate: '', rentDueDate: '',
           rentType: 'Monthly', managementFee: '', notes: '', tenantUuid: '',
-          unitType: ''
+          unitType: '', rentAmountPaid: ''
         })
         setTargetPropertyUuid('')
       },

@@ -50,8 +50,16 @@ export const useTenantActions = () => {
   })
 
   const assignTenant = useMutation({
-    mutationFn: ({ tenantUuid, unitUuid }: { tenantUuid: string, unitUuid: string }) => 
-      tenantService.assignTenant(tenantUuid, unitUuid),
+    mutationFn: ({ tenantUuid, unitUuid, ...rentDetails }: { 
+      tenantUuid: string, 
+      unitUuid: string, 
+      rentAmountPaid?: number,
+      rentAmount?: number,
+      rentType?: string,
+      rentStartDate?: string,
+      rentDueDate?: string
+    }) => 
+      tenantService.assignTenant(tenantUuid, unitUuid, rentDetails),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tenants'] })
       queryClient.invalidateQueries({ queryKey: ['tenant', variables.tenantUuid] })
