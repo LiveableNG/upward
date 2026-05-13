@@ -104,8 +104,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             gatewayFee={0}
             currency={currency}
             companyName={paymentData.company?.name}
-            reference={generateId()}
-            subaccount={paymentData.payment.subaccountCode}
+            paymentRequestUuid={uuid}
             onSuccess={handlePaymentSuccess}
             onClose={() => setStep('invoice')}
             lineItems={finalLineItemPayments.map(p => ({ name: p.name, amount: p.amountPaid }))}

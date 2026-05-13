@@ -1,4 +1,6 @@
 import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common'
+import { createHmac } from 'node:crypto'
+import { ConfigService } from '@nestjs/config'
 import {
   ReceiptService,
   ReceiptPdfData,
@@ -390,6 +392,107 @@ export class RecordTransactionUseCase {
     }
 
     return result
+  }
+}
+
+@Injectable()
+export class InitializePaymentUseCase {
+  constructor(
+    @Inject(PAYMENT_GATEWAY)
+    private readonly gateway: IPaymentGateway,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: UserRepository,
+    @Inject(PAYMENT_REQUEST_REPOSITORY)
+    private readonly paymentRequestRepo: IPaymentRequestRepository,
+  ) { }
+
+  async execute(data: {
+    userId: string
+    amount: number
+    paymentRequestUuid?: string
+    metadata?: any
+  }) {
+    const user = await this.userRepository.findByUuid(data.userId)
+    if (!user) throw new UnauthorizedException('User not found')
+
+    let pr: any = null
+    if (data.paymentRequestUuid) {
+      pr = await this.paymentRequestRepo.findByUuid(data.paymentRequestUuid)
+    }
+
+    const reference = `UP-${Date.now()}-${Math.floor(Math.random() * 10000)}`
+
+    return this.gateway.initializeTransaction({
+      email: user.email!,
+      amount: data.amount,
+      reference,
+      subaccount: pr?.subaccount?.subaccountCode,
+      metadata: {
+        userId: user.id,
+        userUuid: user.uuid,
+        paymentRequestId: pr?.id,
+        paymentRequestUuid: pr?.uuid,
+        ...data.metadata
+      }
+    })
+  }
+}
+
+@Injectable()
+export class ProcessPaymentWebhookUseCase {
+  private readonly logger = new Logger(ProcessPaymentWebhookUseCase.name)
+
+  constructor(
+    private readonly recordTransaction: RecordTransactionUseCase,
+    private readonly configService: ConfigService,
+  ) { }
+
+  async execute(payload: any, signature?: string) {
+    if (!signature) {
+      throw new UnauthorizedException('Missing webhook signature')
+    }
+
+    const secret = this.configService.get<string>('PAYSTACK_SECRET_KEY')
+    if (!secret) {
+      this.logger.error('PAYSTACK_SECRET_KEY not found in configuration')
+      throw new Error('Internal configuration error')
+    }
+
+    // Verify HMAC SHA512 signature
+    const hash = createHmac('sha512', secret)
+      .update(JSON.stringify(payload))
+      .digest('hex')
+
+    if (hash !== signature) {
+      this.logger.warn(`Invalid webhook signature attempt. Expected: ${hash.slice(0, 8)}..., Received: ${signature.slice(0, 8)}...`)
+      throw new UnauthorizedException('Invalid signature')
+    }
+    
+    if (payload.event !== 'charge.success') {
+      return { success: true, message: 'Event ignored' }
+    }
+
+    const { reference, metadata, amount, currency } = payload.data
+    const { userUuid, userId } = metadata || {}
+
+    if (!userUuid && !userId) {
+      throw new Error('No user identification in Paystack metadata')
+    }
+
+    const effectiveUserId = userUuid || userId
+
+    return this.recordTransaction.execute({
+      userId: effectiveUserId,
+      reference,
+      amount: amount / 100,
+      currency: currency || 'NGN',
+      userPropertyUuid: metadata?.userPropertyUuid,
+      paymentRequestId: metadata?.paymentRequestId,
+      type: metadata?.type || 'RENT',
+      status: 'SUCCESS',
+      narration: metadata?.description || payload.data.display_text || 'Paystack Payment',
+      lineItemPayments: metadata?.lineItems,
+    })
   }
 }
 

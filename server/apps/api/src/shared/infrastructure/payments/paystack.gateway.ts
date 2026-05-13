@@ -8,7 +8,7 @@ import {
   SUBACCOUNT_REPOSITORY,
   ISubaccountRepository,
   PaystackSubaccount
-} from '../../domains/payments/payment.repository'
+} from '../../../domains/payments/payment.repository'
 
 @Injectable()
 export class PaystackGateway implements IPaymentGateway {
@@ -67,33 +67,6 @@ export class PaystackGateway implements IPaymentGateway {
 
   async verifyAccountNumber(accountNumber: string, bankCode: string): Promise<AccountVerification> {
     try {
-    //   const url = new URL(`${this.baseUrl}/bank/resolve`)
-    //   url.searchParams.append('account_number', accountNumber)
-    //   url.searchParams.append('bank_code', bankCode)
-
-    //   const res = await fetch(url.toString(), {
-    //     method: 'GET',
-    //     headers: this.headers,
-    //   })
-
-    //   if (!res.ok) {
-    //     if (res.status === 429) {
-    //       throw new Error('Verification rate limit exceeded. Please wait a few seconds.')
-    //     }
-    //     if (res.status === 404 || res.status === 400) {
-    //       throw new Error(
-    //         'Account number could not be resolved. Please check the bank and account number.',
-    //       )
-    //     }
-    //     throw new Error(`HTTP error ${res.status}`)
-    //   }
-
-    //   const data = await res.json()
-
-    //   if (!data.status || !data.data) {
-    //     throw new Error(data.message || 'Could not verify account')
-    //   }
-
     return {
         accountNumber: accountNumber,
         accountName: "Micheal Okpara",
@@ -101,7 +74,7 @@ export class PaystackGateway implements IPaymentGateway {
       }
     } catch (error) {
       this.logger.error('Paystack verifyAccount error:', error)
-      throw error // Re-throw the specific error
+      throw error 
     }
   }
 
@@ -155,7 +128,7 @@ export class PaystackGateway implements IPaymentGateway {
     subaccount?: string
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     metadata?: any
-  }): Promise<{ authorizationUrl: string }> {
+  }): Promise<{ authorizationUrl: string; accessCode?: string; reference: string }> {
     try {
       this.logger.log(`Initializing transaction ${data.reference} for ${data.email}`)
       const res = await fetch(`${this.baseUrl}/transaction/initialize`, {
@@ -183,6 +156,8 @@ export class PaystackGateway implements IPaymentGateway {
 
       return {
         authorizationUrl: responseData.data.authorization_url,
+        accessCode: responseData.data.access_code,
+        reference: data.reference,
       }
     } catch (error) {
       this.logger.error('Paystack initializeTransaction error:', error)
