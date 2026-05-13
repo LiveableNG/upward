@@ -5,6 +5,7 @@ import {
 } from '../../../shared/infrastructure/common/receipt/receipt.service'
 import { EVENT_BUS, EventBus } from '../../events/domain-event'
 import { PaymentUpdatedEvent } from '../../events/definition/payment-updated.event'
+import { PaymentSucceededEvent } from '../../events/definition/payment-succeeded.event'
 import {
   ISavedLandlordRepository,
   ITransactionRepository,
@@ -240,11 +241,12 @@ export class RecordTransactionUseCase {
       data.amount = verifiedAmount
     }
 
-    return await this.prisma.$transaction(async (txClient) => {
+    const { result, pr, rentPortion, excess, propertyId, paymentAmount } = await this.prisma.$transaction(async (txClient) => {
       let pr: any = null
       let excess = 0
       let remaining = 0
       let rentPortion = 0
+      let propertyId: number | undefined
 
       if (isVerified && data.type === 'RENT' && !data.paymentRequestId && data.userPropertyUuid) {
         const prop = await txClient.upward_user_property.findUnique({ where: { uuid: data.userPropertyUuid } })
@@ -332,7 +334,7 @@ export class RecordTransactionUseCase {
           })
         }
 
-        let propertyId = pr?.userPropertyId
+        propertyId = pr?.userPropertyId
         if (!propertyId && data.userPropertyUuid) {
           const p = await txClient.upward_user_property.findUnique({ where: { uuid: data.userPropertyUuid } })
           propertyId = p?.id
@@ -351,20 +353,6 @@ export class RecordTransactionUseCase {
             description: result.narration,
             txClient
           })
-
-          if (rentPortion > 0) {
-             const prop = await txClient.upward_user_property.findUnique({ where: { id: propertyId } })
-             if (prop && prop.amountRemaining === 0) {
-                await txClient.upward_notification.create({
-                  data: {
-                    userId: user.id!,
-                    title: 'Credit Score Boost!',
-                    message: `Congratulations! Your full rent payment for ${data.propertyAddress || 'your property'} has boosted your credit health.`,
-                    type: 'SYSTEM'
-                  }
-                })
-             }
-          }
         }
 
         await this.handleOverpayment.execute({
@@ -378,39 +366,30 @@ export class RecordTransactionUseCase {
           parentTransactionId: result.id,
           txClient
         })
-
-        if (pr?.platformId && rentPortion > 0) {
-          await this.publishWebhookEvent(pr, result, rentPortion, excess, user, txClient)
-        }
       }
 
-      return result
+      return { result, pr, rentPortion, excess, propertyId, paymentAmount }
     }, { timeout: 20000 })
-  }
 
-  private async publishWebhookEvent(pr: any, result: any, rentPortion: number, excess: number, user: any, txClient: any) {
-    try {
-      const currentItems = await txClient.upward_payment_line_item.findMany({ where: { paymentRequestId: pr.id } })
-      const rentItems = currentItems.filter((i: any) => i.name.toLowerCase().includes('rent'))
-      const totalRentPaid = rentItems.reduce((sum: number, i: any) => sum + i.amountPaid, 0)
-      const totalRentAmount = rentItems.reduce((sum: number, i: any) => sum + i.totalAmount, 0)
-      const statusForWebhook = totalRentPaid >= totalRentAmount ? 'PAID' : 'PARTIAL'
-
-      this.eventBus.publish(new PaymentUpdatedEvent(pr.platformId, 'payment.updated', {
-        paymentUuid: pr.uuid,
-        reference: result.reference,
-        amountPaid: rentPortion,
-        totalPaid: totalRentPaid,
-        remainingAmount: Math.max(0, totalRentAmount - totalRentPaid),
-        overpaymentAmount: excess,
-        currency: result.currency || pr.currency || 'NGN',
-        status: statusForWebhook,
-        paidAt: new Date(),
-        customerEmail: user.email
+    if (isVerified && result.status === 'SUCCESS') {
+      this.eventBus.publish(new PaymentSucceededEvent({
+        transactionId: result.id,
+        userId: user.id!,
+        propertyId: propertyId,
+        amount: paymentAmount,
+        rentPortion: rentPortion,
+        paymentRequestId: pr?.id,
+        paymentRequestUuid: pr?.uuid,
+        reference: result.reference!,
+        currency: result.currency || 'NGN',
+        platformId: pr?.platformId,
+        email: user.email!,
+        narration: result.narration || 'Property Payment',
+        excess: excess,
       }))
-    } catch (e: any) {
-      this.logger.error(`Failed to publish payment success event: ${e.message}`)
     }
+
+    return result
   }
 }
 
