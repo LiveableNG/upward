@@ -181,6 +181,11 @@ import {
   GetPropertyBalanceUseCase,
   CreateManualPaymentRequestUseCase,
 } from './use-cases/payments/payment.use-cases'
+import { VerifyGatewayTransactionUseCase } from './use-cases/payments/verify-transaction.use-case'
+import { DistributePaymentAllocationsUseCase } from './use-cases/payments/distribute-allocations.use-case'
+import { SyncPmPaymentStatusUseCase } from './use-cases/payments/sync-pm-status.use-case'
+import { SettlePropertyBalanceUseCase } from './use-cases/payments/settle-property.use-case'
+import { HandlePaymentOverpaymentUseCase } from './use-cases/payments/handle-overpayment.use-case'
 
 import { UploadContractUseCase } from './use-cases/contracts/upload-contract.use-case'
 import { GetContractsUseCase } from './use-cases/contracts/get-contracts.use-case'
@@ -366,6 +371,11 @@ const UseCases = [
   LandlordService,
   ActivityLogService,
   UnifiedReminderService,
+  VerifyGatewayTransactionUseCase,
+  DistributePaymentAllocationsUseCase,
+  SyncPmPaymentStatusUseCase,
+  SettlePropertyBalanceUseCase,
+  HandlePaymentOverpaymentUseCase,
 
   RejectCredibilityRequestUseCase,
 ]
