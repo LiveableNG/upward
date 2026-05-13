@@ -26,6 +26,8 @@ import {
   ResolveSubaccountUseCase,
   GetPropertyBalanceUseCase,
   CreateManualPaymentRequestUseCase,
+  InitializePaymentUseCase,
+  ProcessPaymentWebhookUseCase,
 } from '../../../application/use-cases/payments/payment.use-cases'
 
 @Controller('payments')
@@ -43,6 +45,8 @@ export class PaymentsController {
     private readonly resolveSubaccountUc: ResolveSubaccountUseCase,
     private readonly getPropertyBalanceUc: GetPropertyBalanceUseCase,
     private readonly createManualRequestUc: CreateManualPaymentRequestUseCase,
+    private readonly initializePaymentUc: InitializePaymentUseCase,
+    private readonly processWebhookUc: ProcessPaymentWebhookUseCase,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -107,6 +111,24 @@ export class PaymentsController {
       userPropertyUuid: body.userPropertyUuid,
       currency: body.currency || 'NGN',
     })
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('initialize')
+  async initializePayment(@Req() req: any, @Body() body: any) {
+    const userId = req.user.id
+    return this.initializePaymentUc.execute({
+      userId,
+      amount: body.amount,
+      paymentRequestUuid: body.paymentRequestUuid,
+      metadata: body.metadata,
+    })
+  }
+
+  @Post('webhook/paystack')
+  async handlePaystackWebhook(@Body() payload: any, @Req() req: any) {
+    const signature = req.headers['x-paystack-signature']
+    return this.processWebhookUc.execute(payload, signature)
   }
 
   @UseGuards(JwtAuthGuard)

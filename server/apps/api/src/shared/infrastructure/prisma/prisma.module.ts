@@ -35,7 +35,7 @@ import { PrismaFeedbackRepository } from './repositories/prisma-feedback.reposit
 import { PrismaPmDocumentRepository } from './repositories/prisma-pm-document.repository'
 import { PrismaLandlordRepository } from './repositories/prisma-landlord.repository'
 
-import { PaystackGateway } from '../../../domains/payments/paystack.gateway'
+import { PaystackGateway } from '../payments/paystack.gateway'
 import { WAITLIST_REPOSITORY } from '../../../domains/waitlist/waitlist.repository'
 import { USER_REPOSITORY } from '../../../domains/users/user.repository'
 import {

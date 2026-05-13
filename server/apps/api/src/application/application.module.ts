@@ -181,6 +181,8 @@ import {
   ResolveSubaccountUseCase,
   GetPropertyBalanceUseCase,
   CreateManualPaymentRequestUseCase,
+  InitializePaymentUseCase,
+  ProcessPaymentWebhookUseCase,
 } from './use-cases/payments/payment.use-cases'
 import { VerifyGatewayTransactionUseCase } from './use-cases/payments/verify-transaction.use-case'
 import { DistributePaymentAllocationsUseCase } from './use-cases/payments/distribute-allocations.use-case'
@@ -297,6 +299,8 @@ const UseCases = [
   GetPropertyBalanceUseCase,
   RentReminderWorkflowUseCase,
   DeactivateAnnouncementsUseCase,
+  InitializePaymentUseCase,
+  ProcessPaymentWebhookUseCase,
 
   UploadContractUseCase,
   GetContractsUseCase,

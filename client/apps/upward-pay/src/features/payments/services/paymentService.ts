@@ -10,11 +10,11 @@ export async function fetchPaymentRequest(token: string) {
 }
 
 export async function initializePayment(data: {
-  paymentToken: string
-  email: string
-  amount?: number
+  amount: number
+  paymentRequestUuid?: string
+  metadata?: any
 }) {
-  return request<PaymentInitResponse>('/pay/initialize', {
+  return request<PaymentInitResponse>('/payments/initialize', {
     method: 'POST',
     body: JSON.stringify(data),
   })
