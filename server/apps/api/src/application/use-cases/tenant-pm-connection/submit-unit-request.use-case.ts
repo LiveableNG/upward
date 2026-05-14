@@ -79,14 +79,8 @@ export class SubmitUnitRequestUseCase {
       }
     });
 
-    const propertyData = {
+    const propertyBaseData = {
       userId: fullUser.id,
-      location: {
-        address: unitDetails.address,
-        area: unitDetails.area,
-        state: unitDetails.state,
-        country: unitDetails.country,
-      },
       rentAmount: unitDetails.rentAmount,
       rentStartDate: new Date(unitDetails.rentStartDate),
       rentEndDate: new Date(unitDetails.rentEndDate),
@@ -98,23 +92,38 @@ export class SubmitUnitRequestUseCase {
     if (unitDetails.uuid) {
       await (this.prisma as any).upward_user_property.update({
         where: { uuid: unitDetails.uuid, userId: fullUser.id },
-        data: propertyData
+        data: {
+          ...propertyBaseData,
+          location: {
+            update: {
+              address: unitDetails.address,
+              area: unitDetails.area,
+              state: unitDetails.state,
+              country: unitDetails.country,
+            }
+          }
+        }
       });
     } else {
       await (this.prisma as any).upward_user_property.create({
-        data: propertyData
+        data: {
+          ...propertyBaseData,
+          location: {
+            create: {
+              address: unitDetails.address,
+              area: unitDetails.area,
+              state: unitDetails.state,
+              country: unitDetails.country,
+            }
+          }
+        }
       });
     }
 
-    // 4. Send Invite Email (InvitePmUseCase handles checking if we need to send "first invite" or "another invite")
     if (isNewShadowPm) {
       await this.invitePmUseCase.execute(fullUser, pmEmail, pm.firstName, true, pm.uuid);
     } else if (pm.passwordHash === 'PENDING_INVITE') {
-      // It's a shadow PM that already exists, so we send the "another tenant" email
       await this.invitePmUseCase.execute(fullUser, pmEmail, pm.firstName, false, pm.uuid);
-    } else {
-      // Normal existing PM, we could optionally send a notification email, but for now we'll just log activity
-      // Activity Log already captures it, push notification could be sent here.
     }
 
     return {
