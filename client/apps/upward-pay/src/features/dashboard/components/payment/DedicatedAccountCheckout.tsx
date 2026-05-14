@@ -40,8 +40,8 @@ export default function DedicatedAccountCheckout({
     setIsVerifying(true)
     setVerifyError(null)
     try {
-      const res = await api.verifyTransaction(reference)
-      if (res.data?.isVerified || res.data?.status === 'SUCCESS' || res.data?.status === 'PAID') {
+      const res = await api.verifyPayment(reference)
+      if (res?.isVerified || res?.status === 'SUCCESS' || res?.status === 'PAID') {
         onSuccess(reference)
       } else {
         setVerifyError("Payment not detected yet. It might take a few minutes for the bank to process the transfer.")
@@ -119,7 +119,7 @@ export default function DedicatedAccountCheckout({
             <button 
               className="dashboard-btn dashboard-btn--primary" 
               style={{ width: '100%', height: 48 }}
-              onClick={handleConfirm}
+              onClick={() => handleConfirm()}
               disabled={isVerifying}
             >
               {isVerifying ? (
