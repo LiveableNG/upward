@@ -2,6 +2,12 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { useCredibilityRequests } from '@/features/pm/hooks/useCredibilityRequests'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/lib/api'
+import { cn } from '@/lib/utils'
+import { useAuth } from '@/features/auth/AuthContext'
+import { useProperties } from '@/features/pm/hooks/useProperties'
 import { 
   CreditCard, 
   UserCircle, 
@@ -9,12 +15,9 @@ import {
   ChevronRight, 
   ChevronLeft,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  UserPlus
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useAuth } from '@/features/auth/AuthContext'
-import { useProperties } from '@/features/pm/hooks/useProperties'
-import { useCredibilityRequests } from '@/features/pm/hooks/useCredibilityRequests'
 
 interface CarouselItem {
   id: string
@@ -66,15 +69,35 @@ export function ActivityCarousel() {
   // Create dynamic items based on fetched data
   let dynamicItems = [...items]
   
+  const { data: joinRequests = [] } = useQuery({
+    queryKey: ['tenant-join-requests'],
+    queryFn: async () => {
+      const res = await api.get('/pm/tenants/join-requests')
+      return res.data || []
+    }
+  })
+  
+  if (joinRequests.length > 0) {
+    dynamicItems.unshift({
+      id: 'join-requests',
+      title: 'New Tenant Requests',
+      description: `You have ${joinRequests.length} pending tenant${joinRequests.length > 1 ? 's' : ''} requesting to join your properties.`,
+      icon: UserPlus,
+      link: '/dashboard',
+      color: 'forest',
+      actionLabel: 'Handle Requests'
+    })
+  }
+
   if (credibilityRequests.length > 0) {
     dynamicItems.unshift({
       id: 'credibility-requests',
-      title: 'Past Tenancy Requests',
-      description: `You have ${credibilityRequests.length} pending request${credibilityRequests.length > 1 ? 's' : ''} for past payment records from tenants.`,
+      title: 'Payment History Requests',
+      description: `You have ${credibilityRequests.length} request${credibilityRequests.length > 1 ? 's' : ''} for past payment records from tenants.`,
       icon: CreditCard,
       link: '/requests',
       color: 'warning',
-      actionLabel: 'Review Requests'
+      actionLabel: 'Review Records'
     })
   }
 
