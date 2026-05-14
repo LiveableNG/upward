@@ -27,6 +27,7 @@ export class SubmitUnitRequestUseCase {
       uuid?: string;
       address: string;
       area: string;
+      subarea: string;
       state: string;
       country: string;
       rentAmount: number;
@@ -84,9 +85,7 @@ export class SubmitUnitRequestUseCase {
       rentAmount: unitDetails.rentAmount,
       rentStartDate: new Date(unitDetails.rentStartDate),
       rentEndDate: new Date(unitDetails.rentEndDate),
-      isManaged: false,
-      managerName: pmName || `${pm.firstName} ${pm.lastName}`,
-      managerEmail: pmEmail,
+      pmId: pm.id,
     };
 
     if (unitDetails.uuid) {
@@ -98,6 +97,7 @@ export class SubmitUnitRequestUseCase {
             update: {
               address: unitDetails.address,
               area: unitDetails.area,
+              subarea: unitDetails.subarea,
               state: unitDetails.state,
               country: unitDetails.country,
             }
@@ -112,6 +112,7 @@ export class SubmitUnitRequestUseCase {
             create: {
               address: unitDetails.address,
               area: unitDetails.area,
+              subarea: unitDetails.subarea,
               state: unitDetails.state,
               country: unitDetails.country,
             }
