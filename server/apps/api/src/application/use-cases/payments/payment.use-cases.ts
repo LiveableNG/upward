@@ -597,7 +597,21 @@ export class InitializePaymentUseCase {
       const availableOverpayments = await this.overpaymentRepo.findByUserIdAndStatus(user.id!, 'AVAILABLE')
       const totalCredit = availableOverpayments.reduce((sum, o) => sum + o.amount, 0)
       
-      const requestedTotal = (data.amount || pr.amount) + flatFee
+      const baseAmount = data.amount || pr.amount
+      
+      let clientFee = 0
+      if (data.metadata?.lineItems) {
+        const feeItem = data.metadata.lineItems.find((i: any) => 
+          (i.label || i.name) === 'Processing Fee'
+        )
+        if (feeItem) clientFee = Number(feeItem.amount)
+      } else if (data.metadata?.fee) {
+        clientFee = Number(data.metadata.fee)
+      }
+
+      const effectiveFee = clientFee || (data.amount ? 0 : flatFee)
+      const requestedTotal = baseAmount + (data.amount ? 0 : (clientFee || flatFee))
+      
       const appliedCredit = Math.min(totalCredit, requestedTotal)
       const finalAmountToPay = requestedTotal - appliedCredit
 
@@ -613,7 +627,7 @@ export class InitializePaymentUseCase {
         amount: requestedTotal,
         appliedCredit,
         finalAmount: finalAmountToPay,
-        fee: flatFee,
+        fee: effectiveFee || flatFee,
         dva: {
           accountNumber: dva.accountNumber,
           accountName: dva.accountName,
