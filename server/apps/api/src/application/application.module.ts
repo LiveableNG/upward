@@ -188,6 +188,8 @@ import {
   GetLandlordPayoutsUseCase,
   GetPayoutBreakdownUseCase,
   GetPmPayoutsUseCase,
+  GetBankDetailsUseCase,
+  SaveBankDetailsUseCase,
 } from './use-cases/payments/payment.use-cases'
 import { VerifyGatewayTransactionUseCase } from './use-cases/payments/verify-transaction.use-case'
 import { DistributePaymentAllocationsUseCase } from './use-cases/payments/distribute-allocations.use-case'
@@ -311,6 +313,8 @@ const UseCases = [
   GetLandlordPayoutsUseCase,
   GetPayoutBreakdownUseCase,
   GetPmPayoutsUseCase,
+  GetBankDetailsUseCase,
+  SaveBankDetailsUseCase,
 
   UploadContractUseCase,
   GetContractsUseCase,
