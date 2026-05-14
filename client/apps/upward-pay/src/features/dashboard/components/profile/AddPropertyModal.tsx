@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
-import { X, Search, CheckCircle2, UserPlus, Building2, MapPin, Calendar, CreditCard, ChevronRight } from 'lucide-react'
+import { X, Search, CheckCircle2, UserPlus, Building2, MapPin, Calendar, CreditCard, ChevronRight, Globe, Hash } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useMutation } from '@tanstack/react-query'
 import { COUNTRIES, STATES } from '@/lib/location-data'
+import './AddPropertyModal.css'
 
 interface AddPropertyModalProps {
   isOpen: boolean
@@ -47,7 +48,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
           rentStartDate: initialData.rentStartDate ? new Date(initialData.rentStartDate).toISOString().split('T')[0] : '',
           rentEndDate: initialData.rentEndDate ? new Date(initialData.rentEndDate).toISOString().split('T')[0] : ''
         })
-        setStep('LOOKUP') // Give them a chance to change PM or just skip to details
+        setStep('LOOKUP') 
         setPmFound(false)
         setPmDetails(null)
       } else {
@@ -134,28 +135,34 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
   if (!isOpen) return null
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" style={{ maxWidth: '500px', width: '90%' }} onClick={e => e.stopPropagation()}>
-        <div className="modal-card__header">
-          <div>
-            <h3 className="modal-card__title">Add Property Details</h3>
-            <p className="modal-card__subtitle">
-              {step === 'LOOKUP' ? 'First, let\'s find your property manager' : 'Tell us about the property'}
-            </p>
+    <div className="add-property-modal" onClick={onClose}>
+      <div className="add-property-modal__content" onClick={e => e.stopPropagation()}>
+        <button className="add-property-modal__close" onClick={onClose}>
+          <X size={18} />
+        </button>
+
+        <div className="add-property-modal__header">
+          <div className="add-property-modal__icon-wrapper">
+            {step === 'LOOKUP' ? <Search size={28} /> : <Building2 size={28} />}
           </div>
-          <button className="modal-card__close" onClick={onClose}><X size={20} /></button>
+          <h3 className="add-property-modal__title">
+            {step === 'LOOKUP' ? 'Add Property Details' : 'Property Details'}
+          </h3>
+          <p className="add-property-modal__subtitle">
+            {step === 'LOOKUP' ? 'First, let\'s find your property manager' : 'Tell us about the property and lease'}
+          </p>
         </div>
 
-        <div className="modal-card__body">
+        <div className="add-property-modal__body">
           {step === 'LOOKUP' ? (
-            <form onSubmit={e => { e.preventDefault(); if (pmEmail) verifyMutation.mutate(pmEmail) }} className="flex flex-col gap-5">
-              <div className="form-group">
-                <label className="text-sm font-medium text-[var(--text-primary)] mb-1.5 block">Property Manager's Email</label>
-                <div className="input-wrapper">
-                  <Search size={18} className="input-icon" />
+            <form onSubmit={e => { e.preventDefault(); if (pmEmail) verifyMutation.mutate(pmEmail) }} className="add-property-modal__form">
+              <div className="add-property-modal__input-container">
+                <label className="add-property-modal__label">Property Manager's Email</label>
+                <div className="add-property-modal__input-wrapper">
+                  <Search size={18} className="add-property-modal__input-icon" />
                   <input 
                     type="email" 
-                    className="form-input form-input--with-icon" 
+                    className="add-property-modal__input" 
                     placeholder="manager@example.com"
                     value={pmEmail}
                     onChange={e => setPmEmail(e.target.value)}
@@ -165,159 +172,183 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
               </div>
 
               {verifyMutation.isError && (
-                <p className="text-sm text-red-500">Unable to check email. Please try again.</p>
+                <p className="text-sm text-red-500 text-center">Unable to check email. Please try again.</p>
               )}
 
-              <div className="flex flex-col gap-3">
+              <div className="add-property-modal__actions">
                 <button 
                   type="submit"
-                  className="btn btn--primary w-full py-3"
+                  className="add-property-modal__btn add-property-modal__btn--primary w-full"
                   disabled={verifyMutation.isPending || !pmEmail}
                 >
                   {verifyMutation.isPending ? 'Searching...' : 'Continue'}
+                  <ChevronRight size={18} />
                 </button>
-                {initialData && (
-                  <button 
-                    type="button"
-                    className="btn btn--ghost w-full py-2"
-                    onClick={() => setStep('DETAILS')}
-                  >
-                    Skip to Details
-                  </button>
-                )}
               </div>
+              
+              {initialData && (
+                <button 
+                  type="button"
+                  className="add-property-modal__btn add-property-modal__btn--back w-full mt-[-8px]"
+                  onClick={() => setStep('DETAILS')}
+                >
+                  Skip to Details
+                </button>
+              )}
             </form>
           ) : (
-            <form onSubmit={e => { e.preventDefault(); submitMutation.mutate() }} className="flex flex-col gap-4">
+            <form onSubmit={e => { e.preventDefault(); submitMutation.mutate() }} className="add-property-modal__form">
               {pmFound && pmDetails ? (
-                <div className="bg-[var(--surface2)] rounded-xl p-4 border border-[var(--border)] flex items-center gap-3">
-                  <CheckCircle2 className="text-green-500 flex-shrink-0" size={24} />
-                  <div>
-                    <p className="text-sm font-medium">Property Manager Found</p>
-                    <p className="text-xs text-[var(--text-secondary)]">{pmDetails.businessName}</p>
+                <div className="add-property-modal__pm-status add-property-modal__pm-status--found">
+                  <div className="add-property-modal__pm-icon">
+                    <CheckCircle2 className="text-green-500" size={24} />
+                  </div>
+                  <div className="add-property-modal__pm-info">
+                    <p className="add-property-modal__pm-label">Property Manager Found</p>
+                    <p className="add-property-modal__pm-name">{pmDetails.businessName}</p>
                   </div>
                 </div>
               ) : (
-                <div className="bg-[var(--surface2)] rounded-xl p-4 border border-[var(--border)]">
-                  <div className="flex items-center gap-3 mb-3">
-                    <UserPlus className="text-[var(--clay)] flex-shrink-0" size={20} />
-                    <p className="text-sm font-medium">We'll invite your manager to Upward</p>
+                <div className="add-property-modal__pm-status">
+                  <div className="add-property-modal__pm-icon">
+                    <UserPlus className="text-[var(--clay)]" size={20} />
                   </div>
-                  <div className="form-group">
-                    <label className="text-xs font-medium text-[var(--text-secondary)] mb-1 block">Manager's Full Name</label>
-                    <input 
-                      type="text" 
-                      className="form-input form-input--sm" 
-                      placeholder="e.g. John Smith"
-                      value={formData.pmName}
-                      onChange={e => setFormData({ ...formData, pmName: e.target.value })}
-                      required
-                    />
+                  <div className="add-property-modal__pm-info">
+                    <p className="add-property-modal__pm-label">New Manager Invite</p>
+                    <div className="add-property-modal__input-wrapper">
+                      <input 
+                        type="text" 
+                        className="add-property-modal__input add-property-modal__input--no-icon" 
+                        placeholder="Manager's Full Name"
+                        style={{ padding: '8px 12px', borderRadius: '10px' }}
+                        value={formData.pmName}
+                        onChange={e => setFormData({ ...formData, pmName: e.target.value })}
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="form-group">
-                  <label className="text-xs font-medium text-[var(--text-secondary)] mb-1 block">Street Address</label>
+              <div className="add-property-modal__input-container">
+                <label className="add-property-modal__label">Street Address</label>
+                <div className="add-property-modal__input-wrapper">
+                  <MapPin size={18} className="add-property-modal__input-icon" />
                   <input 
                     type="text" 
-                    className="form-input form-input--sm" 
+                    className="add-property-modal__input" 
                     placeholder="12 Adeola Odeku"
                     value={formData.address}
                     onChange={e => setFormData({ ...formData, address: e.target.value })}
                     required
                   />
                 </div>
-                <div className="form-group">
-                  <label className="text-xs font-medium text-[var(--text-secondary)] mb-1 block">Area</label>
-                  <input 
-                    type="text" 
-                    className="form-input form-input--sm" 
-                    placeholder="e.g. Victoria Island"
-                    value={formData.area}
-                    onChange={e => setFormData({ ...formData, area: e.target.value })}
-                    required
-                  />
+              </div>
+
+              <div className="add-property-modal__field-group">
+                <div className="add-property-modal__input-container">
+                  <label className="add-property-modal__label">Area</label>
+                  <div className="add-property-modal__input-wrapper">
+                    <Building2 size={16} className="add-property-modal__input-icon" />
+                    <input 
+                      type="text" 
+                      className="add-property-modal__input" 
+                      placeholder="e.g. Victoria Island"
+                      value={formData.area}
+                      onChange={e => setFormData({ ...formData, area: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="add-property-modal__input-container">
+                  <label className="add-property-modal__label">State</label>
+                  <div className="add-property-modal__input-wrapper">
+                    <MapPin size={16} className="add-property-modal__input-icon" />
+                    <select 
+                      className="add-property-modal__input add-property-modal__select"
+                      value={formData.state}
+                      onChange={e => setFormData({ ...formData, state: e.target.value })}
+                      required
+                    >
+                      {(STATES[formData.country] || []).map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="form-group">
-                  <label className="text-xs font-medium text-[var(--text-secondary)] mb-1 block">Country</label>
-                  <select 
-                    className="form-input form-input--sm"
-                    value={formData.country}
-                    onChange={e => setFormData({ ...formData, country: e.target.value, state: STATES[e.target.value]?.[0] || '' })}
-                  >
-                    {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
-                  </select>
+              <div className="add-property-modal__field-group">
+                <div className="add-property-modal__input-container">
+                  <label className="add-property-modal__label">Rent Amount</label>
+                  <div className="add-property-modal__input-wrapper">
+                    <CreditCard size={16} className="add-property-modal__input-icon" />
+                    <input 
+                      type="text" 
+                      className="add-property-modal__input" 
+                      placeholder="2,500,000"
+                      value={formData.rentAmount}
+                      onChange={e => {
+                        const val = e.target.value.replace(/\D/g, '')
+                        setFormData({ ...formData, rentAmount: val ? parseInt(val, 10).toLocaleString() : '' })
+                      }}
+                      required
+                    />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label className="text-xs font-medium text-[var(--text-secondary)] mb-1 block">State</label>
-                  <select 
-                    className="form-input form-input--sm"
-                    value={formData.state}
-                    onChange={e => setFormData({ ...formData, state: e.target.value })}
-                    required
-                  >
-                    {(STATES[formData.country] || []).map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="text-xs font-medium text-[var(--text-secondary)] mb-1 block">Rent Amount</label>
-                <div className="input-wrapper">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] font-medium">₦</span>
-                  <input 
-                    type="text" 
-                    className="form-input form-input--sm pl-8" 
-                    placeholder="2,500,000"
-                    value={formData.rentAmount}
-                    onChange={e => {
-                      const val = e.target.value.replace(/\D/g, '')
-                      setFormData({ ...formData, rentAmount: val ? parseInt(val, 10).toLocaleString() : '' })
-                    }}
-                    required
-                  />
+                <div className="add-property-modal__input-container">
+                  <label className="add-property-modal__label">Country</label>
+                  <div className="add-property-modal__input-wrapper">
+                    <Globe size={16} className="add-property-modal__input-icon" />
+                    <select 
+                      className="add-property-modal__input add-property-modal__select"
+                      value={formData.country}
+                      onChange={e => setFormData({ ...formData, country: e.target.value, state: STATES[e.target.value]?.[0] || '' })}
+                    >
+                      {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="form-group">
-                  <label className="text-xs font-medium text-[var(--text-secondary)] mb-1 block">Start Date</label>
-                  <input 
-                    type="date" 
-                    className="form-input form-input--sm"
-                    value={formData.rentStartDate}
-                    onChange={e => setFormData({ ...formData, rentStartDate: e.target.value })}
-                    required
-                  />
+              <div className="add-property-modal__field-group">
+                <div className="add-property-modal__input-container">
+                  <label className="add-property-modal__label">Start Date</label>
+                  <div className="add-property-modal__input-wrapper">
+                    <Calendar size={16} className="add-property-modal__input-icon" />
+                    <input 
+                      type="date" 
+                      className="add-property-modal__input"
+                      value={formData.rentStartDate}
+                      onChange={e => setFormData({ ...formData, rentStartDate: e.target.value })}
+                      required
+                    />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label className="text-xs font-medium text-[var(--text-secondary)] mb-1 block">End Date</label>
-                  <input 
-                    type="date" 
-                    className="form-input form-input--sm"
-                    value={formData.rentEndDate}
-                    onChange={e => setFormData({ ...formData, rentEndDate: e.target.value })}
-                    required
-                  />
+                <div className="add-property-modal__input-container">
+                  <label className="add-property-modal__label">End Date</label>
+                  <div className="add-property-modal__input-wrapper">
+                    <Calendar size={16} className="add-property-modal__input-icon" />
+                    <input 
+                      type="date" 
+                      className="add-property-modal__input"
+                      value={formData.rentEndDate}
+                      onChange={e => setFormData({ ...formData, rentEndDate: e.target.value })}
+                      required
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-2">
+              <div className="add-property-modal__actions">
                 <button 
                   type="button"
-                  className="btn btn--outline w-full py-2.5"
+                  className="add-property-modal__btn add-property-modal__btn--back"
                   onClick={() => setStep('LOOKUP')}
                 >
                   Back
                 </button>
                 <button 
                   type="submit"
-                  className="btn btn--primary w-full py-2.5"
+                  className="add-property-modal__btn add-property-modal__btn--primary"
                   disabled={submitMutation.isPending}
                 >
                   {submitMutation.isPending ? 'Saving...' : 'Send Request'}
