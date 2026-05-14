@@ -6,6 +6,7 @@ import { getMe, logout as authLogout } from './services/authService'
 import { useRouter } from 'next/navigation'
 import { setAccessToken } from '@/lib/auth-token'
 import { useQueryClient } from '@tanstack/react-query'
+import { useToast } from '@/components/common/Toast'
 
 interface AuthContextType {
   user: PropertyManagerProfile | null
@@ -24,6 +25,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const queryClient = useQueryClient()
 
+  const { error: toastError } = useToast()
+
   const refreshUser = async () => {
     try {
       const profile = await getMe()
@@ -31,6 +34,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       setUser(null)
       setAccessToken(null)
+      
+      // Redirect to login if we're on a protected page and auth fails
+      const isPublicPage = window.location.pathname === '/login' || 
+                           window.location.pathname === '/signup' ||
+                           window.location.pathname.startsWith('/invite') ||
+                           window.location.pathname.startsWith('/reset-password')
+      
+      if (!isPublicPage) {
+        toastError('Your session has expired. Please login again.', 'Session Expired')
+        router.replace(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)
+      }
     } finally {
       setLoading(false)
     }
