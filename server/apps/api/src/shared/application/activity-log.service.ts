@@ -28,7 +28,8 @@ export class ActivityLogService {
     description: string;
     metadata?: any;
   }) {
-    if (params.pmId === params.ownerPmId) return;
+    // Only skip same-PM logs for standard collaboration actions, allow tenant requests
+    if (params.pmId === params.ownerPmId && params.action !== 'TENANT_JOIN_REQUEST') return;
 
     return (this.prisma as any).upward_pm_activity_log.create({
       data: {

@@ -21,9 +21,15 @@ type TenantFormData = z.infer<typeof tenantSchema>
 interface AddTenantModalProps {
   isOpen: boolean
   onClose: () => void
+  initialData?: {
+    firstName?: string
+    lastName?: string
+    email?: string
+    phone?: string
+  }
 }
 
-export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose }) => {
+export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose, initialData }) => {
   const { createTenant } = useTenantActions()
   
   const { 
@@ -36,10 +42,10 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose 
     mode: 'all',
     resolver: zodResolver(tenantSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: ''
+      firstName: initialData?.firstName || '',
+      lastName: initialData?.lastName || '',
+      email: initialData?.email || '',
+      phone: initialData?.phone || ''
     }
   })
 

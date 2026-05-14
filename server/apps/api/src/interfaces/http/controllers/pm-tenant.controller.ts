@@ -8,6 +8,8 @@ import { AssignTenantToUnitUseCase } from '../../../application/pm/use-cases/ten
 import { UpdateTenantUseCase } from '../../../application/pm/use-cases/tenants/update-tenant.use-case';
 import { BulkCreateTenantRecordsUseCase } from '../../../application/pm/use-cases/bulk-create-tenant-records.use-case';
 import { BulkInviteTenantsUseCase, BulkInviteDto } from '../../../application/pm/use-cases/tenants/bulk-invite-tenants.use-case';
+import { GetPendingJoinRequestsUseCase } from '../../../application/pm/use-cases/tenants/get-pending-join-requests.use-case';
+import { DismissJoinRequestUseCase } from '../../../application/pm/use-cases/tenants/dismiss-join-request.use-case';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 
 @Controller('pm/tenants')
@@ -22,6 +24,8 @@ export class PmTenantController {
     private readonly updateTenantUseCase: UpdateTenantUseCase,
     private readonly bulkCreateTenantRecordsUseCase: BulkCreateTenantRecordsUseCase,
     private readonly bulkInviteTenantsUseCase: BulkInviteTenantsUseCase,
+    private readonly getPendingJoinRequestsUseCase: GetPendingJoinRequestsUseCase,
+    private readonly dismissJoinRequestUseCase: DismissJoinRequestUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -37,6 +41,18 @@ export class PmTenantController {
   async getTenants(@Req() req: any) {
     const pmId = await this.getPmId(req);
     return this.getPmTenantsUseCase.execute(pmId);
+  }
+
+  @Get('join-requests')
+  async getJoinRequests(@Req() req: any) {
+    const pmId = await this.getPmId(req);
+    return this.getPendingJoinRequestsUseCase.execute(pmId);
+  }
+
+  @Post('join-requests/:uuid/dismiss')
+  async dismissJoinRequest(@Req() req: any, @Param('uuid') uuid: string) {
+    const pmId = await this.getPmId(req);
+    return this.dismissJoinRequestUseCase.execute(pmId, uuid);
   }
 
   @Get(':uuid')
