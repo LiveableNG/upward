@@ -189,12 +189,19 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
 
       <style jsx>{`
         .profile-shell {
+          width: 100%;
           max-width: 800px;
           margin: 0 auto;
-          padding: 1.5rem;
+          padding: 1rem;
           display: flex;
           flex-direction: column;
           gap: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+          .profile-shell {
+            padding: 1.5rem;
+          }
         }
 
         .premium-hero {
