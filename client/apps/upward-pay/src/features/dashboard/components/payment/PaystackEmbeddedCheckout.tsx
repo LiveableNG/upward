@@ -60,12 +60,12 @@ export default function PaystackEmbeddedCheckout({
           }
         })
 
-        if (res.data && res.data.type === 'DVA') {
+        if (res && res.type === 'DVA') {
           setConfig({
             type: 'DVA',
-            dva: res.data.dva,
-            reference: res.data.reference,
-            amount: res.data.amount
+            dva: res.dva,
+            reference: res.reference,
+            amount: res.amount
           })
         } else {
           throw new Error('Direct bank transfer is required for this property, but the payment account could not be resolved. Please contact support.')
