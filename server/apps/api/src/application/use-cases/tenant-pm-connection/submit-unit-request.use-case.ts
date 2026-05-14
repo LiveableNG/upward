@@ -81,11 +81,11 @@ export class SubmitUnitRequestUseCase {
     });
 
     const propertyBaseData = {
-      userId: fullUser.id,
+      user: { connect: { id: fullUser.id } },
+      pm: { connect: { id: pm.id } },
       rentAmount: unitDetails.rentAmount,
       rentStartDate: new Date(unitDetails.rentStartDate),
       rentEndDate: new Date(unitDetails.rentEndDate),
-      pmId: pm.id,
     };
 
     if (unitDetails.uuid) {
