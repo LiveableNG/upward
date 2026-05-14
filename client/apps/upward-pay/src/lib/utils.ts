@@ -71,24 +71,9 @@ export function generateId(prefix = ''): string {
 
 export function calculateCombinedFee(netAmount: number): number {
   if (netAmount <= 0) return 0;
-  const UPWARD_FEE = 2000;
-  const threshold = 2462.5;
-  const isAboveThreshold = netAmount >= threshold;
-  const gross = isAboveThreshold ? (netAmount + 100) / 0.985 : netAmount / 0.985;
-  const paystackFee = Math.ceil(Math.min(2000, gross - netAmount));
-  // return UPWARD_FEE + paystackFee;
   return 2000;
 }
 export function getNetAmountFromTotal(total: number): number {
-  if (total <= 0) return 0;
-  if (total >= 128666) {
-    return total - 4000;
-  }
-  if (total >= 4500) {
-    return Math.round((total - 2000) * 0.985 - 100);
-  }
-  if (total > 2000) {
-    return Math.round((total - 2000) * 0.985);
-  }
-  return 0;
+  if (total <= 2000) return 0;
+  return total - 2000;
 }

@@ -58,3 +58,18 @@ export const useCancelPaymentRequest = () => {
     }
   })
 }
+
+export const usePayouts = () => {
+  return useQuery({
+    queryKey: ['pm-payouts'],
+    queryFn: () => api.getPayouts()
+  })
+}
+
+export const usePayoutBreakdown = (uuid: string) => {
+  return useQuery({
+    queryKey: ['pm-payout-breakdown', uuid],
+    queryFn: () => api.getPayoutBreakdown(uuid),
+    enabled: !!uuid
+  })
+}

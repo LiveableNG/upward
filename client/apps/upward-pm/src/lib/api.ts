@@ -54,6 +54,8 @@ export const api = {
   updatePaymentRequest: paymentService.updatePaymentRequest,
   resendPaymentRequest: paymentService.resendPaymentRequest,
   cancelPaymentRequest: paymentService.cancelPaymentRequest,
+  getPayouts: paymentService.getPayouts,
+  getPayoutBreakdown: paymentService.getPayoutBreakdown,
   
   // Team Collaboration
   inviteTeamMember: pmService.inviteTeamMember,

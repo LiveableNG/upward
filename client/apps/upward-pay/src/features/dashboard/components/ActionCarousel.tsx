@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Clock, MapPin, Bell, ArrowRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, MapPin, Bell, ArrowRight, AlertCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { type PendingPayment } from '../types'
@@ -68,13 +68,25 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const slides: any[] = []
 
-  // Pending Payments
-  pendingPayments
-    .filter(p => p.status !== 'PAID' && (p.amountPaid || 0) < p.total_amount)
-    .forEach((p) => {
-      const remaining = p.total_amount - (p.amountPaid || 0)
-      const isPartial = (p.amountPaid || 0) > 0
+  // Pending Payments & Refund Alerts
+  pendingPayments.forEach((p: any) => {
+    if (p.type === 'refund_alert') {
+      slides.push({
+        type: 'refund',
+        id: p.uuid,
+        title: 'Refund Pending',
+        desc: `A payment of ${formatCurrency(p.amount, p.currency)} was intercepted due to a policy violation. Complete your bank details to claim your refund.`,
+        actionLabel: 'Claim Refund',
+        action: () => router.push('/dashboard/me?view=banking&edit=true'), // Points to banking section
+        icon: <AlertCircle size={20} color="white" />,
+        bg: 'var(--error)',
+        isCritical: true,
+        beamClass: 'animate-beam-red',
+      })
+      return
+    }
 
+    if (p.status !== 'PAID' && (p.amountPaid || 0) < p.total_amount) {
     const dateStr = p.due_date || p.dueDate
     const isOverdue = dateStr ? new Date(dateStr) < new Date() : false
 
@@ -88,7 +100,8 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: Acti
       bg: isOverdue ? 'var(--error)' : 'var(--clay-faint)',
       isCritical: isOverdue,
       beamClass: isOverdue ? 'animate-beam-red' : 'animate-beam-clay',
-    })
+      })
+    }
   })
 
   // Rent Reminders (Only if overdue)

@@ -8,6 +8,7 @@ import { EncryptionService } from '../../../../shared/infrastructure/common/encr
 import { LOCATION_REPOSITORY, LocationRepository } from '../../../../domains/companies/property.repository';
 import { COMPANY_REPOSITORY, CompanyRepository, MANAGER_REPOSITORY, ManagerRepository } from '../../../../domains/companies/company.repository';
 import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../../domains/payments/payment.repository';
+import { ResolveDedicatedAccountUseCase } from '../../../use-cases/payments/payment.use-cases';
 
 @Injectable()
 export class SyncUnitToUpwardUseCase {
@@ -30,6 +31,7 @@ export class SyncUnitToUpwardUseCase {
     private readonly managerRepo: ManagerRepository,
     @Inject(PAYMENT_GATEWAY)
     private readonly paymentGateway: IPaymentGateway,
+    private readonly resolveDedicatedAccount: ResolveDedicatedAccountUseCase,
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
   ) { }
@@ -222,6 +224,19 @@ export class SyncUnitToUpwardUseCase {
         type: 'SYSTEM',
         url: `/properties/${userProperty.uuid}`
       });
+
+      // 4. Pre-provision Dedicated Virtual Account (DVA)
+      if (userProperty.id) {
+        try {
+          await this.resolveDedicatedAccount.execute({
+            userPropertyId: userProperty.id,
+            tenantEmail: upwardUser.email!,
+            tenantName: `${upwardUser.firstName} ${upwardUser.lastName}`,
+          });
+        } catch (e: any) {
+          this.logger.warn(`Failed to pre-provision DVA during sync: ${e.message}`);
+        }
+      }
     });
 
     this.logger.log(`Unit ${unitUuid} synced to Upward Pay for user ${upwardUser.email}`);

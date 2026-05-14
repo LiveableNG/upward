@@ -11,6 +11,7 @@ import {
   PrismaOverpaymentRepository,
 } from './repositories/prisma-payments.repository'
 import { PrismaPaymentLineItemRepository } from './repositories/prisma-payment-line-item.repository'
+import { PrismaDVAAccountRepository } from './prisma-dva-account.repository'
 import {
   PrismaCompanyRepository,
   PrismaCompanyUserRepository,
@@ -47,6 +48,7 @@ import {
   WEBHOOK_REPOSITORY,
   OVERPAYMENT_REPOSITORY,
   PAYMENT_LINE_ITEM_REPOSITORY,
+  DVA_ACCOUNT_REPOSITORY,
 } from '../../../domains/payments/payment.repository'
 import {
   COMPANY_REPOSITORY,
@@ -197,6 +199,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: PM_LANDLORD_REPOSITORY,
       useClass: PrismaLandlordRepository,
     },
+    {
+      provide: DVA_ACCOUNT_REPOSITORY,
+      useClass: PrismaDVAAccountRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -231,6 +237,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     BULK_INVITE_REPOSITORY,
     FEEDBACK_REPOSITORY,
     PM_LANDLORD_REPOSITORY,
+    DVA_ACCOUNT_REPOSITORY,
   ],
 })
 export class PrismaModule {}

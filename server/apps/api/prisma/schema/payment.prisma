@@ -19,6 +19,12 @@ model upward_transaction {
   transactionType  String                  @default("PAYMENT")
   overpayments     upward_overpayment[]
   paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
+  user             upward_user             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Settlement Workflow
+  settlementStatus String                  @default("PENDING") // PENDING, VERIFIED, PENDING_REFUND, SETTLED, REFUNDED
+  settlementBatchId Int?
+  settlementBatch   upward_settlement_batch? @relation(fields: [settlementBatchId], references: [id])
 
   @@index([userId])
   @@index([reference])
@@ -158,4 +164,47 @@ model upward_saved_landlord {
   subaccount    upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
 
   @@index([userId])
+}
+
+model upward_dedicated_virtual_account {
+  id                 Int            @id @default(autoincrement())
+  uuid               String         @unique @default(uuid())
+  accountNumber      String         @unique
+  accountName        String
+  bankName           String
+  bankCode           String
+  accountCode        String         @unique // Paystack assigned code
+  paystackCustomerId String
+  metadata           Json?
+  userPropertyId     Int            @unique
+  userProperty       upward_user_property @relation(fields: [userPropertyId], references: [id])
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@index([accountNumber])
+  @@index([userPropertyId])
+}
+model upward_user_bank_details {
+  id            Int      @id @default(autoincrement())
+  uuid          String   @unique @default(uuid())
+  userId        Int      @unique
+  accountNumber String
+  accountName   String
+  bankCode      String
+  bankName      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model upward_settlement_batch {
+  id              Int                  @id @default(autoincrement())
+  uuid            String               @unique @default(uuid())
+  landlordId      String?              // Paystack Subaccount Code or Internal ID
+  totalAmount     Float
+  status          String               @default("PENDING") // PENDING, COMPLETED, FAILED
+  transferReference String?            @unique
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  transactions    upward_transaction[]
 }

@@ -84,3 +84,11 @@ export const cancelPaymentRequest = (uuid: string) => {
     method: 'DELETE'
   })
 }
+
+export const getPayouts = () => {
+  return request<any[]>('/pm/payouts')
+}
+
+export const getPayoutBreakdown = (uuid: string) => {
+  return request<any>(`/pm/payouts/batch/${uuid}`)
+}

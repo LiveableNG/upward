@@ -13,11 +13,13 @@ import {
   CheckCircle,
   Eye,
   Trash2,
-  ChevronDown
+  ChevronDown,
+  ArrowRightLeft
 } from 'lucide-react'
 import { usePaymentRequests, useCancelPaymentRequest } from '../../hooks/usePayments'
 import { useProperties } from '../../hooks/useProperties'
 import { useToast } from '@/components/common/Toast'
+import { PayoutsList } from './PayoutsList'
 
 import { DataTable, Column } from '@/components/common/DataTable'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
@@ -232,6 +234,7 @@ export function PaymentsView() {
   const [dateFilter, setDateFilter] = useState('All Time')
   const [statusFilter, setStatusFilter] = useState('All')
   const [propertyFilter, setPropertyFilter] = useState('All')
+  const [activeTab, setActiveTab] = useState<'requests' | 'payouts'>('requests')
   
   const [isDateOpen, setIsDateOpen] = useState(false)
   const [isMoreOpen, setIsMoreOpen] = useState(false)
@@ -322,7 +325,26 @@ export function PaymentsView() {
         }
       />
 
-      <ControlBar>
+      <div className="tab-switcher">
+        <button 
+          className={`tab-btn ${activeTab === 'requests' ? 'active' : ''}`}
+          onClick={() => setActiveTab('requests')}
+        >
+          <CreditCard size={18} />
+          Payment Requests
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'payouts' ? 'active' : ''}`}
+          onClick={() => setActiveTab('payouts')}
+        >
+          <ArrowRightLeft size={18} />
+          Landlord Payouts
+        </button>
+      </div>
+
+      {activeTab === 'requests' ? (
+        <>
+          <ControlBar>
         <SearchInput 
           value={searchQuery} 
           onChange={setSearchQuery} 
@@ -409,6 +431,42 @@ export function PaymentsView() {
         requestsOverride={filteredRequests} 
         allRequests={requests || []} 
       />
+      </>
+      ) : (
+        <PayoutsList />
+      )}
+
+      <style jsx>{`
+        .tab-switcher {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 24px;
+          border-bottom: 1px solid var(--border);
+          padding-bottom: 0;
+        }
+        .tab-btn {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 20px;
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-muted);
+          background: none;
+          border: none;
+          border-bottom: 2px solid transparent;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .tab-btn:hover {
+          color: var(--text);
+          background: var(--bg-soft);
+        }
+        .tab-btn.active {
+          color: var(--clay);
+          border-bottom-color: var(--clay);
+        }
+      `}</style>
     </div>
   )
 }
