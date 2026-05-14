@@ -429,6 +429,74 @@ export class RecordTransactionUseCase {
 }
 
 @Injectable()
+export class ResolveDedicatedAccountUseCase {
+  private readonly logger = new Logger(ResolveDedicatedAccountUseCase.name)
+
+  constructor(
+    @Inject(PAYMENT_GATEWAY)
+    private readonly gateway: IPaymentGateway,
+    @Inject(DVA_ACCOUNT_REPOSITORY)
+    private readonly dvaRepo: IDVAAccountRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: UserRepository,
+    private readonly prisma: PrismaService,
+  ) { }
+
+  async execute(data: { userPropertyId: number; tenantEmail?: string; tenantName?: string; subaccountCode?: string }) {
+    this.logger.log(`Resolving dedicated account for User Property ID: ${data.userPropertyId}`)
+    
+    const existing = await this.dvaRepo.findByUserPropertyId(data.userPropertyId)
+    if (existing) {
+      this.logger.log(`Using existing DVA for User Property ${data.userPropertyId}: ${existing.accountNumber}`)
+      return existing
+    }
+    let finalSubaccountCode = data.subaccountCode
+    if (!finalSubaccountCode) {
+      const prop = await this.prisma.upward_user_property.findUnique({
+        where: { id: data.userPropertyId },
+        include: { subaccount: true }
+      })
+      if (prop?.subaccount) {
+        finalSubaccountCode = prop.subaccount.subaccountCode
+        this.logger.log(`Auto-resolved subaccount ${finalSubaccountCode} for DVA creation`)
+      }
+    }
+
+    const email = data.tenantEmail || `prop-${data.userPropertyId}@upward.ng`
+    const firstName = data.tenantName?.split(' ')[0] || 'Tenant'
+    const lastName = data.tenantName?.split(' ')[1] || `Property-${data.userPropertyId}`
+
+    this.logger.log(`Creating customer for DVA: ${email}`)
+    const customerCode = await this.gateway.createCustomer({ email, firstName, lastName })
+    if (!customerCode) throw new Error('Failed to resolve customer for DVA')
+
+    this.logger.log(`Requesting DVA creation from Paystack for customer ${customerCode}`)
+    const res = await this.gateway.createDedicatedAccount({
+      customerCode,      
+      subaccountCode: undefined 
+    })
+
+    if (!res.status || !res.data) {
+      throw new Error(res.message || 'Failed to create dedicated account')
+    }
+
+    const account = res.data
+
+    this.logger.log(`DVA created successfully: ${account.account_number}. Saving to DB...`)
+    return await this.dvaRepo.create({
+      accountNumber: account.account_number,
+      accountName: account.account_name,
+      bankName: account.bank.name,
+      bankCode: account.bank.slug || '',
+      accountCode: account.dedicated_account_code || account.account_number,
+      paystackCustomerId: customerCode,
+      userPropertyId: data.userPropertyId,
+      metadata: account
+    })
+  }
+}
+
+@Injectable()
 export class InitializePaymentUseCase {
   private readonly logger = new Logger(InitializePaymentUseCase.name)
 
@@ -991,73 +1059,6 @@ export class GetPropertyBalanceUseCase {
   }
 }
 
-@Injectable()
-export class ResolveDedicatedAccountUseCase {
-  private readonly logger = new Logger(ResolveDedicatedAccountUseCase.name)
-
-  constructor(
-    @Inject(PAYMENT_GATEWAY)
-    private readonly gateway: IPaymentGateway,
-    @Inject(DVA_ACCOUNT_REPOSITORY)
-    private readonly dvaRepo: IDVAAccountRepository,
-    @Inject(USER_REPOSITORY)
-    private readonly userRepository: UserRepository,
-    private readonly prisma: PrismaService,
-  ) { }
-
-  async execute(data: { userPropertyId: number; tenantEmail?: string; tenantName?: string; subaccountCode?: string }) {
-    this.logger.log(`Resolving dedicated account for User Property ID: ${data.userPropertyId}`)
-    
-    const existing = await this.dvaRepo.findByUserPropertyId(data.userPropertyId)
-    if (existing) {
-      this.logger.log(`Using existing DVA for User Property ${data.userPropertyId}: ${existing.accountNumber}`)
-      return existing
-    }
-    let finalSubaccountCode = data.subaccountCode
-    if (!finalSubaccountCode) {
-      const prop = await this.prisma.upward_user_property.findUnique({
-        where: { id: data.userPropertyId },
-        include: { subaccount: true }
-      })
-      if (prop?.subaccount) {
-        finalSubaccountCode = prop.subaccount.subaccountCode
-        this.logger.log(`Auto-resolved subaccount ${finalSubaccountCode} for DVA creation`)
-      }
-    }
-
-    const email = data.tenantEmail || `prop-${data.userPropertyId}@upward.ng`
-    const firstName = data.tenantName?.split(' ')[0] || 'Tenant'
-    const lastName = data.tenantName?.split(' ')[1] || `Property-${data.userPropertyId}`
-
-    this.logger.log(`Creating customer for DVA: ${email}`)
-    const customerCode = await this.gateway.createCustomer({ email, firstName, lastName })
-    if (!customerCode) throw new Error('Failed to resolve customer for DVA')
-
-    this.logger.log(`Requesting DVA creation from Paystack for customer ${customerCode}`)
-    const res = await this.gateway.createDedicatedAccount({
-      customerCode,      
-      subaccountCode: undefined 
-    })
-
-    if (!res.status || !res.data) {
-      throw new Error(res.message || 'Failed to create dedicated account')
-    }
-
-    const account = res.data
-
-    this.logger.log(`DVA created successfully: ${account.account_number}. Saving to DB...`)
-    return await this.dvaRepo.create({
-      accountNumber: account.account_number,
-      accountName: account.account_name,
-      bankName: account.bank.name,
-      bankCode: account.bank.slug || '',
-      accountCode: account.dedicated_account_code || account.account_number,
-      paystackCustomerId: customerCode,
-      userPropertyId: data.userPropertyId,
-      metadata: account
-    })
-  }
-}
 
 @Injectable()
 export class GetBankDetailsUseCase {
