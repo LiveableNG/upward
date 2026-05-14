@@ -31,7 +31,7 @@ export function DetailOrEdit({
 }: DetailOrEditProps) {
   const isMissing = !value || value === ''
 
-  if (!isEditing && isMissing) return null
+  if (!isEditing && isMissing && !isCritical) return null
 
   return (
     <div className={`detail-item ${isEditing ? 'detail-item--editing' : ''} ${isMissing ? 'detail-item--missing' : ''} ${isCritical ? 'detail-item--critical' : ''} ${error ? 'detail-item--error' : ''}`}>
