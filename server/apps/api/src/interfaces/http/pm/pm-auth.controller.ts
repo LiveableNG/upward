@@ -113,9 +113,14 @@ export class PmAuthController {
       const { refreshToken, ...rest } = await this.pmAuthService.refreshAccessToken(token)
       setPmAuthCookies(reply, rest.accessToken, refreshToken)
       reply.status(HttpStatus.OK).send(rest)
-    } catch (err) {
+    } catch (err: any) {
       clearPmAuthCookies(reply)
-      throw err
+      const status = err.status || HttpStatus.UNAUTHORIZED
+      reply.status(status).send({
+        statusCode: status,
+        message: err.message || 'Session expired',
+        timestamp: new Date().toISOString(),
+      })
     }
   }
 
