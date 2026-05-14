@@ -41,6 +41,39 @@ import { SettlePropertyBalanceUseCase } from './settle-property.use-case'
 import { HandlePaymentOverpaymentUseCase } from './handle-overpayment.use-case'
 import { PaymentConfigurationService } from '../../../shared/infrastructure/common/payment-config.service'
 
+@Injectable()
+export class GetBankDetailsUseCase {
+  constructor(private readonly prisma: PrismaService) {}
+  async execute(userId: number) {
+    return this.prisma.upward_user_bank_details.findUnique({
+      where: { userId }
+    });
+  }
+}
+
+@Injectable()
+export class SaveBankDetailsUseCase {
+  constructor(private readonly prisma: PrismaService) {}
+  async execute(userId: number, data: any) {
+    return this.prisma.upward_user_bank_details.upsert({
+      where: { userId },
+      create: {
+        userId,
+        accountNumber: data.accountNumber,
+        accountName: data.accountName,
+        bankCode: data.bankCode,
+        bankName: data.bankName,
+      },
+      update: {
+        accountNumber: data.accountNumber,
+        accountName: data.accountName,
+        bankCode: data.bankCode,
+        bankName: data.bankName,
+      }
+    });
+  }
+}
+
 
 @Injectable()
 export class CreateManualPaymentRequestUseCase {
@@ -1060,38 +1093,6 @@ export class GetPropertyBalanceUseCase {
 }
 
 
-@Injectable()
-export class GetBankDetailsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
-  async execute(userId: number) {
-    return this.prisma.upward_user_bank_details.findUnique({
-      where: { userId }
-    });
-  }
-}
-
-@Injectable()
-export class SaveBankDetailsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
-  async execute(userId: number, data: any) {
-    return this.prisma.upward_user_bank_details.upsert({
-      where: { userId },
-      create: {
-        userId,
-        accountNumber: data.accountNumber,
-        accountName: data.accountName,
-        bankCode: data.bankCode,
-        bankName: data.bankName,
-      },
-      update: {
-        accountNumber: data.accountNumber,
-        accountName: data.accountName,
-        bankCode: data.bankCode,
-        bankName: data.bankName,
-      }
-    });
-  }
-}
 
 @Injectable()
 export class GetLandlordPayoutsUseCase {
