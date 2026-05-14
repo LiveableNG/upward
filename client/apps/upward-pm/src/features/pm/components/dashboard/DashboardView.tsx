@@ -17,6 +17,7 @@ import { useProperties, useUnits } from '@/features/pm/hooks/useProperties'
 import { useTenants } from '@/features/pm/hooks/useTenants'
 import { usePaymentRequests } from '@/features/pm/hooks/usePayments'
 import { ActivityCarousel } from './ActivityCarousel'
+import { TenantRequestsWidget } from './TenantRequestsWidget'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
 import { StatCard } from '@/components/ui/StatCard/StatCard'
@@ -91,6 +92,8 @@ export function DashboardView() {
       />
 
       <ActivityCarousel />
+
+      <TenantRequestsWidget />
 
       <StatGrid>
         <StatCard 

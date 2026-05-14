@@ -134,6 +134,8 @@ import { GenerateDocumentPdfUseCase } from './pm/use-cases/documents/generate-do
 import { GetPendingCredibilityRequestsUseCase } from './pm/use-cases/get-pending-credibility-requests.use-case'
 import { BulkCreateTenantRecordsUseCase } from './pm/use-cases/bulk-create-tenant-records.use-case'
 import { BulkInviteTenantsUseCase } from './pm/use-cases/tenants/bulk-invite-tenants.use-case'
+import { GetPendingJoinRequestsUseCase } from './pm/use-cases/tenants/get-pending-join-requests.use-case'
+import { DismissJoinRequestUseCase } from './pm/use-cases/tenants/dismiss-join-request.use-case'
 import { BulkFullImportUseCase } from './pm/use-cases/bulk-full-import.use-case'
 import { InviteTeamMemberUseCase } from './pm/use-cases/team/invite-team-member.use-case';
 import { GetTeamMembersUseCase } from './pm/use-cases/team/get-team-members.use-case';
@@ -167,6 +169,9 @@ import {
   MarkNotificationsByCategoryReadUseCase,
 } from './use-cases/notifications/notification.use-cases'
 import { RentReminderWorkflowUseCase } from './use-cases/notifications/rent-reminder-workflow.use-case'
+import { VerifyPmEmailUseCase } from './use-cases/tenant-pm-connection/verify-pm.use-case'
+import { ConfirmPmConnectionUseCase } from './use-cases/tenant-pm-connection/confirm-pm-connection.use-case'
+import { InvitePmUseCase } from './use-cases/tenant-pm-connection/invite-pm.use-case'
 
 // Payments
 import {
@@ -368,6 +373,8 @@ const UseCases = [
   GetPendingCredibilityRequestsUseCase,
   BulkCreateTenantRecordsUseCase,
   BulkInviteTenantsUseCase,
+  GetPendingJoinRequestsUseCase,
+  DismissJoinRequestUseCase,
   BulkFullImportUseCase,
   SendLandlordReportUseCase,
   GetLandlordReportsUseCase,
@@ -398,6 +405,9 @@ const UseCases = [
   ProcessHourlySettlementsUseCase,
 
   RejectCredibilityRequestUseCase,
+  VerifyPmEmailUseCase,
+  ConfirmPmConnectionUseCase,
+  InvitePmUseCase,
 ]
 
 @Module({

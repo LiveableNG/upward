@@ -39,7 +39,7 @@ import { PmDocumentController } from './controllers/pm-document.controller'
 import { LandlordAuthController } from './landlord/landlord-auth.controller'
 import { LandlordPortfolioController } from './landlord/landlord-portfolio.controller'
 import { CronController } from './public/cron.controller'
-
+import { TenantPmConnectionController } from './user/tenant-pm-connection.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule],
@@ -81,7 +81,7 @@ import { CronController } from './public/cron.controller'
     LandlordAuthController,
     LandlordPortfolioController,
     CronController,
-
+    TenantPmConnectionController,
   ],
 })
 export class HttpModule {}

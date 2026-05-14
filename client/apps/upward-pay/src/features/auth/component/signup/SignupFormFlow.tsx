@@ -22,6 +22,7 @@ import { OTPInput } from '@/components/common/OTPInput'
 import { checkEmail, requestOTP, verifyOTP, loginWithOTP } from '@/features/auth/services/authService'
 import { setAccessToken } from '@/lib/auth-token'
 import { setCookie } from '@/lib/cookie-utils'
+import { ConnectPmStep } from './ConnectPmStep'
 
 interface SignupFormFlowProps {
   onBackToWelcome: () => void
@@ -52,14 +53,14 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   const [isInvited, setIsInvited] = useState(false)
   const [isWaitlist, setIsWaitlist] = useState(false)
   const [showExistsModal, setShowExistsModal] = useState(false)
-  const [step, setStep] = useState<'form' | 'otp'>('form')
+  const [step, setStep] = useState<'form' | 'otp' | 'connect-pm'>('form')
   const [isRequestingOTP, setIsRequestingOTP] = useState(false)
   const [otpError, setOtpError] = useState<string | null>(null)
 
   const emailCheckTimeout = useRef<NodeJS.Timeout | null>(null)
 
   const { signup, loading: signupLoading, error: signupError } = useSignup('', () => {
-    onSignupSuccess(email, password)
+    setStep('connect-pm')
   })
 
   // Debounced email existence check
@@ -199,6 +200,16 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     await requestOTP(email, effectiveContext)
   }
 
+  if (step === 'connect-pm') {
+    return (
+      <div className="auth-shell auth-shell--signup">
+        <ConnectPmStep 
+          onComplete={() => onSignupSuccess(email, password)}
+          onSkip={() => onSignupSuccess(email, password)}
+        />
+      </div>
+    )
+  }
 
   if (step === 'otp') {
     return (
