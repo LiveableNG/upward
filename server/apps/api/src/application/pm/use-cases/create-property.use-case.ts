@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, ConflictException } from '@nestjs/common';
 import { IPropertyRepository, PM_PROPERTY_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
 import { CreatePropertyDto } from '../dtos/property.dto';
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
@@ -18,6 +18,21 @@ export class CreatePropertyUseCase {
   ) {}
 
   async execute(pmId: number, dto: CreatePropertyDto) {
+    // Check for duplicate property name for this PM
+    const existing = await this.prisma.upward_pm_property.findFirst({
+      where: {
+        pmId,
+        name: {
+          equals: dto.name,
+          mode: 'insensitive'
+        }
+      }
+    });
+
+    if (existing) {
+      throw new ConflictException(`A property with the name "${dto.name}" already exists in your portfolio.`);
+    }
+
     const property = await this.propertyRepository.create({
       pmId,
       name: dto.name,

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, BadRequestException } from '@nestjs/common';
 import { IUnitRepository, PM_UNIT_REPOSITORY, IPropertyRepository, PM_PROPERTY_REPOSITORY, ITenantRepository, PM_TENANT_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository';
 import { BulkCreateUnitsDto } from '../dtos/property.dto';
@@ -81,7 +81,7 @@ export class BulkCreateUnitsUseCase {
       const duplicateUnit = existingUnits.find(exUnit => exUnit.unitName.trim().toLowerCase() === u.unitName.trim().toLowerCase());
 
       if (duplicateUnit) {
-        continue;
+        throw new BadRequestException(`Unit "${u.unitName}" already exists in this property.`);
       }
 
       const newUnit = await this.unitRepository.create({
