@@ -92,7 +92,7 @@ function ProfileMenuContentInner() {
         }
 
         .profile-content-scroll {
-          padding: 1.5rem 1.5rem 10rem;
+          padding: 0 0 10rem;
         }
 
         @media (min-width: 1024px) {

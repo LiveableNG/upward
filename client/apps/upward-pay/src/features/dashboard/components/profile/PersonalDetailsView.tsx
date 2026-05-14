@@ -466,7 +466,13 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
         }
 
         .personal-content {
-          padding: 2rem 1.5rem 10rem;
+          padding: 1rem 1rem 10rem;
+        }
+
+        @media (min-width: 768px) {
+          .personal-content {
+            padding: 2rem 1.5rem 10rem;
+          }
         }
 
         .personal-sections {
