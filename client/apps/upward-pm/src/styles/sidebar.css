@@ -276,3 +276,39 @@
     flex-direction: row;
   }
 }
+
+.sidebar__link-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar__badge {
+  background: var(--forest);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: -4px;
+}
+
+.sidebar__badge--dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  min-width: 0;
+  background: var(--forest);
+  border: 1.5px solid var(--surface);
+  border-radius: 50%;
+}

@@ -13,7 +13,7 @@ export function TenantRequestsWidget() {
     queryKey: ['tenant-join-requests'],
     queryFn: async () => {
       const res = await api.get('/pm/tenants/join-requests');
-      return res.data || [];
+      return res || [];
     }
   });
 
