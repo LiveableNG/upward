@@ -544,6 +544,7 @@ export class InitializePaymentUseCase {
     private readonly overpaymentRepo: IOverpaymentRepository,
     private readonly resolveDedicatedAccount: ResolveDedicatedAccountUseCase,
     private readonly paymentConfig: PaymentConfigurationService,
+    private readonly prisma: PrismaService,
   ) { }
 
   async execute(data: {
@@ -572,7 +573,28 @@ export class InitializePaymentUseCase {
 
     const flatFee = this.paymentConfig.getProcessingFee()
 
-    if (pr?.userPropertyId) {
+    let userPropertyId = pr?.userPropertyId
+
+    if (pr && !userPropertyId) {
+      this.logger.log(`Attempting to recover userPropertyId for PR ${pr.uuid} from PM context`)
+      const pmPR = await this.prisma.upward_pm_payment_request.findFirst({
+        where: { paymentRequestId: pr.id },
+        include: { unit: true }
+      })
+
+      if (pmPR?.unit?.userPropertyUuid) {
+        const userProp = await this.prisma.upward_user_property.findUnique({
+          where: { uuid: pmPR.unit.userPropertyUuid }
+        })
+        if (userProp) {
+          userPropertyId = userProp.id
+          this.logger.log(`Recovered userPropertyId ${userPropertyId} for PR ${pr.uuid}. Updating record.`)
+          await this.paymentRequestRepo.update(pr.id, { userPropertyId })
+        }
+      }
+    }
+
+    if (userPropertyId) {
       const availableOverpayments = await this.overpaymentRepo.findByUserIdAndStatus(user.id!, 'AVAILABLE')
       const totalCredit = availableOverpayments.reduce((sum, o) => sum + o.amount, 0)
       
@@ -581,7 +603,7 @@ export class InitializePaymentUseCase {
       const finalAmountToPay = requestedTotal - appliedCredit
 
       const dva = await this.resolveDedicatedAccount.execute({
-        userPropertyId: pr.userPropertyId,
+        userPropertyId: userPropertyId,
         tenantEmail: user.email!,
         tenantName: `${user.firstName} ${user.lastName}`,
         subaccountCode: pr.subaccount?.subaccountCode

@@ -1,16 +1,23 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Bell, Settings, LogOut } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/features/auth/AuthContext'
-import { NotificationPanel } from './NotificationPanel'
+import { useState, useEffect } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
+import { Bell, Settings, Share2, LucideIcon } from 'lucide-react'
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { UpwardLogo } from '@/components/PoweredByUpward'
+
+import { NotificationPanel } from './NotificationPanel'
+
+import { useAuth } from '@/features/auth/AuthContext'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 
 interface DashboardHeaderProps {
+
   firstName?: string
   notifCount?: number
-  profilePic?: string | null
+  profilePic?: string
 }
 
 export function DashboardHeader({ 
@@ -19,89 +26,132 @@ export function DashboardHeader({
   profilePic: propProfilePic 
 }: DashboardHeaderProps) {
   const router = useRouter()
-  const { user, logout } = useAuth()
+  const pathname = usePathname()
+  const { user } = useAuth()
   const [isNotifOpen, setIsNotifOpen] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 1024)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
+  const { data: notifData } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => api.getNotifications(),
+    enabled: !!user,
+  })
+
+  const { data: dashboardData } = useQuery({
+    queryKey: ['dashboard-counts'],
+    queryFn: () => api.getPendingPayments(),
+    enabled: !!user,
+  })
+
+  const pendingCount = dashboardData?.length || 0
+  const unreadNotifs = notifData?.unreadCount || 0
+  
+  const totalUnread = unreadNotifs
+  
+  const [hasSeenNotifs, setHasSeenNotifs] = useState(true)
+  const [lastTotal, setLastTotal] = useState(0)
+
+  useEffect(() => {
+    if (!user) return
+    const storedTotal = localStorage.getItem(`notif_last_total_${user.id}`)
+    const storedSeen = localStorage.getItem(`notif_has_seen_${user.id}`)
+
+    if (storedTotal) setLastTotal(parseInt(storedTotal, 10))
+    if (storedSeen) setHasSeenNotifs(storedSeen === 'true')
+    else setHasSeenNotifs(false) 
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    
+    if (totalUnread > lastTotal) {
+      setHasSeenNotifs(false)
+      localStorage.setItem(`notif_has_seen_${user.id}`, 'false')
+    }
+    setLastTotal(totalUnread)
+    localStorage.setItem(`notif_last_total_${user.id}`, totalUnread.toString())
+  }, [totalUnread, lastTotal, user])
 
   const firstName = propFirstName || user?.firstName || 'User'
-  const profilePic = propProfilePic !== undefined ? propProfilePic : user?.profilePic
-  const notifCount = propNotifCount || 0
+  const profilePic = propProfilePic || user?.profilePic
+
+  const displayCount = hasSeenNotifs ? 0 : totalUnread
+
+  const isHome = pathname === '/dashboard'
+
+  const handleNotifClick = () => {
+    setHasSeenNotifs(true)
+    if (user) {
+      localStorage.setItem(`notif_has_seen_${user.id}`, 'true')
+    }
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      setIsNotifOpen(!isNotifOpen)
+    } else {
+      router.push('/dashboard/notifications')
+    }
+  }
 
   return (
     <>
-      <header className="dashboard__header dashboard__header--mobile">
+      <header className={`dashboard__header ${isDesktop ? 'dashboard__header--desktop' : 'dashboard__header--mobile'}`}>
         <div className="dashboard__header-inner">
+          {/* Mobile User Block (Hidden on desktop) */}
           <div className="dashboard__header-left">
-            <div className="dashboard__avatar-wrap" onClick={() => router.push('/dashboard/me')}>
-              <UserAvatar 
-                src={profilePic} 
-                alt={firstName} 
-                size={40} 
-                className="dashboard__avatar" 
-              />
+            <div className="dashboard__avatar" onClick={() => router.push('/dashboard/me')}>
+              <UserAvatar src={profilePic} size={40} />
             </div>
-            <div className="dashboard__greeting">
-              Hi, <span className="dashboard__greeting-name">{firstName}</span>
+            <div className="dashboard__greeting-block">
+              <div className="dashboard__greeting">
+                Hey, <span className="dashboard__greeting-name">{firstName}</span>
+              </div>
+              <div className="dashboard__email" onClick={() => router.push('/dashboard/me')}>
+                View Profile
+              </div>
             </div>
           </div>
 
+          <nav className="dashboard__header-nav">
+            {(() => {
+              const isActive = (href: string) => {
+                const normalizedPath = pathname?.endsWith('/') ? pathname : `${pathname}/`
+                const normalizedHref = href.endsWith('/') ? href : `${href}/`
+                return normalizedPath === normalizedHref
+              }
+              return (
+                <>
+                  <Link href="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>Home</Link>
+                  <Link href="/dashboard/pay-rent" className={isActive('/dashboard/pay-rent') ? 'active' : ''}>Pay Rent</Link>
+                  <Link href="/dashboard/transactions" className={isActive('/dashboard/transactions') ? 'active' : ''}>Transactions</Link>
+                  <Link href="/dashboard/me" className={isActive('/dashboard/me') ? 'active' : ''}>Profile</Link>
+                </>
+              )
+            })()}
+          </nav>
+
           <div className="dashboard__header-right">
-            <button 
-              className="dashboard__icon-btn" 
-              onClick={() => setIsNotifOpen(true)}
-              style={{ position: 'relative' }}
-              aria-label="Notifications"
-            >
-              <Bell size={20} />
-              {notifCount > 0 && <span className="dashboard__notif-badge">{notifCount}</span>}
+            <button className="dashboard__icon-btn" onClick={() => router.push('/dashboard/settings')} title="Settings">
+              <Settings size={18} />
             </button>
-            <button 
-              className="dashboard__icon-btn" 
-              onClick={() => router.push('/dashboard/settings')}
-              aria-label="Settings"
+            <button
+              className="dashboard__icon-btn dashboard__icon-btn--notif"
+              onClick={handleNotifClick}
+              title="Notifications"
             >
-              <Settings size={20} />
-            </button>
-            <button 
-              className="dashboard__logout" 
-              onClick={() => logout()} 
-              title="Logout"
-              aria-label="Logout"
-            >
-              <LogOut size={18} />
+              <Bell size={18} />
+              {displayCount > 0 && <span className="dashboard__notif-badge">{displayCount}</span>}
             </button>
           </div>
         </div>
       </header>
-
-      <NotificationPanel isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
       
-      <style jsx>{`
-        .dashboard__avatar-wrap {
-          cursor: pointer;
-          transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .dashboard__avatar-wrap:hover {
-          transform: scale(1.08);
-        }
-        .dashboard__notif-badge {
-          position: absolute;
-          top: -2px;
-          right: -2px;
-          background: var(--error);
-          color: white;
-          font-size: 10px;
-          font-weight: 800;
-          min-width: 16px;
-          height: 16px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0 4px;
-          border: 2px solid var(--surface);
-          box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
-        }
-      `}</style>
+      <NotificationPanel isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
     </>
   )
 }
