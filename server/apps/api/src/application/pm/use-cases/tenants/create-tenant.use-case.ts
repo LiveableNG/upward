@@ -1,6 +1,7 @@
-import { Inject, Injectable, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, BadRequestException, ConflictException } from '@nestjs/common';
 import { PM_TENANT_REPOSITORY, ITenantRepository, TenantEntity } from '../../../../domains/pm/IPropertyRepository';
 import { USER_REPOSITORY, UserRepository } from '../../../../domains/users/user.repository';
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 import { InviteTenantUseCase } from './invite-tenant.use-case';
 
 export interface CreateTenantDto {
@@ -18,6 +19,7 @@ export class CreateTenantUseCase {
     private readonly tenantRepo: ITenantRepository,
     @Inject(USER_REPOSITORY)
     private readonly userRepo: UserRepository,
+    private readonly encryption: EncryptionService,
     private readonly inviteTenantUseCase: InviteTenantUseCase,
   ) {}
 
@@ -39,6 +41,15 @@ export class CreateTenantUseCase {
       
       data.phone = cleaned;
     }
+
+    // Check for duplicate tenant for this PM
+    const emailHash = this.encryption.hash(data.email);
+    const existingTenant = await this.tenantRepo.findByEmailHash(pmId, emailHash);
+    
+    if (existingTenant) {
+      throw new ConflictException(`A tenant with the email "${data.email}" is already in your list.`);
+    }
+
     const existingUser = await this.userRepo.findByEmail(data.email);
     const initialStatus = existingUser ? 'ON_UPWARD' : 'PENDING';
 
