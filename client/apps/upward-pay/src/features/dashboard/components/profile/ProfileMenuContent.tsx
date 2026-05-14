@@ -1029,6 +1029,18 @@ function ProfileMenuContentInner() {
             margin-top: 2rem;
           }
 
+          .bank-details-notice {
+            background: var(--clay-faint);
+            border-radius: 16px;
+            padding: 1.25rem;
+            border: 1px solid rgba(var(--clay-rgb), 0.1);
+          }
+          
+          .grid-1 {
+            display: grid;
+            grid-template-columns: 1fr;
+          }
+
           .hidden { display: none; }
 
           @media (max-width: 768px) {
@@ -1123,14 +1135,29 @@ function ProfileMenuContentInner() {
               </div>
               
               <div className="profile-section__body">
+                <div className="bank-details-notice" style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <AlertCircle size={20} style={{ color: 'var(--clay)', flexShrink: 0 }} />
+                    <div>
+                      <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--clay)', marginBottom: '0.25rem' }}>Why do we need this?</p>
+                      <p style={{ fontSize: '0.75rem', lineHeight: 1.5, color: 'var(--text-muted)' }}>
+                        These details are strictly used for <strong>automated refunds</strong>. If you accidentally underpay 
+                        or violate a "Full Payment Only" requirement, the system will instantly send your money back to this account.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid-1 gap-4">
                   <DetailOrEdit
                     isEditing={isEditing}
                     icon={Building}
                     label="Select Bank"
+                    isCritical={true}
                     type="select"
                     options={banks.map(b => ({ value: b.code, label: b.name }))}
                     value={formData.bankDetails?.bankCode || ''}
+                    displayValue={formData.bankDetails?.bankName || 'Not Set'}
                     onChange={(v) => {
                       const bank = banks.find(b => b.code === v)
                       setFormData({ 
@@ -1144,8 +1171,10 @@ function ProfileMenuContentInner() {
                     isEditing={isEditing}
                     icon={CreditCard}
                     label="Account Number"
+                    isCritical={true}
                     placeholder="10 digits"
                     value={formData.bankDetails?.accountNumber || ''}
+                    displayValue={formData.bankDetails?.accountNumber || 'Not Set'}
                     onChange={async (v) => {
                       const newDetails = { ...formData.bankDetails, accountNumber: v }
                       setFormData({ ...formData, bankDetails: newDetails })
@@ -1173,7 +1202,7 @@ function ProfileMenuContentInner() {
                     isEditing={false}
                     icon={User}
                     label="Account Name"
-                    value={resolvingBank ? 'Resolving...' : (formData.bankDetails?.accountName || 'Enter account details')}
+                    value={resolvingBank ? 'Resolving...' : (formData.bankDetails?.accountName || 'Not Set')}
                   />
                 </div>
               </div>
