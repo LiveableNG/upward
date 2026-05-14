@@ -149,6 +149,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
         currency: data.currency || 'NGN',
         lineItems: (data as any).lineItems || undefined,
         isManual: (data as any).isManual ?? false,
+        settlementStatus: data.settlementStatus || 'PENDING',
       },
       include: {
         paymentRequest: {
@@ -279,6 +280,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
         narration: data.narration,
         lineItems: (data as any).lineItems || undefined,
         isManual: (data as any).isManual,
+        settlementStatus: data.settlementStatus,
       },
       include: {
         paymentRequest: {
@@ -670,5 +672,26 @@ export class PrismaOverpaymentRepository implements IOverpaymentRepository {
       orderBy: { createdAt: 'desc' },
     })
     return res as unknown as Overpayment[]
+  }
+
+  async findByUserIdAndStatus(userId: number, status: string, tx?: Prisma.TransactionClient): Promise<Overpayment[]> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_overpayment.findMany({
+      where: { userId, status },
+      orderBy: { createdAt: 'desc' },
+    })
+    return res as unknown as Overpayment[]
+  }
+
+  async update(id: number, data: Partial<Overpayment>, tx?: Prisma.TransactionClient): Promise<Overpayment> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_overpayment.update({
+      where: { id },
+      data: {
+        status: data.status,
+        amount: data.amount,
+      },
+    })
+    return res as unknown as Overpayment
   }
 }

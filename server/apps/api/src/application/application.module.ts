@@ -12,6 +12,7 @@ import { BulkInviteService } from '../shared/infrastructure/common/bulk-invite.s
 import { EncryptionService } from '../shared/infrastructure/common/encryption.service'
 import { KYCModule } from '../shared/infrastructure/common/kyc/kyc.module'
 import { UnifiedReminderService } from '../shared/infrastructure/common/reminder.service'
+import { PaymentConfigurationService } from '../shared/infrastructure/common/payment-config.service'
 
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
@@ -183,12 +184,17 @@ import {
   CreateManualPaymentRequestUseCase,
   InitializePaymentUseCase,
   ProcessPaymentWebhookUseCase,
+  ResolveDedicatedAccountUseCase,
+  GetLandlordPayoutsUseCase,
+  GetPayoutBreakdownUseCase,
+  GetPmPayoutsUseCase,
 } from './use-cases/payments/payment.use-cases'
 import { VerifyGatewayTransactionUseCase } from './use-cases/payments/verify-transaction.use-case'
 import { DistributePaymentAllocationsUseCase } from './use-cases/payments/distribute-allocations.use-case'
 import { SyncPmPaymentStatusUseCase } from './use-cases/payments/sync-pm-status.use-case'
 import { SettlePropertyBalanceUseCase } from './use-cases/payments/settle-property.use-case'
 import { HandlePaymentOverpaymentUseCase } from './use-cases/payments/handle-overpayment.use-case'
+import { ProcessHourlySettlementsUseCase } from './use-cases/payments/settlement-cron.use-case'
 
 import { UploadContractUseCase } from './use-cases/contracts/upload-contract.use-case'
 import { GetContractsUseCase } from './use-cases/contracts/get-contracts.use-case'
@@ -301,6 +307,10 @@ const UseCases = [
   DeactivateAnnouncementsUseCase,
   InitializePaymentUseCase,
   ProcessPaymentWebhookUseCase,
+  ResolveDedicatedAccountUseCase,
+  GetLandlordPayoutsUseCase,
+  GetPayoutBreakdownUseCase,
+  GetPmPayoutsUseCase,
 
   UploadContractUseCase,
   GetContractsUseCase,
@@ -381,6 +391,7 @@ const UseCases = [
   SyncPmPaymentStatusUseCase,
   SettlePropertyBalanceUseCase,
   HandlePaymentOverpaymentUseCase,
+  ProcessHourlySettlementsUseCase,
 
   RejectCredibilityRequestUseCase,
 ]
@@ -403,9 +414,10 @@ const UseCases = [
     NotificationService,
     PrismaDeviceTokenRepository,
     UnifiedReminderService,
+    PaymentConfigurationService,
     ...UseCases,
   ],
-  exports: [WebhookService, BulkInviteService, EncryptionService, PushNotificationService, NotificationService, PrismaDeviceTokenRepository, UnifiedReminderService, ...UseCases],
+  exports: [WebhookService, BulkInviteService, EncryptionService, PushNotificationService, NotificationService, PrismaDeviceTokenRepository, UnifiedReminderService, PaymentConfigurationService, ...UseCases],
 
 })
 export class ApplicationModule { }

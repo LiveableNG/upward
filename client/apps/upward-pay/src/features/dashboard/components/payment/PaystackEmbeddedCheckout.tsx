@@ -3,10 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { UpwardLogo } from '../../../../components/PoweredByUpward'
 import { api } from '@/lib/api'
-
-const usePaystackPayment = typeof window !== 'undefined'
-  ? require('react-paystack').usePaystackPayment
-  : null
+import DedicatedAccountCheckout from './DedicatedAccountCheckout'
 
 interface PaystackEmbeddedProps {
   email: string
@@ -26,8 +23,6 @@ interface PaystackEmbeddedProps {
   paymentRequestUuid?: string
 }
 
-const PAYSTACK_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || ''
-
 export default function PaystackEmbeddedCheckout({
   email,
   amount,
@@ -44,7 +39,6 @@ export default function PaystackEmbeddedCheckout({
 }: PaystackEmbeddedProps) {
   const [config, setConfig] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
-  const triggered = useRef(false)
 
   useEffect(() => {
     async function init() {
@@ -55,7 +49,7 @@ export default function PaystackEmbeddedCheckout({
             : `${paymentType || 'Rent payment'} for ${propertyAddress || companyName}`
 
         const res = await api.initializePayment({
-          amount: amount + (gatewayFee || 0),
+          amount,
           paymentRequestUuid,
           metadata: {
             ...metadata,
@@ -66,52 +60,38 @@ export default function PaystackEmbeddedCheckout({
           }
         })
 
-        if (res.data) {
+        if (res.data && res.data.type === 'DVA') {
           setConfig({
+            type: 'DVA',
+            dva: res.data.dva,
             reference: res.data.reference,
-            access_code: res.data.access_code,
-            email: email,
-            amount: Math.round((amount + (gatewayFee || 0)) * 100),
-            publicKey: PAYSTACK_PUBLIC_KEY,
-            currency: currency || 'NGN',
-            metadata: {
-              custom_fields: [
-                { display_name: 'Company', variable_name: 'company', value: companyName },
-                { display_name: 'Description', variable_name: 'description', value: description }
-              ],
-              ...metadata
-            }
+            amount: res.data.amount
           })
+        } else {
+          throw new Error('This property only supports direct bank transfer.')
         }
       } catch (err: any) {
         console.error('Failed to initialize payment:', err)
         setError(err.message || 'Failed to connect to payment gateway')
-        setTimeout(onClose, 3000)
       }
     }
     init()
   }, [])
 
-  const initializePayment = usePaystackPayment && config
-    ? usePaystackPayment(config)
-    : null
-
-  useEffect(() => {
-    if (initializePayment && config && !triggered.current) {
-      initializePayment({
-        onSuccess: (res: any) => {
-          if (triggered.current) return
-          triggered.current = true
-          onSuccess(res.reference)
-        },
-        onClose: () => {
-          if (triggered.current) return
-          triggered.current = true
-          onClose()
-        },
-      })
-    }
-  }, [initializePayment, config])
+  if (config?.type === 'DVA') {
+    return (
+      <DedicatedAccountCheckout
+        accountNumber={config.dva.accountNumber}
+        accountName={config.dva.accountName}
+        bankName={config.dva.bankName}
+        amount={config.amount}
+        reference={config.reference}
+        companyName={companyName}
+        onSuccess={onSuccess}
+        onClose={onClose}
+      />
+    )
+  }
 
   return (
     <div

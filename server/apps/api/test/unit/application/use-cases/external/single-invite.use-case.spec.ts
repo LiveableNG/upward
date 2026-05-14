@@ -149,6 +149,7 @@ describe('SingleInviteUseCase', () => {
   let notificationService: jest.Mocked<NotificationService>
   let tokenRepository: jest.Mocked<VerificationTokenRepository>
   let paymentGateway: jest.Mocked<IPaymentGateway>
+  let resolveDedicatedAccount: any
 
   beforeEach(() => {
     prisma = {} as any
@@ -215,6 +216,10 @@ describe('SingleInviteUseCase', () => {
       deleteOldTokens: jest.fn(),
     } as any
 
+    resolveDedicatedAccount = {
+      execute: jest.fn().mockResolvedValue({}),
+    }
+
     useCase = new SingleInviteUseCase(
       prisma,
       encryption,
@@ -227,6 +232,7 @@ describe('SingleInviteUseCase', () => {
       tokenRepository,
       paymentGateway,
       notificationService,
+      resolveDedicatedAccount,
     )
   })
 

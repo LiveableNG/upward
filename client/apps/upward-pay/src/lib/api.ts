@@ -32,6 +32,7 @@ export const api = {
   initializePayment: paymentService.initializePayment,
   guestInitializePayment: paymentService.guestInitializePayment,
   verifyPayment: paymentService.verifyPayment,
+  verifyTransaction: paymentService.verifyPayment,
   getSavedLandlords: paymentService.getSavedLandlords,
   saveLandlord: paymentService.saveLandlord,
   recordTransaction: paymentService.recordTransaction,
@@ -44,6 +45,8 @@ export const api = {
   resolveSubaccount: paymentService.resolveSubaccount,
   getPropertyBalance: paymentService.getPropertyBalance,
   createManualPaymentRequest: paymentService.createManualPaymentRequest,
+  getBankDetails: paymentService.getBankDetails,
+  saveBankDetails: paymentService.saveBankDetails,
 
   // Documents
   getMyDocuments: documentService.getMyDocuments,

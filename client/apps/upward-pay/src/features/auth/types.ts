@@ -1,3 +1,10 @@
+export interface BankDetails {
+  accountNumber?: string
+  accountName?: string
+  bankCode?: string
+  bankName?: string
+}
+
 export interface UserProfile {
   id: number
   uuid: string
@@ -38,6 +45,7 @@ export interface UserProfile {
   isFromInvite: boolean
   createdAt: string
   updatedAt: string
+  bankDetails?: BankDetails | null
 }
 
 export interface AuthResponse {

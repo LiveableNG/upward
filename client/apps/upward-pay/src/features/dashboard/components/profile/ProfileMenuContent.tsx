@@ -30,6 +30,8 @@ import {
   X,
   Loader2,
   Copy,
+  CreditCard,
+  Wallet,
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -42,7 +44,7 @@ import { UserAvatar } from '@/components/common/UserAvatar'
 import { useToast } from '@/components/common/Toast'
 import { COUNTRIES, STATES } from '@/lib/location-data'
 
-type ViewMode = 'menu' | 'personal'
+type ViewMode = 'menu' | 'personal' | 'banking'
 
 export function ProfileMenuContent() {
   return (
@@ -67,6 +69,10 @@ function ProfileMenuContentInner() {
   const [contracts, setContracts] = useState<ContractData[]>([])
   const [expandedProps, setExpandedProps] = useState<Record<number, boolean>>({})
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [bankDetails, setBankDetails] = useState<any>(null)
+  const [banks, setBanks] = useState<any[]>([])
+  const [resolvingBank, setResolvingBank] = useState(false)
+  const [pendingRefunds, setPendingRefunds] = useState<any[]>([])
   
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -111,8 +117,44 @@ function ProfileMenuContentInner() {
         })) || [],
       })
       loadDocuments()
+      loadBankDetails()
+      loadPendingRefunds()
     }
   }, [user])
+
+  async function loadBankDetails() {
+    try {
+      const data = await api.getBankDetails()
+      setBankDetails(data)
+      if (data) {
+        setFormData(prev => ({
+          ...prev,
+          bankDetails: data
+        }))
+      }
+    } catch (err) {
+      console.error('Failed to load bank details', err)
+    }
+  }
+
+  async function loadPendingRefunds() {
+    try {
+      const payments = await api.getPendingPayments()
+      setPendingRefunds(payments.filter((p: any) => p.type === 'refund_alert'))
+    } catch (err) {
+      console.error('Failed to load pending refunds', err)
+    }
+  }
+
+  async function loadBanks() {
+    if (banks.length > 0) return
+    try {
+      const data = await api.getBanks()
+      setBanks(data)
+    } catch (err) {
+      console.error('Failed to load banks', err)
+    }
+  }
 
   async function loadDocuments() {
     try {
@@ -250,6 +292,7 @@ function ProfileMenuContentInner() {
 
   const sections = [
     { id: 'personal', title: 'Personal Details', icon: User },
+    { id: 'banking', title: 'Banking & Payouts', icon: Building },
     { id: 'contracts', title: 'Tenancy Agreement', icon: FileText },
     { id: 'support', title: 'Customer Service Center', icon: MessageCircle },
     { id: 'legal', title: 'Legal & Privacy', icon: Shield },
@@ -1087,6 +1130,160 @@ function ProfileMenuContentInner() {
       </div>
     )
   }
+
+  if (view === 'banking') {
+    return (
+      <div className="profile-page dashboard--nav-offset">
+        <PageHeader
+          title="Banking & Payouts"
+          showBack
+          backLabel="Profile"
+          onBack={() => {
+            setView('menu')
+            setIsEditing(false)
+          }}
+          rightElement={
+            isEditing ? (
+              <button 
+                className="btn btn--primary btn--sm btn--pill" 
+                onClick={async () => {
+                  setSaving(true)
+                  try {
+                    await api.saveBankDetails(formData.bankDetails)
+                    await loadBankDetails()
+                    setIsEditing(false)
+                    success('Bank details updated')
+                  } catch (err) {
+                    toastError('Failed to save bank details')
+                  } finally {
+                    setSaving(false)
+                  }
+                }}
+                disabled={saving || !formData.bankDetails?.accountName}
+              >
+                {saving ? '...' : 'Save'}
+              </button>
+            ) : (
+              <button 
+                className="dashboard__icon-btn" 
+                onClick={() => {
+                  loadBanks()
+                  setIsEditing(true)
+                  setFormData({ ...formData, bankDetails: bankDetails || { accountNumber: '', bankCode: '', bankName: '', accountName: '' } })
+                }}
+              >
+                <Pencil size={18} />
+              </button>
+            )
+          }
+        />
+
+        <div className="profile-content-scroll">
+          <div className="personal-sections">
+            {pendingRefunds.length > 0 && (
+              <section className="profile-section" style={{ border: '1px solid var(--error)', background: 'var(--error-faint)' }}>
+                <div className="profile-section__header">
+                  <div className="flex items-center gap-2 mb-1">
+                    <AlertCircle size={16} color="var(--error)" />
+                    <h3 className="profile-section__title" style={{ color: 'var(--error)' }}>Refund Action Required</h3>
+                  </div>
+                  <p className="profile-section__desc">You have {pendingRefunds.length} pending refund(s). Please ensure your bank details are accurate to receive your payout.</p>
+                </div>
+                <div className="refunds-mini-list">
+                  {pendingRefunds.map((r, i) => (
+                    <div key={i} className="refund-mini-item">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold">{formatCurrency(r.amount, r.currency)}</span>
+                        <span className="text-xs opacity-70">{r.reference}</span>
+                      </div>
+                      <p className="text-xs mt-1">{r.property_address}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <section className="profile-section">
+              <div className="profile-section__header">
+                <h3 className="profile-section__title">Payout Account</h3>
+                <p className="profile-section__desc">Where you receive refunds and overpayment payouts.</p>
+              </div>
+              
+              <div className="profile-section__body">
+                <div className="grid-1 gap-4">
+                  <DetailOrEdit
+                    isEditing={isEditing}
+                    icon={Building}
+                    label="Select Bank"
+                    type="select"
+                    options={banks.map(b => ({ value: b.code, label: b.name }))}
+                    value={formData.bankDetails?.bankCode || ''}
+                    onChange={(v) => {
+                      const bank = banks.find(b => b.code === v)
+                      setFormData({ 
+                        ...formData, 
+                        bankDetails: { ...formData.bankDetails, bankCode: v, bankName: bank?.name || '' } 
+                      })
+                    }}
+                  />
+                  
+                  <DetailOrEdit
+                    isEditing={isEditing}
+                    icon={CreditCard}
+                    label="Account Number"
+                    placeholder="10 digits"
+                    value={formData.bankDetails?.accountNumber || ''}
+                    onChange={async (v) => {
+                      const newDetails = { ...formData.bankDetails, accountNumber: v }
+                      setFormData({ ...formData, bankDetails: newDetails })
+                      
+                      if (v.length === 10 && formData.bankDetails?.bankCode) {
+                        setResolvingBank(true)
+                        try {
+                          const res = await api.resolveAccount(v, formData.bankDetails.bankCode)
+                          if (res.account_name) {
+                            setFormData({ 
+                              ...formData, 
+                              bankDetails: { ...newDetails, accountName: res.account_name } 
+                            })
+                          }
+                        } catch (e) {
+                          console.error('Resolution failed', e)
+                        } finally {
+                          setResolvingBank(false)
+                        }
+                      }
+                    }}
+                  />
+
+                  <DetailOrEdit
+                    isEditing={false}
+                    icon={User}
+                    label="Account Name"
+                    value={resolvingBank ? 'Resolving...' : (formData.bankDetails?.accountName || 'Enter account details')}
+                  />
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <style jsx>{`
+          .refund-mini-item {
+            background: rgba(255, 255, 255, 0.5);
+            padding: 12px;
+            border-radius: 12px;
+            margin-top: 10px;
+          }
+          .grid-1 {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+          }
+        `}</style>
+      </div>
+    )
+  }
   return (
     <div className="profile-menu-page dashboard--nav-offset">
       <PageHeader 
@@ -1173,6 +1370,7 @@ function ProfileMenuContentInner() {
                 className="profile-menu-item"
                 onClick={() => {
                   if (isPersonal) setView('personal')
+                  else if (s.id === 'banking') setView('banking')
                   else if (isContracts) router.push('/dashboard/contracts')
                   else if (s.id === 'support') router.push('/dashboard/help')
                   else if (s.id === 'legal') router.push('/dashboard/legal')

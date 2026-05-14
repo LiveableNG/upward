@@ -44,6 +44,7 @@ export interface Transaction {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lineItems?: any
   isManual?: boolean
+  settlementStatus?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -93,12 +94,22 @@ export interface IPaymentGateway {
     bankCode: string
     accountNumber: string
   }): Promise<PaystackSubaccount | null>
-  // createVirtualAccount(user: {
-  //   email: string
-  //   firstName: string
-  //   lastName: string
-  //   phone?: string
-  // }): Promise<{ bankName: string; accountNumber: string; bankCode?: string; accountName?: string }>
+  createCustomer(data: {
+    email: string
+    firstName: string
+    lastName: string
+  }): Promise<string>
+  createDedicatedAccount(data: {
+    customerCode: string
+    subaccountCode?: string
+  }): Promise<any>
+  initiateTransfer(data: {
+    amount: number
+    accountNumber: string
+    bankCode: string
+    reference: string
+    narration?: string
+  }): Promise<any>
 }
 
 export interface PaymentLineItem {
@@ -229,6 +240,30 @@ export interface Overpayment {
 export interface IOverpaymentRepository {
   create(data: Omit<Overpayment, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<Overpayment>
   findByUserId(userId: number, tx?: Prisma.TransactionClient): Promise<Overpayment[]>
+  findByUserIdAndStatus(userId: number, status: string, tx?: Prisma.TransactionClient): Promise<Overpayment[]>
+  update(id: number, data: Partial<Overpayment>, tx?: Prisma.TransactionClient): Promise<Overpayment>
+}
+
+
+export interface DVAAccount {
+  id: number
+  uuid: string
+  accountNumber: string
+  accountName: string
+  bankName: string
+  bankCode: string
+  accountCode: string
+  paystackCustomerId: string
+  userPropertyId: number
+  metadata?: any
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface IDVAAccountRepository {
+  create(data: Omit<DVAAccount, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<DVAAccount>
+  findByUserPropertyId(userPropertyId: number): Promise<DVAAccount | null>
+  findByAccountNumber(accountNumber: string): Promise<DVAAccount | null>
 }
 
 export const SAVED_LANDLORD_REPOSITORY = Symbol('SAVED_LANDLORD_REPOSITORY')
@@ -239,3 +274,4 @@ export const SUBACCOUNT_REPOSITORY = Symbol('SUBACCOUNT_REPOSITORY')
 export const WEBHOOK_REPOSITORY = Symbol('WEBHOOK_REPOSITORY')
 export const OVERPAYMENT_REPOSITORY = Symbol('OVERPAYMENT_REPOSITORY')
 export const PAYMENT_LINE_ITEM_REPOSITORY = Symbol('PAYMENT_LINE_ITEM_REPOSITORY')
+export const DVA_ACCOUNT_REPOSITORY = Symbol('DVA_ACCOUNT_REPOSITORY')

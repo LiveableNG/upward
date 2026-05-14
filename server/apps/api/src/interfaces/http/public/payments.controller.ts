@@ -28,7 +28,10 @@ import {
   CreateManualPaymentRequestUseCase,
   InitializePaymentUseCase,
   ProcessPaymentWebhookUseCase,
+  GetBankDetailsUseCase,
+  SaveBankDetailsUseCase,
 } from '../../../application/use-cases/payments/payment.use-cases'
+import { VerifyGatewayTransactionUseCase } from '../../../application/use-cases/payments/verify-transaction.use-case'
 
 @Controller('payments')
 export class PaymentsController {
@@ -47,7 +50,30 @@ export class PaymentsController {
     private readonly createManualRequestUc: CreateManualPaymentRequestUseCase,
     private readonly initializePaymentUc: InitializePaymentUseCase,
     private readonly processWebhookUc: ProcessPaymentWebhookUseCase,
+    private readonly verifyGatewayTransactionUc: VerifyGatewayTransactionUseCase,
+    private readonly getBankDetailsUc: GetBankDetailsUseCase,
+    private readonly saveBankDetailsUc: SaveBankDetailsUseCase,
   ) {}
+
+  @Get('verify/:reference')
+  async verifyPayment(@Param('reference') reference: string, @Req() req: any) {
+    const userId = req.user?.uuid || 'GUEST'
+    const result = await this.verifyGatewayTransactionUc.execute({
+      userId,
+      reference,
+    })
+
+    return {
+      status: true,
+      message: 'Verification complete',
+      data: {
+        isVerified: result.isVerified,
+        status: result.isVerified ? 'SUCCESS' : 'PENDING',
+        amount: result.verifiedAmount,
+        reference,
+      },
+    }
+  }
 
   @UseGuards(JwtAuthGuard)
   @Get('transactions/pending')
@@ -125,10 +151,22 @@ export class PaymentsController {
     })
   }
 
-  @Post('webhook/paystack')
-  async handlePaystackWebhook(@Body() payload: any, @Req() req: any) {
+  @Post('webhook')
+  async handleWebhook(@Body() payload: any, @Req() req: any) {
     const signature = req.headers['x-paystack-signature']
     return this.processWebhookUc.execute(payload, signature)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('bank-details')
+  async getBankDetails(@Req() req: any) {
+    return this.getBankDetailsUc.execute(req.user.id)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('bank-details')
+  async saveBankDetails(@Req() req: any, @Body() body: any) {
+    return this.saveBankDetailsUc.execute(req.user.id, body)
   }
 
   @UseGuards(JwtAuthGuard)

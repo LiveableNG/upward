@@ -19,6 +19,7 @@ import {
 import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../domains/payments/payment.repository'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
+import { ResolveDedicatedAccountUseCase } from '../../use-cases/payments/payment.use-cases'
 import { randomUUID } from 'crypto'
 
 import {
@@ -48,6 +49,7 @@ export class SingleInviteUseCase {
     @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
     @Inject(PAYMENT_GATEWAY) private readonly paymentGateway: IPaymentGateway,
     private readonly notificationService: NotificationService,
+    private readonly resolveDedicatedAccount: ResolveDedicatedAccountUseCase,
   ) { }
 
   async execute(payload: InviteRequest, platformId?: number): Promise<any> {
@@ -308,6 +310,19 @@ export class SingleInviteUseCase {
           type: 'RENT_REMINDER',
           url: `/dashboard/payment?prop=${property.uuid}`
         })
+      }
+
+      // 3d. Pre-provision Dedicated Virtual Account (DVA)
+      if (property.id) {
+        try {
+          await this.resolveDedicatedAccount.execute({
+            userPropertyId: property.id,
+            tenantEmail: user.email!,
+            tenantName: `${user.firstName} ${user.lastName}`,
+          });
+        } catch (e: any) {
+          this.logger.warn(`Failed to pre-provision DVA for property ${property.uuid}: ${e.message}`);
+        }
       }
 
       const finalManager = (manager || property.manager) as any

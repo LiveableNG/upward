@@ -28,9 +28,8 @@ export async function guestInitializePayment(data: { paymentToken: string; email
 }
 
 export async function verifyPayment(reference: string) {
-  return request<PaymentVerifyResponse>(`/pay/verify/${reference}`, {
-    method: 'POST',
-    body: JSON.stringify({}),
+  return request<PaymentVerifyResponse>(`/payments/verify/${reference}`, {
+    method: 'GET',
   })
 }
 
@@ -99,7 +98,18 @@ export async function resolveSubaccount(accountNumber: string, bankCode: string,
 }
 
 export async function getPropertyBalance(propertyUuid: string) {
-  return request<any>(`/payments/property-balance/${propertyUuid}`, { method: 'GET' })
+  return request<any>(`/payments/balance/${propertyUuid}`, { method: 'GET' })
+}
+
+export async function getBankDetails() {
+  return request<any>('/payments/bank-details', { method: 'GET' })
+}
+
+export async function saveBankDetails(data: any) {
+  return request<any>('/payments/bank-details', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
 }
 
 export async function createManualPaymentRequest(data: {

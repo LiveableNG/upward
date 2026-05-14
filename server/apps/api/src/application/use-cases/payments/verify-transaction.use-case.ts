@@ -22,7 +22,7 @@ export class VerifyGatewayTransactionUseCase {
 
   async execute(data: { userId: string; reference: string }) {
     const user = await this.userRepository.findByUuid(data.userId)
-    if (!user) throw new UnauthorizedException('User not found')
+    // For guest payments, user might be null, which is fine for basic verification
 
     // Idempotency check
     const existing = await this.txRepo.findByReference(data.reference)

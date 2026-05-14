@@ -36,6 +36,7 @@ import { UpdateTeamMemberPermissionsUseCase } from '../../../application/pm/use-
 import { RevokeTeamMemberUseCase } from '../../../application/pm/use-cases/team/revoke-team-member.use-case';
 import { BulkAddRentHistoryUseCase } from '../../../application/pm/use-cases/bulk-add-rent-history.use-case';
 import { GetPmLandlordsUseCase } from '../../../application/pm/use-cases/landlord/get-pm-landlords.use-case';
+import { GetPmPayoutsUseCase, GetPayoutBreakdownUseCase } from '../../../application/use-cases/payments/payment.use-cases';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 import { Inject, UnauthorizedException, Delete } from '@nestjs/common';
 
@@ -76,6 +77,8 @@ export class PmPropertyController {
     private readonly revokeTeamMemberUseCase: RevokeTeamMemberUseCase,
     private readonly bulkAddRentHistoryUseCase: BulkAddRentHistoryUseCase,
     private readonly getPmLandlordsUseCase: GetPmLandlordsUseCase,
+    private readonly getPmPayoutsUseCase: GetPmPayoutsUseCase,
+    private readonly getPayoutBreakdownUseCase: GetPayoutBreakdownUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -263,7 +266,16 @@ export class PmPropertyController {
     return this.pmBulkRentReminderUseCase.execute(pmId, landlordEmail);
   }
 
-  // --- Team Collaboration ---
+  @Get('payouts')
+  async getPayouts(@Req() req: any) {
+    const pmId = await this.getPmId(req);
+    return this.getPmPayoutsUseCase.execute(pmId);
+  }
+
+  @Get('payouts/batch/:uuid')
+  async getPayoutBreakdown(@Req() req: any, @Param('uuid') uuid: string) {
+    return this.getPayoutBreakdownUseCase.execute(uuid);
+  }
 
   @Post('team/invite')
   async inviteTeamMember(@Req() req: any, @Body() dto: InviteTeamMemberDto) {

@@ -240,4 +240,118 @@ export class PaystackGateway implements IPaymentGateway {
       return null
     }
   }
+
+  async createCustomer(data: {
+    email: string
+    firstName: string
+    lastName: string
+  }): Promise<string> {
+    try {
+      this.logger.log(`Creating Paystack customer: ${data.email}`)
+      const res = await fetch(`${this.baseUrl}/customer`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify({
+          email: data.email,
+          first_name: data.firstName,
+          last_name: data.lastName,
+        }),
+      })
+
+      const responseData = await res.json()
+      if (!res.ok) {
+        if (responseData.message?.toLowerCase().includes('already exists') || responseData.data?.customer_code) {
+          return responseData.data?.customer_code || ''
+        }
+        this.logger.error(`Paystack customer creation failed: ${res.status} - ${JSON.stringify(responseData)}`)
+        throw new Error(responseData.message || 'Customer creation failed')
+      }
+
+      return responseData.data.customer_code
+    } catch (error) {
+      this.logger.error('Paystack createCustomer error:', error)
+      throw error
+    }
+  }
+
+  async createDedicatedAccount(data: {
+    customerCode: string
+    subaccountCode?: string
+  }): Promise<any> {
+    try {
+      this.logger.log(`Creating Paystack DVA for customer ${data.customerCode}`)
+      const res = await fetch(`${this.baseUrl}/dedicated_account`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify({
+          customer: data.customerCode,
+          subaccount: data.subaccountCode,
+        }),
+      })
+
+      const responseData = await res.json()
+      if (!res.ok) {
+        this.logger.error(`Paystack DVA creation failed: ${res.status} - ${JSON.stringify(responseData)}`)
+        throw new Error(responseData.message || 'DVA creation failed')
+      }
+
+      return responseData
+    } catch (error) {
+      this.logger.error('Paystack createDedicatedAccount error:', error)
+      throw error
+    }
+  }
+
+  async initiateTransfer(data: {
+    amount: number
+    accountNumber: string
+    bankCode: string
+    reference: string
+    narration?: string
+  }): Promise<any> {
+    try {
+      this.logger.log(`Initiating transfer of ${data.amount} to ${data.accountNumber}`)
+
+      // 1. Create Transfer Recipient
+      const recipientRes = await fetch(`${this.baseUrl}/transferrecipient`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify({
+          type: "nuban",
+          name: "Landlord Settlement",
+          account_number: data.accountNumber,
+          bank_code: data.bankCode,
+          currency: "NGN"
+        }),
+      })
+      const recipientData = await recipientRes.json()
+      if (!recipientRes.ok || !recipientData.status) {
+        throw new Error(recipientData.message || 'Failed to create transfer recipient')
+      }
+
+      const recipientCode = recipientData.data.recipient_code
+
+      // 2. Initiate Transfer
+      const transferRes = await fetch(`${this.baseUrl}/transfer`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify({
+          source: "balance",
+          amount: data.amount * 100, // to kobo
+          reference: data.reference,
+          recipient: recipientCode,
+          reason: data.narration || "Rent Settlement"
+        }),
+      })
+      const transferData = await transferRes.json()
+      if (!transferRes.ok || !transferData.status) {
+        throw new Error(transferData.message || 'Transfer initiation failed')
+      }
+
+      return transferData
+    } catch (error) {
+      this.logger.error('Paystack initiateTransfer error:', error)
+      throw error
+    }
+  }
 }
