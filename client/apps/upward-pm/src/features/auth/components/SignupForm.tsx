@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Mail,
@@ -20,6 +21,7 @@ import { useRequestOTP, useVerifyOTP, useOtpLogin } from '../hooks/useOtp'
 import { checkEmail } from '../services/authService'
 
 export const SignupForm = () => {
+  const router = useRouter()
   const [stage, setStage] = useState<'info' | 'otp' | 'success'>('info')
   const [effectiveContext, setEffectiveContext] = useState<'SIGNUP' | 'LOGIN'>('SIGNUP')
 
@@ -44,6 +46,8 @@ export const SignupForm = () => {
   const otpLoginMutation = useOtpLogin()
 
   const [emailExists, setEmailExists] = useState(false)
+  const [isInvited, setIsInvited] = useState(false)
+  const [inviteToken, setInviteToken] = useState<string | null>(null)
   const [isCheckingEmail, setIsCheckingEmail] = useState(false)
   const emailCheckTimeout = useRef<NodeJS.Timeout | null>(null)
 
@@ -55,7 +59,15 @@ export const SignupForm = () => {
         setIsCheckingEmail(true)
         try {
           const res = await checkEmail(formData.email)
-          setEmailExists(res.exists)
+          setEmailExists(res.exists && !res.isInvited) 
+          setIsInvited(res.isInvited || false)
+          setInviteToken(res.inviteToken || null)
+
+          if (res.isInvited && res.inviteToken) {
+            setTimeout(() => {
+              router.push(`/invite/${res.inviteToken}`)
+            }, 1500)
+          }
         } catch (err) {
           console.error('Email check failed', err)
         } finally {
@@ -333,7 +345,17 @@ export const SignupForm = () => {
                 </div>
               )}
             </div>
-            {(requestOtpMutation.isError || emailExists) && (
+            
+            {isInvited && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', color: 'var(--forest)', fontSize: '14px', fontWeight: 500 }}>
+                <CheckCircle2 size={14} />
+                <span>
+                  You have a pending invitation! Redirecting you to claim your profile...
+                </span>
+              </div>
+            )}
+
+            {(requestOtpMutation.isError || emailExists) && !isInvited && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', color: '#ef4444', fontSize: '14px', fontWeight: 500 }}>
                 <AlertCircle size={14} />
                 <span>
@@ -472,7 +494,7 @@ export const SignupForm = () => {
           <button
             type="submit"
             className="auth-btn auth-btn--primary"
-            disabled={loading || emailExists || isCheckingEmail}
+            disabled={loading || emailExists || isCheckingEmail || isInvited}
           >
             {loading
               ? 'Please wait...'

@@ -26,6 +26,7 @@ interface AddTenantModalProps {
     lastName?: string
     email?: string
     phone?: string
+    unitDetails?: any
   }
 }
 
@@ -70,6 +71,17 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
           </div>
           <button onClick={onClose}><X size={20} /></button>
         </div>
+
+        {initialData?.unitDetails && (
+          <div style={{ marginTop: 16, padding: 12, backgroundColor: '#F0F4F1', borderRadius: 8, border: '1px solid #E5E5D8' }}>
+            <p style={{ fontSize: 13, color: '#1B4332', margin: 0, fontWeight: 500 }}>
+              <strong style={{ fontWeight: 600 }}>Requested Unit:</strong> {initialData.unitDetails.address}{initialData.unitDetails.area ? `, ${initialData.unitDetails.area}` : ''}
+            </p>
+            <p style={{ fontSize: 12, color: '#4A6052', margin: '4px 0 0 0' }}>
+              Rent: ₦{(initialData.unitDetails.rentAmount || 0).toLocaleString()} • Dates: {new Date(initialData.unitDetails.rentStartDate).toLocaleDateString()} - {new Date(initialData.unitDetails.rentEndDate).toLocaleDateString()}
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} style={{ marginTop: 24 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>

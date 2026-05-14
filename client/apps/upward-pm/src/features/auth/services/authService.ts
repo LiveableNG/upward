@@ -52,7 +52,7 @@ export const getMe = async () => {
 }
 
 export const checkEmail = async (email: string) => {
-  return request<{ exists: boolean }>('/pm/auth/check-email', {
+  return request<{ exists: boolean; isInvited?: boolean; inviteToken?: string }>('/pm/auth/check-email', {
     method: 'POST',
     body: JSON.stringify({ email })
   })

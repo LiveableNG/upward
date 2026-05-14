@@ -43,6 +43,7 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useToast } from '@/components/common/Toast'
 import { COUNTRIES, STATES } from '@/lib/location-data'
+import { AddPropertyModal } from './AddPropertyModal'
 
 type ViewMode = 'menu' | 'personal' | 'banking'
 
@@ -73,6 +74,8 @@ function ProfileMenuContentInner() {
   const [banks, setBanks] = useState<any[]>([])
   const [resolvingBank, setResolvingBank] = useState(false)
   const [pendingRefunds, setPendingRefunds] = useState<any[]>([])
+  const [isAddPropertyModalOpen, setIsAddPropertyModalOpen] = useState(false)
+  const [selectedProperty, setSelectedProperty] = useState<any>(null)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -383,6 +386,18 @@ function ProfileMenuContentInner() {
           }}
         />
 
+        <AddPropertyModal 
+          isOpen={isAddPropertyModalOpen} 
+          onClose={() => {
+            setIsAddPropertyModalOpen(false)
+            setSelectedProperty(null)
+          }} 
+          onSuccess={() => {
+            refreshUser()
+          }} 
+          initialData={selectedProperty}
+        />
+
         <div className="profile-content-scroll">
           <div className="personal-sections">
             {/* Section 1: Basic Information */}
@@ -461,15 +476,9 @@ function ProfileMenuContentInner() {
                 {isEditing && (
                   <button
                     className="btn btn--secondary btn--sm btn--pill"
-                    onClick={() => {
-                      const newProps = [
-                        ...(formData.properties || []),
-                        { address: '', rentEndDate: '', rentStartDate: '', isManaged: false, isPastTenancy: false, location: { country: '', state: '', area: '' } },
-                      ]
-                      setFormData({ ...formData, properties: newProps })
-                    }}
+                    onClick={() => setIsAddPropertyModalOpen(true)}
                   >
-                    <Plus size={14} className="mr-1" /> Add
+                    <Plus size={14} className="mr-1" /> Add Property
                   </button>
                 )}
               </div>
@@ -510,163 +519,67 @@ function ProfileMenuContentInner() {
                     </div>
 
                     {expandedProps[idx] && (
-                      <div className="property-item__body animate-fade-in">
-                         {isEditing && !prop.isManaged && (formData.properties || []).length > 1 && (
-                          <button
-                            className="property-item__delete"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              const newProps = [...(formData.properties || [])]
-                              newProps.splice(idx, 1)
-                              setFormData({ ...formData, properties: newProps })
-                            }}
-                          >
-                            <Trash2 size={14} /> Remove Property
-                          </button>
-                        )}
+                      <div className="property-item__body animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'var(--surface2)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                          <div>
+                            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Rent Amount</p>
+                            <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                              {prop.rentAmount ? formatCurrency(prop.rentAmount, prop.currency || 'NGN') : 'Not Set'}
+                            </p>
+                          </div>
+                          <div>
+                            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Tenancy Dates</p>
+                            <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                              {prop.rentStartDate ? formatDate(prop.rentStartDate) : '-'} to {prop.rentEndDate ? formatDate(prop.rentEndDate) : '-'}
+                            </p>
+                          </div>
+                          <div>
+                            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Manager Name</p>
+                            <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                              {prop.managerName || 'Not Set'}
+                            </p>
+                          </div>
+                          <div>
+                            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Management Company</p>
+                            <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                              {prop.companyName || 'Not Set'}
+                            </p>
+                          </div>
+                        </div>
 
+                        {isEditing && (
+                          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                            {!prop.isManaged && (
+                              <button
+                                className="btn btn--ghost text-red-500 hover:bg-red-50"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  const newProps = [...(formData.properties || [])]
+                                  newProps.splice(idx, 1)
+                                  setFormData({ ...formData, properties: newProps })
+                                }}
+                              >
+                                <Trash2 size={16} className="mr-2" /> Remove
+                              </button>
+                            )}
+                            <button
+                              className="btn btn--outline"
+                              onClick={() => {
+                                setSelectedProperty(prop)
+                                setIsAddPropertyModalOpen(true)
+                              }}
+                            >
+                              Edit Details
+                            </button>
+                          </div>
+                        )}
+                        
                         {isEditing && prop.isManaged && (
                           <div className="managed-notice">
                             <AlertCircle size={14} />
-                            <span>This property is verified by {prop.company?.name || prop.companyName}.</span>
+                            <span>This property is verified by {prop.company?.name || prop.companyName}. Certain fields cannot be modified.</span>
                           </div>
                         )}
-
-                        <div className="property-item__form">
-                          <DetailOrEdit
-                            isEditing={isEditing && !prop.isManaged}
-                            icon={MapPin}
-                            label="Street Address *"
-                            placeholder="e.g. 12 Adeola Odeku"
-                            value={prop.location?.address || ''}
-                            onChange={(v) => handlePropUpdate(idx, 'location.address', v)}
-                          />
-                          <div className="grid-2">
-                             <DetailOrEdit
-                              isEditing={isEditing && !prop.isManaged}
-                              icon={MapPin}
-                              label="Subarea"
-                              placeholder="e.g. Victoria Island"
-                              value={prop.location?.subarea || ''}
-                              onChange={(v) => handlePropUpdate(idx, 'location.subarea', v)}
-                            />
-                            <DetailOrEdit
-                              isEditing={isEditing && !prop.isManaged}
-                              icon={MapPin}
-                              label="Area *"
-                              placeholder="e.g. Lekki"
-                              value={prop.location?.area || ''}
-                              onChange={(v) => handlePropUpdate(idx, 'location.area', v)}
-                            />
-                          </div>
-                          <div className="grid-2">
-                            <DetailOrEdit
-                              isEditing={isEditing && !prop.isManaged}
-                              icon={Shield}
-                              label="Country *"
-                              type="select"
-                              options={COUNTRIES.map((c) => ({ value: c.code, label: c.name }))}
-                              value={prop.location?.country || ''}
-                              onChange={(v) => handlePropUpdate(idx, 'location.country', v)}
-                            />
-                            <DetailOrEdit
-                              isEditing={isEditing && !prop.isManaged}
-                              icon={MapPin}
-                              label="State *"
-                              type="select"
-                              options={
-                                STATES[prop.location?.country || 'NG']?.map((s) => ({ value: s, label: s })) || []
-                              }
-                              value={prop.location?.state || ''}
-                              onChange={(v) => handlePropUpdate(idx, 'location.state', v)}
-                            />
-                          </div>
-                          
-                          <div className="divider-sm" />
-
-                          <div className="property-item__status-toggle">
-                            <DetailOrEdit
-                              isEditing={isEditing}
-                              icon={Clock}
-                              label="Is this a past tenancy?"
-                              type="select"
-                              options={[
-                                { value: 'false', label: 'No, I currently live here' },
-                                { value: 'true', label: 'Yes, I have moved out' },
-                              ]}
-                              value={prop.isPastTenancy ? 'true' : 'false'}
-                              onChange={(v) => handlePropUpdate(idx, 'isPastTenancy', v === 'true')}
-                            />
-                          </div>
-
-                          <div className="grid-2">
-                            <DetailOrEdit
-                              isEditing={isEditing && !prop.isManaged}
-                              icon={Calendar}
-                              label="Rent Start Date *"
-                              type="date"
-                              value={prop.rentStartDate || ''}
-                              displayValue={prop.rentStartDate ? formatDate(prop.rentStartDate) : ''}
-                              onChange={(v) => handlePropUpdate(idx, 'rentStartDate', v)}
-                            />
-                            <DetailOrEdit
-                              isEditing={isEditing && !prop.isManaged}
-                              icon={Calendar}
-                              label={`${prop.isPastTenancy ? "Tenancy End Date" : "Rent Due Date"} *`}
-                              type="date"
-                              value={prop.rentEndDate || ''}
-                              displayValue={prop.rentEndDate ? formatDate(prop.rentEndDate) : ''}
-                              onChange={(v) => handlePropUpdate(idx, 'rentEndDate', v)}
-                            />
-                          </div>
-                          <div className="grid-2">
-                            <DetailOrEdit
-                              isEditing={isEditing && !prop.isManaged}
-                              icon={Building}
-                              label="Rent Amount *"
-                              value={prop.rentAmount?.toString() || ''}
-                              displayValue={prop.rentAmount ? formatCurrency(prop.rentAmount, prop.currency || 'NGN') : ''}
-                              onChange={(v) => handlePropUpdate(idx, 'rentAmount', parseFloat(v) || 0)}
-                            />
-                          </div>
-
-                           <div className="grid-2">
-                            <DetailOrEdit
-                              isEditing={isEditing && !prop.isManaged}
-                              icon={Building}
-                              label={`Management Co.${!prop.managerName ? ' *' : ''}`}
-                              value={prop.companyName || ''}
-                              onChange={(v) => handlePropUpdate(idx, 'companyName', v)}
-                            />
-                            <DetailOrEdit
-                              isEditing={isEditing && !prop.isManaged}
-                              icon={UserCheck}
-                              label={`Manager Name${!prop.companyName ? ' *' : ''}`}
-                              value={prop.managerName || ''}
-                              onChange={(v) => handlePropUpdate(idx, 'managerName', v)}
-                            />
-                          </div>
-                          
-                          <div className="grid-2">
-                            <DetailOrEdit
-                              isEditing={isEditing && !prop.isManaged}
-                              icon={Phone}
-                              label="Manager Phone"
-                              placeholder="Manager's active phone"
-                              value={prop.managerPhone || ''}
-                              error={validationErrors[`prop_${idx}_managerPhone`]}
-                              onChange={(v) => handlePropUpdate(idx, 'managerPhone', v)}
-                            />
-                            <DetailOrEdit
-                              isEditing={isEditing && !prop.isManaged}
-                              icon={Mail}
-                              label="Manager Email"
-                              placeholder="Manager's active email"
-                              value={prop.managerEmail || ''}
-                              onChange={(v) => handlePropUpdate(idx, 'managerEmail', v)}
-                            />
-                          </div>
-                        </div>
                       </div>
                     )}
                   </div>

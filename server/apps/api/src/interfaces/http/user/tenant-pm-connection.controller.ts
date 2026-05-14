@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../../../application/auth/interfaces/authe
 import { VerifyPmEmailUseCase } from '../../../application/use-cases/tenant-pm-connection/verify-pm.use-case';
 import { ConfirmPmConnectionUseCase } from '../../../application/use-cases/tenant-pm-connection/confirm-pm-connection.use-case';
 import { InvitePmUseCase } from '../../../application/use-cases/tenant-pm-connection/invite-pm.use-case';
+import { SubmitUnitRequestUseCase } from '../../../application/use-cases/tenant-pm-connection/submit-unit-request.use-case';
 
 @Controller('user/pm-connection')
 @UseGuards(JwtAuthGuard)
@@ -12,6 +13,7 @@ export class TenantPmConnectionController {
     private readonly verifyPmEmailUseCase: VerifyPmEmailUseCase,
     private readonly confirmPmConnectionUseCase: ConfirmPmConnectionUseCase,
     private readonly invitePmUseCase: InvitePmUseCase,
+    private readonly submitUnitRequestUseCase: SubmitUnitRequestUseCase,
   ) {}
 
   @Post('verify')
@@ -38,6 +40,18 @@ export class TenantPmConnectionController {
   ) {
     const user = req.user;
     const result = await this.invitePmUseCase.execute(user, pmEmail, pmName);
+    return { success: true, data: result };
+  }
+
+  @Post('add-unit-request')
+  async addUnitRequest(
+    @Req() req: AuthenticatedRequest,
+    @Body('pmEmail') pmEmail: string,
+    @Body('pmName') pmName: string | undefined,
+    @Body('unitDetails') unitDetails: any,
+  ) {
+    const user = req.user;
+    const result = await this.submitUnitRequestUseCase.execute(user, pmEmail, pmName, unitDetails);
     return { success: true, data: result };
   }
 }

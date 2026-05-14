@@ -26,6 +26,7 @@ export class GetPendingJoinRequestsUseCase {
       tenantLastName: (log.metadata as any).userLastName,
       tenantEmail: (log.metadata as any).userEmail,
       tenantUuid: (log.metadata as any).userUuid,
+      unitDetails: (log.metadata as any).unitDetails,
       createdAt: log.createdAt,
     }));
   }
