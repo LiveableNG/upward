@@ -67,9 +67,23 @@ export class PaystackGateway implements IPaymentGateway {
 
   async verifyAccountNumber(accountNumber: string, bankCode: string): Promise<AccountVerification> {
     try {
-    return {
-        accountNumber: accountNumber,
-        accountName: "Micheal Okpara",
+      this.logger.log(`Resolving account: ${accountNumber} with bank: ${bankCode}`)
+      const res = await fetch(`${this.baseUrl}/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`, {
+        method: 'GET',
+        headers: this.headers,
+      })
+
+      const data = await res.json()
+      
+      if (!res.ok || !data.status) {
+        const errorMsg = data.message || 'Could not resolve account'
+        this.logger.warn(`Account resolution failed: ${errorMsg}`)
+        throw new Error(errorMsg)
+      }
+
+      return {
+        accountNumber: data.data.account_number,
+        accountName: data.data.account_name,
         bankCode,
       }
     } catch (error) {
