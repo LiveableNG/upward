@@ -24,11 +24,13 @@ import { OnboardingStep } from '@/features/payments/components/unified-pay/Onboa
 import { SettledStep } from '@/features/payments/components/unified-pay/SettledStep'
 import { StatusStep } from '@/features/payments/components/unified-pay/StatusStep'
 import { RenewalModal } from '@/features/payments/components/unified-pay/RenewalModal'
+import { PaymentConfirmationModal } from '@/features/payments/components/unified-pay/PaymentConfirmationModal'
 import { usePaymentFlow } from '@/features/payments/hooks/usePaymentFlow'
 
 export default function PayClient({ overrideToken }: { overrideToken?: string }) {
   const router = useRouter()
   const params = useParams()
+  const [showPaymentConfirm, setShowPaymentConfirm] = React.useState(false)
   
   const uuid = useMemo(() => {
     if (overrideToken) return overrideToken
@@ -254,7 +256,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                     <div className="pay-cta">
                       <button
                         className="btn btn--primary btn--full btn--pay btn--pill"
-                        onClick={() => setStep('checkout')}
+                        onClick={() => setShowPaymentConfirm(true)}
                         disabled={ctaDisabled}
                       >
                         <CreditCard size={18} className="icon--left" />
@@ -462,6 +464,17 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             }}
           />
         )}
+
+        <PaymentConfirmationModal
+          isOpen={showPaymentConfirm}
+          amount={parsedAmount}
+          currency={currency}
+          onClose={() => setShowPaymentConfirm(false)}
+          onConfirm={() => {
+            setShowPaymentConfirm(false)
+            setStep('checkout')
+          }}
+        />
       </div>
     )
   }
