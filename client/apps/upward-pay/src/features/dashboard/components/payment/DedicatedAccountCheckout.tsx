@@ -83,13 +83,15 @@ export default function DedicatedAccountCheckout({
           </p>
 
           <div className="psk-account-details">
-            <div className="psk-account-row">
-              <span className="psk-account-label">Bank Name</span>
-              <span className="psk-account-value">{bankName}</span>
-            </div>
-            <div className="psk-account-row">
-              <span className="psk-account-label">Account Name</span>
-              <span className="psk-account-value">{accountName}</span>
+            <div className="psk-account-grid">
+              <div className="psk-account-row">
+                <span className="psk-account-label">Bank Name</span>
+                <span className="psk-account-value">{bankName}</span>
+              </div>
+              <div className="psk-account-row">
+                <span className="psk-account-label">Account Name</span>
+                <span className="psk-account-value">{accountName}</span>
+              </div>
             </div>
             <div className="psk-account-row psk-account-row--action">
               <div className="psk-account-row">
