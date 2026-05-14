@@ -215,8 +215,8 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
                           setResolvingBank(true)
                           try {
                             const res = await api.resolveAccount(v, bankDetails.bankCode)
-                            if (res.account_name) {
-                              setBankDetails({ ...newDetails, accountName: res.account_name })
+                            if (res.accountName) {
+                              setBankDetails({ ...newDetails, accountName: res.accountName })
                             }
                           } catch (err) {
                             console.error('Resolution failed', err)
