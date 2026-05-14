@@ -11,6 +11,7 @@ const inter = Inter({
   weight: ['300', '400', '500', '600', '700'],
 })
 
+
 export const metadata: Metadata = {
   title: 'Upward Pay — Secure Rent Payments',
   description:
