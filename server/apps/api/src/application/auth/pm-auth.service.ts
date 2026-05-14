@@ -283,8 +283,13 @@ export class PmAuthService extends BaseAuthService {
     return clientProfile
   }
 
-  async checkEmail(email: string): Promise<{ exists: boolean }> {
+  async checkEmail(email: string): Promise<{ exists: boolean; isInvited?: boolean; inviteToken?: string }> {
     const pm = await this.pmRepository.findByEmail(email)
+    
+    if (pm && pm.passwordHash === 'PENDING_INVITE') {
+      return { exists: true, isInvited: true, inviteToken: pm.uuid }
+    }
+
     return { exists: !!pm }
   }
 

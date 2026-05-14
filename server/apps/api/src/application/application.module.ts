@@ -172,6 +172,7 @@ import { RentReminderWorkflowUseCase } from './use-cases/notifications/rent-remi
 import { VerifyPmEmailUseCase } from './use-cases/tenant-pm-connection/verify-pm.use-case'
 import { ConfirmPmConnectionUseCase } from './use-cases/tenant-pm-connection/confirm-pm-connection.use-case'
 import { InvitePmUseCase } from './use-cases/tenant-pm-connection/invite-pm.use-case'
+import { SubmitUnitRequestUseCase } from './use-cases/tenant-pm-connection/submit-unit-request.use-case'
 
 // Payments
 import {
@@ -408,6 +409,7 @@ const UseCases = [
   VerifyPmEmailUseCase,
   ConfirmPmConnectionUseCase,
   InvitePmUseCase,
+  SubmitUnitRequestUseCase,
 ]
 
 @Module({

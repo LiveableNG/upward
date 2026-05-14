@@ -48,11 +48,16 @@ export function TenantRequestsWidget() {
         <div className="flex flex-col gap-3">
           {requests.map((req: any) => (
             <div key={req.uuid} className="flex items-center justify-between p-3 bg-white rounded-lg border border-[#E5E5D8]">
-              <div>
+              <div className="flex-1">
                 <p className="font-medium text-[#1B4332] text-[14px]">
                   {req.tenantFirstName} {req.tenantLastName}
                 </p>
-                <p className="text-[#4A6052] text-[12px]">{req.tenantEmail}</p>
+                <p className="text-[#4A6052] text-[12px] mb-1">{req.tenantEmail}</p>
+                {req.unitDetails && (
+                  <div className="bg-[#F0F4F1] p-2 rounded text-[12px] text-[#1B4332] border border-[#E5E5D8] inline-block">
+                    <span className="font-semibold">Requested Unit:</span> {req.unitDetails.address}{req.unitDetails.area ? `, ${req.unitDetails.area}` : ''} • ₦{(req.unitDetails.rentAmount || 0).toLocaleString()}
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <button 
@@ -92,6 +97,7 @@ export function TenantRequestsWidget() {
             firstName: selectedRequest.tenantFirstName,
             lastName: selectedRequest.tenantLastName,
             email: selectedRequest.tenantEmail,
+            unitDetails: selectedRequest.unitDetails,
           }}
         />
       )}
