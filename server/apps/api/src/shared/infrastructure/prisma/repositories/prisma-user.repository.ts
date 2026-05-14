@@ -44,19 +44,26 @@ export class PrismaUserRepository implements UserRepository {
         isManaged: p.isVerified,
         isPastTenancy: p.isPastTenancy,
         updatedAt: p.updatedAt,
-        company: p.company ? {
-          ...p.company,
-          name: p.company.name ? this.encryption.decrypt(p.company.name) : undefined,
-          email: p.company.email ? this.encryption.decrypt(p.company.email) : undefined,
-          phone: p.company.phone ? this.encryption.decrypt(p.company.phone) : undefined,
-        } : undefined,
         manager: p.manager ? {
           ...p.manager,
           firstName: p.manager.firstName ? this.encryption.decrypt(p.manager.firstName) : undefined,
           lastName: p.manager.lastName ? this.encryption.decrypt(p.manager.lastName) : undefined,
           email: p.manager.email ? this.encryption.decrypt(p.manager.email) : undefined,
           phone: p.manager.phone ? this.encryption.decrypt(p.manager.phone) : undefined,
-        } : undefined,
+        } : (p.pm ? {
+          firstName: this.encryption.decrypt(p.pm.firstName),
+          lastName: this.encryption.decrypt(p.pm.lastName),
+          email: this.encryption.decrypt(p.pm.email),
+          phone: p.pm.phone ? this.encryption.decrypt(p.pm.phone) : undefined,
+        } : undefined),
+        company: p.company ? {
+          ...p.company,
+          name: p.company.name ? this.encryption.decrypt(p.company.name) : undefined,
+          email: p.company.email ? this.encryption.decrypt(p.company.email) : undefined,
+          phone: p.company.phone ? this.encryption.decrypt(p.company.phone) : undefined,
+        } : (p.pm && p.pm.businessName ? {
+          name: this.encryption.decrypt(p.pm.businessName),
+        } : undefined),
         subaccount: p.subaccount ? {
           subaccountCode: p.subaccount.subaccountCode,
           accountNumber: p.subaccount.accountNumber,
@@ -90,6 +97,7 @@ export class PrismaUserRepository implements UserRepository {
             location: true,
             company: true,
             manager: true,
+            pm: true,
             subaccount: true
           }
         },
@@ -113,6 +121,7 @@ export class PrismaUserRepository implements UserRepository {
             location: true,
             company: true,
             manager: true,
+            pm: true,
             subaccount: true
           }
         },
@@ -136,6 +145,7 @@ export class PrismaUserRepository implements UserRepository {
             location: true,
             company: true,
             manager: true,
+            pm: true,
             subaccount: true
           }
         },
@@ -159,6 +169,7 @@ export class PrismaUserRepository implements UserRepository {
             location: true,
             company: true,
             manager: true,
+            pm: true,
             subaccount: true
           }
         },
@@ -181,6 +192,7 @@ export class PrismaUserRepository implements UserRepository {
             location: true,
             company: true,
             manager: true,
+            pm: true,
             subaccount: true
           }
         },
@@ -265,6 +277,7 @@ export class PrismaUserRepository implements UserRepository {
             location: true,
             company: true,
             manager: true,
+            pm: true,
             subaccount: true
           }
         },

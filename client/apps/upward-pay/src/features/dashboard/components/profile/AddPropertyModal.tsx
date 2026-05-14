@@ -3,6 +3,7 @@ import { X, Search, CheckCircle2, UserPlus, Building2, MapPin, Calendar, CreditC
 import { api } from '@/lib/api'
 import { useMutation } from '@tanstack/react-query'
 import { COUNTRIES, STATES } from '@/lib/location-data'
+import { useToast } from '@/components/common/Toast'
 import './AddPropertyModal.css'
 
 interface AddPropertyModalProps {
@@ -90,8 +91,14 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
         setPmFound(false)
       }
       setStep('DETAILS')
+    },
+    onError: () => {
+      toast.error('Unable to verify this email. You can still enter details manually.', 'Check Failed')
+      setStep('DETAILS')
     }
   })
+
+  const toast = useToast()
 
   const submitMutation = useMutation({
     mutationFn: async () => {
@@ -127,8 +134,12 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
       await api.post('/user/pm-connection/add-unit-request', payload)
     },
     onSuccess: () => {
+      toast.success('Your property details have been saved and the manager notified.', 'Property Added')
       onSuccess()
       onClose()
+    },
+    onError: () => {
+      toast.error('Failed to save property details. Please try again.', 'Error')
     }
   })
 

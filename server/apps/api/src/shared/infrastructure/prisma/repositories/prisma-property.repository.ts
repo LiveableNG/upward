@@ -52,7 +52,14 @@ export class PrismaPropertyRepository implements PropertyRepository {
       // Fallback to PM Manager for Upward Pay UI consistency
       result.manager = {
         firstName: this.encryption.decrypt(result.pm.firstName),
-        lastName: this.encryption.decrypt(result.pm.lastName)
+        lastName: this.encryption.decrypt(result.pm.lastName),
+        email: this.encryption.decrypt(result.pm.email),
+        phone: result.pm.phone ? this.encryption.decrypt(result.pm.phone) : undefined,
+      }
+      if (result.pm.businessName) {
+        result.company = {
+          name: this.encryption.decrypt(result.pm.businessName)
+        }
       }
     }
 
@@ -76,7 +83,14 @@ export class PrismaPropertyRepository implements PropertyRepository {
       if (result.pm && !result.manager) {
         result.manager = {
           firstName: this.encryption.decrypt(result.pm.firstName),
-          lastName: this.encryption.decrypt(result.pm.lastName)
+          lastName: this.encryption.decrypt(result.pm.lastName),
+          email: this.encryption.decrypt(result.pm.email),
+          phone: result.pm.phone ? this.encryption.decrypt(result.pm.phone) : undefined,
+        }
+        if (result.pm.businessName && !result.company) {
+          result.company = {
+            name: this.encryption.decrypt(result.pm.businessName)
+          }
         }
       }
       return result
