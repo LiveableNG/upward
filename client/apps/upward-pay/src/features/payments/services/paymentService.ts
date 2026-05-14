@@ -14,10 +14,11 @@ export async function initializePayment(data: {
   paymentRequestUuid?: string
   metadata?: any
 }) {
-  return request<PaymentInitResponse>('/payments/initialize', {
+  const res = await request<any>('/payments/initialize', {
     method: 'POST',
     body: JSON.stringify(data),
   })
+  return res.data || res
 }
 
 export async function guestInitializePayment(data: { paymentToken: string; email: string }) {
@@ -28,9 +29,10 @@ export async function guestInitializePayment(data: { paymentToken: string; email
 }
 
 export async function verifyPayment(reference: string) {
-  return request<PaymentVerifyResponse>(`/payments/verify/${reference}`, {
+  const res = await request<any>(`/payments/verify/${reference}`, {
     method: 'GET',
   })
+  return res.data || res
 }
 
 export async function togglePaymentStatus(token: string, status: string) {
@@ -47,29 +49,34 @@ export async function toggleGuestPaymentStatus(token: string, status: string) {
   })
 }
 export async function getSavedLandlords() {
-  return request<any[]>('/payments/landlords', { method: 'GET' })
+  const res = await request<any[]>('/payments/landlords', { method: 'GET' })
+  return (res as any).data || res
 }
 
 export async function saveLandlord(data: any) {
-  return request<any>('/payments/landlords', {
+  const res = await request<any>('/payments/landlords', {
     method: 'POST',
     body: JSON.stringify(data),
   })
+  return res.data || res
 }
 
 export async function recordTransaction(data: any) {
-  return request<any>('/payments/transactions', {
+  const res = await request<any>('/payments/transactions', {
     method: 'POST',
     body: JSON.stringify(data),
   })
+  return res.data || res
 }
 
 export async function getTransaction(id: string) {
-  return request<any>(`/payments/transactions/${id}`, { method: 'GET' })
+  const res = await request<any>(`/payments/transactions/${id}`, { method: 'GET' })
+  return res.data || res
 }
 
 export async function getTransactions() {
-  return request<any[]>('/payments/transactions', { method: 'GET' })
+  const res = await request<any[]>('/payments/transactions', { method: 'GET' })
+  return (res as any).data || res
 }
 
 export async function getReceiptPdf(data: any) {
@@ -89,16 +96,19 @@ export async function resolveAccount(accountNumber: string, bankCode: string) {
   })
 }
 export async function getPendingPayments() {
-  return request<any[]>('/payments/transactions/pending', { method: 'GET' })
+  const res = await request<any[]>('/payments/transactions/pending', { method: 'GET' })
+  return (res as any).data || res
 }
 export async function resolveSubaccount(accountNumber: string, bankCode: string, businessName?: string) {
   let url = `/payments/resolve-subaccount?accountNumber=${accountNumber}&bankCode=${bankCode}`
   if (businessName) url += `&businessName=${encodeURIComponent(businessName)}`
-  return request<{ subaccountCode: string }>(url, { method: 'GET' })
+  const res = await request<any>(url, { method: 'GET' })
+  return res.data || res
 }
 
 export async function getPropertyBalance(propertyUuid: string) {
-  return request<any>(`/payments/balance/${propertyUuid}`, { method: 'GET' })
+  const res = await request<any>(`/payments/property-balance/${propertyUuid}`, { method: 'GET' })
+  return res.data || res
 }
 
 export async function getBankDetails() {

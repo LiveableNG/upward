@@ -123,7 +123,7 @@ export class PaymentsController {
   @Post('transactions')
   async recordTransaction(@Req() req: any, @Body() body: any) {
     const userId = req.user.id
-    return this.recordTransactionUc.execute({
+    const result = await this.recordTransactionUc.execute({
       userId,
       type: body.type || 'RENT',
       status: body.status || 'SUCCESS',
@@ -137,18 +137,28 @@ export class PaymentsController {
       userPropertyUuid: body.userPropertyUuid,
       currency: body.currency || 'NGN',
     })
+
+    return {
+      status: true,
+      data: result,
+    }
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('initialize')
   async initializePayment(@Req() req: any, @Body() body: any) {
     const userId = req.user.id
-    return this.initializePaymentUc.execute({
+    const result = await this.initializePaymentUc.execute({
       userId,
       amount: body.amount,
       paymentRequestUuid: body.paymentRequestUuid,
       metadata: body.metadata,
     })
+
+    return {
+      status: true,
+      data: result,
+    }
   }
 
   @Post('webhook')

@@ -574,8 +574,6 @@ export class InitializePaymentUseCase {
     const flatFee = this.paymentConfig.getProcessingFee()
     let userPropertyId = pr?.userPropertyId
 
-    this.logger.debug(`Initial userPropertyId for PR ${data.paymentRequestUuid}: ${userPropertyId}`)
-
     if (pr && !userPropertyId) {
       this.logger.log(`Attempting to recover userPropertyId for PR ${pr.uuid} from PM context`)
       const pmPR = await this.prisma.upward_pm_payment_request.findFirst({
@@ -594,8 +592,6 @@ export class InitializePaymentUseCase {
         }
       }
     }
-
-    this.logger.debug(`Final userPropertyId before DVA check: ${userPropertyId}`)
 
     if (userPropertyId) {
       const availableOverpayments = await this.overpaymentRepo.findByUserIdAndStatus(user.id!, 'AVAILABLE')
