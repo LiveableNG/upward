@@ -24,7 +24,7 @@ export class SubmitUnitRequestUseCase {
     pmEmail: string,
     pmName: string | undefined,
     unitDetails: {
-      id?: number;
+      uuid?: string;
       address: string;
       area: string;
       state: string;
@@ -34,6 +34,15 @@ export class SubmitUnitRequestUseCase {
       rentEndDate: string;
     }
   ) {
+
+    const fullUser = await this.prisma.upward_user.findUnique({
+      where: { uuid: user.id }
+    });
+
+    if (!fullUser) {
+      throw new Error('Authenticated user profile not found in database');
+    }
+
     let pm = await this.pmRepository.findByEmail(pmEmail);
     let isNewShadowPm = false;
 
@@ -59,19 +68,19 @@ export class SubmitUnitRequestUseCase {
       ownerPmId: pm.id!,
       action: 'TENANT_JOIN_REQUEST',
       entityType: 'TENANT_REQUEST',
-      description: `${user.firstName} ${user.lastName} wants to connect and sync a unit with you.`,
+      description: `${fullUser.firstName} ${fullUser.lastName} wants to connect and sync a unit with you.`,
       metadata: {
         status: 'PENDING',
-        userUuid: user.uuid,
-        userFirstName: user.firstName,
-        userLastName: user.lastName,
-        userEmail: user.email,
+        userUuid: fullUser.uuid,
+        userFirstName: fullUser.firstName,
+        userLastName: fullUser.lastName,
+        userEmail: fullUser.email,
         unitDetails: unitDetails,
       }
     });
 
     const propertyData = {
-      userUuid: user.uuid,
+      userId: fullUser.id,
       location: {
         address: unitDetails.address,
         area: unitDetails.area,
@@ -86,9 +95,9 @@ export class SubmitUnitRequestUseCase {
       managerEmail: pmEmail,
     };
 
-    if (unitDetails.id) {
+    if (unitDetails.uuid) {
       await (this.prisma as any).upward_user_property.update({
-        where: { id: unitDetails.id, userUuid: user.uuid },
+        where: { uuid: unitDetails.uuid, userId: fullUser.id },
         data: propertyData
       });
     } else {
@@ -99,10 +108,10 @@ export class SubmitUnitRequestUseCase {
 
     // 4. Send Invite Email (InvitePmUseCase handles checking if we need to send "first invite" or "another invite")
     if (isNewShadowPm) {
-      await this.invitePmUseCase.execute(user, pmEmail, pm.firstName, true, pm.uuid);
+      await this.invitePmUseCase.execute(fullUser, pmEmail, pm.firstName, true, pm.uuid);
     } else if (pm.passwordHash === 'PENDING_INVITE') {
       // It's a shadow PM that already exists, so we send the "another tenant" email
-      await this.invitePmUseCase.execute(user, pmEmail, pm.firstName, false, pm.uuid);
+      await this.invitePmUseCase.execute(fullUser, pmEmail, pm.firstName, false, pm.uuid);
     } else {
       // Normal existing PM, we could optionally send a notification email, but for now we'll just log activity
       // Activity Log already captures it, push notification could be sent here.

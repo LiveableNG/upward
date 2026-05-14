@@ -44,9 +44,15 @@ import { PaymentConfigurationService } from '../../../shared/infrastructure/comm
 @Injectable()
 export class GetBankDetailsUseCase {
   constructor(private readonly prisma: PrismaService) {}
-  async execute(userId: number) {
+  async execute(userId: string) {
+    const user = await this.prisma.upward_user.findUnique({
+      where: { uuid: userId }
+    });
+    
+    if (!user) return null;
+
     return this.prisma.upward_user_bank_details.findUnique({
-      where: { userId }
+      where: { userId: user.id }
     });
   }
 }
@@ -54,11 +60,17 @@ export class GetBankDetailsUseCase {
 @Injectable()
 export class SaveBankDetailsUseCase {
   constructor(private readonly prisma: PrismaService) {}
-  async execute(userId: number, data: any) {
+  async execute(userId: string, data: any) {
+    const user = await this.prisma.upward_user.findUnique({
+      where: { uuid: userId }
+    });
+    
+    if (!user) throw new Error('User not found');
+
     return this.prisma.upward_user_bank_details.upsert({
-      where: { userId },
+      where: { userId: user.id },
       create: {
-        userId,
+        userId: user.id,
         accountNumber: data.accountNumber,
         accountName: data.accountName,
         bankCode: data.bankCode,

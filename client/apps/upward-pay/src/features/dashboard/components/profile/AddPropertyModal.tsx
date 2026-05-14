@@ -19,7 +19,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
   const [pmDetails, setPmDetails] = useState<{ id?: number, name?: string, businessName?: string } | null>(null)
   
   const [formData, setFormData] = useState({
-    id: undefined as number | undefined,
+    uuid: undefined as string | undefined,
     pmName: '',
     address: '',
     area: '',
@@ -37,7 +37,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
       if (initialData) {
         setPmEmail(initialData.managerEmail || '')
         setFormData({
-          id: initialData.id,
+          uuid: initialData.uuid,
           pmName: initialData.managerName || '',
           address: initialData.location?.address || '',
           area: initialData.location?.area || '',
@@ -55,7 +55,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
         // Reset
         setPmEmail('')
         setFormData({
-          id: undefined,
+          uuid: undefined,
           pmName: '',
           address: '',
           area: '',
@@ -96,7 +96,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
   const submitMutation = useMutation({
     mutationFn: async () => {
       const unitDetails: {
-        id?: number;
+        uuid?: string;
         address: string;
         area: string;
         subarea: string;
@@ -116,7 +116,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
         rentEndDate: formData.rentEndDate
       }
       
-      if (formData.id) unitDetails.id = formData.id;
+      if (formData.uuid) unitDetails.uuid = formData.uuid;
 
       const payload = {
         pmEmail,
