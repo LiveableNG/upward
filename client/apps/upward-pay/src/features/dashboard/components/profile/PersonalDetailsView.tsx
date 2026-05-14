@@ -418,16 +418,18 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
                                 <Trash2 size={14} className="mr-1" /> Remove
                               </button>
                             )}
-                            <button
-                              className="btn btn--secondary btn--sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setSelectedProperty(prop)
-                                setIsAddPropertyModalOpen(true)
-                              }}
-                            >
-                              <Edit2 size={14} className="mr-1" /> Edit
-                            </button>
+                            {!prop.isManaged && (
+                              <button
+                                className="btn btn--secondary btn--sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedProperty(prop)
+                                  setIsAddPropertyModalOpen(true)
+                                }}
+                              >
+                                <Edit2 size={14} className="mr-1" /> Edit
+                              </button>
+                            )}
                           </div>
                         </div>
                       )}

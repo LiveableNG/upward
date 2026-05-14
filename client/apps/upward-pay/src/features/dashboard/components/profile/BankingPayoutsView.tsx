@@ -77,8 +77,17 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="animate-spin text-clay" size={32} />
+      <div className="banking-view dashboard--nav-offset">
+        <PageHeader
+          title="Banking & Payouts"
+          showBack
+          backLabel="Profile"
+          onBack={onBack}
+        />
+        <div className="flex flex-col justify-center items-center h-[60vh]">
+          <Loader2 className="animate-spin text-clay" size={32} />
+          <p className="text-muted text-sm mt-4 animate-pulse">Loading banking details...</p>
+        </div>
       </div>
     )
   }

@@ -15,7 +15,11 @@ type ViewMode = 'menu' | 'personal' | 'banking'
 
 export function ProfileMenuContent() {
   return (
-    <Suspense fallback={<div className="flex justify-center p-10">Loading...</div>}>
+    <Suspense fallback={
+      <div className="flex justify-center items-center h-[50vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-clay"></div>
+      </div>
+    }>
       <ProfileMenuContentInner />
     </Suspense>
   )

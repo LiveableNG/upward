@@ -17,11 +17,19 @@ export class ConfirmPmConnectionUseCase {
   ) {}
 
   async execute(pmId: number, user: any) {
+    const fullUser = await this.prisma.upward_user.findUnique({
+      where: { uuid: user.id }
+    });
+
+    if (!fullUser) {
+      throw new Error('Authenticated user profile not found in database');
+    }
+
     // 1. Check if the tenant already exists under this PM using emailHash
-    const existingTenant = await this.tenantRepository.findByEmailHash(pmId, user.emailHash);
+    const existingTenant = await this.tenantRepository.findByEmailHash(pmId, fullUser.emailHash);
 
     if (existingTenant) {
-      this.logger.log(`Tenant ${user.email} already exists for PM ${pmId}. Auto-syncing units.`);
+      this.logger.log(`Tenant ${fullUser.email} already exists for PM ${pmId}. Auto-syncing units.`);
       // 2. PM already has this tenant. Let's auto-sync.
       // Update invite status to ACCEPTED
       await this.tenantRepository.update(existingTenant.uuid, {
@@ -49,20 +57,20 @@ export class ConfirmPmConnectionUseCase {
         syncedCount
       };
     } else {
-      this.logger.log(`Tenant ${user.email} not found for PM ${pmId}. Creating join request.`);
+      this.logger.log(`Tenant ${fullUser.email} not found for PM ${pmId}. Creating join request.`);
       // 3. PM doesn't have this tenant. Create a Join Request log.
       await this.activityLogService.log({
         pmId, // Use PM's ID as the performer because a tenant initiated it
         ownerPmId: pmId,
         action: 'TENANT_JOIN_REQUEST',
         entityType: 'TENANT_REQUEST',
-        description: `${user.firstName} ${user.lastName} requested to connect with you as their Property Manager.`,
+        description: `${fullUser.firstName} ${fullUser.lastName} requested to connect with you as their Property Manager.`,
         metadata: {
           status: 'PENDING',
-          userUuid: user.uuid,
-          userFirstName: user.firstName,
-          userLastName: user.lastName,
-          userEmail: user.email,
+          userUuid: fullUser.uuid,
+          userFirstName: fullUser.firstName,
+          userLastName: fullUser.lastName,
+          userEmail: fullUser.email,
         }
       });
 
