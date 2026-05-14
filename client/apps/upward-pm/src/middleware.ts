@@ -35,11 +35,19 @@ export function middleware(request: NextRequest) {
   const isLandlordAccessExpired = landlordAccessToken ? isTokenExpired(landlordAccessToken) : true
   const isLandlordLoggedIn = (!!landlordAccessToken && !isLandlordAccessExpired) || !!landlordRefreshToken
 
-  const isPublicPath = pathname === '/login' || pathname === '/signup'
+  const isPortalPath = pathname.startsWith('/portal')
+
+  const isPublicPath = 
+    pathname === '/login' || 
+    pathname === '/signup' ||
+    pathname.startsWith('/invite') ||
+    pathname.startsWith('/reset-password')
+
   const isPublicRequestPath = pathname.startsWith('/public/requests/')
 
-  if (pathname.startsWith('/portal')) {
+  if (isPortalPath) {
     const isPortalLoginPath = pathname === '/portal/login'
+    const isPortalPublic = isPortalLoginPath || pathname.startsWith('/portal/reset-password')
     
     if (isPortalLoginPath) {
       if (isLandlordLoggedIn) {
@@ -48,8 +56,10 @@ export function middleware(request: NextRequest) {
       return NextResponse.next()
     }
     
-    if (!isLandlordLoggedIn) {
-      return NextResponse.redirect(new URL('/portal/login', request.url))
+    if (!isPortalPublic && !isLandlordLoggedIn) {
+      const loginUrl = new URL('/portal/login', request.url)
+      loginUrl.searchParams.set('redirect', pathname)
+      return NextResponse.redirect(loginUrl)
     }
     return NextResponse.next()
   }
