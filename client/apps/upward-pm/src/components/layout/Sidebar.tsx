@@ -9,23 +9,27 @@ import {
   CreditCard, 
   Settings, 
   Users, 
-  PlusCircle,
   LogOut,
   X,
   ChevronLeft,
   ChevronRight,
   Contact,
-  FileText
+  FileText,
+  Inbox
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/common/UpwardLogo'
 import { useAuth } from '@/features/auth/AuthContext'
 import { cn } from '@/lib/utils'
+import { useCredibilityRequests } from '@/features/pm/hooks/useCredibilityRequests'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Building2, label: 'Properties', href: '/properties' },
   { icon: Contact, label: 'Landlords', href: '/landlords' },
   { icon: Users, label: 'Tenants', href: '/tenants' },
+  { icon: Inbox, label: 'Requests', href: '/requests' },
   { icon: FileText, label: 'Documents', href: '/documents' },
   { icon: CreditCard, label: 'Payments', href: '/payments' },
   { icon: Settings, label: 'Settings', href: '/settings' },
@@ -39,6 +43,17 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
 }) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
+  
+  const { data: credibilityRequests = [] } = useCredibilityRequests()
+  const { data: joinRequests = [] } = useQuery({
+    queryKey: ['tenant-join-requests'],
+    queryFn: async () => {
+      const res = await api.get('/pm/tenants/join-requests')
+      return res || []
+    }
+  })
+
+  const totalRequests = (credibilityRequests?.length || 0) + (joinRequests?.length || 0)
 
   return (
     <>
@@ -70,6 +85,8 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
               {navItems.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href
+                const hasBadge = item.label === 'Requests' && totalRequests > 0
+
                 return (
                   <li key={item.href} className="sidebar__item">
                     <Link 
@@ -81,8 +98,20 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
                       title={isCollapsed ? item.label : undefined}
                       onClick={onClose}
                     >
-                      <Icon size={20} strokeWidth={1.5} />
-                      {(!isCollapsed || isOpen) && <span>{item.label}</span>}
+                      <div className="sidebar__link-icon-wrap">
+                        <Icon size={20} strokeWidth={1.5} />
+                        {hasBadge && isCollapsed && (
+                          <span className="sidebar__badge sidebar__badge--dot" />
+                        )}
+                      </div>
+                      {(!isCollapsed || isOpen) && (
+                        <>
+                          <span style={{ flex: 1 }}>{item.label}</span>
+                          {hasBadge && (
+                            <span className="sidebar__badge">{totalRequests}</span>
+                          )}
+                        </>
+                      )}
                     </Link>
                   </li>
                 )
