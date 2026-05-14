@@ -68,7 +68,7 @@ export default function PaystackEmbeddedCheckout({
             amount: res.data.amount
           })
         } else {
-          throw new Error('This property only supports direct bank transfer.')
+          throw new Error('Direct bank transfer is required for this property, but the payment account could not be resolved. Please contact support.')
         }
       } catch (err: any) {
         console.error('Failed to initialize payment:', err)
