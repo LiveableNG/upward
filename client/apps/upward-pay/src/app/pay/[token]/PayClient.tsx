@@ -22,6 +22,7 @@ import { AllocationBreakdown } from '@/features/payments/components/unified-pay/
 import { SuccessStep } from '@/features/payments/components/unified-pay/SuccessStep'
 import { OnboardingStep } from '@/features/payments/components/unified-pay/OnboardingStep'
 import { SettledStep } from '@/features/payments/components/unified-pay/SettledStep'
+import { StatusStep } from '@/features/payments/components/unified-pay/StatusStep'
 import { RenewalModal } from '@/features/payments/components/unified-pay/RenewalModal'
 import { usePaymentFlow } from '@/features/payments/hooks/usePaymentFlow'
 
@@ -70,27 +71,25 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
   if (step === 'error') {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center p-8 bg-white rounded-3xl shadow-xl max-w-sm border border-solid border-[var(--border-solid)]">
-          <UpwardLogo size={40} className="mx-auto mb-6 opacity-20" />
-          <h2 className="text-xl font-extrabold mb-2">Link Expired</h2>
-          <p className="text-muted text-sm mb-6">{errorMessage}</p>
-          <button className="btn btn--secondary btn--full" onClick={() => router.push('/')}>Return Home</button>
-        </div>
-      </div>
+      <StatusStep
+        title="Link Expired"
+        message={errorMessage || 'This payment link is no longer valid or has expired.'}
+        type="error"
+        onAction={() => router.push('/')}
+        actionLabel="Return Home"
+      />
     )
   }
 
   if (step === 'cancelled') {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center p-8 bg-white rounded-3xl shadow-xl max-w-sm border border-solid border-[var(--border-solid)]">
-          <UpwardLogo size={40} className="mx-auto mb-6 opacity-20" />
-          <h2 className="text-xl font-extrabold mb-2">Request Cancelled</h2>
-          <p className="text-muted text-sm mb-6">This payment request has been cancelled by the property manager and is no longer valid.</p>
-          <button className="btn btn--secondary btn--full" onClick={() => router.push('/')}>Return Home</button>
-        </div>
-      </div>
+      <StatusStep
+        title="Request Cancelled"
+        message="This payment request has been cancelled by the property manager and is no longer valid."
+        type="cancelled"
+        onAction={() => router.push('/')}
+        actionLabel="Return Home"
+      />
     )
   }
 
