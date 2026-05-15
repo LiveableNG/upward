@@ -173,6 +173,7 @@ import { VerifyPmEmailUseCase } from './use-cases/tenant-pm-connection/verify-pm
 import { ConfirmPmConnectionUseCase } from './use-cases/tenant-pm-connection/confirm-pm-connection.use-case'
 import { InvitePmUseCase } from './use-cases/tenant-pm-connection/invite-pm.use-case'
 import { SubmitUnitRequestUseCase } from './use-cases/tenant-pm-connection/submit-unit-request.use-case'
+import { DiscoverLinkedPropertiesUseCase } from './use-cases/tenant-pm-connection/discover-linked-properties.use-case'
 
 // Payments
 import {
@@ -410,6 +411,7 @@ const UseCases = [
   ConfirmPmConnectionUseCase,
   InvitePmUseCase,
   SubmitUnitRequestUseCase,
+  DiscoverLinkedPropertiesUseCase,
 ]
 
 @Module({
