@@ -1,8 +1,17 @@
-import React, { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { Building2, Search, CheckCircle2, UserPlus, ArrowRight, Mail, Phone, User, Landmark } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Building2, Search, CheckCircle2, Mail, Phone, User, Landmark, ArrowRight, Sparkles, Home, ShieldCheck } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/common/Toast';
+
+interface DiscoveredProperty {
+  address: string;
+  unitName: string;
+  pmName: string;
+  rentAmount: number;
+  currency: string;
+  alreadySynced?: boolean;
+}
 
 interface ConnectPmStepProps {
   onComplete: () => void;
@@ -10,13 +19,40 @@ interface ConnectPmStepProps {
 }
 
 export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
-  const [step, setStep] = useState<'LOOKUP' | 'FOUND' | 'NOT_FOUND'>('LOOKUP');
+  const [step, setStep] = useState<'DISCOVERING' | 'DISCOVERED' | 'LOOKUP' | 'FOUND' | 'NOT_FOUND'>('DISCOVERING');
   const [email, setEmail] = useState('');
   const [pmName, setPmName] = useState('');
   const [pmInviteEmail, setPmInviteEmail] = useState('');
   const [pmType, setPmType] = useState('Property Manager');
   const [companyName, setCompanyName] = useState('');
   const [pmDetails, setPmDetails] = useState<{ id: number, name: string, businessName: string } | null>(null);
+  const [discoveredProps, setDiscoveredProps] = useState<DiscoveredProperty[]>([]);
+
+  const { refetch: discover } = useQuery({
+    queryKey: ['discover-properties'],
+    queryFn: async () => {
+      const res = await api.get('/user/pm-connection/discover');
+      return res.data;
+    },
+    enabled: false,
+  });
+
+  useEffect(() => {
+    const runDiscovery = async () => {
+      try {
+        const res = await discover();
+        if (res.data?.success && res.data.data?.found) {
+          setDiscoveredProps(res.data.data.properties);
+          setStep('DISCOVERED');
+        } else {
+          setStep('LOOKUP');
+        }
+      } catch (e) {
+        setStep('LOOKUP');
+      }
+    };
+    runDiscovery();
+  }, []);
 
   const verifyMutation = useMutation({
     mutationFn: async (identifier: string) => {
@@ -84,20 +120,167 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
     if (pmName) inviteMutation.mutate();
   };
 
+  if (step === 'DISCOVERING') {
+    return (
+      <div className="auth-stage text-center py-12">
+        <div className="discovery-loader mx-auto mb-6">
+          <Sparkles className="icon-main animate-pulse" />
+        </div>
+        <h2 className="auth-stage__title">Setting up your profile...</h2>
+        <p className="auth-stage__subtitle">We're checking for properties already linked to your email.</p>
+        <style jsx>{`
+          .discovery-loader {
+            width: 80px;
+            height: 80px;
+            background: var(--clay-faint);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .icon-main { width: 40px; height: 40px; color: var(--clay); }
+          .text-center { text-align: center; }
+          .py-12 { padding-top: 48px; padding-bottom: 48px; }
+          .mx-auto { margin-left: auto; margin-right: auto; }
+          .mb-6 { margin-bottom: 24px; }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (step === 'DISCOVERED') {
+    return (
+      <div className="auth-stage animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="auth-stage__header text-center">
+          <div className="icon-circle mx-auto mb-6">
+            <ShieldCheck className="icon-main" />
+          </div>
+          <h2 className="auth-stage__title">Good News!</h2>
+          <p className="auth-stage__subtitle">We found <strong>{discoveredProps.length} property</strong> linked to your account.</p>
+        </div>
+
+        <div className="discovered-list mb-8">
+          {discoveredProps.map((prop, idx) => (
+            <div key={idx} className="discovered-item">
+              <div className="discovered-item__icon">
+                <Home size={20} />
+              </div>
+              <div className="discovered-item__content">
+                <h4 className="discovered-item__address">{prop.address}</h4>
+                <p className="discovered-item__meta">{prop.unitName} • {prop.pmName}</p>
+              </div>
+              <div className="discovered-item__badge">
+                <CheckCircle2 size={16} />
+                <span>Synced</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="auth-stage__ctas">
+          <button 
+            className="btn btn--primary btn--full btn--pay"
+            onClick={onComplete}
+          >
+            Go to Dashboard
+            <ArrowRight size={18} className="ml-2" />
+          </button>
+          
+          <button 
+            className="btn btn--secondary btn--full btn--pay mt-4"
+            onClick={() => setStep('LOOKUP')}
+          >
+            Link Another Property
+          </button>
+        </div>
+
+        <style jsx>{`
+          .icon-circle {
+            width: 64px;
+            height: 64px;
+            background: var(--success-bg);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px auto;
+          }
+          .icon-main { width: 32px; height: 32px; color: var(--success); }
+          .text-center { text-align: center; }
+          .mx-auto { margin-left: auto; margin-right: auto; }
+          .mb-6 { margin-bottom: 24px; }
+          .mb-8 { margin-bottom: 32px; }
+          .mt-4 { margin-top: 16px; }
+          .ml-2 { margin-left: 8px; }
+
+          .discovered-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+          }
+          .discovered-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            gap: 12px;
+          }
+          .discovered-item__icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--clay);
+            flex-shrink: 0;
+          }
+          .discovered-item__content { flex: 1; min-width: 0; }
+          .discovered-item__address {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .discovered-item__meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+          }
+          .discovered-item__badge {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: var(--success-bg);
+            color: var(--success);
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   if (step === 'FOUND' && pmDetails) {
     return (
       <div className="auth-stage animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="auth-stage__header text-center">
-          <div className="mx-auto w-16 h-16 bg-[var(--surface2)] rounded-full flex items-center justify-center mb-6">
-            <Building2 className="w-8 h-8 text-[var(--clay)]" />
+          <div className="icon-circle mx-auto mb-6">
+            <Building2 className="icon-main" />
           </div>
           <h2 className="auth-stage__title">Is this your Property Manager?</h2>
           <p className="auth-stage__subtitle">We found a match for <strong>{email}</strong></p>
         </div>
 
-        <div className="bg-[var(--surface2)] rounded-xl p-6 mb-8 border border-[var(--border)] text-center">
-          <h3 className="font-bold text-lg text-[var(--text-primary)]">{pmDetails.businessName}</h3>
-          <p className="text-[var(--text-secondary)] mt-1">{pmDetails.name}</p>
+        <div className="pm-match-card mb-8">
+          <h3 className="pm-match-card__name">{pmDetails.businessName}</h3>
+          <p className="pm-match-card__person">{pmDetails.name}</p>
         </div>
 
         <div className="auth-stage__ctas">
@@ -119,8 +302,46 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
         </div>
 
         <style jsx>{`
+          .icon-circle {
+            width: 64px;
+            height: 64px;
+            background: var(--clay-faint);
+            border: 1px solid rgba(217, 119, 87, 0.1);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px auto;
+          }
+          .icon-main {
+            width: 32px;
+            height: 32px;
+            color: var(--clay);
+          }
+          .text-center { text-align: center; }
           .mx-auto { margin-left: auto; margin-right: auto; }
+          .mb-6 { margin-bottom: 24px; }
+          .mb-8 { margin-bottom: 32px; }
           .mt-4 { margin-top: 16px; }
+          .ml-2 { margin-left: 8px; }
+          
+          .pm-match-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+          }
+          .pm-match-card__name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+          }
+          .pm-match-card__person {
+            font-size: 14px;
+            color: var(--text-secondary);
+          }
         `}</style>
       </div>
     );
@@ -132,6 +353,9 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
     return (
       <div className="auth-stage animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="auth-stage__header">
+          <div className="icon-circle mb-6">
+            <Landmark className="icon-main" />
+          </div>
           <h2 className="auth-stage__title">Invite your Landlord</h2>
           <p className="auth-stage__subtitle">
             We couldn't find them on Upward yet. Let's send them an invite to join the platform!
@@ -224,10 +448,27 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
         </form>
 
         <style jsx>{`
+          .icon-circle {
+            width: 56px;
+            height: 56px;
+            background: var(--clay-faint);
+            border: 1px solid rgba(217, 119, 87, 0.1);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+          }
+          .icon-main {
+            width: 28px;
+            height: 28px;
+            color: var(--clay);
+          }
           .input-reset { background: none; border: none; font-family: inherit; }
           .mt-2 { margin-top: 12px; }
           .mt-8 { margin-top: 32px; }
           .mt-4 { margin-top: 16px; }
+          .mb-6 { margin-bottom: 24px; }
           .ml-2 { margin-left: 8px; }
         `}</style>
       </div>
@@ -238,6 +479,9 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
   return (
     <div className="auth-stage animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="auth-stage__header">
+        <div className="icon-circle mb-6">
+          <Search className="icon-main" />
+        </div>
         <h2 className="auth-stage__title">Find your Property Manager</h2>
         <p className="auth-stage__subtitle">Connect with your landlord to easily pay rent and view your property details.</p>
       </div>
@@ -285,8 +529,25 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
       </form>
 
       <style jsx>{`
+        .icon-circle {
+          width: 56px;
+          height: 56px;
+          background: var(--clay-faint);
+          border: 1px solid rgba(217, 119, 87, 0.1);
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 24px;
+        }
+        .icon-main {
+          width: 28px;
+          height: 28px;
+          color: var(--clay);
+        }
         .mt-2 { margin-top: 8px; }
         .mt-8 { margin-top: 32px; }
+        .mb-6 { margin-bottom: 24px; }
         .ml-2 { margin-left: 8px; }
       `}</style>
     </div>
