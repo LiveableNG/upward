@@ -51,8 +51,10 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
         rentStartDate: p.rentStartDate ? p.rentStartDate.split('T')[0] : '',
         rentEndDate: p.rentEndDate ? p.rentEndDate.split('T')[0] : '',
         isPastTenancy: !!p.isPastTenancy,
+        isVerified: !!p.isVerified || !!p.isManaged,
         managerName: p.manager?.firstName ? `${p.manager.firstName} ${p.manager.lastName || ''}`.trim() : p.managerName,
         managerPhone: p.manager?.phone || p.managerPhone,
+        managerEmail: p.manager?.email || p.managerEmail,
         companyName: p.company?.name || p.companyName,
         location: { ...p.location, country: p.location?.country || '' },
       })) || [],
@@ -349,7 +351,7 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
                       </div>
                     </div>
                     <div className="prop-card__status-group">
-                      {prop.isManaged && (
+                      {(prop.isVerified || prop.isManaged) && (
                         <div className="status-badge status-badge--shield" title="Verified Management">
                           <Shield size={12} />
                         </div>
@@ -398,14 +400,14 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
 
                       {isEditing && (
                         <div className="prop-card__actions">
-                          {prop.isManaged && (
+                          {(prop.isVerified || prop.isManaged) && (
                             <div className="managed-notice">
                               <Shield size={14} className="text-clay" />
                               <span>Verified by {prop.company?.name || prop.companyName}. Restricted editing.</span>
                             </div>
                           )}
                           <div className="flex gap-2 w-full justify-end">
-                            {!prop.isManaged && (
+                            {!(prop.isVerified || prop.isManaged) && (
                               <button
                                 className="btn btn--outline btn--sm text-red-500 hover:bg-red-50"
                                 onClick={(e) => {
@@ -418,7 +420,7 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
                                 <Trash2 size={14} className="mr-1" /> Remove
                               </button>
                             )}
-                            {!prop.isManaged && (
+                            {!(prop.isVerified || prop.isManaged) && (
                               <button
                                 className="btn btn--secondary btn--sm"
                                 onClick={(e) => {
