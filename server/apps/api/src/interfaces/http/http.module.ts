@@ -27,6 +27,7 @@ import { WellKnownController } from './public/well-known.controller'
 import { PublicUserController } from './public/user-data.controller'
 import { FeedbackController } from './public/feedback.controller'
 import { WebhookAdminController } from './admin/webhook-admin.controller'
+import { PmVerificationAdminController } from './admin/pm-verification-admin.controller'
 import { PmAuthController } from './pm/pm-auth.controller'
 import { PmProfileController } from './pm/pm-profile.controller'
 import { PmPropertyController } from './controllers/pm-property.controller'
@@ -68,6 +69,7 @@ import { TenantPmConnectionController } from './user/tenant-pm-connection.contro
     ExternalCredibilityController,
     WellKnownController,
     WebhookAdminController,
+    PmVerificationAdminController,
     PmAuthController,
     PmProfileController,
     PmPropertyController,

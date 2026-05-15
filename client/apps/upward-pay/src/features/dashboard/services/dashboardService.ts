@@ -39,6 +39,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     company_logo: '',
     lineItemRecords: p.lineItemRecords || [],
     isManual: !!p.isManual,
+    isVerified: !!p.isVerified,
   }))
 
   const completedPayments: CompletedPayment[] = (txs || []).map((t: any) => ({

@@ -98,7 +98,7 @@ export default function DashboardPage() {
     firstProp?.rentEndDate
 
   const isNewUser = !isProfileComplete
-  const isVerified = user.properties?.some((p: any) => p.isManaged) || false
+  const isVerified = user.properties?.some((p: any) => p.isVerified) || pendingPayments.some((p: any) => p.isVerified) || false
   const totalPaid = completedPayments.reduce((sum: number, p: any) => sum + p.amount, 0)
   const currency = completedPayments[0]?.currency || 'NGN'
 

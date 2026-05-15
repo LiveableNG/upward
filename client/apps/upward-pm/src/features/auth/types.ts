@@ -13,6 +13,8 @@ export interface PropertyManagerProfile {
   accountName?: string;
   letterheadHeaderUrl?: string;
   letterheadFooterUrl?: string;
+  isVerified?: boolean;
+  verificationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'NOT_SUBMITTED';
 }
 
 export interface AuthResponse {
