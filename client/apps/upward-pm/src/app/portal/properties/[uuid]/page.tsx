@@ -17,16 +17,40 @@ import {
 } from 'lucide-react'
 import { getLandlordPropertyDetails } from '@/features/auth/services/landlordAuthService'
 import styles from './page.module.css'
+import { CreatePaymentRequestModal } from '@/features/pm/components/payments/modals/CreatePaymentRequestModal'
+import { ManagedAddUnitModal } from '@/features/pm/components/properties/modals/ManagedAddUnitModal'
+import { useSyncToUpward } from '@/features/pm/hooks/useProperties'
+import { useToast } from '@/components/common/Toast'
+import { Plus, CreditCard, RefreshCw, Settings2 } from 'lucide-react'
 
 export default function LandlordPropertyDetail() {
   const { uuid } = useParams()
   const router = useRouter()
+  const { success, error: toastError } = useToast()
+  
+  const [selectedUnit, setSelectedUnit] = React.useState<any | null>(null)
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = React.useState(false)
+  const [isAddUnitOpen, setIsAddUnitOpen] = React.useState(false)
 
-  const { data: property, isLoading, error } = useQuery({
+  const { data: property, isLoading, error, refetch } = useQuery({
     queryKey: ['landlord-property', uuid],
     queryFn: () => getLandlordPropertyDetails(uuid as string),
     enabled: !!uuid
   })
+
+  const syncMutation = useSyncToUpward()
+
+  const handleSync = (unitUuid: string) => {
+    syncMutation.mutate(unitUuid, {
+      onSuccess: () => {
+        success('Unit synced to Upward Pay successfully!')
+        refetch()
+      },
+      onError: (err: any) => {
+        toastError(err?.message || 'Failed to sync unit')
+      }
+    })
+  }
 
   if (isLoading) {
     return (
@@ -67,7 +91,16 @@ export default function LandlordPropertyDetail() {
               {property.address}
             </div>
           </div>
-          <div className={styles.badge}>{property.propertyType}</div>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <button 
+              className="btn btn--primary" 
+              style={{ padding: '10px 20px', fontSize: 14 }}
+              onClick={() => setIsAddUnitOpen(true)}
+            >
+              <Plus size={18} /> Add Unit
+            </button>
+            <div className={styles.badge}>{property.propertyType}</div>
+          </div>
         </div>
       </header>
 
@@ -108,7 +141,10 @@ export default function LandlordPropertyDetail() {
               {property.units.map((unit: any) => (
                 <div key={unit.uuid} className={styles.unitCard}>
                   <div className={styles.unitInfo}>
-                    <h4>Unit {unit.unitNumber}</h4>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                       <h4>Unit {unit.unitNumber}</h4>
+                       {!unit.isSynced && <span style={{ fontSize: 10, background: 'var(--error-faint)', color: 'var(--error)', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>NOT SYNCED</span>}
+                    </div>
                     <p>{unit.unitType}</p>
                   </div>
                   <div>
@@ -124,9 +160,28 @@ export default function LandlordPropertyDetail() {
                     <div style={{ fontWeight: 700, fontSize: '14px' }}>₦{unit.revenue.toLocaleString()}</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div className={styles.statLabel}>Outstanding</div>
-                    <div style={{ fontWeight: 700, fontSize: '14px', color: unit.outstanding > 0 ? 'var(--error)' : 'inherit' }}>
-                      ₦{unit.outstanding.toLocaleString()}
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      {!unit.isSynced ? (
+                        <button 
+                          className="btn-text" 
+                          onClick={() => handleSync(unit.uuid)}
+                          style={{ color: 'var(--clay)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
+                          disabled={syncMutation.isPending}
+                        >
+                          <RefreshCw size={14} className={syncMutation.isPending ? 'animate-spin' : ''} /> Sync
+                        </button>
+                      ) : (
+                        <button 
+                          className="btn-text" 
+                          onClick={() => {
+                            setSelectedUnit(unit);
+                            setIsPaymentModalOpen(true);
+                          }}
+                          style={{ color: 'var(--forest)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
+                        >
+                          <CreditCard size={14} /> Request Payment
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -174,6 +229,37 @@ export default function LandlordPropertyDetail() {
           </div>
         </aside>
       </div>
+
+      {/* Modals */}
+      <ManagedAddUnitModal 
+        isOpen={isAddUnitOpen}
+        onClose={() => {
+          setIsAddUnitOpen(false);
+          refetch();
+        }}
+        propertyUuid={uuid as string}
+      />
+
+      {selectedUnit && (
+        <CreatePaymentRequestModal 
+          isOpen={isPaymentModalOpen}
+          onClose={() => {
+            setIsPaymentModalOpen(false);
+            setSelectedUnit(null);
+            refetch();
+          }}
+          unit={{
+            uuid: selectedUnit.uuid,
+            unitName: selectedUnit.unitNumber,
+            rentAmount: selectedUnit.rentAmount || 0,
+            tenant: selectedUnit.tenant ? {
+              firstName: selectedUnit.tenant.name.split(' ')[0],
+              lastName: selectedUnit.tenant.name.split(' ').slice(1).join(' '),
+            } : null,
+            isSynced: true
+          } as any}
+        />
+      )}
     </div>
   )
 }
