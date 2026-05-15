@@ -107,7 +107,7 @@ export function CreatePaymentRequestModal({
     }
     const endDateStr = endDate.toISOString().split('T')[0]
     setRentEndDate(endDateStr)
-    setDueDate(endDateStr)
+    setDueDate(rentStartDate)
   }, [rentType, rentStartDate, isEditing])
 
   if (!isOpen || !unit) return null

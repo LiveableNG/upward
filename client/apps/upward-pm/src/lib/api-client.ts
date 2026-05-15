@@ -41,7 +41,16 @@ async function runRefresh(isPortal: boolean): Promise<string | null> {
 }
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const url = path.startsWith('http') ? path : `${API_BASE}${path}`
+  let finalPath = path;
+
+  // Path translation for Landlord Portal
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')) {
+    if (path.startsWith('/pm/')) {
+      finalPath = path.replace('/pm/', '/landlords/management/');
+    }
+  }
+
+  const url = finalPath.startsWith('http') ? finalPath : `${API_BASE}${finalPath}`
   
   const makeRequest = async (token: string | null): Promise<T> => {
     const headers: Record<string, string> = {

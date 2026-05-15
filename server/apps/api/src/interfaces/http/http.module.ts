@@ -38,6 +38,7 @@ import { InternalPaymentsController } from './internal/internal-payments.control
 import { PmDocumentController } from './controllers/pm-document.controller'
 import { LandlordAuthController } from './landlord/landlord-auth.controller'
 import { LandlordPortfolioController } from './landlord/landlord-portfolio.controller'
+import { LandlordManagementController } from './landlord/landlord-management.controller'
 import { CronController } from './public/cron.controller'
 import { TenantPmConnectionController } from './user/tenant-pm-connection.controller'
 
@@ -80,6 +81,7 @@ import { TenantPmConnectionController } from './user/tenant-pm-connection.contro
     FeedbackController,
     LandlordAuthController,
     LandlordPortfolioController,
+    LandlordManagementController,
     CronController,
     TenantPmConnectionController,
   ],

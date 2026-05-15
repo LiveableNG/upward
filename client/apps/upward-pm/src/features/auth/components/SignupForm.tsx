@@ -125,8 +125,12 @@ export const SignupForm = () => {
       otpLoginMutation.mutate(
         { email: formData.email, otp: otpCode },
         {
-          onSuccess: () => {
-            window.location.href = '/dashboard'
+          onSuccess: (res: any) => {
+            if (res.user?.pmType === 'INDIVIDUAL_LANDLORD') {
+              window.location.href = '/portal'
+            } else {
+              window.location.href = '/dashboard'
+            }
           }
         }
       )
@@ -190,8 +194,12 @@ export const SignupForm = () => {
           Welcome to Upward Property Management.
         </p>
 
-        <Link href="/dashboard" className="auth-btn auth-btn--primary" style={{ marginTop: '32px' }}>
-          Go to Dashboard <ArrowRight size={18} />
+        <Link 
+          href={formData.pmType === 'INDIVIDUAL_LANDLORD' ? "/portal" : "/dashboard"} 
+          className="auth-btn auth-btn--primary" 
+          style={{ marginTop: '32px' }}
+        >
+          Go to {formData.pmType === 'INDIVIDUAL_LANDLORD' ? 'Portal' : 'Dashboard'} <ArrowRight size={18} />
         </Link>
       </div>
     )
@@ -223,7 +231,9 @@ export const SignupForm = () => {
 
         <p className="auth-card__subtitle">
           {stage === 'info'
-            ? 'Create your property manager account in seconds.'
+            ? (formData.pmType === 'INDIVIDUAL_LANDLORD' 
+                ? 'Sign up to manage your properties and collect rent directly.' 
+                : 'Create your property manager account in seconds.')
             : `We've sent a 6-digit code to ${formData.email}. Enter it below to continue.`}
         </p>
       </div>
@@ -243,6 +253,7 @@ export const SignupForm = () => {
                 required
               >
                 <option value="" disabled>-- Select your role --</option>
+                <option value="INDIVIDUAL_LANDLORD">Individual Landlord</option>
                 <option value="Caretaker">Caretaker</option>
                 <option value="Lawyer">Lawyer</option>
                 <option value="Estate Agent">Estate Agent</option>
