@@ -171,7 +171,7 @@ export default function ProfileClient() {
                   </div>
                   <div className="metric-card__content">
                     <span className="m-val">{streak}</span>
-                    <span className="m-lbl">Early Payment Streak</span>
+                    <span className="m-lbl">Top Payment Streak</span>
                   </div>
                 </div>
                 <div className="metric-card">

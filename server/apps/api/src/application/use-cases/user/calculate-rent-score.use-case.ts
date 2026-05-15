@@ -112,7 +112,22 @@ export class CalculateRentScoreUseCase {
         return ya !== yb ? ya - yb : ma - mb
       })
 
+      let lastMonthKey: string | null = null;
       sortedMonths.forEach(key => {
+        const partsCurrent = key.split('-').map(Number);
+        const year = partsCurrent[0] ?? 0;
+        const month = partsCurrent[1] ?? 0;
+        
+        if (lastMonthKey) {
+          const parts = lastMonthKey.split('-').map(Number);
+          const lastYear = parts[0] as number;
+          const lastMonth = parts[1] as number;
+          const monthsDiff = (year - lastYear) * 12 + (month - lastMonth);
+          if (monthsDiff > 1) {
+            currentStreak = 0;
+          }
+        }
+
         const cyclesInMonth = monthsMap[key]
         if (!cyclesInMonth) return
         
@@ -124,6 +139,8 @@ export class CalculateRentScoreUseCase {
         } else {
           currentStreak = 0
         }
+        
+        lastMonthKey = key;
       })
     }
 
@@ -172,6 +189,7 @@ export class CalculateRentScoreUseCase {
         metrics: {
           ptPercentage: (scoredCount > 0 ? (scoredCycles.filter((c: any) => c.ptValue === 1.0).length / scoredCount) : 0) * 100,
           longestStreak: longestStreak,
+          currentStreak: currentStreak,
           totalCycles: allCycles.length,
           historyYears: parseFloat(yearsOfHistory.toFixed(1)),
           discipline: D * 100,
