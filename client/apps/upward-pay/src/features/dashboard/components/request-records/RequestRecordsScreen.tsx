@@ -268,7 +268,7 @@ export function RequestRecordsScreen() {
                     <span>Requested on {new Date(req.createdAt).toLocaleDateString()}</span>
                   </div>
                   <div className={`req-history__status req-history__status--${req.status.toLowerCase()}`}>
-                    {req.status}
+                    {req.status === 'CANCELLED' ? 'Rejected' : req.status}
                   </div>
                 </div>
               ))}
@@ -307,12 +307,14 @@ export function RequestRecordsScreen() {
                       <td className="td-date">{new Date(req.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                       <td>
                         <span className={`table-badge table-badge--${req.status.toLowerCase()}`}>
-                          {req.status === 'PENDING' ? 'Awaiting Records' : req.status}
+                          {req.status === 'PENDING' ? 'Awaiting Records' : req.status === 'CANCELLED' ? 'Declined' : req.status}
                         </span>
                       </td>
                       <td>
                         {req.status === 'COMPLETED'
                           ? <span className="td-impact td-impact--positive">+ Score Boost</span>
+                          : req.status === 'CANCELLED'
+                          ? <span className="td-impact td-impact--negative">No Impact</span>
                           : <span className="td-impact td-impact--pending">Pending Impact</span>}
                       </td>
                     </tr>
@@ -548,6 +550,7 @@ export function RequestRecordsScreen() {
         }
         .req-history__status--pending { background: rgba(245,158,11,0.1); color: var(--warning); }
         .req-history__status--completed { background: rgba(34,197,94,0.1); color: var(--success); }
+        .req-history__status--cancelled { background: rgba(239,68,68,0.1); color: #ef4444; }
 
         /* Desktop table */
         .req-history__table { display: none; }
@@ -602,10 +605,12 @@ export function RequestRecordsScreen() {
         }
         .table-badge--pending { background: rgba(245,158,11,0.1); color: var(--warning); }
         .table-badge--completed { background: rgba(34,197,94,0.1); color: var(--success); }
+        .table-badge--cancelled { background: rgba(239,68,68,0.1); color: #ef4444; }
 
         .td-impact { font-size: 0.875rem; font-weight: 700; white-space: nowrap; }
         .td-impact--positive { color: var(--success); }
         .td-impact--pending { color: var(--text-muted); }
+        .td-impact--negative { color: #ef4444; opacity: 0.7; }
 
         .clickable-row { cursor: pointer; transition: background 0.2s; }
         .clickable-row:hover { background: var(--surface2); }

@@ -333,7 +333,7 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
               )}
               
               {(formData.properties || []).map((prop: any, idx: number) => (
-                <div key={idx} className={`prop-card ${expandedProps[idx] ? 'prop-card--open' : ''} ${prop.isPastTenancy ? 'prop-card--past' : ''}`}>
+                <div key={idx} className={`prop-card ${expandedProps[idx] ? 'prop-card--open' : ''} ${prop.isPastTenancy ? 'prop-card--past' : ''} ${prop.verificationStatus === 'REJECTED' ? 'prop-card--rejected' : ''}`}>
                   <div className="prop-card__header" onClick={() => setExpandedProps(prev => ({ ...prev, [idx]: !prev[idx] }))}>
                     <div className="prop-card__header-main">
                       <div className="prop-card__index">{idx + 1}</div>
@@ -358,6 +358,9 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
                       )}
                       {prop.isPastTenancy && (
                         <div className="status-badge status-badge--past">Past</div>
+                      )}
+                      {prop.verificationStatus === 'REJECTED' && (
+                        <div className="status-badge status-badge--rejected">Verification Declined</div>
                       )}
                       <div className={`prop-card__chevron ${expandedProps[idx] ? 'prop-card__chevron--rotated' : ''}`}>
                         <ChevronRight size={18} />
@@ -429,10 +432,18 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
                                   setIsAddPropertyModalOpen(true)
                                 }}
                               >
-                                <Edit2 size={14} className="mr-1" /> Edit
+                                <Edit2 size={14} className="mr-1" /> {prop.verificationStatus === 'REJECTED' ? 'Edit & Retry' : 'Edit'}
                               </button>
                             )}
                           </div>
+                          {prop.verificationStatus === 'REJECTED' && (
+                            <div className="rejection-alert">
+                              <AlertCircle size={14} />
+                              <span>
+                                {prop.rejectionReason || "Your connection request was declined. Please verify the manager's contact details and retry."}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -564,8 +575,6 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
         }
 
         .premium-field__label {
-          font-size: 0.75rem;
-          font-weight: 700;
           color: var(--text-muted);
           text-transform: uppercase;
           letter-spacing: 0.05em;
@@ -660,6 +669,11 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
           background: var(--surface2);
         }
 
+        .prop-card--rejected {
+          border-color: #ef4444;
+          background: #fffafa;
+        }
+
         .prop-card__header {
           padding: 1.25rem 1.5rem;
           display: flex;
@@ -724,6 +738,12 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
         .status-badge--past {
           background: var(--text-muted);
           color: white;
+        }
+        
+        .status-badge--rejected {
+          background: #ef4444;
+          color: white;
+          font-size: 9px;
         }
 
         .prop-card__chevron {
@@ -807,6 +827,22 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
           font-size: 0.8rem;
           color: var(--clay);
           width: 100%;
+        }
+
+        .managed-notice span { font-size: 0.75rem; font-weight: 500; }
+        
+        .rejection-alert {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 14px;
+          background: #FEF2F2;
+          border: 1px solid #FEE2E2;
+          border-radius: 12px;
+          color: #991B1B;
+          font-size: 0.8rem;
+          font-weight: 500;
+          margin-top: 1rem;
         }
 
         /* Empty State */

@@ -21,6 +21,8 @@ model upward_user_property {
   rentReminderDaysBefore Int?                         @db.SmallInt
   rentType               String                       @default("Annually")
   subaccountId           Int?
+  verificationStatus     String?                      @default("PENDING") // PENDING, VERIFIED, REJECTED
+  rejectionReason        String?                      @db.Text
   paymentRequests        upward_payment_request[]
   infractions            upward_property_infraction[]
   inspections            upward_property_inspection[]

@@ -1126,6 +1126,94 @@ export class EmailService {
       throw error
     }
   }
+
+  async sendJoinRequestRejection(params: {
+    email: string;
+    tenantName: string;
+    pmName: string;
+    propertyAddress: string;
+    reason?: string;
+  }): Promise<boolean> {
+    const { email, tenantName, pmName, propertyAddress, reason } = params;
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN');
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
+
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: #f9fafb; padding: 40px; border-radius: 16px;">
+        <h2 style="color: #ef4444; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">Connection Request Declined</h2>
+        <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Hello ${tenantName},</p>
+        <p style="font-size: 16px; color: #4b5563;">Your request to connect with <strong>${pmName}</strong> for the property at <strong>${propertyAddress}</strong> has been declined.</p>
+        
+        ${reason ? `
+        <div style="background: #FEF2F2; border: 1px solid #FEE2E2; padding: 24px; border-radius: 12px; margin: 24px 0;">
+          <div style="font-size: 11px; color: #991B1B; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Reason from Manager</div>
+          <p style="font-size: 15px; color: #7F1D1D; margin: 0; line-height: 1.5;">${reason}</p>
+        </div>
+        ` : ''}
+
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-top: 32px;">
+          You can try reconnecting with a different email address or contact the manager directly if you believe this was an error.
+        </p>
+      </div>
+    `;
+
+    try {
+      await this.mg.messages.create(domain, {
+        from,
+        to: [email],
+        subject: `Update on your connection request for ${propertyAddress}`,
+        html,
+      });
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to send join rejection email to ${email}`, error);
+      return false;
+    }
+  }
+
+  async sendCredibilityRequestRejection(params: {
+    email: string;
+    tenantName: string;
+    pmName: string;
+    propertyAddress: string;
+    reason?: string;
+  }): Promise<boolean> {
+    const { email, tenantName, pmName, propertyAddress, reason } = params;
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN');
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
+
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: #f9fafb; padding: 40px; border-radius: 16px;">
+        <h2 style="color: #ef4444; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">Record Request Declined</h2>
+        <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Hello ${tenantName},</p>
+        <p style="font-size: 16px; color: #4b5563;">Your request for past tenancy records for <strong>${propertyAddress}</strong> has been declined by the manager.</p>
+        
+        ${reason ? `
+        <div style="background: #FEF2F2; border: 1px solid #FEE2E2; padding: 24px; border-radius: 12px; margin: 24px 0;">
+          <div style="font-size: 11px; color: #991B1B; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Reason from Manager</div>
+          <p style="font-size: 15px; color: #7F1D1D; margin: 0; line-height: 1.5;">${reason}</p>
+        </div>
+        ` : ''}
+
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-top: 32px;">
+          This request will no longer appear as pending on your dashboard.
+        </p>
+      </div>
+    `;
+
+    try {
+      await this.mg.messages.create(domain, {
+        from,
+        to: [email],
+        subject: `Update on your record request for ${propertyAddress}`,
+        html,
+      });
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to send credibility rejection email to ${email}`, error);
+      return false;
+    }
+  }
 }
 
  
