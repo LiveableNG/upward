@@ -648,7 +648,7 @@
 }
 
 .psk-copy-btn {
-  background: var(--text);
+  background: var(--clay);
   color: #fff;
   border: none;
   width: 32px;
@@ -658,11 +658,13 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px var(--clay-glow);
 }
 
 .psk-copy-btn:hover {
-  opacity: 0.9;
+  filter: brightness(1.1);
+  transform: translateY(-1px);
 }
 
 .psk-actions {

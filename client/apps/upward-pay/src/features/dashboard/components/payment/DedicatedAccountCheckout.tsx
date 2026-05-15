@@ -119,8 +119,7 @@ export default function DedicatedAccountCheckout({
 
           <div className="psk-actions" style={{ marginTop: 32 }}>
             <button 
-              className="dashboard-btn dashboard-btn--primary" 
-              style={{ width: '100%', height: 48 }}
+              className="btn btn--primary btn--full" 
               onClick={() => handleConfirm()}
               disabled={isVerifying}
             >
