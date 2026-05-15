@@ -48,16 +48,16 @@ export function SuccessStep({
           align-items: center;
           justify-content: center;
           padding: 24px;
-          background: var(--oat-dim);
+          background: var(--bg);
         }
         .pay-success-card {
           width: 100%;
           max-width: 440px;
-          background: #fff;
+          background: var(--surface);
           border-radius: 40px;
           padding: 56px 40px;
           text-align: center;
-          box-shadow: 0 40px 100px rgba(0,0,0,0.06);
+          box-shadow: var(--shadow-lg);
           border: 1px solid var(--border-solid);
           animation: cardAppear 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -101,7 +101,7 @@ export function SuccessStep({
         }
 
         .pay-receipt {
-          background: var(--surface);
+          background: var(--surface2);
           border: 1px solid var(--border-solid);
           border-radius: 24px;
           padding: 8px 0;
@@ -121,7 +121,7 @@ export function SuccessStep({
           font-weight: 600;
         }
         .pay-receipt-value {
-          color: var(--dark);
+          color: var(--text);
           font-weight: 850;
         }
         .pay-receipt-row.is-credit {
@@ -137,7 +137,7 @@ export function SuccessStep({
           border-top: 1px solid var(--border-solid);
         }
         .pay-receipt-row.is-total .pay-receipt-label {
-          color: var(--dark);
+          color: var(--text);
           font-weight: 800;
           text-transform: uppercase;
           font-size: 11px;
@@ -146,14 +146,14 @@ export function SuccessStep({
         .pay-receipt-row.is-total .pay-receipt-value {
           font-size: 20px;
           font-weight: 950;
-          color: var(--dark);
+          color: var(--text);
         }
 
         .pay-done-btn {
           width: 100%;
           height: 64px;
           border-radius: 100px;
-          background: var(--dark);
+          background: var(--clay);
           color: #fff;
           font-size: 15px;
           font-weight: 800;
@@ -164,12 +164,12 @@ export function SuccessStep({
           border: none;
           cursor: pointer;
           transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-          box-shadow: 0 12px 32px rgba(10, 10, 15, 0.15);
+          box-shadow: var(--shadow-clay);
         }
         .pay-done-btn:hover {
           transform: translateY(-2px);
-          box-shadow: 0 20px 48px rgba(10, 10, 15, 0.25);
-          filter: brightness(1.2);
+          box-shadow: 0 20px 48px var(--clay-glow);
+          filter: brightness(1.1);
         }
         .pay-done-btn:active {
           transform: scale(0.98);
