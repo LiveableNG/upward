@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common'
+import { Injectable, Inject, NotFoundException, Logger } from '@nestjs/common'
 import { 
   PAYMENT_REQUEST_REPOSITORY, 
   IPaymentRequestRepository,
@@ -14,6 +14,8 @@ import { randomUUID } from 'node:crypto'
 
 @Injectable()
 export class GetPublicPaymentDetailsUseCase {
+  private readonly logger = new Logger(GetPublicPaymentDetailsUseCase.name)
+
   constructor(
     @Inject(PAYMENT_REQUEST_REPOSITORY) private readonly paymentRequestRepository: IPaymentRequestRepository,
     @Inject(PAYMENT_LINE_ITEM_REPOSITORY) private readonly lineItemRepository: IPaymentLineItemRepository,
@@ -75,9 +77,9 @@ export class GetPublicPaymentDetailsUseCase {
           paymentRequest.subaccount.bankCode,
         )
         verifiedRecipientName = verification.accountName
-      } catch (err) {
+      } catch (err: any) {
         // Fallback to company/manager name if verification fails
-        console.error('Account verification failed silently:', err)
+        this.logger.warn(`Account verification failed for PR ${paymentRequest.uuid}: ${err?.message || 'Unknown error'}`)
       }
     }
 

@@ -77,6 +77,17 @@ export class PaystackGateway implements IPaymentGateway {
       
       if (!res.ok || !data.status) {
         const errorMsg = data.message || 'Could not resolve account'
+        
+        // Handle Paystack test mode limit gracefully
+        if (errorMsg.includes('Test mode daily limit')) {
+          this.logger.warn(`Paystack test limit reached. Using mock resolution for ${accountNumber}`)
+          return {
+            accountNumber,
+            accountName: 'TEST ACCOUNT (LIMIT REACHED)',
+            bankCode,
+          }
+        }
+
         this.logger.warn(`Account resolution failed: ${errorMsg}`)
         throw new Error(errorMsg)
       }
@@ -86,7 +97,14 @@ export class PaystackGateway implements IPaymentGateway {
         accountName: data.data.account_name,
         bankCode,
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.message?.includes('Test mode daily limit')) {
+        return {
+          accountNumber,
+          accountName: 'TEST ACCOUNT (LIMIT REACHED)',
+          bankCode,
+        }
+      }
       this.logger.error('Paystack verifyAccount error:', error)
       throw error 
     }
