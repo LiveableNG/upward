@@ -32,20 +32,39 @@ export class VerifyGatewayTransactionUseCase {
 
     if (isDvaSession) {
       const parts = data.reference.split('-')
-      const accountNumber = parts[1]
-      const sessionTimestamp = parts[2] ? parseInt(parts[2]) : 0
+      const accountNumber = parts[1] || ''
+      
+      let prUuid: string | null = null
+      let sessionTimestamp: number = 0
+      
+      if (parts.length >= 4) {
+        const candidateUuid = parts[2]
+        prUuid = (candidateUuid && candidateUuid !== 'no-pr') ? candidateUuid : null
+        sessionTimestamp = parseInt(parts[3] || '0') || 0
+      } else {
+        sessionTimestamp = parseInt(parts[2] || '0') || 0
+      }
 
       if (accountNumber) {
         const recentDvaTx = await this.txRepo.findRecentDvaTransaction(accountNumber)
 
         if (recentDvaTx) {
-          const sessionStartTime = sessionTimestamp ? new Date(sessionTimestamp - 5000) : new Date(0)
+          // 1. If we have a PR UUID in the reference, check for an exact match first
+          if (prUuid && recentDvaTx.paymentRequest?.uuid === prUuid) {
+            this.logger.log(`Found matching DVA transaction ${recentDvaTx.reference} for PR ${prUuid}`)
+            return { existing: recentDvaTx, isVerified: true, verifiedAmount: recentDvaTx.amount, user, isNew: false }
+          }
+
+          // 2. Fallback to timestamp check for legacy sessions or if PR UUID didn't match
+          // Use a more lenient 2-hour window to account for users paying before opening the link
+          const gracePeriod = 2 * 60 * 60 * 1000 // 2 hours
+          const sessionStartTime = sessionTimestamp ? new Date(sessionTimestamp - gracePeriod) : new Date(0)
 
           if (recentDvaTx.createdAt >= sessionStartTime) {
-            this.logger.log(`Found successful DVA transaction ${recentDvaTx.reference} for session ${data.reference}`)
+            this.logger.log(`Found fresh DVA transaction ${recentDvaTx.reference} for session ${data.reference}`)
             return { existing: recentDvaTx, isVerified: true, verifiedAmount: recentDvaTx.amount, user, isNew: false }
           } else {
-            this.logger.log(`Ignoring old successful DVA transaction ${recentDvaTx.reference} created at ${recentDvaTx.createdAt} for session started at ${sessionStartTime}`)
+            this.logger.log(`Ignoring old successful DVA transaction ${recentDvaTx.reference} for session ${data.reference}`)
           }
         }
       }

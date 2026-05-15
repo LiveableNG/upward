@@ -45,6 +45,7 @@ export interface Transaction {
   lineItems?: any
   isManual?: boolean
   settlementStatus?: string
+  paymentRequest?: any
   createdAt: Date
   updatedAt: Date
 }
