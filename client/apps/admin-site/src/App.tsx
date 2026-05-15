@@ -13,6 +13,7 @@ import WaitlistCampaigns from './pages/WaitlistCampaigns'
 import EmailLogs from './pages/EmailLogs'
 import Announcements from './pages/Announcements'
 import SupportTickets from './pages/SupportTickets'
+import Verifications from './pages/Verifications'
 import Webhooks from './pages/Webhooks'
 import Layout from './components/Layout'
 
@@ -51,6 +52,7 @@ function AppRoutes() {
           <Route path="/campaigns" element={<WaitlistCampaigns token={auth.token} />} />
           <Route path="/announcements" element={<Announcements token={auth.token} />} />
           <Route path="/support" element={<SupportTickets token={auth.token} />} />
+          <Route path="/verifications" element={<Verifications token={auth.token} />} />
           {auth.user.role === 'SUPERADMIN' && (
             <>
               <Route

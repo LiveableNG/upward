@@ -19,6 +19,7 @@ model upward_property_manager {
   accountName     String?
   letterheadHeaderUrl String?
   letterheadFooterUrl String?
+  isVerified      Boolean                     @default(false)
   createdAt       DateTime                    @default(now())
   updatedAt       DateTime                    @updatedAt
   authSessions    upward_pm_auth_session[]
@@ -30,6 +31,7 @@ model upward_property_manager {
   landlordReports upward_pm_landlord_report[]
   sentDocuments   upward_pm_sent_document[]
   documentTemplates upward_pm_document_template[]
+  verification    upward_pm_verification?
   
   teamOwner         upward_pm_team_collaboration[] @relation("OwnerTeam")
   teamCollaborator  upward_pm_team_collaboration[] @relation("CollaboratorTeam")
@@ -257,4 +259,17 @@ model upward_pm_landlord_report {
 
   @@index([pmId])
   @@index([landlordEmail])
+}
+
+model upward_pm_verification {
+  id              Int                         @id @default(autoincrement())
+  pmId            Int                         @unique
+  idType          String                      // NIN, BVN, CAC
+  idNumber        String
+  idImage         String?
+  status          String                      @default("PENDING") // PENDING, APPROVED, REJECTED
+  rejectionReason String?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  pm              upward_property_manager     @relation(fields: [pmId], references: [id], onDelete: Cascade)
 }

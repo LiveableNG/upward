@@ -19,6 +19,7 @@ import {
 import { useSignup } from '../hooks/useSignup'
 import { useRequestOTP, useVerifyOTP, useOtpLogin } from '../hooks/useOtp'
 import { checkEmail } from '../services/authService'
+import { VerificationForm } from '@/features/pm/components/verification/VerificationForm'
 
 export const SignupForm = () => {
   const router = useRouter()
@@ -183,24 +184,21 @@ export const SignupForm = () => {
 
   if (stage === 'success') {
     return (
-      <div className="auth-success animate-fade-in">
-        <div className="success-icon-wrapper">
-          <CheckCircle2 size={40} />
+      <div className="auth-success animate-fade-in" style={{ maxWidth: '100%', width: '100%' }}>
+        <VerificationForm 
+          onSuccess={() => {
+            window.location.href = formData.pmType === 'INDIVIDUAL_LANDLORD' ? '/portal' : '/dashboard'
+          }} 
+        />
+        
+        <div style={{ textAlign: 'center', marginTop: '24px' }}>
+            <button 
+                onClick={() => window.location.href = formData.pmType === 'INDIVIDUAL_LANDLORD' ? '/portal' : '/dashboard'}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}
+            >
+                I'll do this later, take me to my dashboard
+            </button>
         </div>
-
-        <h2 className="auth-card__title">You're all set!</h2>
-        <p className="auth-card__subtitle">
-          Your account has been created. <br />
-          Welcome to Upward Property Management.
-        </p>
-
-        <Link 
-          href={formData.pmType === 'INDIVIDUAL_LANDLORD' ? "/portal" : "/dashboard"} 
-          className="auth-btn auth-btn--primary" 
-          style={{ marginTop: '32px' }}
-        >
-          Go to {formData.pmType === 'INDIVIDUAL_LANDLORD' ? 'Portal' : 'Dashboard'} <ArrowRight size={18} />
-        </Link>
       </div>
     )
   }

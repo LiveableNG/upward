@@ -75,7 +75,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
   const { isScorable, score, rank, band, metrics, profile, cycles, properties = [] } = scoreProfile.data
   const isFaded = !isScorable
-  const isVerified = properties.some((p: any) => p.isManaged)
+  const isVerified = properties.some((p: any) => p.isVerified)
   const initials = profile.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)
 
   const getRankColor = () => {
@@ -167,7 +167,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             <h1 className="kyc-report__name">{profile.name}</h1>
             
             <div className="kyc-report__meta">
-              {properties.some((p: any) => p.isManaged) ? (
+              {isVerified ? (
                 <>
                   <ShieldCheck size={13} color="var(--success)" />
                   Verified Tenant
@@ -232,7 +232,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                     <div key={i} className="kyc-report__property-item">
                        <div className="kyc-report__property-head">
                           <span className="kyc-report__property-addr">{p.location?.address}, {p.location?.area}</span>
-                          {p.isManaged && (
+                          {p.isVerified && (
                              <span className="kyc-report__property-badge">Verified</span>
                           )}
                        </div>

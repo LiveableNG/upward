@@ -119,3 +119,16 @@ export const getCollaboratorActivities = async (uuid: string) => {
     method: 'GET'
   })
 }
+
+export const submitVerification = async (data: any) => {
+  return request('/pm/profile/verification', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
+export const getVerificationStatus = async () => {
+  return request<any>('/pm/profile/verification', {
+    method: 'GET'
+  })
+}

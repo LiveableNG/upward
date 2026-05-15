@@ -1041,6 +1041,12 @@ export class GetPendingPaymentsUseCase {
 
     const paymentsData = await Promise.all(payments.map(async (p: any) => {
       const lineItemRecords = await this.lineItemRepo.findByPaymentRequestId(p.id!)
+      
+      const pmPR = await this.prisma.upward_pm_payment_request.findFirst({
+          where: { paymentRequestId: p.id },
+          include: { pm: true }
+      })
+
       return {
         id: p.id,
         uuid: p.uuid,
@@ -1060,6 +1066,7 @@ export class GetPendingPaymentsUseCase {
         property_address: p.propertyLocation,
         userPropertyUuid: p.userPropertyUuid,
         isManual: p.isManual,
+        isVerified: pmPR?.pm?.isVerified || false,
         lineItemRecords,
         type: 'invoice'
       }

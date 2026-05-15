@@ -34,13 +34,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     { name: 'Sessions', path: '/sessions', icon: Calendar },
     { name: 'Announcements', path: '/announcements', icon: Megaphone },
     { name: 'Help Center & Support', path: '/support', icon: LifeBuoy },
+    { name: 'Verifications', path: '/verifications', icon: ShieldCheck },
     { name: 'Email Logs', path: '/email-logs', icon: History },
     { name: 'Fairness Stories', path: '/stories', icon: ShieldCheck },
   ]
 
   if (isSuperadmin) {
     navItems.push({ name: 'Webhook Logs', path: '/webhooks', icon: Webhook })
-    navItems.push({ name: 'System Logs', path: '/logs', icon: FileText })
+    navItems.push({ name: 'System Logs', path: '/logs', icon  : FileText })
     navItems.push({ name: 'Settings', path: '/settings', icon: Settings })
   }
 

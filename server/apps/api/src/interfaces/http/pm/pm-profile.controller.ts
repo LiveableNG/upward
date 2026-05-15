@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import { UpdatePmProfileUseCase } from '../../../application/use-cases/pm/update-pm-profile.use-case'
 import { UpdatePmBankInfoUseCase } from '../../../application/use-cases/pm/update-pm-bank-info.use-case'
 import { ChangePmPasswordUseCase } from '../../../application/use-cases/pm/change-pm-password.use-case'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { GetPmAvatarUploadUrlUseCase } from '../../../application/use-cases/pm/get-pm-avatar-upload-url.use-case'
 import { UploadPmAvatarUseCase } from '../../../application/use-cases/pm/upload-pm-avatar.use-case'
 import { GetPmLetterheadUploadUrlUseCase } from '../../../application/use-cases/pm/get-pm-letterhead-upload-url.use-case'
@@ -41,6 +42,7 @@ export class PmProfileController {
     private readonly uploadLetterheadUseCase: UploadPmLetterheadUseCase,
     private readonly verifyAccountUseCase: VerifyAccountUseCase,
     private readonly getBanksUseCase: GetBanksUseCase,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Get('banks')
@@ -114,5 +116,42 @@ export class PmProfileController {
   ) {
     if (!req.user?.sub) throw new UnauthorizedException()
     return this.uploadLetterheadUseCase.execute(req.user.sub, body.type, body.base64Data, body.contentType)
+  }
+
+  @Post('verification')
+  @HttpCode(HttpStatus.CREATED)
+  async submitVerification(@Req() req: FastifyRequest, @Body() body: any) {
+    if (!req.user?.sub) throw new UnauthorizedException()
+    const pm = await this.prisma.upward_property_manager.findUnique({ where: { uuid: req.user.sub } })
+    if (!pm) throw new UnauthorizedException()
+
+    return this.prisma.upward_pm_verification.upsert({
+      where: { pmId: pm.id },
+      create: {
+        pmId: pm.id,
+        idType: body.idType,
+        idNumber: body.idNumber,
+        idImage: body.idImage,
+        status: 'PENDING',
+      },
+      update: {
+        idType: body.idType,
+        idNumber: body.idNumber,
+        idImage: body.idImage,
+        status: 'PENDING',
+      }
+    })
+  }
+
+  @Get('verification')
+  @HttpCode(HttpStatus.OK)
+  async getVerificationStatus(@Req() req: FastifyRequest) {
+    if (!req.user?.sub) throw new UnauthorizedException()
+    const pm = await this.prisma.upward_property_manager.findUnique({ 
+        where: { uuid: req.user.sub },
+        include: { verification: true }
+    })
+    if (!pm) throw new UnauthorizedException()
+    return pm.verification || { status: 'NOT_SUBMITTED' }
   }
 }
