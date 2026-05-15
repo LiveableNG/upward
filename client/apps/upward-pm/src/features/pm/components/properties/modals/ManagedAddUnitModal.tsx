@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState, useEffect } from 'react'
 import { useToast } from '@/components/common/Toast'
 import { isValidPhoneNumber } from 'libphonenumber-js'

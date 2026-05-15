@@ -307,7 +307,7 @@ export class UserAuthService extends BaseAuthService {
       return {
         ...rest,
         isManaged: !!p.pmId,
-        isVerified: pm?.isVerified || false
+        isVerified: !!p.isVerified || !!pm?.isVerified
       }
     })
 

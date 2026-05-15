@@ -8,8 +8,12 @@ export class VerifyPmEmailUseCase {
     private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
-  async execute(email: string) {
-    const pm = await this.pmRepository.findByEmail(email);
+  async execute(identifier: string) {
+    let pm = await this.pmRepository.findByEmail(identifier);
+
+    if (!pm) {
+      pm = await this.pmRepository.findByPhone(identifier);
+    }
 
     if (!pm) {
       return { found: false };

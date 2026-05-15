@@ -17,7 +17,7 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
   }
 
   const { isScorable, score: credScore, rank, band, metrics } = scoreProfile.data
-  const isVerified = user.properties?.some((p: any) => p.isManaged) || false
+  const isVerified = user.properties?.some((p: any) => p.isVerified) || false
   const credPercentage = isScorable ? (credScore / 800) * 100 : (400 / 800) * 100
   const streak = metrics.longestStreak
   const onTime = Math.round(metrics.ptPercentage)

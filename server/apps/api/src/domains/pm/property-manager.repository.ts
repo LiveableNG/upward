@@ -25,6 +25,7 @@ export interface PropertyManager {
 
 export interface PropertyManagerRepository {
   findByEmail(email: string): Promise<PropertyManager | null>
+  findByPhone(phone: string): Promise<PropertyManager | null>
   findById(id: number): Promise<PropertyManager | null>
   findByUuid(uuid: string): Promise<PropertyManager | null>
   save(pm: PropertyManager): Promise<PropertyManager>

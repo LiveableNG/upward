@@ -1,3 +1,5 @@
+"use client"
+
 import React from 'react'
 import { X, UserPlus, Users, Home, Calendar, CreditCard, ClipboardList } from 'lucide-react'
 import { Property } from '../../../services/propertyService'

@@ -76,6 +76,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   const { isScorable, score, rank, band, metrics, profile, cycles, properties = [] } = scoreProfile.data
   const isFaded = !isScorable
   const isVerified = properties.some((p: any) => p.isVerified)
+  const paidPaymentsCount = cycles.filter((c: any) => c.status && (c.status.includes('PAID') || c.status.includes('PARTIAL'))).length
   const initials = profile.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)
 
   const getRankColor = () => {
@@ -180,6 +181,8 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
               )}
               <span className="kyc-report__meta-dot" />
               Credibility Rating
+              <span className="kyc-report__meta-dot" />
+              {paidPaymentsCount} Payments Made
             </div>
             
             {profile.bio && (

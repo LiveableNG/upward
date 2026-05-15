@@ -23,6 +23,8 @@ export class SubmitUnitRequestUseCase {
     user: any,
     pmEmail: string,
     pmName: string | undefined,
+    pmType: string | undefined,
+    companyName: string | undefined,
     unitDetails: {
       uuid?: string;
       address: string;
@@ -58,6 +60,8 @@ export class SubmitUnitRequestUseCase {
         firstName: pmName?.split(' ')[0] || 'Property',
         lastName: pmName?.split(' ').slice(1).join(' ') || 'Manager',
         passwordHash: 'PENDING_INVITE',
+        pmType: pmType || 'Property Manager',
+        businessName: companyName || null,
       };
 
       pm = await this.pmRepository.save(newPmData as any);

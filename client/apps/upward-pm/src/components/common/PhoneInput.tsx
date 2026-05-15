@@ -1,3 +1,5 @@
+"use client"
+
 import React from 'react'
 import { Phone } from 'lucide-react'
 import { parsePhoneNumberFromString, isValidPhoneNumber } from 'libphonenumber-js'
