@@ -18,26 +18,41 @@ export class VerifyGatewayTransactionUseCase {
     private readonly gateway: IPaymentGateway,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepository,
-  ) {}
+  ) { }
 
   async execute(data: { userId: string; reference: string }) {
     const user = await this.userRepository.findByUuid(data.userId)
-    // For guest payments, user might be null, which is fine for basic verification
+    const isDvaSession = data.reference.startsWith('DVA-')
 
-    // Idempotency check
     const existing = await this.txRepo.findByReference(data.reference)
     if (existing) {
-      this.logger.warn(`Transaction with reference ${data.reference} already exists. Returning existing record.`)
-      return { existing, isNew: false, user }
+      this.logger.log(`Found existing transaction by reference: ${data.reference}`)
+      return { existing, isVerified: existing.status === 'SUCCESS', verifiedAmount: existing.amount, user, isNew: false }
     }
 
-    // Verification
+    if (isDvaSession) {
+      this.logger.log(`Searching for successful DVA transaction for session: ${data.reference}`)
+      const parts = data.reference.split('-')
+      const accountNumber = parts[1] 
+
+      if (accountNumber) {
+        const recentDvaTx = await this.txRepo.findRecentDvaTransaction(accountNumber)
+
+        if (recentDvaTx) {
+          this.logger.log(`Found successful DVA transaction ${recentDvaTx.reference} for session ${data.reference}`)
+          return { existing: recentDvaTx, isVerified: true, verifiedAmount: recentDvaTx.amount, user, isNew: false }
+        }
+      }
+      
+      return { isVerified: false, user, isNew: true }
+    }
+
     let verifiedData: any = { status: false }
     try {
       verifiedData = await this.gateway.verifyTransaction(data.reference)
     } catch (e) {
       this.logger.error(`Gateway verification failed for ${data.reference}:`, e)
-      throw e
+      return { isVerified: false, user, isNew: true }
     }
 
     return { 

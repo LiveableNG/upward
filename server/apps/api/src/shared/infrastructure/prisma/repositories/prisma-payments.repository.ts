@@ -23,7 +23,7 @@ export class PrismaSavedLandlordRepository implements ISavedLandlordRepository {
   constructor(
     private prisma: PrismaService,
     private encryption: EncryptionService,
-  ) {}
+  ) { }
 
   async create(
     data: Omit<SavedLandlord, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
@@ -130,7 +130,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
   constructor(
     private prisma: PrismaService,
     private encryption: EncryptionService,
-  ) {}
+  ) { }
 
   async create(data: Omit<Transaction, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<Transaction> {
     const prisma = tx || this.prisma
@@ -256,6 +256,37 @@ export class PrismaTransactionRepository implements ITransactionRepository {
     return this.mapTransaction(res)
   }
 
+  async findRecentDvaTransaction(accountNumber: string): Promise<Transaction | null> {
+    const res = await this.prisma.upward_transaction.findFirst({
+      where: {
+        status: 'SUCCESS',
+        paymentRequest: {
+          userProperty: {
+            dedicatedAccount: {
+              accountNumber: accountNumber
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        paymentRequest: {
+          include: {
+            subaccount: true,
+            userProperty: {
+              include: {
+                company: true,
+                location: true,
+              }
+            }
+          }
+        }
+      }
+    })
+    if (!res) return null
+    return this.mapTransaction(res)
+  }
+
   async updateStatus(id: number, status: string, tx?: Prisma.TransactionClient): Promise<Transaction> {
     const prisma = tx || this.prisma
     const res = await prisma.upward_transaction.update({
@@ -298,26 +329,26 @@ export class PrismaTransactionRepository implements ITransactionRepository {
     })
     return this.mapTransaction(res)
   }
-  
+
   private mapTransaction(res: any): Transaction {
     const pr = res.paymentRequest
     let mappedPr = null
-    
+
     if (pr) {
       mappedPr = {
         ...pr,
         description: pr.description ? (pr.description.includes(':') ? this.encryption.decrypt(pr.description) : pr.description) : pr.description,
         userPropertyUuid: pr.userProperty?.uuid,
-        companyName: pr.userProperty?.company?.name 
+        companyName: pr.userProperty?.company?.name
           ? (pr.userProperty.company.name.includes(':') ? this.encryption.decrypt(pr.userProperty.company.name) : pr.userProperty.company.name)
           : pr.subaccount?.businessName,
         propertyLocation: pr.userProperty?.location
           ? [
-              pr.userProperty.location.address,
-              pr.userProperty.location.area,
-              pr.userProperty.location.state,
-              pr.userProperty.location.country,
-            ].filter(Boolean).join(', ')
+            pr.userProperty.location.address,
+            pr.userProperty.location.area,
+            pr.userProperty.location.state,
+            pr.userProperty.location.country,
+          ].filter(Boolean).join(', ')
           : undefined,
       }
     }
@@ -338,7 +369,7 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
   constructor(
     private prisma: PrismaService,
     private encryption: EncryptionService,
-  ) {}
+  ) { }
 
   private get paymentRequestInclude() {
     return {
@@ -369,7 +400,7 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       platformId: res.userProperty?.company?.platform?.id || res.userProperty?.company?.platformId,
       platformName: res.userProperty?.company?.platform?.name,
       userPropertyUuid: res.userProperty?.uuid,
-      companyName: res.userProperty?.company?.name 
+      companyName: res.userProperty?.company?.name
         ? (res.userProperty.company.name.includes(':') ? this.encryption.decrypt(res.userProperty.company.name) : res.userProperty.company.name)
         : undefined,
       managerName: res.userProperty?.manager
@@ -379,13 +410,13 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
         : undefined,
       propertyLocation: res.userProperty?.location
         ? [
-            res.userProperty.location.address,
-            res.userProperty.location.area,
-            res.userProperty.location.state,
-            res.userProperty.location.country,
-          ]
-            .filter(Boolean)
-            .join(', ')
+          res.userProperty.location.address,
+          res.userProperty.location.area,
+          res.userProperty.location.state,
+          res.userProperty.location.country,
+        ]
+          .filter(Boolean)
+          .join(', ')
         : undefined,
     } as unknown as PaymentRequest
   }
@@ -495,7 +526,7 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
 
 @Injectable()
 export class PrismaSubaccountRepository implements ISubaccountRepository {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(
     data: Omit<PaystackSubaccount, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
@@ -531,7 +562,7 @@ export class PrismaWebhookRepository implements IWebhookRepository {
   constructor(
     private prisma: PrismaService,
     private encryption: EncryptionService,
-  ) {}
+  ) { }
 
   async create(data: Omit<WebhookLog, 'id' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<WebhookLog> {
     const prisma = tx || this.prisma
@@ -589,12 +620,12 @@ export class PrismaWebhookRepository implements IWebhookRepository {
       ...(status && status !== 'ALL' ? { status } : {}),
       ...(search
         ? {
-            OR: [
-              { event: { contains: search, mode: 'insensitive' } },
-              { url: { contains: search, mode: 'insensitive' } },
-              { errorMessage: { contains: search, mode: 'insensitive' } },
-            ],
-          }
+          OR: [
+            { event: { contains: search, mode: 'insensitive' } },
+            { url: { contains: search, mode: 'insensitive' } },
+            { errorMessage: { contains: search, mode: 'insensitive' } },
+          ],
+        }
         : {}),
     }
 
@@ -613,8 +644,8 @@ export class PrismaWebhookRepository implements IWebhookRepository {
       ...log,
       platform: log.platform ? {
         ...log.platform,
-        name: log.platform.name && log.platform.name.includes(':') 
-          ? this.encryption.decrypt(log.platform.name) 
+        name: log.platform.name && log.platform.name.includes(':')
+          ? this.encryption.decrypt(log.platform.name)
           : log.platform.name
       } : undefined
     }))
@@ -633,8 +664,8 @@ export class PrismaWebhookRepository implements IWebhookRepository {
       ...res,
       platform: res.platform ? {
         ...res.platform,
-        name: res.platform.name && res.platform.name.includes(':') 
-          ? this.encryption.decrypt(res.platform.name) 
+        name: res.platform.name && res.platform.name.includes(':')
+          ? this.encryption.decrypt(res.platform.name)
           : res.platform.name
       } : undefined
     }
@@ -645,7 +676,7 @@ export class PrismaWebhookRepository implements IWebhookRepository {
 
 @Injectable()
 export class PrismaOverpaymentRepository implements IOverpaymentRepository {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(
     data: Omit<Overpayment, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
