@@ -1,41 +1,78 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EmailService } from '../../../shared/infrastructure/email/email.service';
+import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../domains/pm/property-manager.repository';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class InvitePmUseCase {
   private readonly logger = new Logger(InvitePmUseCase.name);
 
-  constructor(private readonly emailService: EmailService) {}
+  constructor(
+    private readonly emailService: EmailService,
+    @Inject(PROPERTY_MANAGER_REPOSITORY)
+    private readonly pmRepository: PropertyManagerRepository,
+  ) {}
 
-  async execute(user: any, pmEmail: string, pmName: string, isFirstInvite: boolean = true, pmUuid?: string) {
+  async execute(
+    user: any, 
+    pmEmail: string, 
+    pmName: string, 
+    isFirstInvite: boolean = true, 
+    pmUuid?: string,
+    pmType?: string,
+    companyName?: string
+  ) {
     this.logger.log(`Sending PM invite to ${pmEmail} requested by ${user.email}`);
 
-    const inviteLink = pmUuid ? `https://pm.upward.com/invite/${pmUuid}` : 'https://pm.upward.com/signup';
+    let targetPmUuid = pmUuid;
+
+    if (!targetPmUuid) {
+      let pm = await this.pmRepository.findByEmail(pmEmail);
+      if (!pm) {
+        const newPmData = {
+          uuid: crypto.randomUUID(),
+          email: pmEmail,
+          firstName: pmName.split(' ')[0] || 'Property',
+          lastName: pmName.split(' ').slice(1).join(' ') || 'Manager',
+          passwordHash: 'PENDING_INVITE',
+          pmType: pmType || 'Property Manager',
+          businessName: companyName || null,
+        };
+        pm = await this.pmRepository.save(newPmData as any);
+      }
+      targetPmUuid = pm.uuid;
+    }
+
+    const isLandlord = pmType === 'Landlord';
+    const baseUrl = 'https://upward-pm.vercel.app';
+    const inviteLink = `${baseUrl}/invite/${targetPmUuid}`;
     
+    const roleName = isLandlord ? 'Landlord' : (pmType || 'Property Manager');
+
     const firstInviteMessage = `
           <p style="font-size: 16px; line-height: 1.6; margin-bottom: 24px; color: #1B4332;">
-            <strong>${user.firstName} ${user.lastName}</strong> has just joined Upward to manage their rent payments and requested to connect with you as their Property Manager!
+            <strong>${user.firstName} ${user.lastName}</strong> has just joined Upward to manage their rent payments and requested to connect with you as their ${roleName}!
           </p>
           <p style="font-size: 16px; line-height: 1.6; margin-bottom: 32px; color: #1B4332;">
-            Upward is a premium property management platform designed to automate rent collection, streamline tenant communication, and provide you with powerful financial insights.
+            Upward is a premium platform designed to automate rent collection, streamline tenant communication, and provide you with powerful financial insights.
           </p>
     `;
 
     const subsequentInviteMessage = `
           <p style="font-size: 16px; line-height: 1.6; margin-bottom: 24px; color: #1B4332;">
-            Another tenant, <strong>${user.firstName} ${user.lastName}</strong>, has requested to connect with you on Upward and sync their unit details!
+            Another tenant, <strong>${user.firstName} ${user.lastName}</strong>, has requested to connect with you on Upward as their ${roleName}!
           </p>
           <p style="font-size: 16px; line-height: 1.6; margin-bottom: 32px; color: #1B4332;">
-            You currently have pending connection requests waiting. Claim your profile to approve these requests, manage your units, and start collecting rent seamlessly.
+            You currently have pending connection requests waiting. Claim your profile to approve these requests and start managing your properties seamlessly.
           </p>
     `;
 
-    const buttonText = isFirstInvite ? "Join Upward for Free" : "Claim Your Profile";
+    const buttonText = isFirstInvite ? "Join Upward" : "Claim Your Profile";
 
     const html = `
       <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #FFFFF0; color: #1B4332; border: 1px solid #E5E5D8; border-radius: 12px; overflow: hidden;">
         <div style="background-color: #1B4332; padding: 32px 24px; text-align: center;">
-          <h1 style="color: #FFFFF0; margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.5px;">Upward</h1>
+          <h1 style="color: #FFFFF0; margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.5px;">Upward ${isLandlord ? 'Landlord' : ''}</h1>
         </div>
         <div style="padding: 40px 32px;">
           <p style="font-size: 16px; line-height: 1.6; margin-bottom: 24px; color: #1B4332;">Hi ${pmName},</p>

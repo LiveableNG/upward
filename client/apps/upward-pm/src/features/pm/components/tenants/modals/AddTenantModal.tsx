@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState, useEffect } from 'react'
 import { X, UserPlus, Loader2, Building2, Calendar, CreditCard, ChevronDown } from 'lucide-react'
 import { useForm, Controller } from 'react-hook-form'

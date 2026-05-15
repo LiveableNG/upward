@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Building2, Search, CheckCircle2, UserPlus, ArrowRight } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useToast } from '@/components/common/Toast';
 
 interface ConnectPmStepProps {
   onComplete: () => void;
@@ -12,11 +13,14 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
   const [step, setStep] = useState<'LOOKUP' | 'FOUND' | 'NOT_FOUND'>('LOOKUP');
   const [email, setEmail] = useState('');
   const [pmName, setPmName] = useState('');
+  const [pmInviteEmail, setPmInviteEmail] = useState('');
+  const [pmType, setPmType] = useState('Property Manager');
+  const [companyName, setCompanyName] = useState('');
   const [pmDetails, setPmDetails] = useState<{ id: number, name: string, businessName: string } | null>(null);
 
   const verifyMutation = useMutation({
-    mutationFn: async (pmEmail: string) => {
-      const res = await api.post('/user/pm-connection/verify', { email: pmEmail });
+    mutationFn: async (identifier: string) => {
+      const res = await api.post('/user/pm-connection/verify', { identifier });
       return res.data;
     },
     onSuccess: (data) => {
@@ -44,16 +48,35 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
 
   const inviteMutation = useMutation({
     mutationFn: async () => {
-      await api.post('/user/pm-connection/invite', { pmEmail: email, pmName });
+      const targetEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? email : pmInviteEmail;
+      await api.post('/user/pm-connection/invite', { 
+        pmEmail: targetEmail, 
+        pmName,
+        pmType,
+        companyName: pmType === 'Property Manager' ? companyName : undefined
+      });
     },
     onSuccess: () => {
       onComplete();
     }
   });
 
+  const { error: toastError } = useToast();
+
   const handleLookup = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) verifyMutation.mutate(email);
+    if (!email) return;
+
+    const trimmed = email.trim();
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+    const isPhone = /^\+234\d{10}$/.test(trimmed);
+
+    if (!isEmail && !isPhone) {
+        toastError('Please enter a valid email or phone number in international format (+234...)');
+        return;
+    }
+
+    verifyMutation.mutate(trimmed);
   };
 
   const handleInvite = (e: React.FormEvent) => {
@@ -90,7 +113,7 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
             onClick={() => setStep('LOOKUP')}
             disabled={confirmMutation.isPending}
           >
-            No, try another email
+            No, try another detail
           </button>
         </div>
       </div>
@@ -98,6 +121,8 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
   }
 
   if (step === 'NOT_FOUND') {
+    const isPhoneSearch = /^\+234\d{10}$/.test(email.trim());
+
     return (
       <div className="auth-step animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="auth-header text-center mb-8">
@@ -105,12 +130,31 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
             <UserPlus className="w-8 h-8 text-[var(--clay)]" />
           </div>
           <h2 className="text-2xl font-bold text-[var(--text-primary)]">Invite your Landlord</h2>
-          <p className="text-[var(--text-secondary)] mt-2">We couldn't find them on Upward yet. What's their name?</p>
+          <p className="text-[var(--text-secondary)] mt-2">
+            We couldn't find them on Upward yet. Let's send them an invite!
+          </p>
         </div>
 
         <form onSubmit={handleInvite} className="auth-form flex flex-col gap-5">
           <div className="form-group">
-            <label className="text-sm font-medium text-[var(--text-primary)] mb-1.5 block">Property Manager / Landlord Name</label>
+            <label className="text-sm font-medium text-[var(--text-primary)] mb-1.5 block">Manager's Category</label>
+            <select 
+              className="input w-full"
+              value={pmType}
+              onChange={(e) => setPmType(e.target.value)}
+              required
+            >
+              <option value="Property Manager">Property Manager</option>
+              <option value="Lawyer">Lawyer</option>
+              <option value="Caretaker">Caretaker</option>
+              <option value="Landlord">Landlord</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="text-sm font-medium text-[var(--text-primary)] mb-1.5 block">
+              {pmType === 'Landlord' ? 'Landlord Name' : 'Manager / Firm Name'}
+            </label>
             <input 
               type="text" 
               className="input w-full" 
@@ -120,12 +164,39 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
               required
             />
           </div>
+
+          {pmType === 'Property Manager' && (
+            <div className="form-group">
+              <label className="text-sm font-medium text-[var(--text-primary)] mb-1.5 block">Company Name (Optional)</label>
+              <input 
+                type="text" 
+                className="input w-full" 
+                placeholder="e.g. Skyline Realty"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+              />
+            </div>
+          )}
+
+          {isPhoneSearch && (
+            <div className="form-group">
+              <label className="text-sm font-medium text-[var(--text-primary)] mb-1.5 block">Their Email Address (to send invite)</label>
+              <input 
+                type="email" 
+                className="input w-full" 
+                placeholder="manager@example.com"
+                value={pmInviteEmail}
+                onChange={(e) => setPmInviteEmail(e.target.value)}
+                required
+              />
+            </div>
+          )}
           
           <div className="flex flex-col gap-3 mt-4">
             <button 
               type="submit"
               className="btn btn--primary w-full py-3"
-              disabled={inviteMutation.isPending || !pmName}
+              disabled={inviteMutation.isPending || !pmName || (isPhoneSearch && !pmInviteEmail)}
             >
               {inviteMutation.isPending ? 'Sending...' : 'Send Invitation'}
             </button>
@@ -155,15 +226,22 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
 
       <form onSubmit={handleLookup} className="auth-form flex flex-col gap-5">
         <div className="form-group">
-          <label className="text-sm font-medium text-[var(--text-primary)] mb-1.5 block">Property Manager's Email</label>
+          <label className="text-sm font-medium text-[var(--text-primary)] mb-1.5 block">Manager's Email or Phone Number</label>
           <input 
-            type="email" 
+            type="text" 
             className="input w-full" 
-            placeholder="manager@example.com"
+            placeholder="e.g. manager@email.com or +2348030000000"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+                const val = e.target.value;
+                setEmail(val);
+                // Simple inline validation check can go here if needed
+            }}
             required
           />
+          <p className="text-[10px] text-[var(--text-muted)] mt-1.5">
+            Phone numbers must be in international format starting with +234
+          </p>
         </div>
         
         {verifyMutation.isError && (
@@ -183,7 +261,7 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
             className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-center py-2 transition-colors"
             onClick={onSkip}
           >
-            I don't know their email, skip this
+            I don't know their details, skip this
           </button>
         </div>
       </form>

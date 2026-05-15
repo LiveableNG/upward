@@ -42,7 +42,7 @@ export class PrismaUserRepository implements UserRepository {
         currency: p.currency,
         location: p.location,
         isManaged: !!p.pmId,
-        isVerified: p.pm ? !!p.pm.isVerified : !!p.isVerified,
+        isVerified: !!p.isVerified || !!p.pm?.isVerified,
         isPastTenancy: p.isPastTenancy,
         updatedAt: p.updatedAt,
         manager: p.manager ? {

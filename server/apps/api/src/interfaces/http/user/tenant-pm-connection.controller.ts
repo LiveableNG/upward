@@ -17,8 +17,8 @@ export class TenantPmConnectionController {
   ) {}
 
   @Post('verify')
-  async verifyPmEmail(@Body('email') email: string) {
-    const result = await this.verifyPmEmailUseCase.execute(email);
+  async verifyPm(@Body('identifier') identifier: string) {
+    const result = await this.verifyPmEmailUseCase.execute(identifier);
     return { success: true, data: result };
   }
 
@@ -37,9 +37,11 @@ export class TenantPmConnectionController {
     @Req() req: AuthenticatedRequest,
     @Body('pmEmail') pmEmail: string,
     @Body('pmName') pmName: string,
+    @Body('pmType') pmType: string | undefined,
+    @Body('companyName') companyName: string | undefined,
   ) {
     const user = req.user;
-    const result = await this.invitePmUseCase.execute(user, pmEmail, pmName);
+    const result = await this.invitePmUseCase.execute(user, pmEmail, pmName, true, undefined, pmType, companyName);
     return { success: true, data: result };
   }
 
@@ -48,10 +50,12 @@ export class TenantPmConnectionController {
     @Req() req: AuthenticatedRequest,
     @Body('pmEmail') pmEmail: string,
     @Body('pmName') pmName: string | undefined,
+    @Body('pmType') pmType: string | undefined,
+    @Body('companyName') companyName: string | undefined,
     @Body('unitDetails') unitDetails: any,
   ) {
     const user = req.user;
-    const result = await this.submitUnitRequestUseCase.execute(user, pmEmail, pmName, unitDetails);
+    const result = await this.submitUnitRequestUseCase.execute(user, pmEmail, pmName, pmType, companyName, unitDetails);
     return { success: true, data: result };
   }
 }

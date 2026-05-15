@@ -16,6 +16,9 @@ interface AddPropertyModalProps {
 export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: AddPropertyModalProps) {
   const [step, setStep] = useState<'LOOKUP' | 'DETAILS'>('LOOKUP')
   const [pmEmail, setPmEmail] = useState('')
+  const [pmInviteEmail, setPmInviteEmail] = useState('')
+  const [pmType, setPmType] = useState('Property Manager')
+  const [companyName, setCompanyName] = useState('')
   const [pmFound, setPmFound] = useState(false)
   const [pmDetails, setPmDetails] = useState<{ id?: number, name?: string, businessName?: string } | null>(null)
   
@@ -49,12 +52,18 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
           rentStartDate: initialData.rentStartDate ? new Date(initialData.rentStartDate).toISOString().split('T')[0] : '',
           rentEndDate: initialData.rentEndDate ? new Date(initialData.rentEndDate).toISOString().split('T')[0] : ''
         })
-        setStep('LOOKUP') 
+        setStep('LOOKUP')
         setPmFound(false)
         setPmDetails(null)
+        setPmInviteEmail('')
+        setPmType('Property Manager')
+        setCompanyName('')
       } else {
         // Reset
         setPmEmail('')
+        setPmInviteEmail('')
+        setPmType('Property Manager')
+        setCompanyName('')
         setFormData({
           uuid: undefined,
           pmName: '',
@@ -75,8 +84,8 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
   }, [isOpen, initialData])
 
   const verifyMutation = useMutation({
-    mutationFn: async (email: string) => {
-      const res = await api.post('/user/pm-connection/verify', { email })
+    mutationFn: async (identifier: string) => {
+      const res = await api.post('/user/pm-connection/verify', { identifier })
       return res.data
     },
     onSuccess: (data) => {
@@ -93,7 +102,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
       setStep('DETAILS')
     },
     onError: () => {
-      toast.error('Unable to verify this email. You can still enter details manually.', 'Check Failed')
+      toast.error('Unable to verify this detail. You can still enter details manually.', 'Check Failed')
       setStep('DETAILS')
     }
   })
@@ -129,9 +138,13 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
       
       if (formData.uuid) unitDetails.uuid = formData.uuid;
 
+      const targetEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pmEmail.trim()) ? pmEmail : pmInviteEmail;
+
       const payload = {
-        pmEmail,
+        pmEmail: targetEmail,
         pmName: pmFound ? pmDetails?.name : formData.pmName,
+        pmType: pmFound ? undefined : pmType,
+        companyName: (pmFound || pmType !== 'Property Manager') ? undefined : companyName,
         unitDetails
       }
       
@@ -155,7 +168,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
         <button className="add-property-modal__close" onClick={onClose}>
           <X size={18} />
         </button>
-
+ 
         <div className="add-property-modal__header">
           <div className="add-property-modal__icon-wrapper">
             {step === 'LOOKUP' ? <Search size={28} /> : <Building2 size={28} />}
@@ -170,24 +183,41 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
 
         <div className="add-property-modal__body">
           {step === 'LOOKUP' ? (
-            <form onSubmit={e => { e.preventDefault(); if (pmEmail) verifyMutation.mutate(pmEmail) }} className="add-property-modal__form">
+            <form onSubmit={e => { 
+                e.preventDefault(); 
+                if (!pmEmail) return;
+                
+                const trimmed = pmEmail.trim();
+                const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+                const isPhone = /^\+234\d{10}$/.test(trimmed);
+
+                if (!isEmail && !isPhone) {
+                    toast.error('Please enter a valid email or phone number (+2348030000000)', 'Invalid Format');
+                    return;
+                }
+                
+                verifyMutation.mutate(trimmed) 
+            }} className="add-property-modal__form">
               <div className="add-property-modal__input-container">
-                <label className="add-property-modal__label">Property Manager's Email</label>
+                <label className="add-property-modal__label">Manager's Email or Phone Number</label>
                 <div className="add-property-modal__input-wrapper">
                   <Search size={18} className="add-property-modal__input-icon" />
                   <input 
-                    type="email" 
+                    type="text" 
                     className="add-property-modal__input" 
-                    placeholder="manager@example.com"
+                    placeholder="e.g. manager@email.com or +2348030000000"
                     value={pmEmail}
                     onChange={e => setPmEmail(e.target.value)}
                     required
                   />
                 </div>
+                <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6, marginLeft: 4 }}>
+                    Use international format for phone numbers (e.g. +2348030000000)
+                </p>
               </div>
 
               {verifyMutation.isError && (
-                <p className="text-sm text-red-500 text-center">Unable to check email. Please try again.</p>
+                <p className="text-sm text-red-500 text-center">Unable to check details. Please try again.</p>
               )}
 
               <div className="add-property-modal__actions">
@@ -230,17 +260,60 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
                   </div>
                   <div className="add-property-modal__pm-info">
                     <p className="add-property-modal__pm-label">New Manager Invite</p>
+                    
+                    <div className="add-property-modal__input-wrapper mb-2">
+                      <select 
+                        className="add-property-modal__input add-property-modal__select add-property-modal__input--no-icon"
+                        style={{ padding: '8px 12px', borderRadius: '10px' }}
+                        value={pmType}
+                        onChange={(e) => setPmType(e.target.value)}
+                        required
+                      >
+                        <option value="Property Manager">Property Manager</option>
+                        <option value="Lawyer">Lawyer</option>
+                        <option value="Caretaker">Caretaker</option>
+                        <option value="Landlord">Landlord</option>
+                      </select>
+                    </div>
+
                     <div className="add-property-modal__input-wrapper">
                       <input 
                         type="text" 
                         className="add-property-modal__input add-property-modal__input--no-icon" 
-                        placeholder="Manager's Full Name"
+                        placeholder={pmType === 'Landlord' ? "Landlord's Full Name" : "Manager's Full Name"}
                         style={{ padding: '8px 12px', borderRadius: '10px' }}
                         value={formData.pmName}
                         onChange={e => setFormData({ ...formData, pmName: e.target.value })}
                         required
                       />
                     </div>
+
+                    {pmType === 'Property Manager' && (
+                      <div className="add-property-modal__input-wrapper mt-2">
+                        <input 
+                          type="text" 
+                          className="add-property-modal__input add-property-modal__input--no-icon" 
+                          placeholder="Company Name (Optional)"
+                          style={{ padding: '8px 12px', borderRadius: '10px' }}
+                          value={companyName}
+                          onChange={e => setCompanyName(e.target.value)}
+                        />
+                      </div>
+                    )}
+
+                    {/^\+234\d{10}$/.test(pmEmail.trim()) && (
+                      <div className="add-property-modal__input-wrapper mt-2">
+                        <input 
+                          type="email" 
+                          className="add-property-modal__input add-property-modal__input--no-icon" 
+                          placeholder="Manager's Email Address"
+                          style={{ padding: '8px 12px', borderRadius: '10px' }}
+                          value={pmInviteEmail}
+                          onChange={e => setPmInviteEmail(e.target.value)}
+                          required
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
