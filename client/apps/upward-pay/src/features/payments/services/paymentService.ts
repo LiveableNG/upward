@@ -133,7 +133,7 @@ export async function createManualPaymentRequest(data: {
   propertyUuid?: string
   metadata?: any
 }) {
-  return request<{ uuid: string }>('/payments/initialize-manual', {
+  return request<{ uuid: string }>('/payments/manual-request', {
     method: 'POST',
     body: JSON.stringify(data),
   })

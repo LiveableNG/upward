@@ -180,8 +180,8 @@ export class PaymentsController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('initialize-manual')
-  async initializeManual(@Req() req: any, @Body() body: any) {
+  @Post('manual-request')
+  async createManualRequest(@Req() req: any, @Body() body: any) {
     const userId = req.user.id
     return this.createManualRequestUc.execute({
       userId,
