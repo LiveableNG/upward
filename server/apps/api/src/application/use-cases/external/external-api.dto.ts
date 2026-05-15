@@ -269,6 +269,10 @@ export class ExternalPaymentRequestPayloadDto {
   @IsOptional()
   @IsString()
   rentType?: string
+
+  @IsOptional()
+  @IsNumber()
+  paymentRequestId?: number
 }
 
 export class AddPropertyPayloadDto {
