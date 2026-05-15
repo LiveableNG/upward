@@ -184,19 +184,20 @@ export const SignupForm = () => {
 
   if (stage === 'success') {
     return (
-      <div className="auth-success animate-fade-in" style={{ maxWidth: '100%', width: '100%' }}>
+      <div className="animate-fade-in" style={{ maxWidth: '100%', width: '100%' }}>
         <VerificationForm 
+          isAuthFlow={true}
           onSuccess={() => {
             window.location.href = formData.pmType === 'INDIVIDUAL_LANDLORD' ? '/portal' : '/dashboard'
           }} 
         />
         
-        <div style={{ textAlign: 'center', marginTop: '24px' }}>
+        <div className="auth-footer">
             <button 
                 onClick={() => window.location.href = formData.pmType === 'INDIVIDUAL_LANDLORD' ? '/portal' : '/dashboard'}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer', textDecoration: 'underline', fontWeight: 600 }}
             >
-                I'll do this later, take me to my dashboard
+                I&apos;ll do this later, take me to my dashboard
             </button>
         </div>
       </div>

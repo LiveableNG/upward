@@ -15,7 +15,7 @@ const verificationSchema = z.object({
 
 type VerificationFormData = z.infer<typeof verificationSchema>
 
-export function VerificationForm({ onSuccess }: { onSuccess?: () => void }) {
+export function VerificationForm({ onSuccess, isAuthFlow = false }: { onSuccess?: () => void, isAuthFlow?: boolean }) {
   const { success: toastSuccess, error: toastError } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [file, setFile] = useState<File | null>(null)
@@ -43,7 +43,7 @@ export function VerificationForm({ onSuccess }: { onSuccess?: () => void }) {
   }
 
   return (
-    <div className="animate-fade-in" style={{ 
+    <div className={isAuthFlow ? "" : "animate-fade-in"} style={isAuthFlow ? { width: '100%' } : { 
         maxWidth: 500, 
         margin: '40px auto',
         background: 'white',
@@ -52,7 +52,7 @@ export function VerificationForm({ onSuccess }: { onSuccess?: () => void }) {
         boxShadow: '0 10px 40px rgba(0,0,0,0.08)',
         border: '1px solid var(--border)'
     }}>
-      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+      <div className={isAuthFlow ? "auth-header" : ""} style={isAuthFlow ? {} : { textAlign: 'center', marginBottom: 32 }}>
         <div style={{ 
             width: 64, 
             height: 64, 
@@ -61,24 +61,26 @@ export function VerificationForm({ onSuccess }: { onSuccess?: () => void }) {
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center',
-            margin: '0 auto 16px',
+            margin: isAuthFlow ? '0 0 24px' : '0 auto 16px',
             color: 'var(--forest)'
         }}>
             <ShieldCheck size={32} />
         </div>
-        <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Identity Verification</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
+        <h2 className={isAuthFlow ? "auth-card__title" : ""} style={isAuthFlow ? {} : { fontSize: 24, fontWeight: 800, marginBottom: 8 }}>
+          Identity Verification
+        </h2>
+        <p className={isAuthFlow ? "auth-card__subtitle" : ""} style={isAuthFlow ? {} : { color: 'var(--text-muted)', fontSize: 14 }}>
             To comply with Nigerian regulations and protect our community, please verify your identity.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <form onSubmit={handleSubmit(onSubmit)}>
         <div className="form-group">
-          <label className="form-label" style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600 }}>ID Type</label>
+          <label className="form-label">ID Type</label>
           <select 
             {...register('idType')} 
             className="form-input"
-            style={{ width: '100%', padding: '12px', borderRadius: 12, border: '1px solid var(--border)' }}
+            style={isAuthFlow ? {} : { width: '100%', padding: '12px', borderRadius: 12, border: '1px solid var(--border)' }}
           >
             <option value="NIN">National Identity Number (NIN)</option>
             <option value="BVN">Bank Verification Number (BVN)</option>
@@ -88,18 +90,18 @@ export function VerificationForm({ onSuccess }: { onSuccess?: () => void }) {
         </div>
 
         <div className="form-group">
-          <label className="form-label" style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600 }}>ID Number</label>
+          <label className="form-label">ID Number</label>
           <input 
             {...register('idNumber')}
             className="form-input"
             placeholder="Enter your ID number"
-            style={{ width: '100%', padding: '12px', borderRadius: 12, border: '1px solid var(--border)' }}
+            style={isAuthFlow ? {} : { width: '100%', padding: '12px', borderRadius: 12, border: '1px solid var(--border)' }}
           />
           {errors.idNumber && <p style={{ color: 'var(--error)', fontSize: 12, marginTop: 4 }}>{errors.idNumber.message}</p>}
         </div>
 
         <div className="form-group">
-          <label className="form-label" style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600 }}>Upload Proof (Optional)</label>
+          <label className="form-label">Upload Proof (Optional)</label>
           <div 
             style={{ 
                 border: '2px dashed var(--border)', 
@@ -107,7 +109,8 @@ export function VerificationForm({ onSuccess }: { onSuccess?: () => void }) {
                 padding: 24, 
                 textAlign: 'center',
                 cursor: 'pointer',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                background: 'var(--ivory-dim)'
             }}
             onClick={() => document.getElementById('id-upload')?.click()}
           >
@@ -124,24 +127,27 @@ export function VerificationForm({ onSuccess }: { onSuccess?: () => void }) {
           </div>
         </div>
 
-        <div style={{ 
-            padding: 16, 
-            background: 'rgba(59, 130, 246, 0.05)', 
-            borderRadius: 12, 
-            display: 'flex', 
-            gap: 12,
-            border: '1px solid rgba(59, 130, 246, 0.1)'
-        }}>
-            <AlertCircle size={20} style={{ color: '#3b82f6', flexShrink: 0 }} />
-            <p style={{ fontSize: 12, color: '#1e40af', lineHeight: 1.5 }}>
-                Your data is encrypted and used solely for verification purposes. You can still manage your portfolio while we review your submission.
-            </p>
+        <div className="form-group">
+          <div style={{ 
+              padding: 16, 
+              background: 'var(--ivory-dim)', 
+              borderRadius: 12, 
+              display: 'flex', 
+              gap: 12,
+              border: '1px solid var(--ivory-dark)'
+          }}>
+              <AlertCircle size={20} style={{ color: 'var(--forest)', flexShrink: 0 }} />
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  Your data is encrypted and used solely for verification purposes. You can still manage your portfolio while we review your submission.
+              </p>
+          </div>
         </div>
 
         <button 
             type="submit" 
             disabled={isSubmitting}
-            style={{ 
+            className={isAuthFlow ? "auth-btn auth-btn--primary" : ""}
+            style={isAuthFlow ? {} : { 
                 padding: '14px', 
                 borderRadius: 12, 
                 background: 'var(--forest)', 
@@ -152,8 +158,7 @@ export function VerificationForm({ onSuccess }: { onSuccess?: () => void }) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 8,
-                marginTop: 8
+                gap: 8
             }}
         >
             {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : 'Submit Verification'}
@@ -162,3 +167,4 @@ export function VerificationForm({ onSuccess }: { onSuccess?: () => void }) {
     </div>
   )
 }
+
