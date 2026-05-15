@@ -373,6 +373,7 @@ export default function PayRentPage() {
                     propertyUuid: selectedPropertyUuid || undefined,
                     metadata: {
                       narration: narration || `Manual Payment for ${propertyAddress}`,
+                      description: narration || `Manual Payment for ${propertyAddress}`,
                       propertyAddress,
                       userPropertyUuid: selectedPropertyUuid || undefined,
                       paymentType,
