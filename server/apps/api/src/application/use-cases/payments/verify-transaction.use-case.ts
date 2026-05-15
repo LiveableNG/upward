@@ -31,19 +31,25 @@ export class VerifyGatewayTransactionUseCase {
     }
 
     if (isDvaSession) {
-      this.logger.log(`Searching for successful DVA transaction for session: ${data.reference}`)
       const parts = data.reference.split('-')
-      const accountNumber = parts[1] 
+      const accountNumber = parts[1]
+      const sessionTimestamp = parts[2] ? parseInt(parts[2]) : 0
 
       if (accountNumber) {
         const recentDvaTx = await this.txRepo.findRecentDvaTransaction(accountNumber)
 
         if (recentDvaTx) {
-          this.logger.log(`Found successful DVA transaction ${recentDvaTx.reference} for session ${data.reference}`)
-          return { existing: recentDvaTx, isVerified: true, verifiedAmount: recentDvaTx.amount, user, isNew: false }
+          const sessionStartTime = sessionTimestamp ? new Date(sessionTimestamp - 5000) : new Date(0)
+
+          if (recentDvaTx.createdAt >= sessionStartTime) {
+            this.logger.log(`Found successful DVA transaction ${recentDvaTx.reference} for session ${data.reference}`)
+            return { existing: recentDvaTx, isVerified: true, verifiedAmount: recentDvaTx.amount, user, isNew: false }
+          } else {
+            this.logger.log(`Ignoring old successful DVA transaction ${recentDvaTx.reference} created at ${recentDvaTx.createdAt} for session started at ${sessionStartTime}`)
+          }
         }
       }
-      
+
       return { isVerified: false, user, isNew: true }
     }
 
