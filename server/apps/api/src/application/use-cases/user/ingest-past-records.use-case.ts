@@ -59,6 +59,12 @@ export class IngestPastRecordsUseCase {
       results.push(cycle);
     }
 
+    // 3. Mark property as verified since records are coming from a PM fulfillment
+    await this.prisma.upward_user_property.update({
+      where: { id: property.id },
+      data: { isVerified: true }
+    });
+
     return { success: true, message: `Ingested ${input.records.length} past records`, ingested: results.length };
   }
 }

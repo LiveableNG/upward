@@ -63,9 +63,9 @@ export default function PayRentPage() {
         const props = profile?.properties || []
         setUserProperties(props)
 
-        // Derive PM landlords from verified properties
+        // Derive PM landlords from properties with subaccounts
         const derivedPms = props
-          .filter((p: any) => p.isManaged && p.subaccount)
+          .filter((p: any) => p.subaccount)
           .map((p: any) => ({
             id: `verified-${p.uuid}`,
             uuid: 'verified',
@@ -273,10 +273,10 @@ export default function PayRentPage() {
                setShowRenewalModal(true)
              }
 
-             if (prop.isManaged && prop.subaccount) {
+             if (prop.subaccount) {
                const managedLandlord = {
                  uuid: 'verified',
-                 name: prop.company?.name || prop.manager?.firstName ? `${prop.manager.firstName} ${prop.manager.lastName}` : 'Property Owner',
+                 name: prop.company?.name || (prop.manager?.firstName ? `${prop.manager.firstName} ${prop.manager.lastName}` : 'Property Owner'),
                  accountName: prop.subaccount.businessName,
                  accountNumber: prop.subaccount.accountNumber,
                  bankName: '', // Optional

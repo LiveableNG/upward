@@ -539,6 +539,9 @@ export class UserAuthService extends BaseAuthService {
       }
 
       if (existingProperty) {
+        if (existingProperty.isVerified) {
+          continue;
+        }
         await this.prisma.upward_user_property.update({
           where: { id: existingProperty.id },
           data: propertyData

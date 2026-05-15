@@ -88,11 +88,36 @@ export class SubmitUnitRequestUseCase {
       rentEndDate: new Date(unitDetails.rentEndDate),
     };
 
+    // Check if PM has bank details and find/link subaccount
+    let subaccountId: number | undefined;
+    if (pm.accountNumber && pm.bankCode) {
+      const subaccount = await this.prisma.upward_paystack_subaccount.findUnique({
+        where: {
+          accountNumber_bankCode: {
+            accountNumber: pm.accountNumber,
+            bankCode: pm.bankCode,
+          }
+        }
+      });
+      if (subaccount) {
+        subaccountId = subaccount.id;
+      }
+    }
+
     if (unitDetails.uuid) {
+      const existing = await this.prisma.upward_user_property.findUnique({
+        where: { uuid: unitDetails.uuid }
+      });
+      
+      if (existing && existing.isVerified) {
+        throw new Error('This property has been verified by your manager and cannot be edited. Please contact your property manager for any updates.');
+      }
+
       await (this.prisma as any).upward_user_property.update({
         where: { uuid: unitDetails.uuid, userId: fullUser.id },
         data: {
           ...propertyBaseData,
+          subaccountId,
           location: {
             update: {
               address: unitDetails.address,
@@ -108,6 +133,7 @@ export class SubmitUnitRequestUseCase {
       await (this.prisma as any).upward_user_property.create({
         data: {
           ...propertyBaseData,
+          subaccountId,
           location: {
             create: {
               address: unitDetails.address,

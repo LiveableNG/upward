@@ -33,6 +33,7 @@ export interface UserProfile {
     companyPhone?: string;
     companyEmail?: string;
     isPastTenancy?: boolean;
+    isVerified?: boolean;
     location?: {
       area?: string;
       subarea?: string;

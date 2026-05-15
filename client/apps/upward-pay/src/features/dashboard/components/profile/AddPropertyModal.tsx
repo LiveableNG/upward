@@ -102,6 +102,10 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
 
   const submitMutation = useMutation({
     mutationFn: async () => {
+      if (initialData?.isManaged || initialData?.isVerified) {
+        throw new Error('This property is managed and cannot be edited from here.')
+      }
+
       const unitDetails: {
         uuid?: string;
         address: string;
