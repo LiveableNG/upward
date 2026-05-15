@@ -48,7 +48,7 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
 
   async findByPhone(phone: string): Promise<PropertyManager | null> {
     const phoneHash = this.encryption.hash(phone)
-    const record = await (this.prisma as any).upward_property_manager.findUnique({
+    const record = await (this.prisma as any).upward_property_manager.findFirst({
       where: { phoneHash },
     })
     return record ? this.toDomain(record) : null
