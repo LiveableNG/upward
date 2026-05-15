@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Building2, Search, CheckCircle2, UserPlus, ArrowRight } from 'lucide-react';
+import { Building2, Search, CheckCircle2, UserPlus, ArrowRight, Mail, Phone, User, Landmark } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/common/Toast';
 
@@ -86,36 +86,42 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
 
   if (step === 'FOUND' && pmDetails) {
     return (
-      <div className="auth-step animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="auth-header text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-[var(--surface2)] rounded-full flex items-center justify-center mb-4">
+      <div className="auth-stage animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="auth-stage__header text-center">
+          <div className="mx-auto w-16 h-16 bg-[var(--surface2)] rounded-full flex items-center justify-center mb-6">
             <Building2 className="w-8 h-8 text-[var(--clay)]" />
           </div>
-          <h2 className="text-2xl font-bold text-[var(--text-primary)]">Is this your Property Manager?</h2>
-          <p className="text-[var(--text-secondary)] mt-2">We found a match for {email}</p>
+          <h2 className="auth-stage__title">Is this your Property Manager?</h2>
+          <p className="auth-stage__subtitle">We found a match for <strong>{email}</strong></p>
         </div>
 
-        <div className="bg-[var(--surface2)] rounded-xl p-6 mb-8 border border-[var(--border)]">
-          <h3 className="font-semibold text-lg text-[var(--text-primary)]">{pmDetails.businessName}</h3>
+        <div className="bg-[var(--surface2)] rounded-xl p-6 mb-8 border border-[var(--border)] text-center">
+          <h3 className="font-bold text-lg text-[var(--text-primary)]">{pmDetails.businessName}</h3>
           <p className="text-[var(--text-secondary)] mt-1">{pmDetails.name}</p>
         </div>
 
-        <div className="flex flex-col gap-3">
+        <div className="auth-stage__ctas">
           <button 
-            className="btn btn--primary w-full py-3"
+            className="btn btn--primary btn--full btn--pay"
             onClick={() => confirmMutation.mutate(pmDetails.id)}
             disabled={confirmMutation.isPending}
           >
             {confirmMutation.isPending ? 'Connecting...' : 'Yes, Connect Me'}
+            <CheckCircle2 size={18} className="ml-2" />
           </button>
           <button 
-            className="btn btn--ghost w-full py-3"
+            className="btn btn--secondary btn--full btn--pay mt-4"
             onClick={() => setStep('LOOKUP')}
             disabled={confirmMutation.isPending}
           >
             No, try another detail
           </button>
         </div>
+
+        <style jsx>{`
+          .mx-auto { margin-left: auto; margin-right: auto; }
+          .mt-4 { margin-top: 16px; }
+        `}</style>
       </div>
     );
   }
@@ -124,122 +130,132 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
     const isPhoneSearch = /^\+234\d{10}$/.test(email.trim());
 
     return (
-      <div className="auth-step animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="auth-header text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-[var(--surface2)] rounded-full flex items-center justify-center mb-4">
-            <UserPlus className="w-8 h-8 text-[var(--clay)]" />
-          </div>
-          <h2 className="text-2xl font-bold text-[var(--text-primary)]">Invite your Landlord</h2>
-          <p className="text-[var(--text-secondary)] mt-2">
-            We couldn't find them on Upward yet. Let's send them an invite!
+      <div className="auth-stage animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="auth-stage__header">
+          <h2 className="auth-stage__title">Invite your Landlord</h2>
+          <p className="auth-stage__subtitle">
+            We couldn't find them on Upward yet. Let's send them an invite to join the platform!
           </p>
         </div>
 
-        <form onSubmit={handleInvite} className="auth-form flex flex-col gap-5">
-          <div className="form-group">
-            <label className="text-sm font-medium text-[var(--text-primary)] mb-1.5 block">Manager's Category</label>
-            <select 
-              className="input w-full"
-              value={pmType}
-              onChange={(e) => setPmType(e.target.value)}
-              required
-            >
-              <option value="Property Manager">Property Manager</option>
-              <option value="Lawyer">Lawyer</option>
-              <option value="Caretaker">Caretaker</option>
-              <option value="Landlord">Landlord</option>
-            </select>
+        <form onSubmit={handleInvite} className="auth-form">
+          <div className="auth-form__field">
+            <label>Manager's Category</label>
+            <div className="input-with-icon">
+              <Landmark size={18} />
+              <select 
+                className="input-reset flex-1 bg-transparent py-4 px-3 outline-none border-none text-[15px]"
+                value={pmType}
+                onChange={(e) => setPmType(e.target.value)}
+                required
+              >
+                <option value="Property Manager">Property Manager</option>
+                <option value="Lawyer">Lawyer</option>
+                <option value="Caretaker">Caretaker</option>
+                <option value="Landlord">Landlord</option>
+              </select>
+            </div>
           </div>
 
-          <div className="form-group">
-            <label className="text-sm font-medium text-[var(--text-primary)] mb-1.5 block">
+          <div className="auth-form__field mt-2">
+            <label>
               {pmType === 'Landlord' ? 'Landlord Name' : 'Manager / Firm Name'}
             </label>
-            <input 
-              type="text" 
-              className="input w-full" 
-              placeholder="e.g. John Smith"
-              value={pmName}
-              onChange={(e) => setPmName(e.target.value)}
-              required
-            />
+            <div className="input-with-icon">
+              <User size={18} />
+              <input 
+                type="text" 
+                placeholder="e.g. John Smith"
+                value={pmName}
+                onChange={(e) => setPmName(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           {pmType === 'Property Manager' && (
-            <div className="form-group">
-              <label className="text-sm font-medium text-[var(--text-primary)] mb-1.5 block">Company Name (Optional)</label>
-              <input 
-                type="text" 
-                className="input w-full" 
-                placeholder="e.g. Skyline Realty"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-              />
+            <div className="auth-form__field mt-2">
+              <label>Company Name (Optional)</label>
+              <div className="input-with-icon">
+                <Building2 size={18} />
+                <input 
+                  type="text" 
+                  placeholder="e.g. Skyline Realty"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                />
+              </div>
             </div>
           )}
 
           {isPhoneSearch && (
-            <div className="form-group">
-              <label className="text-sm font-medium text-[var(--text-primary)] mb-1.5 block">Their Email Address (to send invite)</label>
-              <input 
-                type="email" 
-                className="input w-full" 
-                placeholder="manager@example.com"
-                value={pmInviteEmail}
-                onChange={(e) => setPmInviteEmail(e.target.value)}
-                required
-              />
+            <div className="auth-form__field mt-2">
+              <label>Their Email Address</label>
+              <div className="input-with-icon">
+                <Mail size={18} />
+                <input 
+                  type="email" 
+                  placeholder="manager@example.com"
+                  value={pmInviteEmail}
+                  onChange={(e) => setPmInviteEmail(e.target.value)}
+                  required
+                />
+              </div>
             </div>
           )}
           
-          <div className="flex flex-col gap-3 mt-4">
+          <div className="auth-stage__ctas mt-8">
             <button 
               type="submit"
-              className="btn btn--primary w-full py-3"
+              className="btn btn--primary btn--full btn--pay"
               disabled={inviteMutation.isPending || !pmName || (isPhoneSearch && !pmInviteEmail)}
             >
               {inviteMutation.isPending ? 'Sending...' : 'Send Invitation'}
+              <ArrowRight size={18} className="ml-2" />
             </button>
             <button 
               type="button"
-              className="btn btn--ghost w-full py-3"
+              className="btn btn--secondary btn--full btn--pay mt-4"
               onClick={onSkip}
             >
               Skip for now
             </button>
           </div>
         </form>
+
+        <style jsx>{`
+          .input-reset { background: none; border: none; font-family: inherit; }
+          .mt-2 { margin-top: 12px; }
+          .mt-8 { margin-top: 32px; }
+          .mt-4 { margin-top: 16px; }
+          .ml-2 { margin-left: 8px; }
+        `}</style>
       </div>
     );
   }
 
   // Initial LOOKUP step
   return (
-    <div className="auth-step animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="auth-header text-center mb-8">
-        <div className="mx-auto w-16 h-16 bg-[var(--surface2)] rounded-full flex items-center justify-center mb-4">
-          <Search className="w-8 h-8 text-[var(--clay)]" />
-        </div>
-        <h2 className="text-2xl font-bold text-[var(--text-primary)]">Find your Property Manager</h2>
-        <p className="text-[var(--text-secondary)] mt-2">Connect with your landlord to easily pay rent and view your property details.</p>
+    <div className="auth-stage animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="auth-stage__header">
+        <h2 className="auth-stage__title">Find your Property Manager</h2>
+        <p className="auth-stage__subtitle">Connect with your landlord to easily pay rent and view your property details.</p>
       </div>
 
-      <form onSubmit={handleLookup} className="auth-form flex flex-col gap-5">
-        <div className="form-group">
-          <label className="text-sm font-medium text-[var(--text-primary)] mb-1.5 block">Manager's Email or Phone Number</label>
-          <input 
-            type="text" 
-            className="input w-full" 
-            placeholder="e.g. manager@email.com or +2348030000000"
-            value={email}
-            onChange={(e) => {
-                const val = e.target.value;
-                setEmail(val);
-                // Simple inline validation check can go here if needed
-            }}
-            required
-          />
-          <p className="text-[10px] text-[var(--text-muted)] mt-1.5">
+      <form onSubmit={handleLookup} className="auth-form">
+        <div className="auth-form__field">
+          <label>Manager's Email or Phone Number</label>
+          <div className="input-with-icon">
+            {email.includes('@') ? <Mail size={18} /> : <Phone size={18} />}
+            <input 
+              type="text" 
+              placeholder="e.g. manager@email.com or +2348030000000"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <p className="text-[11px] text-[var(--text-muted)] mt-2">
             Phone numbers must be in international format starting with +234
           </p>
         </div>
@@ -248,23 +264,31 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
           <p className="text-sm text-red-500 mt-1">Unable to search at the moment. Please try again.</p>
         )}
 
-        <div className="flex flex-col gap-3 mt-4">
+        <div className="auth-stage__ctas mt-8">
           <button 
             type="submit"
-            className="btn btn--primary w-full py-3"
+            className="btn btn--primary btn--full btn--pay"
             disabled={verifyMutation.isPending || !email}
           >
             {verifyMutation.isPending ? 'Searching...' : 'Search'}
+            <Search size={18} className="ml-2" />
           </button>
+          
           <button 
             type="button"
-            className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-center py-2 transition-colors"
+            className="auth-form__link"
             onClick={onSkip}
           >
             I don't know their details, skip this
           </button>
         </div>
       </form>
+
+      <style jsx>{`
+        .mt-2 { margin-top: 8px; }
+        .mt-8 { margin-top: 32px; }
+        .ml-2 { margin-left: 8px; }
+      `}</style>
     </div>
   );
 }

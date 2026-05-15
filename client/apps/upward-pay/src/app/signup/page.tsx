@@ -19,6 +19,8 @@ function SignupPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { isLoggedIn, loading } = useAuth()
+  const [authInitialized, setAuthInitialized] = useState(false)
+  const [isReturningUser, setIsReturningUser] = useState(false)
 
   const initialEmail = searchParams.get('email') || ''
   const [mode, setMode] = useState<Mode>(
@@ -27,11 +29,19 @@ function SignupPageContent() {
   const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null)
 
   useEffect(() => {
+    if (!loading && !authInitialized) {
+      if (isLoggedIn) {
+        setIsReturningUser(true)
+      }
+      setAuthInitialized(true)
+    }
+  }, [loading, isLoggedIn, authInitialized])
+
+  useEffect(() => {
     const urlMode = searchParams.get('mode') as Mode
     if (urlMode) {
       setMode(urlMode)
     } else {
-      // If no mode is specified but an email is present, default to signup
       const email = searchParams.get('email')
       if (email) {
         setMode('signup')
@@ -42,11 +52,19 @@ function SignupPageContent() {
   }, [searchParams])
 
   useEffect(() => {
-    if (!loading && isLoggedIn && mode !== 'biometrics' && mode !== 'welcome') {
-      const redirect = searchParams.get('redirect') || '/dashboard'
-      router.replace(redirect)
+    if (!loading && isLoggedIn && authInitialized) {
+      if (isReturningUser) {
+        const redirect = searchParams.get('redirect') || '/dashboard'
+        router.replace(redirect)
+        return
+      }
+
+      if (mode !== 'biometrics' && mode !== 'welcome' && mode !== 'signup') {
+        const redirect = searchParams.get('redirect') || '/dashboard'
+        router.replace(redirect)
+      }
     }
-  }, [isLoggedIn, loading, router, mode, searchParams])
+  }, [isLoggedIn, loading, authInitialized, isReturningUser, router, mode, searchParams])
 
   if (loading) return <FallbackSuspense message="Getting ready…" />
 
@@ -124,7 +142,6 @@ export default function SignupPage() {
         </div>
       </div>
 
-      {/* Form Panel - Contains the existing auth flows */}
       <div className="auth-layout__form">
         <Suspense fallback={<FallbackSuspense message="Loading…" />}>
           <SignupPageContent />
