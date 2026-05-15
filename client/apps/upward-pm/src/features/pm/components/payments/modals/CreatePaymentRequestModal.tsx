@@ -91,7 +91,7 @@ export function CreatePaymentRequestModal({
       }
       const endDateStr = endDate.toISOString().split('T')[0]
       setRentEndDate(endDateStr)
-      setDueDate(endDateStr)
+      setDueDate(startDateStr)
     }
   }, [unit, existingRequest])
 
@@ -141,7 +141,7 @@ export function CreatePaymentRequestModal({
     if (!amount || parseFloat(amount) <= 0) return error('Please enter a valid amount')
     if (!dueDate) return error('Please select a due date')
     if (!hasBankDetails) return error('Please set up your bank information in settings to receive payments')
-    if (!selectedTemplateUuid) return error('Please select a document template')
+    if (!isEditing && !selectedTemplateUuid) return error('Please select a document template')
 
     const paymentContext = {
       unitUuid: unit!.uuid,
@@ -160,7 +160,7 @@ export function CreatePaymentRequestModal({
       }))
     }
 
-    if (selectedTemplateUuid && onProceedToEditor) {
+    if (!isEditing && selectedTemplateUuid && onProceedToEditor) {
       const template = templates.find((t: any) => t.uuid === selectedTemplateUuid)
       onProceedToEditor(template, paymentContext)
       return
@@ -422,20 +422,22 @@ export function CreatePaymentRequestModal({
             </select>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Follow-up Document</label>
-            <select
-              className="form-input"
-              style={{ borderRadius: 12, background: 'var(--surface-hover)' }}
-              value={selectedTemplateUuid}
-              onChange={(e) => setSelectedTemplateUuid(e.target.value)}
-            >
-              <option value="">Select template (Optional)</option>
-              {templates.map((t: any) => (
-                <option key={t.uuid} value={t.uuid}>{t.name}</option>
-              ))}
-            </select>
-          </div>
+          {!isEditing && (
+            <div className="form-group">
+              <label className="form-label">Follow-up Document</label>
+              <select
+                className="form-input"
+                style={{ borderRadius: 12, background: 'var(--surface-hover)' }}
+                value={selectedTemplateUuid}
+                onChange={(e) => setSelectedTemplateUuid(e.target.value)}
+              >
+                <option value="">Select template (Optional)</option>
+                {templates.map((t: any) => (
+                  <option key={t.uuid} value={t.uuid}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
@@ -450,7 +452,7 @@ export function CreatePaymentRequestModal({
           >
             {createMutation.isPending || updateMutation.isPending ? 'Processing...' :
               !unit.isSynced ? 'Sync Required' :
-                selectedTemplateUuid ? 'Proceed to Editor' :
+                (!isEditing && selectedTemplateUuid) ? 'Proceed to Editor' :
                   isEditing ? 'Update Request' : 'Send Request'}
           </button>
         </div>

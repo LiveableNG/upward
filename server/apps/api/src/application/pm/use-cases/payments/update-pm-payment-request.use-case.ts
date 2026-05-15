@@ -46,6 +46,7 @@ export class UpdatePmPaymentRequestUseCase {
     if (!pm) throw new NotFoundException('Property Manager not found');
     
     const payload: ExternalPaymentRequestPayloadDto = {
+      paymentRequestId: pmPR.paymentRequestId ?? undefined,
       userPropertyUuid: unit.userPropertyUuid ?? undefined,
       amount: data.amount ?? pmPR.amount,
       dueDate: (data.dueDate || pmPR.dueDate.toISOString().split('T')[0]) as string,

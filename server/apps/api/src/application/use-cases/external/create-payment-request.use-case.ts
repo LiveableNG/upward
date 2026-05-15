@@ -89,12 +89,18 @@ export class CreateExternalPaymentRequestUseCase {
       }
     }
 
-    const userPendingRequests = await this.paymentRequestRepository.findByUserIdAndStatus(property.userId, 'PENDING')
-    let paymentRequest = userPendingRequests.find(pr =>
-      pr.userPropertyId === property.id &&
-      pr.amount === amount &&
-      new Date(pr.dueDate).getTime() === new Date(payload.dueDate).getTime()
-    )
+    let paymentRequest: any = null;
+
+    if (payload.paymentRequestId) {
+      paymentRequest = await this.paymentRequestRepository.findById(payload.paymentRequestId);
+    } else {
+      const userPendingRequests = await this.paymentRequestRepository.findByUserIdAndStatus(property.userId, 'PENDING')
+      paymentRequest = userPendingRequests.find(pr =>
+        pr.userPropertyId === property.id &&
+        pr.amount === amount &&
+        new Date(pr.dueDate).getTime() === new Date(payload.dueDate).getTime()
+      )
+    }
 
     if (paymentRequest) {
       // Upsert: update existing pending request with new metadata/settings
