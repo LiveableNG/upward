@@ -68,21 +68,41 @@ export class SubmitUnitRequestUseCase {
       isNewShadowPm = true;
     }
 
-    await this.activityLogService.log({
-      pmId: pm.id!,
-      ownerPmId: pm.id!,
-      action: 'TENANT_JOIN_REQUEST',
-      entityType: 'TENANT_REQUEST',
-      description: `${fullUser.firstName} ${fullUser.lastName} wants to connect and sync a unit with you.`,
-      metadata: {
-        status: 'PENDING',
-        userUuid: fullUser.uuid,
-        userFirstName: fullUser.firstName,
-        userLastName: fullUser.lastName,
-        userEmail: fullUser.email,
-        unitDetails: unitDetails,
+    // Check for existing pending request to avoid duplicates
+    const existingLogs = await this.prisma.upward_pm_activity_log.findMany({
+      where: {
+        ownerPmId: pm.id!,
+        action: 'TENANT_JOIN_REQUEST',
       }
     });
+
+    const isDuplicate = existingLogs.some(log => {
+      const meta = log.metadata as any;
+      return meta.status === 'PENDING' && 
+             meta.userUuid === fullUser.uuid && 
+             meta.unitDetails?.address === unitDetails.address;
+    });
+
+    const decryptedFirstName = this.encryption.decrypt(fullUser.firstName);
+    const decryptedLastName = this.encryption.decrypt(fullUser.lastName);
+
+    if (!isDuplicate) {
+      await this.activityLogService.log({
+        pmId: pm.id!,
+        ownerPmId: pm.id!,
+        action: 'TENANT_JOIN_REQUEST',
+        entityType: 'TENANT_REQUEST',
+        description: `${decryptedFirstName} ${decryptedLastName} wants to connect and sync a unit with you.`,
+        metadata: {
+          status: 'PENDING',
+          userUuid: fullUser.uuid,
+          userFirstName: fullUser.firstName, // Keep encrypted in metadata as GetPendingJoinRequestsUseCase decrypts it
+          userLastName: fullUser.lastName,
+          userEmail: fullUser.email,
+          unitDetails: unitDetails,
+        }
+      });
+    }
 
     const propertyBaseData = {
       user: { connect: { id: fullUser.id } },
@@ -151,10 +171,18 @@ export class SubmitUnitRequestUseCase {
       });
     }
 
+    // Prepare decrypted user for invite
+    const decryptedUser = {
+        ...fullUser,
+        firstName: decryptedFirstName,
+        lastName: decryptedLastName,
+        email: this.encryption.decrypt(fullUser.email)
+    };
+
     if (isNewShadowPm) {
-      await this.invitePmUseCase.execute(fullUser, pmEmail, pm.firstName, true, pm.uuid);
+      await this.invitePmUseCase.execute(decryptedUser, pmEmail, pm.firstName, true, pm.uuid);
     } else if (pm.passwordHash === 'PENDING_INVITE') {
-      await this.invitePmUseCase.execute(fullUser, pmEmail, pm.firstName, false, pm.uuid);
+      await this.invitePmUseCase.execute(decryptedUser, pmEmail, pm.firstName, false, pm.uuid);
     }
 
     return {

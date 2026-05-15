@@ -30,6 +30,14 @@ function SignupPageContent() {
     const urlMode = searchParams.get('mode') as Mode
     if (urlMode) {
       setMode(urlMode)
+    } else {
+      // If no mode is specified but an email is present, default to signup
+      const email = searchParams.get('email')
+      if (email) {
+        setMode('signup')
+      } else {
+        setMode('welcome')
+      }
     }
   }, [searchParams])
 

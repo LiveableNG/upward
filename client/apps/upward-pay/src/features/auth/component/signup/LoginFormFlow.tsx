@@ -252,7 +252,17 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
             {!isCheckingEmail && loginEmail && loginEmail.includes('@') && !emailExists && (
               <div className="field-hint field-hint--error">
                 <AlertCircle size={12} /> Account not found.{' '}
-                <button type="button" className="field-hint__link" onClick={() => router.push(`/signup?email=${encodeURIComponent(loginEmail)}`)}>
+                <button 
+                  type="button" 
+                  className="field-hint__link" 
+                  onClick={() => {
+                    if (onRedirectToSignup) {
+                      onRedirectToSignup(loginEmail)
+                    } else {
+                      router.push(`/signup?mode=signup&email=${encodeURIComponent(loginEmail)}`)
+                    }
+                  }}
+                >
                   Sign up instead?
                 </button>
               </div>

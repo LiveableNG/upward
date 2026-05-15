@@ -96,7 +96,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
   const liveMetrics = [
     { label: 'On-time Rate', value: `${Math.round(metrics.ptPercentage)}%`, sub: 'Payment reliability' },
-    { label: 'Streak', value: `${metrics.longestStreak} mo`, sub: 'Current streak' },
+    { label: 'Top Streak', value: `${metrics.longestStreak} mo`, sub: 'Consecutive on-time' },
     { label: 'History', value: `${metrics.historyYears} yrs`, sub: 'Tenancy with us' },
     { label: 'Discipline', value: `${Math.round(metrics.discipline)}%`, sub: 'Full payments' },
   ]
