@@ -1,7 +1,8 @@
-import { Controller, Get, Patch, UseGuards, Req, Inject, UnauthorizedException, Param } from '@nestjs/common';
+import { Controller, Get,Post, Patch, UseGuards, Req, Inject, UnauthorizedException, Param } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
 import { GetPendingCredibilityRequestsUseCase } from '../../../application/pm/use-cases/get-pending-credibility-requests.use-case';
 import { MarkCredibilityRequestDoneUseCase } from '../../../application/pm/use-cases/mark-credibility-request-done.use-case';
+import { RejectCredibilityRequestUseCase } from '../../../application/use-cases/external/reject-credibility-request.use-case';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 
 @Controller('pm/credibility-requests')
@@ -10,6 +11,7 @@ export class PmCredibilityController {
   constructor(
     private readonly getPendingCredibilityRequestsUseCase: GetPendingCredibilityRequestsUseCase,
     private readonly markCredibilityRequestDoneUseCase: MarkCredibilityRequestDoneUseCase,
+    private readonly rejectCredibilityRequestUseCase: RejectCredibilityRequestUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -30,5 +32,10 @@ export class PmCredibilityController {
   @Patch(':uuid/done')
   async markDone(@Param('uuid') uuid: string) {
     return this.markCredibilityRequestDoneUseCase.execute(uuid);
+  }
+
+  @Post(':uuid/reject')
+  async rejectRequest(@Param('uuid') uuid: string) {
+    return this.rejectCredibilityRequestUseCase.execute(uuid);
   }
 }

@@ -83,7 +83,7 @@ export function ActivityCarousel() {
       title: 'New Tenant Requests',
       description: `You have ${joinRequests.length} pending tenant${joinRequests.length > 1 ? 's' : ''} requesting to join your properties.`,
       icon: UserPlus,
-      link: '/dashboard',
+      link: '/requests',
       color: 'forest',
       actionLabel: 'Handle Requests'
     })

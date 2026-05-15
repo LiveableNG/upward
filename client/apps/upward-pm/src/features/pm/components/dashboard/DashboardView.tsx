@@ -17,7 +17,6 @@ import { useProperties, useUnits } from '@/features/pm/hooks/useProperties'
 import { useTenants } from '@/features/pm/hooks/useTenants'
 import { usePaymentRequests } from '@/features/pm/hooks/usePayments'
 import { ActivityCarousel } from './ActivityCarousel'
-import { TenantRequestsWidget } from './TenantRequestsWidget'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
 import { StatCard } from '@/components/ui/StatCard/StatCard'
@@ -41,36 +40,6 @@ export function DashboardView() {
   const totalRevenue = requests
     .reduce((sum, r) => sum + r.amountPaid, 0)
 
-  const stats = [
-    { 
-      label: 'Total Units', 
-      value: totalUnits.toString(), 
-      icon: Building2, 
-      trend: `${properties.length} Properties`, 
-      type: 'forest' 
-    },
-    { 
-      label: 'Active Tenants', 
-      value: activeTenants.toString(), 
-      icon: Users, 
-      trend: `${Math.round((activeTenants / (totalUnits || 1)) * 100)}% active`, 
-      type: 'success' 
-    },
-    { 
-      label: 'Pending Balance', 
-      value: `₦${pendingAmount.toLocaleString()}`, 
-      icon: CreditCard, 
-      trend: `${requests.filter(r => r.status !== 'PAID').length} open requests`, 
-      type: 'warning' 
-    },
-    { 
-      label: 'Total Revenue', 
-      value: `₦${totalRevenue.toLocaleString()}`, 
-      icon: TrendingUp, 
-      trend: 'All time collection', 
-      type: 'info' 
-    },
-  ]
 
   // Recent Activity (Derived from real data)
   const recentRequests = [...requests]
@@ -92,8 +61,6 @@ export function DashboardView() {
       />
 
       <ActivityCarousel />
-
-      <TenantRequestsWidget />
 
       <StatGrid>
         <StatCard 

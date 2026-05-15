@@ -19,10 +19,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { format } from 'date-fns'
 import { AddTenantModal } from '@/features/pm/components/tenants/modals/AddTenantModal'
+import { useMutation } from '@tanstack/react-query'
+import { useToast } from '@/components/common/Toast'
+import { XCircle } from 'lucide-react'
 
 export default function RequestsPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const { success: toastSuccess, error: toastError } = useToast()
   const [selectedJoinReq, setSelectedJoinReq] = useState<any>(null)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
@@ -35,9 +39,45 @@ export default function RequestsPage() {
     }
   })
 
+  const dismissMutation = useMutation({
+    mutationFn: (uuid: string) => api.post(`/pm/tenants/join-requests/${uuid}/dismiss`, {}),
+    onSuccess: () => {
+      toastSuccess('Request dismissed')
+      queryClient.invalidateQueries({ queryKey: ['tenant-join-requests'] })
+    },
+    onError: () => {
+      toastError('Failed to dismiss request')
+    }
+  })
+
+  const rejectCredMutation = useMutation({
+    mutationFn: (uuid: string) => api.post(`/pm/credibility-requests/${uuid}/reject`, {}),
+    onSuccess: () => {
+      toastSuccess('Record request rejected')
+      queryClient.invalidateQueries({ queryKey: ['credibility-requests'] })
+    },
+    onError: () => {
+      toastError('Failed to reject request')
+    }
+  })
+
   const handleJoinClick = (req: any) => {
     setSelectedJoinReq(req)
     setIsAddModalOpen(true)
+  }
+
+  const handleDismiss = (e: React.MouseEvent, uuid: string) => {
+    e.stopPropagation()
+    if (window.confirm('Are you sure you want to reject this request?')) {
+      dismissMutation.mutate(uuid)
+    }
+  }
+
+  const handleRejectCred = (e: React.MouseEvent, uuid: string) => {
+    e.stopPropagation()
+    if (window.confirm('Are you sure you want to reject this record request?')) {
+      rejectCredMutation.mutate(uuid)
+    }
   }
 
   const isLoading = loadingCred || loadingJoin
@@ -119,6 +159,13 @@ export default function RequestsPage() {
                       </div>
                     </div>
                     <div className="request-card__status">
+                      <button 
+                        className="reject-btn"
+                        onClick={(e) => handleDismiss(e, req.uuid)}
+                        title="Reject Request"
+                      >
+                        <XCircle size={18} />
+                      </button>
                       <span className="badge" style={{ background: 'var(--forest)', color: 'white' }}>
                         Verify Tenant
                       </span>
@@ -168,6 +215,13 @@ export default function RequestsPage() {
                       </div>
                     </div>
                     <div className="request-card__status">
+                      <button 
+                        className="reject-btn"
+                        onClick={(e) => handleRejectCred(e, req.uuid)}
+                        title="Reject Request"
+                      >
+                        <XCircle size={18} />
+                      </button>
                       <span className="badge badge--warning">
                         Fulfill Records
                       </span>
@@ -210,6 +264,25 @@ export default function RequestsPage() {
           </p>
         </div>
       </div>
+      <style jsx>{`
+        .reject-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8px;
+          border-radius: 50%;
+          color: #EF4444;
+          background: #FEF2F2;
+          border: 1px solid #FEE2E2;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-right: 12px;
+        }
+        .reject-btn:hover {
+          background: #FEE2E2;
+          transform: scale(1.1);
+        }
+      `}</style>
     </div>
   )
 }

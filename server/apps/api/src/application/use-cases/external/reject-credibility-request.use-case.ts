@@ -1,9 +1,15 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
+import { EmailService } from '../../../shared/infrastructure/email/email.service';
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 
 @Injectable()
 export class RejectCredibilityRequestUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+    private readonly encryption: EncryptionService,
+  ) {}
 
   async execute(requestUuid: string) {
     const credibilityReq = await this.prisma.upward_credibility_request.findUnique({
@@ -23,8 +29,29 @@ export class RejectCredibilityRequestUseCase {
       data: { status: 'CANCELLED' }
     });
 
-    // Optionally send notification to tenant that their request was declined
-    // But for now, just mark it as CANCELLED
+    // Notify tenant
+    try {
+      const user = await this.prisma.upward_user.findUnique({ where: { id: credibilityReq.userId } });
+      const property = await this.prisma.upward_user_property.findUnique({ 
+        where: { uuid: credibilityReq.propertyUuid },
+        include: { location: true, pm: true }
+      });
+
+      if (user && property) {
+        const tenantEmail = this.encryption.decrypt(user.email);
+        const tenantFirstName = this.encryption.decrypt(user.firstName);
+        const pmName = property.pm?.businessName || (property.pm?.firstName ? `${property.pm.firstName} ${property.pm.lastName || ''}` : 'Your Property Manager');
+
+        await this.emailService.sendCredibilityRequestRejection({
+          email: tenantEmail,
+          tenantName: tenantFirstName,
+          pmName,
+          propertyAddress: property.location?.address || 'Unknown Address',
+        });
+      }
+    } catch (e) {
+      console.error('Failed to send credibility rejection email:', e);
+    }
 
     return {
       success: true,

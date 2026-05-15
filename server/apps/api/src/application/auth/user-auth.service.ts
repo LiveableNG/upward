@@ -304,10 +304,13 @@ export class UserAuthService extends BaseAuthService {
 
     profile.properties = properties.map(p => {
       const { pm, ...rest } = p;
+      const prop = p as any;
       return {
         ...rest,
         isManaged: !!p.pmId,
-        isVerified: !!p.isVerified || !!pm?.isVerified
+        isVerified: !!p.isVerified || !!pm?.isVerified,
+        verificationStatus: prop.verificationStatus || (p.isVerified ? 'VERIFIED' : 'PENDING'),
+        rejectionReason: prop.rejectionReason,
       }
     })
 
