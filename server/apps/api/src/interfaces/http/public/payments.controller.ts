@@ -163,6 +163,7 @@ export class PaymentsController {
 
   @Post('webhook')
   async handleWebhook(@Body() payload: any, @Req() req: any) {
+    console.log(`[PaymentsController] Webhook POST received: ${payload?.event}`)
     const signature = req.headers['x-paystack-signature']
     return this.processWebhookUc.execute(payload, signature)
   }
