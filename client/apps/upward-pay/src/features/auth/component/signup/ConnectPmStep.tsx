@@ -60,16 +60,20 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
       return res.data;
     },
     onSuccess: (data) => {
-      if (data.found && data.pm) {
+      const result = data.data;
+      if (result && result.found && result.pm) {
         setPmDetails({
-          id: data.pm.id,
-          name: `${data.pm.firstName} ${data.pm.lastName}`,
-          businessName: data.pm.businessName || `${data.pm.firstName} ${data.pm.lastName}`,
+          id: result.pm.id,
+          name: `${result.pm.firstName} ${result.pm.lastName}`,
+          businessName: result.pm.businessName || `${result.pm.firstName} ${result.pm.lastName}`,
         });
         setStep('FOUND');
       } else {
         setStep('NOT_FOUND');
       }
+    },
+    onError: () => {
+      toastError('Unable to search for Property Manager. Please check your connection.');
     }
   });
 
@@ -499,13 +503,13 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
               required
             />
           </div>
-          <p className="text-[11px] text-[var(--text-muted)] mt-2">
+          <p className="helper-text mt-2">
             Phone numbers must be in international format starting with +234
           </p>
         </div>
         
         {verifyMutation.isError && (
-          <p className="text-sm text-red-500 mt-1">Unable to search at the moment. Please try again.</p>
+          <p className="error-text mt-1">Unable to search at the moment. Please try again.</p>
         )}
 
         <div className="auth-stage__ctas mt-8">
@@ -545,6 +549,17 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
           height: 28px;
           color: var(--clay);
         }
+        .helper-text {
+          font-size: 11px;
+          color: var(--text-muted);
+          line-height: 1.4;
+        }
+        .error-text {
+          font-size: 13px;
+          color: var(--error);
+          font-weight: 500;
+        }
+        .mt-1 { margin-top: 4px; }
         .mt-2 { margin-top: 8px; }
         .mt-8 { margin-top: 32px; }
         .mb-6 { margin-bottom: 24px; }
