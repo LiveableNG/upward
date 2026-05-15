@@ -740,17 +740,46 @@ export class ProcessPaymentWebhookUseCase {
 
     // Handle Standard Charge Success
     if (payload.event === 'charge.success') {
-      const { reference, metadata, amount, currency } = payload.data
-      const { userUuid, userId } = metadata || {}
+      const { reference, amount, currency } = payload.data
+      let metadata = payload.data.metadata
+
+      // Parse metadata if it's a JSON string
+      if (typeof metadata === 'string' && metadata.length > 0) {
+        try {
+          metadata = JSON.parse(metadata)
+        } catch (e) {
+          this.logger.warn(`Failed to parse metadata string for reference ${reference}`)
+        }
+      }
+
+      // If this is a DVA payment hitting charge.success (common for some Paystack setups)
+      if (payload.data.dedicated_account || payload.data.channel === 'dedicated_account') {
+        this.logger.log(`DVA Payment detected in charge.success for reference: ${reference}`)
+        return this.handleDvaPayment(payload.data)
+      }
+
+      let { userUuid, userId } = metadata || {}
+
+      // Fallback: Try to identify user by customer email if metadata is missing
+      if (!userUuid && !userId && payload.data.customer?.email) {
+        const user = await this.prisma.upward_user.findFirst({
+          where: { email: payload.data.customer.email }
+        })
+        if (user) {
+          userUuid = user.uuid
+          this.logger.log(`Recovered user identity via email for reference ${reference}: ${user.email}`)
+        }
+      }
 
       if (!userUuid && !userId) {
+        this.logger.error(`Webhook failed: No user identification in metadata or customer record for reference ${reference}`)
         throw new Error('No user identification in Paystack metadata')
       }
 
       const effectiveUserId = userUuid || userId
 
       return this.recordTransaction.execute({
-        userId: effectiveUserId,
+        userId: String(effectiveUserId),
         reference,
         amount: amount / 100,
         currency: currency || 'NGN',
@@ -764,94 +793,7 @@ export class ProcessPaymentWebhookUseCase {
     }
 
     if (payload.event === 'dedicatedaccount.payment.success') {
-      const accountNumber = payload.data.dedicated_account.account_number
-      this.logger.log(`DVA Payment detected for account: ${accountNumber}`)
-
-      const dva = await this.dvaRepo.findByAccountNumber(accountNumber)
-      if (!dva || !dva.userPropertyId) {
-        this.logger.warn(`DVA payment received for unknown or unlinked account: ${accountNumber}`)
-        return { success: true, message: 'Unlinked account' }
-      }
-
-      // Find active payment request for this user property
-      const pr = await this.prisma.upward_payment_request.findFirst({
-        where: {
-          userPropertyId: dva.userPropertyId,
-          status: { in: ['PENDING', 'PARTIAL'] }
-        },
-        include: { 
-          user: true,
-          userProperty: {
-            include: { subaccount: true }
-          }
-        }
-      })
-
-      if (!pr) {
-        this.logger.log(`Manual DVA payment received for Property ${dva.userPropertyId} with no active request. Recording as general payment.`)
-        
-        // Find the user associated with this property
-        const userProp = await this.prisma.upward_user_property.findUnique({
-          where: { id: dva.userPropertyId },
-          include: { user: true, subaccount: true }
-        })
-        
-        if (!userProp) {
-          this.logger.error(`DVA payment received for non-existent property relation: ${dva.userPropertyId}`)
-          return { success: true, message: 'Property not found' }
-        }
-
-        const result = await this.recordTransaction.execute({
-          userId: userProp.user.uuid,
-          amount: payload.data.amount / 100,
-          currency: payload.data.currency,
-          reference: payload.data.reference,
-          type: 'RENT',
-          status: 'SUCCESS',
-          narration: `Manual Bank Transfer to ${dva.accountNumber}`,
-          settlementStatus: 'VERIFIED'
-        })
-
-        return result
-      }
-
-      // 3. Verification Logic: Intercept & Check against Source of Truth
-      const amountPaid = payload.data.amount / 100
-      const expectedTotal = pr.amount + this.paymentConfig.getProcessingFee()
-      
-      let settlementStatus = 'VERIFIED'
-      if (!pr.allowPartial && amountPaid < expectedTotal) {
-        this.logger.warn(`Full-Payment Violation: User ${pr.user.email} paid ${amountPaid} instead of ${expectedTotal}. Marking for refund.`)
-        settlementStatus = 'PENDING_REFUND'
-      }
-
-      // 4. Record Transaction with the determined settlement status
-      const result = await this.recordTransaction.execute({
-        userId: pr.user.uuid,
-        amount: amountPaid,
-        currency: payload.data.currency,
-        reference: payload.data.reference,
-        type: 'RENT',
-        status: 'SUCCESS',
-        paymentRequestId: pr.id,
-        narration: `Bank Transfer to ${dva.accountNumber} (${dva.bankName})`,
-        settlementStatus
-      })
-
-      // 5. Trigger Alerts if it's an underpayment
-      if (settlementStatus === 'PENDING_REFUND') {
-        this.eventBus.publish(new UnderpaymentDetectedEvent(
-          pr.user.id,
-          pr.userPropertyId!,
-          pr.id,
-          amountPaid,
-          expectedTotal,
-          payload.data.reference,
-          true // It's a violation because it was Full-Only
-        ))
-      }
-
-      return result
+      return this.handleDvaPayment(payload.data)
     }
 
     if (['transfer.success', 'transfer.failed', 'transfer.reversed'].includes(payload.event)) {
@@ -890,6 +832,101 @@ export class ProcessPaymentWebhookUseCase {
     }
 
     return { success: true, message: 'Event ignored' }
+  }
+
+  private async handleDvaPayment(data: any) {
+    const accountNumber = data.dedicated_account?.account_number || data.dedicated_account
+    if (!accountNumber) {
+      this.logger.error(`Could not resolve account number from DVA payload: ${JSON.stringify(data)}`)
+      return { success: false, message: 'Missing account number' }
+    }
+
+    this.logger.log(`Processing DVA Payment for account: ${accountNumber}`)
+
+    const dva = await this.dvaRepo.findByAccountNumber(accountNumber)
+    if (!dva || !dva.userPropertyId) {
+      this.logger.warn(`DVA payment received for unknown or unlinked account: ${accountNumber}`)
+      return { success: true, message: 'Unlinked account' }
+    }
+
+    // Find active payment request for this user property
+    const pr = await this.prisma.upward_payment_request.findFirst({
+      where: {
+        userPropertyId: dva.userPropertyId,
+        status: { in: ['PENDING', 'PARTIAL'] }
+      },
+      include: {
+        user: true,
+        userProperty: {
+          include: { subaccount: true }
+        }
+      }
+    })
+
+    const amountPaid = data.amount / 100
+
+    if (!pr) {
+      this.logger.log(`Manual DVA payment received for Property ${dva.userPropertyId} with no active request. Recording as general payment.`)
+
+      // Find the user associated with this property
+      const userProp = await this.prisma.upward_user_property.findUnique({
+        where: { id: dva.userPropertyId },
+        include: { user: true, subaccount: true }
+      })
+
+      if (!userProp) {
+        this.logger.error(`DVA payment received for non-existent property relation: ${dva.userPropertyId}`)
+        return { success: true, message: 'Property not found' }
+      }
+
+      return this.recordTransaction.execute({
+        userId: userProp.user.uuid,
+        amount: amountPaid,
+        currency: data.currency || 'NGN',
+        reference: data.reference,
+        type: 'RENT',
+        status: 'SUCCESS',
+        narration: `Manual Bank Transfer to ${dva.accountNumber}`,
+        settlementStatus: 'VERIFIED'
+      })
+    }
+
+    // Verification Logic: Intercept & Check against Source of Truth
+    const expectedTotal = pr.amount + this.paymentConfig.getProcessingFee()
+
+    let settlementStatus = 'VERIFIED'
+    if (!pr.allowPartial && amountPaid < expectedTotal) {
+      this.logger.warn(`Full-Payment Violation: User ${pr.user.email} paid ${amountPaid} instead of ${expectedTotal}. Marking for refund.`)
+      settlementStatus = 'PENDING_REFUND'
+    }
+
+    // Record Transaction with the determined settlement status
+    const result = await this.recordTransaction.execute({
+      userId: pr.user.uuid,
+      amount: amountPaid,
+      currency: data.currency || 'NGN',
+      reference: data.reference,
+      type: 'RENT',
+      status: 'SUCCESS',
+      paymentRequestId: pr.id,
+      narration: `Bank Transfer to ${dva.accountNumber} (${dva.bankName})`,
+      settlementStatus
+    })
+
+    // Trigger Alerts if it's an underpayment
+    if (settlementStatus === 'PENDING_REFUND') {
+      this.eventBus.publish(new UnderpaymentDetectedEvent(
+        pr.user.id,
+        pr.userPropertyId!,
+        pr.id,
+        amountPaid,
+        expectedTotal,
+        data.reference,
+        true // It's a violation because it was Full-Only
+      ))
+    }
+
+    return result
   }
 }
 
