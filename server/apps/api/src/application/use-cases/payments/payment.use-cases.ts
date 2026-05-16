@@ -363,7 +363,7 @@ export class RecordTransactionUseCase {
       const result = await this.txRepo.create({
         ...data,
         userId: user!.id!,
-        amount: paymentAmount,
+        amount: effectiveAmount,
         status: isVerified ? 'SUCCESS' : 'FAILED',
         narration: data.narration || pr?.description || 'Property Payment',
         landlordId: data.landlordId || pr?.subaccount?.uuid || undefined,
@@ -387,7 +387,7 @@ export class RecordTransactionUseCase {
         const distribution = await this.distributeAllocations.execute({
           transactionId: result.id,
           paymentRequestId: pr?.id,
-          amount: paymentAmount,
+          amount: effectiveAmount,
           upwardFeeAmount,
           lineItemPayments: data.lineItemPayments,
           manualLineItems: data.lineItems,

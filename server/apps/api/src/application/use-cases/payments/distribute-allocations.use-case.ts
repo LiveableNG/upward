@@ -39,11 +39,50 @@ export class DistributePaymentAllocationsUseCase {
       ? await this.lineItemRepo.findByPaymentRequestId(paymentRequestId, txClient) 
       : []
 
+    // 0. Deduct Upward Fee first if specified and not already in allocations
+    // This ensures the fee is prioritized and doesn't "steal" from rent/mgt portions incorrectly
+    if (upwardFeeAmount > 0) {
+      const feeInAllocations = lineItemPayments?.find(lp => 
+        lp.name === 'Processing Fee' || 
+        ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(lp.name || '')
+      )
+      
+      if (!feeInAllocations) {
+        const feeToPay = Math.min(remainingPayment, upwardFeeAmount)
+        allocatedItems.push({
+          name: 'Processing Fee',
+          label: 'Processing Fee',
+          amount: feeToPay,
+          category: 'Fee'
+        })
+        remainingPayment -= feeToPay
+        this.logger.log(`Deducted Processing Fee: ${feeToPay}. Remaining for items: ${remainingPayment}`)
+      }
+    }
+
     // 1. Process client-provided allocations
     if (lineItemPayments && lineItemPayments.length > 0) {
       for (const lp of lineItemPayments) {
-        const item = currentItems.find(i => i.id === lp.id || i.name === lp.name)
-        const paymentToItem = Math.min(remainingPayment, lp.amountPaid)
+        if (remainingPayment <= 0) break
+
+        const lpName = (lp.name || '').toLowerCase().trim()
+        const item = currentItems.find(i => {
+          if (i.id === lp.id) return true
+          const iName = (i.name || '').toLowerCase().trim()
+          if (iName === lpName) return true
+          
+          // Handle common abbreviations
+          if (lpName === 'mgt fee' && iName === 'management fee') return true
+          if (lpName === 'management fee' && iName === 'mgt fee') return true
+          
+          return false
+        })
+        const isFee = lp.name === 'Processing Fee' || 
+                     (item && ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name))
+        
+        // Cap by item's need to prevent overpayment of one item at the expense of others
+        const itemNeed = item ? Math.max(0, item.totalAmount - item.amountPaid) : (isFee ? lp.amountPaid : Infinity)
+        const paymentToItem = Math.min(remainingPayment, lp.amountPaid, itemNeed)
 
         if (paymentToItem > 0) {
           if (item) {
@@ -53,24 +92,34 @@ export class DistributePaymentAllocationsUseCase {
               status: newItemPaid >= item.totalAmount ? 'PAID' : 'PARTIAL'
             }, txClient)
 
-            allocatedItems.push({
-              name: item.name,
-              label: item.name,
-              amount: paymentToItem,
-              category: 'Package'
-            })
+            const existingAlloc = allocatedItems.find(a => a.name === item.name)
+            if (existingAlloc) {
+              existingAlloc.amount += paymentToItem
+            } else {
+              allocatedItems.push({
+                name: item.name,
+                label: item.name,
+                amount: paymentToItem,
+                category: isFee ? 'Fee' : 'Package'
+              })
+            }
 
             if (item.name.toLowerCase().includes('rent')) {
               if (!foundRentItem) { rentPortion = 0; foundRentItem = true }
               rentPortion += paymentToItem
             }
           } else if (lp.name) {
-            allocatedItems.push({
-              name: lp.name,
-              label: lp.name,
-              amount: paymentToItem,
-              category: 'Package'
-            })
+            const existingAlloc = allocatedItems.find(a => a.name === lp.name)
+            if (existingAlloc) {
+              existingAlloc.amount += paymentToItem
+            } else {
+              allocatedItems.push({
+                name: lp.name,
+                label: lp.name,
+                amount: paymentToItem,
+                category: isFee ? 'Fee' : 'Package'
+              })
+            }
 
             if (lp.name.toLowerCase().includes('rent')) {
               if (!foundRentItem) { rentPortion = 0; foundRentItem = true }
@@ -103,7 +152,6 @@ export class DistributePaymentAllocationsUseCase {
           const item = unpaidItems[i]!
           const need = item.totalAmount - item.amountPaid
 
-    
           let paymentToItem: number
           if (i === unpaidItems.length - 1) {
             paymentToItem = Math.min(need, distributableAmount - distributed)
@@ -171,24 +219,22 @@ export class DistributePaymentAllocationsUseCase {
       }
     }
 
-    // 4. Fallback: If nothing was allocated but it's a RENT payment
-    if (allocatedItems.length === 0) {
-      const defaultName = narration || 'Rent Payment'
-      allocatedItems.push({
-        name: defaultName,
-        label: defaultName,
-        amount: Math.max(0, amount - upwardFeeAmount),
-        category: 'Rent'
-      })
-      if (upwardFeeAmount > 0) {
+    // 5. Handle any remaining balance as Excess / Future Credit
+    if (remainingPayment > 0) {
+      const label = 'Excess / Future Credit'
+      const existingAlloc = allocatedItems.find(a => a.name === label)
+      if (existingAlloc) {
+        existingAlloc.amount += remainingPayment
+      } else {
         allocatedItems.push({
-          name: 'Processing Fee',
-          label: 'Processing Fee',
-          amount: upwardFeeAmount,
-          category: 'Package'
+          name: label,
+          label: label,
+          amount: remainingPayment,
+          category: 'Overpayment'
         })
       }
-      rentPortion = Math.max(0, amount - upwardFeeAmount)
+      this.logger.log(`Added remaining ${remainingPayment} to Excess / Future Credit`)
+      remainingPayment = 0
     }
 
     // Update Transaction with finalized line items
