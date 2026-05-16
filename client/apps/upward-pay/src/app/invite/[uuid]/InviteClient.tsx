@@ -20,6 +20,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { setCookie } from '@/lib/cookie-utils'
 import { OnboardingFields } from '@/features/auth/components/OnboardingFields'
 import { setAccessToken } from '@/lib/auth-token'
+import { PasswordStrengthMeter } from '@/features/auth/component/signup/PasswordStrengthMeter'
 
 export default function InviteClient() {
   const params = useParams()
@@ -186,7 +187,11 @@ export default function InviteClient() {
                         placeholder="Min. 8 characters"
                       />
                     </div>
+                    {formData.password.length > 0 && (
+                      <PasswordStrengthMeter password={formData.password} />
+                    )}
                   </div>
+
 
                   <div className="auth-form__field mt-1">
                     <label>Confirm Password</label>
@@ -214,7 +219,16 @@ export default function InviteClient() {
                     <p>Complete your profile to continue.</p>
                   </div>
 
-                  <button className="btn btn--primary btn--full btn--pay mt-6" type="submit" disabled={isSubmitting}>
+                  <button 
+                    className="btn btn--primary btn--full btn--pay mt-6" 
+                    type="submit" 
+                    disabled={
+                      isSubmitting || 
+                      !formData.password || 
+                      !(/.{8,}/.test(formData.password) && /[A-Z]/.test(formData.password) && /[0-9!@#$%^&*(),.?":{}|<> ]/.test(formData.password)) ||
+                      formData.password !== formData.confirmPassword
+                    }
+                  >
                     {isSubmitting ? 'Activating…' : 'Activate Account'}
                     {!isSubmitting && <ArrowRight size={17} />}
                   </button>

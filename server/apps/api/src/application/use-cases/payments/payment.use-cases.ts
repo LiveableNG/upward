@@ -248,6 +248,7 @@ export class GetSavedLandlordsUseCase {
 export interface LineItemPayment {
   id: number
   amountPaid: number
+  amount?: number
   name?: string
 }
 
@@ -346,7 +347,7 @@ export class RecordTransactionUseCase {
       let upwardFeeAmount = 0
       if (data.lineItemPayments && Array.isArray(data.lineItemPayments)) {
         const fee = data.lineItemPayments.find(lp => lp.name === 'Processing Fee')
-        if (fee) upwardFeeAmount = Number(fee.amountPaid || 0)
+        if (fee) upwardFeeAmount = Number(fee.amount || fee.amountPaid || 0)
       }
 
       if (upwardFeeAmount === 0 && pr) {

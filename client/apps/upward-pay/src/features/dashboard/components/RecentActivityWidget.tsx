@@ -2,7 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import { Receipt, ArrowRight, ArrowUpRight, ArrowDownRight } from 'lucide-react'
-import { formatCurrency, formatTime } from '@/lib/utils'
+import { formatCurrency, formatTime, formatDate } from '@/lib/utils'
+
 import { type CompletedPayment } from '../types'
 
 interface RecentActivityWidgetProps {
@@ -40,7 +41,8 @@ export function RecentActivityWidget({ payments }: RecentActivityWidgetProps) {
               </div>
               <div className="recent-item__info">
                 <h4>{tx.company_name}</h4>
-                <p>{tx.channel || 'Paystack'} · {formatTime(tx.paid_at)}</p>
+                <p>{tx.channel || 'Paystack'} · {formatDate(tx.paid_at)} · {formatTime(tx.paid_at)}</p>
+
               </div>
               <div className={`recent-item__amount ${isCredit ? 'text--success' : ''}`}>
                 {isCredit ? '+' : '-'}{formatCurrency(tx.amount, tx.currency)}

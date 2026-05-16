@@ -23,6 +23,7 @@ import { checkEmail, requestOTP, verifyOTP, loginWithOTP } from '@/features/auth
 import { setAccessToken } from '@/lib/auth-token'
 import { setCookie } from '@/lib/cookie-utils'
 import { ConnectPmStep } from './ConnectPmStep'
+import { PasswordStrengthMeter } from './PasswordStrengthMeter'
 
 interface SignupFormFlowProps {
   onBackToWelcome: () => void
@@ -348,7 +349,11 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
                   required
                 />
               </div>
+              {password.length > 0 && (
+                <PasswordStrengthMeter password={password} />
+              )}
             </div>
+
             <div className="auth-form__field">
               <label htmlFor="confirm-password">Confirm Password</label>
               <div className="input-with-icon">
@@ -385,7 +390,9 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
               !firstName ||
               !lastName ||
               !password ||
+              !(/.{8,}/.test(password) && /[A-Z]/.test(password) && /[0-9!@#$%^&*(),.?":{}|<> ]/.test(password)) ||
               !confirmPassword
+
             }
 
           >

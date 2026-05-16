@@ -839,7 +839,12 @@ function UnitDetailContent() {
         isPending={addPaymentMutation.isPending}
         unitName={unit?.unitName || ''}
         rentType={unit?.rentType}
+        initialPeriodStart={unit?.rentDueDate ? new Date(unit.rentDueDate).toISOString().split('T')[0] : undefined}
+        initialAmount={unit?.rentAmount}
       />
+
+
+
 
       <RentHistoryEntryModeModal
         isOpen={isEntryModeModalOpen}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { X } from 'lucide-react'
 
 interface AddRentRecordModalProps {
@@ -8,12 +8,17 @@ interface AddRentRecordModalProps {
   isPending: boolean;
   unitName: string;
   rentType?: string;
+  initialPeriodStart?: string;
+  initialPeriodEnd?: string;
+  initialAmount?: number;
 }
 
+
+
 export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
-  isOpen, onClose, onSave, isPending, unitName, rentType
+  isOpen, onClose, onSave, isPending, unitName, rentType, initialPeriodStart, initialPeriodEnd, initialAmount
 }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = React.useState({
     amount: '',
     paymentDate: new Date().toISOString().split('T')[0],
     periodStart: '',
@@ -23,9 +28,26 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
     notes: ''
   })
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        amount: initialAmount?.toString() || '',
+        paymentDate: new Date().toISOString().split('T')[0],
+        periodStart: initialPeriodStart || '',
+        periodEnd: initialPeriodEnd || '',
+        method: 'Bank Transfer',
+        status: 'SUCCESS',
+        notes: ''
+      })
+    }
+  }, [isOpen, initialPeriodStart, initialPeriodEnd, initialAmount])
+
+
   // Auto-calculate Period End based on Period Start and rentType
   React.useEffect(() => {
-    if (formData.periodStart && rentType) {
+    // Only auto-calculate if periodEnd is empty OR if periodStart just changed manually
+    if (formData.periodStart && rentType && !formData.periodEnd) {
+
       const start = new Date(formData.periodStart)
       if (isNaN(start.getTime())) return
 
