@@ -256,10 +256,11 @@ export class PrismaTransactionRepository implements ITransactionRepository {
     return this.mapTransaction(res)
   }
 
-  async findRecentDvaTransaction(accountNumber: string): Promise<Transaction | null> {
+  async findRecentDvaTransaction(accountNumber: string, createdAfter?: Date): Promise<Transaction | null> {
     const res = await this.prisma.upward_transaction.findFirst({
       where: {
         status: 'SUCCESS',
+        ...(createdAfter ? { createdAt: { gte: createdAfter } } : {}),
         paymentRequest: {
           userProperty: {
             dedicatedAccount: {

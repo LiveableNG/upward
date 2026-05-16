@@ -56,7 +56,7 @@ export interface ITransactionRepository {
   findById(id: number, tx?: Prisma.TransactionClient): Promise<Transaction | null>
   findByUuid(uuid: string, tx?: Prisma.TransactionClient): Promise<Transaction | null>
   findByReference(reference: string, tx?: Prisma.TransactionClient): Promise<Transaction | null>
-  findRecentDvaTransaction(accountNumber: string): Promise<Transaction | null>
+  findRecentDvaTransaction(accountNumber: string, createdAfter?: Date): Promise<Transaction | null>
   updateStatus(id: number, status: string, tx?: Prisma.TransactionClient): Promise<Transaction>
   update(id: number, data: Partial<Transaction>, tx?: Prisma.TransactionClient): Promise<Transaction>
 }
