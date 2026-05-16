@@ -667,7 +667,7 @@ export class InitializePaymentUseCase {
           bankName: dva.bankName,
           bankCode: dva.bankCode
         },
-        reference: `DVA-${dva.accountNumber}-${pr?.uuid || 'no-pr'}-${Date.now()}`
+        reference: `DVA_${dva.accountNumber}_${pr?.uuid || 'no-pr'}_${Date.now()}`
       }
     }
 
