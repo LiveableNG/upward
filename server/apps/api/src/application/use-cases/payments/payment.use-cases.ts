@@ -328,6 +328,12 @@ export class RecordTransactionUseCase {
       if (isVerified && data.paymentRequestId) {
         pr = await this.paymentRequestRepo.findById(data.paymentRequestId, txClient)
         if (pr) {
+          // Detect Duplicate/Excess payment if the request is already settled
+          if (pr.status === 'PAID' && !data.settlementStatus) {
+            data.settlementStatus = 'PENDING_REFUND'
+            this.logger.warn(`Duplicate payment attempt detected for already settled request: ${pr.uuid}. Marking reference ${data.reference} for refund.`)
+          }
+
           const prItems = await txClient.upward_payment_line_item.findMany({ where: { paymentRequestId: pr.id } })
           const rentRemaining = prItems.reduce((sum, item) => {
             if (item.name === 'Processing Fee') return sum
@@ -775,7 +781,6 @@ export class ProcessPaymentWebhookUseCase {
         }
       }
 
-      // If this is a DVA payment hitting charge.success (common for some Paystack setups)
       if (payload.data.dedicated_account || payload.data.channel === 'dedicated_account') {
         this.logger.log(`DVA Payment detected in charge.success for reference: ${reference}`)
         return this.handleDvaPayment(payload.data)
@@ -783,14 +788,42 @@ export class ProcessPaymentWebhookUseCase {
 
       let { userUuid, userId } = metadata || {}
 
-      // Fallback: Try to identify user by customer email if metadata is missing
       if (!userUuid && !userId && payload.data.customer?.email) {
+        const rawEmail = payload.data.customer.email as string
+        let searchEmail = rawEmail
+
+        if (rawEmail.includes('+p')) {
+          const parts = rawEmail.split('@')
+          if (parts.length === 2 && parts[0] && parts[1]) {
+            const base = parts[0].split('+p')[0]
+            searchEmail = `${base}@${parts[1]}`
+
+            const propertyMatch = parts[0].match(/\+p(\d+)/)
+            if (propertyMatch && propertyMatch[1]) {
+              const propertyId = parseInt(propertyMatch[1])            
+              if (!metadata) metadata = {}
+
+            // Resolve property UUID for RecordTransactionUseCase
+            const prop = await this.prisma.upward_user_property.findUnique({
+              where: { id: propertyId }
+            })
+            if (prop) {
+              metadata.userPropertyUuid = prop.uuid
+              this.logger.log(`Resolved property context from alias: ${rawEmail} -> Prop UUID: ${prop.uuid}`)
+            }
+            }
+          }
+        }
+
         const user = await this.prisma.upward_user.findFirst({
-          where: { email: payload.data.customer.email }
+          where: { email: searchEmail }
         })
+
         if (user) {
           userUuid = user.uuid
-          this.logger.log(`Recovered user identity via email for reference ${reference}: ${user.email}`)
+          this.logger.log(`Recovered user identity via email for reference ${reference}: ${user.email} (from ${rawEmail})`)
+        } else {
+          this.logger.warn(`Could not find user for customer email: ${searchEmail} (raw: ${rawEmail})`)
         }
       }
 

@@ -69,6 +69,7 @@ export class PaymentsController {
       data: {
         isVerified: result.isVerified,
         status: result.isVerified ? 'SUCCESS' : 'PENDING',
+        settlementStatus: (result as any).existing?.settlementStatus,
         amount: result.verifiedAmount,
         reference,
       },
