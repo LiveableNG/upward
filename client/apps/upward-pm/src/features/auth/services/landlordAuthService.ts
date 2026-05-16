@@ -24,6 +24,29 @@ export const checkLandlordExistence = async (email: string) => {
   })
 }
 
+export const landlordRequestOTPSignup = async (email: string) => {
+  return request<any>('/landlords/auth/request-otp-signup', {
+    method: 'POST',
+    body: JSON.stringify({ email })
+  })
+}
+
+export const landlordVerifyOTPSignup = async (email: string, otp: string) => {
+  return request<any>('/landlords/auth/verify-otp-signup', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp })
+  })
+}
+
+export const landlordSignup = async (data: any) => {
+  const res = await request<any>('/landlords/auth/signup', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+  if (res.accessToken) setAccessToken(res.accessToken)
+  return res
+}
+
 export const landlordRefresh = async () => {
   const res = await request<any>('/landlords/auth/refresh', {
     method: 'POST'

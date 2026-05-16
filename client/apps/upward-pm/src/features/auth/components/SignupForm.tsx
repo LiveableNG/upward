@@ -214,7 +214,7 @@ export const SignupForm = () => {
           Property Manager
         </button>
         <Link 
-          href="/portal/login"
+          href="/portal/signup"
           className="auth-role-toggle__btn"
         >
           Landlord
