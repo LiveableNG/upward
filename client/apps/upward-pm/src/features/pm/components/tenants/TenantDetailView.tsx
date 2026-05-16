@@ -241,9 +241,7 @@ export const TenantDetailView: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Details Panel */}
         <div>
-          {/* Tabs */}
           <div style={{ display: 'flex', gap: 32, borderBottom: '1px solid var(--border)', marginBottom: 40 }}>
             {[
               { id: 'profile', label: 'Profile' },

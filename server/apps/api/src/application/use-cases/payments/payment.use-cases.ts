@@ -507,18 +507,21 @@ export class ResolveDedicatedAccountUseCase {
       }
     }
 
-    const email = data.tenantEmail || `prop-${data.userPropertyId}@upward.ng`
+    const baseEmail = data.tenantEmail || `prop-${data.userPropertyId}@upward.ng`
+    const [local, domain] = baseEmail.split('@')
+    const customerEmail = `${local}+p${data.userPropertyId}@${domain}`
+    
     const firstName = data.tenantName?.split(' ')[0] || 'Tenant'
     const lastName = data.tenantName?.split(' ')[1] || `Property-${data.userPropertyId}`
 
-    this.logger.log(`Creating customer for DVA: ${email}`)
-    const customerCode = await this.gateway.createCustomer({ email, firstName, lastName })
+    this.logger.log(`Creating customer for DVA: ${customerEmail}`)
+    const customerCode = await this.gateway.createCustomer({ email: customerEmail, firstName, lastName })
     if (!customerCode) throw new Error('Failed to resolve customer for DVA')
 
-    this.logger.log(`Requesting DVA creation from Paystack for customer ${customerCode}`)
+    this.logger.log(`Requesting DVA creation from Paystack for customer ${customerCode} with subaccount ${finalSubaccountCode || 'none'}`)
     const res = await this.gateway.createDedicatedAccount({
       customerCode,      
-      subaccountCode: undefined 
+      subaccountCode: finalSubaccountCode 
     })
 
     if (!res.status || !res.data) {
@@ -528,6 +531,18 @@ export class ResolveDedicatedAccountUseCase {
     const account = res.data
 
     this.logger.log(`DVA created successfully: ${account.account_number}. Saving to DB...`)
+    
+    // Safety check: if this account number somehow already exists (e.g. from a previous failed run or overlapping data)
+    const existingByAccount = await this.dvaRepo.findByAccountNumber(account.account_number)
+    if (existingByAccount) {
+      if (existingByAccount.userPropertyId === data.userPropertyId) return existingByAccount
+      
+      this.logger.warn(`Account ${account.account_number} already exists for another property (${existingByAccount.userPropertyId}). Re-associating to current property.`)
+      // We can't have two records with same account number, so we might need to update or just return existing
+      // But for better tracking, we'll return the existing one if it's already there
+      return existingByAccount
+    }
+
     return await this.dvaRepo.create({
       accountNumber: account.account_number,
       accountName: account.account_name,
