@@ -149,7 +149,8 @@ export class CreatePmPaymentRequestUseCase {
             data.description,
             result.paymentLink,
             corePR.uuid,
-            false
+            false,
+            pm.pmType
           ));
         }
       }).catch(err => console.error('Failed to trigger payment notification event:', err));

@@ -69,7 +69,8 @@ export class ResendPmPaymentRequestUseCase {
       pmPR.description || undefined,
       paymentLink,
       coreRequestUuid,
-      true // Mark as reminder
+      true, // Mark as reminder
+      pm.pmType
     ));
 
     return { success: true, message: 'Invoice reminder is being sent' };
