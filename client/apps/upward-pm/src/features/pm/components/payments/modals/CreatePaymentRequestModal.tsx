@@ -13,6 +13,7 @@ interface CreatePaymentRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
   unit: Unit | null;
+  payments?: any[];
   existingRequest?: PmPaymentRequest;
   onProceedToEditor?: (template: any, paymentContext: any) => void;
 }
@@ -21,6 +22,7 @@ export function CreatePaymentRequestModal({
   isOpen,
   onClose,
   unit,
+  payments = [],
   existingRequest,
   onProceedToEditor
 }: CreatePaymentRequestModalProps) {
@@ -37,6 +39,7 @@ export function CreatePaymentRequestModal({
     { name: 'Rent', amount: '' }
   ])
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>('')
+  const [includeManagementFee, setIncludeManagementFee] = useState(true)
   const [reminderFrequency, setReminderFrequency] = useState<string>('NONE')
   const { templates } = useDocuments()
 
@@ -65,35 +68,73 @@ export function CreatePaymentRequestModal({
         })))
       }
     } else if (unit) {
-      const items = [{ name: 'Rent', amount: unit.rentAmount.toString() }]
-      if (unit.managementFee && unit.managementFee > 0) {
+      const type = unit.rentType?.toUpperCase() || 'ANNUALLY'
+      setRentType(type)
+      setReminderFrequency('WEEKLY') // Default to weekly for new requests
+
+      // 1. Determine if we should request for the CURRENT period (balance) or NEXT period
+      let calculatedStartDate = unit.rentStartDate ? new Date(unit.rentStartDate) : new Date()
+      let calculatedEndDate = unit.rentDueDate ? new Date(unit.rentDueDate) : new Date()
+      
+      if (!unit.rentDueDate && unit.rentStartDate) {
+        // Calculate initial end date if missing
+        const end = new Date(unit.rentStartDate)
+        if (type === 'MONTHLY') end.setMonth(end.getMonth() + 1)
+        else end.setFullYear(end.getFullYear() + 1)
+        end.setDate(end.getDate() - 1)
+        calculatedEndDate = end
+      }
+
+      // 2. Check for payments in this current period
+      const currentPeriodPayments = payments.filter(p => {
+        if (!p.periodStart || !p.periodEnd) return false;
+        const pStart = new Date(p.periodStart).toISOString().split('T')[0];
+        const pEnd = new Date(p.periodEnd).toISOString().split('T')[0];
+        const uStart = calculatedStartDate.toISOString().split('T')[0];
+        const uEnd = calculatedEndDate.toISOString().split('T')[0];
+        return pStart === uStart && pEnd === uEnd;
+      });
+
+      const totalPaidForPeriod = currentPeriodPayments.reduce((sum, p) => sum + p.amount, 0);
+      const isFullyPaid = totalPaidForPeriod >= unit.rentAmount;
+
+      let requestAmountForRent = unit.rentAmount;
+      let finalStartDate = calculatedStartDate;
+      let finalEndDate = calculatedEndDate;
+
+      if (!isFullyPaid && totalPaidForPeriod > 0) {
+        // Part-payment detected! Request the balance for the SAME period
+        requestAmountForRent = unit.rentAmount - totalPaidForPeriod;
+      } else if (isFullyPaid) {
+        // Fully paid! Advance to the NEXT period
+        finalStartDate = new Date(calculatedEndDate);
+        finalStartDate.setDate(finalStartDate.getDate() + 1);
+
+        finalEndDate = new Date(finalStartDate);
+        if (type === 'MONTHLY') finalEndDate.setMonth(finalEndDate.getMonth() + 1);
+        else finalEndDate.setFullYear(finalEndDate.getFullYear() + 1);
+        finalEndDate.setDate(finalEndDate.getDate() - 1);
+        
+        requestAmountForRent = unit.rentAmount;
+      }
+
+      const items = [{ name: 'Rent', amount: requestAmountForRent.toString() }]
+      if (unit.managementFee && unit.managementFee > 0 && includeManagementFee) {
         items.push({ name: 'Management Fee', amount: unit.managementFee.toString() })
       }
 
       setLineItems(items)
       const total = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
       setAmount(total.toString())
-      const type = unit.rentType?.toUpperCase() || 'ANNUALLY'
-      setRentType(type)
-      setReminderFrequency('WEEKLY') // Default to weekly for new requests
 
-      // The NEXT cycle starts when the current one ends
-      const startDate = unit.rentDueDate || unit.rentStartDate || new Date()
-      const startDateStr = new Date(startDate).toISOString().split('T')[0]
+      const startDateStr = finalStartDate.toISOString().split('T')[0]
+      const endDateStr = finalEndDate.toISOString().split('T')[0]
+      
       setRentStartDate(startDateStr)
-
-      // Calculate initial end date
-      const endDate = new Date(startDate)
-      if (type === 'MONTHLY') {
-        endDate.setMonth(endDate.getMonth() + 1)
-      } else {
-        endDate.setFullYear(endDate.getFullYear() + 1)
-      }
-      const endDateStr = endDate.toISOString().split('T')[0]
       setRentEndDate(endDateStr)
       setDueDate(startDateStr)
     }
-  }, [unit, existingRequest])
+  }, [unit, existingRequest, payments])
 
   // Update End Date when Rent Type changes
   useEffect(() => {
@@ -135,6 +176,21 @@ export function CreatePaymentRequestModal({
   const updateTotalFromItems = (items: { name: string; amount: string }[]) => {
     const total = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
     setAmount(total.toString())
+  }
+
+  const handleToggleManagementFee = (checked: boolean) => {
+    setIncludeManagementFee(checked)
+    if (checked) {
+      if (unit?.managementFee && !lineItems.some(item => item.name === 'Management Fee')) {
+        const newItems = [...lineItems, { name: 'Management Fee', amount: unit.managementFee.toString() }]
+        setLineItems(newItems)
+        updateTotalFromItems(newItems)
+      }
+    } else {
+      const newItems = lineItems.filter(item => item.name !== 'Management Fee')
+      setLineItems(newItems)
+      updateTotalFromItems(newItems)
+    }
   }
 
   const handleSubmit = () => {
@@ -235,7 +291,20 @@ export function CreatePaymentRequestModal({
         )}
 
         <div className="form-group">
-          <label className="form-label">Breakdown</label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <label className="form-label" style={{ marginBottom: 0 }}>Breakdown</label>
+            {unit.managementFee > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Include Mgt. Fee</span>
+                <input 
+                  type="checkbox" 
+                  checked={includeManagementFee}
+                  onChange={(e) => handleToggleManagementFee(e.target.checked)}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                />
+              </div>
+            )}
+          </div>
           <div style={{ background: 'var(--surface-hover)', padding: 16, borderRadius: 12, border: '1px solid var(--border)' }}>
             {lineItems.map((item, index) => (
               <div key={index} style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'center' }}>

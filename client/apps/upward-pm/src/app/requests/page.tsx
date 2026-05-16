@@ -116,9 +116,6 @@ export default function RequestsPage() {
             Back to Dashboard
           </button>
           <div className="flex items-center gap-3 mt-4">
-             <div className="requests-header__icon">
-                <Sparkles size={20} />
-             </div>
              <div>
                 <h1 className="requests-header__title">Action Requests</h1>
                 <p className="requests-header__subtitle">Manage verifications and record requests from your tenants.</p>

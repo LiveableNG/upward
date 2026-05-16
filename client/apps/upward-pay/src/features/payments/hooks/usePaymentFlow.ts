@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { calculateCombinedFee, getNetAmountFromTotal } from '@/lib/utils'
@@ -68,6 +69,7 @@ function distributeAmount(amount: number, items: LineItemRecord[]): LineItemAllo
 
 export function usePaymentFlow(uuid: string) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const { user: authUser, login } = useAuth()
   const { success, error: toastError } = useToast()
 
@@ -294,6 +296,9 @@ export function usePaymentFlow(uuid: string) {
       })
       if (res.success) {
         success('Payment successful!')
+        // Invalidate dashboard and score queries to reflect changes immediately
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        queryClient.invalidateQueries({ queryKey: ['scoreProfile'] })
         setStep(!paymentData.hasPassword ? 'onboarding' : 'success')
       }
     } catch (err: any) {
