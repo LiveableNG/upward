@@ -1,5 +1,5 @@
 import { Injectable, Inject, NotFoundException, BadRequestException, Logger } from '@nestjs/common'
-import { PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository } from '../../../domains/payments/payment.repository'
+import { PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository, PAYMENT_GATEWAY, IPaymentGateway } from '../../../domains/payments/payment.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { RecordTransactionUseCase } from '../payments/payment.use-cases'
 
@@ -10,6 +10,7 @@ export class ConfirmExternalPaymentUseCase {
   constructor(
     @Inject(PAYMENT_REQUEST_REPOSITORY) private readonly paymentRequestRepository: IPaymentRequestRepository,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
+    @Inject(PAYMENT_GATEWAY) private readonly paymentGateway: IPaymentGateway,
     private readonly recordTransactionUseCase: RecordTransactionUseCase,
   ) {}
 
@@ -28,9 +29,30 @@ export class ConfirmExternalPaymentUseCase {
       throw new NotFoundException('User associated with payment request not found')
     }
 
+    let actualAmount = paymentRequest.amount // fallback
+    try {
+      const verified = await this.paymentGateway.verifyTransaction(reference)
+      if (verified.status && verified.amount !== undefined) {
+        actualAmount = verified.amount
+        this.logger.log(`Paystack verification for ${reference}: actual amount = ${actualAmount} (PR amount = ${paymentRequest.amount})`)
+      } else {
+        this.logger.warn(`Paystack verification returned non-success for ${reference}. Falling back to sum of line item payments.`)
+        // If gateway fails, derive amount from the manual line items provided by the frontend
+        if (lineItemPayments && lineItemPayments.length > 0) {
+          actualAmount = lineItemPayments.reduce((sum, lp) => sum + Number(lp.amountPaid || lp.amount || 0), 0)
+          this.logger.log(`Derived amount from lineItemPayments: ${actualAmount}`)
+        }
+      }
+    } catch (err: any) {
+      this.logger.warn(`Could not verify transaction ${reference} with gateway: ${err?.message}. Falling back to lineItemPayments sum.`)
+      if (lineItemPayments && lineItemPayments.length > 0) {
+        actualAmount = lineItemPayments.reduce((sum, lp) => sum + Number(lp.amountPaid || lp.amount || 0), 0)
+      }
+    }
+
     const transaction = await this.recordTransactionUseCase.execute({
       userId: user.uuid,
-      amount: paymentRequest.amount,
+      amount: actualAmount,
       currency: paymentRequest.currency,
       narration: paymentRequest.description || 'External Payment',
       reference: reference,
@@ -47,9 +69,7 @@ export class ConfirmExternalPaymentUseCase {
     }
 
     if (transaction.status === 'SUCCESS') {
-      // Re-fetch or check updated status (it should be PAID since we paid the full amount)
       const updatedPR = await this.paymentRequestRepository.findById(paymentRequest.id!)
-      
       return {
         success: true,
         transactionUuid: transaction.uuid,

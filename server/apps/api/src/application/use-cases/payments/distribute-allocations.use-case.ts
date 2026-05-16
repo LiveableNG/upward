@@ -133,8 +133,13 @@ export class DistributePaymentAllocationsUseCase {
       }
     }
 
-    // 2. Auto-allocate remaining balance proportionally across all unpaid items
-    if (remainingPayment > 0 && currentItems.length > 0) {
+    // 2. Auto-allocate remaining balance proportionally across all unpaid items.
+    // IMPORTANT: Skip this step if the caller provided explicit manual lineItemPayments.
+    // Manual allocations are the user's expressed intent and must not be overridden or
+    // supplemented by the proportional fallback. Only auto-distribute when no manual
+    // splits were provided at all (e.g. DVA payments with no stored intent).
+    const hasManualAllocations = lineItemPayments && lineItemPayments.length > 0
+    if (!hasManualAllocations && remainingPayment > 0 && currentItems.length > 0) {
       this.logger.log(`Auto-allocating ${remainingPayment} across ${currentItems.length} line items (proportional)`)
       
       // Calculate total outstanding across all non-fee items
