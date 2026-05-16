@@ -599,7 +599,7 @@ export class InitializePaymentUseCase {
         if (!pr.allowPartial && data.amount < remainingRent && data.amount > 0) {
           throw new BadRequestException(`Partial payments are not enabled for this request. Please pay the full balance of ₦${remainingRent}.`)
         }
-        if (pr.allowPartial && pr.minAmount && data.amount < pr.minAmount && data.amount > 0) {
+        if (pr.allowPartial && pr.minAmount && data.amount < pr.minAmount && data.amount > 0 && data.amount < remainingRent) {
           throw new BadRequestException(`The minimum allowed partial payment for this request is ₦${pr.minAmount}.`)
         }
       }

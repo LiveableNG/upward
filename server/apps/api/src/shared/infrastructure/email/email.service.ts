@@ -451,15 +451,32 @@ export class EmailService {
     }
   }
 
+  private getPmTypeLabel(pmType?: string | null): string {
+    if (!pmType) return 'Property Manager';
+    
+    const types: Record<string, string> = {
+      'INDIVIDUAL_LANDLORD': 'Landlord',
+      'Caretaker': 'Caretaker',
+      'Lawyer': 'Lawyer',
+      'Estate Agent': 'Estate Agent',
+      'Property Manager': 'Property Manager',
+      'Company': 'Property Management Company',
+    };
+
+    return types[pmType] || 'Property Manager';
+  }
+
   async sendTenantInvite(params: {
     email: string;
     tenantName: string;
     pmName: string;
     inviteLink: string;
+    pmType?: string | null;
   }): Promise<boolean> {
-    const { email, tenantName, pmName, inviteLink } = params;
+    const { email, tenantName, pmName, inviteLink, pmType } = params;
     const domain = this.configService.get<string>('MAILGUN_DOMAIN');
     const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
+    const pmRole = this.getPmTypeLabel(pmType);
 
     const html = `
       <!DOCTYPE html>
@@ -488,7 +505,7 @@ export class EmailService {
         <div class="container">
           <div class="header">
             <span class="logo-text">Upward</span>
-            <span class="logo-sub">Property Management</span>
+            <span class="logo-sub">${pmRole}</span>
           </div>
           <div class="content">
             <h1>Dear ${tenantName},</h1>
@@ -507,7 +524,7 @@ export class EmailService {
           </div>
           <div class="footer">
             <p class="footer-text">
-              If you have any questions, please contact your property manager or reply to this email.<br>
+              If you have any questions, please contact your ${pmRole.toLowerCase()} or reply to this email.<br>
               © 2026 Upward by GoodTenants. All rights reserved.
             </p>
           </div>
@@ -539,10 +556,12 @@ export class EmailService {
     dueDate: string | Date;
     description?: string;
     paymentLink: string;
+    pmType?: string | null;
   }): Promise<boolean> {
-    const { email, tenantName, pmName, amount, currency, dueDate, description, paymentLink } = params;
+    const { email, tenantName, pmName, amount, currency, dueDate, description, paymentLink, pmType } = params;
     const domain = this.configService.get<string>('MAILGUN_DOMAIN');
     const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
+    const pmRole = this.getPmTypeLabel(pmType);
 
     const html = `
       <!DOCTYPE html>
@@ -591,7 +610,7 @@ export class EmailService {
           </div>
           <div class="footer">
             <p class="footer-text">
-              If you have any questions about this request, please contact your property manager directly.<br>
+              If you have any questions about this request, please contact your ${pmRole.toLowerCase()} directly.<br>
               © 2026 Upward by GoodTenants. All rights reserved.
             </p>
           </div>
@@ -613,6 +632,7 @@ export class EmailService {
       return false;
     }
   }
+
 
   async sendCredibilityRequestEmail(params: {
     email: string;

@@ -34,6 +34,7 @@ export class PmPaymentNotificationHandler implements OnModuleInit, OnModuleDestr
             dueDate: event.dueDate,
             description: event.description,
             paymentLink: event.paymentLink,
+            pmType: event.pmType,
           });
 
           // 2. Send Push Notification if user exists

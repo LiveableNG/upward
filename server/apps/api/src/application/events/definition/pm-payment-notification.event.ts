@@ -12,6 +12,7 @@ export class PmPaymentNotificationEvent extends DomainEvent {
     public readonly paymentLink: string,
     public readonly corePrUuid: string,
     public readonly isReminder: boolean = false,
+    public readonly pmType?: string | null,
   ) {
     super();
   }

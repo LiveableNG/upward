@@ -109,6 +109,7 @@ export class InviteTenantUseCase {
         email: tenant.email,
         tenantName: `${tenant.firstName} ${tenant.lastName}`.trim() || 'Tenant',
         pmName: pm.businessName || `${pm.firstName} ${pm.lastName}`,
+        pmType: pm.pmType,
         inviteLink: inviteResult.inviteLink,
       });
     }
