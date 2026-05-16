@@ -121,9 +121,12 @@ export class BulkFullImportUseCase {
         status: tenantId ? 'OCCUPIED' : 'VACANT',
         tenantId,
         unitType: row.unitType || null,
+        rentReminderEnabled: row.unitRentReminderEnabled ?? false,
+        rentReminderDaysBefore: row.unitRentReminderDaysBefore ?? 7,
         isSynced: false,
         userPropertyUuid: null,
       });
+
 
       // 4. Create Payment Record if amount paid > 0
       if (row.unitRentAmountPaid && row.unitRentAmountPaid > 0) {
