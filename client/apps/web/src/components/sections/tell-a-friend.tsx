@@ -2,7 +2,7 @@
 import { showToast } from '@upward/client-core'
 
 export function TellAFriend() {
-  const caption = `Tired of paying rent with nothing to show for it? Upward by GoodTenants is changing that — turning your rental history into a passport to home ownership. Join me for early access: https://upward.goodtenants.io #RentPassport #GoodTenants #Upward`
+  const caption = `Tired of paying rent with nothing to show for it? Upward is changing that — turning your rental history into a passport to home ownership. Join me: https://upward.ng #RentPassport #Upward`
 
   return (
     <section
@@ -49,7 +49,7 @@ export function TellAFriend() {
             lineHeight: 1.7,
           }}
         >
-          Every person you refer who joins gets priority access — and so do you. Share Upward and
+          Every person you refer helps build the movement. Share Upward and
           help your community win.
         </p>
 
@@ -123,14 +123,14 @@ export function TellAFriend() {
                   setTimeout(() => {
                     window.open(
                       'https://www.linkedin.com/sharing/share-offsite/?url=' +
-                        encodeURIComponent('https://upward.goodtenants.io'),
+                        encodeURIComponent('https://upward.ng'),
                       '_blank',
                     )
                   }, 1200) // delay so user sees the toast
                 } catch {
                   window.open(
                     'https://www.linkedin.com/sharing/share-offsite/?url=' +
-                      encodeURIComponent('https://upward.goodtenants.io'),
+                      encodeURIComponent('https://upward.ng'),
                     '_blank',
                   )
                 }
@@ -225,10 +225,10 @@ export function TellAFriend() {
           <span
             style={{ display: 'block', paddingLeft: '24px', lineHeight: 1.6, fontStyle: 'italic' }}
           >
-            Tired of paying rent with nothing to show for it? Upward by GoodTenants is changing that
-            — turning your rental history into a passport to home ownership. Join me for early
-            access and start building your rental credibility: https://upward.goodtenants.io
-            #RentPassport #GoodTenants #Upward
+            Tired of paying rent with nothing to show for it? Upward is changing that
+            — turning your rental history into a passport to home ownership. Join me
+            and start building your rental credibility: https://upward.ng
+            #RentPassport #Upward
           </span>
         </div>
       </div>

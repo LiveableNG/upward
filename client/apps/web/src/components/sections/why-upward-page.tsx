@@ -86,7 +86,7 @@ export function WhyUpwardPage({
 }) {
   const faqs = [
     {
-      question: 'What is Upward by GoodTenants?',
+      question: 'What is Upward?',
       answer:
         "Upward is a platform that turns your rent payments \u2014 money you're already spending \u2014 into something that works for you. Every time you pay rent through Upward, you build a verified rental history, earn a Rental Score, and unlock access to savings tools, household loans, and eventually a pathway to owning your own home. Think of it as making your rent count, finally.",
     },
@@ -303,7 +303,7 @@ export function WhyUpwardPage({
             </div>
 
             <p style={{ color: 'var(--muted)', fontSize: '17px', lineHeight: 1.8 }}>
-              Over the last five years at GoodTenants, we have worked closely with thousands of
+              Over the last five years, we have worked closely with thousands of
               residents, landlords, and property managers. Through those conversations we learned
               something important: trust is the foundation of every home.
             </p>

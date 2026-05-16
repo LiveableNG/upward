@@ -14,8 +14,8 @@ export function StructuredData() {
   const projectLd = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'Upward by GoodTenants',
-    url: 'https://upward.goodtenants.io',
+    name: 'Upward',
+    url: 'https://upward.ng',
     description: 'Track rent payments, build your Rent Passport, and unlock home financing.',
     publisher: {
       '@id': 'https://goodtenants.io#organization',

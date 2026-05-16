@@ -205,7 +205,7 @@ export function Footer({
           }}
           className="footer-copy"
         >
-          © 2026 UPWARD by GoodTenants. <br className="mobile-only" />
+          © 2026 UPWARD. <br className="mobile-only" />
           All Rights Reserved.
         </p>
         <div

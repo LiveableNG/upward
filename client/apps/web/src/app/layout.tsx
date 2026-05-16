@@ -15,10 +15,10 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://upward.goodtenants.io'),
+  metadataBase: new URL('https://upward.ng'),
   title: {
-    default: 'Upward by GoodTenants — Build With Your Rent',
-    template: '%s | Upward by GoodTenants',
+    default: 'Upward — Build With Your Rent',
+    template: '%s | Upward',
   },
   description:
     'Track rent payments, build your Rent Passport, and unlock low-cost home financing. The platform for responsible, hardworking African renters.',
@@ -39,17 +39,17 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   openGraph: {
-    title: 'Upward by GoodTenants — Build With Your Rent',
+    title: 'Upward — Build With Your Rent',
     description:
       'Unlock access to structured, low-cost home financing. Build credibility while you rent.',
-    url: 'https://upward.goodtenants.io',
-    siteName: 'Upward by GoodTenants',
+    url: 'https://upward.ng',
+    siteName: 'Upward',
     images: [
       {
         url: '/branding/favicon.jpg',
         width: 800,
         height: 600,
-        alt: 'Upward by GoodTenants — Build With Your Rent',
+        alt: 'Upward — Build With Your Rent',
       },
     ],
     locale: 'en_NG',
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Upward by GoodTenants',
+    title: 'Upward',
     description: 'Build your Rent Passport. Unlock home financing.',
     images: ['/branding/favicon.jpg'],
     creator: '@goodtenants',
