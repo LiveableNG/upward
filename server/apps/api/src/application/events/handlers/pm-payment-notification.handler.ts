@@ -5,6 +5,7 @@ import { PmPaymentNotificationEvent } from '../definition/pm-payment-notificatio
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Injectable()
 export class PmPaymentNotificationHandler implements OnModuleInit, OnModuleDestroy {
@@ -15,6 +16,7 @@ export class PmPaymentNotificationHandler implements OnModuleInit, OnModuleDestr
     private readonly emailService: EmailService,
     private readonly notificationService: NotificationService,
     private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
   ) {}
 
   onModuleInit() {
@@ -35,8 +37,9 @@ export class PmPaymentNotificationHandler implements OnModuleInit, OnModuleDestr
           });
 
           // 2. Send Push Notification if user exists
-          const coreUser = await this.prisma.upward_user.findFirst({
-            where: { email: event.email }
+          const emailHash = this.encryption.hash(event.email);
+          const coreUser = await this.prisma.upward_user.findUnique({
+            where: { emailHash }
           });
           
           if (coreUser) {

@@ -735,6 +735,7 @@ export class ProcessPaymentWebhookUseCase {
     private readonly eventBus: EventBus,
     private readonly prisma: PrismaService,
     private readonly paymentConfig: PaymentConfigurationService,
+    private readonly encryption: EncryptionService,
   ) { }
 
   async execute(payload: any, signature?: string) {
@@ -815,8 +816,9 @@ export class ProcessPaymentWebhookUseCase {
           }
         }
 
-        const user = await this.prisma.upward_user.findFirst({
-          where: { email: searchEmail }
+        const emailHash = this.encryption.hash(searchEmail)
+        const user = await this.prisma.upward_user.findUnique({
+          where: { emailHash }
         })
 
         if (user) {
