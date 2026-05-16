@@ -672,6 +672,8 @@ export class InitializePaymentUseCase {
         })
       }
 
+      this.logger.log(`DVA Initialization for PR ${pr?.uuid || 'manual'}: Amount ${requestedTotal}, Fee ${effectiveFee}, LineItems: ${JSON.stringify(data.metadata?.lineItems || [])}`)
+
       return {
         type: 'DVA',
         amount: requestedTotal,
@@ -718,7 +720,7 @@ export class InitializePaymentUseCase {
       appliedCredit,
       description: data.metadata?.description || pr?.description || 'Property Payment'
     }
-    this.logger.log(`From intialize lineitems: ${metadata}` )
+    this.logger.log(`Paystack Initialization for PR ${pr?.uuid || 'manual'}: Amount ${finalAmountToPay}, LineItems: ${JSON.stringify(metadata.lineItems || [])}`)
 
     const initialization = await this.gateway.initializeTransaction({
       email: user.email!,
@@ -822,14 +824,33 @@ export class ProcessPaymentWebhookUseCase {
               const propertyId = parseInt(propertyMatch[1])            
               if (!metadata) metadata = {}
 
-            // Resolve property UUID for RecordTransactionUseCase
-            const prop = await this.prisma.upward_user_property.findUnique({
-              where: { id: propertyId }
-            })
-            if (prop) {
-              metadata.userPropertyUuid = prop.uuid
-              this.logger.log(`Resolved property context from alias: ${rawEmail} -> Prop UUID: ${prop.uuid}`)
-            }
+              // Resolve property UUID for RecordTransactionUseCase
+              const prop = await this.prisma.upward_user_property.findUnique({
+                where: { id: propertyId }
+              })
+              if (prop) {
+                metadata.userPropertyUuid = prop.uuid
+                this.logger.log(`Resolved property context from alias: ${rawEmail} -> Prop UUID: ${prop.uuid}`)
+
+                // --- NEW: Attempt to recover lineItems from DVA metadata for this property ---
+                const dva = await this.dvaRepo.findByUserPropertyId(prop.id)
+                if (dva && dva.metadata && typeof dva.metadata === 'object' && 'lastPaymentIntent' in (dva.metadata as any)) {
+                  const intent = (dva.metadata as any).lastPaymentIntent
+                  const amountPaid = amount / 100
+                  
+                  // If amount matches exactly and intent is fresh (< 48h)
+                  if (intent && intent.amount === amountPaid && (Date.now() - intent.timestamp < 48 * 60 * 60 * 1000)) {
+                    metadata.lineItems = intent.lineItems
+                    this.logger.log(`Recovered lineItems from DVA intent for alias-based payment: ${JSON.stringify(metadata.lineItems)}`)
+                    
+                    // Clear the intent
+                    await this.prisma.upward_dedicated_virtual_account.update({
+                      where: { id: dva.id },
+                      data: { metadata: { ...((dva.metadata as any) || {}), lastPaymentIntent: null } }
+                    })
+                  }
+                }
+              }
             }
           }
         }
@@ -852,9 +873,9 @@ export class ProcessPaymentWebhookUseCase {
         throw new Error('No user identification in Paystack metadata')
       }
 
-      const effectiveUserId = userUuid || userId
+      this.logger.log(`Processing charge.success for reference ${reference}. Lineitems: ${JSON.stringify(metadata?.lineItems || 'none')}`)
 
-      this.logger.log(`Lineitems ${metadata?.lineItems}`)
+      const effectiveUserId = userUuid || userId
 
       return this.recordTransaction.execute({
         userId: String(effectiveUserId),
