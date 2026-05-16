@@ -27,7 +27,9 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
       } : null,
       lineItems: pr.paymentRequest?.lineItemRecords?.map((li: any) => ({
         name: li.name,
-        amount: li.totalAmount
+        amount: li.totalAmount,
+        amountPaid: li.amountPaid || 0,
+        status: li.status || 'PENDING',
       })) || [],
       transactions: pr.paymentRequest?.transactions?.map((tx: any) => ({
         uuid: tx.uuid,

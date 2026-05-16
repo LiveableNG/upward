@@ -302,21 +302,44 @@ export const PaymentDetailView: React.FC = () => {
                   <thead>
                     <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
                       <th style={{ padding: '12px 0', fontSize: 12, color: 'var(--text-muted)', fontWeight: 700 }}>ITEM DESCRIPTION</th>
-                      <th style={{ padding: '12px 0', fontSize: 12, color: 'var(--text-muted)', fontWeight: 700, textAlign: 'right' }}>AMOUNT</th>
+                      <th style={{ padding: '12px 0', fontSize: 12, color: 'var(--text-muted)', fontWeight: 700, textAlign: 'right' }}>TOTAL</th>
+                      <th style={{ padding: '12px 0', fontSize: 12, color: 'var(--text-muted)', fontWeight: 700, textAlign: 'right' }}>PAID</th>
+                      <th style={{ padding: '12px 0', fontSize: 12, color: 'var(--text-muted)', fontWeight: 700, textAlign: 'right' }}>STATUS</th>
                     </tr>
                   </thead>
                   <tbody>
                     {request.lineItems && request.lineItems.length > 0 ? (
-                      request.lineItems.map((item, idx) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid var(--bg)' }}>
-                          <td style={{ padding: '16px 0', fontSize: 14, fontWeight: 600 }}>{item.name}</td>
-                          <td style={{ padding: '16px 0', fontSize: 14, fontWeight: 600, textAlign: 'right' }}>{request.currency} {item.amount.toLocaleString()}</td>
-                        </tr>
-                      ))
+                      request.lineItems.map((item: any, idx: number) => {
+                        const paid = item.amountPaid || 0
+                        const status = item.status || (paid >= item.amount ? 'PAID' : paid > 0 ? 'PARTIAL' : 'PENDING')
+                        const statusColor = status === 'PAID' ? 'var(--forest)' : status === 'PARTIAL' ? 'var(--clay)' : 'var(--text-muted)'
+                        return (
+                          <tr key={idx} style={{ borderBottom: '1px solid var(--bg)' }}>
+                            <td style={{ padding: '16px 0', fontSize: 14, fontWeight: 600 }}>{item.name}</td>
+                            <td style={{ padding: '16px 0', fontSize: 14, fontWeight: 600, textAlign: 'right' }}>{request.currency} {item.amount.toLocaleString()}</td>
+                            <td style={{ padding: '16px 0', fontSize: 14, fontWeight: 600, textAlign: 'right', color: statusColor }}>{request.currency} {paid.toLocaleString()}</td>
+                            <td style={{ padding: '16px 0', textAlign: 'right' }}>
+                              <span style={{ 
+                                fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 100,
+                                background: status === 'PAID' ? 'var(--forest-faint)' : status === 'PARTIAL' ? 'var(--ivory-dim)' : 'var(--bg)',
+                                color: statusColor 
+                              }}>
+                                {status}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      })
                     ) : (
                       <tr style={{ borderBottom: '1px solid var(--bg)' }}>
                         <td style={{ padding: '16px 0', fontSize: 14, fontWeight: 600 }}>{request.description || 'General Rent Payment'}</td>
                         <td style={{ padding: '16px 0', fontSize: 14, fontWeight: 600, textAlign: 'right' }}>{request.currency} {request.amount.toLocaleString()}</td>
+                        <td style={{ padding: '16px 0', fontSize: 14, fontWeight: 600, textAlign: 'right', color: 'var(--forest)' }}>{request.currency} {request.amountPaid.toLocaleString()}</td>
+                        <td style={{ padding: '16px 0', textAlign: 'right' }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 100, background: 'var(--bg)', color: 'var(--text-muted)' }}>
+                            {request.status}
+                          </span>
+                        </td>
                       </tr>
                     )}
                   </tbody>
@@ -324,6 +347,8 @@ export const PaymentDetailView: React.FC = () => {
                     <tr>
                       <td style={{ padding: '24px 0 0 0', fontSize: 16, fontWeight: 800 }}>Total</td>
                       <td style={{ padding: '24px 0 0 0', fontSize: 18, fontWeight: 800, textAlign: 'right', color: 'var(--clay)' }}>{request.currency} {request.amount.toLocaleString()}</td>
+                      <td style={{ padding: '24px 0 0 0', fontSize: 18, fontWeight: 800, textAlign: 'right', color: 'var(--forest)' }}>{request.currency} {request.amountPaid.toLocaleString()}</td>
+                      <td></td>
                     </tr>
                   </tfoot>
                 </table>
