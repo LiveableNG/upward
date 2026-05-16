@@ -89,7 +89,7 @@ export function StepPropertySelect({
                    (prop.manager?.firstName ? `${prop.manager.firstName} ${prop.manager.lastName || ''}` : null) ||
                    prop.managerName || 
                    'Private Landlord'}
-                  {prop.subaccount && (
+                  {(prop.subaccount || prop.dedicatedAccount || prop.isVerified || prop.isManaged) && (
                     <span style={{ 
                       marginLeft: 8, padding: '2px 8px', background: 'var(--clay-faint)', 
                       color: 'var(--clay)', borderRadius: 12, fontSize: 10, fontWeight: 800,

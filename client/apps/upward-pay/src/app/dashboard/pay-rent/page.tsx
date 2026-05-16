@@ -273,15 +273,18 @@ export default function PayRentPage() {
                setShowRenewalModal(true)
              }
 
-             if (prop.subaccount) {
+             if (prop.isVerified || prop.subaccount || prop.dedicatedAccount || prop.isManaged) {
                const managedLandlord = {
                  uuid: 'verified',
-                 name: prop.company?.name || (prop.manager?.firstName ? `${prop.manager.firstName} ${prop.manager.lastName}` : 'Property Owner'),
-                 accountName: prop.subaccount.businessName,
-                 accountNumber: prop.subaccount.accountNumber,
-                 bankName: '', // Optional
-                 bankCode: prop.subaccount.bankCode,
-                 subaccountCode: prop.subaccount.subaccountCode,
+                 name: prop.company?.name || 
+                       (prop.manager?.firstName ? `${prop.manager.firstName} ${prop.manager.lastName || ''}` : null) || 
+                       prop.managerName || 
+                       'Property Owner',
+                 accountName: prop.subaccount?.businessName || prop.dedicatedAccount?.accountName || prop.company?.name || 'Verified Recipient',
+                 accountNumber: prop.subaccount?.accountNumber || prop.dedicatedAccount?.accountNumber || '',
+                 bankName: prop.dedicatedAccount?.bankName || '', 
+                 bankCode: prop.subaccount?.bankCode || prop.dedicatedAccount?.bankCode || '',
+                 subaccountCode: prop.subaccount?.subaccountCode,
                  isVerified: true
                }
                setSelectedLandlord(managedLandlord as any)

@@ -233,7 +233,13 @@ export const SignupForm = () => {
             ? (formData.pmType === 'INDIVIDUAL_LANDLORD' 
                 ? 'Sign up to manage your properties and collect rent directly.' 
                 : 'Create your property manager account in seconds.')
-            : `We've sent a 6-digit code to ${formData.email}. Enter it below to continue.`}
+            : (
+              <>
+                We&apos;ve sent a 6-digit code to <strong>{formData.email}</strong>. 
+                Enter it below to continue. <br />
+                <span style={{ fontSize: '13px', opacity: 0.8 }}>(Check your <strong>spam folder</strong> if you don&apos;t see it)</span>
+              </>
+            )}
         </p>
       </div>
 

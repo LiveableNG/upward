@@ -36,6 +36,7 @@ export interface ScoreProfile {
       status: string
       ptValue: number
       source: string
+      excluded: boolean
     }>
     properties: any[]
   }

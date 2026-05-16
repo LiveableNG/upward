@@ -63,6 +63,9 @@ export class InvitePmUseCase {
             Another tenant, <strong>${user.firstName} ${user.lastName}</strong>, has requested to connect with you on Upward as their ${roleName}!
           </p>
           <p style="font-size: 16px; line-height: 1.6; margin-bottom: 32px; color: #1B4332;">
+            Upward is a premium platform designed to automate rent collection, streamline tenant communication, and provide you with powerful financial insights.
+          </p>
+          <p style="font-size: 16px; line-height: 1.6; margin-bottom: 32px; color: #1B4332;">
             You currently have pending connection requests waiting. Claim your profile to approve these requests and start managing your properties seamlessly.
           </p>
     `;

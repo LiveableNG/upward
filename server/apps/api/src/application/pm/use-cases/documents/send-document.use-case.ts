@@ -10,6 +10,7 @@ import { PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository } from '../../../
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../../domains/pm/property-manager.repository';
 import { S3Service } from '../../../../shared/infrastructure/common/s3/s3.service';
 import { EmailService } from '../../../../shared/infrastructure/email/email.service';
+import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import * as crypto from 'crypto';
 
 
@@ -43,6 +44,7 @@ export class SendDocumentUseCase {
     private readonly configService: ConfigService,
     private readonly s3Service: S3Service,
     private readonly emailService: EmailService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(pmId: number, data: SendDocumentDto) {
@@ -92,17 +94,36 @@ export class SendDocumentUseCase {
     let paymentLink = '__________';
     if (data.paymentRequestUuid) {
       try {
-        const pmPR = await this.pmPaymentRepo.findByUuid(data.paymentRequestUuid);
-        if (pmPR && pmPR.paymentRequestId) {
-          const corePR = await this.corePaymentRepo.findById(pmPR.paymentRequestId);
-          if (corePR) {
-            const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-            const baseUrl = frontendUrl ? frontendUrl?.split(',')[0]?.trim() : 'https://upward.goodtenants.io';
-            paymentLink = `${baseUrl}/pay/${corePR.uuid}`;
+        let dvaFound = false;
+
+        if (unit && unit.userPropertyUuid) {
+          const userProperty = await this.prisma.upward_user_property.findFirst({
+            where: { uuid: unit.userPropertyUuid }
+          });
+          if (userProperty) {
+            const dva = await this.prisma.upward_dedicated_virtual_account.findFirst({
+              where: { userPropertyId: userProperty.id }
+            });
+            if (dva) {
+              paymentLink = `<strong>Bank:</strong> ${dva.bankName}<br><strong>Account Name:</strong> ${dva.accountName}<br><strong>Account Number:</strong> ${dva.accountNumber}`;
+              dvaFound = true;
+            }
+          }
+        }
+
+        if (!dvaFound) {
+          const pmPR = await this.pmPaymentRepo.findByUuid(data.paymentRequestUuid);
+          if (pmPR && pmPR.paymentRequestId) {
+            const corePR = await this.corePaymentRepo.findById(pmPR.paymentRequestId);
+            if (corePR) {
+              const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+              const baseUrl = frontendUrl ? frontendUrl?.split(',')[0]?.trim() : 'https://upward.goodtenants.io';
+              paymentLink = `${baseUrl}/pay/${corePR.uuid}`;
+            }
           }
         }
       } catch (err) {
-        console.error('Failed to resolve payment link for document:', err);
+        console.error('Failed to resolve payment details for document:', err);
       }
     }
 

@@ -211,15 +211,15 @@ function LandlordLoginForm() {
                 </button>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                   <input 
+                  <input
                     {...register('otp')}
-                    className="form-input" 
+                    className="form-input"
                     placeholder="000000"
                     maxLength={6}
                     style={{ textAlign: 'center', letterSpacing: '8px', fontSize: '20px' }}
                   />
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
-                    Code sent to your email. Check your inbox.
+                    Code sent to your email. Check your inbox <strong>(and spam folder)</strong>.
                   </p>
                 </div>
               )}
