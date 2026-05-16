@@ -5,7 +5,9 @@ import { CreatePaymentRequestDto, UpdatePmPaymentRequestDto } from '../services/
 export const usePaymentRequests = () => {
   return useSuspenseQuery({
     queryKey: ['pm-payment-requests'],
-    queryFn: () => api.getPaymentRequests()
+    queryFn: () => api.getPaymentRequests(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   })
 }
 
@@ -13,7 +15,9 @@ export const usePaymentRequest = (uuid: string) => {
   return useQuery({
     queryKey: ['pm-payment-request', uuid],
     queryFn: () => api.getPaymentRequest(uuid),
-    enabled: !!uuid
+    enabled: !!uuid,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   })
 }
 
