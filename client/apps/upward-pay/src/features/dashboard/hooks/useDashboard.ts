@@ -15,6 +15,8 @@ export function useDashboard(): UseDashboardReturn {
   const { data, isLoading, error, refetch } = useQuery<DashboardData>({
     queryKey: ['dashboard'],
     queryFn: getDashboardData,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
   })
 
   return {

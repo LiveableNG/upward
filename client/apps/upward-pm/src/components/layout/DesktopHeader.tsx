@@ -27,7 +27,7 @@ export function DesktopHeader() {
           {!user.isVerified && (
             <Link 
               href="/settings?tab=verification"
-              className={!isPending ? "animate-pulse" : ""}
+              className=""
               style={{ 
                 padding: '4px 10px', 
                 borderRadius: 20, 

@@ -26,6 +26,8 @@ export default function DashboardPage() {
   const { data: notifData } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => api.getNotifications(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   })
   const { data: scoreProfile } = useScoreProfile()
 
@@ -54,7 +56,7 @@ export default function DashboardPage() {
   }, [error, router])
 
 
-  if (loading) return <FallbackSuspense message="Loading dashboard…" />
+  if (loading && !data) return <FallbackSuspense message="Loading dashboard…" />
 
   if (error || !data) {
     if (error?.toLowerCase().includes('expired') || error?.toLowerCase().includes('auth')) {

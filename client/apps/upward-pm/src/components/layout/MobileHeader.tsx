@@ -26,7 +26,7 @@ export function MobileHeader({ onMenuClick }: { onMenuClick: () => void }) {
         {user && !user.isVerified && (
            <Link 
             href="/settings?tab=verification"
-            className={!isPending ? "animate-pulse" : ""}
+            className=""
             style={{ 
                 width: 8, 
                 height: 8, 
