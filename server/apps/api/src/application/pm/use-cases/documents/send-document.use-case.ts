@@ -91,10 +91,21 @@ export class SendDocumentUseCase {
       return formatDate(end);
     };
 
-    let paymentLink = '__________';
+    let paymentURL = '__________';
+    let bankDetails = '__________';
+    let paymentInfo = '__________';
+
     if (data.paymentRequestUuid) {
       try {
-        let dvaFound = false;
+        const pmPR = await this.pmPaymentRepo.findByUuid(data.paymentRequestUuid);
+        if (pmPR && pmPR.paymentRequestId) {
+          const corePR = await this.corePaymentRepo.findById(pmPR.paymentRequestId);
+          if (corePR) {
+            const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+            const baseUrl = frontendUrl ? frontendUrl?.split(',')[0]?.trim() : 'https://upward.goodtenants.io';
+            paymentURL = `${baseUrl}/pay/${corePR.uuid}`;
+          }
+        }
 
         if (unit && unit.userPropertyUuid) {
           const userProperty = await this.prisma.upward_user_property.findFirst({
@@ -105,22 +116,23 @@ export class SendDocumentUseCase {
               where: { userPropertyId: userProperty.id }
             });
             if (dva) {
-              paymentLink = `<strong>Bank:</strong> ${dva.bankName}<br><strong>Account Name:</strong> ${dva.accountName}<br><strong>Account Number:</strong> ${dva.accountNumber}`;
-              dvaFound = true;
+              bankDetails = `
+                <div style="padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin: 16px 0;">
+                  <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">Bank Name</div>
+                  <div style="font-weight: 700; color: #1e293b; margin-bottom: 12px;">${dva.bankName}</div>
+                  <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">Account Name</div>
+                  <div style="font-weight: 700; color: #1e293b; margin-bottom: 12px;">${dva.accountName}</div>
+                  <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">Account Number</div>
+                  <div style="font-weight: 700; color: #166534; font-size: 18px; letter-spacing: 1px;">${dva.accountNumber}</div>
+                </div>
+              `;
+              paymentInfo = bankDetails;
             }
           }
         }
 
-        if (!dvaFound) {
-          const pmPR = await this.pmPaymentRepo.findByUuid(data.paymentRequestUuid);
-          if (pmPR && pmPR.paymentRequestId) {
-            const corePR = await this.corePaymentRepo.findById(pmPR.paymentRequestId);
-            if (corePR) {
-              const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-              const baseUrl = frontendUrl ? frontendUrl?.split(',')[0]?.trim() : 'https://upward.goodtenants.io';
-              paymentLink = `${baseUrl}/pay/${corePR.uuid}`;
-            }
-          }
+        if (paymentInfo === '__________' && paymentURL !== '__________') {
+          paymentInfo = `<a href="${paymentURL}" style="color: #166534; font-weight: 700; text-decoration: underline;">Pay via Secure Link</a>`;
         }
       } catch (err) {
         console.error('Failed to resolve payment details for document:', err);
@@ -149,8 +161,14 @@ export class SendDocumentUseCase {
       '[Date]': formatDate(new Date()),
       '[CurrentDate]': formatDate(new Date()),
       '[ManagerName]': pm ? `${pm.firstName} ${pm.lastName}` : 'The Property Manager',
-      '[PaymentLink]': paymentLink,
-      '[Payment Link]': paymentLink,
+      '[PaymentURL]': paymentURL,
+      '[Payment URL]': paymentURL,
+      '[BankDetails]': bankDetails,
+      '[Bank Details]': bankDetails,
+      '[PaymentInfo]': paymentInfo,
+      '[Payment Info]': paymentInfo,
+      '[PaymentLink]': paymentInfo, // For backward compatibility
+      '[Payment Link]': paymentInfo,
     };
 
     Object.entries(placeholders).forEach(([tag, value]) => {

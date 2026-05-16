@@ -56,12 +56,11 @@ export function DocumentEditorView({
           <div style="display: inline-block; width: 48px; height: 48px; background-color: #f0fdf4; border-radius: 50%; color: #16a34a; line-height: 48px; font-size: 24px; margin-bottom: 16px; font-weight: bold;">
             ✓
           </div>
-          <h2 style="margin: 0 0 8px 0; color: #0a0a0f; font-size: 18px; font-weight: 700;">Secure Payment Link</h2>
-          <p style="margin: 0 0 24px 0; color: #4a4642; font-size: 14px; line-height: 1.5;">To settle this request, please use the secure payment button below.</p>
-          <a href="[PaymentLink]" style="display: inline-block; background-color: #166534; color: #ffffff; padding: 14px 40px; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 15px;">Pay Securely Now</a>
+          <h2 style="margin: 0 0 8px 0; color: #0a0a0f; font-size: 18px; font-weight: 700;">Payment Information</h2>
+          <p style="margin: 0 0 24px 0; color: #4a4642; font-size: 14px; line-height: 1.5;">To settle this request, please use the payment details or link provided below.</p>
+          [PaymentInfo]
           <div style="margin-top: 20px; font-size: 11px; color: #8a8a8a;">
-            Or copy and paste this link into your browser: <br/>
-            <a href="[PaymentLink]" style="color: #166534; text-decoration: underline;">[PaymentLink]</a>
+            This is a secure payment request powered by Upward.
           </div>
         </div>
       `;
@@ -377,7 +376,7 @@ export function DocumentEditorView({
           <div className="glass" style={{ padding: 20, borderRadius: 24, border: '1px solid var(--border)', background: 'var(--ivory-dim)', display: 'flex', gap: 12 }}>
             <AlertCircle size={20} color="var(--clay)" style={{ flexShrink: 0 }} />
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              Use the professional editor to format your document. You can include dynamic placeholders like [Tenant Name] or [PaymentLink] which will be replaced when sending.
+              Use the professional editor to format your document. You can include dynamic placeholders like [Tenant Name], [BankDetails], [PaymentURL] or [PaymentInfo] which will be replaced when sending.
             </p>
           </div>
         </div>
