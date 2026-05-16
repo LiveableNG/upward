@@ -22,7 +22,7 @@ export class VerifyGatewayTransactionUseCase {
 
   async execute(data: { userId: string; reference: string }) {
     const user = await this.userRepository.findByUuid(data.userId)
-    const isDvaSession = data.reference.startsWith('DVA-')
+    const isDvaSession = data.reference.startsWith('DVA-') || data.reference.startsWith('DVA_')
 
     const existing = await this.txRepo.findByReference(data.reference)
     if (existing) {
@@ -31,19 +31,32 @@ export class VerifyGatewayTransactionUseCase {
     }
 
     if (isDvaSession) {
-      const parts = data.reference.split('-')
-      const accountNumber = parts[1] || ''
-      
-      let prUuid: string | null = null
+      let accountNumber = ''
       let sessionTimestamp: number = 0
-      
-      if (parts.length >= 4) {
-        const candidateUuid = parts[2]
-        prUuid = (candidateUuid && candidateUuid !== 'no-pr') ? candidateUuid : null
-        sessionTimestamp = parseInt(parts[3] || '0') || 0
+
+      if (data.reference.includes('DVA_')) {
+        const parts = data.reference.split('_')
+        accountNumber = parts[1] || ''
+        sessionTimestamp = parseInt(parts[parts.length - 1] || '0') || 0
       } else {
-        sessionTimestamp = parseInt(parts[2] || '0') || 0
+        const raw = data.reference.replace(/^DVA-/, '')
+        const lastDash = raw.lastIndexOf('-')
+        if (lastDash !== -1) {
+          const tail = raw.substring(lastDash + 1)
+          if (/^\d{10,}$/.test(tail)) {
+            sessionTimestamp = parseInt(tail) || 0
+            const head = raw.substring(0, lastDash)
+            const firstDash = head.indexOf('-')
+            accountNumber = firstDash !== -1 ? head.substring(0, firstDash) : head
+          } else {
+            // Fallback: just grab account number
+            const parts = raw.split('-')
+            accountNumber = parts[0] || ''
+          }
+        }
       }
+
+      this.logger.log(`DVA session parsed: account=${accountNumber}, sessionTs=${sessionTimestamp}`)
 
       if (accountNumber) {
 
@@ -51,10 +64,10 @@ export class VerifyGatewayTransactionUseCase {
         const recentDvaTx = await this.txRepo.findRecentDvaTransaction(accountNumber, createdAfter)
 
         if (recentDvaTx) {
-          this.logger.log(`Found DVA transaction ${recentDvaTx.reference} for account ${accountNumber} created after session ${sessionTimestamp}`)
+          this.logger.log(`Found DVA transaction ${recentDvaTx.reference} for account ${accountNumber} created after ${sessionTimestamp}`)
           return { existing: recentDvaTx, isVerified: true, verifiedAmount: recentDvaTx.amount, user, isNew: false }
         } else {
-          this.logger.log(`No DVA transaction found for account ${accountNumber} after session timestamp ${sessionTimestamp}`)
+          this.logger.log(`No DVA transaction found for account ${accountNumber} after ${sessionTimestamp}`)
         }
       }
 
