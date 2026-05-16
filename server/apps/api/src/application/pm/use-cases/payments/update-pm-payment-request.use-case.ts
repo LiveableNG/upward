@@ -45,14 +45,21 @@ export class UpdatePmPaymentRequestUseCase {
     const pm = await this.pmRepo.findById(pmId);
     if (!pm) throw new NotFoundException('Property Manager not found');
     
+    const allowPartial = data.allowPartial ?? pmPR.allowPartial;
+    let minAmount = data.minAmount !== undefined ? data.minAmount : (pmPR.minAmount ?? undefined);
+    
+    if (allowPartial === false) {
+      minAmount = 0;
+    }
+
     const payload: ExternalPaymentRequestPayloadDto = {
       paymentRequestId: pmPR.paymentRequestId ?? undefined,
       userPropertyUuid: unit.userPropertyUuid ?? undefined,
       amount: data.amount ?? pmPR.amount,
       dueDate: (data.dueDate || pmPR.dueDate.toISOString().split('T')[0]) as string,
       description: (data.description ?? pmPR.description) ?? undefined,
-      allowPartial: data.allowPartial ?? pmPR.allowPartial,
-      minAmount: (data.minAmount ?? pmPR.minAmount) ?? undefined,
+      allowPartial,
+      minAmount,
       lineItems: data.lineItems,
       rentType: data.rentType,
       bankCode: pm.bankCode ?? undefined,
@@ -60,8 +67,7 @@ export class UpdatePmPaymentRequestUseCase {
     };
 
     const result = await this.createExternalPaymentRequestUseCase.execute(payload, 0); 
-    
-    // Update local record
+     
     let nextReminderAt = pmPR.nextReminderAt;
     if (data.reminderFrequency && data.reminderFrequency !== pmPR.reminderFrequency) {
         if (data.reminderFrequency === 'NONE') {
@@ -77,8 +83,8 @@ export class UpdatePmPaymentRequestUseCase {
       amount: data.amount ?? pmPR.amount,
       description: data.description ?? pmPR.description,
       dueDate: data.dueDate ? new Date(data.dueDate) : pmPR.dueDate,
-      allowPartial: data.allowPartial ?? pmPR.allowPartial,
-      minAmount: data.minAmount ?? pmPR.minAmount,
+      allowPartial,
+      minAmount,
       rentType: data.rentType ?? pmPR.rentType,
       reminderFrequency: data.reminderFrequency ?? pmPR.reminderFrequency,
       nextReminderAt,

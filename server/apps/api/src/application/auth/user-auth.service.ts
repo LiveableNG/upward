@@ -289,30 +289,10 @@ export class UserAuthService extends BaseAuthService {
       profile.profilePic = await this.s3Service.getDownloadUrl(profile.profilePic)
     }
 
-    // Fetch properties and include PM verification status
-    const properties = await this.prisma.upward_user_property.findMany({
-      where: { userId: user.id },
-      include: {
-        location: true,
-        company: true,
-        manager: true,
-        pm: {
-          select: { isVerified: true }
-        }
-      }
-    })
-
-    profile.properties = properties.map(p => {
-      const { pm, ...rest } = p;
-      const prop = p as any;
-      return {
-        ...rest,
-        isManaged: !!p.pmId,
-        isVerified: !!p.isVerified || !!pm?.isVerified,
-        verificationStatus: prop.verificationStatus || (p.isVerified ? 'VERIFIED' : 'PENDING'),
-        rejectionReason: prop.rejectionReason,
-      }
-    })
+    profile.properties = (user.properties || []).map(p => ({
+      ...p,
+      verificationStatus: p.verificationStatus || (p.isVerified ? 'VERIFIED' : 'PENDING'),
+    }))
 
     return profile
   }

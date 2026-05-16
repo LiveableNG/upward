@@ -211,7 +211,7 @@ export const TenantDetailView: React.FC = () => {
             </div>
 
             {/* Units List */}
-            <div style={{ textAlign: 'left' }}>
+            <div style={{ textAlign: 'left', maxHeight: '400px', overflowY: 'auto', paddingRight: '4px', marginTop: '12px' }}>
               {tenant.units?.map((unit: any) => (
                 <div key={unit.uuid} style={{ marginBottom: 24 }}>
                   <h4 style={{ fontSize: 14, fontWeight: 800, color: 'var(--dark)', marginBottom: 12 }}>{unit.unitName}</h4>
@@ -222,11 +222,11 @@ export const TenantDetailView: React.FC = () => {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                       <span style={{ color: 'var(--text-muted)' }}>Rent Start Date</span>
-                      <span style={{ fontWeight: 600 }}>{unit.tenancyStartDate ? new Date(unit.tenancyStartDate).toLocaleDateString() : 'N/A'}</span>
+                      <span style={{ fontWeight: 600 }}>{unit.rentStartDate ? new Date(unit.rentStartDate).toLocaleDateString() : 'N/A'}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                       <span style={{ color: 'var(--text-muted)' }}>Rent Expires</span>
-                      <span style={{ fontWeight: 600 }}>{unit.rentEndDate ? new Date(unit.rentEndDate).toLocaleDateString() : 'N/A'}</span>
+                      <span style={{ fontWeight: 600 }}>{unit.rentDueDate ? new Date(unit.rentDueDate).toLocaleDateString() : 'N/A'}</span>
                     </div>
                     <Link 
                       href={`/properties/units/${unit.uuid}`}
@@ -367,11 +367,11 @@ export const TenantDetailView: React.FC = () => {
                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, padding: '16px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
                            <div>
                              <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>TENANCY START</label>
-                             <div style={{ fontSize: 13, fontWeight: 600 }}>{unit.tenancyStartDate ? new Date(unit.tenancyStartDate).toLocaleDateString() : 'N/A'}</div>
+                             <div style={{ fontSize: 13, fontWeight: 600 }}>{unit.rentStartDate ? new Date(unit.rentStartDate).toLocaleDateString() : 'N/A'}</div>
                            </div>
                            <div>
                              <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>RENT EXPIRES</label>
-                             <div style={{ fontSize: 13, fontWeight: 600 }}>{unit.rentEndDate ? new Date(unit.rentEndDate).toLocaleDateString() : 'N/A'}</div>
+                             <div style={{ fontSize: 13, fontWeight: 600 }}>{unit.rentDueDate ? new Date(unit.rentDueDate).toLocaleDateString() : 'N/A'}</div>
                            </div>
                            <div>
                              <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>OUTSTANDING</label>

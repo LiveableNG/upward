@@ -68,7 +68,7 @@ export class CreatePmPaymentRequestUseCase {
       rentEndDate: data.rentEndDate,
       description: data.description,
       allowPartial: data.allowPartial,
-      minAmount: data.minAmount,
+      minAmount: data.allowPartial === false ? 0 : data.minAmount,
       lineItems: data.lineItems,
       rentType: data.rentType,
       bankCode: pm.bankCode ?? undefined,
@@ -109,7 +109,7 @@ export class CreatePmPaymentRequestUseCase {
       status: 'PENDING',
       amountPaid: 0,
       allowPartial: data.allowPartial || false,
-      minAmount: data.minAmount || null,
+      minAmount: (data.allowPartial === false) ? 0 : (data.minAmount || null),
     });
 
     // Log Activity

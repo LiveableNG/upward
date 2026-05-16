@@ -392,6 +392,7 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
     if (!res) return null as any
     return {
       ...res,
+      minAmount: res.minAmount ?? undefined,
       description: res.description ? (res.description.includes(':') ? this.encryption.decrypt(res.description) : res.description) : res.description,
       reference: res.reference ?? undefined,
       userPropertyId: res.userPropertyId ?? undefined,

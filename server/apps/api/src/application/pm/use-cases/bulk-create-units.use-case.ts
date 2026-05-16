@@ -22,8 +22,13 @@ export class BulkCreateUnitsUseCase {
 
   async execute(pmId: number, dto: BulkCreateUnitsDto) {
     const property = await this.propertyRepository.findByUuid(dto.propertyUuid);
-    if (!property || property.pmId !== pmId) {
-      throw new Error('Property not found or unauthorized');
+    if (!property) {
+      throw new Error('Property not found');
+    }
+
+    const hasAccess = await this.propertyRepository.hasAccessToProperty(pmId, property.id);
+    if (!hasAccess) {
+      throw new Error('Unauthorized to add units to this property');
     }
 
     const phoneRegex = /^\+234\d{10}$/;
@@ -47,13 +52,16 @@ export class BulkCreateUnitsUseCase {
 
       if (u.tenantUuid) {
         const tenant = await this.tenantRepository.findByUuid(u.tenantUuid);
-        if (tenant && tenant.pmId === pmId) {
+        if (tenant && (tenant.pmId === pmId || tenant.pmId === property.pmId)) {
           tenantId = tenant.id;
           initialStatus = tenant.inviteStatus;
         }
       } else if (email) {
         const emailHash = this.encryption.hash(email);
         let tenant = await this.tenantRepository.findByEmailHash(pmId, emailHash);
+        if (!tenant && pmId !== property.pmId) {
+          tenant = await this.tenantRepository.findByEmailHash(property.pmId, emailHash);
+        }
 
         if (!tenant) {
           const existingUser = await this.userRepository.findByEmail(email);
