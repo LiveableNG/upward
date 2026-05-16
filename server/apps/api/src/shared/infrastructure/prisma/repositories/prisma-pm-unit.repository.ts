@@ -25,6 +25,8 @@ export class PrismaPmUnitRepository implements IUnitRepository {
         status: data.status,
         tenantId: data.tenantId,
         unitType: data.unitType,
+        rentReminderEnabled: data.rentReminderEnabled,
+        rentReminderDaysBefore: data.rentReminderDaysBefore,
       },
       include: { property: true, tenant: true },
     });
@@ -46,6 +48,8 @@ export class PrismaPmUnitRepository implements IUnitRepository {
         status: unit.status,
         tenantId: unit.tenantId,
         unitType: unit.unitType,
+        rentReminderEnabled: unit.rentReminderEnabled,
+        rentReminderDaysBefore: unit.rentReminderDaysBefore,
       })),
     });
   }
@@ -130,7 +134,7 @@ export class PrismaPmUnitRepository implements IUnitRepository {
     const allowedFields = [
       'unitName', 'rentAmount', 'rentStartDate', 'rentDueDate', 
       'rentType', 'managementFee', 'notes', 'currency', 'status', 'tenantId',
-      'isSynced', 'userPropertyUuid', 'unitType'
+      'isSynced', 'userPropertyUuid', 'unitType', 'rentReminderEnabled', 'rentReminderDaysBefore'
     ];
     
     const updateData: any = {};

@@ -487,6 +487,12 @@ function UnitDetailContent() {
                     <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Management Fee</div>
                     <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{formatCurrency(unit?.managementFee || 0, unit?.currency || 'NGN')}</div>
                   </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Rent Reminders</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: unit?.rentReminderEnabled ? 'var(--forest)' : 'var(--text-muted)' }}>
+                      {unit?.rentReminderEnabled ? `Active (${unit.rentReminderDaysBefore} days before)` : 'Disabled'}
+                    </div>
+                  </div>
 
                 </div>
               </div>

@@ -40,7 +40,10 @@ export interface UnitEntity {
   isSynced: boolean;
   userPropertyUuid: string | null;
   unitType: string | null;
+  rentReminderEnabled: boolean;
+  rentReminderDaysBefore: number | null;
 }
+
 
 export interface TenantEntity {
   id: number;

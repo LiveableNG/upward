@@ -51,6 +51,9 @@ export interface Unit {
   currency: string;
   unitType?: string;
   rentAmountPaid?: number;
+  rentReminderEnabled: boolean;
+  rentReminderDaysBefore?: number;
+
 
   isSynced: boolean;
   userPropertyUuid: string | null;
