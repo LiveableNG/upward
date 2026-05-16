@@ -29,6 +29,7 @@ export default function DedicatedAccountCheckout({
   const [copied, setCopied] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
   const [verifyError, setVerifyError] = useState<string | null>(null)
+  const [pollCount, setPollCount] = useState(0)
 
   const handleCopy = () => {
     navigator.clipboard.writeText(accountNumber)
@@ -36,33 +37,49 @@ export default function DedicatedAccountCheckout({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleConfirm = async () => {
-    if (verifyError?.includes('refund')) return // Prevent multiple clicks for refund state
-
-    setIsVerifying(true)
-    setVerifyError(null)
+  const checkPayment = async () => {
     try {
       const res = await api.verifyPayment(reference)
-      
+
       if (res?.settlementStatus === 'PENDING_REFUND') {
-        setVerifyError("A refund will be triggered for you soon. You should close this window or it will close automatically in 20s. Further info will be communicated with you soon.")
-        setTimeout(() => {
-          onClose()
-        }, 20000)
-        setIsVerifying(false) // Stop loader but keep button effectively disabled via the error check above
-        return
+        setVerifyError("A refund will be triggered for you soon. This window will close automatically in 20s. Further info will be communicated with you soon.")
+        setTimeout(() => { onClose() }, 20000)
+        return true // Stop polling
       }
 
       if (res?.isVerified || res?.status === 'SUCCESS' || res?.status === 'PAID') {
         onSuccess(reference)
-      } else {
-        setVerifyError("Payment not detected yet. It might take a few minutes for the bank to process the transfer.")
+        return true // Stop polling
       }
-    } catch (err: any) {
-      setVerifyError("Unable to verify at the moment. Please try again in a minute.")
-    } finally {
-      setIsVerifying(false)
+      return false
+    } catch {
+      return false
     }
+  }
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const found = await checkPayment()
+      if (found) {
+        clearInterval(interval)
+      } else {
+        setPollCount(prev => prev + 1)
+      }
+    }, 8000)
+
+    return () => clearInterval(interval)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reference])
+
+  const handleConfirm = async () => {
+    if (verifyError?.includes('refund')) return
+
+    setIsVerifying(true)
+    setVerifyError(null)
+    const found = await checkPayment()
+    if (!found) {
+      setVerifyError("Payment not detected yet. It might take a few minutes for the bank to process the transfer. We're checking automatically.")
+    }
+    setIsVerifying(false)
   }
 
   return (
@@ -119,12 +136,12 @@ export default function DedicatedAccountCheckout({
           <div className="psk-info-note" style={{ marginTop: 20, display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px', background: 'var(--surface2)', borderRadius: '12px' }}>
             <Info size={16} style={{ color: 'var(--clay)', marginTop: 2, flexShrink: 0 }} />
             <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-              Your payment will be automatically detected. Once you've completed the transfer, click the button below.
+              Your payment will be automatically detected once the transfer is complete. {pollCount > 0 && <span style={{ color: 'var(--text-muted)' }}>Listening for payment... ({pollCount})</span>}
             </p>
           </div>
           
           {verifyError && (
-             <p style={{ fontSize: 12, color: 'var(--error)', marginTop: 12, textAlign: 'center' }}>
+             <p style={{ fontSize: 12, color: verifyError.includes('refund') ? 'var(--clay)' : 'var(--error)', marginTop: 12, textAlign: 'center' }}>
                 {verifyError}
              </p>
           )}
@@ -142,7 +159,7 @@ export default function DedicatedAccountCheckout({
                 </>
               ) : (
                 <>
-                  <span>I've Made the Payment</span>
+                  <span>I've Made the Transfer</span>
                   <ArrowRight size={18} style={{ marginLeft: 8 }} />
                 </>
               )}

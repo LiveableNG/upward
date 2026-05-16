@@ -46,26 +46,15 @@ export class VerifyGatewayTransactionUseCase {
       }
 
       if (accountNumber) {
-        const recentDvaTx = await this.txRepo.findRecentDvaTransaction(accountNumber)
+
+        const createdAfter = sessionTimestamp ? new Date(sessionTimestamp) : undefined
+        const recentDvaTx = await this.txRepo.findRecentDvaTransaction(accountNumber, createdAfter)
 
         if (recentDvaTx) {
-          // 1. If we have a PR UUID in the reference, check for an exact match first
-          if (prUuid && recentDvaTx.paymentRequest?.uuid === prUuid) {
-            this.logger.log(`Found matching DVA transaction ${recentDvaTx.reference} for PR ${prUuid}`)
-            return { existing: recentDvaTx, isVerified: true, verifiedAmount: recentDvaTx.amount, user, isNew: false }
-          }
-
-          // 2. Fallback to timestamp check for legacy sessions or if PR UUID didn't match
-          // Use a more lenient 2-hour window to account for users paying before opening the link
-          const gracePeriod = 2 * 60 * 60 * 1000 // 2 hours
-          const sessionStartTime = sessionTimestamp ? new Date(sessionTimestamp - gracePeriod) : new Date(0)
-
-          if (recentDvaTx.createdAt >= sessionStartTime) {
-            this.logger.log(`Found fresh DVA transaction ${recentDvaTx.reference} for session ${data.reference}`)
-            return { existing: recentDvaTx, isVerified: true, verifiedAmount: recentDvaTx.amount, user, isNew: false }
-          } else {
-            this.logger.log(`Ignoring old successful DVA transaction ${recentDvaTx.reference} for session ${data.reference}`)
-          }
+          this.logger.log(`Found DVA transaction ${recentDvaTx.reference} for account ${accountNumber} created after session ${sessionTimestamp}`)
+          return { existing: recentDvaTx, isVerified: true, verifiedAmount: recentDvaTx.amount, user, isNew: false }
+        } else {
+          this.logger.log(`No DVA transaction found for account ${accountNumber} after session timestamp ${sessionTimestamp}`)
         }
       }
 
