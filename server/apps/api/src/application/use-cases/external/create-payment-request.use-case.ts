@@ -54,8 +54,8 @@ export class CreateExternalPaymentRequestUseCase {
       payload.minAmount = 5000; // Sensible default for partial payments
     }
 
-    if (payload.minAmount && !payload.allowPartial) {
-      throw new BadRequestException('minAmount can only be set if allowPartial is true')
+    if (payload.minAmount && payload.allowPartial === false) {
+      payload.minAmount = 0
     }
 
     if (payload.lineItems && payload.lineItems.length > 0) {
@@ -110,7 +110,7 @@ export class CreateExternalPaymentRequestUseCase {
         rentStartDate: payload.rentStartDate ? new Date(payload.rentStartDate) : undefined,
         rentEndDate: payload.rentEndDate ? new Date(payload.rentEndDate) : undefined,
         allowPartial: payload.allowPartial ?? paymentRequest.allowPartial,
-        minAmount: payload.minAmount || paymentRequest.minAmount,
+        minAmount: payload.minAmount !== undefined ? payload.minAmount : paymentRequest.minAmount,
         rentType: payload.rentType || paymentRequest.rentType,
         subaccountId: subaccountId,
       })

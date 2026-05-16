@@ -44,6 +44,8 @@ export class PrismaUserRepository implements UserRepository {
         isManaged: !!p.pmId,
         isVerified: !!p.isVerified || !!p.pm?.isVerified,
         isPastTenancy: p.isPastTenancy,
+        verificationStatus: p.verificationStatus,
+        rejectionReason: p.rejectionReason,
         updatedAt: p.updatedAt,
         manager: p.manager ? {
           ...p.manager,

@@ -2,8 +2,10 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { 
   PM_UNIT_REPOSITORY, 
   IUnitRepository, 
-  PM_TENANT_REPOSITORY, 
-  ITenantRepository 
+  PM_TENANT_REPOSITORY,
+  ITenantRepository,
+  IPropertyRepository, 
+  PM_PROPERTY_REPOSITORY 
 } from '../../../../domains/pm/IPropertyRepository';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import { SyncUnitToUpwardUseCase } from '../units/sync-unit.use-case';
@@ -16,6 +18,8 @@ export class AssignTenantToUnitUseCase {
     private readonly unitRepo: IUnitRepository,
     @Inject(PM_TENANT_REPOSITORY)
     private readonly tenantRepo: ITenantRepository,
+    @Inject(PM_PROPERTY_REPOSITORY)
+    private readonly propertyRepo: IPropertyRepository,
     @Inject(USER_REPOSITORY)
     private readonly userRepo: UserRepository,
     private readonly prisma: PrismaService,
@@ -32,13 +36,19 @@ export class AssignTenantToUnitUseCase {
     rentStartDate?: Date,
     rentDueDate?: Date
   ): Promise<void> {
-    const units = await this.unitRepo.findByPmId(pmId);
-    const unit = units.find(u => u.uuid === unitUuid);
+    const unit = await this.unitRepo.findByUuid(unitUuid);
     if (!unit) throw new NotFoundException('Unit not found');
+
+    const property = await this.propertyRepo.findById(unit.propertyId);
+    if (!property) throw new NotFoundException('Property not found');
+
+    const hasAccess = await this.propertyRepo.hasAccessToProperty(pmId, property.id);
+    if (!hasAccess) throw new NotFoundException('Unit not found or unauthorized');
 
     if (tenantUuid) {
       const tenant = await this.tenantRepo.findByUuid(tenantUuid);
-      if (!tenant || tenant.pmId !== pmId) {
+      // Allow if user owns tenant OR if tenant belongs to the unit's owner
+      if (!tenant || (tenant.pmId !== pmId && tenant.pmId !== property.pmId)) {
         throw new NotFoundException('Tenant not found');
       }
 
