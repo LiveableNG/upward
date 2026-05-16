@@ -281,6 +281,7 @@ export class RecordTransactionUseCase {
       lineItemPayments?: LineItemPayment[]
       futureCreditName?: string
       lineItems?: any[]
+      sequentialFill?: boolean // When true, fills line items top-to-bottom instead of proportionally
     }
   ) {
     this.logger.log(`Recording transaction for reference: ${data.reference}`)
@@ -370,7 +371,7 @@ export class RecordTransactionUseCase {
         landlordId: data.landlordId || pr?.subaccount?.uuid || undefined,
       } as any, txClient)
 
-      if (isVerified && result.status === 'SUCCESS') {
+      if (isVerified && result.status === 'SUCCESS' && result.settlementStatus !== 'PENDING_REFUND') {
         if (pr) {
           const settlementPortion = Math.max(0, paymentAmount - upwardFeeAmount)
           const newAmountPaid = (pr.amountPaid || 0) + settlementPortion
@@ -393,6 +394,7 @@ export class RecordTransactionUseCase {
           lineItemPayments: data.lineItemPayments,
           manualLineItems: data.lineItems,
           narration: result.narration,
+          sequentialFill: data.sequentialFill,
           txClient
         })
         rentPortion = distribution.rentPortion
@@ -823,8 +825,6 @@ export class ProcessPaymentWebhookUseCase {
             if (propertyMatch && propertyMatch[1]) {
               const propertyId = parseInt(propertyMatch[1])            
               if (!metadata) metadata = {}
-
-              // Resolve property UUID for RecordTransactionUseCase
               const prop = await this.prisma.upward_user_property.findUnique({
                 where: { id: propertyId }
               })
@@ -832,18 +832,15 @@ export class ProcessPaymentWebhookUseCase {
                 metadata.userPropertyUuid = prop.uuid
                 this.logger.log(`Resolved property context from alias: ${rawEmail} -> Prop UUID: ${prop.uuid}`)
 
-                // --- NEW: Attempt to recover lineItems from DVA metadata for this property ---
                 const dva = await this.dvaRepo.findByUserPropertyId(prop.id)
                 if (dva && dva.metadata && typeof dva.metadata === 'object' && 'lastPaymentIntent' in (dva.metadata as any)) {
                   const intent = (dva.metadata as any).lastPaymentIntent
                   const amountPaid = amount / 100
                   
-                  // If amount matches exactly and intent is fresh (< 48h)
                   if (intent && intent.amount === amountPaid && (Date.now() - intent.timestamp < 48 * 60 * 60 * 1000)) {
                     metadata.lineItems = intent.lineItems
                     this.logger.log(`Recovered lineItems from DVA intent for alias-based payment: ${JSON.stringify(metadata.lineItems)}`)
                     
-                    // Clear the intent
                     await this.prisma.upward_dedicated_virtual_account.update({
                       where: { id: dva.id },
                       data: { metadata: { ...((dva.metadata as any) || {}), lastPaymentIntent: null } }
@@ -1035,6 +1032,11 @@ export class ProcessPaymentWebhookUseCase {
     }
 
     // Record Transaction with the determined settlement status
+    // When there's no stored checkout intent and partial is allowed,
+    // use sequential fill so line items are cleared top-to-bottom by sortOrder.
+    const hasNoIntent = !lineItemPayments
+    const sequentialFill = hasNoIntent && pr.allowPartial && !!pr.id
+
     const result = await this.recordTransaction.execute({
       userId: pr.user.uuid,
       amount: amountPaid,
@@ -1045,7 +1047,8 @@ export class ProcessPaymentWebhookUseCase {
       paymentRequestId: pr.id,
       narration: `Bank Transfer to ${dva.accountNumber} (${dva.bankName})`,
       settlementStatus,
-      lineItemPayments
+      lineItemPayments,
+      sequentialFill
     })
 
     // Trigger Alerts if it's an underpayment
@@ -1400,3 +1403,49 @@ export class GetPmPayoutsUseCase {
     })
   }
 }
+
+@Injectable()
+export class GetPmUnresolvedTransactionsUseCase {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async execute(pmId: number) {
+    const properties = await this.prisma.upward_user_property.findMany({
+      where: { pmId },
+      select: { id: true }
+    });
+
+    const propertyIds = properties.map(p => p.id);
+
+    return this.prisma.upward_transaction.findMany({
+      where: {
+        settlementStatus: 'PENDING_REFUND',
+        status: 'SUCCESS',
+        paymentRequest: {
+          userPropertyId: { in: propertyIds }
+        }
+      },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            bankDetails: true
+          }
+        },
+        paymentRequest: {
+          include: {
+            userProperty: {
+              include: { 
+                location: true,
+                pmUnit: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+}
+

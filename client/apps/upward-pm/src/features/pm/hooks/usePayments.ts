@@ -77,3 +77,26 @@ export const usePayoutBreakdown = (uuid: string) => {
     enabled: !!uuid
   })
 }
+
+export const useUnresolvedTransactions = () => {
+  return useQuery({
+    queryKey: ['pm-unresolved-payments'],
+    queryFn: () => api.getUnresolvedTransactions(),
+    staleTime: 1 * 60 * 1000, // 1 minute
+  })
+}
+
+export const useResolveTransaction = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ uuid, action }: { uuid: string; action: 'REFUND' | 'ACCEPT' }) => 
+      api.resolveTransaction(uuid, action),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pm-unresolved-payments'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-payouts'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-payment-requests'] })
+    }
+  })
+}
+

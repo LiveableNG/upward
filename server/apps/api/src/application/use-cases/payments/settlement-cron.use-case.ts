@@ -113,11 +113,26 @@ export class ProcessHourlySettlementsUseCase {
   }
 
   private async processPendingRefunds() {
-    // 1. Find all transactions pending refund
+    // 1. Find all transactions pending refund that are NOT managed by a Property Manager
     const transactions = await this.prisma.upward_transaction.findMany({
       where: {
         settlementStatus: 'PENDING_REFUND',
         status: 'SUCCESS',
+        OR: [
+          { paymentRequestId: null },
+          {
+            paymentRequest: {
+              OR: [
+                { userPropertyId: null },
+                {
+                  userProperty: {
+                    pmId: null
+                  }
+                }
+              ]
+            }
+          }
+        ]
       },
       include: {
         user: {

@@ -85,6 +85,7 @@ export function usePaymentFlow(uuid: string) {
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [showRenewalModal, setShowRenewalModal] = useState(false)
   const [autoPrompted, setAutoPrompted] = useState(false)
+  const [isPendingRefund, setIsPendingRefund] = useState(false)
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -216,6 +217,8 @@ export function usePaymentFlow(uuid: string) {
   const isBelowMin = minRequired > 0 && parsedAmount > 0 && parsedAmount < minRequired && parsedAmount < totalOwed
   const isValidAmount = parsedAmount > 0 && !isBelowMin && parsedAmount <= totalOwed
   const currency = paymentData?.payment?.currency || 'NGN'
+  const isFullPaymentRequired = paymentData?.payment?.allowPartial === false
+  const isUnderpaying = isFullPaymentRequired && parsedAmount > 0 && parsedAmount < totalOwed
 
   const autoAllocs = useMemo(() => distributeAmount(Math.min(parsedAmount, totalOwed), lineItems), [parsedAmount, lineItems, totalOwed])
 
@@ -295,11 +298,16 @@ export function usePaymentFlow(uuid: string) {
         lineItemPayments: finalLineItemPayments
       })
       if (res.success) {
-        success('Payment successful!')
+        if (res.settlementStatus === 'PENDING_REFUND') {
+          setIsPendingRefund(true)
+          setStep('success')
+        } else {
+          success('Payment successful!')
+          setStep(!paymentData.hasPassword ? 'onboarding' : 'success')
+        }
         // Invalidate dashboard and score queries to reflect changes immediately
         queryClient.invalidateQueries({ queryKey: ['dashboard'] })
         queryClient.invalidateQueries({ queryKey: ['scoreProfile'] })
-        setStep(!paymentData.hasPassword ? 'onboarding' : 'success')
       }
     } catch (err: any) {
       toastError(err.message || 'Failed to verify payment')
@@ -356,6 +364,8 @@ export function usePaymentFlow(uuid: string) {
     minRequired,
     isBelowMin,
     isValidAmount,
+    isFullPaymentRequired,
+    isUnderpaying,
     currency,
     effectiveAllocs,
     finalLineItemPayments,
@@ -368,5 +378,6 @@ export function usePaymentFlow(uuid: string) {
     loginLoading,
     executeLogin,
     authUser,
+    isPendingRefund,
   }
 }

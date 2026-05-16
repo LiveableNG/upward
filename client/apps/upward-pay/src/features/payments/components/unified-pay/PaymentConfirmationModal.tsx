@@ -10,6 +10,7 @@ interface PaymentConfirmationModalProps {
   onConfirm: () => void
   amount: number
   currency: string
+  isFullRequired?: boolean
 }
 
 export function PaymentConfirmationModal({
@@ -17,7 +18,8 @@ export function PaymentConfirmationModal({
   onClose,
   onConfirm,
   amount,
-  currency
+  currency,
+  isFullRequired
 }: PaymentConfirmationModalProps) {
   if (!isOpen) return null
 
@@ -55,7 +57,11 @@ export function PaymentConfirmationModal({
             <div className="p-4 bg-[var(--clay-faint)] border border-orange-200 rounded-2xl flex gap-3">
               <AlertCircle size={18} className="text-[var(--clay)] flex-shrink-0 mt-0.5" />
               <p className="text-sm leading-relaxed text-[var(--text)]">
-                <strong>Important:</strong> In case of underpayment (paying less than the amount specified), a refund will be issued. Please note that refunds may take some time to process.
+                {isFullRequired ? (
+                  <><strong>Full payment only.</strong> This invoice does not allow partial payments. Ensure the amount above is the complete balance owed before proceeding.</>
+                ) : (
+                  <><strong>Important:</strong> In case of underpayment (paying less than the amount specified), a refund will be issued. Please note that refunds may take some time to process.</>
+                )}
               </p>
             </div>
           </div>

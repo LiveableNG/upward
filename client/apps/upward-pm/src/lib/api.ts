@@ -58,6 +58,9 @@ export const api = {
   cancelPaymentRequest: paymentService.cancelPaymentRequest,
   getPayouts: paymentService.getPayouts,
   getPayoutBreakdown: paymentService.getPayoutBreakdown,
+  getUnresolvedTransactions: paymentService.getUnresolvedTransactions,
+  resolveTransaction: paymentService.resolveTransaction,
+
   
   // Team Collaboration
   inviteTeamMember: pmService.inviteTeamMember,

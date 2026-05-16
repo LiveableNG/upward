@@ -55,6 +55,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     minRequired,
     isBelowMin,
     isValidAmount,
+    isFullPaymentRequired,
+    isUnderpaying,
     currency,
     effectiveAllocs,
     finalLineItemPayments,
@@ -67,6 +69,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     loginLoading,
     executeLogin,
     authUser,
+    isPendingRefund,
   } = usePaymentFlow(uuid)
 
   if (step === 'loading') return <FallbackSuspense message="Retrieving secure payment details..." />
@@ -158,6 +161,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
         finalAmount={parsedAmount}
         currency={currency}
         companyName={paymentData.company.name}
+        isPendingRefund={isPendingRefund}
         onDone={() => router.push('/dashboard')}
       />
     )
@@ -173,10 +177,11 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     const ctaLabel = () => {
       if (parsedAmount === 0) return 'Enter amount to continue'
       if (isBelowMin) return `Minimum is ${formatCurrency(minRequired, currency)}`
+      if (isUnderpaying) return `Full payment required — ${formatCurrency(totalOwed, currency)}`
       return `Pay ${formatCurrency(parsedAmount, currency)} now`
     }
 
-    const ctaDisabled = !isValidAmount
+    const ctaDisabled = !isValidAmount || isUnderpaying
 
     return (
       <div className="auth-shell auth-shell--pay">
@@ -248,6 +253,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                       minRequired={minRequired}
                       onAmountChange={handleAmountChange}
                       isGuest={isGuest && !paymentData.payment.allowPartial}
+                      isFullPaymentRequired={isFullPaymentRequired}
+                      isUnderpaying={isUnderpaying}
                     />
                     <AllocationBreakdown
                       showBreakdown={showBreakdown}
@@ -474,6 +481,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
           isOpen={showPaymentConfirm}
           amount={parsedAmount}
           currency={currency}
+          isFullRequired={isFullPaymentRequired}
           onClose={() => setShowPaymentConfirm(false)}
           onConfirm={() => {
             setShowPaymentConfirm(false)

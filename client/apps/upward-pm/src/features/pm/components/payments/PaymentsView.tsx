@@ -338,7 +338,7 @@ export function PaymentsView() {
           onClick={() => setActiveTab('payouts')}
         >
           <ArrowRightLeft size={18} />
-          Landlord Payouts
+          Manage Payouts
         </button>
       </div>
 
