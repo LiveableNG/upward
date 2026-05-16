@@ -304,16 +304,28 @@ export class PmAuthService extends BaseAuthService {
     }
   }
 
-  async claimAccount(uuid: string, passwordHash: string) {
+  async claimAccount(uuid: string, passwordHash: string, firstName?: string, lastName?: string) {
     const pm = await this.pmRepository.findByUuid(uuid)
     if (!pm) throw new UnauthorizedException('Invitation not found')
 
     const newPasswordHash = await bcrypt.hash(passwordHash, 10)
     
-    await this.pmRepository.save({
+    const updatedData: any = {
         ...pm,
         passwordHash: newPasswordHash
-    } as any)
+    }
+
+    if (firstName) {
+        updatedData.firstName = firstName
+        updatedData.firstNameHash = this.encryption.hash(firstName)
+    }
+
+    if (lastName) {
+        updatedData.lastName = lastName
+        updatedData.lastNameHash = this.encryption.hash(lastName)
+    }
+    
+    await this.pmRepository.save(updatedData)
 
     // Update collaboration status if any
     await (this.prisma as any).upward_pm_team_collaboration.updateMany({

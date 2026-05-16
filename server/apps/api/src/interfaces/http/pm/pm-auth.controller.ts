@@ -185,8 +185,8 @@ export class PmAuthController {
   @HttpCode(HttpStatus.OK)
   async claimAccount(
     @Param('uuid') uuid: string, 
-    @Body() body: { password: string }
+    @Body() body: { password: string; firstName?: string; lastName?: string }
   ) {
-    return this.pmAuthService.claimAccount(uuid, body.password)
+    return this.pmAuthService.claimAccount(uuid, body.password, body.firstName, body.lastName)
   }
 }
