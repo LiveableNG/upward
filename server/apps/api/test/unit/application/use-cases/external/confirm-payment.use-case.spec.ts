@@ -1,6 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { ConfirmExternalPaymentUseCase } from '@application/use-cases/external/confirm-payment.use-case'
-import { IPaymentRequestRepository } from '@domains/payments/payment.repository'
+import { IPaymentRequestRepository, PAYMENT_GATEWAY, IPaymentGateway } from '@domains/payments/payment.repository'
 import { UserRepository } from '@domains/users/user.repository'
 import { RecordTransactionUseCase } from '@application/use-cases/payments/payment.use-cases'
 import { WebhookService } from '@shared/infrastructure/common/webhook/webhook.service'
@@ -62,6 +62,7 @@ describe('ConfirmExternalPaymentUseCase', () => {
   let useCase: ConfirmExternalPaymentUseCase
   let paymentRequestRepository: jest.Mocked<IPaymentRequestRepository>
   let userRepository: jest.Mocked<UserRepository>
+  let paymentGateway: jest.Mocked<IPaymentGateway>
   let recordTransactionUseCase: jest.Mocked<RecordTransactionUseCase>
 
   beforeEach(() => {
@@ -82,6 +83,17 @@ describe('ConfirmExternalPaymentUseCase', () => {
       update: jest.fn(),
     } as any
 
+    paymentGateway = {
+      getBanks: jest.fn(),
+      verifyAccountNumber : jest.fn(),
+      verifyTransaction: jest.fn(),
+      initializeTransaction: jest.fn(),
+      findOrCreateSubaccount: jest.fn(),
+      createCustomer: jest.fn(),
+      createDedicatedAccount: jest.fn(),
+      initiateTransfer: jest.fn()
+    } as any
+
     recordTransactionUseCase = {
       execute: jest.fn(),
     } as any
@@ -89,6 +101,7 @@ describe('ConfirmExternalPaymentUseCase', () => {
     useCase = new ConfirmExternalPaymentUseCase(
       paymentRequestRepository,
       userRepository,
+      paymentGateway,
       recordTransactionUseCase,
     )
   })
