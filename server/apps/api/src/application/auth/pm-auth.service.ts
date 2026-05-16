@@ -310,22 +310,12 @@ export class PmAuthService extends BaseAuthService {
 
     const newPasswordHash = await bcrypt.hash(passwordHash, 10)
     
-    const updatedData: any = {
-        ...pm,
-        passwordHash: newPasswordHash
-    }
+    await this.pmRepository.update(pm.id!, {
+        passwordHash: newPasswordHash,
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+    })
 
-    if (firstName) {
-        updatedData.firstName = firstName
-        updatedData.firstNameHash = this.encryption.hash(firstName)
-    }
-
-    if (lastName) {
-        updatedData.lastName = lastName
-        updatedData.lastNameHash = this.encryption.hash(lastName)
-    }
-    
-    await this.pmRepository.save(updatedData)
 
     // Update collaboration status if any
     await (this.prisma as any).upward_pm_team_collaboration.updateMany({

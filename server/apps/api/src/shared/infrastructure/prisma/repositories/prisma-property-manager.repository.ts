@@ -69,6 +69,10 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
   }
 
   async save(pm: PropertyManager): Promise<PropertyManager> {
+    if (pm.id) {
+      return this.update(pm.id, pm)
+    }
+
     const record = await (this.prisma as any).upward_property_manager.create({
       data: {
         uuid: pm.uuid,
@@ -92,6 +96,7 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
     })
     return this.toDomain(record)
   }
+
 
   async update(id: number, data: Partial<PropertyManager>): Promise<PropertyManager> {
     const updateData: any = {}

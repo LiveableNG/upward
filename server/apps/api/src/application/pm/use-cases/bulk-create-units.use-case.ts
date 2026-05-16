@@ -105,6 +105,8 @@ export class BulkCreateUnitsUseCase {
         status: tenantId ? (u.status || 'OCCUPIED') : 'VACANT',
         tenantId,
         unitType: u.unitType || null,
+        rentReminderEnabled: u.rentReminderEnabled ?? false,
+        rentReminderDaysBefore: u.rentReminderDaysBefore ?? 7,
         isSynced: false,
         userPropertyUuid: null,
       });
