@@ -103,6 +103,9 @@ model upward_pm_unit {
   managementFee    Float                       @default(0)
   notes            String?
   rentType         String                      @default("Monthly")
+  rentReminderEnabled    Boolean                     @default(false)
+  rentReminderDaysBefore Int?                        @db.SmallInt
+
   
   // New fields for rich unit details
   unitType         String?                     // e.g. Office Space, Apartment, Studio

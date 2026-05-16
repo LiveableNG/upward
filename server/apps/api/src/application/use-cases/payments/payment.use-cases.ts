@@ -655,6 +655,22 @@ export class InitializePaymentUseCase {
         subaccountCode: pr.subaccount?.subaccountCode
       })
 
+      if (data.metadata?.lineItems) {
+        await this.prisma.upward_dedicated_virtual_account.update({
+          where: { accountNumber: dva.accountNumber },
+          data: {
+            metadata: {
+              ...(typeof dva.metadata === 'object' && dva.metadata !== null ? dva.metadata : {}),
+              lastPaymentIntent: {
+                amount: requestedTotal,
+                lineItems: data.metadata.lineItems,
+                timestamp: Date.now()
+              }
+            }
+          }
+        })
+      }
+
       return {
         type: 'DVA',
         amount: requestedTotal,
@@ -958,6 +974,41 @@ export class ProcessPaymentWebhookUseCase {
       settlementStatus = 'PENDING_REFUND'
     }
 
+    // 1. Check for stored payment intent in DVA metadata
+    let lineItemPayments: any[] | undefined = undefined
+    let upwardFeeAmount = 0
+    if (dva.metadata && typeof dva.metadata === 'object' && 'lastPaymentIntent' in (dva.metadata as any)) {
+      const intent = (dva.metadata as any).lastPaymentIntent
+      // If the intent is fresh (e.g. < 48 hours) and amount matches exactly
+      if (intent && intent.amount === amountPaid && (Date.now() - intent.timestamp < 48 * 60 * 60 * 1000)) {
+        lineItemPayments = intent.lineItems
+        this.logger.log(`Found matching payment intent for DVA transfer. Using manual allocations.`)
+        
+        // Extract fee if specified
+        const feeItem = lineItemPayments?.find(lp => lp.name === 'Processing Fee')
+        if (feeItem) {
+          upwardFeeAmount = Number(feeItem.amount || feeItem.amountPaid || 0)
+        }
+        
+        // Map amount to amountPaid for distribute-allocations compatibility
+        lineItemPayments = lineItemPayments?.map(lp => ({
+          ...lp,
+          amountPaid: Number(lp.amount || lp.amountPaid || 0)
+        }))
+
+        // Clear the intent so it's not reused
+        await this.prisma.upward_dedicated_virtual_account.update({
+          where: { id: dva.id },
+          data: {
+            metadata: {
+              ...((dva.metadata as any) || {}),
+              lastPaymentIntent: null
+            }
+          }
+        })
+      }
+    }
+
     // Record Transaction with the determined settlement status
     const result = await this.recordTransaction.execute({
       userId: pr.user.uuid,
@@ -968,7 +1019,8 @@ export class ProcessPaymentWebhookUseCase {
       status: 'SUCCESS',
       paymentRequestId: pr.id,
       narration: `Bank Transfer to ${dva.accountNumber} (${dva.bankName})`,
-      settlementStatus
+      settlementStatus,
+      lineItemPayments
     })
 
     // Trigger Alerts if it's an underpayment

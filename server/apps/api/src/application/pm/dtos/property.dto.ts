@@ -157,7 +157,16 @@ export class UnitImportDto {
   @IsString()
   @IsOptional()
   unitType?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  rentReminderEnabled?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  rentReminderDaysBefore?: number;
 }
+
 
 export class BulkCreateUnitsDto {
   @IsString()
@@ -267,7 +276,16 @@ export class FullImportRowDto {
   @IsString()
   @IsOptional()
   unitType?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  unitRentReminderEnabled?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  unitRentReminderDaysBefore?: number;
 }
+
 
 export class BulkFullImportDto {
   @IsArray()

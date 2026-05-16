@@ -31,8 +31,11 @@ export class UpdateUnitUseCase {
             currency: updatedUnit.currency,
             rentStartDate: updatedUnit.rentStartDate || undefined,
             rentEndDate: updatedUnit.rentDueDate || undefined,
+            rentReminderEnabled: updatedUnit.rentReminderEnabled,
+            rentReminderDaysBefore: updatedUnit.rentReminderDaysBefore,
           }
         });
+
       } catch (error) {
         console.error(`Failed to sync unit update for ${uuid}:`, error);
       }

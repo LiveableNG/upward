@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { X, Building2, CreditCard, Home, Settings } from 'lucide-react'
+import { X, Building2, CreditCard, Home, Settings, Bell } from 'lucide-react'
 import { Unit } from '../../../services/propertyService'
 import { useForm } from 'react-hook-form'
 
@@ -14,7 +14,7 @@ interface EditUnitModalProps {
 export const EditUnitModal: React.FC<EditUnitModalProps> = ({
   isOpen, onClose, unit, onSave, isPending
 }) => {
-  const { register, handleSubmit, reset } = useForm({
+  const { register, handleSubmit, reset, watch } = useForm({
     defaultValues: {
       unitName: unit.unitName || '',
       unitType: unit.unitType || '',
@@ -22,8 +22,13 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
       currency: unit.currency || 'NGN',
       rentAmount: unit.rentAmount || 0,
       managementFee: unit.managementFee || 0,
+      rentReminderEnabled: unit.rentReminderEnabled || false,
+      rentReminderDaysBefore: unit.rentReminderDaysBefore || 7,
     }
   })
+
+  const isReminderEnabled = watch('rentReminderEnabled')
+
 
   useEffect(() => {
     if (unit && isOpen) {
@@ -34,7 +39,10 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
         currency: unit.currency || 'NGN',
         rentAmount: unit.rentAmount || 0,
         managementFee: unit.managementFee || 0,
+        rentReminderEnabled: unit.rentReminderEnabled || false,
+        rentReminderDaysBefore: unit.rentReminderDaysBefore || 7,
       })
+
     }
   }, [unit, isOpen, reset])
 
@@ -126,6 +134,65 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
             <div className="form-group">
               <label className="form-label">Management Fee (₦)</label>
               <input type="number" {...register('managementFee')} className="form-input" placeholder="e.g. 150000" />
+            </div>
+          </div>
+
+          <div className="glass" style={{ padding: 24, borderRadius: 16, background: 'var(--ivory-faint)', marginBottom: 32 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--forest-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Bell size={16} color="var(--forest)" />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>Rent Reminders</h4>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Automatically notify tenant before rent expires</p>
+                </div>
+              </div>
+              <div className="toggle-switch">
+                <input 
+                  type="checkbox" 
+                  id="rentReminderEnabled"
+                  {...register('rentReminderEnabled')}
+                  style={{ display: 'none' }}
+                />
+                <label 
+                  htmlFor="rentReminderEnabled"
+                  style={{
+                    width: 44,
+                    height: 22,
+                    background: isReminderEnabled ? 'var(--forest)' : '#ccc',
+                    borderRadius: 11,
+                    display: 'block',
+                    position: 'relative',
+                    cursor: 'pointer',
+                    transition: '0.3s'
+                  }}
+                >
+                  <div style={{
+                    width: 18,
+                    height: 18,
+                    background: 'white',
+                    borderRadius: '50%',
+                    position: 'absolute',
+                    top: 2,
+                    left: isReminderEnabled ? 24 : 2,
+                    transition: '0.3s'
+                  }} />
+                </label>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Send reminder</span>
+              <input 
+                type="number" 
+                {...register('rentReminderDaysBefore')} 
+                className="form-input" 
+                style={{ width: 60, textAlign: 'center' }}
+                min="1"
+                max="30"
+              />
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>days before rent is due.</span>
             </div>
           </div>
 
