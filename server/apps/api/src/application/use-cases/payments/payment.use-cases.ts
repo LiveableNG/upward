@@ -718,14 +718,16 @@ export class InitializePaymentUseCase {
       appliedCredit,
       description: data.metadata?.description || pr?.description || 'Property Payment'
     }
+    this.logger.log(`From intialize lineitems: ${metadata}` )
 
     const initialization = await this.gateway.initializeTransaction({
       email: user.email!,
-      amount: Math.round(finalAmountToPay * 100), // Paystack expects kobo/cents
+      amount: Math.round(finalAmountToPay * 100), 
       reference: `PAY-${randomUUID()}`,
       subaccount: pr?.subaccount?.subaccountCode,
       metadata
     })
+
 
     return {
       type: 'PAYSTACK',
@@ -786,7 +788,6 @@ export class ProcessPaymentWebhookUseCase {
       }
     }
 
-    // Handle Standard Charge Success
     if (payload.event === 'charge.success') {
       const { reference, amount, currency } = payload.data
       let metadata = payload.data.metadata
@@ -852,6 +853,8 @@ export class ProcessPaymentWebhookUseCase {
       }
 
       const effectiveUserId = userUuid || userId
+
+      this.logger.log(`Lineitems ${metadata?.lineItems}`)
 
       return this.recordTransaction.execute({
         userId: String(effectiveUserId),
