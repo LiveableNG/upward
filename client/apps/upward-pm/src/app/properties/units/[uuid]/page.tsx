@@ -668,7 +668,7 @@ function UnitDetailContent() {
                         <td style={{ padding: '20px 24px', fontSize: 14, fontWeight: 500, color: 'var(--dark)' }}>
                           {row.tenant 
                             ? `${row.tenant.firstName} ${row.tenant.lastName}`
-                            : row.notes && row.notes !== 'Bulk Import' && row.notes !== 'Manual Entry'
+                            : (row.notes && !['Bulk Import', 'Manual Entry', 'Imported initial payment'].some(note => row.notes.includes(note)) && !row.notes.includes('Rent Portion'))
                               ? row.notes
                               : unit?.tenant
                                 ? `${unit.tenant.firstName} ${unit.tenant.lastName}`
@@ -816,6 +816,7 @@ function UnitDetailContent() {
           isOpen={isRequestModalOpen}
           onClose={() => setIsRequestModalOpen(false)}
           unit={unit}
+          payments={payments}
           existingRequest={selectedRequestForEdit}
           onProceedToEditor={handleProceedToEditor}
         />
