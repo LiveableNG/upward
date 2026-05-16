@@ -1,13 +1,14 @@
 'use client'
 
 import React from 'react'
-import { Check, ChevronRight } from 'lucide-react'
+import { Check, AlertTriangle, ChevronRight } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
 interface SuccessStepProps {
   finalAmount: number
   currency: string
   companyName: string
+  isPendingRefund?: boolean
   onDone: () => void
 }
 
@@ -15,31 +16,49 @@ export function SuccessStep({
   finalAmount,
   currency,
   companyName,
+  isPendingRefund,
   onDone
 }: SuccessStepProps) {
   return (
-    <div className="pay-success-view">
+    <div className={`pay-success-view ${isPendingRefund ? 'is-warning' : ''}`}>
       <div className="pay-success-card">
-        <div className="pay-success-icon">
-          <Check size={40} strokeWidth={3} />
-        </div>
-        <h1 className="pay-success-title">Payment Success!</h1>
-        <p className="pay-success-text">
-          Your payment to <strong>{companyName}</strong> has been successfully processed and recorded.
-        </p>
+        {isPendingRefund ? (
+          <>
+            <div className="pay-success-icon is-warning animate-pulse">
+              <AlertTriangle size={36} strokeWidth={2.5} />
+            </div>
+            <h1 className="pay-success-title is-warning">Review Pending</h1>
+            <p className="pay-success-text">
+              We detected a payment to <strong>{companyName}</strong>, but it is below the required invoice amount. Since this invoice requires full payment, your Property Manager will decide whether to accept this amount or issue a refund.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="pay-success-icon">
+              <Check size={40} strokeWidth={3} />
+            </div>
+            <h1 className="pay-success-title">Payment Success!</h1>
+            <p className="pay-success-text">
+              Your payment to <strong>{companyName}</strong> has been successfully processed and recorded.
+            </p>
+          </>
+        )}
 
         <div className="pay-receipt">
           <div className="pay-receipt-row is-total">
-            <span className="pay-receipt-label">Amount paid</span>
+            <span className="pay-receipt-label">
+              {isPendingRefund ? 'Amount Detected' : 'Amount paid'}
+            </span>
             <span className="pay-receipt-value">{formatCurrency(finalAmount, currency)}</span>
           </div>
         </div>
 
-        <button className="pay-done-btn" onClick={onDone}>
+        <button className={`pay-done-btn ${isPendingRefund ? 'is-warning' : ''}`} onClick={onDone}>
           <span>Go to Dashboard</span>
           <ChevronRight size={18} />
         </button>
       </div>
+
 
       <style jsx>{`
         .pay-success-view {
@@ -174,6 +193,23 @@ export function SuccessStep({
         .pay-done-btn:active {
           transform: scale(0.98);
         }
+
+        /* Warning Overrides */
+        .pay-success-icon.is-warning {
+          background: #d97706;
+          box-shadow: 0 12px 32px rgba(217, 119, 87, 0.25);
+        }
+        .pay-success-title.is-warning {
+          color: #d97706;
+        }
+        .pay-done-btn.is-warning {
+          background: #d97706;
+          box-shadow: 0 12px 28px rgba(217, 119, 87, 0.2);
+        }
+        .pay-done-btn.is-warning:hover {
+          box-shadow: 0 20px 48px rgba(217, 119, 87, 0.35);
+        }
+
       `}</style>
     </div>
   )

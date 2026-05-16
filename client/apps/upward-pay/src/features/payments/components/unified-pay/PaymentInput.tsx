@@ -1,6 +1,6 @@
 'use client'
 
-import { Info, AlertCircle, Check } from 'lucide-react'
+import { Info, AlertCircle, Check, Lock } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
 interface PaymentInputProps {
@@ -12,6 +12,8 @@ interface PaymentInputProps {
   minRequired: number
   onAmountChange: (val: string) => void
   isGuest?: boolean
+  isFullPaymentRequired?: boolean
+  isUnderpaying?: boolean
 }
 
 export function PaymentInput({
@@ -22,7 +24,9 @@ export function PaymentInput({
   totalOwed,
   minRequired,
   onAmountChange,
-  isGuest
+  isGuest,
+  isFullPaymentRequired,
+  isUnderpaying
 }: PaymentInputProps) {
   const amountNum = parseFloat(amountInput) || 0
 
@@ -67,20 +71,34 @@ export function PaymentInput({
           </div>
         )}
 
-        {!isBelowMin && amountNum > 0 && amountNum < totalOwed && (
+        {!isBelowMin && !isUnderpaying && amountNum > 0 && amountNum < totalOwed && (
           <div className="pay-input-feedback">
             <Info size={14} />
             <span>Balance after payment: {formatCurrency(totalOwed - amountNum, currency)}</span>
           </div>
         )}
 
-        {!isBelowMin && amountNum === totalOwed && (
+        {!isBelowMin && !isUnderpaying && amountNum === totalOwed && (
           <div className="pay-input-feedback is-success">
             <Check size={14} />
             <span>Paying in full</span>
           </div>
         )}
       </div>
+
+      {isUnderpaying && (
+        <div className="pay-fullonly-blocker">
+          <div className="pay-fullonly-blocker__icon-wrap">
+            <Lock size={16} />
+          </div>
+          <div className="pay-fullonly-blocker__content">
+            <span className="pay-fullonly-blocker__title">Full Payment Required</span>
+            <span className="pay-fullonly-blocker__text">
+              This invoice does not allow partial payments. You must pay the full {formatCurrency(totalOwed, currency)} to proceed. Any underpayment will be automatically refunded.
+            </span>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .pay-input-section {
@@ -188,6 +206,46 @@ export function PaymentInput({
         }
         .pay-input-feedback.is-error { color: var(--error); }
         .pay-input-feedback.is-success { color: var(--clay); }
+
+        .pay-fullonly-blocker {
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
+          margin-top: 16px;
+          padding: 16px 18px;
+          background: rgba(239, 68, 68, 0.04);
+          border: 1.5px solid var(--error);
+          border-radius: 18px;
+        }
+        .pay-fullonly-blocker__icon-wrap {
+          flex-shrink: 0;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: rgba(239, 68, 68, 0.1);
+          color: var(--error);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .pay-fullonly-blocker__content {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .pay-fullonly-blocker__title {
+          font-size: 12px;
+          font-weight: 850;
+          color: var(--error);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+        .pay-fullonly-blocker__text {
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--text-secondary);
+          line-height: 1.5;
+        }
 
         .pay-overpay-confirm {
           margin-top: 24px;

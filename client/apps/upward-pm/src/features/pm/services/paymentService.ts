@@ -92,3 +92,14 @@ export const getPayouts = () => {
 export const getPayoutBreakdown = (uuid: string) => {
   return request<any>(`/pm/payouts/batch/${uuid}`)
 }
+
+export const getUnresolvedTransactions = () => {
+  return request<any[]>('/pm/payments/unresolved')
+}
+
+export const resolveTransaction = (uuid: string, action: 'REFUND' | 'ACCEPT') => {
+  return request<{ success: boolean; message: string }>(`/pm/payments/unresolved/${uuid}/resolve`, {
+    method: 'POST',
+    body: JSON.stringify({ action })
+  })
+}

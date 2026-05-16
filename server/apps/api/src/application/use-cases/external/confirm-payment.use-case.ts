@@ -73,7 +73,8 @@ export class ConfirmExternalPaymentUseCase {
       return {
         success: true,
         transactionUuid: transaction.uuid,
-        status: updatedPR?.status || 'PAID'
+        status: updatedPR?.status || 'PAID',
+        settlementStatus: transaction.settlementStatus
       }
     } else {
       throw new BadRequestException('Payment verification failed or returned non-success status')

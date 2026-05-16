@@ -10,12 +10,191 @@ import {
   ChevronRight,
   Home,
   User,
-  ArrowRight
+  ArrowRight,
+  AlertCircle,
+  RotateCcw,
+  Check
 } from 'lucide-react'
-import { usePayouts, usePayoutBreakdown } from '../../hooks/usePayments'
+import { usePayouts, usePayoutBreakdown, useUnresolvedTransactions, useResolveTransaction } from '../../hooks/usePayments'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { Spinner } from '@/components/common/Spinner'
+import { useToast } from '@/components/common/Toast'
+
+function PendingResolutionsList() {
+  const { data: unresolved, isLoading } = useUnresolvedTransactions()
+  const resolveMutation = useResolveTransaction()
+  const { success, error } = useToast()
+
+  if (isLoading) return null
+  if (!unresolved || unresolved.length === 0) return null
+
+  const handleResolve = (uuid: string, action: 'REFUND' | 'ACCEPT') => {
+    resolveMutation.mutate({ uuid, action }, {
+      onSuccess: (res) => {
+        success(res.message || `Successfully processed ${action.toLowerCase()}`)
+      },
+      onError: (err: any) => {
+        error(err.message || `Failed to process ${action.toLowerCase()}`)
+      }
+    })
+  }
+
+  return (
+    <div className="pending-resolutions">
+      <div className="section-header">
+        <AlertCircle size={18} color="var(--error)" />
+        <h3>Payments Pending Resolution</h3>
+      </div>
+      <p className="section-desc">
+        The following payments are underpaid, duplicate, or failed our automated validation rules. You can manually refund the tenant or accept the payment.
+      </p>
+
+      <div className="resolutions-grid">
+        {unresolved.map((tx: any) => (
+          <div key={tx.id} className="resolution-card">
+            <div className="resolution-card__main">
+              <div className="resolution-card__tenant">
+                <span className="tenant-name">{tx.user?.firstName} {tx.user?.lastName}</span>
+                <span className="tenant-email">{tx.user?.email}</span>
+              </div>
+              <div className="resolution-card__property">
+                <strong>Property:</strong> {tx.paymentRequest?.userProperty?.location?.address || 'N/A'} • Unit {tx.paymentRequest?.userProperty?.pmUnit?.unitName || 'N/A'}
+              </div>
+              <div className="resolution-card__amount">
+                <span className="amount-paid">Paid: ₦{tx.amount.toLocaleString()}</span>
+                {tx.paymentRequest && (
+                  <span className="amount-owed">Owed: ₦{tx.paymentRequest.amount.toLocaleString()}</span>
+                )}
+              </div>
+              <div className="resolution-card__reason">
+                <span className="reason-badge">
+                  {tx.paymentRequest ? 'Underpayment / Validation Conflict' : 'Duplicate Payment'}
+                </span>
+              </div>
+            </div>
+            
+            <div className="resolution-card__actions">
+              <button 
+                className="btn btn--secondary btn--sm" 
+                onClick={() => handleResolve(tx.uuid, 'REFUND')}
+                disabled={resolveMutation.isPending}
+                style={{ borderColor: 'var(--error-faint)', color: 'var(--error)' }}
+              >
+                <RotateCcw size={14} style={{ marginRight: 6 }} />
+                Refund Tenant
+              </button>
+              <button 
+                className="btn btn--primary btn--sm" 
+                onClick={() => handleResolve(tx.uuid, 'ACCEPT')}
+                disabled={resolveMutation.isPending}
+              >
+                <Check size={14} style={{ marginRight: 6 }} />
+                Accept Payment
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <style jsx>{`
+        .pending-resolutions {
+          background: var(--bg-soft);
+          border: 1px dashed var(--error);
+          padding: 20px;
+          border-radius: 12px;
+          margin-bottom: 30px;
+        }
+        .section-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 6px;
+        }
+        .section-header h3 {
+          font-size: 15px;
+          font-weight: 700;
+          color: var(--text);
+          margin: 0;
+        }
+        .section-desc {
+          font-size: 12px;
+          color: var(--text-muted);
+          margin-bottom: 20px;
+          line-height: 1.5;
+        }
+        .resolutions-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .resolution-card {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 16px;
+          background: white;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .resolution-card__main {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .resolution-card__tenant {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .tenant-name {
+          font-weight: 700;
+          font-size: 14px;
+          color: var(--text);
+        }
+        .tenant-email {
+          font-size: 12px;
+          color: var(--text-muted);
+        }
+        .resolution-card__property {
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+        .resolution-card__amount {
+          display: flex;
+          gap: 12px;
+          font-size: 13px;
+        }
+        .amount-paid {
+          font-weight: 600;
+          color: var(--text);
+        }
+        .amount-owed {
+          color: var(--text-muted);
+          text-decoration: line-through;
+        }
+        .resolution-card__reason {
+          margin-top: 4px;
+        }
+        .reason-badge {
+          display: inline-block;
+          padding: 2px 8px;
+          background: var(--error-faint);
+          color: var(--error);
+          font-size: 11px;
+          font-weight: 600;
+          border-radius: 4px;
+        }
+        .resolution-card__actions {
+          display: flex;
+          gap: 8px;
+        }
+      `}</style>
+    </div>
+  )
+}
+
 
 export function PayoutsList() {
   const { data: payouts, isLoading } = usePayouts()
@@ -92,6 +271,8 @@ export function PayoutsList() {
 
   return (
     <div className="payouts-list">
+      <PendingResolutionsList />
+      
       <DataTable
         columns={columns}
         data={payouts || []}
@@ -122,6 +303,7 @@ export function PayoutsList() {
     </div>
   )
 }
+
 
 function PayoutBreakdownModal({ uuid, onClose }: { uuid: string, onClose: () => void }) {
   const { data: batch, isLoading } = usePayoutBreakdown(uuid)

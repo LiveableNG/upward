@@ -36,7 +36,8 @@ import { UpdateTeamMemberPermissionsUseCase } from '../../../application/pm/use-
 import { RevokeTeamMemberUseCase } from '../../../application/pm/use-cases/team/revoke-team-member.use-case';
 import { BulkAddRentHistoryUseCase } from '../../../application/pm/use-cases/bulk-add-rent-history.use-case';
 import { GetPmLandlordsUseCase } from '../../../application/pm/use-cases/landlord/get-pm-landlords.use-case';
-import { GetPmPayoutsUseCase, GetPayoutBreakdownUseCase } from '../../../application/use-cases/payments/payment.use-cases';
+import { GetPmPayoutsUseCase, GetPayoutBreakdownUseCase, GetPmUnresolvedTransactionsUseCase } from '../../../application/use-cases/payments/payment.use-cases';
+import { ResolvePendingRefundUseCase, RefundResolutionAction } from '../../../application/pm/use-cases/payments/resolve-refund.use-case';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 import { Inject, UnauthorizedException, Delete } from '@nestjs/common';
 
@@ -79,6 +80,8 @@ export class PmPropertyController {
     private readonly getPmLandlordsUseCase: GetPmLandlordsUseCase,
     private readonly getPmPayoutsUseCase: GetPmPayoutsUseCase,
     private readonly getPayoutBreakdownUseCase: GetPayoutBreakdownUseCase,
+    private readonly getPmUnresolvedTransactionsUseCase: GetPmUnresolvedTransactionsUseCase,
+    private readonly resolvePendingRefundUseCase: ResolvePendingRefundUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -275,6 +278,22 @@ export class PmPropertyController {
   @Get('payouts/batch/:uuid')
   async getPayoutBreakdown(@Req() req: any, @Param('uuid') uuid: string) {
     return this.getPayoutBreakdownUseCase.execute(uuid);
+  }
+
+  @Get('payments/unresolved')
+  async getUnresolvedTransactions(@Req() req: any) {
+    const pmId = await this.getPmId(req);
+    return this.getPmUnresolvedTransactionsUseCase.execute(pmId);
+  }
+
+  @Post('payments/unresolved/:uuid/resolve')
+  async resolveTransaction(
+    @Req() req: any, 
+    @Param('uuid') uuid: string, 
+    @Body() body: { action: RefundResolutionAction }
+  ) {
+    const pmId = await this.getPmId(req);
+    return this.resolvePendingRefundUseCase.execute(pmId, uuid, body.action);
   }
 
   @Post('team/invite')

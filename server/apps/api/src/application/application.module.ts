@@ -127,6 +127,7 @@ import { GetPmPaymentRequestUseCase } from './pm/use-cases/payments/get-pm-payme
 import { ResendPmPaymentRequestUseCase } from './pm/use-cases/payments/resend-pm-payment-request.use-case'
 import { UpdatePmPaymentRequestUseCase } from './pm/use-cases/payments/update-pm-payment-request.use-case'
 import { CancelPmPaymentRequestUseCase } from './pm/use-cases/payments/cancel-pm-payment-request.use-case'
+import { ResolvePendingRefundUseCase } from './pm/use-cases/payments/resolve-refund.use-case'
 import { GetPmDocumentsUseCase } from './pm/use-cases/documents/get-pm-documents.use-case'
 import { SaveDocumentTemplateUseCase } from './pm/use-cases/documents/save-document-template.use-case'
 import { SendDocumentUseCase } from './pm/use-cases/documents/send-document.use-case'
@@ -197,6 +198,7 @@ import {
   GetPmPayoutsUseCase,
   GetBankDetailsUseCase,
   SaveBankDetailsUseCase,
+  GetPmUnresolvedTransactionsUseCase,
 } from './use-cases/payments/payment.use-cases'
 import { VerifyGatewayTransactionUseCase } from './use-cases/payments/verify-transaction.use-case'
 import { DistributePaymentAllocationsUseCase } from './use-cases/payments/distribute-allocations.use-case'
@@ -317,9 +319,10 @@ const UseCases = [
   InitializePaymentUseCase,
   ProcessPaymentWebhookUseCase,
   ResolveDedicatedAccountUseCase,
-  GetLandlordPayoutsUseCase,
   GetPayoutBreakdownUseCase,
   GetPmPayoutsUseCase,
+  GetPmUnresolvedTransactionsUseCase,
+  ResolvePendingRefundUseCase,
   GetBankDetailsUseCase,
   SaveBankDetailsUseCase,
 
@@ -405,7 +408,8 @@ const UseCases = [
   SettlePropertyBalanceUseCase,
   HandlePaymentOverpaymentUseCase,
   ProcessHourlySettlementsUseCase,
-
+  ResolvePendingRefundUseCase,
+  GetPmUnresolvedTransactionsUseCase,
   RejectCredibilityRequestUseCase,
   VerifyPmEmailUseCase,
   ConfirmPmConnectionUseCase,
