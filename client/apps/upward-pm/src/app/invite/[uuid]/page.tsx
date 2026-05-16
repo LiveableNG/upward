@@ -19,6 +19,9 @@ export default function ClaimAccountPage() {
   const [loading, setLoading] = useState(true)
   const [claiming, setClaiming] = useState(false)
   const [userData, setUserData] = useState<any>(null)
+  
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
@@ -27,6 +30,8 @@ export default function ClaimAccountPage() {
       try {
         const res = await request<any>(`/pm/auth/invite-details/${uuid}`)
         setUserData(res)
+        setFirstName(res.firstName || '')
+        setLastName(res.lastName || '')
       } catch (err) {
         error("Invalid or expired invitation link.")
       } finally {
@@ -45,7 +50,7 @@ export default function ClaimAccountPage() {
     try {
       await request(`/pm/auth/claim-account/${uuid}`, {
         method: 'POST',
-        body: JSON.stringify({ password })
+        body: JSON.stringify({ password, firstName, lastName })
       })
       success("Account claimed successfully! Welcome to Upward.")
       router.push('/login')
@@ -83,11 +88,40 @@ export default function ClaimAccountPage() {
   return (
     <AuthLayout 
       title="Welcome to the Team!"
-      subtitle={`Hello ${userData.firstName || 'there'}, let's get your account ready by setting a password.`}
+      subtitle={`Hello ${firstName || 'there'}, let's get your account ready by confirming your details.`}
       visualTitle={<>Join the <br /><span className="text-gradient">future</span> of management.</>}
       visualDesc="You've been invited to join a high-performance team on Upward. Set up your access to start managing properties efficiently."
     >
       <form onSubmit={handleClaim} className="space-y-6">
+        <div className="grid-2">
+          <div className="form-group">
+              <label className="form-label">First Name</label>
+              <div className="input-wrapper">
+                  <input 
+                      type="text" 
+                      required
+                      placeholder="Your first name"
+                      value={firstName}
+                      onChange={e => setFirstName(e.target.value)}
+                      className="form-input"
+                  />
+              </div>
+          </div>
+          <div className="form-group">
+              <label className="form-label">Last Name</label>
+              <div className="input-wrapper">
+                  <input 
+                      type="text" 
+                      required
+                      placeholder="Your last name"
+                      value={lastName}
+                      onChange={e => setLastName(e.target.value)}
+                      className="form-input"
+                  />
+              </div>
+          </div>
+        </div>
+
         <div className="form-group">
             <label className="form-label">Create Password</label>
             <div className="input-wrapper">
@@ -128,13 +162,15 @@ export default function ClaimAccountPage() {
         </button>
       </form>
 
-      <div className="mt-8 pt-8 border-t border-[var(--border)] flex items-center gap-4">
-        <div className="w-10 h-10 rounded-full bg-[var(--ivory-dim)] flex items-center justify-center text-[var(--text-muted)] border border-[var(--border)]">
-            <Mail size={18} />
-        </div>
-        <div className="text-sm">
-            <div className="text-[var(--text-muted)]">Registered Email</div>
-            <div className="font-bold text-[var(--dark)]">{userData.email}</div>
+      <div className="auth-info-section">
+        <div className="auth-info-card">
+            <div className="auth-info-card__icon">
+                <Mail size={20} />
+            </div>
+            <div>
+                <div className="auth-info-card__label">Registered Email</div>
+                <div className="auth-info-card__value text-sm font-semibold text-[var(--dark)]">{userData.email}</div>
+            </div>
         </div>
       </div>
 

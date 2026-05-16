@@ -610,6 +610,58 @@
   }
 }
 
-@media (max-width: 480px) {
-  /* Mobile specific adjustments */
+/* ── Utility Classes ── */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.auth-info-section {
+  margin-top: 32px;
+  padding-top: 32px;
+  border-top: 1px solid var(--ivory-dark);
+}
+
+.auth-info-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--ivory-dim);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+}
+
+.auth-info-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--forest);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.auth-info-card__label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.auth-info-card__value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--dark);
 }
