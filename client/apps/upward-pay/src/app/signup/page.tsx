@@ -137,7 +137,7 @@ export default function SignupPage() {
           <h1>The new standard of renting.</h1>
           <p>
             Build your credit score, earn rewards for on-time payments, and 
-            verify your tenancy history effortlessly with Good Tenant.
+            verify your tenancy history effortlessly with Upward.
           </p>
         </div>
       </div>

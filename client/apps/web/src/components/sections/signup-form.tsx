@@ -279,7 +279,7 @@ export function SignupForm({
       const result = await res.json()
 
       setDone(true)
-      showToast(result.message || "You're on the list! Welcome to Upward")
+      showToast(result.message || "Welcome to Upward!")
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Submission failed. Please try again.'
       showToast(message, true)
@@ -453,7 +453,7 @@ export function SignupForm({
 
   const handleShare = async () => {
     const shareData = {
-      title: 'Upward by GoodTenants',
+      title: 'Upward',
       text: 'I just signed up for Upward! Build your rental credibility and own your home.',
       url: window.location.origin,
     }
@@ -555,9 +555,9 @@ export function SignupForm({
                 margin: '0 auto 24px',
               }}
             >
-              We'll send your invite to the email you provided. Be on the lookout — your journey
-              begins now.
-            </p>
+              Welcome to the community! We'll send your access details to the email you
+            provided. Be on the lookout — your journey begins now.
+          </p>
             <button
               style={{
                 background: 'var(--accent)',
@@ -1277,7 +1277,7 @@ export function SignupForm({
                   Almost There!
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '32px' }}>
-                  One important step before we confirm your spot.
+                  One important step before we confirm your access.
                 </div>
 
                 {(['news', 'ambassador'] as const).map((key) => (
@@ -1329,8 +1329,8 @@ export function SignupForm({
                       {key === 'news' ? (
                         <>
                           <strong style={{ color: 'var(--text)' }}>Yes, keep me informed!</strong> I
-                          agree to receive important updates, launch news, and exclusive
-                          early-access information from Upward by GoodTenants. (Required to get started.)
+                          agree to receive important updates, platform news, and exclusive
+                          information from Upward. (Required to get started.)
                         </>
                       ) : (
                         <>
@@ -1560,7 +1560,7 @@ export function SignupForm({
                       of 5
                     </span>
                     <PrimaryBtn onClick={submit} loading={loading}>
-                      Confirm My Spot ✓
+                      Get Started ✓
                     </PrimaryBtn>
                   </div>
                 </div>
