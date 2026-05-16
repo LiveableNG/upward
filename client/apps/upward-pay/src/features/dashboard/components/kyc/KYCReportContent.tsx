@@ -171,7 +171,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
               {isVerified ? (
                 <>
                   <ShieldCheck size={13} color="var(--success)" />
-                  Verified Tenant
+                  Verified Score
                 </>
               ) : (
                 <>
@@ -302,8 +302,10 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                           <div>
                             <p className="kyc-report__timeline-title">Performance: {t.status}</p>
                             <p className="kyc-report__timeline-sub">
-                              Cycle Ended: {new Date(t.dueDate).toLocaleDateString()}
+                              Cycle Ended: {new Date(t.dueDate).toLocaleDateString()} 
+                              {t.paidDate && ` · Paid: ${new Date(t.paidDate).toLocaleDateString()}`}
                             </p>
+
                           </div>
                           <span className={`${t.ptValue >= 1 ? 'status-tag--perfect' : t.ptValue >= 0.7 ? 'status-tag--grace' : 'status-tag--late'} kyc-report__status-tag`}>
                              {(() => {

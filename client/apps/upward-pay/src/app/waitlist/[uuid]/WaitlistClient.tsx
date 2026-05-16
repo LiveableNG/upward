@@ -18,6 +18,7 @@ import { UpwardLogo } from '@/components/PoweredByUpward'
 import { OnboardingFields } from '@/features/auth/components/OnboardingFields'
 import { useAuth } from '@/features/auth/AuthContext'
 import { setAccessToken } from '@/lib/auth-token'
+import { PasswordStrengthMeter } from '@/features/auth/component/signup/PasswordStrengthMeter'
 
 export default function WaitlistClient() {
   const params = useParams()
@@ -181,7 +182,11 @@ export default function WaitlistClient() {
                       placeholder="Min. 8 characters"
                     />
                   </div>
+                  {formData.password.length > 0 && (
+                    <PasswordStrengthMeter password={formData.password} />
+                  )}
                 </div>
+
 
                 <div className="auth-form__field mt-4">
                   <label>Confirm Password</label>
@@ -209,7 +214,16 @@ export default function WaitlistClient() {
                   <p>Your data is protected and encrypted.</p>
                 </div>
 
-                <button className="btn btn--primary btn--full btn--pay mt-8" type="submit" disabled={isSubmitting}>
+                <button 
+                  className="btn btn--primary btn--full btn--pay mt-8" 
+                  type="submit" 
+                  disabled={
+                    isSubmitting || 
+                    !formData.password || 
+                    !(/.{8,}/.test(formData.password) && /[A-Z]/.test(formData.password) && /[0-9!@#$%^&*(),.?":{}|<> ]/.test(formData.password)) ||
+                    formData.password !== formData.confirmPassword
+                  }
+                >
                   {isSubmitting ? 'Claiming…' : 'Claim Account'}
                   {!isSubmitting && <ArrowRight size={17} />}
                 </button>

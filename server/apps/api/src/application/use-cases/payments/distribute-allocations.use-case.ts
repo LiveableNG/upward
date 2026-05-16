@@ -80,9 +80,11 @@ export class DistributePaymentAllocationsUseCase {
         const isFee = lp.name === 'Processing Fee' || 
                      (item && ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name))
         
+        const lpAmount = Number(lp.amountPaid || lp.amount || 0)
+        
         // Cap by item's need to prevent overpayment of one item at the expense of others
-        const itemNeed = item ? Math.max(0, item.totalAmount - item.amountPaid) : (isFee ? lp.amountPaid : Infinity)
-        const paymentToItem = Math.min(remainingPayment, lp.amountPaid, itemNeed)
+        const itemNeed = item ? Math.max(0, item.totalAmount - item.amountPaid) : (isFee ? lpAmount : Infinity)
+        const paymentToItem = Math.min(remainingPayment, lpAmount, itemNeed)
 
         if (paymentToItem > 0) {
           if (item) {

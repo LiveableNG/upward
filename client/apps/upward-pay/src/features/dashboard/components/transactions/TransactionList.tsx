@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { TransactionSkeleton } from './TransactionSkeleton'
 import { useDashboard } from '../../hooks/useDashboard'
-import { formatCurrency, groupTransactionsByDate, formatTime } from '@/lib/utils'
+import { formatCurrency, groupTransactionsByDate, formatTime, formatDate } from '@/lib/utils'
 import { type CompletedPayment } from '../../types'
 
 export function TransactionList() {
@@ -140,8 +140,9 @@ export function TransactionList() {
                           )}
                           <div className="transaction-item__meta">
                             <span className="transaction-item__channel">
-                              {tx.channel || 'Paystack'} · {formatTime(tx.paid_at)}
+                              {tx.channel || 'Paystack'} · {formatDate(tx.paid_at)} · {formatTime(tx.paid_at)}
                             </span>
+
                             <span
                               className={`transaction-item__type-badge ${isCredit ? 'transaction-item__type-badge--credit' : (tx.transactionType === 'FUTURE_CREDIT' ? 'transaction-item__type-badge--future' : (tx.isManual ? 'transaction-item__type-badge--manual' : 'transaction-item__type-badge--debit'))}`}
                             >
