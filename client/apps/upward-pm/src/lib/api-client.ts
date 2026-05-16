@@ -82,7 +82,8 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     if (res.status === 401 && !path.includes('/auth/refresh') && !path.includes('/auth/login')) {
       if (!isRefreshing) {
         isRefreshing = true
-        const isPortal = path.startsWith('/landlords')
+        const isPortal = path.startsWith('/landlords') || 
+                         (typeof window !== 'undefined' && window.location.pathname.startsWith('/portal'))
         refreshPromise = runRefresh(isPortal)
       }
       
@@ -91,7 +92,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
         return makeRequest(newToken)
       } else {
         // If it's a 401 on an authenticated route and refresh failed, we don't always want a loud error
-        const isAuthRoute = !path.includes('/auth/')
+        const isAuthRoute = !path.includes('/auth/') || path.includes('/auth/me')
         if (isAuthRoute) {
            throw new Error('Session expired')
         }

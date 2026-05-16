@@ -36,7 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAccessToken(null)
       
       // Redirect to login if we're on a protected page and auth fails
-      const isPublicPage = window.location.pathname === '/login' || 
+      const isPublicPage = window.location.pathname === '/' ||
+                           window.location.pathname === '/login' || 
                            window.location.pathname === '/signup' ||
                            window.location.pathname.startsWith('/invite') ||
                            window.location.pathname.startsWith('/reset-password')

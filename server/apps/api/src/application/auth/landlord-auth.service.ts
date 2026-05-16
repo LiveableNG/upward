@@ -191,4 +191,63 @@ export class LandlordAuthService extends BaseAuthService {
       },
     }
   }
+
+  async requestOTPSignup(email: string): Promise<{ success: boolean }> {
+    const landlord = await this.landlordRepository.findByEmail(email);
+    if (landlord && !landlord.mustChangePassword) {
+      throw new UnauthorizedException('An account already exists with this email address');
+    }
+
+    const context = 'LANDLORD_SIGNUP'
+    await (this.tokenRepository as any).deleteOldTokens(email, context)
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 mins
+
+    await this.tokenRepository.create({
+      otp,
+      context,
+      identifier: email,
+      expiresAt,
+    })
+
+    await this.emailService.sendAuthOTP(email, otp, 'SIGNUP') 
+    return { success: true }
+  }
+
+  async signup(dto: { email: string; password: string; firstName: string; lastName: string; phone?: string }): Promise<any> {
+    const existing = await this.landlordRepository.findByEmail(dto.email);
+    if (existing && !existing.mustChangePassword) {
+      throw new UnauthorizedException('An account already exists with this email address');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
+    let landlord;
+    if (existing) {
+      // Claim the existing account created by the Property Manager
+      landlord = await this.landlordRepository.update(existing.uuid, {
+        passwordHash,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        phone: dto.phone || undefined,
+        mustChangePassword: false,
+      });
+    } else {
+      // Create a brand new account
+      const uuid = crypto.randomUUID();
+      landlord = await this.landlordRepository.create({
+        uuid,
+        email: dto.email,
+        emailHash: this.encryption.hash(dto.email),
+        passwordHash,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        phone: dto.phone || undefined,
+        mustChangePassword: false,
+      });
+    }
+
+    return this.generateFullAuthResponse(landlord);
+  }
 }

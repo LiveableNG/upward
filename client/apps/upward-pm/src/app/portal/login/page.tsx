@@ -239,6 +239,9 @@ function LandlordLoginForm() {
               </>
             )}
           </button>
+          <div className="auth-footer" style={{ marginTop: '24px' }}>
+            Don't have an account? <Link href="/portal/signup" style={{ color: 'var(--forest)', fontWeight: 700 }}>Create one for free</Link>
+          </div>
         </form>
       </div>
     </AuthLayout>

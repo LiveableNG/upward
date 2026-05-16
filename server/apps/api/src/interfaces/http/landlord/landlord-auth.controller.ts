@@ -29,6 +29,26 @@ export class LandlordAuthController {
     return this.authService.requestOTP(dto.email);
   }
 
+  @Post('request-otp-signup')
+  async requestOTPSignup(@Body() dto: { email: string }) {
+    return this.authService.requestOTPSignup(dto.email);
+  }
+
+  @Post('verify-otp-signup')
+  async verifyOTPSignup(@Body() dto: { email: string; otp: string }) {
+    return this.authService.verifyOTP(dto.email, dto.otp, 'LANDLORD_SIGNUP');
+  }
+
+  @Post('signup')
+  async signup(
+    @Body() dto: { email: string; password: string; firstName: string; lastName: string; phone?: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const authResponse = await this.authService.signup(dto);
+    this.setCookies(res, authResponse.accessToken, authResponse.refreshToken);
+    return authResponse;
+  }
+
   @Post('check-existence')
   async checkExistence(@Body() dto: { email: string }) {
     return this.authService.checkExistence(dto.email);
