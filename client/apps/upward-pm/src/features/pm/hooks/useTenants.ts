@@ -6,6 +6,8 @@ export const useTenants = () => {
   return useSuspenseQuery({
     queryKey: ['tenants'],
     queryFn: () => tenantService.getTenants(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   })
 }
 
@@ -13,6 +15,8 @@ export const useTenant = (uuid: string) => {
   return useSuspenseQuery({
     queryKey: ['tenant', uuid],
     queryFn: () => tenantService.getTenant(uuid),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   })
 }
 

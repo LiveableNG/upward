@@ -8,5 +8,7 @@ export function useCredibilityRequests() {
       const res = await api.get('/pm/credibility-requests')
       return res as any[]
     },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   })
 }

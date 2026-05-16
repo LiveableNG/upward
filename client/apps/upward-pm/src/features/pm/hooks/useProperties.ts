@@ -5,7 +5,9 @@ import { Property, Unit } from '../services/propertyService'
 export const useProperties = () => {
   return useSuspenseQuery({
     queryKey: ['pm-properties'],
-    queryFn: () => api.getProperties()
+    queryFn: () => api.getProperties(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   })
 }
 
@@ -55,7 +57,9 @@ export const useDeleteProperty = () => {
 export const useUnits = (propertyUuid?: string) => {
   return useSuspenseQuery({
     queryKey: ['pm-units', propertyUuid],
-    queryFn: () => api.getUnits(propertyUuid)
+    queryFn: () => api.getUnits(propertyUuid),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   })
 }
 
