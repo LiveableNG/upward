@@ -37,10 +37,22 @@ export default function DedicatedAccountCheckout({
   }
 
   const handleConfirm = async () => {
+    if (verifyError?.includes('refund')) return // Prevent multiple clicks for refund state
+
     setIsVerifying(true)
     setVerifyError(null)
     try {
       const res = await api.verifyPayment(reference)
+      
+      if (res?.settlementStatus === 'PENDING_REFUND') {
+        setVerifyError("A refund will be triggered for you soon. You should close this window or it will close automatically in 20s. Further info will be communicated with you soon.")
+        setTimeout(() => {
+          onClose()
+        }, 20000)
+        setIsVerifying(false) // Stop loader but keep button effectively disabled via the error check above
+        return
+      }
+
       if (res?.isVerified || res?.status === 'SUCCESS' || res?.status === 'PAID') {
         onSuccess(reference)
       } else {
