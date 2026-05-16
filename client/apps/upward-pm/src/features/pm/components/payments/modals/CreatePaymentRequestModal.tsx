@@ -39,7 +39,7 @@ export function CreatePaymentRequestModal({
     { name: 'Rent', amount: '' }
   ])
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>('')
-  const [includeManagementFee, setIncludeManagementFee] = useState(true)
+  const [includeManagementFee, setIncludeManagementFee] = useState(false)
   const [reminderFrequency, setReminderFrequency] = useState<string>('NONE')
   const { templates } = useDocuments()
 
