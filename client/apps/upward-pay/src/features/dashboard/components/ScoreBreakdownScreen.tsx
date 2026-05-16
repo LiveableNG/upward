@@ -187,14 +187,51 @@ export function ScoreBreakdownScreen() {
                            </td>
                            <td>
                               <div className="impact-cell">
-                                 {cycle.ptValue >= 0.85 ? (
-                                   <TrendingUp size={16} className="text--clay" />
-                                 ) : cycle.ptValue > 0 ? (
-                                   <History size={16} className="text--info" />
-                                 ) : (
-                                   <AlertCircle size={16} className="text--error" />
-                                 )}
-                                 <span>{cycle.ptValue >= 0.85 ? 'Positive' : cycle.ptValue > 0 ? 'Neutral' : 'Negative'}</span>
+                                 {(() => {
+                                   if (cycle.excluded) return (
+                                     <>
+                                       <Info size={16} className="text--muted" />
+                                       <span className="text--muted">No Impact</span>
+                                     </>
+                                   );
+                                   if (cycle.status === 'PAID_ON_TIME') return (
+                                     <>
+                                       <TrendingUp size={16} className="text--clay" />
+                                       <span>Positive</span>
+                                     </>
+                                   );
+                                   if (cycle.status === 'PARTIAL_ON_TIME') return (
+                                     <>
+                                       <History size={16} className="text--info" />
+                                       <span>Neutral</span>
+                                     </>
+                                   );
+                                   if (cycle.status === 'PAID_LATE' || cycle.status === 'PARTIAL_LATE' || cycle.status === 'MISSED') return (
+                                     <>
+                                       <AlertCircle size={16} className="text--error" />
+                                       <span>Negative</span>
+                                     </>
+                                   );
+                                   // Fallback
+                                   if (cycle.ptValue >= 0.85) return (
+                                     <>
+                                       <TrendingUp size={16} className="text--clay" />
+                                       <span>Positive</span>
+                                     </>
+                                   );
+                                   if (cycle.ptValue > 0) return (
+                                     <>
+                                       <History size={16} className="text--info" />
+                                       <span>Neutral</span>
+                                     </>
+                                   );
+                                   return (
+                                     <>
+                                       <AlertCircle size={16} className="text--error" />
+                                       <span>Negative</span>
+                                     </>
+                                   );
+                                 })()}
                               </div>
                            </td>
                         </tr>
@@ -504,6 +541,7 @@ export function ScoreBreakdownScreen() {
         .text--clay { color: var(--clay); }
         .text--info { color: var(--info); }
         .text--error { color: var(--error); }
+        .text--muted { color: var(--text-muted); }
 
         .unverified-warning {
             display: flex;
