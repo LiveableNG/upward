@@ -28,6 +28,7 @@ import Link from 'next/link'
 export const PaymentDetailView: React.FC = () => {
   const { uuid } = useParams()
   const router = useRouter()
+  const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
   const { success, error, info } = useToast()
   const { data: request, isLoading } = usePaymentRequest(uuid as string)
   const { mutate: resendInvoice, isPending: isResending } = useResendPaymentRequest()
@@ -256,12 +257,14 @@ export const PaymentDetailView: React.FC = () => {
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>EMAIL</label>
                         <div style={{ fontWeight: 600 }}>{request.tenant.email}</div>
                       </div>
-                      <Link 
-                        href={`/tenants/${request.tenant.uuid}`}
-                        style={{ fontSize: 12, fontWeight: 700, color: 'var(--clay)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', marginTop: 8 }}
-                      >
-                        View Profile <ExternalLink size={14} />
-                      </Link>
+                      {!isPortal && (
+                        <Link 
+                          href={`/tenants/${request.tenant.uuid}`}
+                          style={{ fontSize: 12, fontWeight: 700, color: 'var(--clay)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', marginTop: 8 }}
+                        >
+                          View Profile <ExternalLink size={14} />
+                        </Link>
+                      )}
                     </div>
                   ) : (
                     <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>No tenant information associated.</p>
@@ -282,12 +285,14 @@ export const PaymentDetailView: React.FC = () => {
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>PROPERTY</label>
                         <div style={{ fontWeight: 600 }}>{request.unit.property?.name || 'N/A'}</div>
                       </div>
-                      <Link 
-                        href={`/properties/units/${request.unit.uuid}`}
-                        style={{ fontSize: 12, fontWeight: 700, color: 'var(--clay)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', marginTop: 8 }}
-                      >
-                        View Unit <ExternalLink size={14} />
-                      </Link>
+                      {!isPortal && (
+                        <Link 
+                          href={`/properties/units/${request.unit.uuid}`}
+                          style={{ fontSize: 12, fontWeight: 700, color: 'var(--clay)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', marginTop: 8 }}
+                        >
+                          View Unit <ExternalLink size={14} />
+                        </Link>
+                      )}
                     </div>
                   ) : (
                     <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>No unit information associated.</p>

@@ -79,7 +79,9 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     const res = await fetch(url, fetchOptions)
     clearTimeout(timeoutId)
     
-    if (res.status === 401 && !path.includes('/auth/refresh') && !path.includes('/auth/login')) {
+    const isPublicAuthRoute = path.includes('/auth/') && !path.includes('/auth/me')
+
+    if (res.status === 401 && !isPublicAuthRoute) {
       if (!isRefreshing) {
         isRefreshing = true
         const isPortal = path.startsWith('/landlords') || 

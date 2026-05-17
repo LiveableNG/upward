@@ -338,26 +338,33 @@ export class EmailService {
     }
   }
 
-  async sendPasswordResetOTP(email: string, fullName: string, otp: string) {
+  async sendPasswordResetOTP(email: string, fullName: string, otp: string, theme: 'CLAY' | 'FOREST' = 'CLAY') {
     const domain = this.configService.get<string>('MAILGUN_DOMAIN')
     const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
 
+    const isForest = theme === 'FOREST'
+    const primaryColor = isForest ? '#166534' : '#d97757'
+    const bgColor = isForest ? '#faf9f5' : '#f9fafb'
+    const borderStyle = isForest ? '1px solid rgba(22, 101, 52, 0.1)' : '1px solid #e5e7eb'
+    const shadowStyle = isForest ? 'box-shadow: 0 8px 24px rgba(22, 101, 52, 0.04);' : ''
+    const outerBorder = isForest ? 'border: 1px solid rgba(0,0,0,0.06);' : ''
+
     const html = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: #f9fafb; padding: 40px; border-radius: 16px;">
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: ${bgColor}; padding: 40px; border-radius: 16px; ${outerBorder}">
         <div style="margin-bottom:32px;">
-          <span style="color:#d97757;font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Upward</span>
+          <span style="color:${primaryColor};font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Upward</span>
           <div style="color:#6B7280;font-size:12px;margin-top:4px;">by GoodTenants</div>
         </div>
-        <h2 style="color: #111827; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">Password Reset Request</h2>
+        <h2 style="color: ${primaryColor}; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">Password Reset Request</h2>
         <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Hello ${fullName},</p>
         <p style="font-size: 16px; color: #4b5563;">We received a request to reset your password. Use the code below to proceed. This code expires in 15 minutes.</p>
         
-        <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 32px; border-radius: 12px; margin: 32px 0; text-align: center;">
-          <div style="font-size: 11px; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 12px;">Verification Code</div>
-          <div style="font-size: 48px; font-weight: 800; color: #d97757; letter-spacing: 0.1em; line-height: 1;">${otp}</div>
+        <div style="background: #ffffff; border: ${borderStyle}; padding: 32px; border-radius: 12px; margin: 32px 0; text-align: center; ${shadowStyle}">
+          <div style="font-size: 11px; color: ${primaryColor}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 12px;">Verification Code</div>
+          <div style="font-size: 48px; font-weight: 800; color: ${primaryColor}; letter-spacing: 0.1em; line-height: 1;">${otp}</div>
         </div>
 
-        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5;">
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; text-align: center;">
           If you didn't request this, you can safely ignore this email. Someone may have typed your email address by mistake.
         </p>
       </div>
@@ -378,7 +385,7 @@ export class EmailService {
     }
   }
 
-  async sendAuthOTP(email: string, otp: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT') {
+  async sendAuthOTP(email: string, otp: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT', theme: 'CLAY' | 'FOREST' = 'CLAY') {
     const domain = this.configService.get<string>('MAILGUN_DOMAIN')
     const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
 
@@ -412,25 +419,32 @@ export class EmailService {
 
     const { title, message, subject } = contexts[context]
 
+    const isForest = theme === 'FOREST'
+    const primaryColor = isForest ? '#166534' : '#d97757'
+    const bgColor = isForest ? '#faf9f5' : '#f9fafb'
+    const borderStyle = isForest ? '1px solid rgba(22, 101, 52, 0.1)' : '1px solid #e5e7eb'
+    const shadowStyle = isForest ? 'box-shadow: 0 8px 24px rgba(22, 101, 52, 0.04);' : ''
+    const outerBorder = isForest ? 'border: 1px solid rgba(0,0,0,0.06);' : ''
+
     const html = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: #f9fafb; padding: 40px; border-radius: 16px;">
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: ${bgColor}; padding: 40px; border-radius: 16px; ${outerBorder}">
         <div style="margin-bottom:32px;">
-          <span style="color:#d97757;font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Upward</span>
+          <span style="color:${primaryColor};font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Upward</span>
           <div style="color:#6B7280;font-size:12px;margin-top:4px;">by GoodTenants</div>
         </div>
-        <h2 style="color: #111827; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">${title}</h2>
+        <h2 style="color: ${primaryColor}; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">${title}</h2>
         <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Hello,</p>
         <p style="font-size: 16px; color: #4b5563;">${message}</p>
         
-        <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 32px; border-radius: 12px; margin: 32px 0; text-align: center;">
-          <div style="font-size: 11px; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 12px;">Verification Code</div>
-          <div style="font-size: 48px; font-weight: 800; color: #d97757; letter-spacing: 0.1em; line-height: 1;">${otp}</div>
+        <div style="background: #ffffff; border: ${borderStyle}; padding: 32px; border-radius: 12px; margin: 32px 0; text-align: center; ${shadowStyle}">
+          <div style="font-size: 11px; color: ${primaryColor}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 12px;">Verification Code</div>
+          <div style="font-size: 48px; font-weight: 800; color: ${primaryColor}; letter-spacing: 0.1em; line-height: 1;">${otp}</div>
         </div>
 
         <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; text-align: center;">
           This code expires in 10 minutes.
         </p>
-        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-top: 24px;">
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-top: 24px; text-align: center;">
           If you didn't request this, you can safely ignore this email.
         </p>
       </div>

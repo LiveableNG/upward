@@ -319,6 +319,7 @@ export default function LandlordPropertyDetail() {
           refetch();
         }}
         propertyUuid={uuid as string}
+        properties={property ? [property] : []}
       />
 
       <EditPropertyModal 
