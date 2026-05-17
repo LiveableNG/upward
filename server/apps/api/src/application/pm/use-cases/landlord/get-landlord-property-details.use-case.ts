@@ -12,10 +12,25 @@ export class GetLandlordPropertyDetailsUseCase {
   async execute(landlordEmail: string, propertyUuid: string) {
     const emailHash = this.encryption.hash(landlordEmail);
 
+    const pm = await (this.prisma as any).upward_property_manager.findUnique({
+      where: { emailHash }
+    });
+    const pmId = pm?.id;
+
     const property = await (this.prisma as any).upward_pm_property.findFirst({
       where: { 
         uuid: propertyUuid,
-        landlordEmailHash: emailHash 
+        OR: [
+          { landlordEmailHash: emailHash },
+          ...(pmId ? [
+            { pmId: pmId },
+            {
+              collaborators: {
+                some: { collaboratorPmId: pmId }
+              }
+            }
+          ] : [])
+        ]
       },
       include: {
         pm: true,

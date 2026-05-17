@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { 
   ArrowLeft, 
   MapPin, 
@@ -13,24 +13,40 @@ import {
   Phone,
   ArrowUpRight,
   ShieldCheck,
-  Loader2
+  Loader2,
+  Plus, 
+  CreditCard, 
+  RefreshCw, 
+  Settings2
 } from 'lucide-react'
 import { getLandlordPropertyDetails } from '@/features/auth/services/landlordAuthService'
 import styles from './page.module.css'
 import { CreatePaymentRequestModal } from '@/features/pm/components/payments/modals/CreatePaymentRequestModal'
 import { ManagedAddUnitModal } from '@/features/pm/components/properties/modals/ManagedAddUnitModal'
-import { useSyncToUpward } from '@/features/pm/hooks/useProperties'
+import { EditPropertyModal } from '@/features/pm/components/properties/modals/EditPropertyModal'
+import { DeletePropertyModal } from '@/features/pm/components/properties/modals/DeletePropertyModal'
+import { useSyncToUpward, useUpdateProperty, useDeleteProperty } from '@/features/pm/hooks/useProperties'
 import { useToast } from '@/components/common/Toast'
-import { Plus, CreditCard, RefreshCw, Settings2 } from 'lucide-react'
 
 export default function LandlordPropertyDetail() {
   const { uuid } = useParams()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const { success, error: toastError } = useToast()
   
   const [selectedUnit, setSelectedUnit] = React.useState<any | null>(null)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = React.useState(false)
   const [isAddUnitOpen, setIsAddUnitOpen] = React.useState(false)
+
+  // Edit / Delete Property State
+  const [showEditModal, setShowEditModal] = React.useState(false)
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false)
+  const [propForm, setPropForm] = React.useState({
+    name: '', address: '', totalUnits: '', propertyType: 'Residential',
+    imageUrl: '', country: 'Nigeria', state: '', area: '',
+    landlordName: '', landlordEmail: '', landlordPhone: '',
+    imageFile: null as File | null
+  })
 
   const { data: property, isLoading, error, refetch } = useQuery({
     queryKey: ['landlord-property', uuid],
@@ -39,6 +55,8 @@ export default function LandlordPropertyDetail() {
   })
 
   const syncMutation = useSyncToUpward()
+  const updatePropertyMutation = useUpdateProperty()
+  const deletePropertyMutation = useDeleteProperty()
 
   const handleSync = (unitUuid: string) => {
     syncMutation.mutate(unitUuid, {
@@ -49,6 +67,53 @@ export default function LandlordPropertyDetail() {
       onError: (err: any) => {
         toastError(err?.message || 'Failed to sync unit')
       }
+    })
+  }
+
+  const handleEditClick = () => {
+    if (!property) return
+    setPropForm({
+      name: property.name,
+      address: property.address,
+      totalUnits: (property.summary?.totalUnits || 0).toString(),
+      propertyType: property.propertyType,
+      imageUrl: property.imageUrl || '',
+      country: property.country || 'Nigeria',
+      state: property.state || '',
+      area: property.area || '',
+      landlordName: property.landlordName || '',
+      landlordEmail: property.landlordEmail || '',
+      landlordPhone: property.landlordPhone || '',
+      imageFile: null
+    })
+    setShowEditModal(true)
+  }
+
+  const handleSave = () => {
+    const dataToSend = {
+      ...propForm,
+      totalUnits: parseInt(propForm.totalUnits, 10) || 0
+    }
+    updatePropertyMutation.mutate({ uuid: uuid as string, data: dataToSend as any }, {
+      onSuccess: () => {
+        success('Property updated successfully')
+        setShowEditModal(false)
+        queryClient.invalidateQueries({ queryKey: ['landlord-property', uuid] })
+        queryClient.invalidateQueries({ queryKey: ['landlord-portfolio'] })
+        refetch()
+      },
+      onError: (err: any) => toastError(err.message || 'Failed to update property')
+    })
+  }
+
+  const handleDelete = () => {
+    deletePropertyMutation.mutate(uuid as string, {
+      onSuccess: () => {
+        success('Property deleted successfully')
+        queryClient.invalidateQueries({ queryKey: ['landlord-portfolio'] })
+        router.push('/portal')
+      },
+      onError: (err: any) => toastError(err.message || 'Failed to delete property')
     })
   }
 
@@ -93,6 +158,13 @@ export default function LandlordPropertyDetail() {
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <button 
+              className="btn btn--secondary" 
+              style={{ padding: '10px 20px', fontSize: 14 }}
+              onClick={handleEditClick}
+            >
+              Edit Property
+            </button>
+            <button 
               className="btn btn--primary" 
               style={{ padding: '10px 20px', fontSize: 14 }}
               onClick={() => setIsAddUnitOpen(true)}
@@ -113,7 +185,7 @@ export default function LandlordPropertyDetail() {
               <div className={styles.statValue}>
                 {property.summary.occupiedUnits} / {property.summary.totalUnits}
                 <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '8px' }}>
-                  ({Math.round((property.summary.occupiedUnits / property.summary.totalUnits) * 100)}%)
+                  ({property.summary.totalUnits > 0 ? Math.round((property.summary.occupiedUnits / property.summary.totalUnits) * 100) : 0}%)
                 </span>
               </div>
             </div>
@@ -160,7 +232,14 @@ export default function LandlordPropertyDetail() {
                     <div style={{ fontWeight: 700, fontSize: '14px' }}>₦{unit.revenue.toLocaleString()}</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+                      <button 
+                        className="btn btn--secondary btn--sm" 
+                        onClick={() => router.push(`/portal/properties/units/${unit.uuid}`)}
+                        style={{ fontSize: 12, height: 32, display: 'flex', alignItems: 'center', gap: 4 }}
+                      >
+                        View Unit
+                      </button>
                       {!unit.isSynced ? (
                         <button 
                           className="btn-text" 
@@ -179,7 +258,7 @@ export default function LandlordPropertyDetail() {
                           }}
                           style={{ color: 'var(--forest)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
                         >
-                          <CreditCard size={14} /> Request Payment
+                          <CreditCard size={14} /> Request Rent
                         </button>
                       )}
                     </div>
@@ -200,7 +279,7 @@ export default function LandlordPropertyDetail() {
               <div className={styles.managerAvatar}>{getInitials(property.manager.name)}</div>
               <div>
                 <span className={styles.managerName}>{property.manager.name}</span>
-                <span className={styles.managerBusiness}>{property.manager.business}</span>
+                <span className={styles.managerBusiness}>{property.manager.business || 'Individual'}</span>
               </div>
             </div>
             
@@ -209,13 +288,15 @@ export default function LandlordPropertyDetail() {
                 <Mail size={16} />
                 {property.manager.email}
               </div>
-              <div className={styles.contactItem}>
-                <Phone size={16} />
-                {property.manager.phone}
-              </div>
+              {property.manager.phone && (
+                <div className={styles.contactItem}>
+                  <Phone size={16} />
+                  {property.manager.phone}
+                </div>
+              )}
               <div className={styles.contactItem}>
                 <ShieldCheck size={16} color="var(--clay)" />
-                Verified Property Manager
+                Verified Context
               </div>
             </div>
 
@@ -238,6 +319,24 @@ export default function LandlordPropertyDetail() {
           refetch();
         }}
         propertyUuid={uuid as string}
+      />
+
+      <EditPropertyModal 
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSave={handleSave}
+        isPending={updatePropertyMutation.isPending}
+        formData={propForm}
+        setFormData={setPropForm}
+        onDelete={() => setShowDeleteModal(true)}
+      />
+
+      <DeletePropertyModal 
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        isPending={deletePropertyMutation.isPending}
+        propertyName={property.name}
       />
 
       {selectedUnit && (
