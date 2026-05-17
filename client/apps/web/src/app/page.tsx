@@ -8,6 +8,7 @@ import { WhyUpwardPage } from '@/components/sections/why-upward-page'
 import { TellAFriend } from '@/components/sections/tell-a-friend'
 import { PartnersBar } from '@/components/sections/partners-bar'
 import { FairHousingPage } from '@/components/sections/fair-housing-page'
+import { ShowcaseSection } from '@/components/sections/showcase-section'
 
 export default function HomePage() {
   const [view, setView] = useState<'home' | 'why' | 'fairness'>('home')
@@ -179,6 +180,8 @@ export default function HomePage() {
             </div>
 
             <div className="divider" />
+
+            <ShowcaseSection />
 
             <div className="divider" />
 
