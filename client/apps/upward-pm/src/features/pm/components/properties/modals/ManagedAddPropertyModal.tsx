@@ -8,12 +8,14 @@ interface ManagedAddPropertyModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  isLandlordPortal?: boolean;
 }
 
 export const ManagedAddPropertyModal: React.FC<ManagedAddPropertyModalProps> = ({
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
+  isLandlordPortal = false
 }) => {
   const { success, info, error } = useToast()
   const createPropertyMutation = useCreateProperty()
@@ -96,6 +98,7 @@ export const ManagedAddPropertyModal: React.FC<ManagedAddPropertyModalProps> = (
       isPending={createPropertyMutation.isPending}
       formData={propForm}
       setFormData={setPropForm}
+      isLandlordPortal={isLandlordPortal}
     />
   )
 }

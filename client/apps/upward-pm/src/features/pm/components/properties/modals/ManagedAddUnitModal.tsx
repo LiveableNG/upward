@@ -5,22 +5,26 @@ import { useToast } from '@/components/common/Toast'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 import { useProperties, useBulkCreateUnits } from '@/features/pm/hooks/useProperties'
 import { AddUnitModal } from './AddUnitModal'
+import { Property } from '../../../services/propertyService'
 
 interface ManagedAddUnitModalProps {
   isOpen: boolean;
   onClose: () => void;
   propertyUuid?: string;
   onSuccess?: () => void;
+  properties?: Property[];
 }
 
 export const ManagedAddUnitModal: React.FC<ManagedAddUnitModalProps> = ({
   isOpen,
   onClose,
   propertyUuid,
-  onSuccess
+  onSuccess,
+  properties: passedProperties
 }) => {
   const { success, error } = useToast()
-  const { data: properties = [] } = useProperties()
+  const { data: propertiesData } = useProperties()
+  const properties = passedProperties || propertiesData || []
   const bulkCreateUnitsMutation = useBulkCreateUnits()
 
   const [targetPropertyUuid, setTargetPropertyUuid] = useState(propertyUuid || '')

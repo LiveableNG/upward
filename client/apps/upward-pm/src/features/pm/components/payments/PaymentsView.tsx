@@ -142,16 +142,18 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
           >
             <Copy size={16} />
           </button>
-          <button 
-            className="btn-icon-sm"
-            onClick={(e) => {
-              e.stopPropagation()
-              router.push(`/properties/units/${req.unit?.uuid}`)
-            }}
-            title="View Unit"
-          >
-            <Eye size={16} />
-          </button>
+          {!(typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')) && (
+            <button 
+              className="btn-icon-sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                router.push(`/properties/units/${req.unit?.uuid}`)
+              }}
+              title="View Unit"
+            >
+              <Eye size={16} />
+            </button>
+          )}
         </div>
       )
     }
@@ -194,7 +196,10 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
           if (priorityA !== priorityB) return priorityA - priorityB
           return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
         })}
-        onRowClick={(req) => router.push(`/payments/${req.uuid}`)}
+        onRowClick={(req) => {
+          const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
+          router.push(isPortal ? `/portal/payments/${req.uuid}` : `/payments/${req.uuid}`)
+        }}
         emptyMessage="No payment requests found."
         pageSize={10}
       />

@@ -108,7 +108,7 @@ export class LandlordAuthService extends BaseAuthService {
       expiresAt,
     })
 
-    await this.emailService.sendAuthOTP(email, otp, 'LOGIN') 
+    await this.emailService.sendAuthOTP(email, otp, 'LOGIN', 'FOREST') 
     return { success: true }
   }
 
@@ -211,7 +211,7 @@ export class LandlordAuthService extends BaseAuthService {
       expiresAt,
     })
 
-    await this.emailService.sendAuthOTP(email, otp, 'SIGNUP') 
+    await this.emailService.sendAuthOTP(email, otp, 'SIGNUP', 'FOREST') 
     return { success: true }
   }
 

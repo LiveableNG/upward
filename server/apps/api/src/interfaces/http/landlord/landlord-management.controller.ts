@@ -11,9 +11,17 @@ import { GetPmPropertiesUseCase } from '../../../application/pm/use-cases/get-pm
 import { GetPmUnitsUseCase } from '../../../application/pm/use-cases/get-pm-units.use-case';
 import { SyncUnitToUpwardUseCase } from '../../../application/pm/use-cases/units/sync-unit.use-case';
 import { UpdatePmBankInfoUseCase } from '../../../application/use-cases/pm/update-pm-bank-info.use-case';
-import { VerifyAccountUseCase, GetBanksUseCase } from '../../../application/use-cases/payments/payment.use-cases';
+import { VerifyAccountUseCase, GetBanksUseCase, GetPmPayoutsUseCase, GetPayoutBreakdownUseCase } from '../../../application/use-cases/payments/payment.use-cases';
 
 // Missing Use Case Imports
+import { GetPendingCredibilityRequestsUseCase } from '../../../application/pm/use-cases/get-pending-credibility-requests.use-case';
+import { MarkCredibilityRequestDoneUseCase } from '../../../application/pm/use-cases/mark-credibility-request-done.use-case';
+import { RejectCredibilityRequestUseCase } from '../../../application/use-cases/external/reject-credibility-request.use-case';
+import { GetPmPaymentRequestUseCase } from '../../../application/pm/use-cases/payments/get-pm-payment-request.use-case';
+import { ResendPmPaymentRequestUseCase } from '../../../application/pm/use-cases/payments/resend-pm-payment-request.use-case';
+import { CancelPmPaymentRequestUseCase } from '../../../application/pm/use-cases/payments/cancel-pm-payment-request.use-case';
+import { GetPmUnresolvedTransactionsUseCase } from '../../../application/use-cases/payments/payment.use-cases';
+import { ResolvePendingRefundUseCase, RefundResolutionAction } from '../../../application/pm/use-cases/payments/resolve-refund.use-case';
 import { UpdatePropertyUseCase } from '../../../application/pm/use-cases/update-property.use-case';
 import { DeletePropertyUseCase } from '../../../application/pm/use-cases/delete-property.use-case';
 import { GetPmPropertyUseCase } from '../../../application/pm/use-cases/get-pm-property.use-case';
@@ -68,6 +76,8 @@ export class LandlordManagementController {
     private readonly updateBankInfoUseCase: UpdatePmBankInfoUseCase,
     private readonly verifyAccountUseCase: VerifyAccountUseCase,
     private readonly getBanksUseCase: GetBanksUseCase,
+    private readonly getPmPayoutsUseCase: GetPmPayoutsUseCase,
+    private readonly getPayoutBreakdownUseCase: GetPayoutBreakdownUseCase,
 
     // Proxy Injections
     private readonly getPmTenantsUseCase: GetPmTenantsUseCase,
@@ -91,7 +101,17 @@ export class LandlordManagementController {
     private readonly updateRentPaymentUseCase: UpdateRentPaymentUseCase,
     private readonly bulkAddRentHistoryUseCase: BulkAddRentHistoryUseCase,
 
+    private readonly getPendingCredibilityRequestsUseCase: GetPendingCredibilityRequestsUseCase,
+    private readonly markCredibilityRequestDoneUseCase: MarkCredibilityRequestDoneUseCase,
+    private readonly rejectCredibilityRequestUseCase: RejectCredibilityRequestUseCase,
+
     private readonly bulkFullImportUseCase: BulkFullImportUseCase,
+
+    private readonly getPmPaymentRequestUseCase: GetPmPaymentRequestUseCase,
+    private readonly resendPmPaymentRequestUseCase: ResendPmPaymentRequestUseCase,
+    private readonly cancelPmPaymentRequestUseCase: CancelPmPaymentRequestUseCase,
+    private readonly getPmUnresolvedTransactionsUseCase: GetPmUnresolvedTransactionsUseCase,
+    private readonly resolvePendingRefundUseCase: ResolvePendingRefundUseCase,
   ) {}
 
   /**
@@ -401,6 +421,44 @@ export class LandlordManagementController {
     return this.getPaymentRequestsUseCase.execute(pmId);
   }
 
+  @Get('payment-requests/:uuid')
+  async getPaymentRequest(@Req() req: any, @Param('uuid') uuid: string) {
+    const pmId = await this.getElevatedPmId(req);
+    return this.getPmPaymentRequestUseCase.execute(pmId, uuid);
+  }
+
+  @Post('payment-requests/:uuid/resend')
+  async resendPaymentRequest(
+    @Req() req: any, 
+    @Param('uuid') uuid: string,
+    @Body() body: { email?: string }
+  ) {
+    const pmId = await this.getElevatedPmId(req);
+    return this.resendPmPaymentRequestUseCase.execute(pmId, uuid, body.email);
+  }
+
+  @Delete('payment-requests/:uuid')
+  async cancelPaymentRequest(@Req() req: any, @Param('uuid') uuid: string) {
+    const pmId = await this.getElevatedPmId(req);
+    return this.cancelPmPaymentRequestUseCase.execute(pmId, uuid);
+  }
+
+  @Get('payments/unresolved')
+  async getUnresolvedTransactions(@Req() req: any) {
+    const pmId = await this.getElevatedPmId(req);
+    return this.getPmUnresolvedTransactionsUseCase.execute(pmId);
+  }
+
+  @Post('payments/unresolved/:uuid/resolve')
+  async resolveTransaction(
+    @Req() req: any, 
+    @Param('uuid') uuid: string,
+    @Body() body: { action: RefundResolutionAction }
+  ) {
+    const pmId = await this.getElevatedPmId(req);
+    return this.resolvePendingRefundUseCase.execute(pmId, uuid, body.action);
+  }
+
   // --- Settlement Settings ---
 
   @Patch('profile/bank-info')
@@ -451,5 +509,36 @@ export class LandlordManagementController {
       where: { pmId }
     });
     return verification || { status: 'NOT_SUBMITTED' };
+  }
+
+  // --- Payouts ---
+
+  @Get('payouts')
+  async getPayouts(@Req() req: any) {
+    const pmId = await this.getElevatedPmId(req);
+    return this.getPmPayoutsUseCase.execute(pmId);
+  }
+
+  @Get('payouts/batch/:uuid')
+  async getPayoutBreakdown(@Req() req: any, @Param('uuid') uuid: string) {
+    return this.getPayoutBreakdownUseCase.execute(uuid);
+  }
+
+  // --- Credibility Requests ---
+
+  @Get('credibility-requests')
+  async getCredibilityRequests(@Req() req: any) {
+    const pmId = await this.getElevatedPmId(req);
+    return this.getPendingCredibilityRequestsUseCase.execute(pmId);
+  }
+
+  @Patch('credibility-requests/:uuid/done')
+  async markCredibilityRequestDone(@Param('uuid') uuid: string) {
+    return this.markCredibilityRequestDoneUseCase.execute(uuid);
+  }
+
+  @Post('credibility-requests/:uuid/reject')
+  async rejectCredibilityRequest(@Param('uuid') uuid: string) {
+    return this.rejectCredibilityRequestUseCase.execute(uuid);
   }
 }
