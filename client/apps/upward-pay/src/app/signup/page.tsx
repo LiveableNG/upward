@@ -132,7 +132,26 @@ export default function SignupPage() {
         <div className="auth-layout__visual-content">
           <div className="auth-layout__graphic">
             <div className="auth-layout__circle"></div>
-            <div className="auth-layout__card-mock"></div>
+            <div className="auth-layout__card-mock" style={{ overflow: 'hidden' }}>
+              <img 
+                src="/attachments/upwardPay-dashboard.png" 
+                alt="Upward Pay Dashboard Preview" 
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  borderRadius: 'inherit',
+                  opacity: 0.85,
+                  transition: 'transform 0.5s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.05)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)'
+                }}
+              />
+            </div>
           </div>
           <h1>The new standard of renting.</h1>
           <p>
