@@ -154,7 +154,7 @@ function LandlordSignupForm() {
       <div className="animate-fade-in">
         <div className="auth-role-toggle">
           <Link 
-            href="/signup"
+            href="/pm-signup"
             className="auth-role-toggle__btn"
           >
             Property Manager

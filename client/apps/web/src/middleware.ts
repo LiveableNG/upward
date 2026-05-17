@@ -43,15 +43,15 @@ export function middleware(request: NextRequest) {
   const hasPmToken = !!pmTokenCookie || !!landlordTokenCookie || !!pmRefreshCookie || !!landlordRefreshCookie
 
   // 3. Determine routing destination (Pay vs PM App)
-  const referer = request.headers.get('referer') || ''
+  const redirectParam = request.nextUrl.searchParams.get('redirect') || ''
   
-  const isPmReferer = referer.includes('/portal') || 
-                      referer.includes('/properties') || 
-                      referer.includes('/tenants') || 
-                      referer.includes('/payments') || 
-                      referer.includes('/requests') || 
-                      referer.includes('/documents') ||
-                      referer.includes('/pm-')
+  const isPmRedirectParam = redirectParam.startsWith('/portal') ||
+                            redirectParam.startsWith('/properties') ||
+                            redirectParam.startsWith('/tenants') ||
+                            redirectParam.startsWith('/payments') ||
+                            redirectParam.startsWith('/requests') ||
+                            redirectParam.startsWith('/documents') ||
+                            redirectParam.startsWith('/pm')
 
   const isPmPath = pathname.startsWith('/portal') ||
                    pathname.startsWith('/properties') ||
@@ -72,7 +72,7 @@ export function middleware(request: NextRequest) {
                         pathname.startsWith('/invite')
 
   // Rule: Should this request route to the PM app instead of the Pay app?
-  const routeToPm = isPmPath || (isSharedRoute && (hasPmToken || isPmReferer))
+  const routeToPm = isPmPath || (isSharedRoute && (hasPmToken || isPmRedirectParam))
 
   const targetBase = routeToPm ? PM_URL : APP_URL
   const tokenCookie = routeToPm ? (pmTokenCookie || landlordTokenCookie) : payTokenCookie
