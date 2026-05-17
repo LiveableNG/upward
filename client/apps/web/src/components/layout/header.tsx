@@ -208,31 +208,48 @@ export function Header({
         })}
       </ul>
 
-      <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-        <a
-          href="/login"
-          className="mobile-hide"
-          style={{
-            fontSize: '11px',
-            letterSpacing: '0.15em',
-            textTransform: 'uppercase',
-            color: 'var(--muted)',
-            textDecoration: 'none',
-            fontFamily: 'var(--font-head)',
-            fontWeight: 700,
-            transition: 'color 0.2s',
-            display: 'inline-block'
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text)')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--muted)')}
-        >
-          Login
-        </a>
+      <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+        {/* PM App Entry (Forest Green Outline Style) */}
         <button
           className="mobile-hide"
           onClick={() => {
-            if (trackInteraction) trackInteraction('CLICK', 'HEADER_GET_STARTED')
-            window.location.href = '/signup'
+            if (trackInteraction) trackInteraction('CLICK', 'HEADER_PM_PORTAL')
+            window.location.href = '/portal/login'
+          }}
+          style={{
+            fontSize: '9px',
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            color: '#166534',
+            background: 'transparent',
+            border: '1.5px solid rgba(22, 101, 52, 0.4)',
+            padding: '11px 22px',
+            borderRadius: '100px',
+            fontFamily: 'var(--font-head)',
+            fontWeight: 800,
+            cursor: 'pointer',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)'
+            e.currentTarget.style.background = 'rgba(22, 101, 52, 0.05)'
+            e.currentTarget.style.borderColor = '#166534'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)'
+            e.currentTarget.style.background = 'transparent'
+            e.currentTarget.style.borderColor = 'rgba(22, 101, 52, 0.4)'
+          }}
+        >
+          Landlord & PM
+        </button>
+
+        {/* Tenant App Entry (Clay Theme Filled Style) */}
+        <button
+          className="mobile-hide"
+          onClick={() => {
+            if (trackInteraction) trackInteraction('CLICK', 'HEADER_TENANT_PORTAL')
+            window.location.href = '/login'
           }}
           style={{
             fontSize: '9px',
@@ -247,9 +264,6 @@ export function Header({
             fontWeight: 800,
             position: 'relative',
             overflow: 'hidden',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
             cursor: 'pointer',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             boxShadow: '0 8px 25px rgba(217, 119, 87, 0.25)',
@@ -265,7 +279,7 @@ export function Header({
             e.currentTarget.style.background = 'var(--accent)'
           }}
         >
-          Get Started
+          Renter Portal
           <div
             style={{
               position: 'absolute',
