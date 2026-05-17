@@ -112,8 +112,9 @@ export function HeroSection({
             }}
             className="hero-cta-container"
           >
+            {/* Renter Portal Filled Button */}
             <button
-              onClick={() => onOpenSignup()}
+              onClick={() => (window.location.href = '/login')}
               style={{
                 background: 'var(--accent)',
                 color: 'var(--btn-text)',
@@ -144,7 +145,7 @@ export function HeroSection({
                 e.currentTarget.style.background = 'var(--accent)'
               }}
             >
-              Get Started
+              Access Renter Portal
               <svg
                 width="18"
                 height="18"
@@ -172,32 +173,51 @@ export function HeroSection({
                 }}
               />
             </button>
+
+            {/* Landlord & PM Suite Outline Button */}
             <button
-              onClick={() => (window.location.href = '/login')}
+              onClick={() => (window.location.href = '/portal/login')}
               style={{
                 background: 'transparent',
-                color: 'var(--text)',
+                color: '#166534',
                 fontFamily: 'var(--font-head)',
-                fontWeight: 700,
+                fontWeight: 800,
                 fontSize: '14px',
                 letterSpacing: '0.1em',
                 padding: '18px 36px',
                 borderRadius: '100px',
-                border: '1px solid var(--border)',
+                border: '1.5px solid rgba(22, 101, 52, 0.4)',
                 cursor: 'pointer',
-                transition: 'all 0.3s ease',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--surface2)'
-                e.currentTarget.style.borderColor = 'var(--accent)'
+                e.currentTarget.style.transform = 'translateY(-3px)'
+                e.currentTarget.style.background = 'rgba(22, 101, 52, 0.05)'
+                e.currentTarget.style.borderColor = '#166534'
               }}
               onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
                 e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.borderColor = 'var(--border)'
+                e.currentTarget.style.borderColor = 'rgba(22, 101, 52, 0.4)'
               }}
-              className="mobile-hide"
             >
-              Sign In
+              Landlord & PM Suite
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
             </button>
           </div>
 

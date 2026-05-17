@@ -24,7 +24,9 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
       <div className="auth-layout__visual">
         <div className="auth-layout__visual-content">
           <header className="auth-layout__visual-header">
-            <UpwardLogo color="white" size={42} />
+            <a href="https://upward.goodtenants.io" className="auth-shell__brand">
+              <UpwardLogo color="white" size={42} />
+            </a>
           </header>
 
           <main className="auth-layout__visual-body">
