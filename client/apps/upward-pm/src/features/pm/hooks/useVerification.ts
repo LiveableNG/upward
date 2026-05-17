@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
 
@@ -12,11 +12,13 @@ export function useVerificationStatus() {
 
 export function useSubmitVerification() {
   const { success, error } = useToast()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: api.submitVerification,
     onSuccess: () => {
       success('Verification details submitted! We will review them shortly.')
+      queryClient.invalidateQueries({ queryKey: ['verification-status'] })
     },
     onError: (err: any) => {
       error(err.message || 'Failed to submit verification')

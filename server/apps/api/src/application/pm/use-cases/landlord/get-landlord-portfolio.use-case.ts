@@ -8,13 +8,30 @@ export class GetLandlordPortfolioUseCase {
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
   ) {}
-
   async execute(landlordEmail: string) {
     const emailHash = this.encryption.hash(landlordEmail);
 
-    // 1. Get all properties for this landlord
+    // 1. Find shadow PM profile for this landlord
+    const pm = await (this.prisma as any).upward_property_manager.findUnique({
+      where: { emailHash }
+    });
+    const pmId = pm?.id;
+
+    // 2. Get all properties linked to this landlord (either via landlordEmailHash or pmId/collaborations)
     const properties = await (this.prisma as any).upward_pm_property.findMany({
-      where: { landlordEmailHash: emailHash },
+      where: {
+        OR: [
+          { landlordEmailHash: emailHash },
+          ...(pmId ? [
+            { pmId: pmId },
+            {
+              collaborators: {
+                some: { collaboratorPmId: pmId }
+              }
+            }
+          ] : [])
+        ]
+      },
       include: {
         pm: {
           select: {
