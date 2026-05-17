@@ -131,7 +131,7 @@ export const LoginForm = () => {
         </button>
 
         <div className="auth-footer">
-          Don't have an account? <Link href="/signup">Create one for free</Link>
+          Don't have an account? <Link href="/pm-signup">Create one for free</Link>
         </div>
       </form>
     </div>
