@@ -258,7 +258,6 @@ export const SignupForm = () => {
                 required
               >
                 <option value="" disabled>-- Select your role --</option>
-                <option value="INDIVIDUAL_LANDLORD">Individual Landlord</option>
                 <option value="Caretaker">Caretaker</option>
                 <option value="Lawyer">Lawyer</option>
                 <option value="Estate Agent">Estate Agent</option>

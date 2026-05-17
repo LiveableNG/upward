@@ -47,9 +47,10 @@ export function middleware(request: NextRequest) {
 
   if (isPortalPath) {
     const isPortalLoginPath = pathname === '/portal/login'
-    const isPortalPublic = isPortalLoginPath || pathname.startsWith('/portal/reset-password')
+    const isPortalSignupPath = pathname === '/portal/signup'
+    const isPortalPublic = isPortalLoginPath || isPortalSignupPath || pathname.startsWith('/portal/reset-password')
     
-    if (isPortalLoginPath) {
+    if (isPortalLoginPath || isPortalSignupPath) {
       if (isLandlordLoggedIn) {
         return NextResponse.redirect(new URL('/portal', request.url))
       }
