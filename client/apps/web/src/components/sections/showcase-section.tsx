@@ -284,9 +284,17 @@ export function ShowcaseSection() {
           font-size: clamp(2rem, 4vw, 3.2rem);
           line-height: 1.15;
           letter-spacing: -0.03em;
-          background: var(--heading-mix);
-          WebkitBackgroundClip: text;
-          WebkitTextFillColor: transparent;
+          background: linear-gradient(135deg, #0c2310 0%, #1c3d20 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          color: #0c2310;
+        }
+
+        .theme--dark .showcase__title {
+          background: linear-gradient(135deg, #ffffff 0%, #a3a3a3 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          color: #ffffff;
         }
 
         .showcase__subtitle {
