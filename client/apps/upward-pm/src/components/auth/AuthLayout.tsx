@@ -40,30 +40,51 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
               {visualDesc || "Onboard tenants, manage payment requests, and track property performance in one premium dashboard designed for modern property managers."}
             </p>
             
-            <div className="auth-layout__visual-showcase">
-              <div className="showcase-card showcase-card--1">
-                <div className="showcase-card__icon">
-                  <div className="pulse-dot"></div>
-                </div>
-                <div className="showcase-card__lines">
-                  <div className="line line--long"></div>
-                  <div className="line line--short"></div>
-                </div>
-              </div>
+            <div className="auth-layout__visual-showcase" style={{ position: 'relative', width: '100%', height: '220px', marginTop: '40px' }}>
+              <div className="auth-layout__ambient-circle" style={{
+                position: 'absolute',
+                width: '300px',
+                height: '300px',
+                borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.08)',
+                top: '-50px',
+                left: '-50px',
+                filter: 'blur(40px)',
+              }}></div>
               
-              <div className="showcase-card showcase-card--2">
-                <div className="showcase-card__header">
-                  <div className="dot"></div>
-                  <div className="dot"></div>
-                </div>
-                <div className="showcase-card__content">
-                  <div className="amount-bar"></div>
-                  <div className="label-bar"></div>
-                </div>
-              </div>
-
-              <div className="showcase-card showcase-card--3">
-                 <div className="check-icon"></div>
+              <div className="auth-layout__card-mock" style={{
+                position: 'absolute',
+                width: '320px',
+                height: '200px',
+                background: 'rgba(255, 255, 255, 0.12)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '20px',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%) rotate(-6deg)',
+                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)',
+                overflow: 'hidden',
+              }}>
+                <img 
+                  src="/attachments/pm-dashboard.png" 
+                  alt="Upward PM Dashboard Preview" 
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    borderRadius: 'inherit',
+                    opacity: 0.85,
+                    transition: 'transform 0.5s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)'
+                  }}
+                />
               </div>
             </div>
           </main>
