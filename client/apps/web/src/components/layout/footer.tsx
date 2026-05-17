@@ -79,7 +79,8 @@ export function Footer({
             {[
               ['/?view=why', 'Why Upward?'],
               ['/?view=home#how', 'How it Works'],
-              ['/?signup=true', 'Join Live'],
+              ['/login', 'Renter Portal'],
+              ['/portal/login', 'Landlord Portal'],
               ['/?view=why#faq', 'FAQ'],
             ].map(([href, label]) => (
               <li key={label}>
@@ -92,8 +93,8 @@ export function Footer({
                         `FOOTER_LINK_${label?.toUpperCase().replace(/\s+/g, '_')}`,
                       )
                     if (onSetView) {
-                      e.preventDefault()
                       if (label === 'Why Upward?' || label === 'FAQ') {
+                        e.preventDefault()
                         onSetView('why')
                         if (label === 'FAQ') {
                           setTimeout(() => {
@@ -104,9 +105,8 @@ export function Footer({
                             }
                           }, 150)
                         }
-                      } else if (label === 'Join Live') {
-                        if (onOpenSignup) onOpenSignup()
                       } else if (label === 'How it Works') {
+                        e.preventDefault()
                         onSetView('home')
                         setTimeout(() => {
                           const el = document.getElementById('how')
