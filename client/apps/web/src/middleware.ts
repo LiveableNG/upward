@@ -47,6 +47,7 @@ export function middleware(request: NextRequest) {
   
   const isPmRedirectParam = redirectParam.startsWith('/portal') ||
                             redirectParam.startsWith('/properties') ||
+                            redirectParam.startsWith('/landlords') ||
                             redirectParam.startsWith('/tenants') ||
                             redirectParam.startsWith('/payments') ||
                             redirectParam.startsWith('/requests') ||
@@ -55,6 +56,7 @@ export function middleware(request: NextRequest) {
 
   const isPmPath = pathname.startsWith('/portal') ||
                    pathname.startsWith('/properties') ||
+                   pathname.startsWith('/landlords') ||
                    pathname.startsWith('/tenants') ||
                    pathname.startsWith('/payments') ||
                    pathname.startsWith('/requests') ||
@@ -134,18 +136,27 @@ export function middleware(request: NextRequest) {
   // 7. Auth Redirection Logic (Redirect to dashboard if logged in)
   const isAuthPage = pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname === '/pm-login' || pathname === '/pm-signup'
   
-  if (isAuthPage && hasToken && !isExpired) {
+  if (isAuthPage) {
     const redirectParam = request.nextUrl.searchParams.get('redirect')
-    // Only redirect if not already at dashboard (prevents loops)
     if (redirectParam !== '/dashboard') {
-      const dashboardPath = routeToPm ? '/dashboard' : '/dashboard'
-      return NextResponse.redirect(new URL(dashboardPath, request.url))
+      // 1. If PM/Landlord user has an active token, redirect straight to PM dashboard
+      if (hasPmToken && pmTokenCookie && !isTokenExpired(pmTokenCookie.value)) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+      if (hasPmToken && landlordTokenCookie && !isTokenExpired(landlordTokenCookie.value)) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+      // 2. If Tenant user has an active token, redirect straight to Tenant dashboard
+      if (hasPayToken && payTokenCookie && !isTokenExpired(payTokenCookie.value)) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
     }
   }
 
   // 8. Protected Routes Logic
   const isProtectedRoute = pathname.startsWith('/dashboard') || 
                            pathname.startsWith('/properties') ||
+                           pathname.startsWith('/landlords') ||
                            pathname.startsWith('/tenants') ||
                            pathname.startsWith('/payments') ||
                            pathname.startsWith('/requests') ||
@@ -233,6 +244,7 @@ export const config = {
     '/pm-signup',
     '/portal/:path*',
     '/properties/:path*',
+    '/landlords/:path*',
     '/tenants/:path*',
     '/payments/:path*',
     '/requests/:path*',

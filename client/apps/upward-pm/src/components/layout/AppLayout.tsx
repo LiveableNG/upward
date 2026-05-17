@@ -23,7 +23,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
   }, [pathname])
   
-  const isAuthPage = pathname === '/signup' || pathname === '/login'
+  const isAuthPage = pathname === '/signup' || pathname === '/login' || pathname === '/pm-login' || pathname === '/pm-signup'
   const isPublicPage = 
     pathname === '/' ||
     pathname?.startsWith('/public') || 
