@@ -627,10 +627,23 @@ export class InitializePaymentUseCase {
           await this.paymentRequestRepo.update(pr.id, { userPropertyId })
         }
       }
+
+      // Fallback: If still not resolved, lookup the user's active verified property!
+      if (!userPropertyId) {
+        const activeProp = await this.prisma.upward_user_property.findFirst({
+          where: { userId: user.id, isVerified: true, isPastTenancy: false },
+          orderBy: { createdAt: 'desc' }
+        })
+        if (activeProp) {
+          userPropertyId = activeProp.id
+          this.logger.log(`Recovered userPropertyId ${userPropertyId} from user's active verified tenancy for PR ${pr.uuid}. Updating record.`)
+          await this.paymentRequestRepo.update(pr.id, { userPropertyId })
+        }
+      }
     }
 
     if (userPropertyId) {
-      if (!user.phone) {
+      if (!user.phone || !user.phone.trim() || user.phone.toLowerCase() === 'null' || user.phone.toLowerCase() === 'undefined') {
         throw new BadRequestException('A phone number is required on your profile to generate a secure virtual payment account. Please add your phone number in Profile settings.')
       }
       const availableOverpayments = await this.overpaymentRepo.findByUserIdAndStatus(user.id!, 'AVAILABLE')

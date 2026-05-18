@@ -53,14 +53,15 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
       ...data,
       rentAmount: Number(data.rentAmount),
       managementFee: Number(data.managementFee),
+      rentReminderDaysBefore: data.rentReminderDaysBefore ? Number(data.rentReminderDaysBefore) : null,
     }
     onSave(processedData)
   }
 
   return (
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1100 }}>
-      <div className="modal glass animate-scale-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 650, padding: 0, overflow: 'hidden' }}>
-        <header style={{ padding: '24px 32px', background: 'var(--ivory-dim)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="modal glass animate-scale-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 650, padding: 0, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+        <header style={{ padding: '24px 32px', background: 'var(--ivory-dim)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <div>
             <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)', marginBottom: 4 }}>Edit Unit</h2>
             <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Update core details for <strong>{unit.unitName}</strong></p>
@@ -68,7 +69,7 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
           <button onClick={onClose} className="btn-icon" style={{ background: 'white' }}><X size={20} /></button>
         </header>
 
-        <form onSubmit={handleSubmit(onSubmit)} style={{ padding: '32px' }}>
+        <form onSubmit={handleSubmit(onSubmit)} style={{ padding: '32px', overflowY: 'auto', flex: 1 }}>
           <div className="form-group" style={{ marginBottom: 24 }}>
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Home size={14} color="var(--clay)" /> Unit Name
@@ -122,7 +123,6 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
               <select {...register('rentType')} className="form-input">
                 <option value="Monthly">Monthly</option>
                 <option value="Annually">Annually</option>
-                <option value="Yearly">Yearly</option>
               </select>
             </div>
             <div className="form-group">

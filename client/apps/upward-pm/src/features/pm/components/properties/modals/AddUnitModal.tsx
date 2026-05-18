@@ -107,15 +107,17 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 640, padding: '24px' }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1100 }}>
+      <div className="modal" style={{ maxWidth: 640, padding: 0, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '24px 24px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <div>
-            <h2 className="modal__title" style={{ fontSize: 18 }}>Add New Unit</h2>
-            <p className="modal__desc" style={{ fontSize: 13 }}>Register a unit to your property portfolio.</p>
+            <h2 className="modal__title" style={{ fontSize: 18, margin: 0 }}>Add New Unit</h2>
+            <p className="modal__desc" style={{ fontSize: 13, margin: '4px 0 0 0' }}>Register a unit to your property portfolio.</p>
           </div>
           <button onClick={onClose} className="btn-icon"><X size={18} /></button>
         </div>
+
+        <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
 
         {/* Section: Core Unit Info */}
         <div className="modal-section" style={{ marginBottom: 24 }}>
@@ -382,7 +384,9 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
           />
         </div>
 
-        <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, padding: '16px 24px 24px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
           <button className="btn btn--secondary" style={{ flex: 1, fontSize: 13 }} onClick={onClose}>
             Cancel
           </button>
