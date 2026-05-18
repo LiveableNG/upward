@@ -54,7 +54,7 @@ export class RequestCredibilityRecordsUseCase {
                      this.configService.get<string>('FRONTEND_URL')?.split(',')[0] || 
                      'https://upward.goodtenants.io';
       
-      const pmUrl = 'https://upward-pm.vercel.app';
+      const pmUrl = this.configService.get<string>('PM_APP_URL') || 'https://upward-pm.vercel.app';
       const emailHash = this.encryption.hash(requestEmail.toLowerCase().trim());
       
       const pm = await this.prisma.upward_property_manager.findUnique({

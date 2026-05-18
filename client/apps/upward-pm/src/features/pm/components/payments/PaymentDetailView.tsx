@@ -61,7 +61,8 @@ export const PaymentDetailView: React.FC = () => {
     if (!request.coreRequestUuid) {
       return error('Payment link not available')
     }
-    const link = `https://upward.goodtenants.io/pay/${request.coreRequestUuid}`
+    const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
+    const link = `${baseUrl}/pay/${request.coreRequestUuid}`
     navigator.clipboard.writeText(link)
     success('Payment link copied!')
   }

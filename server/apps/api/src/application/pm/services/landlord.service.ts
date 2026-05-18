@@ -21,7 +21,8 @@ export class LandlordService {
 
     const existing = await this.landlordRepository.findByEmail(email);
     if (existing) {
-      const portalUrl = this.config.get('PM_LANDLORD_PORTAL_URL', 'http://localhost:3000/portal/login');
+      const defaultPortalUrl = this.config.get<string>('PM_APP_URL') ? `${this.config.get<string>('PM_APP_URL')}/portal/login` : 'http://localhost:3000/portal/login';
+      const portalUrl = this.config.get('PM_LANDLORD_PORTAL_URL', defaultPortalUrl);
       await this.emailService.sendLandlordNewPropertyAssignment({
         email,
         landlordName: existing.firstName || name || 'Landlord',
@@ -45,7 +46,8 @@ export class LandlordService {
         mustChangePassword: true,
       });
 
-      const portalUrl = this.config.get('PM_LANDLORD_PORTAL_URL', 'https://upward-pm.vercel.app/portal/login');
+      const defaultPortalUrl = this.config.get<string>('PM_APP_URL') ? `${this.config.get<string>('PM_APP_URL')}/portal/login` : 'https://upward-pm.vercel.app/portal/login';
+      const portalUrl = this.config.get('PM_LANDLORD_PORTAL_URL', defaultPortalUrl);
       await this.emailService.sendLandlordWelcome({
         email,
         landlordName: name || 'Landlord',

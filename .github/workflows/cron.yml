@@ -10,4 +10,4 @@ jobs:
     steps:
       - name: Trigger Upward Cron Endpoint
         run: |
-          curl -X GET "${{ secrets.CRON_TARGET_URL || 'https://upward-dev.vercel.app' }}/api/v1/public/cron/run?secret=ab54714d7103723bafdfbd3a"
+          curl -X GET "${{ secrets.CRON_TARGET_URL || 'https://upward-api.vercel.app' }}/api/v1/public/cron/run?secret=ab54714d7103723bafdfbd3a"

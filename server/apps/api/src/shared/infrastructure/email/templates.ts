@@ -9,6 +9,7 @@ interface WaitlistUser {
 }
 
 export const wrapInBaseTemplate = (content: string, subject: string, email: string = '') => {
+  const frontendUrl = process.env.FRONTEND_URL || 'https://upward.goodtenants.io'
   const result = `<!DOCTYPE html>
 <html>
 <head>
@@ -98,11 +99,11 @@ export const wrapInBaseTemplate = (content: string, subject: string, email: stri
               <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 12px;">
                 <tr>
                   <td align="center">
-                    <a href="https://upward.goodtenants.io" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Our Website</a>
+                    <a href="${frontendUrl}" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Our Website</a>
                     <span style="color: #D1D5DB; padding: 0 12px;">&nbsp;&bull;&nbsp;</span>
                     <a href="mailto:hello@goodtenants.africa" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Contact Support</a>
                     <span style="color: #D1D5DB; padding: 0 12px;">&nbsp;&bull;&nbsp;</span>
-                    <a href="https://upward.goodtenants.io/unsubscribe?email={{email}}" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Unsubscribe</a>
+                    <a href="${frontendUrl}/unsubscribe?email={{email}}" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Unsubscribe</a>
                   </td>
                 </tr>
               </table>
