@@ -216,10 +216,24 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
 
              {showLeaseFields && (
                 <div className="animate-fade-in" style={{ marginTop: 20 }}>
-                    {initialData?.unitDetails && !selectedUnitUuid && (
-                        <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#FFFBEB', borderRadius: 8, border: '1px solid #FEF3C7', fontSize: 12 }}>
-                             <p style={{ margin: 0, color: '#92400E' }}>
-                                <strong>Requested:</strong> {initialData.unitDetails.address} (₦{initialData.unitDetails.rentAmount?.toLocaleString()})
+                    {initialData?.unitDetails && (
+                        <div style={{ 
+                          marginBottom: 16, 
+                          padding: '14px 18px', 
+                          backgroundColor: 'rgba(22,101,52,0.04)', 
+                          borderRadius: 16, 
+                          border: '1px solid rgba(22,101,52,0.1)', 
+                          fontSize: 13, 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          gap: 6 
+                        }}>
+                             <span style={{ fontWeight: 800, textTransform: 'uppercase', fontSize: 10, color: 'var(--forest)', letterSpacing: '0.05em' }}>Tenant's Requested Connection</span>
+                             <p style={{ margin: 0, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                                <strong>Requested Unit/Address:</strong> {initialData.unitDetails.address}
+                             </p>
+                             <p style={{ margin: 0, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                                <strong>Requested Rent:</strong> ₦{initialData.unitDetails.rentAmount?.toLocaleString()}
                              </p>
                         </div>
                     )}

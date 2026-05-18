@@ -113,8 +113,15 @@ export class SyncUnitToUpwardUseCase {
       const existingUserProperty = await tx.upward_user_property.findFirst({
         where: {
           userId: upwardUser.id!,
-          pmUnitId: unit.id,
-        }
+          OR: [
+            { pmUnitId: unit.id },
+            {
+              pmId: pmId,
+              pmUnitId: null
+            }
+          ]
+        },
+        orderBy: { createdAt: 'desc' }
       });
 
       let userProperty;
@@ -134,6 +141,8 @@ export class SyncUnitToUpwardUseCase {
             amountRemaining: unit.rentAmount,
             rentType: unit.rentType,
             subaccountId: subaccountId || existingUserProperty.subaccountId,
+            pmUnitId: unit.id,
+            verificationStatus: 'VERIFIED',
           }
         });
       } else {
