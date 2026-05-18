@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import { UpwardLogo } from '../../../../components/PoweredByUpward'
 import { api } from '@/lib/api'
 import DedicatedAccountCheckout from './DedicatedAccountCheckout'
+import { useToast } from '@/components/common/Toast'
 
 interface PaystackEmbeddedProps {
   email: string
@@ -37,6 +38,7 @@ export default function PaystackEmbeddedCheckout({
   gatewayFee = 0,
   paymentRequestUuid,
 }: PaystackEmbeddedProps) {
+  const toast = useToast()
   const [config, setConfig] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -72,7 +74,9 @@ export default function PaystackEmbeddedCheckout({
         }
       } catch (err: any) {
         console.error('Failed to initialize payment:', err)
-        setError(err.message || 'Failed to connect to payment gateway')
+        const errorMsg = err.message || 'Failed to connect to payment gateway'
+        setError(errorMsg)
+        toast.error(errorMsg, 'Payment Initialization Failed')
       }
     }
     init()
@@ -110,14 +114,50 @@ export default function PaystackEmbeddedCheckout({
         <div className="pay-page__logo-pulse">
           <UpwardLogo size={28} color="#fff" />
         </div>
-        <p className="pay-page__splash-text">
+        <p className="pay-page__splash-text" style={{ maxWidth: '480px', lineHeight: '1.6' }}>
           {error || 'Securely establishing connection to Payment Gateway...'}
         </p>
       </div>
-      {!error && (
+      {!error ? (
         <p style={{ marginTop: 24, fontSize: 12, color: 'var(--text-muted)' }}>
           Please do not close this window.
         </p>
+      ) : (
+        <div style={{ marginTop: 32, display: 'flex', gap: 16 }}>
+          <button 
+            onClick={onClose}
+            style={{
+              padding: '12px 24px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
+              background: 'transparent',
+              color: 'var(--text-color, #fff)',
+              cursor: 'pointer',
+              fontWeight: 500,
+              transition: 'all 0.2s ease',
+            }}
+          >
+            Go Back
+          </button>
+          {error.includes('phone number') && (
+            <button 
+              onClick={() => window.location.href = '/dashboard?tab=profile'} 
+              style={{
+                padding: '12px 24px',
+                borderRadius: '8px',
+                border: 'none',
+                background: 'var(--clay, #dc2626)',
+                color: '#fff',
+                cursor: 'pointer',
+                fontWeight: 500,
+                boxShadow: '0 4px 12px rgba(220, 38, 38, 0.2)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              Go to Profile
+            </button>
+          )}
+        </div>
       )}
     </div>
   )

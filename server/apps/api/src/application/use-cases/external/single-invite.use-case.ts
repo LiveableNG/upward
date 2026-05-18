@@ -319,6 +319,7 @@ export class SingleInviteUseCase {
             userPropertyId: property.id,
             tenantEmail: user.email!,
             tenantName: `${user.firstName} ${user.lastName}`,
+            tenantPhone: user.phone ?? undefined,
           });
         } catch (e: any) {
           this.logger.warn(`Failed to pre-provision DVA for property ${property.uuid}: ${e.message}`);

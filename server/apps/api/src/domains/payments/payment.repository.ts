@@ -100,6 +100,7 @@ export interface IPaymentGateway {
     email: string
     firstName: string
     lastName: string
+    phone?: string
   }): Promise<string>
   createDedicatedAccount(data: {
     customerCode: string
