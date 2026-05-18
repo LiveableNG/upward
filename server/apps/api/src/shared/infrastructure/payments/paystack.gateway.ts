@@ -277,6 +277,7 @@ export class PaystackGateway implements IPaymentGateway {
     email: string
     firstName: string
     lastName: string
+    phone?: string
   }): Promise<string> {
     try {
       this.logger.log(`Creating Paystack customer: ${data.email}`)
@@ -287,19 +288,56 @@ export class PaystackGateway implements IPaymentGateway {
           email: data.email,
           first_name: data.firstName,
           last_name: data.lastName,
+          phone: data.phone,
         }),
       })
 
       const responseData = await res.json()
-      if (!res.ok) {
-        if (responseData.message?.toLowerCase().includes('already exists') || responseData.data?.customer_code) {
-          return responseData.data?.customer_code || ''
+      let customerCode = ''
+      if (res.ok) {
+        customerCode = responseData.data.customer_code
+      } else if (responseData.message?.toLowerCase().includes('already exists') || responseData.data?.customer_code) {
+        customerCode = responseData.data?.customer_code || ''
+      }
+
+      if (!customerCode) {
+        this.logger.warn(`Failed to resolve customer code directly. Searching customer by email: ${data.email}`)
+        const listRes = await fetch(`${this.baseUrl}/customer?email=${encodeURIComponent(data.email)}`, {
+          method: 'GET',
+          headers: this.headers,
+        })
+        const listData = await listRes.json()
+        if (listRes.ok && listData.status && Array.isArray(listData.data) && listData.data.length > 0) {
+          customerCode = listData.data[0].customer_code
         }
+      }
+
+      if (!customerCode) {
         this.logger.error(`Paystack customer creation failed: ${res.status} - ${JSON.stringify(responseData)}`)
         throw new Error(responseData.message || 'Customer creation failed')
       }
 
-      return responseData.data.customer_code
+      // If we have a phone number, update the customer record on Paystack to ensure the phone number is active
+      if (data.phone) {
+        this.logger.log(`Updating customer ${customerCode} with phone number ${data.phone}`)
+        const updateRes = await fetch(`${this.baseUrl}/customer/${customerCode}`, {
+          method: 'PUT',
+          headers: this.headers,
+          body: JSON.stringify({
+            phone: data.phone,
+            first_name: data.firstName,
+            last_name: data.lastName,
+          }),
+        })
+        if (!updateRes.ok) {
+          const updateData = await updateRes.json().catch(() => ({}))
+          this.logger.warn(`Failed to update Paystack customer phone: ${updateRes.status} - ${JSON.stringify(updateData)}`)
+        } else {
+          this.logger.log(`Successfully updated customer ${customerCode} with phone number`)
+        }
+      }
+
+      return customerCode
     } catch (error) {
       this.logger.error('Paystack createCustomer error:', error)
       throw error

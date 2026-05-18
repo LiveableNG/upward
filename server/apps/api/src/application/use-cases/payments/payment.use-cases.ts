@@ -496,7 +496,7 @@ export class ResolveDedicatedAccountUseCase {
     private readonly prisma: PrismaService,
   ) { }
 
-  async execute(data: { userPropertyId: number; tenantEmail?: string; tenantName?: string; subaccountCode?: string }) {
+  async execute(data: { userPropertyId: number; tenantEmail?: string; tenantName?: string; tenantPhone?: string; subaccountCode?: string }) {
     this.logger.log(`Resolving dedicated account for User Property ID: ${data.userPropertyId}`)
     
     const existing = await this.dvaRepo.findByUserPropertyId(data.userPropertyId)
@@ -524,7 +524,7 @@ export class ResolveDedicatedAccountUseCase {
     const lastName = data.tenantName?.split(' ')[1] || `Property-${data.userPropertyId}`
 
     this.logger.log(`Creating customer for DVA: ${customerEmail}`)
-    const customerCode = await this.gateway.createCustomer({ email: customerEmail, firstName, lastName })
+    const customerCode = await this.gateway.createCustomer({ email: customerEmail, firstName, lastName, phone: data.tenantPhone })
     if (!customerCode) throw new Error('Failed to resolve customer for DVA')
 
     this.logger.log(`Requesting DVA creation from Paystack for customer ${customerCode} with subaccount ${finalSubaccountCode || 'none'}`)
@@ -630,6 +630,9 @@ export class InitializePaymentUseCase {
     }
 
     if (userPropertyId) {
+      if (!user.phone) {
+        throw new BadRequestException('A phone number is required on your profile to generate a secure virtual payment account. Please add your phone number in Profile settings.')
+      }
       const availableOverpayments = await this.overpaymentRepo.findByUserIdAndStatus(user.id!, 'AVAILABLE')
       const totalCredit = availableOverpayments.reduce((sum, o) => sum + o.amount, 0)
       
@@ -655,6 +658,7 @@ export class InitializePaymentUseCase {
         userPropertyId: userPropertyId,
         tenantEmail: user.email!,
         tenantName: `${user.firstName} ${user.lastName}`,
+        tenantPhone: user.phone ?? undefined,
         subaccountCode: pr.subaccount?.subaccountCode
       })
 

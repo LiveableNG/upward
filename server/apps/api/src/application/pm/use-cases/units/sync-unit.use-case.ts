@@ -241,6 +241,7 @@ export class SyncUnitToUpwardUseCase {
             userPropertyId: userProperty.id,
             tenantEmail: upwardUser.email!,
             tenantName: `${upwardUser.firstName} ${upwardUser.lastName}`,
+            tenantPhone: upwardUser.phone ?? undefined,
           });
         } catch (e: any) {
           this.logger.warn(`Failed to pre-provision DVA during sync: ${e.message}`);
