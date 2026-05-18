@@ -191,7 +191,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
             <ChevronLeft size={20} />
           </button>
         </div>
-        <a href="https://upward.goodtenants.io" className="auth-shell__brand">
+        <a href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"} className="auth-shell__brand">
           <UpwardLogo size={28} color="var(--clay)" />
         </a>
         <div className="auth-stage">
@@ -216,7 +216,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
         </button>
       </div>
 
-      <a href="https://upward.goodtenants.io" className="auth-shell__brand">
+      <a href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"} className="auth-shell__brand">
         <UpwardLogo size={28} color="var(--clay)" />
       </a>
 

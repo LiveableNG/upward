@@ -629,7 +629,10 @@ export class UserAuthService extends BaseAuthService {
     
     if (!user) {
       const waitlistEntry = await this.prisma.upward_waitlist.findFirst({
-        where: { email }
+        where: { 
+          email,
+          role: { not: 'OWNER' }
+        }
       })
       if (waitlistEntry) {
         return { 
@@ -661,7 +664,10 @@ export class UserAuthService extends BaseAuthService {
 
     if (context === 'WAITLIST') {
       const entry = await this.prisma.upward_waitlist.findFirst({
-        where: { email }
+        where: { 
+          email,
+          role: { not: 'OWNER' }
+        }
       })
       if (!entry) throw new ForbiddenException('You are not on the priority waitlist.')
     }
@@ -724,7 +730,10 @@ export class UserAuthService extends BaseAuthService {
 
     if (context === 'WAITLIST') {
       const entry = await this.prisma.upward_waitlist.findFirst({
-        where: { email }
+        where: { 
+          email,
+          role: { not: 'OWNER' }
+        }
       })
       if (entry) {
         return { success: true, inviteToken: entry.uuid }
@@ -755,8 +764,11 @@ export class UserAuthService extends BaseAuthService {
   }
 
   async getWaitlistClaimData(uuid: string) {
-    const entry = await this.prisma.upward_waitlist.findUnique({
-      where: { uuid }
+    const entry = await this.prisma.upward_waitlist.findFirst({
+      where: { 
+        uuid,
+        role: { not: 'OWNER' }
+      }
     })
     
     if (!entry) {

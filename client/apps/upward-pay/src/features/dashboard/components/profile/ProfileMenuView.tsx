@@ -73,7 +73,8 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
   }
 
   const handleCopyLink = async () => {
-    const baseUrl = Capacitor.isNativePlatform() ? 'https://upward.goodtenants.io' : window.location.origin
+    const defaultWebUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
+    const baseUrl = Capacitor.isNativePlatform() ? defaultWebUrl : window.location.origin
     const url = `${baseUrl}/profile/${profile?.uuid}`
     
     try {

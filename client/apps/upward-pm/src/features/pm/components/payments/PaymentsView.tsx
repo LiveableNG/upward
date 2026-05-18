@@ -63,7 +63,8 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
     if (!req.coreRequestUuid) {
        return error('Payment link not available for this request')
     }
-    const link = `https://upward.goodtenants.io/pay/${req.coreRequestUuid}`
+    const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
+    const link = `${baseUrl}/pay/${req.coreRequestUuid}`
     navigator.clipboard.writeText(link)
     success('Payment link copied to clipboard!')
   }

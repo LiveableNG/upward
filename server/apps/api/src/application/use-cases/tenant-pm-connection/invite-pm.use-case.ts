@@ -44,7 +44,7 @@ export class InvitePmUseCase {
     }
 
     const isLandlord = pmType === 'Landlord';
-    const baseUrl = 'https://upward-pm.vercel.app';
+    const baseUrl = process.env.PM_APP_URL || 'https://upward-pm.vercel.app';
     const inviteLink = `${baseUrl}/invite/${targetPmUuid}`;
     
     const roleName = isLandlord ? 'Landlord' : (pmType || 'Property Manager');

@@ -15,6 +15,7 @@ export class EmailService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mg: any
   private readonly MAX_RETRIES = 3
+  private readonly frontendUrl: string
 
   constructor(
     private configService: ConfigService,
@@ -22,6 +23,7 @@ export class EmailService {
     private bugsnag: BugsnagService,
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
   ) {
+    this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'https://upward.goodtenants.io'
     const mailgun = new Mailgun(FormData)
     const apiKey = this.configService.get<string>('MAILGUN_API_KEY')
     const domain = this.configService.get<string>('MAILGUN_DOMAIN')
@@ -100,11 +102,11 @@ export class EmailService {
       <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-top:1px solid #E5E7EB;padding-top:24px;">
         <tr>
           <td align="left">
-            <a href="https://upward.goodtenants.io" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Our Website</a>
+            <a href="${this.frontendUrl}" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Our Website</a>
             <span style="color: #D1D5DB; padding: 0 12px;">&bull;</span>
             <a href="mailto:hello@goodtenants.africa" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Contact Support</a>
             <span style="color: #D1D5DB; padding: 0 12px;">&bull;</span>
-            <a href="https://upward.goodtenants.io/unsubscribe?email={{email}}" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Unsubscribe</a>
+            <a href="${this.frontendUrl}/unsubscribe?email={{email}}" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Unsubscribe</a>
           </td>
         </tr>
       </table>
@@ -171,7 +173,7 @@ export class EmailService {
           subject,
           text,
           html,
-          'h:List-Unsubscribe': `<https://upward.goodtenants.io/unsubscribe?email=${email}>`,
+          'h:List-Unsubscribe': `<${this.frontendUrl}/unsubscribe?email=${email}>`,
           'h:List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
         }
 
@@ -251,7 +253,7 @@ export class EmailService {
         to: [email],
         subject: subject,
         html: content,
-        'h:List-Unsubscribe': `<https://upward.goodtenants.io/unsubscribe?email=${email}>`,
+        'h:List-Unsubscribe': `<${this.frontendUrl}/unsubscribe?email=${email}>`,
         'h:List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
       })
 
@@ -967,7 +969,7 @@ export class EmailService {
             <p>Hello,</p>
             <p><strong>${pmName}</strong> has just updated your rental payment history for <strong>${propertyAddress}</strong> on Upward.</p>
             <p>These records help build your rental credibility score and showcase your consistency as a tenant.</p>
-            <a href="https://upward.goodtenants.io/dashboard" class="btn">View Your Rent Passport</a>
+            <a href="${this.frontendUrl}/dashboard" class="btn">View Your Rent Passport</a>
           </div>
           <div class="footer">
             <p class="footer-text">

@@ -1,6 +1,6 @@
 import type { NextConfig } from 'next'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://upward-dev.vercel.app/api/v1'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://upward-api.vercel.app/api/v1'
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@upward/shared-types'],

@@ -111,7 +111,7 @@ export class InviteTeamMemberUseCase {
       name: dto.name,
       inviterName: ownerName,
       isNewAccount,
-      claimLink: `https://upward-pm.vercel.app/invited/${collaborator!.uuid}`
+      claimLink: `${process.env.PM_APP_URL || 'https://upward-pm.vercel.app'}/invited/${collaborator!.uuid}`
     });
 
     return collaboration;

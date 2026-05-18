@@ -57,9 +57,10 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
     // Always use UUID for sharing as per user request
     const identifier = p?.uuid
     
+    const defaultWebUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
     const baseUrl = Capacitor.isNativePlatform() 
-      ? 'https://upward.goodtenants.io' 
-      : (typeof window !== 'undefined' ? window.location.origin : 'https://upward.goodtenants.io')
+      ? defaultWebUrl 
+      : (typeof window !== 'undefined' ? window.location.origin : defaultWebUrl)
 
     const url = `${baseUrl}/profile/${identifier}`
     

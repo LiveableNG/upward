@@ -54,7 +54,7 @@ export function BenefitsStep({ onSignup, onLogin }: BenefitsStepProps) {
 
   return (
     <div className="auth-shell auth-shell--welcome">
-      <a href="https://upward.goodtenants.io" className="auth-shell__logo">
+      <a href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"} className="auth-shell__logo">
         <UpwardLogo size={36} color="var(--clay)" />
       </a>
 
@@ -98,11 +98,11 @@ export function BenefitsStep({ onSignup, onLogin }: BenefitsStepProps) {
 
       <p className="auth-terms">
         By proceeding you agree to our{' '}
-        <a href="https://upward.goodtenants.io/legal/terms" target="_blank" rel="noopener noreferrer">
+        <a href={`${process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"}/legal/terms`} target="_blank" rel="noopener noreferrer">
           Terms of Service
         </a>{' '}
         and{' '}
-        <a href="https://upward.goodtenants.io/legal/privacy" target="_blank" rel="noopener noreferrer">
+        <a href={`${process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"}/legal/privacy`} target="_blank" rel="noopener noreferrer">
           Privacy Policy
         </a>
       </p>

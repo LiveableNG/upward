@@ -64,7 +64,8 @@ export class UnifiedReminderService {
     const amount = `${pr.currency} ${pr.amount.toLocaleString()}`;
     const unitName = pr.unit.unitName;
     const propertyName = pr.unit.property.name;
-    const paymentUrl = `https://upward.goodtenants.io/pay/${pr.paymentRequest?.uuid || pr.uuid}`;
+    const baseUrl = process.env.FRONTEND_URL || 'https://upward.goodtenants.io';
+    const paymentUrl = `${baseUrl}/pay/${pr.paymentRequest?.uuid || pr.uuid}`;
 
     // 1. Send Email
     await this.emailService.sendEmailWithRetry({
