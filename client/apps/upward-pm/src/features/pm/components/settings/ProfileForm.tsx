@@ -15,6 +15,8 @@ const profileSchema = z.object({
   phone: z.string().refine((val) => !val || isValidPhoneNumber(val), {
     message: 'Invalid international phone number (e.g. +234...)'
   }),
+  country: z.string().optional(),
+  cacNumber: z.string().optional(),
 })
 
 type ProfileFormData = z.infer<typeof profileSchema>
@@ -31,6 +33,8 @@ export function ProfileForm() {
       businessName: user?.businessName || '',
       pmType: user?.pmType || '',
       phone: user?.phone || '',
+      country: user?.country || '',
+      cacNumber: user?.cacNumber || '',
     }
   })
 
@@ -42,6 +46,8 @@ export function ProfileForm() {
         businessName: user.businessName || '',
         pmType: user.pmType || '',
         phone: user.phone || '',
+        country: user.country || '',
+        cacNumber: user.cacNumber || '',
       })
     }
   }, [user, reset])
@@ -115,6 +121,31 @@ export function ProfileForm() {
                   className="settings__input"
                 />
               )}
+            />
+          </div>
+        </div>
+
+        <div className="settings__grid">
+          <div className="settings__field">
+            <label className="settings__label">Country</label>
+            <select 
+              {...register('country')}
+              className="settings__input"
+            >
+              <option value="">Select country</option>
+              <option value="Nigeria">Nigeria</option>
+              <option value="Kenya">Kenya</option>
+              <option value="Zambia">Zambia</option>
+              <option value="Rwanda">Rwanda</option>
+              <option value="Uganda">Uganda</option>
+            </select>
+          </div>
+          <div className="settings__field">
+            <label className="settings__label">CAC Number (Optional)</label>
+            <input 
+              {...register('cacNumber')}
+              className="settings__input"
+              placeholder="Enter CAC number"
             />
           </div>
         </div>

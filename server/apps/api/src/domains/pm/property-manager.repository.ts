@@ -13,6 +13,8 @@ export interface PropertyManager {
   phone?: string | null
   phoneHash?: string | null
   profilePic?: string | null
+  country?: string | null
+  cacNumber?: string | null
   bankName?: string | null
   bankCode?: string | null
   accountNumber?: string | null

@@ -11,7 +11,7 @@ import '@/styles/mobile-header.css'
 export function MobileHeader({ onMenuClick }: { onMenuClick: () => void }) {
   const { user } = useAuth()
   const { data: verification } = useVerificationStatus()
-  
+
   const isPending = verification?.status === 'PENDING'
 
   return (
@@ -25,7 +25,7 @@ export function MobileHeader({ onMenuClick }: { onMenuClick: () => void }) {
         <span className="mobile-header__brand">{user?.businessName || 'Property Manager'}</span>
         {user && !user.isVerified && (
            <Link 
-            href="/settings?tab=verification"
+            href="/settings"
             className=""
             style={{ 
                 width: 8, 
