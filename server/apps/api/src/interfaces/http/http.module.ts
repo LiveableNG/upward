@@ -44,6 +44,7 @@ import { CronController } from './public/cron.controller'
 import { TenantPmConnectionController } from './user/tenant-pm-connection.controller'
 import { PublicTrackingController } from './public/public-tracking.controller'
 import { AppActivityLogController } from './admin/app-activity-log.controller'
+import { FeedbackAdminController } from './admin/feedback-admin.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule],
@@ -90,6 +91,7 @@ import { AppActivityLogController } from './admin/app-activity-log.controller'
     TenantPmConnectionController,
     PublicTrackingController,
     AppActivityLogController,
+    FeedbackAdminController,
   ],
 })
 export class HttpModule {}

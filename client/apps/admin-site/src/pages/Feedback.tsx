@@ -1,81 +1,64 @@
 import React, { useState, useEffect } from 'react'
 import {
+  MessageSquare,
   Search,
-  Smartphone,
+  Clock,
   ArrowLeft,
   ArrowRight,
   Filter,
   RefreshCcw,
   ChevronDown,
-  Download,
-  Activity,
-  Users,
+  AlertTriangle,
+  Lightbulb,
+  HelpCircle,
   Eye,
-  X,
-  Copy,
-  Check,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 
-interface AppActivityLog {
+interface FeedbackLog {
   id: number
   uuid: string
-  app: string
   userId: number | null
-  pmId: number | null
-  userRole: string
-  userEmail: string | null
-  action: string
-  entityType: string | null
-  entityId: string | null
-  description: string
-  metadata: any
-  ipAddress: string | null
-  userAgent: string | null
+  email: string | null
+  name: string | null
+  type: string // BUG, SUGGESTION, DIFFICULTY, OTHER
+  message: string
   createdAt: string
 }
 
-interface StatsData {
-  totalInstalls: number
-  platforms: {
-    ios: number
-    android: number
-    web: number
-    other: number
-  }
-  activeUsersByApp: {
-    app: string
+interface FeedbackStats {
+  totalFeedback: number
+  feedbackByType: {
+    type: string
     _count: number
   }[]
-  recentActivityCount: number
+  recentCount: number
 }
 
-interface AppActivityProps {
+interface FeedbackProps {
   token: string
 }
 
-const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
-  const [logs, setLogs] = useState<AppActivityLog[]>([])
-  const [stats, setStats] = useState<StatsData | null>(null)
+const Feedback: React.FC<FeedbackProps> = ({ token }) => {
+  const [logs, setLogs] = useState<FeedbackLog[]>([])
+  const [stats, setStats] = useState<FeedbackStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadingStats, setLoadingStats] = useState(true)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
-  
+
   // Filters
   const [search, setSearch] = useState('')
-  const [appFilter, setAppFilter] = useState('ALL')
-  const [actionFilter, setActionFilter] = useState('ALL')
-  
+  const [typeFilter, setTypeFilter] = useState('ALL')
+
   // Modal details
-  const [selectedLog, setSelectedLog] = useState<AppActivityLog | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [selectedLog, setSelectedLog] = useState<FeedbackLog | null>(null)
 
   const fetchStats = async () => {
     setLoadingStats(true)
     try {
-      const response = await apiService.get('/admin/app-activity/stats', token)
+      const response = await apiService.get('/admin/feedback/stats', token)
       if (response) {
         setStats(response)
       }
@@ -89,9 +72,8 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
   const fetchLogs = async (pageNum = page) => {
     setLoading(true)
     try {
-      let url = `/admin/app-activity?page=${pageNum}&limit=50`
-      if (appFilter !== 'ALL') url += `&app=${appFilter}`
-      if (actionFilter !== 'ALL') url += `&action=${actionFilter}`
+      let url = `/admin/feedback?page=${pageNum}&limit=50`
+      if (typeFilter !== 'ALL') url += `&type=${typeFilter}`
       if (search.trim()) url += `&search=${encodeURIComponent(search.trim())}`
 
       const response = await apiService.get(url, token)
@@ -101,7 +83,7 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
         setTotal(response.meta.total)
       }
     } catch (error) {
-      console.error('Failed to fetch app activity logs:', error)
+      console.error('Failed to fetch feedback logs:', error)
     } finally {
       setLoading(false)
     }
@@ -113,9 +95,8 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
 
   useEffect(() => {
     fetchLogs(page)
-  }, [page, appFilter, actionFilter])
+  }, [page, typeFilter])
 
-  // Trigger search on submit or enter key
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setPage(1)
@@ -127,38 +108,36 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
     fetchLogs(page)
   }
 
-  const getActionColor = (action: string) => {
-    switch (action) {
-      case 'LOGIN':
-        return 'var(--success)'
-      case 'LOGOUT':
-        return 'var(--text-muted)'
-      case 'SIGNUP':
-        return '#8b5cf6' // Violet
-      case 'APP_INSTALL':
-        return 'var(--accent)'
-      case 'DELETE':
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'BUG':
+        return <AlertTriangle size={18} color="var(--danger)" />
+      case 'SUGGESTION':
+        return <Lightbulb size={18} color="var(--warning)" />
+      case 'DIFFICULTY':
+        return <HelpCircle size={18} color="var(--accent)" />
+      default:
+        return <MessageSquare size={18} color="var(--text-muted)" />
+    }
+  }
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'BUG':
         return 'var(--danger)'
-      case 'CREATE':
-        return '#3b82f6' // Blue
-      case 'UPDATE':
+      case 'SUGGESTION':
         return 'var(--warning)'
+      case 'DIFFICULTY':
+        return 'var(--accent)'
       default:
         return 'var(--text-muted)'
     }
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  // Count active users by app from stats
-  const getAppActivityCount = (appName: string) => {
+  const getCountByType = (type: string) => {
     if (!stats) return 0
-    const appStat = stats.activeUsersByApp.find((s) => s.app === appName)
-    return appStat ? appStat._count : 0
+    const item = stats.feedbackByType.find((f) => f.type === type)
+    return item ? item._count : 0
   }
 
   return (
@@ -189,14 +168,14 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
               flexShrink: 0,
             }}
           >
-            <Smartphone size={24} />
+            <MessageSquare size={24} />
           </div>
           <div>
             <h1 className="section-title" style={{ margin: 0 }}>
-              App Activity & Telemetry
+              User Feedback & Reports
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
-              Track app downloads, active users, and mutations on upward-pay and upward-pm.
+              Review bug reports, app suggestions, and difficulty reviews from tenants and property managers.
             </p>
           </div>
         </div>
@@ -228,96 +207,68 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
       >
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="section-label">Total Mobile Installs</span>
+            <span className="section-label">Total Feedback Received</span>
             <div style={{ color: 'var(--accent)', background: 'var(--accent-faint)', padding: '6px', borderRadius: '8px' }}>
-              <Download size={18} />
+              <MessageSquare size={18} />
             </div>
           </div>
           <div>
             <h2 style={{ fontSize: '32px', fontWeight: 800, margin: 0 }}>
-              {loadingStats ? '...' : stats?.totalInstalls || 0}
+              {loadingStats ? '...' : stats?.totalFeedback || 0}
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '4px 0 0 0' }}>
-              Total downloads & first-time launches
+              Total submissions across all apps
             </p>
           </div>
         </div>
 
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="section-label">Mobile OS Platform</span>
+            <span className="section-label">Bug Reports</span>
+            <div style={{ color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.1)', padding: '6px', borderRadius: '8px' }}>
+              <AlertTriangle size={18} />
+            </div>
+          </div>
+          <div>
+            <h2 style={{ fontSize: '32px', fontWeight: 800, margin: 0, color: 'var(--danger)' }}>
+              {loadingStats ? '...' : getCountByType('BUG')}
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '4px 0 0 0' }}>
+              Critical issues needing attention
+            </p>
+          </div>
+        </div>
+
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="section-label">Suggestions & Ideas</span>
+            <div style={{ color: 'var(--warning)', background: 'rgba(245, 158, 11, 0.1)', padding: '6px', borderRadius: '8px' }}>
+              <Lightbulb size={18} />
+            </div>
+          </div>
+          <div>
+            <h2 style={{ fontSize: '32px', fontWeight: 800, margin: 0, color: 'var(--warning)' }}>
+              {loadingStats ? '...' : getCountByType('SUGGESTION')}
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '4px 0 0 0' }}>
+              Feature requests & optimizations
+            </p>
+          </div>
+        </div>
+
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="section-label">Recent Submissions (30d)</span>
             <div style={{ color: 'var(--success)', background: 'var(--success-faint)', padding: '6px', borderRadius: '8px' }}>
-              <Smartphone size={18} />
-            </div>
-          </div>
-          {loadingStats ? (
-            <div>Loading...</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, justifyContent: 'center' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 600 }}>
-                  <span>iOS</span>
-                  <span>{stats?.platforms?.ios || 0}</span>
-                </div>
-                <div style={{ height: '4px', background: 'var(--surface-hover)', borderRadius: '2px', overflow: 'hidden', marginTop: '2px' }}>
-                  <div
-                    style={{
-                      height: '100%',
-                      background: 'var(--accent)',
-                      width: `${stats?.totalInstalls ? (((stats.platforms?.ios || 0) / stats.totalInstalls) * 100) : 0}%`,
-                    }}
-                  />
-                </div>
-              </div>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 600 }}>
-                  <span>Android</span>
-                  <span>{stats?.platforms?.android || 0}</span>
-                </div>
-                <div style={{ height: '4px', background: 'var(--surface-hover)', borderRadius: '2px', overflow: 'hidden', marginTop: '2px' }}>
-                  <div
-                    style={{
-                      height: '100%',
-                      background: 'var(--success)',
-                      width: `${stats?.totalInstalls ? (((stats.platforms?.android || 0) / stats.totalInstalls) * 100) : 0}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="section-label">Tenant App Actions</span>
-            <div style={{ color: '#3b82f6', background: 'rgba(59, 130, 246, 0.1)', padding: '6px', borderRadius: '8px' }}>
-              <Activity size={18} />
+              <Clock size={18} />
             </div>
           </div>
           <div>
             <h2 style={{ fontSize: '32px', fontWeight: 800, margin: 0 }}>
-              {loadingStats ? '...' : getAppActivityCount('upward-pay')}
+              {loadingStats ? '...' : stats?.recentCount || 0}
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '4px 0 0 0' }}>
-              Total logged operations in upward-pay
-            </p>
-          </div>
-        </div>
-
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="section-label">Manager App Actions</span>
-            <div style={{ color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.1)', padding: '6px', borderRadius: '8px' }}>
-              <Users size={18} />
-            </div>
-          </div>
-          <div>
-            <h2 style={{ fontSize: '32px', fontWeight: 800, margin: 0 }}>
-              {loadingStats ? '...' : getAppActivityCount('upward-pm')}
-            </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '4px 0 0 0' }}>
-              Total logged operations in upward-pm
+              Feedback received in last 30 days
             </p>
           </div>
         </div>
@@ -348,7 +299,7 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
             />
             <input
               type="text"
-              placeholder="Search by email, entity, or description (Press Enter)..."
+              placeholder="Search by name, email, or message keyword (Press Enter)..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{
@@ -371,7 +322,7 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
               alignItems: 'center',
               gap: '12px',
               flex: '0 1 auto',
-              minWidth: '150px',
+              minWidth: '180px',
             }}
           >
             <div style={{ position: 'relative', width: '100%' }}>
@@ -387,9 +338,9 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
                 }}
               />
               <select
-                value={appFilter}
+                value={typeFilter}
                 onChange={(e) => {
-                  setAppFilter(e.target.value)
+                  setTypeFilter(e.target.value)
                   setPage(1)
                 }}
                 style={{
@@ -403,70 +354,11 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
                   cursor: 'pointer',
                 }}
               >
-                <option value="ALL">All Apps</option>
-                <option value="upward-pay">upward-pay (Tenant)</option>
-                <option value="upward-pm">upward-pm (Manager)</option>
-              </select>
-              <ChevronDown
-                size={14}
-                style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
-                  pointerEvents: 'none',
-                }}
-              />
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              flex: '0 1 auto',
-              minWidth: '150px',
-            }}
-          >
-            <div style={{ position: 'relative', width: '100%' }}>
-              <Filter
-                size={16}
-                style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
-                  pointerEvents: 'none',
-                }}
-              />
-              <select
-                value={actionFilter}
-                onChange={(e) => {
-                  setActionFilter(e.target.value)
-                  setPage(1)
-                }}
-                style={{
-                  width: '100%',
-                  padding: '11px 32px 11px 36px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--border)',
-                  background: 'var(--surface)',
-                  fontSize: '14px',
-                  appearance: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                <option value="ALL">All Actions</option>
-                <option value="CREATE">CREATE</option>
-                <option value="UPDATE">UPDATE</option>
-                <option value="DELETE">DELETE</option>
-                <option value="LOGIN">LOGIN</option>
-                <option value="LOGOUT">LOGOUT</option>
-                <option value="SIGNUP">SIGNUP</option>
-                <option value="APP_INSTALL">APP_INSTALL</option>
+                <option value="ALL">All Types</option>
+                <option value="BUG">Bug Reports</option>
+                <option value="SUGGESTION">Suggestions</option>
+                <option value="DIFFICULTY">Difficulty</option>
+                <option value="OTHER">Other</option>
               </select>
               <ChevronDown
                 size={14}
@@ -490,25 +382,24 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Time</th>
-                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>App</th>
-                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>User / Role</th>
-                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Action</th>
-                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Description</th>
+                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Submitted At</th>
+                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>User details</th>
+                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Type</th>
+                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Message</th>
                 <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'center' }}>Details</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: '48px', textAlign: 'center' }}>
+                  <td colSpan={5} style={{ padding: '48px', textAlign: 'center' }}>
                     <div className="loader" style={{ margin: '0 auto' }}></div>
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    No activity logs found.
+                  <td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    No feedback found.
                   </td>
                 </tr>
               ) : (
@@ -523,23 +414,9 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
                       </div>
                     </td>
                     <td style={{ padding: '16px' }}>
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          background: log.app === 'upward-pay' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
-                          color: log.app === 'upward-pay' ? '#3b82f6' : '#8b5cf6',
-                        }}
-                      >
-                        {log.app}
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px' }}>
-                      <div style={{ fontSize: '14px', fontWeight: 600 }}>{log.userEmail || 'GUEST'}</div>
+                      <div style={{ fontSize: '14px', fontWeight: 600 }}>{log.name || 'Anonymous'}</div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        Role: {log.userRole} {log.userId ? `(UID: ${log.userId})` : log.pmId ? `(PMID: ${log.pmId})` : ''}
+                        {log.email || 'No email'} {log.userId ? `(UID: ${log.userId})` : ''}
                       </div>
                     </td>
                     <td style={{ padding: '16px' }}>
@@ -549,23 +426,28 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
                           fontWeight: 700,
                           padding: '4px 10px',
                           borderRadius: '20px',
-                          background: `${getActionColor(log.action)}15`,
-                          color: getActionColor(log.action),
+                          background: `${getTypeColor(log.type)}15`,
+                          color: getTypeColor(log.type),
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
                         }}
                       >
-                        {log.action}
+                        {getTypeIcon(log.type)}
+                        {log.type}
                       </span>
                     </td>
                     <td style={{ padding: '16px' }}>
                       <div
                         style={{
                           fontSize: '13px',
-                          maxWidth: '300px',
-                          whiteSpace: 'normal',
-                          lineBreak: 'anywhere',
+                          maxWidth: '400px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
                         }}
                       >
-                        {log.description}
+                        {log.message}
                       </div>
                     </td>
                     <td style={{ padding: '16px', textAlign: 'center' }}>
@@ -604,7 +486,7 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
             </div>
           ) : logs.length === 0 ? (
             <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              No activity logs found.
+              No feedback found.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -621,33 +503,24 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        background: log.app === 'upward-pay' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
-                        color: log.app === 'upward-pay' ? '#3b82f6' : '#8b5cf6',
-                      }}
-                    >
-                      {log.app}
-                    </span>
+                    <span style={{ fontSize: '13px', fontWeight: 600 }}>{log.name || 'Anonymous'}</span>
                     <span
                       style={{
                         fontSize: '10px',
                         fontWeight: 700,
                         padding: '2px 8px',
                         borderRadius: '6px',
-                        background: `${getActionColor(log.action)}15`,
-                        color: getActionColor(log.action),
+                        background: `${getTypeColor(log.type)}15`,
+                        color: getTypeColor(log.type),
                       }}
                     >
-                      {log.action}
+                      {log.type}
                     </span>
                   </div>
 
-                  <div style={{ fontSize: '14px', fontWeight: 600 }}>{log.description}</div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-dark)', lineBreak: 'anywhere' }}>
+                    {log.message}
+                  </div>
 
                   <div
                     style={{
@@ -658,9 +531,7 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
                       color: 'var(--text-muted)',
                     }}
                   >
-                    <div>
-                      {log.userEmail || 'GUEST'} ({log.userRole})
-                    </div>
+                    <div>{new Date(log.createdAt).toLocaleString()}</div>
                     <button
                       onClick={() => setSelectedLog(log)}
                       style={{
@@ -672,7 +543,7 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
                         cursor: 'pointer',
                       }}
                     >
-                      View JSON
+                      View Details
                     </button>
                   </div>
                 </div>
@@ -707,7 +578,7 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
               }}
               className="mobile-only"
             >
-              Page {page} of {totalPages} ({total} events)
+              Page {page} of {totalPages} ({total} items)
             </div>
 
             <div
@@ -742,7 +613,7 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
                 style={{ display: 'flex', alignItems: 'center', fontWeight: 600, fontSize: '14px' }}
                 className="desktop-only"
               >
-                Page {page} of {totalPages} ({total} events)
+                Page {page} of {totalPages} ({total} items)
               </div>
 
               <button
@@ -769,118 +640,89 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
         )}
       </div>
 
-      {/* Details JSON Modal */}
+      {/* Details Inspector Modal */}
       {selectedLog && (
         <div className="modal-overlay" onClick={() => setSelectedLog(null)}>
           <div
             className="modal-content card"
             onClick={(e) => e.stopPropagation()}
             style={{
-              maxWidth: '650px',
-              padding: '24px',
+              maxWidth: '600px',
+              padding: '28px',
               position: 'relative',
               display: 'flex',
               flexDirection: 'column',
-              gap: '16px',
+              gap: '20px',
             }}
           >
-            <button
-              onClick={() => setSelectedLog(null)}
-              style={{
-                position: 'absolute',
-                top: '16px',
-                right: '16px',
-                background: 'transparent',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-              }}
-            >
-              <X size={20} />
-            </button>
-
             <div>
-              <h3 style={{ fontSize: '18px', fontWeight: 800, margin: '0 0 4px 0' }}>Log Details</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>
-                UUID: {selectedLog.uuid}
-              </p>
-            </div>
-
-            <div style={{ background: 'var(--surface)', padding: '12px', borderRadius: '8px', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: 600 }}>App:</span>
-                <span>{selectedLog.app}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: 600 }}>IP Address:</span>
-                <span>{selectedLog.ipAddress || '—'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: 600 }}>User Agent:</span>
-                <span style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={selectedLog.userAgent || ''}>
-                  {selectedLog.userAgent || '—'}
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span className="section-label" style={{ fontSize: '12px' }}>Request Payload & Metadata</span>
-                <button
-                  onClick={() => copyToClipboard(JSON.stringify(selectedLog.metadata || {}, null, 2))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <span
                   style={{
-                    background: 'transparent',
-                    color: 'var(--accent)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
                     fontSize: '12px',
-                    fontWeight: 600,
+                    fontWeight: 700,
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    background: `${getTypeColor(selectedLog.type)}15`,
+                    color: getTypeColor(selectedLog.type),
                   }}
                 >
-                  {copied ? <Check size={14} style={{ color: 'var(--success)' }} /> : <Copy size={14} />}
-                  {copied ? 'Copied!' : 'Copy JSON'}
-                </button>
+                  {selectedLog.type}
+                </span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  {new Date(selectedLog.createdAt).toLocaleString()}
+                </span>
               </div>
-              <pre
+              <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '8px 0 4px 0' }}>
+                Feedback Details
+              </h2>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'var(--surface)', padding: '16px', borderRadius: '12px' }}>
+              <div>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Sender Name</span>
+                <div style={{ fontSize: '14px', fontWeight: 600 }}>{selectedLog.name || 'Anonymous'}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Sender Email</span>
+                <div style={{ fontSize: '14px', fontWeight: 600 }}>{selectedLog.email || 'No email provided'}</div>
+              </div>
+              {selectedLog.userId && (
+                <div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>User ID</span>
+                  <div style={{ fontSize: '14px', fontWeight: 600 }}>{selectedLog.userId}</div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Feedback Message</span>
+              <div
                 style={{
-                  background: '#1e293b',
-                  color: '#f8fafc',
+                  fontSize: '14px',
+                  lineHeight: '1.6',
+                  whiteSpace: 'pre-wrap',
+                  background: 'var(--surface)',
                   padding: '16px',
-                  borderRadius: '10px',
-                  fontSize: '12px',
-                  overflowX: 'auto',
-                  maxHeight: '300px',
-                  margin: 0,
-                  fontFamily: 'monospace',
+                  borderRadius: '12px',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
                 }}
               >
-                {JSON.stringify(selectedLog.metadata || {}, null, 2)}
-              </pre>
+                {selectedLog.message}
+              </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
               <button onClick={() => setSelectedLog(null)} className="btn btn-primary">
-                Close View
+                Close
               </button>
             </div>
           </div>
         </div>
       )}
-
-      <style>{`
-        .spin { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        
-        .hide-mobile { display: block; }
-        .show-mobile { display: none; }
-        
-        @media (max-width: 768px) {
-          .hide-mobile { display: none; }
-          .show-mobile { display: block; }
-        }
-      `}</style>
     </div>
   )
 }
 
-export default AppActivity
+export default Feedback

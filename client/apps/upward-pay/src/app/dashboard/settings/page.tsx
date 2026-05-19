@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   ChevronRight,
+  MessageSquare,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useTheme } from '@/features/dashboard/components/ThemeProvider'
@@ -29,6 +30,10 @@ export default function SettingsPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' })
   const [saving, setSaving] = useState(false)
+
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
+  const [feedback, setFeedback] = useState({ type: 'SUGGESTION', message: '' })
+  const [submittingFeedback, setSubmittingFeedback] = useState(false)
 
   if (!user) return null
 
@@ -50,6 +55,31 @@ export default function SettingsPage() {
       error(err.message || 'Failed to update password')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!feedback.message.trim()) {
+      error('Feedback message cannot be empty')
+      return
+    }
+    setSubmittingFeedback(true)
+    try {
+      await api.post('/public/feedback', {
+        userId: user.id,
+        email: user.email,
+        name: `${user.firstName} ${user.lastName}`.trim(),
+        type: feedback.type,
+        message: feedback.message,
+      })
+      success('Thank you! Your feedback has been submitted.')
+      setIsFeedbackOpen(false)
+      setFeedback({ type: 'SUGGESTION', message: '' })
+    } catch (err: any) {
+      error(err.message || 'Failed to submit feedback')
+    } finally {
+      setSubmittingFeedback(false)
     }
   }
 
@@ -164,6 +194,85 @@ export default function SettingsPage() {
                   </div>
                   <button className="btn btn--primary btn--full" type="submit" disabled={saving}>
                     {saving ? 'Updating...' : 'Update Password'}
+                  </button>
+                </form>
+              )}
+            </div>
+          </section>
+
+          {/* Feedback & Support Section */}
+          <section className="settings-section">
+            <h3 className="settings-section__title">Feedback & Support</h3>
+            <div className="settings-list">
+              <div
+                className="settings-item"
+                onClick={() => setIsFeedbackOpen(!isFeedbackOpen)}
+              >
+                <div className="settings-item__left">
+                  <div className="settings-item__icon-wrap">
+                    <MessageSquare size={18} color="var(--clay)" />
+                  </div>
+                  <div>
+                    <span className="settings-item__title">Share Feedback</span>
+                    <p className="settings-item__sub">Report a bug, suggest features or improvements</p>
+                  </div>
+                </div>
+                <ChevronRight
+                  size={18}
+                  color="var(--text-muted)"
+                  className={`settings-chevron ${isFeedbackOpen ? 'is-open' : ''}`}
+                />
+              </div>
+
+              {isFeedbackOpen && (
+                <form className="password-form animate-fade-in" onSubmit={handleFeedbackSubmit}>
+                  <div className="auth-form__field">
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Feedback Type</label>
+                    <select
+                      value={feedback.type}
+                      onChange={(e) => setFeedback({ ...feedback, type: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--bg)',
+                        color: 'var(--text)',
+                        fontSize: '14px',
+                        marginTop: '6px',
+                      }}
+                      required
+                    >
+                      <option value="SUGGESTION">Suggestion</option>
+                      <option value="BUG">Report a Bug</option>
+                      <option value="DIFFICULTY">Difficulty Using App</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div className="auth-form__field" style={{ marginTop: '14px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Your Message</label>
+                    <textarea
+                      value={feedback.message}
+                      onChange={(e) => setFeedback({ ...feedback, message: e.target.value })}
+                      placeholder="Tell us what you think or describe the issue..."
+                      rows={4}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--bg)',
+                        color: 'var(--text)',
+                        fontSize: '14px',
+                        fontFamily: 'inherit',
+                        resize: 'none',
+                        marginTop: '6px',
+                      }}
+                      required
+                    />
+                  </div>
+                  <button className="btn btn--primary btn--full" style={{ marginTop: '18px' }} type="submit" disabled={submittingFeedback}>
+                    {submittingFeedback ? 'Submitting...' : 'Submit Feedback'}
                   </button>
                 </form>
               )}
