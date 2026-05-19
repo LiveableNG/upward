@@ -29,14 +29,41 @@ export class EmailService {
     const apiKey = this.configService.get<string>('MAILGUN_API_KEY')
     const domain = this.configService.get<string>('MAILGUN_DOMAIN')
 
-    if (!apiKey || !domain) {
-      this.logger.warn('Mailgun credentials not fully configured.')
-    }
+    const mockEmails =
+      this.configService.get<string>('MOCK_EMAILS') === 'true' ||
+      this.configService.get<string>('NODE_ENV') === 'dev' ||
+      !apiKey ||
+      !domain
 
-    this.mg = mailgun.client({
-      username: 'api',
-      key: apiKey || '',
-    })
+    if (mockEmails) {
+      this.logger.log('EmailService: Mocking outgoing emails in development/local environment.')
+      this.mg = {
+        messages: {
+          create: async (dom: string, data: any) => {
+            const toStr = Array.isArray(data.to) ? data.to.join(', ') : data.to
+            this.logger.log(`[MOCK EMAIL] To: ${toStr} | Subject: ${data.subject}`)
+            try {
+              await this.prisma.upward_dev_email_preview.create({
+                data: {
+                  to: toStr,
+                  subject: data.subject || '',
+                  html: data.html || '',
+                  text: data.text || '',
+                },
+              })
+            } catch (err) {
+              this.logger.error('Failed to save dev email preview to database:', err)
+            }
+            return { id: `mock-mailgun-id-${Date.now()}` }
+          },
+        },
+      }
+    } else {
+      this.mg = mailgun.client({
+        username: 'api',
+        key: apiKey || '',
+      })
+    }
   }
 
   async sendWaitlistConfirmation(userId: string, email: string, firstName?: string) {
