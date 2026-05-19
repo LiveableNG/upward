@@ -32,6 +32,16 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Filters
   const [search, setSearch] = useState('')
@@ -91,17 +101,26 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
     }
   }
 
-
-
   return (
-    <div className="page-container" style={{ height: 'calc(100vh - var(--header-height) - 40px)', display: 'flex', flexDirection: 'column' }}>
+    <div
+      className="page-container"
+      style={{
+        height: isMobile ? 'auto' : 'calc(100vh - 120px)',
+        minHeight: isMobile ? 'auto' : '650px',
+        display: 'flex',
+        flexDirection: 'column',
+        paddingBottom: isMobile ? '40px' : '0',
+      }}
+    >
       {/* Header */}
       <div
         style={{
           display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
           justifyContent: 'space-between',
-          alignItems: 'center',
+          alignItems: isMobile ? 'flex-start' : 'center',
           marginBottom: '20px',
+          gap: isMobile ? '12px' : '0',
           flexShrink: 0,
         }}
       >
@@ -163,10 +182,11 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
       {/* Main Split Layout */}
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: '350px 1fr',
+          display: isMobile ? 'flex' : 'grid',
+          flexDirection: isMobile ? 'column' : undefined,
+          gridTemplateColumns: isMobile ? undefined : '350px 1fr',
           gap: '20px',
-          flex: 1,
+          flex: isMobile ? 'none' : 1,
           minHeight: 0, // critical for nested scrolling
         }}
       >
@@ -179,6 +199,8 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
             flexDirection: 'column',
             overflow: 'hidden',
             background: 'var(--white)',
+            height: isMobile ? '380px' : '100%',
+            minHeight: isMobile ? '380px' : '0',
           }}
         >
           {/* List Search */}
@@ -304,6 +326,8 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
             flexDirection: 'column',
             overflow: 'hidden',
             background: 'var(--white)',
+            height: isMobile ? '600px' : '100%',
+            minHeight: isMobile ? '600px' : '0',
           }}
         >
           {selectedEmail ? (
@@ -315,8 +339,10 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
                   borderBottom: '1px solid var(--border)',
                   background: 'var(--surface)',
                   display: 'flex',
+                  flexDirection: isMobile ? 'column' : 'row',
                   justifyContent: 'space-between',
-                  alignItems: 'flex-start',
+                  alignItems: isMobile ? 'stretch' : 'flex-start',
+                  gap: isMobile ? '12px' : '0',
                 }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -346,6 +372,7 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
                     border: '1px solid var(--border)',
                     borderRadius: '8px',
                     padding: '3px',
+                    alignSelf: isMobile ? 'flex-start' : 'center',
                   }}
                 >
                   <button
