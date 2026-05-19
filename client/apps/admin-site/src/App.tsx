@@ -3,12 +3,12 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import EmailComposer from './pages/EmailComposer'
-import Sessions from './pages/Sessions'
 import DropOffAnalysis from './pages/DropOffAnalysis'
 import Settings from './pages/Settings'
 import ABTestStats from './pages/ABTestStats'
 import Logs from './pages/Logs'
 import AppActivity from './pages/AppActivity'
+import Feedback from './pages/Feedback'
 import FairnessStories from './pages/FairnessStories'
 import WaitlistCampaigns from './pages/WaitlistCampaigns'
 import EmailLogs from './pages/EmailLogs'
@@ -63,6 +63,7 @@ function AppRoutes() {
               />
               <Route path="/logs" element={<Logs token={auth.token} />} />
               <Route path="/app-activity" element={<AppActivity token={auth.token} />} />
+              <Route path="/feedback" element={<Feedback token={auth.token} />} />
               <Route path="/webhooks" element={<Webhooks token={auth.token} />} />
             </>
           )}

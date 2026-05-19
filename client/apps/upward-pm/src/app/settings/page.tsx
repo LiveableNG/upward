@@ -8,6 +8,7 @@ import { SecurityForm } from '@/features/pm/components/settings/SecurityForm'
 import { DataImportTab } from '@/features/pm/components/settings/DataImportTab'
 import { TeamTab } from '@/features/pm/components/settings/TeamTab'
 import { BrandingTab } from '@/features/pm/components/settings/BrandingTab'
+import { FeedbackTab } from '@/features/pm/components/settings/FeedbackTab'
 import { VerificationForm } from '@/features/pm/components/verification/VerificationForm'
 import { Splash } from '@/components/common/Splash'
 import { useSearchParams, useRouter } from 'next/navigation'
@@ -77,6 +78,12 @@ function SettingsContent() {
         >
           Branding
         </button>
+        <button 
+          className={cn('settings__nav-item', activeTab === 'feedback' && 'settings__nav-item--active')}
+          onClick={() => setTab('feedback')}
+        >
+          Feedback
+        </button>
       </nav>
 
       <div className="settings__content">
@@ -130,6 +137,7 @@ function SettingsContent() {
         {activeTab === 'import' && <DataImportTab />}
         {activeTab === 'team' && <TeamTab />}
         {activeTab === 'branding' && <BrandingTab />}
+        {activeTab === 'feedback' && <FeedbackTab />}
       </div>
     </div>
   )

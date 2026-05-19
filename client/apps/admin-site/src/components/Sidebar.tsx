@@ -14,7 +14,8 @@ import {
   Megaphone,
   LifeBuoy,
   Webhook,
-  Smartphone
+  Smartphone,
+  MessageSquare
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -42,6 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
 
   if (isSuperadmin) {
     navItems.push({ name: 'App Activity Logs', path: '/app-activity', icon: Smartphone })
+    navItems.push({ name: 'User Feedback', path: '/feedback', icon: MessageSquare })
     navItems.push({ name: 'Webhook Logs', path: '/webhooks', icon: Webhook })
     navItems.push({ name: 'System Logs', path: '/logs', icon  : FileText })
     navItems.push({ name: 'Settings', path: '/settings', icon: Settings })
