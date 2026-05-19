@@ -13,6 +13,8 @@ model upward_property_manager {
   phone           String?
   phoneHash       String?
   profilePic      String?
+  country         String?
+  cacNumber       String?
   bankName        String?
   bankCode        String?
   accountNumber   String?

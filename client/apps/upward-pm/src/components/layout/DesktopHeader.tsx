@@ -26,7 +26,7 @@ export function DesktopHeader() {
         <div className="desktop-header__profile">
           {!user.isVerified && (
             <Link 
-              href="/settings?tab=verification"
+              href="/settings"
               className=""
               style={{ 
                 padding: '4px 10px', 
@@ -62,7 +62,7 @@ export function DesktopHeader() {
               src={user.profilePic} 
               alt="Avatar" 
               size={40} 
-              initials={`${user.firstName[0]}${user.lastName[0]}`}
+              initials={`${user.firstName[0] || 'P'}${user.lastName[0] || 'M'}`}
             />
           </Link>
 

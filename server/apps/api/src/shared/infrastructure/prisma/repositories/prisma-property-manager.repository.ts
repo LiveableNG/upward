@@ -27,6 +27,8 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
       phone: model.phone ? this.encryption.decrypt(model.phone) : undefined,
       phoneHash: model.phoneHash,
       profilePic: model.profilePic,
+      country: model.country,
+      cacNumber: model.cacNumber,
       bankName: model.bankName,
       bankCode: model.bankCode,
       accountNumber: model.accountNumber ? this.encryption.decrypt(model.accountNumber) : undefined,
@@ -88,6 +90,8 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
         phone: pm.phone ? this.encryption.encrypt(pm.phone) : null,
         phoneHash: pm.phone ? this.encryption.hash(pm.phone) : null,
         profilePic: pm.profilePic,
+        country: pm.country,
+        cacNumber: pm.cacNumber,
         bankName: pm.bankName,
         bankCode: pm.bankCode,
         accountNumber: pm.accountNumber ? this.encryption.encrypt(pm.accountNumber) : null,
@@ -126,6 +130,8 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
       updateData.phoneHash = this.encryption.hash(data.phone)
     }
     if (data.profilePic !== undefined) updateData.profilePic = data.profilePic
+    if (data.country !== undefined) updateData.country = data.country
+    if (data.cacNumber !== undefined) updateData.cacNumber = data.cacNumber
     if (data.bankName !== undefined) updateData.bankName = data.bankName
     if (data.bankCode !== undefined) updateData.bankCode = data.bankCode
     if (data.accountNumber !== undefined) {

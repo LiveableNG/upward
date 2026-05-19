@@ -17,7 +17,8 @@ import {
   User,
   MapPin,
   ChevronRight,
-  FileText
+  FileText,
+  Clock
 } from 'lucide-react'
 import styles from './page.module.css'
 import { useRouter } from 'next/navigation'
@@ -29,9 +30,6 @@ import { ManagedAddUnitModal } from '@/features/pm/components/properties/modals/
 import { ImportModeModal } from '@/features/pm/components/properties/modals/ImportModeModal'
 import { Property, Unit } from '@/features/pm/services/propertyService'
 import { SettlementSettings } from './components/SettlementSettings'
-import { useVerificationStatus } from '@/features/pm/hooks/useVerification'
-import { Clock, CheckCircle2 } from 'lucide-react'
-import { VerificationForm } from '@/features/pm/components/verification/VerificationForm'
 import { Splash } from '@/components/common/Splash'
 import { api } from '@/lib/api'
 import { useCredibilityRequests } from '@/features/pm/hooks/useCredibilityRequests'
@@ -43,7 +41,7 @@ import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 export default function LandlordDashboard() {
   const router = useRouter()
   const { success: toastSuccess, error: toastError } = useToast()
-  const [activeTab, setActiveTab] = React.useState<'overview' | 'payments' | 'requests' | 'payouts' | 'settlement' | 'verification'>('overview')
+  const [activeTab, setActiveTab] = React.useState<'overview' | 'payments' | 'requests' | 'payouts' | 'settlement'>('overview')
   const [isAddPropertyOpen, setIsAddPropertyOpen] = React.useState(false)
   const [selectedProperty, setSelectedProperty] = React.useState<Property | null>(null)
   const [isAddUnitOpen, setIsAddUnitOpen] = React.useState(false)
@@ -71,7 +69,7 @@ export default function LandlordDashboard() {
     queryFn: getLandlordPortfolio
   })
 
-  const { data: verification, isLoading: isVerificationLoading } = useVerificationStatus()
+
 
   const queryClient = useQueryClient()
 
@@ -109,52 +107,7 @@ export default function LandlordDashboard() {
     }
   })
 
-  const renderVerificationContent = () => {
-    if (isVerificationLoading) {
-      return (
-        <div style={{ padding: 40, textAlign: 'center' }}>
-          <Splash />
-        </div>
-      )
-    }
 
-    if (verification?.status === 'PENDING' || verification?.status === 'APPROVED') {
-      const isApproved = verification.status === 'APPROVED'
-      return (
-        <div className="animate-fade-in" style={{ 
-            background: 'white', 
-            padding: 40, 
-            borderRadius: 24, 
-            border: '1px solid var(--border)',
-            textAlign: 'center'
-        }}>
-            <div style={{ 
-                width: 64, 
-                height: 64, 
-                borderRadius: 20, 
-                background: isApproved ? 'rgba(34, 197, 94, 0.1)' : 'rgba(59, 130, 246, 0.1)', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                margin: '0 auto 20px',
-                color: isApproved ? 'var(--forest)' : '#3b82f6'
-            }}>
-                {isApproved ? <CheckCircle2 size={32} /> : <Clock size={32} />}
-            </div>
-            <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
-                {isApproved ? 'Profile Verified' : 'Verification Pending'}
-            </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6 }}>
-                {isApproved 
-                    ? 'Your identity has been successfully verified. Your account is now in good standing.' 
-                    : 'We have received your verification details and are currently reviewing them. This usually takes 24-48 hours.'}
-            </p>
-        </div>
-      )
-    }
-
-    return <VerificationForm />
-  }
 
   const handleLogout = async () => {
     try {
@@ -195,63 +148,6 @@ export default function LandlordDashboard() {
           <div className={styles.welcome}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <h1 style={{ margin: 0 }}>Portfolio Overview</h1>
-              {verification?.status === 'APPROVED' ? (
-                <span style={{ 
-                  padding: '4px 10px', 
-                  borderRadius: 20, 
-                  background: 'rgba(34, 197, 94, 0.1)', 
-                  color: 'var(--forest)', 
-                  fontSize: 11, 
-                  fontWeight: 700,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  border: '1px solid rgba(34, 197, 94, 0.2)'
-                }}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--forest)' }} />
-                  VERIFIED LANDLORD
-                </span>
-              ) : verification?.status === 'PENDING' ? (
-                <span 
-                  onClick={() => setActiveTab('verification')}
-                  style={{ 
-                    padding: '4px 10px', 
-                    borderRadius: 20, 
-                    background: 'rgba(59, 130, 246, 0.1)', 
-                    color: '#3b82f6', 
-                    fontSize: 11, 
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    border: '1px solid rgba(59, 130, 246, 0.2)'
-                  }}
-                >
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#3b82f6' }} />
-                  PENDING REVIEW
-                </span>
-              ) : (
-                <span 
-                  onClick={() => setActiveTab('verification')}
-                  style={{ 
-                    padding: '4px 10px', 
-                    borderRadius: 20, 
-                    background: 'rgba(239, 68, 68, 0.1)', 
-                    color: '#ef4444', 
-                    fontSize: 11, 
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    border: '1px solid rgba(239, 68, 68, 0.2)'
-                  }}
-                >
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444' }} />
-                  UNVERIFIED
-                </span>
-              )}
             </div>
             <p style={{ marginTop: 4 }}>Manage your real estate assets and collect rent</p>
           </div>
@@ -378,20 +274,6 @@ export default function LandlordDashboard() {
             >
                 Settlement Settings
             </button>
-            <button 
-                onClick={() => setActiveTab('verification')}
-                style={{ 
-                    padding: '12px 16px', 
-                    background: 'none', 
-                    border: 'none', 
-                    borderBottom: activeTab === 'verification' ? '2px solid var(--forest)' : 'none',
-                    color: activeTab === 'verification' ? 'var(--forest)' : 'var(--text-muted)',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                }}
-            >
-                Verification Details
-            </button>
         </div>
 
         {activeTab === 'overview' && (
@@ -491,11 +373,6 @@ export default function LandlordDashboard() {
         )}
         {activeTab === 'settlement' && (
           <SettlementSettings landlord={portfolio?.landlord} />
-        )}
-        {activeTab === 'verification' && (
-          <div style={{ maxWidth: 600, margin: '0 auto' }}>
-            {renderVerificationContent()}
-          </div>
         )}
         {activeTab === 'requests' && (
           <div className="animate-fade-in">

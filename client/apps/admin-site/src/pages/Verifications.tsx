@@ -25,6 +25,9 @@ interface Verification {
     businessName: string | null
     pmType: string | null
     uuid: string
+    country: string | null
+    phone: string | null
+    cacNumber: string | null
   }
 }
 
@@ -124,8 +127,9 @@ const Verifications: React.FC<VerificationsProps> = ({ token }) => {
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
                 <tr style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>User / Business</th>
-                    <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>ID Details</th>
+                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Company Details</th>
+                    <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Tenants Under Management</th>
+                    <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>CAC Number</th>
                     <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Status</th>
                     <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Submitted</th>
                     <th style={{ padding: '16px 24px', textAlign: 'right', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Actions</th>
@@ -133,24 +137,33 @@ const Verifications: React.FC<VerificationsProps> = ({ token }) => {
             </thead>
             <tbody>
                 {loading ? (
-                    <tr><td colSpan={5} style={{ padding: 48, textAlign: 'center' }}><div className="loader" style={{ margin: '0 auto' }} /></td></tr>
+                    <tr><td colSpan={6} style={{ padding: 48, textAlign: 'center' }}><div className="loader" style={{ margin: '0 auto' }} /></td></tr>
                 ) : items.length === 0 ? (
-                    <tr><td colSpan={5} style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>No verification requests found.</td></tr>
+                    <tr><td colSpan={6} style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>No verification requests found.</td></tr>
                 ) : (
                     items.map(item => (
                         <tr key={item.id} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '16px 24px' }}>
-                                <div style={{ fontWeight: 700, fontSize: '14px' }}>{item.pm.firstName} {item.pm.lastName}</div>
-                                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{item.pm.email}</div>
-                                {item.pm.businessName && (
-                                    <div style={{ fontSize: 10, background: 'rgba(34, 197, 94, 0.1)', color: '#16a34a', display: 'inline-block', padding: '2px 6px', borderRadius: 4, marginTop: 4, fontWeight: 700 }}>
-                                        {item.pm.businessName}
+                                <div style={{ fontWeight: 700, fontSize: '14px' }}>{item.pm.businessName || 'No Business Name'}</div>
+                                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Email: {item.pm.email}</div>
+                                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Phone: {item.pm.phone || 'N/A'}</div>
+                                {item.pm.country && (
+                                    <div style={{ fontSize: 10, background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', display: 'inline-block', padding: '2px 6px', borderRadius: 4, marginTop: 4, fontWeight: 700 }}>
+                                        📍 {item.pm.country}
                                     </div>
                                 )}
                             </td>
                             <td style={{ padding: '16px' }}>
-                                <div style={{ fontWeight: 600, fontSize: '13px' }}>{item.idType}</div>
-                                <div style={{ fontSize: '12px', fontFamily: 'monospace', color: 'var(--text-muted)' }}>{item.idNumber}</div>
+                                <div style={{ fontWeight: 600, fontSize: '13px' }}>{item.pm.pmType || 'Not specified'}</div>
+                            </td>
+                            <td style={{ padding: '16px' }}>
+                                {item.pm.cacNumber ? (
+                                    <div style={{ fontSize: '12px', fontFamily: 'monospace', fontWeight: 600, color: 'var(--text-main)', background: 'var(--surface)', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
+                                        {item.pm.cacNumber}
+                                    </div>
+                                ) : (
+                                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Not Provided</span>
+                                )}
                             </td>
                             <td style={{ padding: '16px' }}>
                                 <div style={{ 
