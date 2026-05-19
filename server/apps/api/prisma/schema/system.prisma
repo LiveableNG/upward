@@ -295,3 +295,28 @@ model upward_feedback {
   @@index([type])
   @@index([createdAt])
 }
+
+model upward_app_activity_log {
+  id           Int      @id @default(autoincrement())
+  uuid         String   @unique @default(uuid())
+  app          String   // "upward-pay" or "upward-pm"
+  userId       Int?     // Numeric ID of upward_user (if tenant)
+  pmId         Int?     // Numeric ID of upward_property_manager (if PM)
+  userRole     String   // "TENANT", "PM", "ADMIN", "SYSTEM", "GUEST"
+  userEmail    String?
+  action       String   // "CREATE", "UPDATE", "DELETE", "LOGIN", "LOGOUT", "SIGNUP", etc.
+  entityType   String?  // e.g. "PROPERTY", "UNIT", "TENANT", "PAYMENT", "PROFILE"
+  entityId     String?  // ID/UUID of the entity
+  description  String   // Human-readable description
+  metadata     Json?    // Request payload or additional info
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  @@index([app])
+  @@index([userId])
+  @@index([pmId])
+  @@index([userEmail])
+  @@index([action])
+  @@index([createdAt])
+}
