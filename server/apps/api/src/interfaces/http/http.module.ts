@@ -42,6 +42,8 @@ import { LandlordPortfolioController } from './landlord/landlord-portfolio.contr
 import { LandlordManagementController } from './landlord/landlord-management.controller'
 import { CronController } from './public/cron.controller'
 import { TenantPmConnectionController } from './user/tenant-pm-connection.controller'
+import { PublicTrackingController } from './public/public-tracking.controller'
+import { AppActivityLogController } from './admin/app-activity-log.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule],
@@ -86,6 +88,8 @@ import { TenantPmConnectionController } from './user/tenant-pm-connection.contro
     LandlordManagementController,
     CronController,
     TenantPmConnectionController,
+    PublicTrackingController,
+    AppActivityLogController,
   ],
 })
 export class HttpModule {}

@@ -23,7 +23,8 @@ export class EmailService {
     private bugsnag: BugsnagService,
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
   ) {
-    this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'https://upward.goodtenants.io'
+    this.frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'https://upward.goodtenants.io'
     const mailgun = new Mailgun(FormData)
     const apiKey = this.configService.get<string>('MAILGUN_API_KEY')
     const domain = this.configService.get<string>('MAILGUN_DOMAIN')
@@ -178,10 +179,10 @@ export class EmailService {
         }
 
         if (attachments && attachments.length > 0) {
-          mailData.attachment = attachments.map(a => ({
+          mailData.attachment = attachments.map((a) => ({
             filename: a.filename,
-            data: a.content
-          }));
+            data: a.content,
+          }))
         }
 
         const response = await this.mg.messages.create(domain, mailData)
@@ -340,7 +341,12 @@ export class EmailService {
     }
   }
 
-  async sendPasswordResetOTP(email: string, fullName: string, otp: string, theme: 'CLAY' | 'FOREST' = 'CLAY') {
+  async sendPasswordResetOTP(
+    email: string,
+    fullName: string,
+    otp: string,
+    theme: 'CLAY' | 'FOREST' = 'CLAY',
+  ) {
     const domain = this.configService.get<string>('MAILGUN_DOMAIN')
     const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
 
@@ -387,14 +393,20 @@ export class EmailService {
     }
   }
 
-  async sendAuthOTP(email: string, otp: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT', theme: 'CLAY' | 'FOREST' = 'CLAY') {
+  async sendAuthOTP(
+    email: string,
+    otp: string,
+    context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT',
+    theme: 'CLAY' | 'FOREST' = 'CLAY',
+  ) {
     const domain = this.configService.get<string>('MAILGUN_DOMAIN')
     const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
 
     const contexts = {
       SIGNUP: {
         title: 'Verify your email',
-        message: 'Welcome to Upward! Use the code below to verify your email address and complete your signup.',
+        message:
+          'Welcome to Upward! Use the code below to verify your email address and complete your signup.',
         subject: `Verify your Upward account: ${otp}`,
       },
       LOGIN: {
@@ -404,17 +416,20 @@ export class EmailService {
       },
       INVITE: {
         title: 'Accept Your Invite',
-        message: 'You have been invited to join Upward. Use the code below to verify your identity and accept the invite.',
+        message:
+          'You have been invited to join Upward. Use the code below to verify your identity and accept the invite.',
         subject: `Your Upward Invite Verification Code: ${otp}`,
       },
       PAYMENT: {
         title: 'Verify Payment Access',
-        message: 'Use the code below to verify your access to this payment. This ensures your transaction is secure.',
+        message:
+          'Use the code below to verify your access to this payment. This ensures your transaction is secure.',
         subject: `Your Upward Payment Verification Code: ${otp}`,
       },
       WAITLIST: {
         title: 'Claim Your Waitlist Spot',
-        message: 'Use the code below to verify your email and claim your spot on the Upward waitlist.',
+        message:
+          'Use the code below to verify your email and claim your spot on the Upward waitlist.',
         subject: `Your Upward Waitlist Verification Code: ${otp}`,
       },
     }
@@ -468,31 +483,31 @@ export class EmailService {
   }
 
   private getPmTypeLabel(pmType?: string | null): string {
-    if (!pmType) return 'Property Manager';
-    
+    if (!pmType) return 'Property Manager'
+
     const types: Record<string, string> = {
-      'INDIVIDUAL_LANDLORD': 'Landlord',
-      'Caretaker': 'Caretaker',
-      'Lawyer': 'Lawyer',
+      INDIVIDUAL_LANDLORD: 'Landlord',
+      Caretaker: 'Caretaker',
+      Lawyer: 'Lawyer',
       'Estate Agent': 'Estate Agent',
       'Property Manager': 'Property Manager',
-      'Company': 'Property Management Company',
-    };
+      Company: 'Property Management Company',
+    }
 
-    return types[pmType] || 'Property Manager';
+    return types[pmType] || 'Property Manager'
   }
 
   async sendTenantInvite(params: {
-    email: string;
-    tenantName: string;
-    pmName: string;
-    inviteLink: string;
-    pmType?: string | null;
+    email: string
+    tenantName: string
+    pmName: string
+    inviteLink: string
+    pmType?: string | null
   }): Promise<boolean> {
-    const { email, tenantName, pmName, inviteLink, pmType } = params;
-    const domain = this.configService.get<string>('MAILGUN_DOMAIN');
-    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
-    const pmRole = this.getPmTypeLabel(pmType);
+    const { email, tenantName, pmName, inviteLink, pmType } = params
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
+    const pmRole = this.getPmTypeLabel(pmType)
 
     const html = `
       <!DOCTYPE html>
@@ -525,18 +540,28 @@ export class EmailService {
           </div>
           <div class="content">
             <h1>Dear ${tenantName},</h1>
-            <p>We’re pleased to inform you that <strong>${pmName}</strong> now uses Upward to manage rent payments and tenant records.</p>
+            <p>We're excited to let you know that <strong>${pmName}</strong> will now be using Upward to manage your rent payments and tenancy records.</p>
             
-            <p>With Upward, you can conveniently:</p>
+            <p>Upward is a simple platform designed to make your renting experience easier and more rewarding. With the platform, you can securely make rent payments, build a credibility score you can use anywhere, and get exclusive benefits from paying rent.</p>
+            
+            <p>Upward helps you:</p>
             <div class="bullet-list">
-              <div class="bullet-item">Pay your rent securely</div>
-              <div class="bullet-item">View your payment history anytime</div>
-              <div class="bullet-item">Build a trusted rental record that strengthens your rental credibility</div>
+              <div class="bullet-item">Earn rewards for paying rent early and consistently</div>
+              <div class="bullet-item">Get access to quality houses when moving homes</div>
+              <div class="bullet-item">Get apartments based on your rental credibility, without discriminatory biases</div>
+              <div class="bullet-item">Build a credibility profile that can be used anywhere.</div>
             </div>
 
-            <p style="margin-bottom: 32px;">Please click the button below to access your Upward account and get started.</p>
+            <p style="margin-bottom: 32px;">Getting started only takes a few minutes.</p>
             
-            <a href="${inviteLink}" class="btn">Access Your Upward Account</a>
+            <a href="${inviteLink}" class="btn">Accept Upward Invite</a>
+            
+            <p style="margin-top: 32px; margin-bottom: 24px;">We look forward to giving you a smoother housing experience through Upward.</p>
+            
+            <p style="margin: 0; line-height: 1.6;">
+              Your Cheerleader,<br>
+              <strong>Liveable</strong>
+            </p>
           </div>
           <div class="footer">
             <p class="footer-text">
@@ -547,37 +572,47 @@ export class EmailService {
         </div>
       </body>
       </html>
-    `;
- 
+    `
+
     try {
       const result = await this.mg.messages.create(domain, {
         from,
         to: [email],
         subject: `Invitation to join Upward from ${pmName}`,
         html,
-      });
-      return !!result.id;
+      })
+      return !!result.id
     } catch (error) {
-      this.logger.error(`Failed to send tenant invite email to ${email}`, error);
-      return false;
+      this.logger.error(`Failed to send tenant invite email to ${email}`, error)
+      return false
     }
   }
 
   async sendPaymentRequestEmail(params: {
-    email: string;
-    tenantName: string;
-    pmName: string;
-    amount: number;
-    currency: string;
-    dueDate: string | Date;
-    description?: string;
-    paymentLink: string;
-    pmType?: string | null;
+    email: string
+    tenantName: string
+    pmName: string
+    amount: number
+    currency: string
+    dueDate: string | Date
+    description?: string
+    paymentLink: string
+    pmType?: string | null
   }): Promise<boolean> {
-    const { email, tenantName, pmName, amount, currency, dueDate, description, paymentLink, pmType } = params;
-    const domain = this.configService.get<string>('MAILGUN_DOMAIN');
-    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
-    const pmRole = this.getPmTypeLabel(pmType);
+    const {
+      email,
+      tenantName,
+      pmName,
+      amount,
+      currency,
+      dueDate,
+      description,
+      paymentLink,
+      pmType,
+    } = params
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
+    const pmRole = this.getPmTypeLabel(pmType)
 
     const html = `
       <!DOCTYPE html>
@@ -633,7 +668,7 @@ export class EmailService {
         </div>
       </body>
       </html>
-    `;
+    `
 
     try {
       const result = await this.mg.messages.create(domain, {
@@ -641,34 +676,33 @@ export class EmailService {
         to: [email],
         subject: `New Payment Request: ${currency} ${amount.toLocaleString()} from ${pmName}`,
         html,
-      });
-      return !!result.id;
+      })
+      return !!result.id
     } catch (error) {
-      this.logger.error(`Failed to send payment request email to ${email}`, error);
-      return false;
+      this.logger.error(`Failed to send payment request email to ${email}`, error)
+      return false
     }
   }
 
-
   async sendCredibilityRequestEmail(params: {
-    email: string;
-    tenantName: string;
-    propertyAddress: string;
-    requestLink: string;
-    isRegisteredPm?: boolean;
+    email: string
+    tenantName: string
+    propertyAddress: string
+    requestLink: string
+    isRegisteredPm?: boolean
   }): Promise<boolean> {
-    const { email, tenantName, propertyAddress, requestLink, isRegisteredPm } = params;
-    const domain = this.configService.get<string>('MAILGUN_DOMAIN');
-    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
+    const { email, tenantName, propertyAddress, requestLink, isRegisteredPm } = params
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
 
-    const ctaText = isRegisteredPm ? 'Open Dashboard' : 'Review & Fulfill Request';
-    const mainText = isRegisteredPm 
+    const ctaText = isRegisteredPm ? 'Open Dashboard' : 'Review & Fulfill Request'
+    const mainText = isRegisteredPm
       ? `A past tenant, <strong>${tenantName}</strong>, is requesting their rental history for <strong>${propertyAddress}</strong> to build their credit score on Upward.`
-      : `<strong>${tenantName}</strong> has requested that you verify their past tenancy and payment records for <strong>${propertyAddress}</strong>.`;
+      : `<strong>${tenantName}</strong> has requested that you verify their past tenancy and payment records for <strong>${propertyAddress}</strong>.`
 
     const subText = isRegisteredPm
       ? 'Since you are already on Upward, you can fulfill this request directly from your dashboard Activity Center.'
-      : 'Providing these records helps your former tenant build their credibility profile on Upward.';
+      : 'Providing these records helps your former tenant build their credibility profile on Upward.'
 
     const html = `
       <!DOCTYPE html>
@@ -709,7 +743,7 @@ export class EmailService {
         </div>
       </body>
       </html>
-    `;
+    `
 
     try {
       const result = await this.mg.messages.create(domain, {
@@ -717,23 +751,23 @@ export class EmailService {
         to: [email],
         subject: `Record Request from ${tenantName} for ${propertyAddress}`,
         html,
-      });
-      return !!result.id;
+      })
+      return !!result.id
     } catch (error) {
-      this.logger.error(`Failed to send credibility request email to ${email}`, error);
-      return false;
+      this.logger.error(`Failed to send credibility request email to ${email}`, error)
+      return false
     }
   }
 
   async sendNewUserRecordsEmail(params: {
-    email: string;
-    pmName: string;
-    propertyAddress: string;
-    completeProfileLink: string;
+    email: string
+    pmName: string
+    propertyAddress: string
+    completeProfileLink: string
   }): Promise<boolean> {
-    const { email, pmName, propertyAddress, completeProfileLink } = params;
-    const domain = this.configService.get<string>('MAILGUN_DOMAIN');
-    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
+    const { email, pmName, propertyAddress, completeProfileLink } = params
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
 
     const html = `
       <!DOCTYPE html>
@@ -774,7 +808,7 @@ export class EmailService {
         </div>
       </body>
       </html>
-    `;
+    `
 
     try {
       const result = await this.mg.messages.create(domain, {
@@ -782,22 +816,22 @@ export class EmailService {
         to: [email],
         subject: `Your past rent records have been added on Upward`,
         html,
-      });
-      return !!result.id;
+      })
+      return !!result.id
     } catch (error) {
-      this.logger.error(`Failed to send new user records email to ${email}`, error);
-      return false;
+      this.logger.error(`Failed to send new user records email to ${email}`, error)
+      return false
     }
   }
   async sendLandlordWelcome(params: {
-    email: string;
-    landlordName: string;
-    tempPassword: string;
-    portalLink: string;
+    email: string
+    landlordName: string
+    tempPassword: string
+    portalLink: string
   }): Promise<boolean> {
-    const { email, landlordName, tempPassword, portalLink } = params;
-    const domain = this.configService.get<string>('MAILGUN_DOMAIN');
-    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
+    const { email, landlordName, tempPassword, portalLink } = params
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
 
     const html = `
       <!DOCTYPE html>
@@ -850,7 +884,7 @@ export class EmailService {
         </div>
       </body>
       </html>
-    `;
+    `
 
     try {
       const result = await this.mg.messages.create(domain, {
@@ -858,22 +892,22 @@ export class EmailService {
         to: [email],
         subject: `Welcome to Upward Landlord Portal`,
         html,
-      });
-      return !!result.id;
+      })
+      return !!result.id
     } catch (error) {
-      this.logger.error(`Failed to send landlord welcome email to ${email}`, error);
-      return false;
+      this.logger.error(`Failed to send landlord welcome email to ${email}`, error)
+      return false
     }
   }
 
   async sendLandlordNewPropertyAssignment(params: {
-    email: string;
-    landlordName: string;
-    portalLink: string;
+    email: string
+    landlordName: string
+    portalLink: string
   }): Promise<boolean> {
-    const { email, landlordName, portalLink } = params;
-    const domain = this.configService.get<string>('MAILGUN_DOMAIN');
-    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
+    const { email, landlordName, portalLink } = params
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
 
     const html = `
       <!DOCTYPE html>
@@ -915,7 +949,7 @@ export class EmailService {
         </div>
       </body>
       </html>
-    `;
+    `
 
     try {
       const result = await this.mg.messages.create(domain, {
@@ -923,22 +957,22 @@ export class EmailService {
         to: [email],
         subject: `New Property Added to Your Upward Portfolio`,
         html,
-      });
-      return !!result.id;
+      })
+      return !!result.id
     } catch (error) {
-      this.logger.error(`Failed to send landlord new assignment email to ${email}`, error);
-      return false;
+      this.logger.error(`Failed to send landlord new assignment email to ${email}`, error)
+      return false
     }
   }
 
   async sendRecordAddedEmail(params: {
-    email: string;
-    pmName: string;
-    propertyAddress: string;
+    email: string
+    pmName: string
+    propertyAddress: string
   }): Promise<boolean> {
-    const { email, pmName, propertyAddress } = params;
-    const domain = this.configService.get<string>('MAILGUN_DOMAIN');
-    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
+    const { email, pmName, propertyAddress } = params
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
 
     const html = `
       <!DOCTYPE html>
@@ -979,7 +1013,7 @@ export class EmailService {
         </div>
       </body>
       </html>
-    `;
+    `
 
     try {
       const result = await this.mg.messages.create(domain, {
@@ -987,11 +1021,11 @@ export class EmailService {
         to: [email],
         subject: `New rent records added by ${pmName} for ${propertyAddress}`,
         html,
-      });
-      return !!result.id;
+      })
+      return !!result.id
     } catch (error) {
-      this.logger.error(`Failed to send record added email to ${email}`, error);
-      return false;
+      this.logger.error(`Failed to send record added email to ${email}`, error)
+      return false
     }
   }
 
@@ -1044,15 +1078,15 @@ export class EmailService {
   }
 
   async sendTeamInvitation(params: {
-    email: string;
-    name: string;
-    inviterName: string;
-    isNewAccount: boolean;
-    claimLink: string;
+    email: string
+    name: string
+    inviterName: string
+    isNewAccount: boolean
+    claimLink: string
   }) {
-    const { email, name, inviterName, isNewAccount, claimLink } = params;
-    const domain = this.configService.get<string>('MAILGUN_DOMAIN');
-    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
+    const { email, name, inviterName, isNewAccount, claimLink } = params
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
 
     const html = `
       <div style="font-family: 'Inter', -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #0a0a0f; background-color: #faf9f5; padding: 48px; border-radius: 24px; border: 1px solid rgba(0,0,0,0.06);">
@@ -1068,9 +1102,11 @@ export class EmailService {
         
         <div style="background: #ffffff; border: 1px solid rgba(22, 101, 52, 0.1); padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 8px 24px rgba(22, 101, 52, 0.04);">
           <p style="font-size: 15px; color: #8a8a8a; margin-bottom: 24px; line-height: 1.5;">
-            ${isNewAccount 
-              ? 'An account has been prepared for you. Click the button below to claim your access and set your password.' 
-              : 'You have been granted access to new properties. You can now manage them from your existing dashboard.'}
+            ${
+              isNewAccount
+                ? 'An account has been prepared for you. Click the button below to claim your access and set your password.'
+                : 'You have been granted access to new properties. You can now manage them from your existing dashboard.'
+            }
           </p>
           <a href="${claimLink}" style="background-color: #166534; color: #ffffff; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block; transition: background-color 0.2s;">
             ${isNewAccount ? 'Claim Your Access' : 'Go to Dashboard'}
@@ -1087,7 +1123,7 @@ export class EmailService {
           </p>
         </div>
       </div>
-    `;
+    `
 
     try {
       await this.mg.messages.create(domain, {
@@ -1095,11 +1131,11 @@ export class EmailService {
         to: [email],
         subject: `Collaboration Invite from ${inviterName}`,
         html,
-      });
-      this.logger.log(`Team invitation sent to ${email}`);
+      })
+      this.logger.log(`Team invitation sent to ${email}`)
     } catch (error) {
-      this.logger.error(`Failed to send team invitation to ${email}`, error);
-      throw error;
+      this.logger.error(`Failed to send team invitation to ${email}`, error)
+      throw error
     }
   }
 
@@ -1110,12 +1146,14 @@ export class EmailService {
     const contexts = {
       SIGNUP: {
         title: 'Create Your PM Account',
-        message: 'Welcome to the Upward Property Management platform. Use the code below to verify your email and start managing your properties.',
+        message:
+          'Welcome to the Upward Property Management platform. Use the code below to verify your email and start managing your properties.',
         subject: `Verify your Upward PM account: ${otp}`,
       },
       LOGIN: {
         title: 'Secure Portal Login',
-        message: 'A login attempt was made for your Upward PM account. Use the verification code below to securely access your dashboard.',
+        message:
+          'A login attempt was made for your Upward PM account. Use the verification code below to securely access your dashboard.',
         subject: `Your Upward PM Login Code: ${otp}`,
       },
     }
@@ -1164,15 +1202,15 @@ export class EmailService {
   }
 
   async sendJoinRequestRejection(params: {
-    email: string;
-    tenantName: string;
-    pmName: string;
-    propertyAddress: string;
-    reason?: string;
+    email: string
+    tenantName: string
+    pmName: string
+    propertyAddress: string
+    reason?: string
   }): Promise<boolean> {
-    const { email, tenantName, pmName, propertyAddress, reason } = params;
-    const domain = this.configService.get<string>('MAILGUN_DOMAIN');
-    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
+    const { email, tenantName, pmName, propertyAddress, reason } = params
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
 
     const html = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: #f9fafb; padding: 40px; border-radius: 16px;">
@@ -1180,18 +1218,22 @@ export class EmailService {
         <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Hello ${tenantName},</p>
         <p style="font-size: 16px; color: #4b5563;">Your request to connect with <strong>${pmName}</strong> for the property at <strong>${propertyAddress}</strong> has been declined.</p>
         
-        ${reason ? `
+        ${
+          reason
+            ? `
         <div style="background: #FEF2F2; border: 1px solid #FEE2E2; padding: 24px; border-radius: 12px; margin: 24px 0;">
           <div style="font-size: 11px; color: #991B1B; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Reason from Manager</div>
           <p style="font-size: 15px; color: #7F1D1D; margin: 0; line-height: 1.5;">${reason}</p>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-top: 32px;">
           You can try reconnecting with a different email address or contact the manager directly if you believe this was an error.
         </p>
       </div>
-    `;
+    `
 
     try {
       await this.mg.messages.create(domain, {
@@ -1199,24 +1241,24 @@ export class EmailService {
         to: [email],
         subject: `Update on your connection request for ${propertyAddress}`,
         html,
-      });
-      return true;
+      })
+      return true
     } catch (error) {
-      this.logger.error(`Failed to send join rejection email to ${email}`, error);
-      return false;
+      this.logger.error(`Failed to send join rejection email to ${email}`, error)
+      return false
     }
   }
 
   async sendCredibilityRequestRejection(params: {
-    email: string;
-    tenantName: string;
-    pmName: string;
-    propertyAddress: string;
-    reason?: string;
+    email: string
+    tenantName: string
+    pmName: string
+    propertyAddress: string
+    reason?: string
   }): Promise<boolean> {
-    const { email, tenantName, pmName, propertyAddress, reason } = params;
-    const domain = this.configService.get<string>('MAILGUN_DOMAIN');
-    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`;
+    const { email, tenantName, pmName, propertyAddress, reason } = params
+    const domain = this.configService.get<string>('MAILGUN_DOMAIN')
+    const from = this.configService.get<string>('EMAIL_FROM') || `Upward <hello@${domain}>`
 
     const html = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: #f9fafb; padding: 40px; border-radius: 16px;">
@@ -1224,18 +1266,22 @@ export class EmailService {
         <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Hello ${tenantName},</p>
         <p style="font-size: 16px; color: #4b5563;">Your request for past tenancy records for <strong>${propertyAddress}</strong> has been declined by the manager.</p>
         
-        ${reason ? `
+        ${
+          reason
+            ? `
         <div style="background: #FEF2F2; border: 1px solid #FEE2E2; padding: 24px; border-radius: 12px; margin: 24px 0;">
           <div style="font-size: 11px; color: #991B1B; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Reason from Manager</div>
           <p style="font-size: 15px; color: #7F1D1D; margin: 0; line-height: 1.5;">${reason}</p>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-top: 32px;">
           This request will no longer appear as pending on your dashboard.
         </p>
       </div>
-    `;
+    `
 
     try {
       await this.mg.messages.create(domain, {
@@ -1243,13 +1289,11 @@ export class EmailService {
         to: [email],
         subject: `Update on your record request for ${propertyAddress}`,
         html,
-      });
-      return true;
+      })
+      return true
     } catch (error) {
-      this.logger.error(`Failed to send credibility rejection email to ${email}`, error);
-      return false;
+      this.logger.error(`Failed to send credibility rejection email to ${email}`, error)
+      return false
     }
   }
 }
-
- 

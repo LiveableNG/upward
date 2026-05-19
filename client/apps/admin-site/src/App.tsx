@@ -8,6 +8,7 @@ import DropOffAnalysis from './pages/DropOffAnalysis'
 import Settings from './pages/Settings'
 import ABTestStats from './pages/ABTestStats'
 import Logs from './pages/Logs'
+import AppActivity from './pages/AppActivity'
 import FairnessStories from './pages/FairnessStories'
 import WaitlistCampaigns from './pages/WaitlistCampaigns'
 import EmailLogs from './pages/EmailLogs'
@@ -39,10 +40,11 @@ function AppRoutes() {
       )}
       <Layout adminEmail={auth.user.email} adminRole={auth.user.role} onLogout={logout}>
         <Routes>
-          <Route path="/" element={<Dashboard token={auth.token} adminRole={auth.user.role} />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard token={auth.token} adminRole={auth.user.role} />} />
           <Route path="/emails" element={<EmailComposer token={auth.token} />} />
           <Route path="/email-logs" element={<EmailLogs token={auth.token} />} />
-          <Route path="/sessions" element={<Sessions token={auth.token} />} />
+          <Route path="/sessions" element={<Navigate to="/" replace />} />
           <Route path="/drop-off" element={<DropOffAnalysis token={auth.token} />} />
           <Route path="/ab-stats" element={<ABTestStats token={auth.token} />} />
           <Route
@@ -60,6 +62,7 @@ function AppRoutes() {
                 element={<Settings token={auth.token} currentAdminId={auth.user.id} />}
               />
               <Route path="/logs" element={<Logs token={auth.token} />} />
+              <Route path="/app-activity" element={<AppActivity token={auth.token} />} />
               <Route path="/webhooks" element={<Webhooks token={auth.token} />} />
             </>
           )}

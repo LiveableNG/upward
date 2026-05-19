@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { APP_FILTER } from '@nestjs/core'
 import { ScheduleModule } from '@nestjs/schedule'
+import { EventEmitterModule } from '@nestjs/event-emitter'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { AuthModule } from './application/auth/auth.module'
@@ -15,16 +16,19 @@ import { BugsnagModule } from './shared/infrastructure/common/bugsnag/bugsnag.mo
 import { AllExceptionsFilter } from './shared/infrastructure/common/filters/all-exceptions.filter'
 import { EventsModule } from './application/events/events.module'
 import { HttpModule } from './interfaces/http/http.module'
+import { ActivityTrackingModule } from './shared/infrastructure/activity-tracking/activity-tracking.module'
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
+    EventEmitterModule.forRoot(),
     PrismaModule,
     AdminLogModule,
     EmailModule,
     LocationModule,
     BugsnagModule,
+    ActivityTrackingModule,
 
     // Core Layers
     AuthModule,

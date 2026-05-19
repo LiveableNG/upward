@@ -24,6 +24,7 @@ interface PaystackEmbeddedProps {
   paymentRequestUuid?: string
 }
 
+
 export default function PaystackEmbeddedCheckout({
   email,
   amount,
