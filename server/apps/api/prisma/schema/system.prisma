@@ -320,3 +320,16 @@ model upward_app_activity_log {
   @@index([action])
   @@index([createdAt])
 }
+
+model upward_dev_email_preview {
+  id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid())
+  to        String
+  subject   String
+  html      String
+  text      String?
+  createdAt DateTime @default(now())
+
+  @@index([to])
+  @@index([createdAt])
+}

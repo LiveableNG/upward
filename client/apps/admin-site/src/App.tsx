@@ -9,6 +9,7 @@ import ABTestStats from './pages/ABTestStats'
 import Logs from './pages/Logs'
 import AppActivity from './pages/AppActivity'
 import Feedback from './pages/Feedback'
+import DevEmails from './pages/DevEmails'
 import FairnessStories from './pages/FairnessStories'
 import WaitlistCampaigns from './pages/WaitlistCampaigns'
 import EmailLogs from './pages/EmailLogs'
@@ -64,6 +65,7 @@ function AppRoutes() {
               <Route path="/logs" element={<Logs token={auth.token} />} />
               <Route path="/app-activity" element={<AppActivity token={auth.token} />} />
               <Route path="/feedback" element={<Feedback token={auth.token} />} />
+              <Route path="/dev-emails" element={<DevEmails token={auth.token} />} />
               <Route path="/webhooks" element={<Webhooks token={auth.token} />} />
             </>
           )}

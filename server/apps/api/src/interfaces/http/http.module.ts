@@ -45,6 +45,7 @@ import { TenantPmConnectionController } from './user/tenant-pm-connection.contro
 import { PublicTrackingController } from './public/public-tracking.controller'
 import { AppActivityLogController } from './admin/app-activity-log.controller'
 import { FeedbackAdminController } from './admin/feedback-admin.controller'
+import { DevEmailAdminController } from './admin/dev-email-admin.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule],
@@ -92,6 +93,7 @@ import { FeedbackAdminController } from './admin/feedback-admin.controller'
     PublicTrackingController,
     AppActivityLogController,
     FeedbackAdminController,
+    DevEmailAdminController,
   ],
 })
 export class HttpModule {}
