@@ -32,7 +32,6 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [total, setTotal] = useState(0)
 
   // Filters
   const [search, setSearch] = useState('')
@@ -51,7 +50,6 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
       if (response && response.data) {
         setEmails(response.data)
         setTotalPages(response.meta.totalPages)
-        setTotal(response.meta.total)
 
         // Select the first email if none selected yet
         if (response.data.length > 0 && !selectedEmail) {
@@ -87,19 +85,13 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
       await apiService.delete('/admin/dev-emails', token)
       setEmails([])
       setSelectedEmail(null)
-      setTotal(0)
       setTotalPages(1)
     } catch (error) {
       console.error('Failed to clear dev emails:', error)
     }
   }
 
-  // Helper to safely render HTML in iframe
-  const renderIframeContent = (htmlContent: string) => {
-    return {
-      __html: htmlContent,
-    }
-  }
+
 
   return (
     <div className="page-container" style={{ height: 'calc(100vh - var(--header-height) - 40px)', display: 'flex', flexDirection: 'column' }}>
