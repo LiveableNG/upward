@@ -35,6 +35,7 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
       accountName: model.accountName ? this.encryption.decrypt(model.accountName) : undefined,
       letterheadHeaderUrl: model.letterheadHeaderUrl,
       letterheadFooterUrl: model.letterheadFooterUrl,
+      isVerified: model.isVerified,
       createdAt: model.createdAt,
       updatedAt: model.updatedAt,
     }
@@ -96,6 +97,7 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
         bankCode: pm.bankCode,
         accountNumber: pm.accountNumber ? this.encryption.encrypt(pm.accountNumber) : null,
         accountName: pm.accountName ? this.encryption.encrypt(pm.accountName) : null,
+        isVerified: pm.isVerified ?? false,
       },
     })
     return this.toDomain(record)
@@ -145,6 +147,9 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
     }
     if (data.letterheadFooterUrl !== undefined) {
       updateData.letterheadFooterUrl = data.letterheadFooterUrl
+    }
+    if (data.isVerified !== undefined) {
+      updateData.isVerified = data.isVerified
     }
 
     const record = await (this.prisma as any).upward_property_manager.update({
