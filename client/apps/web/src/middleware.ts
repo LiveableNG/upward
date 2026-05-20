@@ -6,7 +6,6 @@ function isTokenExpired(token: string): boolean {
     const payloadBase64 = token.split('.')[1]
     if (!payloadBase64) return true
 
-    // Add padding if necessary for atob
     const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/')
     const pad = base64.length % 4
     const padded = pad ? base64 + '='.repeat(4 - pad) : base64
@@ -28,13 +27,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://upward-api.vercel.ap
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
 
-  // 1. Pay / Tenant Auth cookies
   const payTokenCookie = request.cookies.get('pay_access_token')
   const hasPayToken = !!payTokenCookie
   const payTokenValue = payTokenCookie?.value
   const isPayExpired = payTokenValue ? isTokenExpired(payTokenValue) : true
-
-  // 2. PM / Landlord Auth cookies
   const pmTokenCookie = request.cookies.get('pm_access_token')
   const pmRefreshCookie = request.cookies.get('pm_refresh')
   const landlordTokenCookie = request.cookies.get('landlord_access_token')
@@ -42,7 +38,6 @@ export function middleware(request: NextRequest) {
 
   const hasPmToken = !!pmTokenCookie || !!landlordTokenCookie || !!pmRefreshCookie || !!landlordRefreshCookie
 
-  // 3. Determine routing destination (Pay vs PM App)
   const redirectParam = request.nextUrl.searchParams.get('redirect') || ''
 
   const isPmRedirectParam = redirectParam.startsWith('/portal') ||
@@ -73,7 +68,6 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/settings') ||
     pathname.startsWith('/invite')
 
-  // Rule: Should this request route to the PM app instead of the Pay app?
   const routeToPm = isPmPath || (isSharedRoute && (hasPmToken || isPmRedirectParam))
 
   const targetBase = routeToPm ? PM_URL : APP_URL
@@ -83,7 +77,6 @@ export function middleware(request: NextRequest) {
     ? (tokenCookie ? isTokenExpired(tokenCookie.value) : true)
     : isPayExpired
 
-  // 4. Asset Proxy Logic (for upward-pay assets)
   if (pathname.startsWith('/_upward_pay')) {
     const assetPath = pathname.replace('/_upward_pay', '')
     const url = new URL(assetPath + search, APP_URL)
@@ -99,7 +92,6 @@ export function middleware(request: NextRequest) {
     })
   }
 
-  // 5. Asset Proxy Logic (for upward-pm assets)
   if (pathname.startsWith('/_upward_pm')) {
     const assetPath = pathname.replace('/_upward_pm', '')
     const url = new URL(assetPath + search, PM_URL)
@@ -115,7 +107,6 @@ export function middleware(request: NextRequest) {
     })
   }
 
-  // 6. Explicit /pm-login and /pm-signup rewrites
   if (pathname === '/pm-login' || pathname === '/pm-signup') {
     const targetPath = pathname === '/pm-login' ? '/login' : '/signup'
     const url = new URL(targetPath + search, PM_URL)
@@ -133,27 +124,23 @@ export function middleware(request: NextRequest) {
     })
   }
 
-  // 7. Auth Redirection Logic (Redirect to dashboard if logged in)
   const isAuthPage = pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname === '/pm-login' || pathname === '/pm-signup'
 
   if (isAuthPage) {
     const redirectParam = request.nextUrl.searchParams.get('redirect')
     if (redirectParam !== '/dashboard') {
-      // 1. If PM/Landlord user has an active token, redirect straight to PM dashboard
       if (hasPmToken && pmTokenCookie && !isTokenExpired(pmTokenCookie.value)) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
+        return NextResponse.redirect(new URL('/dashboard', PM_URL))
       }
       if (hasPmToken && landlordTokenCookie && !isTokenExpired(landlordTokenCookie.value)) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
+        return NextResponse.redirect(new URL('/dashboard', PM_URL))
       }
-      // 2. If Tenant user has an active token, redirect straight to Tenant dashboard
       if (hasPayToken && payTokenCookie && !isTokenExpired(payTokenCookie.value)) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
+        return NextResponse.redirect(new URL('/dashboard', APP_URL))
       }
     }
   }
 
-  // 8. Protected Routes Logic
   const isProtectedRoute = pathname.startsWith('/dashboard') ||
     pathname.startsWith('/properties') ||
     pathname.startsWith('/landlords') ||
@@ -164,16 +151,15 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/api/v1')
 
   if (isProtectedRoute && (!hasToken || isExpired) && !pathname.startsWith('/api/v1')) {
-    // If we are at a protected route but not authenticated, go to appropriate login
-    const loginPath = routeToPm ? (pathname.startsWith('/portal') ? '/portal/login' : '/pm-login') : '/login'
-    const url = new URL(loginPath, request.url)
+    const loginBase = routeToPm ? PM_URL : APP_URL
+    const loginPath = routeToPm ? '/login' : '/login'
+    const url = new URL(loginPath, loginBase)
     if (pathname !== '/dashboard' && pathname !== '/portal') {
       url.searchParams.set('redirect', pathname)
     }
     return NextResponse.redirect(url)
   }
 
-  // 9. Proxy/Rewrite Logic for API
   if (pathname.startsWith('/api/v1')) {
     const apiBase = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL
     const pathWithoutPrefix = pathname.replace('/api/v1', '')
@@ -192,7 +178,6 @@ export function middleware(request: NextRequest) {
     })
   }
 
-  // 10. Proxy/Rewrite Logic for App Routes
   const shouldProxy = isProtectedRoute ||
     pathname.startsWith('/welcome') ||
     pathname.startsWith('/pay') ||
