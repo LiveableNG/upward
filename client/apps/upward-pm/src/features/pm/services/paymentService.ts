@@ -20,6 +20,7 @@ export interface PmPaymentRequest {
   minAmount: number | null;
   coreRequestUuid?: string | null;
   createdAt: string;
+  updatedAt?: string;
   lineItems?: { name: string; amount: number }[];
   reminderFrequency?: string;
   transactions?: any[];
