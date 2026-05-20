@@ -24,7 +24,31 @@ export function DesktopHeader() {
       <div className="desktop-header__actions">
 
         <div className="desktop-header__profile">
-          {!user.isVerified && (
+          {user.isVerified ? (
+            <div 
+              style={{ 
+                padding: '4px 10px', 
+                borderRadius: 20, 
+                background: 'rgba(16, 185, 129, 0.1)', 
+                color: '#10b981', 
+                fontSize: 11, 
+                fontWeight: 700,
+                marginRight: 12,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                border: '1px solid rgba(16, 185, 129, 0.2)',
+              }}
+            >
+                <div style={{ 
+                    width: 6, 
+                    height: 6, 
+                    borderRadius: '50%', 
+                    background: '#10b981' 
+                }} />
+                VERIFIED
+            </div>
+          ) : (
             <Link 
               href="/settings"
               className=""
