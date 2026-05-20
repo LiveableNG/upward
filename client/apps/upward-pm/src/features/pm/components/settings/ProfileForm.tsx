@@ -21,6 +21,19 @@ const profileSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileSchema>
 
+const formatProfilePhone = (phone?: string, country?: string): string => {
+  if (!phone) return ''
+  let cleaned = phone.replace(/[^\d+]/g, '').trim()
+  if (cleaned.startsWith('+')) {
+    return cleaned
+  }
+  if (cleaned.startsWith('0')) {
+    cleaned = cleaned.substring(1)
+  }
+  const dialCode = country === 'Kenya' ? '+254' : '+234'
+  return dialCode + cleaned
+}
+
 export function ProfileForm() {
   const { user } = useAuth()
   const { mutate: updateProfile, isPending } = useUpdateProfile()
@@ -32,7 +45,7 @@ export function ProfileForm() {
       lastName: user?.lastName || '',
       businessName: user?.businessName || '',
       pmType: user?.pmType || '',
-      phone: user?.phone || '',
+      phone: formatProfilePhone(user?.phone, user?.country),
       country: user?.country || '',
       cacNumber: user?.cacNumber || '',
     }
@@ -45,7 +58,7 @@ export function ProfileForm() {
         lastName: user.lastName,
         businessName: user.businessName || '',
         pmType: user.pmType || '',
-        phone: user.phone || '',
+        phone: formatProfilePhone(user.phone, user.country),
         country: user.country || '',
         cacNumber: user.cacNumber || '',
       })
@@ -135,9 +148,6 @@ export function ProfileForm() {
               <option value="">Select country</option>
               <option value="Nigeria">Nigeria</option>
               <option value="Kenya">Kenya</option>
-              <option value="Zambia">Zambia</option>
-              <option value="Rwanda">Rwanda</option>
-              <option value="Uganda">Uganda</option>
             </select>
           </div>
           <div className="settings__field">

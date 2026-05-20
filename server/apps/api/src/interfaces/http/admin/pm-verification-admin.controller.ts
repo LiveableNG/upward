@@ -104,10 +104,21 @@ export class PmVerificationAdminController {
       })
 
       // Mark PM as verified
-      return tx.upward_property_manager.update({
+      const pm = await tx.upward_property_manager.update({
         where: { id: verification.pmId },
         data: { isVerified: true }
       })
+
+      // Also mark all associated tenant properties (upward_user_property) as verified
+      await tx.upward_user_property.updateMany({
+        where: { pmId: verification.pmId },
+        data: {
+          isVerified: true,
+          verificationStatus: 'VERIFIED'
+        }
+      })
+
+      return pm
     })
   }
 

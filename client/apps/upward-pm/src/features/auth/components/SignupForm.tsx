@@ -31,13 +31,16 @@ export const SignupForm = () => {
     email: '',
     phone: '',
     tenantsNumber: '',
+    pmType: '',
     password: '',
+    confirmPassword: '',
   })
 
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [passwordError, setPasswordError] = useState('')
 
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const signupMutation = useSignup()
   const requestOtpMutation = useRequestOTP()
@@ -100,6 +103,11 @@ export const SignupForm = () => {
       return
     }
 
+    if (!formData.pmType) {
+      setPasswordError('Please select account type')
+      return
+    }
+
     if (!formData.tenantsNumber) {
       setPasswordError('Please select number of tenants')
       return
@@ -107,6 +115,11 @@ export const SignupForm = () => {
 
     if (formData.password.length < 8) {
       setPasswordError('Password must be at least 8 characters')
+      return
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setPasswordError('Passwords do not match')
       return
     }
 
@@ -157,14 +170,24 @@ export const SignupForm = () => {
               const firstName = nameParts[0] || 'Company'
               const lastName = nameParts.slice(1).join(' ') || 'Manager'
 
+              // Format phone number to ensure correct country code is prefixed
+              let formattedPhone = formData.phone.replace(/[^\d+]/g, '').trim()
+              const dialCode = formData.country === 'Kenya' ? '+254' : '+234'
+              if (!formattedPhone.startsWith('+')) {
+                if (formattedPhone.startsWith('0')) {
+                  formattedPhone = formattedPhone.substring(1)
+                }
+                formattedPhone = dialCode + formattedPhone
+              }
+
               const signupPayload = {
                 email: formData.email,
                 password: formData.password,
                 firstName,
                 lastName,
                 businessName: formData.companyName,
-                pmType: formData.tenantsNumber,
-                phone: formData.phone,
+                pmType: formData.pmType,
+                phone: formattedPhone,
                 country: formData.country,
               }
 
@@ -362,15 +385,17 @@ export const SignupForm = () => {
               Company Phone Number
             </label>
             <div className="input-wrapper" style={{ display: 'flex', gap: '8px' }}>
-              <div className="form-input" style={{ width: '90px', display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--bg-muted)', border: '1px solid var(--border)', borderRadius: '12px', padding: '0 12px', flexShrink: 0 }}>
+              <div className="form-input" style={{ width: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', background: 'var(--bg-muted)', border: '1px solid var(--border)', borderRadius: '10px', padding: '0 8px', flexShrink: 0 }}>
                 <Phone size={16} className="text-muted" />
-                <span style={{ fontSize: '14px', fontWeight: 600 }}>+234</span>
+                <span style={{ fontSize: '13px', fontWeight: 500 }}>
+                  {formData.country === 'Kenya' ? '+254' : '+234'}
+                </span>
               </div>
               <input
                 type="tel"
                 className="form-input"
                 style={{ flex: 1 }}
-                placeholder="908 155 2162"
+                placeholder={formData.country === 'Kenya' ? '712 345 678' : '908 155 2162'}
                 value={formData.phone}
                 onChange={(e) =>
                   setFormData({
@@ -380,6 +405,33 @@ export const SignupForm = () => {
                 }
                 required
               />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              Account Type
+            </label>
+            <div className="input-wrapper">
+              <Briefcase size={18} className="input-icon" />
+              <select
+                className="form-input form-input--with-icon"
+                value={formData.pmType}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    pmType: e.target.value,
+                  })
+                }
+                required
+              >
+                <option value="" disabled>Select account type</option>
+                <option value="Caretaker">Caretaker</option>
+                <option value="Lawyer">Lawyer</option>
+                <option value="Estate Agent">Estate Agent</option>
+                <option value="Property Manager">Property Manager</option>
+                <option value="Company">Property Management Company</option>
+              </select>
             </div>
           </div>
 
@@ -452,6 +504,52 @@ export const SignupForm = () => {
                 }}
               >
                 {showPassword ? 'Hide password' : 'Show password'}
+              </button>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              Confirm Password
+            </label>
+            <div
+              className="input-wrapper"
+              style={{ position: 'relative' }}
+            >
+              <Lock
+                size={18}
+                className="input-icon"
+              />
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                className="form-input form-input--with-icon"
+                placeholder="•••••••••••••"
+                value={formData.confirmPassword}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    confirmPassword: e.target.value,
+                  })
+                }
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '14px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--forest)',
+                  fontWeight: 600,
+                  fontSize: '12px'
+                }}
+              >
+                {showConfirmPassword ? 'Hide password' : 'Show password'}
               </button>
             </div>
             {passwordError && (

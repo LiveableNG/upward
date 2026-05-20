@@ -21,6 +21,7 @@ export interface PropertyManager {
   accountName?: string | null
   letterheadHeaderUrl?: string | null
   letterheadFooterUrl?: string | null
+  isVerified?: boolean
   createdAt: Date
   updatedAt: Date
 }
