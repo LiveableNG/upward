@@ -61,7 +61,7 @@ export const SignupForm = () => {
         setIsCheckingEmail(true)
         try {
           const res = await checkEmail(formData.email)
-          setEmailExists(res.exists && !res.isInvited) 
+          setEmailExists(res.exists && !res.isInvited)
           setIsInvited(res.isInvited || false)
           setInviteToken(res.inviteToken || null)
 
@@ -233,7 +233,7 @@ export const SignupForm = () => {
         <p className="auth-card__subtitle" style={{ marginBottom: 32 }}>
           Your property manager account has been created.
         </p>
-        <button 
+        <button
           onClick={() => {
             window.location.href = '/dashboard'
           }}
@@ -248,13 +248,13 @@ export const SignupForm = () => {
   return (
     <div className="animate-fade-in">
       <div className="auth-role-toggle">
-        <button 
+        <button
           type="button"
           className="auth-role-toggle__btn auth-role-toggle__btn--active"
         >
           Property Manager
         </button>
-        <Link 
+        <Link
           href="/portal/signup"
           className="auth-role-toggle__btn"
         >
@@ -274,7 +274,7 @@ export const SignupForm = () => {
             ? 'Create your property manager account in seconds.'
             : (
               <>
-                We&apos;ve sent a 6-digit code to <strong>{formData.email}</strong>. 
+                We&apos;ve sent a 6-digit code to <strong>{formData.email}</strong>.
                 Enter it below to continue. <br />
                 <span style={{ fontSize: '13px', opacity: 0.8 }}>(Check your <strong>spam folder</strong> if you don&apos;t see it)</span>
               </>
@@ -339,7 +339,7 @@ export const SignupForm = () => {
               <input
                 type="email"
                 className={`form-input form-input--with-icon ${requestOtpMutation.isError || emailExists ? 'form-input--error' : ''}`}
-                placeholder="abdulsalamayeleru@gmail.com"
+                placeholder="example@company.com"
                 value={formData.email}
                 onChange={(e) => {
                   if (requestOtpMutation.isError) requestOtpMutation.reset()
@@ -356,7 +356,7 @@ export const SignupForm = () => {
                 </div>
               )}
             </div>
-            
+
             {isInvited && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', color: 'var(--forest)', fontSize: '14px', fontWeight: 500 }}>
                 <CheckCircle2 size={14} />
