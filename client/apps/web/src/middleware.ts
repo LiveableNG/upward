@@ -133,8 +133,6 @@ export function middleware(request: NextRequest) {
     })
   }
 
-  // 7. Auth Redirection Logic (Redirect to dashboard if logged in)
-  // NOTE: Only trigger for true auth/landing pages — NOT /dashboard itself (that would loop).
   const isAuthPage = pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname === '/pm-login' || pathname === '/pm-signup'
 
   if (isAuthPage) {
