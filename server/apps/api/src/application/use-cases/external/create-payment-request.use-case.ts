@@ -8,6 +8,7 @@ import { PROPERTY_REPOSITORY, PropertyRepository } from '../../../domains/compan
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { NOTIFICATION_REPOSITORY, NotificationRepository } from '../../../domains/notifications/notification.repository'
 import { SingleInviteUseCase, InviteRequest } from './single-invite.use-case'
+import { ResolveDedicatedAccountUseCase } from '../payments/payment.use-cases'
 import { randomUUID } from 'crypto'
 
 import { ExternalPaymentRequestPayloadDto as ExternalPaymentRequestPayload } from './external-api.dto'
@@ -29,6 +30,7 @@ export class CreateExternalPaymentRequestUseCase {
     @Inject(NOTIFICATION_REPOSITORY) private readonly notificationRepository: NotificationRepository,
     @Inject(PAYMENT_GATEWAY) private readonly paymentGateway: IPaymentGateway,
     @Inject(PAYMENT_LINE_ITEM_REPOSITORY) private readonly lineItemRepository: IPaymentLineItemRepository,
+    private readonly resolveDedicatedAccount: ResolveDedicatedAccountUseCase,
   ) { }
 
   async execute(payload: ExternalPaymentRequestPayload, platformId: number): Promise<any> {
@@ -44,6 +46,11 @@ export class CreateExternalPaymentRequestUseCase {
       property = context.properties[0]
     } else {
       throw new BadRequestException('Either userPropertyUuid or invite data must be provided')
+    }
+
+    const user = await this.userRepository.findById(property.userId)
+    if (!user) {
+      throw new NotFoundException(`User associated with property not found`)
     }
 
     let amount = payload.amount || property.rentAmount;
@@ -162,8 +169,6 @@ export class CreateExternalPaymentRequestUseCase {
         )
       }
 
-      const user = await this.userRepository.findById(property.userId)
-
       if (user && user.passwordHash !== 'INVITED') {
         await this.notificationRepository.createNotification({
           userId: user.id!,
@@ -175,9 +180,31 @@ export class CreateExternalPaymentRequestUseCase {
       }
     }
 
+    let dvaDetails: any = null
+    try {
+      const dva = await this.resolveDedicatedAccount.execute({
+        userPropertyId: property.id,
+        tenantEmail: user.email!,
+        tenantName: `${user.firstName} ${user.lastName}`,
+        tenantPhone: user.phone ?? undefined,
+        subaccountCode: paymentRequest.subaccount?.subaccountCode
+      })
+      if (dva) {
+        dvaDetails = {
+          accountNumber: dva.accountNumber,
+          accountName: dva.accountName,
+          bankName: dva.bankName,
+          bankCode: dva.bankCode
+        }
+      }
+    } catch (e: any) {
+      this.logger.warn(`Failed to resolve DVA for property ${property.uuid}: ${e.message}`)
+    }
+
     return {
       paymentUuid: paymentRequest.uuid,
-      paymentLink: `${urls[0]}/pay/${paymentRequest.uuid}`
+      paymentLink: `${urls[0]}/pay/${paymentRequest.uuid}`,
+      dva: dvaDetails
     }
   }
 }

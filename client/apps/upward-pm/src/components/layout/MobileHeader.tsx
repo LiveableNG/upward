@@ -23,20 +23,34 @@ export function MobileHeader({ onMenuClick }: { onMenuClick: () => void }) {
       <div className="mobile-header__logo">
         <UpwardLogo size={32} />
         <span className="mobile-header__brand">{user?.businessName || 'Property Manager'}</span>
-        {user && !user.isVerified && (
-           <Link 
-            href="/settings"
-            className=""
-            style={{ 
-                width: 8, 
-                height: 8, 
-                borderRadius: '50%', 
-                background: isPending ? '#3b82f6' : '#ef4444', 
-                marginLeft: 6, 
-                border: '2px solid white' 
-            }} 
-            title={isPending ? "Verification Pending" : "Unverified"} 
-           />
+        {user && (
+          user.isVerified ? (
+            <div 
+             style={{ 
+                 width: 8, 
+                 height: 8, 
+                 borderRadius: '50%', 
+                 background: '#10b981', 
+                 marginLeft: 6, 
+                 border: '2px solid white' 
+             }} 
+             title="Verified"
+            />
+          ) : (
+            <Link 
+             href="/settings"
+             className=""
+             style={{ 
+                 width: 8, 
+                 height: 8, 
+                 borderRadius: '50%', 
+                 background: isPending ? '#3b82f6' : '#ef4444', 
+                 marginLeft: 6, 
+                 border: '2px solid white' 
+             }} 
+             title={isPending ? "Verification Pending" : "Unverified"} 
+            />
+          )
         )}
       </div>
 
