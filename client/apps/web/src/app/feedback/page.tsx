@@ -61,9 +61,9 @@ function FeedbackContent() {
       toast.success('Your feedback has been received. Thank you for helping us build Upward!')
       setStatus('success')
       reset()
-    } catch (err: any) {
+    } catch (err) {
       console.error('Feedback submission error:', err)
-      const msg = err.message || 'Something went wrong. Please try again.'
+      const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
       setErrorMessage(msg)
       toast.error(msg)
       setStatus('error')
@@ -528,8 +528,6 @@ export default function FeedbackPage() {
         </main>
         <Footer
           onSetView={() => {}}
-          onOpenSignup={() => (window.location.href = '/?signup=true')}
-          trackInteraction={() => {}}
         />
       </Suspense>
     </>

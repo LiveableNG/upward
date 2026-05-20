@@ -13,45 +13,13 @@ import { ShowcaseSection } from '@/components/sections/showcase-section'
 export default function HomePage() {
   const [view, setView] = useState<'home' | 'why' | 'fairness'>('home')
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const trackInteraction = async (type: string, target: string, metadata?: any) => {
-    try {
-      let vid = localStorage.getItem('upward_visitor_id')
-      if (!vid) {
-        vid = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-        localStorage.setItem('upward_visitor_id', vid)
-      }
-
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist/interactions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          visitorId: vid,
-          type,
-          target,
-          abVariant: 'A',
-          metadata: metadata ? JSON.stringify(metadata) : undefined,
-        }),
-      })
-    } catch (err) {
-      console.error('Failed to track interaction', err)
-    }
-  }
-
   const openSignup = (email?: string) => {
-    trackInteraction('CLICK', 'OPEN_SIGNUP')
     const url = email ? `/signup?email=${encodeURIComponent(email)}` : '/signup'
     window.location.href = url
   }
 
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [view])
-
-  // Track page view on navigation
-  useEffect(() => {
-    trackInteraction('VIEW', `PAGE_${view.toUpperCase()}`)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view])
 
   // Handle deep-linking from other pages (like /legal/...)
@@ -109,7 +77,6 @@ export default function HomePage() {
         onSetView={setView}
         currentView={view}
         onOpenSignup={() => openSignup()}
-        trackInteraction={trackInteraction}
       />
 
       <main style={{ position: 'relative', zIndex: 1, overflowX: 'hidden' }}>
@@ -186,8 +153,6 @@ export default function HomePage() {
 
       <Footer
         onSetView={setView}
-        onOpenSignup={() => openSignup()}
-        trackInteraction={trackInteraction}
       />
 
       <div

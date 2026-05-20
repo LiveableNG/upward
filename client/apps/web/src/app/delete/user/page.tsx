@@ -36,9 +36,9 @@ function DeleteUserContent() {
 
       toast.success('Deletion request received. Please check your email to confirm.')
       setStatus('success')
-    } catch (err: any) {
+    } catch (err) {
       console.error('Deletion request error:', err)
-      const msg = err.message || 'Something went wrong. Please try again.'
+      const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
       setErrorMessage(msg)
       toast.error(msg)
       setStatus('error')
@@ -404,8 +404,6 @@ export default function DeleteUserPage() {
         </main>
         <Footer
           onSetView={() => {}}
-          onOpenSignup={() => (window.location.href = '/?signup=true')}
-          trackInteraction={() => {}}
         />
       </Suspense>
     </>

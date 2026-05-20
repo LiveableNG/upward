@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { ArrowRight, CheckCircle2, Building2, Smartphone, ShieldCheck, HelpCircle } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Building2, Smartphone, ShieldCheck } from 'lucide-react'
 
 // Authentic Upward Logo SVG for branding consistency
 function UpwardLogo({
