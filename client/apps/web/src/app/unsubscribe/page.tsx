@@ -320,8 +320,6 @@ export default function UnsubscribePage() {
         </main>
         <Footer
           onSetView={() => {}}
-          onOpenSignup={() => (window.location.href = '/?signup=true')}
-          trackInteraction={() => {}}
         />
       </Suspense>
     </>
