@@ -12,15 +12,15 @@ import { ShowcaseSection } from '@/components/sections/showcase-section'
 
 export default function HomePage() {
   const [view, setView] = useState<'home' | 'why' | 'fairness'>('home')
-  const [abVariant, setAbVariant] = useState<'A' | 'B' | null>(null)
-  const [visitorId, setVisitorId] = useState('')
-  const [mounted, setMounted] = useState(false)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const trackInteraction = async (type: string, target: string, metadata?: any) => {
     try {
-      const vid = localStorage.getItem('upward_visitor_id') || visitorId
-      if (!vid) return
+      let vid = localStorage.getItem('upward_visitor_id')
+      if (!vid) {
+        vid = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+        localStorage.setItem('upward_visitor_id', vid)
+      }
 
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist/interactions`, {
         method: 'POST',
@@ -29,7 +29,7 @@ export default function HomePage() {
           visitorId: vid,
           type,
           target,
-          abVariant: metadata?.abVariant || abVariant || 'A',
+          abVariant: 'A',
           metadata: metadata ? JSON.stringify(metadata) : undefined,
         }),
       })
@@ -48,38 +48,11 @@ export default function HomePage() {
     window.scrollTo(0, 0)
   }, [view])
 
-  // Handle A/B variant assignment and Visitor ID
+  // Track page view on navigation
   useEffect(() => {
-    // 1. Visitor ID
-    let vid = localStorage.getItem('upward_visitor_id')
-    if (!vid) {
-      vid =
-        Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-      localStorage.setItem('upward_visitor_id', vid)
-    }
-    setVisitorId(vid)
-    setMounted(true)
-  }, [])
-
-  // Handle A/B variant randomization and View tracking
-  useEffect(() => {
-    window.scrollTo(0, 0)
-    if (!visitorId) return
-
-    // Pick a new random variant unless forced by URL
-    const params = new URLSearchParams(window.location.search)
-    const forced = params.get('variant')?.toUpperCase()
-
-    let nextVariant: 'A' | 'B'
-    if (forced === 'A' || forced === 'B') {
-      nextVariant = forced as 'A' | 'B'
-    } else {
-      nextVariant = Math.random() < 0.5 ? 'A' : 'B'
-    }
-
-    setAbVariant(nextVariant)
-    trackInteraction('VIEW', `PAGE_${view.toUpperCase()}`, { abVariant: nextVariant })
-  }, [view, visitorId])
+    trackInteraction('VIEW', `PAGE_${view.toUpperCase()}`)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view])
 
   // Handle deep-linking from other pages (like /legal/...)
   useEffect(() => {
@@ -165,14 +138,8 @@ export default function HomePage() {
             }}
           >
             <div className="split-layout">
-              <div
-                className="split-hero"
-                style={{
-                  opacity: mounted && abVariant ? 1 : 0,
-                  transition: 'opacity 0.2s ease-in',
-                }}
-              >
-                <HeroSection onOpenSignup={(e) => openSignup(e)} variant={abVariant || 'A'} />
+              <div className="split-hero">
+                <HeroSection onOpenSignup={(e) => openSignup(e)} variant="A" />
               </div>
               <div className="split-benefits">
                 <BenefitsGrid onOpenSignup={(e) => openSignup(e)} />
