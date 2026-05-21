@@ -4,7 +4,7 @@ export type EmailDeliveryStatus = 'SENT' | 'FAILED' | 'PENDING'
 
 export class EmailSentEvent extends DomainEvent {
   constructor(
-    public readonly userId: string,
+    public readonly userId: string | undefined,
     public readonly email: string,
     public readonly subject: string,
     public readonly type: string,

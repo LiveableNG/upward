@@ -9,6 +9,8 @@ import {
   AlertCircle,
   Clock,
   RotateCcw,
+  ArrowLeft,
+  ArrowRight,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -27,7 +29,12 @@ interface EmailLog {
     firstName: string | null
     lastName: string | null
     email: string
-  }
+  } | null
+  registeredUser?: {
+    firstName: string | null
+    lastName: string | null
+    email: string
+  } | null
 }
 
 interface EmailLogsProps {
@@ -38,13 +45,24 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
   const [logs, setLogs] = useState<EmailLog[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('All')
   const [statusFilter, setStatusFilter] = useState('All')
+  const [acquisitionFilter, setAcquisitionFilter] = useState('All')
   const [viewLog, setViewLog] = useState<EmailLog | null>(null)
   const [retrying, setRetrying] = useState<string | null>(null)
   const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(false)
-  const [loadingMore, setLoadingMore] = useState(false)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [batchProgress, setBatchProgress] = useState<JobProgress | null>(null)
+
+  interface JobProgress {
+    id: string
+    total: number
+    processed: number
+    status: 'pending' | 'processing' | 'completed' | 'failed'
+    message?: string
+  }
 
   const handleRetry = async (id: string) => {
     if (retrying) return
@@ -52,7 +70,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
     try {
       await apiService.post(`/admin/email/logs/${id}/retry`, {}, token)
       showToast('Retry dispatched! Logic will attempt delivery up to 3 times. ✓')
-      fetchLogs(true)
+      fetchLogs(page)
     } catch (err) {
       console.error('Manual retry failed', err)
       showToast('Manual retry trigger failed', true)
@@ -61,43 +79,120 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
     }
   }
 
-  const fetchLogs = async (reset = true) => {
-    if (reset) {
-      setLoading(true)
-      setPage(1)
-    } else {
-      setLoadingMore(true)
-    }
+  const handleRetryFilteredFailed = async () => {
     try {
-      const currentPage = reset ? 1 : page + 1
-      const result = await apiService.get(
-        `/admin/email/logs?email=${search}&type=${typeFilter}&status=${statusFilter}&page=${currentPage}&limit=10`,
+      const response = await apiService.post(
+        `/admin/email/logs/retry-batch?email=${search}&type=${typeFilter}&acquisition=${acquisitionFilter}`,
+        {},
+        token
+      )
+      if (response && response.success) {
+        const jobId = response.jobId
+        localStorage.setItem('emailBatchJobId', jobId)
+        setBatchProgress({
+          id: jobId,
+          total: response.total,
+          processed: 0,
+          status: 'pending',
+        })
+        showToast(`Batch retry job started! Retrying ${response.total} failed emails in the background.`)
+      } else {
+        showToast(response?.message || 'No failed logs matching criteria to retry.', true)
+      }
+    } catch (err: any) {
+      console.error('Failed to trigger batch retry', err)
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to trigger batch retry'
+      showToast(errorMsg, true)
+    }
+  }
+
+  const pollJobStatus = async (jobId: string) => {
+    try {
+      const response = await apiService.get(`/admin/email/logs/jobs/${jobId}/status`, token)
+      if (response && response.success) {
+        const job: JobProgress = response.job
+        setBatchProgress(job)
+
+        if (job.status === 'completed' || job.status === 'failed') {
+          fetchLogs(page)
+          localStorage.removeItem('emailBatchJobId')
+          if (job.status === 'completed') {
+            showToast('Batch retry job completed successfully!')
+          } else {
+            showToast('Batch retry job failed.', true)
+          }
+        }
+      } else {
+        setBatchProgress(null)
+        localStorage.removeItem('emailBatchJobId')
+      }
+    } catch (err) {
+      console.error('Error polling job status', err)
+    }
+  }
+
+  const fetchLogs = async (pageNum = page) => {
+    setLoading(true)
+    try {
+      const response = await apiService.get(
+        `/admin/email/logs?email=${debouncedSearch}&type=${typeFilter}&status=${statusFilter}&acquisition=${acquisitionFilter}&page=${pageNum}&limit=10`,
         token,
       )
-      const newLogs = result.data
-      const meta = result.meta
-
-      if (reset) {
-        setLogs(newLogs)
-      } else {
-        setLogs((prev) => [...prev, ...newLogs])
-        setPage(currentPage)
+      if (response) {
+        setLogs(response.data || [])
+        setTotalPages(response.meta?.totalPages || 1)
+        setTotal(response.meta?.total || 0)
       }
-      setHasMore(currentPage < (meta?.totalPages || 0))
     } catch (err) {
       console.error('Failed to fetch email logs', err)
     } finally {
       setLoading(false)
-      setLoadingMore(false)
     }
   }
 
+  // Load active job from localstorage on mount
+  useEffect(() => {
+    const savedJobId = localStorage.getItem('emailBatchJobId')
+    if (savedJobId) {
+      setBatchProgress({
+        id: savedJobId,
+        total: 0,
+        processed: 0,
+        status: 'pending',
+      })
+    }
+  }, [])
+
+  // Poll for active batch retry job status
+  useEffect(() => {
+    if (!batchProgress || batchProgress.status === 'completed' || batchProgress.status === 'failed') {
+      return
+    }
+
+    const interval = setInterval(() => {
+      pollJobStatus(batchProgress.id)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [batchProgress?.id, batchProgress?.status, page])
+
+  // Debounce search text input
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchLogs(true)
+      setDebouncedSearch(search)
     }, 300)
     return () => clearTimeout(timer)
-  }, [search, typeFilter, statusFilter])
+  }, [search])
+
+  // Fetch logs when search criteria or page changes
+  useEffect(() => {
+    fetchLogs(page)
+  }, [page, debouncedSearch, typeFilter, statusFilter, acquisitionFilter])
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedSearch, typeFilter, statusFilter, acquisitionFilter])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -113,16 +208,61 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
   }
 
   const getTypeLabel = (type: string) => {
-    switch (type) {
+    const baseType = type.endsWith('_RETRY') ? type.substring(0, type.length - 6) : type;
+    let label = baseType;
+    switch (baseType) {
       case 'CONFIRMATION':
-        return 'Signup'
+        label = 'Signup'
+        break
       case 'BULK':
-        return 'Bulk'
+        label = 'Bulk'
+        break
       case 'CAMPAIGN':
-        return 'Drip'
+        label = 'Drip'
+        break
+      case 'NEW_USER_RECORDS':
+        label = 'New Records'
+        break
+      case 'LANDLORD_WELCOME':
+        label = 'Landlord Welcome'
+        break
+      case 'LANDLORD_NEW_PROPERTY_ASSIGNMENT':
+        label = 'Property Assignment'
+        break
+      case 'RECORD_ADDED':
+        label = 'Record Added'
+        break
+      case 'DATA_DELETION_REQUEST':
+        label = 'Data Deletion'
+        break
+      case 'TEAM_INVITATION':
+        label = 'Team Invite'
+        break
+      case 'PM_SIGNUP':
+        label = 'PM Signup'
+        break
+      case 'PM_LOGIN':
+        label = 'PM Login'
+        break
+      case 'JOIN_REQUEST_REJECTION':
+        label = 'Join Decline'
+        break
+      case 'CREDIBILITY_REQUEST_REJECTION':
+        label = 'Record Decline'
+        break
+      case 'TENANT_INVITE':
+        label = 'Tenant Invite'
+        break
+      case 'PAYMENT_REQUEST':
+        label = 'Payment Request'
+        break
+      case 'CREDIBILITY_REQUEST':
+        label = 'Credibility Request'
+        break
       default:
-        return type
+        label = baseType
     }
+    return type.endsWith('_RETRY') ? `${label} (Retry)` : label;
   }
 
   return (
@@ -160,26 +300,138 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
           </div>
         </div>
 
-        <button
-          onClick={() => fetchLogs(true)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '10px 18px',
-            backgroundColor: 'var(--white)',
-            border: '1px solid var(--border)',
-            borderRadius: '12px',
-            fontSize: '14px',
-            fontWeight: 600,
-            cursor: loading ? 'not-allowed' : 'pointer',
-          }}
-          disabled={loading}
-        >
-          <RefreshCcw size={16} className={loading && !loadingMore ? 'spin' : ''} />
-          Refresh
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button
+            onClick={handleRetryFilteredFailed}
+            disabled={loading || !!(batchProgress && (batchProgress.status !== 'completed' && batchProgress.status !== 'failed'))}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 18px',
+              backgroundColor: '#fee2e2',
+              border: '1px solid #fecaca',
+              color: '#dc2626',
+              borderRadius: '12px',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: (loading || (batchProgress && (batchProgress.status !== 'completed' && batchProgress.status !== 'failed'))) ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+            }}
+          >
+            <RotateCcw size={16} />
+            Retry Filtered Failed
+          </button>
+
+          <button
+            onClick={() => fetchLogs(page)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 18px',
+              backgroundColor: 'var(--white)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+            }}
+            disabled={loading}
+          >
+            <RefreshCcw size={16} className={loading ? 'spin' : ''} />
+            Refresh
+          </button>
+        </div>
       </div>
+
+      {/* Progress Bar Card */}
+      {batchProgress && (
+        <div
+          className="card fade-in"
+          style={{
+            marginBottom: '24px',
+            padding: '20px',
+            borderLeft: `4px solid ${
+              batchProgress.status === 'completed'
+                ? 'var(--success)'
+                : batchProgress.status === 'failed'
+                  ? 'var(--danger)'
+                  : 'var(--accent)'
+            }`,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '24px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+            borderRadius: '16px',
+            background: 'var(--white)',
+          }}
+        >
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {batchProgress.status === 'completed' ? (
+                  <CheckCircle size={16} style={{ color: 'var(--success)' }} />
+                ) : batchProgress.status === 'failed' ? (
+                  <AlertCircle size={16} style={{ color: 'var(--danger)' }} />
+                ) : (
+                  <RefreshCcw size={16} className="spin" style={{ color: 'var(--accent)' }} />
+                )}
+                {batchProgress.status === 'completed'
+                  ? 'Batch Retry Completed'
+                  : batchProgress.status === 'failed'
+                    ? 'Batch Retry Failed'
+                    : `Retrying failed emails: ${batchProgress.processed} of ${batchProgress.total} processed`}
+              </span>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Job: {batchProgress.id.substring(0, 8)}
+              </span>
+            </div>
+
+            {batchProgress.status !== 'completed' && batchProgress.status !== 'failed' && (
+              <div style={{ width: '100%', height: '8px', background: 'var(--surface-hover)', borderRadius: '4px', overflow: 'hidden' }}>
+                <div
+                  style={{
+                    width: `${batchProgress.total > 0 ? Math.round((batchProgress.processed / batchProgress.total) * 100) : 0}%`,
+                    height: '100%',
+                    background: 'var(--accent)',
+                    transition: 'width 0.3s ease',
+                  }}
+                />
+              </div>
+            )}
+
+            {batchProgress.message && (
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                {batchProgress.message}
+              </div>
+            )}
+          </div>
+
+          {(batchProgress.status === 'completed' || batchProgress.status === 'failed') && (
+            <button
+              onClick={() => setBatchProgress(null)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 16px',
+                backgroundColor: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: '10px',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              Dismiss
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="card" style={{ marginBottom: '24px', padding: '16px' }}>
@@ -219,12 +471,13 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', flex: '0 1 auto', minWidth: '320px' }}>
+          <div style={{ display: 'flex', gap: '12px', flex: '0 1 auto', minWidth: '450px', flexWrap: 'wrap' }}>
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
               style={{
                 flex: 1,
+                minWidth: '120px',
                 padding: '11px 12px',
                 borderRadius: '12px',
                 border: '1px solid var(--border)',
@@ -243,6 +496,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
               onChange={(e) => setStatusFilter(e.target.value)}
               style={{
                 flex: 1,
+                minWidth: '120px',
                 padding: '11px 12px',
                 borderRadius: '12px',
                 border: '1px solid var(--border)',
@@ -254,6 +508,25 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
               <option value="SENT">Sent</option>
               <option value="FAILED">Failed</option>
               <option value="PENDING">Pending</option>
+            </select>
+
+            <select
+              value={acquisitionFilter}
+              onChange={(e) => setAcquisitionFilter(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: '150px',
+                padding: '11px 12px',
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
+                background: 'var(--surface)',
+                fontSize: '14px',
+              }}
+            >
+              <option value="All">All Sources</option>
+              <option value="waitlist_converted">Waitlist Converted</option>
+              <option value="invited">Invited</option>
+              <option value="self_signup">Self Sign-ups</option>
             </select>
           </div>
         </div>
@@ -357,12 +630,14 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
                     </td>
                     <td style={{ padding: '16px' }}>
                       <div style={{ fontSize: '14px', fontWeight: 600 }}>
-                        {log.user.firstName
-                          ? `${log.user.firstName} ${log.user.lastName || ''}`
-                          : log.email || 'Unknown'}
+                        {log.registeredUser?.firstName
+                          ? `${log.registeredUser.firstName} ${log.registeredUser.lastName || ''}`
+                          : log.user?.firstName
+                            ? `${log.user.firstName} ${log.user.lastName || ''}`
+                            : log.email || 'Unknown'}
                       </div>
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {log.email || log.user.email}
+                        {log.email || log.registeredUser?.email || log.user?.email}
                       </div>
                     </td>
                     <td style={{ padding: '16px' }}>
@@ -465,46 +740,92 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
           </table>
         </div>
 
-        {hasMore && (
+        {/* Pagination */}
+        {totalPages > 1 && (
           <div
             style={{
-              padding: '24px',
-              textAlign: 'center',
+              padding: '16px',
               borderTop: '1px solid var(--border)',
-              background: 'var(--surface)',
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '16px',
+              backgroundColor: 'var(--surface)',
             }}
           >
-            <button
-              onClick={() => fetchLogs(false)}
-              disabled={loadingMore}
+            <div
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '12px 32px',
-                backgroundColor: 'var(--white)',
-                border: '1px solid var(--border)',
-                borderRadius: '12px',
-                fontSize: '14px',
-                fontWeight: 600,
-                color: 'var(--text)',
-                cursor: loadingMore ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                fontSize: '13px',
+                color: 'var(--text-muted)',
+                flex: '1 0 100%',
+                textAlign: 'center',
+                marginBottom: '-8px',
+                display: 'block',
+                order: -1,
+              }}
+              className="mobile-only"
+            >
+              Page {page} of {totalPages} ({total} logs)
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                width: '100%',
+                justifyContent: 'space-between',
               }}
             >
-              {loadingMore ? (
-                <>
-                  <RefreshCcw size={16} className="spin" />
-                  Loading batch...
-                </>
-              ) : (
-                <>
-                  <RefreshCcw size={16} />
-                  View More Logs
-                </>
-              )}
-            </button>
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  backgroundColor: 'var(--white)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  opacity: page === 1 ? 0.5 : 1,
+                  cursor: page === 1 ? 'default' : 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <ArrowLeft size={16} /> Previous
+              </button>
+
+              <div
+                style={{ display: 'flex', alignItems: 'center', fontWeight: 600, fontSize: '14px' }}
+                className="desktop-only"
+              >
+                Page {page} of {totalPages} ({total} logs)
+              </div>
+
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  backgroundColor: 'var(--white)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  opacity: page === totalPages ? 0.5 : 1,
+                  cursor: page === totalPages ? 'default' : 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                Next <ArrowRight size={16} />
+              </button>
+            </div>
           </div>
         )}
       </div>

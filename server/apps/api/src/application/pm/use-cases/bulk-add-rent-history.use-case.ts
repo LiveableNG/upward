@@ -137,19 +137,19 @@ export class BulkAddRentHistoryUseCase {
                 const propertyAddress = unit.property?.address || unit.property?.name || 'your rental property';
 
                 if (isShadowUser) {
-                  // User hasn't set password, send invite link with record notice
                   await this.emailService.sendNewUserRecordsEmail({
                     email,
                     pmName: pm.businessName || `${pm.firstName} ${pm.lastName}`,
                     propertyAddress,
-                    completeProfileLink: inviteResult.inviteLink
+                    completeProfileLink: inviteResult.inviteLink,
+                    pmUuid: pm.uuid,
                   });
                 } else {
-                  // Existing user, just notify about new records
                   await this.emailService.sendRecordAddedEmail({
                     email,
                     pmName: pm.businessName || `${pm.firstName} ${pm.lastName}`,
-                    propertyAddress
+                    propertyAddress,
+                    pmUuid: pm.uuid,
                   });
                 }
                 emailedUsers.add(email);

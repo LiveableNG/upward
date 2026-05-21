@@ -111,6 +111,7 @@ export class InviteTenantUseCase {
         pmName: pm.businessName || `${pm.firstName} ${pm.lastName}`,
         pmType: pm.pmType,
         inviteLink: inviteResult.inviteLink,
+        pmUuid: pm.uuid,
       });
     }
 

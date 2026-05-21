@@ -132,3 +132,44 @@ export const getVerificationStatus = async () => {
     method: 'GET'
   })
 }
+
+export const getEmailSettings = async () => {
+  return request<any>('/pm/email-settings', {
+    method: 'GET'
+  })
+}
+
+export const updateEmailConfig = async (data: any) => {
+  return request('/pm/email-settings/config', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
+export const createEmailDomain = async (domain: string) => {
+  return request<any>('/pm/email-settings/domain', {
+    method: 'POST',
+    body: JSON.stringify({ domain })
+  })
+}
+
+export const verifyEmailDomain = async (domain: string) => {
+  return request<any>('/pm/email-settings/verify-domain', {
+    method: 'POST',
+    body: JSON.stringify({ domain })
+  })
+}
+
+export const sendEmailSettingsTest = async (email: string) => {
+  return request('/pm/email-settings/send-test-email', {
+    method: 'POST',
+    body: JSON.stringify({ email })
+  })
+}
+
+export const uploadLogo = async (params: { base64Data: string, contentType: string }) => {
+  return request<{ publicUrl: string }>('/pm/email-settings/logo-upload', {
+    method: 'POST',
+    body: JSON.stringify(params)
+  })
+}

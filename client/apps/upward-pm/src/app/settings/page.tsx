@@ -9,6 +9,7 @@ import { DataImportTab } from '@/features/pm/components/settings/DataImportTab'
 import { TeamTab } from '@/features/pm/components/settings/TeamTab'
 import { BrandingTab } from '@/features/pm/components/settings/BrandingTab'
 import { FeedbackTab } from '@/features/pm/components/settings/FeedbackTab'
+import { EmailSettingsTab } from '@/features/pm/components/settings/EmailSettingsTab'
 import { Splash } from '@/components/common/Splash'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -71,6 +72,12 @@ function SettingsContent() {
           Branding
         </button>
         <button 
+          className={cn('settings__nav-item', activeTab === 'email' && 'settings__nav-item--active')}
+          onClick={() => setTab('email')}
+        >
+          Email
+        </button>
+        <button 
           className={cn('settings__nav-item', activeTab === 'feedback' && 'settings__nav-item--active')}
           onClick={() => setTab('feedback')}
         >
@@ -91,6 +98,7 @@ function SettingsContent() {
         {activeTab === 'import' && <DataImportTab />}
         {activeTab === 'team' && <TeamTab />}
         {activeTab === 'branding' && <BrandingTab />}
+        {activeTab === 'email' && <EmailSettingsTab />}
         {activeTab === 'feedback' && <FeedbackTab />}
       </div>
     </div>

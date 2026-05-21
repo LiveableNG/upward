@@ -145,8 +145,10 @@ export class GetWaitlistAnalyticsUseCase {
       }),
     ])
 
-    const [convertedCount, launchEmailsSent, launchEmailsFailed] = await Promise.all([
+    const [convertedCount, joinedFromInviteCount, selfSignupCount, launchEmailsSent, launchEmailsFailed] = await Promise.all([
       this.prisma.upward_user.count({ where: { isFromWaitlist: true } }),
+      this.prisma.upward_user.count({ where: { isFromInvite: true } }),
+      this.prisma.upward_user.count({ where: { isFromWaitlist: false, isFromInvite: false } }),
       this.prisma.upward_email_log.count({ where: { type: 'LAUNCH_BROADCAST', status: 'SENT' } }),
       this.prisma.upward_email_log.count({ where: { type: 'LAUNCH_BROADCAST', status: 'FAILED' } }),
     ])
@@ -253,6 +255,8 @@ export class GetWaitlistAnalyticsUseCase {
       completedYesterday,
       incompleteYesterday,
       convertedCount,
+      joinedFromInviteCount,
+      selfSignupCount,
       launchEmailsSent,
       launchEmailsFailed,
       conversionRate,

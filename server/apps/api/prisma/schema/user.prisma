@@ -36,6 +36,10 @@ model upward_user {
   feedback             upward_feedback[]
   bankDetails          upward_user_bank_details?
   transactions         upward_transaction[]
+  campaignWeekSent     Int                              @default(0)
+  unsubscribed         Boolean                          @default(false)
+  unsubscribedAt       DateTime?
+  emailLogs            upward_email_log[]
 
   @@index([email])
   @@index([createdAt])
