@@ -24,9 +24,33 @@ export function DesktopHeader() {
       <div className="desktop-header__actions">
 
         <div className="desktop-header__profile">
-          {!user.isVerified && (
+          {user.isVerified ? (
+            <div 
+              style={{ 
+                padding: '4px 10px', 
+                borderRadius: 20, 
+                background: 'rgba(16, 185, 129, 0.1)', 
+                color: '#10b981', 
+                fontSize: 11, 
+                fontWeight: 700,
+                marginRight: 12,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                border: '1px solid rgba(16, 185, 129, 0.2)',
+              }}
+            >
+                <div style={{ 
+                    width: 6, 
+                    height: 6, 
+                    borderRadius: '50%', 
+                    background: '#10b981' 
+                }} />
+                VERIFIED
+            </div>
+          ) : (
             <Link 
-              href="/settings?tab=verification"
+              href="/settings"
               className=""
               style={{ 
                 padding: '4px 10px', 
@@ -62,7 +86,7 @@ export function DesktopHeader() {
               src={user.profilePic} 
               alt="Avatar" 
               size={40} 
-              initials={`${user.firstName[0]}${user.lastName[0]}`}
+              initials={`${user.firstName[0] || 'P'}${user.lastName[0] || 'M'}`}
             />
           </Link>
 

@@ -53,6 +53,8 @@ import { GetSystemEmailUseCase } from './use-cases/email/get-system-email.use-ca
 import { UpsertSystemEmailUseCase } from './use-cases/email/upsert-system-email.use-case'
 import { SendTestEmailsUseCase } from './use-cases/email/send-test-emails.use-case'
 import { RetryEmailUseCase } from './use-cases/email/retry-email.use-case'
+import { EmailBatchRetryManager } from './use-cases/email/email-batch-retry-manager.service'
+import { RetryBatchEmailsUseCase } from './use-cases/email/retry-batch-emails.use-case'
 
 import { GetErrorLogsUseCase } from './use-cases/system/get-error-logs.use-case'
 import { ResolveErrorUseCase } from './use-cases/system/resolve-error.use-case'
@@ -256,6 +258,8 @@ const UseCases = [
   UpsertSystemEmailUseCase,
   SendTestEmailsUseCase,
   RetryEmailUseCase,
+  EmailBatchRetryManager,
+  RetryBatchEmailsUseCase,
   GetErrorLogsUseCase,
   ResolveErrorUseCase,
   ClearErrorLogsUseCase,

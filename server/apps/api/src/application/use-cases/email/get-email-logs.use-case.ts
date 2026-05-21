@@ -10,10 +10,11 @@ export class GetEmailLogsUseCase {
     email?: string
     type?: string
     status?: string
+    acquisition?: string
     page?: number
     limit?: number
   }) {
-    const { email, type, status, page = 1, limit = 10 } = query
+    const { email, type, status, acquisition, page = 1, limit = 10 } = query
     const skip = (page - 1) * limit
     const where: Prisma.upward_email_logWhereInput = {
       ...(email ? { email: { contains: email, mode: 'insensitive' as const } } : {}),
@@ -23,6 +24,15 @@ export class GetEmailLogsUseCase {
           : { type }
         : {}),
       ...(status && status !== 'All' ? { status } : {}),
+      ...(acquisition && acquisition !== 'All'
+        ? acquisition === 'waitlist_converted'
+          ? { registeredUser: { isFromWaitlist: true } }
+          : acquisition === 'invited'
+            ? { registeredUser: { isFromInvite: true } }
+            : acquisition === 'self_signup'
+              ? { registeredUser: { isFromWaitlist: false, isFromInvite: false } }
+              : {}
+        : {}),
     }
 
     const [data, total] = await Promise.all([
@@ -33,6 +43,9 @@ export class GetEmailLogsUseCase {
         take: limit,
         include: {
           user: {
+            select: { firstName: true, lastName: true, email: true },
+          },
+          registeredUser: {
             select: { firstName: true, lastName: true, email: true },
           },
         },

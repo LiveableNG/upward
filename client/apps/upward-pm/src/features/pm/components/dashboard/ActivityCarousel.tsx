@@ -103,7 +103,7 @@ export function ActivityCarousel() {
 
   const carouselItems = dynamicItems.filter(item => {
     if (item.id === 'payment-info') return !user?.bankCode
-    if (item.id === 'complete-profile') return !user?.businessName
+    if (item.id === 'complete-profile') return !user?.businessName || !user?.country
     if (item.id === 'add-property') return properties.length === 0
     return true
   })

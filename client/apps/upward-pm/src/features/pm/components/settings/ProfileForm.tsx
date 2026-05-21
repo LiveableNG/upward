@@ -15,9 +15,24 @@ const profileSchema = z.object({
   phone: z.string().refine((val) => !val || isValidPhoneNumber(val), {
     message: 'Invalid international phone number (e.g. +234...)'
   }),
+  country: z.string().optional(),
+  cacNumber: z.string().optional(),
 })
 
 type ProfileFormData = z.infer<typeof profileSchema>
+
+const formatProfilePhone = (phone?: string, country?: string): string => {
+  if (!phone) return ''
+  let cleaned = phone.replace(/[^\d+]/g, '').trim()
+  if (cleaned.startsWith('+')) {
+    return cleaned
+  }
+  if (cleaned.startsWith('0')) {
+    cleaned = cleaned.substring(1)
+  }
+  const dialCode = country === 'Kenya' ? '+254' : '+234'
+  return dialCode + cleaned
+}
 
 export function ProfileForm() {
   const { user } = useAuth()
@@ -30,7 +45,9 @@ export function ProfileForm() {
       lastName: user?.lastName || '',
       businessName: user?.businessName || '',
       pmType: user?.pmType || '',
-      phone: user?.phone || '',
+      phone: formatProfilePhone(user?.phone, user?.country),
+      country: user?.country || '',
+      cacNumber: user?.cacNumber || '',
     }
   })
 
@@ -41,7 +58,9 @@ export function ProfileForm() {
         lastName: user.lastName,
         businessName: user.businessName || '',
         pmType: user.pmType || '',
-        phone: user.phone || '',
+        phone: formatProfilePhone(user.phone, user.country),
+        country: user.country || '',
+        cacNumber: user.cacNumber || '',
       })
     }
   }, [user, reset])
@@ -115,6 +134,28 @@ export function ProfileForm() {
                   className="settings__input"
                 />
               )}
+            />
+          </div>
+        </div>
+
+        <div className="settings__grid">
+          <div className="settings__field">
+            <label className="settings__label">Country</label>
+            <select 
+              {...register('country')}
+              className="settings__input"
+            >
+              <option value="">Select country</option>
+              <option value="Nigeria">Nigeria</option>
+              <option value="Kenya">Kenya</option>
+            </select>
+          </div>
+          <div className="settings__field">
+            <label className="settings__label">CAC Number (Optional)</label>
+            <input 
+              {...register('cacNumber')}
+              className="settings__input"
+              placeholder="Enter CAC number"
             />
           </div>
         </div>

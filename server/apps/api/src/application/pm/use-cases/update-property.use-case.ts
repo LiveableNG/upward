@@ -3,6 +3,7 @@ import { IPropertyRepository, PM_PROPERTY_REPOSITORY } from '../../../domains/pm
 import { UpdatePropertyDto } from '../dtos/property.dto';
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
 import { LandlordService } from '../services/landlord.service';
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 
 @Injectable()
 export class UpdatePropertyUseCase {
@@ -11,6 +12,7 @@ export class UpdatePropertyUseCase {
     private readonly propertyRepository: IPropertyRepository,
     private readonly s3Service: S3Service,
     private readonly landlordService: LandlordService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(pmId: number, propertyUuid: string, dto: UpdatePropertyDto) {
@@ -39,10 +41,12 @@ export class UpdatePropertyUseCase {
     });
     
     if (dto.landlordEmail && dto.landlordEmail !== property.landlordEmail) {
+        const pm = await this.prisma.upward_property_manager.findUnique({ where: { id: pmId }, select: { uuid: true } });
         await this.landlordService.ensureLandlord(
             dto.landlordEmail,
             dto.landlordName,
-            dto.landlordPhone
+            dto.landlordPhone,
+            pm?.uuid,
         );
     }
 

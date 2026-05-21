@@ -16,9 +16,47 @@ export class EmailLogEventHandler implements OnModuleInit, OnModuleDestroy {
   onModuleInit() {
     this.subscription = this.eventBus.subscribe<EmailSentEvent>('EmailSentEvent', async (event) => {
       try {
+        let finalUserId: string | null = null
+        let registeredUserId: number | null = null
+
+        if (event.userId) {
+          const isNumeric = /^\d+$/.test(event.userId)
+          if (isNumeric) {
+            const numericId = parseInt(event.userId, 10)
+            const regUser = await this.prisma.upward_user.findUnique({
+              where: { id: numericId },
+              select: { id: true },
+            })
+            if (regUser) {
+              registeredUserId = regUser.id
+            } else {
+              registeredUserId = numericId
+            }
+          } else {
+            const regUser = await this.prisma.upward_user.findUnique({
+              where: { uuid: event.userId },
+              select: { id: true },
+            })
+            if (regUser) {
+              registeredUserId = regUser.id
+            } else {
+              const waitUser = await this.prisma.upward_waitlist.findUnique({
+                where: { id: event.userId },
+                select: { id: true },
+              })
+              if (waitUser) {
+                finalUserId = waitUser.id
+              } else {
+                finalUserId = event.userId
+              }
+            }
+          }
+        }
+
         await this.prisma.upward_email_log.create({
           data: {
-            userId: event.userId,
+            userId: finalUserId,
+            registeredUserId: registeredUserId,
             email: event.email,
             subject: event.subject,
             type: event.type,

@@ -58,13 +58,29 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
       const totalRentAmount = rentItems.reduce((sum: number, i: any) => sum + i.totalAmount, 0)
       const statusForWebhook = totalRentPaid >= totalRentAmount ? 'PAID' : 'PARTIAL'
 
+      const tx = await this.prisma.upward_transaction.findUnique({
+        where: { id: data.transactionId }
+      })
+
+      const lineItemsPaid: Record<string, number> = {}
+      if (tx && tx.lineItems && Array.isArray(tx.lineItems)) {
+        const items = tx.lineItems as any[]
+        for (const item of items) {
+          const isFee = item.category === 'Fee' || 
+                        ['Processing Fee', 'Upward Processing Fee', 'Upward & Provider Fee'].includes(item.name)
+          if (!isFee) {
+            lineItemsPaid[item.name] = (lineItemsPaid[item.name] || 0) + (item.amount || 0)
+          }
+        }
+      } else {
+        const fallbackName = data.narration || 'Rent'
+        lineItemsPaid[fallbackName] = data.rentPortion
+      }
+
       this.eventBus.publish(new PaymentUpdatedEvent(data.platformId, 'payment.updated', {
         paymentUuid: data.paymentRequestUuid,
         reference: data.reference,
-        amountPaid: data.rentPortion,
-        totalPaid: totalRentPaid,
-        remainingAmount: Math.max(0, totalRentAmount - totalRentPaid),
-        overpaymentAmount: data.excess,
+        lineItems: lineItemsPaid,
         currency: data.currency,
         status: statusForWebhook,
         paidAt: new Date(),

@@ -6,20 +6,19 @@ import Link from 'next/link'
 import {
   Mail,
   Lock,
-  User,
   ChevronRight,
   ArrowRight,
   CheckCircle2,
-  Eye,
-  EyeOff,
   Briefcase,
   Loader2,
   AlertCircle,
+  Phone,
+  MapPin,
+  Users,
 } from 'lucide-react'
 import { useSignup } from '../hooks/useSignup'
 import { useRequestOTP, useVerifyOTP, useOtpLogin } from '../hooks/useOtp'
 import { checkEmail } from '../services/authService'
-import { VerificationForm } from '@/features/pm/components/verification/VerificationForm'
 
 export const SignupForm = () => {
   const router = useRouter()
@@ -27,12 +26,14 @@ export const SignupForm = () => {
   const [effectiveContext, setEffectiveContext] = useState<'SIGNUP' | 'LOGIN'>('SIGNUP')
 
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    companyName: '',
+    country: 'Nigeria',
     email: '',
+    phone: '',
+    tenantsNumber: '',
+    pmType: '',
     password: '',
     confirmPassword: '',
-    pmType: '',
   })
 
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
@@ -60,7 +61,7 @@ export const SignupForm = () => {
         setIsCheckingEmail(true)
         try {
           const res = await checkEmail(formData.email)
-          setEmailExists(res.exists && !res.isInvited) 
+          setEmailExists(res.exists && !res.isInvited)
           setIsInvited(res.isInvited || false)
           setInviteToken(res.inviteToken || null)
 
@@ -92,8 +93,28 @@ export const SignupForm = () => {
 
     if (emailExists) return
 
+    if (!formData.companyName.trim()) {
+      setPasswordError('Please enter company name')
+      return
+    }
+
+    if (!formData.country) {
+      setPasswordError('Please select country')
+      return
+    }
+
     if (!formData.pmType) {
-      setPasswordError('Please select your role')
+      setPasswordError('Please select account type')
+      return
+    }
+
+    if (!formData.tenantsNumber) {
+      setPasswordError('Please select number of tenants')
+      return
+    }
+
+    if (formData.password.length < 8) {
+      setPasswordError('Password must be at least 8 characters')
       return
     }
 
@@ -145,7 +166,31 @@ export const SignupForm = () => {
         {
           onSuccess: (res: any) => {
             if (res.success) {
-              const { confirmPassword, ...signupPayload } = formData
+              const nameParts = formData.companyName.trim().split(/\s+/)
+              const firstName = nameParts[0] || 'Company'
+              const lastName = nameParts.slice(1).join(' ') || 'Manager'
+
+              // Format phone number to ensure correct country code is prefixed
+              let formattedPhone = formData.phone.replace(/[^\d+]/g, '').trim()
+              const dialCode = formData.country === 'Kenya' ? '+254' : '+234'
+              if (!formattedPhone.startsWith('+')) {
+                if (formattedPhone.startsWith('0')) {
+                  formattedPhone = formattedPhone.substring(1)
+                }
+                formattedPhone = dialCode + formattedPhone
+              }
+
+              const signupPayload = {
+                email: formData.email,
+                password: formData.password,
+                firstName,
+                lastName,
+                businessName: formData.companyName,
+                pmType: formData.pmType,
+                phone: formattedPhone,
+                country: formData.country,
+              }
+
               signupMutation.mutate(signupPayload, {
                 onSuccess: () => setStage('success'),
               })
@@ -162,7 +207,6 @@ export const SignupForm = () => {
   }
 
   const handleOtpChange = (index: number, value: string) => {
-    // Reset error state when user starts typing again
     if (verifyOtpMutation.isError) verifyOtpMutation.reset()
     if (otpLoginMutation.isError) otpLoginMutation.reset()
 
@@ -176,7 +220,6 @@ export const SignupForm = () => {
       document.getElementById(`otp-${index + 1}`)?.focus()
     }
 
-    // Auto-verify if all digits are filled
     if (newOtp.every(digit => digit !== '') && newOtp.length === 6) {
       triggerVerification(newOtp)
     }
@@ -184,22 +227,20 @@ export const SignupForm = () => {
 
   if (stage === 'success') {
     return (
-      <div className="animate-fade-in" style={{ maxWidth: '100%', width: '100%' }}>
-        <VerificationForm 
-          isAuthFlow={true}
-          onSuccess={() => {
-            window.location.href = formData.pmType === 'INDIVIDUAL_LANDLORD' ? '/portal' : '/dashboard'
-          }} 
-        />
-        
-        <div className="auth-footer">
-            <button 
-                onClick={() => window.location.href = formData.pmType === 'INDIVIDUAL_LANDLORD' ? '/portal' : '/dashboard'}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer', textDecoration: 'underline', fontWeight: 600 }}
-            >
-                I&apos;ll do this later, take me to my dashboard
-            </button>
-        </div>
+      <div className="animate-fade-in" style={{ maxWidth: '100%', width: '100%', textAlign: 'center', padding: '40px 20px' }}>
+        <CheckCircle2 size={64} color="var(--forest)" style={{ margin: '0 auto 24px' }} />
+        <h2 className="auth-card__title" style={{ marginBottom: 12 }}>Account Created Successfully!</h2>
+        <p className="auth-card__subtitle" style={{ marginBottom: 32 }}>
+          Your property manager account has been created.
+        </p>
+        <button
+          onClick={() => {
+            window.location.href = '/dashboard'
+          }}
+          className="auth-btn auth-btn--primary"
+        >
+          Go to Dashboard <ArrowRight size={18} />
+        </button>
       </div>
     )
   }
@@ -207,13 +248,13 @@ export const SignupForm = () => {
   return (
     <div className="animate-fade-in">
       <div className="auth-role-toggle">
-        <button 
+        <button
           type="button"
           className="auth-role-toggle__btn auth-role-toggle__btn--active"
         >
           Property Manager
         </button>
-        <Link 
+        <Link
           href="/portal/signup"
           className="auth-role-toggle__btn"
         >
@@ -230,12 +271,10 @@ export const SignupForm = () => {
 
         <p className="auth-card__subtitle">
           {stage === 'info'
-            ? (formData.pmType === 'INDIVIDUAL_LANDLORD' 
-                ? 'Sign up to manage your properties and collect rent directly.' 
-                : 'Create your property manager account in seconds.')
+            ? 'Create your property manager account in seconds.'
             : (
               <>
-                We&apos;ve sent a 6-digit code to <strong>{formData.email}</strong>. 
+                We&apos;ve sent a 6-digit code to <strong>{formData.email}</strong>.
                 Enter it below to continue. <br />
                 <span style={{ fontSize: '13px', opacity: 0.8 }}>(Check your <strong>spam folder</strong> if you don&apos;t see it)</span>
               </>
@@ -247,103 +286,60 @@ export const SignupForm = () => {
         <form onSubmit={handleInfoSubmit}>
           <div className="form-group">
             <label className="form-label">
-              I am a...
+              Company Name
             </label>
             <div className="input-wrapper">
               <Briefcase size={18} className="input-icon" />
-              <select 
+              <input
+                type="text"
                 className="form-input form-input--with-icon"
-                value={formData.pmType}
-                onChange={(e) => setFormData({ ...formData, pmType: e.target.value })}
+                placeholder="Enter company name"
+                value={formData.companyName}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    companyName: e.target.value,
+                  })
+                }
                 required
-              >
-                <option value="" disabled>-- Select your role --</option>
-                <option value="Caretaker">Caretaker</option>
-                <option value="Lawyer">Lawyer</option>
-                <option value="Estate Agent">Estate Agent</option>
-                <option value="Property Manager">Property Manager</option>
-                <option value="Company">Management Co.</option>
-              </select>
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '16px',
-            }}
-          >
-            <div className="form-group">
-              <label className="form-label">
-                First Name
-              </label>
-
-              <div className="input-wrapper">
-                <User
-                  size={18}
-                  className="input-icon"
-                />
-
-                <input
-                  type="text"
-                  className="form-input form-input--with-icon"
-                  placeholder="Segun"
-                  value={formData.firstName}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      firstName: e.target.value,
-                    })
-                  }
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">
-                Last Name
-              </label>
-
-              <div className="input-wrapper">
-                <User
-                  size={18}
-                  className="input-icon"
-                />
-
-                <input
-                  type="text"
-                  className="form-input form-input--with-icon"
-                  placeholder="Arinze"
-                  value={formData.lastName}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      lastName: e.target.value,
-                    })
-                  }
-                  required
-                />
-              </div>
+              />
             </div>
           </div>
 
           <div className="form-group">
             <label className="form-label">
-              Email Address
+              Country
             </label>
-
             <div className="input-wrapper">
-              <Mail
-                size={18}
-                className="input-icon"
-              />
+              <MapPin size={18} className="input-icon" />
+              <select
+                className="form-input form-input--with-icon"
+                value={formData.country}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    country: e.target.value,
+                  })
+                }
+                required
+              >
+                <option value="" disabled>Select country</option>
+                <option value="Nigeria">Nigeria</option>
+                <option value="Kenya">Kenya</option>
+              </select>
+            </div>
+          </div>
 
+          <div className="form-group">
+            <label className="form-label">
+              Company Email
+            </label>
+            <div className="input-wrapper">
+              <Mail size={18} className="input-icon" />
               <input
                 type="email"
                 className={`form-input form-input--with-icon ${requestOtpMutation.isError || emailExists ? 'form-input--error' : ''}`}
-                placeholder="segun@company.com"
+                placeholder="example@company.com"
                 value={formData.email}
                 onChange={(e) => {
                   if (requestOtpMutation.isError) requestOtpMutation.reset()
@@ -360,7 +356,7 @@ export const SignupForm = () => {
                 </div>
               )}
             </div>
-            
+
             {isInvited && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', color: 'var(--forest)', fontSize: '14px', fontWeight: 500 }}>
                 <CheckCircle2 size={14} />
@@ -386,9 +382,90 @@ export const SignupForm = () => {
 
           <div className="form-group">
             <label className="form-label">
-              Password
+              Company Phone Number
             </label>
+            <div className="input-wrapper" style={{ display: 'flex', gap: '8px' }}>
+              <div className="form-input" style={{ width: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', background: 'var(--bg-muted)', border: '1px solid var(--border)', borderRadius: '10px', padding: '0 8px', flexShrink: 0 }}>
+                <Phone size={16} className="text-muted" />
+                <span style={{ fontSize: '13px', fontWeight: 500 }}>
+                  {formData.country === 'Kenya' ? '+254' : '+234'}
+                </span>
+              </div>
+              <input
+                type="tel"
+                className="form-input"
+                style={{ flex: 1 }}
+                placeholder={formData.country === 'Kenya' ? '712 345 678' : '908 155 2162'}
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    phone: e.target.value,
+                  })
+                }
+                required
+              />
+            </div>
+          </div>
 
+          <div className="form-group">
+            <label className="form-label">
+              Account Type
+            </label>
+            <div className="input-wrapper">
+              <Briefcase size={18} className="input-icon" />
+              <select
+                className="form-input form-input--with-icon"
+                value={formData.pmType}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    pmType: e.target.value,
+                  })
+                }
+                required
+              >
+                <option value="" disabled>Select account type</option>
+                <option value="Caretaker">Caretaker</option>
+                <option value="Lawyer">Lawyer</option>
+                <option value="Estate Agent">Estate Agent</option>
+                <option value="Property Manager">Property Manager</option>
+                <option value="Company">Property Management Company</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              Number of tenants under management
+            </label>
+            <div className="input-wrapper">
+              <Users size={18} className="input-icon" />
+              <select
+                className="form-input form-input--with-icon"
+                value={formData.tenantsNumber}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    tenantsNumber: e.target.value,
+                  })
+                }
+                required
+              >
+                <option value="" disabled>Select an option</option>
+                <option value="Less than 50">Less than 50</option>
+                <option value="51-100">51-100</option>
+                <option value="101-250">101-250</option>
+                <option value="251-500">251-500</option>
+                <option value="Greater than 500">Greater than 500</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              Create Password
+            </label>
             <div
               className="input-wrapper"
               style={{ position: 'relative' }}
@@ -397,11 +474,10 @@ export const SignupForm = () => {
                 size={18}
                 className="input-icon"
               />
-
               <input
                 type={showPassword ? 'text' : 'password'}
                 className="form-input form-input--with-icon"
-                placeholder="Create a strong password"
+                placeholder="•••••••••••••"
                 value={formData.password}
                 onChange={(e) =>
                   setFormData({
@@ -411,12 +487,9 @@ export const SignupForm = () => {
                 }
                 required
               />
-
               <button
                 type="button"
-                onClick={() =>
-                  setShowPassword(!showPassword)
-                }
+                onClick={() => setShowPassword(!showPassword)}
                 style={{
                   position: 'absolute',
                   right: '14px',
@@ -425,13 +498,12 @@ export const SignupForm = () => {
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
+                  color: 'var(--forest)',
+                  fontWeight: 600,
+                  fontSize: '12px'
                 }}
               >
-                {showPassword ? (
-                  <EyeOff size={18} />
-                ) : (
-                  <Eye size={18} />
-                )}
+                {showPassword ? 'Hide password' : 'Show password'}
               </button>
             </div>
           </div>
@@ -440,7 +512,6 @@ export const SignupForm = () => {
             <label className="form-label">
               Confirm Password
             </label>
-
             <div
               className="input-wrapper"
               style={{ position: 'relative' }}
@@ -449,15 +520,10 @@ export const SignupForm = () => {
                 size={18}
                 className="input-icon"
               />
-
               <input
-                type={
-                  showConfirmPassword
-                    ? 'text'
-                    : 'password'
-                }
+                type={showConfirmPassword ? 'text' : 'password'}
                 className="form-input form-input--with-icon"
-                placeholder="Confirm your password"
+                placeholder="•••••••••••••"
                 value={formData.confirmPassword}
                 onChange={(e) =>
                   setFormData({
@@ -467,14 +533,9 @@ export const SignupForm = () => {
                 }
                 required
               />
-
               <button
                 type="button"
-                onClick={() =>
-                  setShowConfirmPassword(
-                    !showConfirmPassword
-                  )
-                }
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 style={{
                   position: 'absolute',
                   right: '14px',
@@ -483,16 +544,14 @@ export const SignupForm = () => {
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
+                  color: 'var(--forest)',
+                  fontWeight: 600,
+                  fontSize: '12px'
                 }}
               >
-                {showConfirmPassword ? (
-                  <EyeOff size={18} />
-                ) : (
-                  <Eye size={18} />
-                )}
+                {showConfirmPassword ? 'Hide password' : 'Show password'}
               </button>
             </div>
-
             {passwordError && (
               <p
                 style={{

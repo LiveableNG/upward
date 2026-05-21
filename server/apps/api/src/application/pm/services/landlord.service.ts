@@ -16,7 +16,7 @@ export class LandlordService {
     private readonly config: ConfigService,
   ) {}
 
-  async ensureLandlord(email: string, name?: string, phone?: string) {
+  async ensureLandlord(email: string, name?: string, phone?: string, pmUuid?: string) {
     if (!email) return;
 
     const existing = await this.landlordRepository.findByEmail(email);
@@ -27,6 +27,7 @@ export class LandlordService {
         email,
         landlordName: existing.firstName || name || 'Landlord',
         portalLink: portalUrl,
+        pmUuid,
       });
       return existing;
     }
@@ -53,6 +54,7 @@ export class LandlordService {
         landlordName: name || 'Landlord',
         tempPassword,
         portalLink: portalUrl,
+        pmUuid,
       });
 
       return landlord;

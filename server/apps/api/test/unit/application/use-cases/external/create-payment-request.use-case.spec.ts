@@ -11,6 +11,7 @@ import {
   IPaymentLineItemRepository,
 } from '@domains/payments/payment.repository'
 import { NotificationRepository } from '@domains/notifications/notification.repository'
+import { ResolveDedicatedAccountUseCase } from '@application/use-cases/payments/payment.use-cases'
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -114,6 +115,7 @@ describe('CreateExternalPaymentRequestUseCase', () => {
   let notificationRepository: jest.Mocked<NotificationRepository>
   let paymentGateway: jest.Mocked<IPaymentGateway>
   let lineItemRepository: jest.Mocked<IPaymentLineItemRepository>
+  let resolveDedicatedAccount: jest.Mocked<ResolveDedicatedAccountUseCase>
 
   const validBankDetails = {
     bankCode: '058',
@@ -179,6 +181,10 @@ describe('CreateExternalPaymentRequestUseCase', () => {
       findByPaymentRequestId: jest.fn(),
     } as any
 
+    resolveDedicatedAccount = {
+      execute: jest.fn(),
+    } as any
+
     useCase = new CreateExternalPaymentRequestUseCase(
       singleInviteUseCase as any,
       userRepository,
@@ -187,6 +193,7 @@ describe('CreateExternalPaymentRequestUseCase', () => {
       notificationRepository,
       paymentGateway,
       lineItemRepository,
+      resolveDedicatedAccount,
     )
   })
 

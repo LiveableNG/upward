@@ -3,7 +3,7 @@ import { PressLogos } from './press-logos'
 import { useState, useRef, useEffect } from 'react'
 
 export function HeroSection({
-  onOpenSignup,
+  onOpenSignup: _onOpenSignup,
   variant = 'A',
 }: {
   onOpenSignup: (email?: string) => void

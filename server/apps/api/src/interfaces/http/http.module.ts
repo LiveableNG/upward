@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { ApplicationModule } from '../../application/application.module'
 import { AuthModule } from '../../application/auth/auth.module'
 import { AdminLogModule } from '../../shared/infrastructure/admin-log/admin-log.module'
+import { S3Module } from '../../shared/infrastructure/common/s3/s3.module'
 import { AdminAuthController } from './admin/admin-auth.controller'
 import { AdminLogController } from './admin/admin-log.controller'
 import { AdminController } from './admin/admin.controller'
@@ -30,6 +31,7 @@ import { WebhookAdminController } from './admin/webhook-admin.controller'
 import { PmVerificationAdminController } from './admin/pm-verification-admin.controller'
 import { PmAuthController } from './pm/pm-auth.controller'
 import { PmProfileController } from './pm/pm-profile.controller'
+import { PmEmailSettingController } from './pm/pm-email-setting.controller'
 import { PmPropertyController } from './controllers/pm-property.controller'
 import { PmActivityController } from './controllers/pm-activity.controller'
 import { PmTenantController } from './controllers/pm-tenant.controller'
@@ -45,9 +47,10 @@ import { TenantPmConnectionController } from './user/tenant-pm-connection.contro
 import { PublicTrackingController } from './public/public-tracking.controller'
 import { AppActivityLogController } from './admin/app-activity-log.controller'
 import { FeedbackAdminController } from './admin/feedback-admin.controller'
+import { DevEmailAdminController } from './admin/dev-email-admin.controller'
 
 @Module({
-  imports: [ApplicationModule, AuthModule, AdminLogModule],
+  imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module],
   controllers: [
     AdminAuthController,
     AdminLogController,
@@ -75,6 +78,7 @@ import { FeedbackAdminController } from './admin/feedback-admin.controller'
     PmVerificationAdminController,
     PmAuthController,
     PmProfileController,
+    PmEmailSettingController,
     PmPropertyController,
     PmActivityController,
     PmTenantController,
@@ -92,6 +96,7 @@ import { FeedbackAdminController } from './admin/feedback-admin.controller'
     PublicTrackingController,
     AppActivityLogController,
     FeedbackAdminController,
+    DevEmailAdminController,
   ],
 })
 export class HttpModule {}

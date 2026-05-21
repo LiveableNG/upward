@@ -37,13 +37,18 @@ export class DismissJoinRequestUseCase {
       const tenantEmail = this.encryption.decrypt(metadata.userEmail);
       const tenantName = this.encryption.decrypt(metadata.userFirstName);
       const pm = await this.prisma.upward_property_manager.findUnique({ where: { id: pmId } });
-      const pmName = pm?.businessName || (pm?.firstName ? `${pm.firstName} ${pm.lastName || ''}` : 'Your Property Manager');
+      
+      const decryptedBusinessName = pm?.businessName ? this.encryption.decrypt(pm.businessName) : '';
+      const decryptedFirstName = pm?.firstName ? this.encryption.decrypt(pm.firstName) : '';
+      const decryptedLastName = pm?.lastName ? this.encryption.decrypt(pm.lastName) : '';
+      const pmName = decryptedBusinessName || `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Your Property Manager';
 
       await this.emailService.sendJoinRequestRejection({
         email: tenantEmail,
         tenantName,
         pmName,
         propertyAddress: metadata.unitDetails?.address || 'Unknown Address',
+        pmUuid: pm?.uuid,
       });
 
       const user = await this.prisma.upward_user.findUnique({ where: { uuid: metadata.userUuid } });

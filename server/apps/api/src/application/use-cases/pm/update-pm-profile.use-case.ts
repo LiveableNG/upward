@@ -21,6 +21,8 @@ export class UpdatePmProfileUseCase {
     profilePic?: string
     letterheadHeaderUrl?: string
     letterheadFooterUrl?: string
+    country?: string
+    cacNumber?: string
   }) {
     const pm = await this.pmRepository.findByUuid(pmUuid)
     if (!pm) throw new NotFoundException('Property manager not found')

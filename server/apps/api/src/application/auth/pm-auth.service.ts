@@ -88,6 +88,8 @@ export class PmAuthService extends BaseAuthService {
     pmType?: string
     businessName?: string
     phone?: string
+    country?: string
+    cacNumber?: string
   }): Promise<any> {
     const existing = await this.pmRepository.findByEmail(dto.email)
     if (existing) {
@@ -109,11 +111,25 @@ export class PmAuthService extends BaseAuthService {
       businessName: dto.businessName,
       phone: dto.phone,
       phoneHash: dto.phone ? this.encryption.hash(dto.phone) : null,
+      country: dto.country || null,
+      cacNumber: dto.cacNumber || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
 
     const savedPm = await this.pmRepository.save(pmData as PropertyManager)
+
+    // Automatically create a pending verification record for the PM
+    await this.prisma.upward_pm_verification.create({
+      data: {
+        pmId: savedPm.id!,
+        idType: 'CAC',
+        idNumber: dto.cacNumber || '',
+        idImage: null,
+        status: 'PENDING',
+      }
+    })
+
     return this.generateFullAuthResponse(savedPm)
   }
 
