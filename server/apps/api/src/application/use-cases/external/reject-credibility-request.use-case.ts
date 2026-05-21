@@ -47,6 +47,7 @@ export class RejectCredibilityRequestUseCase {
           tenantName: tenantFirstName,
           pmName,
           propertyAddress: property.location?.address || 'Unknown Address',
+          pmUuid: property.pm?.uuid,
         });
       }
     } catch (e) {

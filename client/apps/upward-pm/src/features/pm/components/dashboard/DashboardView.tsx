@@ -40,7 +40,6 @@ export function DashboardView() {
 
   const [activeTab, setActiveTab] = useState<'arrears' | 'upcoming' | 'completed'>('arrears')
 
-  // Stats Calculation
   const totalUnits = units.length
   const activeTenants = tenants.filter(t => t.inviteStatus === 'ON_UPWARD' || t.inviteStatus === 'ACCEPTED').length
   
@@ -51,7 +50,6 @@ export function DashboardView() {
   const totalRevenue = requests
     .reduce((sum, r) => sum + r.amountPaid, 0)
 
-  // Categorize Payments
   const overduePayments = [...requests]
     .filter(r => (r.status === 'PENDING' || r.status === 'PARTIAL') && new Date(r.dueDate) < new Date())
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
@@ -64,7 +62,6 @@ export function DashboardView() {
     .filter(r => r.status === 'PAID')
     .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
 
-  // Helpers
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'N/A'
     return new Intl.DateTimeFormat('en-US', {
@@ -376,7 +373,6 @@ export function DashboardView() {
           </div>
         </section>
 
-        {/* Right Column: Property Portfolio (1fr) */}
         <section className="section-card">
           <div className="section-header">
             <h2 className="section-title">Property Portfolio</h2>

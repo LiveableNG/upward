@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   XCircle,
   Gem,
+  UserPlus,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { apiService } from '../services/api.service'
@@ -204,6 +205,8 @@ interface Stats {
   completedYesterday: number
   incompleteYesterday: number
   convertedCount: number
+  joinedFromInviteCount: number
+  selfSignupCount: number
   launchEmailsSent: number
   launchEmailsFailed: number
   conversionRate: number
@@ -597,10 +600,22 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const statItems = [
     { label: 'Total Waitlist', value: stats.totalWaitlist, icon: Users, color: '#d97757' },
     {
-      label: 'Converted Users',
+      label: 'Joined from Waitlist',
       value: stats.convertedCount,
       icon: CheckCircle2,
       color: '#10b981',
+    },
+    {
+      label: 'Joined from Invitation',
+      value: stats.joinedFromInviteCount,
+      icon: UserPlus,
+      color: '#a855f7',
+    },
+    {
+      label: 'Self Sign-ups',
+      value: stats.selfSignupCount,
+      icon: Users,
+      color: '#ec4899',
     },
     {
       label: 'Conversion Rate',

@@ -30,6 +30,7 @@ import { WebhookAdminController } from './admin/webhook-admin.controller'
 import { PmVerificationAdminController } from './admin/pm-verification-admin.controller'
 import { PmAuthController } from './pm/pm-auth.controller'
 import { PmProfileController } from './pm/pm-profile.controller'
+import { PmEmailSettingController } from './pm/pm-email-setting.controller'
 import { PmPropertyController } from './controllers/pm-property.controller'
 import { PmActivityController } from './controllers/pm-activity.controller'
 import { PmTenantController } from './controllers/pm-tenant.controller'
@@ -76,6 +77,7 @@ import { DevEmailAdminController } from './admin/dev-email-admin.controller'
     PmVerificationAdminController,
     PmAuthController,
     PmProfileController,
+    PmEmailSettingController,
     PmPropertyController,
     PmActivityController,
     PmTenantController,

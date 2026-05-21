@@ -49,10 +49,12 @@ export class CreatePropertyUseCase {
     });
 
     if (dto.landlordEmail) {
+      const pm = await this.prisma.upward_property_manager.findUnique({ where: { id: pmId }, select: { uuid: true } });
       await this.landlordService.ensureLandlord(
         dto.landlordEmail, 
         dto.landlordName, 
-        dto.landlordPhone
+        dto.landlordPhone,
+        pm?.uuid,
       );
     }
 

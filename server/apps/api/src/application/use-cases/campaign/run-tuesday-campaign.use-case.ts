@@ -30,10 +30,11 @@ export class RunTuesdayCampaignUseCase {
   }> {
     this.logger.log('[Campaign] Tuesday drip campaign starting…')
 
-    const users = await this.prisma.upward_waitlist.findMany({
-      where: { acceptTerms: true, unsubscribed: false, role: 'TENANT' },
+    const users = await this.prisma.upward_user.findMany({
+      where: { unsubscribed: false },
       select: {
         id: true,
+        uuid: true,
         email: true,
         firstName: true,
         lastName: true,
@@ -78,7 +79,7 @@ export class RunTuesdayCampaignUseCase {
         this.logger.log(
           `[Campaign] No active campaign for Week ${weekNumber}. Advancing counter for ${usersInWeek.length} users and skipping.`,
         )
-        await this.prisma.upward_waitlist.updateMany({
+        await this.prisma.upward_user.updateMany({
           where: { id: { in: userIds } },
           data: { campaignWeekSent: { increment: 1 } },
         })
@@ -131,7 +132,7 @@ export class RunTuesdayCampaignUseCase {
 
             try {
               const res = await this.emailService.sendEmailWithRetry({
-                userId: user.id,
+                userId: user.uuid,
                 email: user.email,
                 subject: campaign.subject,
                 html: finalHtml,
@@ -142,7 +143,7 @@ export class RunTuesdayCampaignUseCase {
               if (res.success) {
                 weekSent++
                 totalSent++
-                await this.prisma.upward_waitlist.update({
+                await this.prisma.upward_user.update({
                   where: { id: user.id },
                   data: { campaignWeekSent: { increment: 1 } },
                 })
@@ -187,7 +188,7 @@ export class RunTuesdayCampaignUseCase {
 
           try {
             const res = await this.emailService.sendEmailWithRetry({
-              userId: user.id,
+              userId: user.uuid,
               email: user.email,
               subject: campaign.subject,
               html: finalHtml,
@@ -198,7 +199,7 @@ export class RunTuesdayCampaignUseCase {
             if (res.success) {
               weekSent++
               totalSent++
-              await this.prisma.upward_waitlist.update({
+              await this.prisma.upward_user.update({
                 where: { id: user.id },
                 data: { campaignWeekSent: { increment: 1 } },
               })

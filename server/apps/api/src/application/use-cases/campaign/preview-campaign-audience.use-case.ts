@@ -6,8 +6,8 @@ export class PreviewCampaignAudienceUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute() {
-    const users = await this.prisma.upward_waitlist.findMany({
-      where: { acceptTerms: true, unsubscribed: false, role: 'TENANT' },
+    const users = await this.prisma.upward_user.findMany({
+      where: { unsubscribed: false },
       select: { id: true, campaignWeekSent: true },
     })
 

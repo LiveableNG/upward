@@ -49,6 +49,8 @@ import { GetSystemEmailUseCase } from '../../../application/use-cases/email/get-
 import { UpsertSystemEmailUseCase } from '../../../application/use-cases/email/upsert-system-email.use-case'
 import { SendTestEmailsUseCase } from '../../../application/use-cases/email/send-test-emails.use-case'
 import { RetryEmailUseCase } from '../../../application/use-cases/email/retry-email.use-case'
+import { RetryBatchEmailsUseCase } from '../../../application/use-cases/email/retry-batch-emails.use-case'
+import { EmailBatchRetryManager } from '../../../application/use-cases/email/email-batch-retry-manager.service'
 
 import { GetErrorLogsUseCase } from '../../../application/use-cases/system/get-error-logs.use-case'
 import { ResolveErrorUseCase } from '../../../application/use-cases/system/resolve-error.use-case'
@@ -85,6 +87,8 @@ export class AdminController {
     private readonly upsertSystemEmailUseCase: UpsertSystemEmailUseCase,
     private readonly sendTestEmailsUseCase: SendTestEmailsUseCase,
     private readonly retryEmailUseCase: RetryEmailUseCase,
+    private readonly retryBatchEmailsUseCase: RetryBatchEmailsUseCase,
+    private readonly emailBatchRetryManager: EmailBatchRetryManager,
     private readonly getErrorLogsUseCase: GetErrorLogsUseCase,
     private readonly resolveErrorUseCase: ResolveErrorUseCase,
     private readonly clearErrorLogsUseCase: ClearErrorLogsUseCase,
@@ -323,6 +327,7 @@ export class AdminController {
     @Query('email') email?: string,
     @Query('type') type?: string,
     @Query('status') status?: string,
+    @Query('acquisition') acquisition?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
@@ -330,6 +335,7 @@ export class AdminController {
       email,
       type,
       status,
+      acquisition,
       page: page ? parseInt(page) : 1,
       limit: limit ? parseInt(limit) : 10,
     })
@@ -364,5 +370,29 @@ export class AdminController {
   @Post('email/logs/:id/retry')
   async retryEmail(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return { data: await this.retryEmailUseCase.execute(id, req.user.id) }
+  }
+
+  @Post('email/logs/retry-batch')
+  async retryBatchEmails(
+    @Query('email') qEmail?: string,
+    @Query('type') qType?: string,
+    @Query('acquisition') qAcquisition?: string,
+    @Body() body?: { email?: string; type?: string; acquisition?: string },
+    @Req() req?: AuthenticatedRequest,
+  ) {
+    const email = qEmail || body?.email
+    const type = qType || body?.type
+    const acquisition = qAcquisition || body?.acquisition
+    const requesterId = req?.user?.id || 'SYSTEM'
+    return this.retryBatchEmailsUseCase.execute({ email, type, acquisition }, requesterId)
+  }
+
+  @Get('email/logs/jobs/:jobId/status')
+  async getJobStatus(@Param('jobId') jobId: string) {
+    const job = this.emailBatchRetryManager.getJob(jobId)
+    if (!job) {
+      return { success: false, message: 'Job not found' }
+    }
+    return { success: true, job }
   }
 }

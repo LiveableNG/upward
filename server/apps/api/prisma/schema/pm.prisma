@@ -34,6 +34,7 @@ model upward_property_manager {
   sentDocuments   upward_pm_sent_document[]
   documentTemplates upward_pm_document_template[]
   verification    upward_pm_verification?
+  emailSetting    upward_pm_email_setting?
   
   teamOwner         upward_pm_team_collaboration[] @relation("OwnerTeam")
   teamCollaborator  upward_pm_team_collaboration[] @relation("CollaboratorTeam")
@@ -277,4 +278,23 @@ model upward_pm_verification {
   createdAt       DateTime                    @default(now())
   updatedAt       DateTime                    @updatedAt
   pm              upward_property_manager     @relation(fields: [pmId], references: [id], onDelete: Cascade)
+}
+
+model upward_pm_email_setting {
+  id                Int                     @id @default(autoincrement())
+  pmId              Int                     @unique
+  senderName        String
+  senderEmail       String
+  logoUrl           String?
+  footerAddress     String?
+  cc                String?                 // Comma-separated email addresses
+  bcc               String?                 // Comma-separated email addresses
+  closingStatement  String?
+  domain            String?
+  isVerified        Boolean                 @default(false)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  pm                upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+
+  @@index([pmId])
 }

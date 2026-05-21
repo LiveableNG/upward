@@ -58,7 +58,7 @@ interface WaitlistCampaignsProps {
 
 const DEFAULT_WEEK1_HTML = `<h1 style="color:#111827;font-size:24px;font-weight:700;margin:0 0 20px 0;">Welcome to Upward, {{firstName}}!</h1>
 <p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 16px 0;">
-  You're officially on the Upward waitlist — and we couldn't be more excited to have you here.
+  You're officially signed up on Upward — and we couldn't be more excited to have you here.
 </p>
 <p style="color:#4B5563;font-size:16px;line-height:1.6;margin:0 0 24px 0;">
   Upward is building a pathway to better rental terms, financial services, and eventually homeownership — with a community of people building the same future.
@@ -87,7 +87,7 @@ const HOW_IT_WORKS = [
   {
     icon: <UserPlus size={18} color="#d97757" />,
     title: 'Current users → Week 1',
-    desc: 'All existing waitlist users are treated as enrolled "this week" until next Tuesday.',
+    desc: 'All existing registered users are treated as enrolled "this week" until next Tuesday.',
   },
 ]
 
@@ -191,7 +191,7 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
       weekNumber: nextWeek,
       subject:
         nextWeek === 1
-          ? "Welcome to Upward — You're officially on the waitlist"
+          ? "Welcome to Upward — You're officially signed up!"
           : `Week ${nextWeek}: Updates from Upward`,
       label: nextWeek === 1 ? 'Welcome to Upward' : `Week ${nextWeek} Update`,
       htmlContent: DEFAULT_WEEK1_HTML,
@@ -302,8 +302,8 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
             <p
               style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0, maxWidth: '560px' }}
             >
-              Auto-sends every <strong>Tuesday at 19:00 WAT</strong>. Each waitlist user receives
-              the content matching their week number — calculated from when they joined the drip.
+              Auto-sends every <strong>Tuesday at 19:00 WAT</strong>. Each registered tenant receives
+              the content matching their week number — calculated from when they signed up.
               Current users default to <strong>Week 1</strong> until next Tuesday.
             </p>
           </div>

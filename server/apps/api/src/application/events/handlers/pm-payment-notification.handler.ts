@@ -24,6 +24,19 @@ export class PmPaymentNotificationHandler implements OnModuleInit, OnModuleDestr
       'PmPaymentNotificationEvent',
       async (event) => {
         try {
+          let pmUuid: string | undefined = undefined;
+          if (event.corePrUuid) {
+            const pr = await this.prisma.upward_pm_payment_request.findFirst({
+              where: {
+                paymentRequest: { uuid: event.corePrUuid }
+              },
+              include: {
+                pm: true
+              }
+            });
+            pmUuid = pr?.pm?.uuid;
+          }
+
           // 1. Send Email
           await this.emailService.sendPaymentRequestEmail({
             email: event.email,
@@ -35,6 +48,7 @@ export class PmPaymentNotificationHandler implements OnModuleInit, OnModuleDestr
             description: event.description,
             paymentLink: event.paymentLink,
             pmType: event.pmType,
+            pmUuid,
           });
 
           // 2. Send Push Notification if user exists
