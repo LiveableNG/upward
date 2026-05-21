@@ -51,12 +51,18 @@ export class InviteController {
   @Get(':token')
   async getInviteData(@Param('token') token: string) {
     let userUuid: string | undefined;
+
+    const waitlist = await this.userAuthService.getWaitlistClaimData(token)
+    if ( waitlist ){
+      return {
+        isWaitlist: true,
+      }
+    }
     const vt = await this.tokenRepository.findByToken(token)
 
     if (vt && vt.context === 'INVITE' && vt.expiresAt >= new Date()) {
       userUuid = vt.identifier;
     } else {
-      // Fallback: check if token is a user UUID and they are invited
       const user = await this.userRepository.findByUuid(token);
       if (user && user.passwordHash === 'INVITED') {
         userUuid = token;
@@ -83,6 +89,7 @@ export class InviteController {
 
     return {
       success: true,
+      isWaitlist: false,
       hasPassword,
       email: user.email,
       firstName: user.firstName,

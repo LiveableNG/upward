@@ -50,6 +50,12 @@ export default function InviteClient() {
   async function fetchInviteData() {
     try {
       const res = await api.get(`/public/invite/${token}`)
+      if (res?.isWaitlist) {
+        router.replace(`/waitlist/${token}`)
+        router.refresh()
+        return
+      }
+      
       if (res.success) {
         if (res.hasPassword) {
           success('Your account is already active. Please sign in.')
