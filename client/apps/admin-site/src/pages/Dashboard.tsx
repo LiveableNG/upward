@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   XCircle,
   Gem,
+  UserPlus,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { apiService } from '../services/api.service'
@@ -203,6 +204,12 @@ interface Stats {
   totalIncomplete: number
   completedYesterday: number
   incompleteYesterday: number
+  convertedCount: number
+  joinedFromInviteCount: number
+  selfSignupCount: number
+  launchEmailsSent: number
+  launchEmailsFailed: number
+  conversionRate: number
   distributions?: {
     roles: { label: string; count: number }[]
     countries: { label: string; count: number }[]
@@ -593,28 +600,40 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const statItems = [
     { label: 'Total Waitlist', value: stats.totalWaitlist, icon: Users, color: '#d97757' },
     {
-      label: 'Complete Reg.',
-      value: stats.totalCompleted,
+      label: 'Joined from Waitlist',
+      value: stats.convertedCount,
       icon: CheckCircle2,
       color: '#10b981',
     },
     {
-      label: 'Incomplete Reg.',
-      value: stats.totalIncomplete,
-      icon: AlertTriangle,
-      color: '#f59e0b',
+      label: 'Joined from Invitation',
+      value: stats.joinedFromInviteCount,
+      icon: UserPlus,
+      color: '#a855f7',
     },
     {
-      label: 'Complete (Yesterday)',
-      value: stats.completedYesterday,
-      icon: CalendarDays,
+      label: 'Self Sign-ups',
+      value: stats.selfSignupCount,
+      icon: Users,
+      color: '#ec4899',
+    },
+    {
+      label: 'Conversion Rate',
+      value: `${(stats.conversionRate || 0).toFixed(1)}%`,
+      icon: Gem,
       color: '#3b82f6',
     },
     {
-      label: 'Incomplete (Yesterday)',
-      value: stats.incompleteYesterday,
-      icon: Clock,
+      label: 'Launch Emails Sent',
+      value: stats.launchEmailsSent,
+      icon: Mail,
       color: '#6366f1',
+    },
+    {
+      label: 'Launch Emails Failed',
+      value: stats.launchEmailsFailed,
+      icon: AlertTriangle,
+      color: '#f59e0b',
     },
   ]
 

@@ -133,22 +133,24 @@ export function middleware(request: NextRequest) {
     })
   }
 
-  // 7. Auth Redirection Logic (Redirect to dashboard if logged in)
   const isAuthPage = pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname === '/pm-login' || pathname === '/pm-signup'
 
   if (isAuthPage) {
-    const redirectParam = request.nextUrl.searchParams.get('redirect')
-    if (redirectParam !== '/dashboard') {
+    const currentRedirect = request.nextUrl.searchParams.get('redirect')
+    // Avoid redirect loop: don't redirect if we're already heading to /dashboard
+    const alreadyGoingToDashboard = currentRedirect === '/dashboard'
+    if (!alreadyGoingToDashboard) {
+      const dashboardUrl = new URL('/dashboard', request.url)
       // 1. If PM/Landlord user has an active token, redirect straight to PM dashboard
       if (hasPmToken && pmTokenCookie && !isTokenExpired(pmTokenCookie.value)) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
+        return NextResponse.redirect(dashboardUrl)
       }
       if (hasPmToken && landlordTokenCookie && !isTokenExpired(landlordTokenCookie.value)) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
+        return NextResponse.redirect(dashboardUrl)
       }
       // 2. If Tenant user has an active token, redirect straight to Tenant dashboard
       if (hasPayToken && payTokenCookie && !isTokenExpired(payTokenCookie.value)) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
+        return NextResponse.redirect(dashboardUrl)
       }
     }
   }
@@ -164,8 +166,12 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/api/v1')
 
   if (isProtectedRoute && (!hasToken || isExpired) && !pathname.startsWith('/api/v1')) {
-    // If we are at a protected route but not authenticated, go to appropriate login
+
     const loginPath = routeToPm ? (pathname.startsWith('/portal') ? '/portal/login' : '/pm-login') : '/login'
+    // Prevent redirect loop: if we're already on the login page, don't redirect again
+    if (pathname === loginPath || pathname === '/login' || pathname === '/pm-login') {
+      return NextResponse.next()
+    }
     const url = new URL(loginPath, request.url)
     if (pathname !== '/dashboard' && pathname !== '/portal') {
       url.searchParams.set('redirect', pathname)

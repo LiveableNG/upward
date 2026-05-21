@@ -29,6 +29,12 @@ export const api = {
   getPmLandlords: propertyService.getLandlords,
   submitVerification: pmService.submitVerification,
   getVerificationStatus: pmService.getVerificationStatus,
+  getEmailSettings: pmService.getEmailSettings,
+  updateEmailConfig: pmService.updateEmailConfig,
+  createEmailDomain: pmService.createEmailDomain,
+  verifyEmailDomain: pmService.verifyEmailDomain,
+  sendEmailSettingsTest: pmService.sendEmailSettingsTest,
+  uploadLogo: pmService.uploadLogo,
 
   // Properties & Units
   getProperties: propertyService.getProperties,

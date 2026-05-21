@@ -308,7 +308,7 @@ export class SingleInviteUseCase {
           title: 'Rent Reminder',
           message: `Your rent for ${locData.address || locData.area} ${urgencyMsg}. Amount: ${amountStr}`,
           type: 'RENT_REMINDER',
-          url: `/dashboard/payment?prop=${property.uuid}`
+          url: `/dashboard/pay-rent?propertyUuid=${property.uuid}`
         })
       }
 

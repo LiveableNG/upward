@@ -131,7 +131,8 @@ export class BulkCreateTenantRecordsUseCase {
         email: emailLower,
         pmName,
         propertyAddress: input.propertyAddress,
-        completeProfileLink
+        completeProfileLink,
+        pmUuid: pm.uuid,
       });
     } else {
       await this.sendNotification.execute({

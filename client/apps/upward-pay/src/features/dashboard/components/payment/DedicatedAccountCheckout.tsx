@@ -1,9 +1,11 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Copy, Check, Info, ShieldCheck, ArrowRight, Loader2, RefreshCcw } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { Copy, Check, Info, ShieldCheck, ArrowRight, Loader2, X } from 'lucide-react'
 import { UpwardLogo } from '../../../../components/PoweredByUpward'
 import { api } from '@/lib/api'
+
+type VerifyStatus = 'idle' | 'pending' | 'error' | 'refund'
 
 interface DedicatedAccountCheckoutProps {
   accountNumber: string
@@ -28,8 +30,24 @@ export default function DedicatedAccountCheckout({
 }: DedicatedAccountCheckoutProps) {
   const [copied, setCopied] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
-  const [verifyError, setVerifyError] = useState<string | null>(null)
+  const [verifyStatus, setVerifyStatus] = useState<VerifyStatus>('idle')
+  const [verifyMessage, setVerifyMessage] = useState<string | null>(null)
   const [pollCount, setPollCount] = useState(0)
+
+  // Refs to track mounted state and the auto-close timeout
+  const isMounted = useRef(true)
+  const autoCloseTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    isMounted.current = true
+    return () => {
+      isMounted.current = false
+      // Clean up the auto-close timeout on unmount to prevent state updates on dead component
+      if (autoCloseTimeout.current) {
+        clearTimeout(autoCloseTimeout.current)
+      }
+    }
+  }, [])
 
   const handleCopy = () => {
     navigator.clipboard.writeText(accountNumber)
@@ -37,13 +55,19 @@ export default function DedicatedAccountCheckout({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const checkPayment = async () => {
+  const checkPayment = async (): Promise<boolean> => {
     try {
       const res = await api.verifyPayment(reference)
 
+      if (!isMounted.current) return true // Component unmounted, stop polling
+
       if (res?.settlementStatus === 'PENDING_REFUND') {
-        setVerifyError("A refund will be triggered for you soon. This window will close automatically in 20s. Further info will be communicated with you soon.")
-        setTimeout(() => { onClose() }, 20000)
+        setVerifyStatus('refund')
+        setVerifyMessage('A refund will be triggered for you soon. This window will close automatically in 20s. Further info will be communicated with you soon.')
+        // Store the timeout so we can cancel it if the component unmounts first
+        autoCloseTimeout.current = setTimeout(() => {
+          if (isMounted.current) onClose()
+        }, 20000)
         return true // Stop polling
       }
 
@@ -56,13 +80,17 @@ export default function DedicatedAccountCheckout({
       return false
     }
   }
+
+  // Background polling every 8 seconds
   useEffect(() => {
     const interval = setInterval(async () => {
       const found = await checkPayment()
       if (found) {
         clearInterval(interval)
       } else {
-        setPollCount(prev => prev + 1)
+        if (isMounted.current) {
+          setPollCount(prev => prev + 1)
+        }
       }
     }, 8000)
 
@@ -71,16 +99,28 @@ export default function DedicatedAccountCheckout({
   }, [reference])
 
   const handleConfirm = async () => {
-    if (verifyError?.includes('refund')) return
+    // Don't allow re-check once a refund has been triggered
+    if (verifyStatus === 'refund') return
 
     setIsVerifying(true)
-    setVerifyError(null)
+    setVerifyStatus('idle')
+    setVerifyMessage(null)
+
     const found = await checkPayment()
-    if (!found) {
-      setVerifyError("Payment not detected yet. It might take a few minutes for the bank to process the transfer. We're checking automatically.")
+
+    // Only update state if still mounted and payment not found
+    if (!found && isMounted.current) {
+      setVerifyStatus('error')
+      setVerifyMessage("Payment not detected yet. It might take a few minutes for the bank to process the transfer. We're checking automatically.")
+      setIsVerifying(false)
     }
-    setIsVerifying(false)
+    // If found, onSuccess() unmounts the component — we do NOT call setIsVerifying(false) to avoid state on unmounted component
   }
+
+  const statusColor =
+    verifyStatus === 'refund' ? 'var(--clay)' :
+    verifyStatus === 'error'  ? 'var(--error)' :
+    'inherit'
 
   return (
     <div className="psk-overlay">
@@ -90,8 +130,8 @@ export default function DedicatedAccountCheckout({
             <UpwardLogo size={20} color="var(--clay)" />
             <span>Secure Checkout</span>
           </div>
-          <button className="psk-close" onClick={onClose}>
-            <RefreshCcw size={18} />
+          <button className="psk-close" onClick={onClose} title="Close">
+            <X size={18} />
           </button>
         </div>
 
@@ -140,9 +180,9 @@ export default function DedicatedAccountCheckout({
             </p>
           </div>
           
-          {verifyError && (
-             <p style={{ fontSize: 12, color: verifyError.includes('refund') ? 'var(--clay)' : 'var(--error)', marginTop: 12, textAlign: 'center' }}>
-                {verifyError}
+          {verifyMessage && (
+             <p style={{ fontSize: 12, color: statusColor, marginTop: 12, textAlign: 'center' }}>
+                {verifyMessage}
              </p>
           )}
 
@@ -150,7 +190,7 @@ export default function DedicatedAccountCheckout({
             <button 
               className="btn btn--primary btn--full" 
               onClick={() => handleConfirm()}
-              disabled={isVerifying}
+              disabled={isVerifying || verifyStatus === 'refund'}
             >
               {isVerifying ? (
                 <>
@@ -168,7 +208,7 @@ export default function DedicatedAccountCheckout({
 
           <div className="psk-footer-text">
             <ShieldCheck size={12} color="var(--success)" />
-            <span>Secured by Paystack & Upward</span>
+            <span>Secured by Paystack &amp; Upward</span>
           </div>
         </div>
       </div>

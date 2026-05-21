@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { SyncUnitToUpwardUseCase } from '../../pm/use-cases/units/sync-unit.use-case';
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 
 @Injectable()
 export class DiscoverLinkedPropertiesUseCase {
@@ -9,6 +10,7 @@ export class DiscoverLinkedPropertiesUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly syncUnitUseCase: SyncUnitToUpwardUseCase,
+    private readonly encryption: EncryptionService,
   ) {}
 
   async execute(user: any) {
@@ -48,6 +50,11 @@ export class DiscoverLinkedPropertiesUseCase {
 
     // 2. For each PM record, sync the units
     for (const tenantRecord of pmTenants) {
+      const decryptedBusinessName = tenantRecord.pm?.businessName ? this.encryption.decrypt(tenantRecord.pm.businessName) : '';
+      const decryptedFirstName = tenantRecord.pm?.firstName ? this.encryption.decrypt(tenantRecord.pm.firstName) : '';
+      const decryptedLastName = tenantRecord.pm?.lastName ? this.encryption.decrypt(tenantRecord.pm.lastName) : '';
+      const pmName = decryptedBusinessName || `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Property Manager';
+
       for (const unit of tenantRecord.units) {
         try {
           // Check if already synced to this user
@@ -64,7 +71,7 @@ export class DiscoverLinkedPropertiesUseCase {
             discoveredProperties.push({
               address: unit.property.name,
               unitName: unit.unitName,
-              pmName: tenantRecord.pm.businessName || `${tenantRecord.pm.firstName} ${tenantRecord.pm.lastName}`,
+              pmName,
               rentAmount: unit.rentAmount,
               currency: unit.currency
             });
@@ -73,7 +80,7 @@ export class DiscoverLinkedPropertiesUseCase {
              discoveredProperties.push({
                 address: unit.property.name,
                 unitName: unit.unitName,
-                pmName: tenantRecord.pm.businessName || `${tenantRecord.pm.firstName} ${tenantRecord.pm.lastName}`,
+                pmName,
                 rentAmount: unit.rentAmount,
                 currency: unit.currency,
                 alreadySynced: true

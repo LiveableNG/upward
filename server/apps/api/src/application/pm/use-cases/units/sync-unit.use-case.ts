@@ -136,13 +136,13 @@ export class SyncUnitToUpwardUseCase {
             currency: unit.currency,
             rentStartDate: unit.rentStartDate || undefined,
             rentEndDate: unit.rentDueDate || undefined,
-            isVerified: true,
+            isVerified: pmRecord.isVerified,
             isPastTenancy: false,
             amountRemaining: unit.rentAmount,
             rentType: unit.rentType,
             subaccountId: subaccountId || existingUserProperty.subaccountId,
             pmUnitId: unit.id,
-            verificationStatus: 'VERIFIED',
+            verificationStatus: pmRecord.isVerified ? 'VERIFIED' : 'PENDING',
           }
         });
       } else {
@@ -168,7 +168,8 @@ export class SyncUnitToUpwardUseCase {
             currency: unit.currency,
             rentStartDate: unit.rentStartDate || undefined,
             rentEndDate: unit.rentDueDate || undefined,
-            isVerified: true,
+            isVerified: pmRecord.isVerified,
+            verificationStatus: pmRecord.isVerified ? 'VERIFIED' : 'PENDING',
             amountPaid: 0,
             amountRemaining: unit.rentAmount,
             pmId,

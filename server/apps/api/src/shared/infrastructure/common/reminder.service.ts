@@ -57,7 +57,11 @@ export class UnifiedReminderService {
   private async sendPmPaymentReminder(pr: any) {
     const tenantEmail = pr.tenant?.emailEncrypted ? this.encryption.decrypt(pr.tenant.emailEncrypted) : null;
     const tenantName = pr.tenant?.firstNameEncrypted ? this.encryption.decrypt(pr.tenant.firstNameEncrypted) : 'Tenant';
-    const pmName = pr.pm.businessName || `${pr.pm.firstName} ${pr.pm.lastName}`;
+    
+    const decryptedBusinessName = pr.pm?.businessName ? this.encryption.decrypt(pr.pm.businessName) : '';
+    const decryptedFirstName = pr.pm?.firstName ? this.encryption.decrypt(pr.pm.firstName) : '';
+    const decryptedLastName = pr.pm?.lastName ? this.encryption.decrypt(pr.pm.lastName) : '';
+    const pmName = decryptedBusinessName || `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Property Manager';
     
     if (!tenantEmail) return;
 

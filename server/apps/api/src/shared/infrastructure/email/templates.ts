@@ -1,7 +1,7 @@
 import { formatName } from '@upward/common-utils'
 
 interface WaitlistUser {
-  id: string
+  id: string | number
   email: string
   firstName: string | null
   lastName: string | null

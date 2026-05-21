@@ -12,16 +12,29 @@ export class UnsubscribeWaitlistUseCase {
   ) {}
 
   async execute(email: string): Promise<boolean> {
-    const user = await this.prisma.upward_waitlist.findUnique({
+    const waitlistUser = await this.prisma.upward_waitlist.findUnique({
       where: { email },
     })
 
-    if (!user) return false
-
-    await this.prisma.upward_waitlist.update({
+    const registeredUser = await this.prisma.upward_user.findFirst({
       where: { email },
-      data: { unsubscribed: true, unsubscribedAt: new Date() },
     })
+
+    if (!waitlistUser && !registeredUser) return false
+
+    if (waitlistUser) {
+      await this.prisma.upward_waitlist.update({
+        where: { email },
+        data: { unsubscribed: true, unsubscribedAt: new Date() },
+      })
+    }
+
+    if (registeredUser) {
+      await this.prisma.upward_user.updateMany({
+        where: { email },
+        data: { unsubscribed: true, unsubscribedAt: new Date() },
+      })
+    }
 
     // Log the interaction via event bus
     this.eventBus.publish(

@@ -81,9 +81,8 @@ export default function PayRentPage() {
           }))
         setPmLandlords(derivedPms as any[])
 
-        // Check for propertyUuid in URL
         const searchParams = new URLSearchParams(window.location.search)
-        const pUuid = searchParams.get('propertyUuid')
+        const pUuid = searchParams.get('propertyUuid') || searchParams.get('prop')
         if (pUuid) {
           setSelectedPropertyUuid(pUuid)
           const prop = props.find((p: any) => p.uuid === pUuid)

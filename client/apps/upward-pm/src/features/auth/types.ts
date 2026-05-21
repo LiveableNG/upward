@@ -15,6 +15,8 @@ export interface PropertyManagerProfile {
   letterheadFooterUrl?: string;
   isVerified?: boolean;
   verificationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'NOT_SUBMITTED';
+  country?: string;
+  cacNumber?: string;
 }
 
 export interface AuthResponse {

@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, Suspense } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { 
   Download, 
   Search, 
@@ -236,14 +236,24 @@ export function PaymentsView() {
   const { data: properties } = useProperties()
   const { success, info } = useToast()
   
+  const searchParams = useSearchParams()
+  const initialStatus = searchParams?.get('status') || 'All'
+  
   const [searchQuery, setSearchQuery] = useState('')
   const [dateFilter, setDateFilter] = useState('All Time')
-  const [statusFilter, setStatusFilter] = useState('All')
+  const [statusFilter, setStatusFilter] = useState(initialStatus)
   const [propertyFilter, setPropertyFilter] = useState('All')
   const [activeTab, setActiveTab] = useState<'requests' | 'payouts'>('requests')
   
   const [isDateOpen, setIsDateOpen] = useState(false)
   const [isMoreOpen, setIsMoreOpen] = useState(false)
+
+  useEffect(() => {
+    const statusParam = searchParams?.get('status')
+    if (statusParam) {
+      setStatusFilter(statusParam)
+    }
+  }, [searchParams])
 
   const handleExport = () => {
     if (!requests || requests.length === 0) return info('No data to export')

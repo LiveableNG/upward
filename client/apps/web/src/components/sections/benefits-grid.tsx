@@ -1,19 +1,10 @@
-import { showToast } from '@upward/client-core'
+
 
 export function BenefitsGrid({
-  onOpenSignup,
+  onOpenSignup: _onOpenSignup,
 }: {
   onOpenSignup?: (email?: string) => void
 }) {
-  const handleHeroEmail = async () => {
-    const emailEl = document.getElementById('hero-email-grid') as HTMLInputElement
-    const email = emailEl?.value.trim() ?? ''
-    if (!email || !email.includes('@')) {
-      showToast('Please enter a valid email address.', true)
-      return
-    }
-    if (onOpenSignup) onOpenSignup(email)
-  }
   const cards = [
     {
       icon: (
