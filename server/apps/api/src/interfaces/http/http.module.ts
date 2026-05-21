@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { ApplicationModule } from '../../application/application.module'
 import { AuthModule } from '../../application/auth/auth.module'
 import { AdminLogModule } from '../../shared/infrastructure/admin-log/admin-log.module'
+import { S3Module } from '../../shared/infrastructure/common/s3/s3.module'
 import { AdminAuthController } from './admin/admin-auth.controller'
 import { AdminLogController } from './admin/admin-log.controller'
 import { AdminController } from './admin/admin.controller'
@@ -49,7 +50,7 @@ import { FeedbackAdminController } from './admin/feedback-admin.controller'
 import { DevEmailAdminController } from './admin/dev-email-admin.controller'
 
 @Module({
-  imports: [ApplicationModule, AuthModule, AdminLogModule],
+  imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module],
   controllers: [
     AdminAuthController,
     AdminLogController,
