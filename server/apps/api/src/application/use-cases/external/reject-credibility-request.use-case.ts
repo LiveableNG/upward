@@ -40,7 +40,11 @@ export class RejectCredibilityRequestUseCase {
       if (user && property) {
         const tenantEmail = this.encryption.decrypt(user.email);
         const tenantFirstName = this.encryption.decrypt(user.firstName);
-        const pmName = property.pm?.businessName || (property.pm?.firstName ? `${property.pm.firstName} ${property.pm.lastName || ''}` : 'Your Property Manager');
+        
+        const decryptedBusinessName = property.pm?.businessName ? this.encryption.decrypt(property.pm.businessName) : '';
+        const decryptedFirstName = property.pm?.firstName ? this.encryption.decrypt(property.pm.firstName) : '';
+        const decryptedLastName = property.pm?.lastName ? this.encryption.decrypt(property.pm.lastName) : '';
+        const pmName = decryptedBusinessName || `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Your Property Manager';
 
         await this.emailService.sendCredibilityRequestRejection({
           email: tenantEmail,
