@@ -18,15 +18,18 @@ interface CreatePaymentRequestModalProps {
   onProceedToEditor?: (template: any, paymentContext: any) => void;
 }
 
+const EMPTY_PAYMENTS: any[] = []
+
 export function CreatePaymentRequestModal({
   isOpen,
   onClose,
   unit,
-  payments = [],
+  payments = EMPTY_PAYMENTS,
   existingRequest,
   onProceedToEditor
 }: CreatePaymentRequestModalProps) {
   const isEditing = !!existingRequest
+  const [hasInitialized, setHasInitialized] = useState(false)
   const [amount, setAmount] = useState<string>('')
   const [dueDate, setDueDate] = useState<string>('')
   const [rentStartDate, setRentStartDate] = useState<string>('')
@@ -51,6 +54,13 @@ export function CreatePaymentRequestModal({
   const hasBankDetails = !!(user?.bankCode && user?.accountNumber)
 
   useEffect(() => {
+    if (!isOpen) {
+      setHasInitialized(false)
+      return
+    }
+
+    if (hasInitialized) return
+
     if (existingRequest) {
       setAmount(existingRequest.amount.toString())
       setDueDate(new Date(existingRequest.dueDate).toISOString().split('T')[0])
@@ -67,6 +77,7 @@ export function CreatePaymentRequestModal({
           amount: li.amount.toString()
         })))
       }
+      setHasInitialized(true)
     } else if (unit) {
       const type = unit.rentType?.toUpperCase() || 'ANNUALLY'
       setRentType(type)
@@ -133,8 +144,9 @@ export function CreatePaymentRequestModal({
       setRentStartDate(startDateStr)
       setRentEndDate(endDateStr)
       setDueDate(startDateStr)
+      setHasInitialized(true)
     }
-  }, [unit, existingRequest, payments])
+  }, [isOpen, unit, existingRequest, payments, hasInitialized])
 
   // Update End Date when Rent Type changes
   useEffect(() => {
