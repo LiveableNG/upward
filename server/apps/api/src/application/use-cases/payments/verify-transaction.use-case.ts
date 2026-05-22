@@ -1,17 +1,19 @@
 import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common'
+import { ModuleRef } from '@nestjs/core'
 import {
   ITransactionRepository,
   TRANSACTION_REPOSITORY,
   PAYMENT_GATEWAY,
   IPaymentGateway,
-  PAYMENT_REQUEST_REPOSITORY,
-  IPaymentRequestRepository,
 } from '../../../domains/payments/payment.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { RecordTransactionUseCase } from './payment.use-cases'
 
 @Injectable()
 export class VerifyGatewayTransactionUseCase {
   private readonly logger = new Logger(VerifyGatewayTransactionUseCase.name)
+  private isProcessingMock = false
 
   constructor(
     @Inject(TRANSACTION_REPOSITORY)
@@ -20,41 +22,22 @@ export class VerifyGatewayTransactionUseCase {
     private readonly gateway: IPaymentGateway,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepository,
-    @Inject(PAYMENT_REQUEST_REPOSITORY)
-    private readonly paymentRequestRepo: IPaymentRequestRepository,
+    private readonly moduleRef: ModuleRef,
   ) { }
 
   async execute(data: { userId: string; reference: string }) {
     const user = await this.userRepository.findByUuid(data.userId)
+
+    if (this.isProcessingMock) {
+      return { isVerified: true, verifiedAmount: 0, user, isNew: true }
+    }
+
     const isDvaSession = data.reference.startsWith('DVA-') || data.reference.startsWith('DVA_')
 
     const existing = await this.txRepo.findByReference(data.reference)
     if (existing) {
       this.logger.log(`Found existing transaction by reference: ${data.reference}`)
       return { existing, isVerified: existing.status === 'SUCCESS', verifiedAmount: existing.amount, user, isNew: false }
-    }
-
-    if (process.env.MOCK_PAYMENTS === 'true') {
-      this.logger.log(`[MOCK_PAYMENTS] Mocking transaction verification for reference: ${data.reference}`)
-      let verifiedAmount: number | undefined = undefined
-      
-      if (isDvaSession) {
-        const parts = data.reference.split('_')
-        const prUuid = parts[2]
-        if (prUuid && prUuid !== 'no-pr') {
-          const pr = await this.paymentRequestRepo.findByUuid(prUuid)
-          if (pr) {
-            verifiedAmount = pr.amount - (pr.amountPaid || 0)
-          }
-        }
-      }
-
-      return {
-        isVerified: true,
-        verifiedAmount,
-        user,
-        isNew: true
-      }
     }
 
     if (isDvaSession) {
@@ -86,7 +69,6 @@ export class VerifyGatewayTransactionUseCase {
       this.logger.log(`DVA session parsed: account=${accountNumber}, sessionTs=${sessionTimestamp}`)
 
       if (accountNumber) {
-
         const createdAfter = sessionTimestamp ? new Date(sessionTimestamp) : undefined
         const recentDvaTx = await this.txRepo.findRecentDvaTransaction(accountNumber, createdAfter)
 
@@ -95,6 +77,126 @@ export class VerifyGatewayTransactionUseCase {
           return { existing: recentDvaTx, isVerified: true, verifiedAmount: recentDvaTx.amount, user, isNew: false }
         } else {
           this.logger.log(`No DVA transaction found for account ${accountNumber} after ${sessionTimestamp}`)
+
+          const isTestKey = process.env.PAYSTACK_SECRET_KEY?.startsWith('sk_test_') || !process.env.PAYSTACK_SECRET_KEY
+          if (isTestKey && !this.isProcessingMock) {
+            this.logger.log(`[MOCK] Test environment detected and no transaction exists. Simulating payment for reference: ${data.reference}`)
+            this.isProcessingMock = true
+            try {
+              const prisma = this.moduleRef.get(PrismaService, { strict: false })
+              const recordTransactionUseCase = this.moduleRef.get(RecordTransactionUseCase, { strict: false })
+
+              const dva = await prisma.upward_dedicated_virtual_account.findUnique({
+                where: { accountNumber }
+              })
+
+              let prUuid = ''
+              if (data.reference.includes('DVA_')) {
+                const parts = data.reference.split('_')
+                prUuid = parts[2] || ''
+              }
+
+              let pr: any = null
+              if (prUuid && prUuid !== 'no-pr') {
+                pr = await prisma.upward_payment_request.findUnique({
+                  where: { uuid: prUuid },
+                  include: { user: true }
+                })
+              }
+
+              if (!pr && dva) {
+                pr = await prisma.upward_payment_request.findFirst({
+                  where: {
+                    userPropertyId: dva.userPropertyId,
+                    status: { in: ['PENDING', 'PARTIAL'] }
+                  },
+                  include: { user: true }
+                })
+              }
+
+              let tenantUser = user
+              if (pr?.user) {
+                tenantUser = pr.user
+              } else if (dva?.userPropertyId) {
+                const userProp = await prisma.upward_user_property.findUnique({
+                  where: { id: dva.userPropertyId },
+                  include: { user: true }
+                })
+                if (userProp?.user) {
+                  tenantUser = userProp.user
+                }
+              }
+
+              if (!tenantUser) {
+                this.logger.error(`[MOCK] User context not found for mock transfer on account: ${accountNumber}`)
+                return { isVerified: false, user, isNew: true }
+              }
+
+              let amountPaid = 0
+              let lineItemPayments: any[] | undefined = undefined
+
+              if (dva?.metadata && typeof dva.metadata === 'object') {
+                const metadataObj = dva.metadata as any
+                if ('lastPaymentIntent' in metadataObj && metadataObj.lastPaymentIntent) {
+                  const intent = metadataObj.lastPaymentIntent
+                  amountPaid = intent.amount
+                  lineItemPayments = intent.lineItems?.map((lp: any) => ({
+                    ...lp,
+                    amountPaid: Number(lp.amount || lp.amountPaid || 0)
+                  }))
+
+                  // Clear intent so it is not reused
+                  await prisma.upward_dedicated_virtual_account.update({
+                    where: { id: dva.id },
+                    data: {
+                      metadata: {
+                        ...metadataObj,
+                        lastPaymentIntent: null
+                      }
+                    }
+                  })
+                }
+              }
+
+              if (amountPaid <= 0 && pr) {
+                amountPaid = pr.amount + 2000 // default processing fee
+              }
+              if (amountPaid <= 0) {
+                amountPaid = 10000 // default to 10k NGN
+              }
+
+              const hasNoIntent = !lineItemPayments
+              const sequentialFill = pr ? (hasNoIntent && pr.allowPartial && !!pr.id) : false
+
+              this.logger.log(`[MOCK] Recording transaction via RecordTransactionUseCase for user ${tenantUser.email}, amount ${amountPaid}`)
+
+              const createdTx: any = await recordTransactionUseCase.execute({
+                userId: tenantUser.uuid,
+                amount: amountPaid,
+                currency: pr?.currency || 'NGN',
+                reference: data.reference,
+                type: 'RENT',
+                status: 'SUCCESS',
+                paymentRequestId: pr?.id,
+                narration: `MOCK: Bank Transfer to ${accountNumber}`,
+                settlementStatus: 'VERIFIED',
+                lineItemPayments,
+                sequentialFill
+              })
+
+              return {
+                existing: createdTx,
+                isVerified: true,
+                verifiedAmount: createdTx.amount,
+                user: tenantUser,
+                isNew: false
+              }
+            } catch (err) {
+              this.logger.error(`[MOCK] Failed to simulate/record payment:`, err)
+            } finally {
+              this.isProcessingMock = false
+            }
+          }
         }
       }
 
@@ -117,3 +219,4 @@ export class VerifyGatewayTransactionUseCase {
     }
   }
 }
+
