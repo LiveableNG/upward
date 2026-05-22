@@ -4,6 +4,8 @@ import {
   TRANSACTION_REPOSITORY,
   PAYMENT_GATEWAY,
   IPaymentGateway,
+  PAYMENT_REQUEST_REPOSITORY,
+  IPaymentRequestRepository,
 } from '../../../domains/payments/payment.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 
@@ -18,6 +20,8 @@ export class VerifyGatewayTransactionUseCase {
     private readonly gateway: IPaymentGateway,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepository,
+    @Inject(PAYMENT_REQUEST_REPOSITORY)
+    private readonly paymentRequestRepo: IPaymentRequestRepository,
   ) { }
 
   async execute(data: { userId: string; reference: string }) {
@@ -28,6 +32,29 @@ export class VerifyGatewayTransactionUseCase {
     if (existing) {
       this.logger.log(`Found existing transaction by reference: ${data.reference}`)
       return { existing, isVerified: existing.status === 'SUCCESS', verifiedAmount: existing.amount, user, isNew: false }
+    }
+
+    if (process.env.MOCK_PAYMENTS === 'true') {
+      this.logger.log(`[MOCK_PAYMENTS] Mocking transaction verification for reference: ${data.reference}`)
+      let verifiedAmount: number | undefined = undefined
+      
+      if (isDvaSession) {
+        const parts = data.reference.split('_')
+        const prUuid = parts[2]
+        if (prUuid && prUuid !== 'no-pr') {
+          const pr = await this.paymentRequestRepo.findByUuid(prUuid)
+          if (pr) {
+            verifiedAmount = pr.amount - (pr.amountPaid || 0)
+          }
+        }
+      }
+
+      return {
+        isVerified: true,
+        verifiedAmount,
+        user,
+        isNew: true
+      }
     }
 
     if (isDvaSession) {
