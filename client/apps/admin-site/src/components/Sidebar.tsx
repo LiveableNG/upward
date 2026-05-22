@@ -3,10 +3,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
   Mail,
-  Calendar,
   Settings,
-  BarChart3,
-  FlaskConical,
   FileText,
   ShieldCheck,
   CalendarClock,
@@ -29,11 +26,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Drop-off Analysis', path: '/drop-off', icon: BarChart3 },
-    { name: 'A/B Test Stats', path: '/ab-stats', icon: FlaskConical },
     { name: 'Emailing', path: '/emails', icon: Mail },
     { name: 'Campaigns', path: '/campaigns', icon: CalendarClock },
-    { name: 'Sessions', path: '/sessions', icon: Calendar },
     { name: 'Announcements', path: '/announcements', icon: Megaphone },
     { name: 'Help Center & Support', path: '/support', icon: LifeBuoy },
     { name: 'Verifications', path: '/verifications', icon: ShieldCheck },

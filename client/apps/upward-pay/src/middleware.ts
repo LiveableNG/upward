@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://upward-api.vercel.app/api/v1'
+
 function isTokenExpired(token: string): boolean {
   try {
     const payloadBase64 = token.split('.')[1]
@@ -19,8 +21,8 @@ function isTokenExpired(token: string): boolean {
   }
 }
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+export async function middleware(request: NextRequest) {
+  const { pathname, search } = request.nextUrl
   const tokenCookie = request.cookies.get('pay_access_token')
   const hasToken = !!tokenCookie
   const tokenValue = tokenCookie?.value
@@ -30,6 +32,24 @@ export function middleware(request: NextRequest) {
   const host = forwardedHost || request.headers.get('host')
   const protocol = request.headers.get('x-forwarded-proto') || (host?.includes('localhost') ? 'http' : 'https')
   const baseUrl = `${protocol}://${host}`
+
+  if (pathname.startsWith('/invite/')) {
+    const segments = pathname.split('/')
+    const uuid = segments[segments.length - 1]
+    if (uuid && uuid !== 'invite') {
+      try {
+        const res = await fetch(`${API_URL}/public/invite/${uuid}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data?.isWaitlist) {
+            return NextResponse.redirect(new URL(`/waitlist/${uuid}${search}`, baseUrl))
+          }
+        }
+      } catch (err) {
+        console.error('Error checking waitlist in pay middleware:', err)
+      }
+    }
+  }
 
   const isAuthPage = pathname.startsWith('/login') || 
                      pathname.startsWith('/signup') || 
