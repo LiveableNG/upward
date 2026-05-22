@@ -50,14 +50,17 @@ export class InviteController {
 
   @Get(':token')
   async getInviteData(@Param('token') token: string) {
-    let userUuid: string | undefined;
-
-    const waitlist = await this.userAuthService.getWaitlistClaimData(token)
-    if ( waitlist ){
-      return {
-        isWaitlist: true,
+    try {
+      const waitlist = await this.userAuthService.getWaitlistClaimData(token)
+      if ( waitlist ){
+        return {
+          isWaitlist: true,
+        }
       }
+    } catch (e) {
+      // Ignore if waitlist entry is not found, proceed to normal invite checks
     }
+    let userUuid: string | undefined;
     const vt = await this.tokenRepository.findByToken(token)
 
     if (vt && vt.context === 'INVITE' && vt.expiresAt >= new Date()) {

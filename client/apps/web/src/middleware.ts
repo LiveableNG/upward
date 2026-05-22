@@ -25,8 +25,27 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://upward-pay.vercel.ap
 const PM_URL = process.env.NEXT_PUBLIC_PM_URL || 'https://upward-pm.vercel.app'
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://upward-api.vercel.app/api/v1'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
+
+  // Intercept waitlist invites at gateway level to avoid client loading states
+  if (pathname.startsWith('/invite/')) {
+    const segments = pathname.split('/')
+    const uuid = segments[segments.length - 1]
+    if (uuid && uuid !== 'invite') {
+      try {
+        const res = await fetch(`${API_URL}/public/invite/${uuid}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data?.isWaitlist) {
+            return NextResponse.redirect(new URL(`/waitlist/${uuid}${search}`, request.url))
+          }
+        }
+      } catch (err) {
+        console.error('Error checking waitlist in gateway middleware:', err)
+      }
+    }
+  }
 
   // 1. Pay / Tenant Auth cookies
   const payTokenCookie = request.cookies.get('pay_access_token')
