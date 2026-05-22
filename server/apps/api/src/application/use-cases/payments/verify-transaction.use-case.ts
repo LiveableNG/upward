@@ -13,7 +13,7 @@ import { RecordTransactionUseCase } from './payment.use-cases'
 @Injectable()
 export class VerifyGatewayTransactionUseCase {
   private readonly logger = new Logger(VerifyGatewayTransactionUseCase.name)
-  private isProcessingMock = false
+  private readonly activeMocks = new Map<string, number>()
 
   constructor(
     @Inject(TRANSACTION_REPOSITORY)
@@ -28,8 +28,10 @@ export class VerifyGatewayTransactionUseCase {
   async execute(data: { userId: string; reference: string }) {
     const user = await this.userRepository.findByUuid(data.userId)
 
-    if (this.isProcessingMock) {
-      return { isVerified: true, verifiedAmount: 0, user, isNew: true }
+    if (this.activeMocks.has(data.reference)) {
+      const mockAmt = this.activeMocks.get(data.reference) || 0
+      this.logger.log(`[MOCK] Inside recursive check for reference: ${data.reference}, returning verifiedAmount: ${mockAmt}`)
+      return { isVerified: true, verifiedAmount: mockAmt, user, isNew: true }
     }
 
     const isDvaSession = data.reference.startsWith('DVA-') || data.reference.startsWith('DVA_')
@@ -79,9 +81,8 @@ export class VerifyGatewayTransactionUseCase {
           this.logger.log(`No DVA transaction found for account ${accountNumber} after ${sessionTimestamp}`)
 
           const isTestKey = process.env.PAYSTACK_SECRET_KEY?.startsWith('sk_test_') || !process.env.PAYSTACK_SECRET_KEY
-          if (isTestKey && !this.isProcessingMock) {
+          if (isTestKey && !this.activeMocks.has(data.reference)) {
             this.logger.log(`[MOCK] Test environment detected and no transaction exists. Simulating payment for reference: ${data.reference}`)
-            this.isProcessingMock = true
             try {
               const prisma = this.moduleRef.get(PrismaService, { strict: false })
               const recordTransactionUseCase = this.moduleRef.get(RecordTransactionUseCase, { strict: false })
@@ -168,6 +169,9 @@ export class VerifyGatewayTransactionUseCase {
               const hasNoIntent = !lineItemPayments
               const sequentialFill = pr ? (hasNoIntent && pr.allowPartial && !!pr.id) : false
 
+              // Register the mock payment amount before executing RecordTransactionUseCase
+              this.activeMocks.set(data.reference, amountPaid)
+
               this.logger.log(`[MOCK] Recording transaction via RecordTransactionUseCase for user ${tenantUser.email}, amount ${amountPaid}`)
 
               const createdTx: any = await recordTransactionUseCase.execute({
@@ -194,7 +198,7 @@ export class VerifyGatewayTransactionUseCase {
             } catch (err) {
               this.logger.error(`[MOCK] Failed to simulate/record payment:`, err)
             } finally {
-              this.isProcessingMock = false
+              this.activeMocks.delete(data.reference)
             }
           }
         }
