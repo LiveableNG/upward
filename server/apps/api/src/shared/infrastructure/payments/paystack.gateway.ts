@@ -111,6 +111,16 @@ export class PaystackGateway implements IPaymentGateway {
   }
 
   async verifyTransaction(reference: string): Promise<TransactionVerification> {
+    if (process.env.MOCK_PAYMENTS === 'true') {
+      this.logger.log(`[MOCK_PAYMENTS] Mocking gateway transaction success for reference: ${reference}`)
+      return {
+        status: true,
+        amount: undefined, // Allows the caller to fall back to the exact payment request amount
+        currency: 'NGN',
+        fees: 0,
+      }
+    }
+
     try {
       this.logger.log(`Verifying transaction: ${reference}`)
       const res = await fetch(`${this.baseUrl}/transaction/verify/${reference}`, {
