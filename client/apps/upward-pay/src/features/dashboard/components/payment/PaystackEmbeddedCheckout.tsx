@@ -70,6 +70,16 @@ export default function PaystackEmbeddedCheckout({
             reference: res.reference,
             amount: res.amount
           })
+        } else if (res && res.type === 'PAYSTACK') {
+          if (!res.accessCode) {
+            throw new Error('Standard checkout is required, but the payment access code could not be resolved. Please contact support.')
+          }
+          setConfig({
+            type: 'PAYSTACK',
+            accessCode: res.accessCode,
+            reference: res.reference,
+            amount: res.amount
+          })
         } else {
           throw new Error('Direct bank transfer is required for this property, but the payment account could not be resolved. Please contact support.')
         }
@@ -82,6 +92,50 @@ export default function PaystackEmbeddedCheckout({
     }
     init()
   }, [])
+
+  useEffect(() => {
+    if (config?.type === 'PAYSTACK' && config.accessCode) {
+      const scriptId = 'paystack-inline-js'
+      let script = document.getElementById(scriptId) as HTMLScriptElement
+
+      const openPaystackPopup = () => {
+        try {
+          const popup = new (window as any).PaystackPop()
+          popup.resumeTransaction(config.accessCode, {
+            onSuccess: (transaction: any) => {
+              onSuccess(transaction.reference)
+            },
+            onCancel: () => {
+              onClose()
+            }
+          })
+        } catch (popupErr) {
+          console.error('Paystack popup error:', popupErr)
+          setError('Failed to open Paystack secure checkout popup.')
+          toast.error('Failed to load payment modal', 'Payment Error')
+        }
+      }
+
+      if (!script) {
+        script = document.createElement('script')
+        script.id = scriptId
+        script.src = 'https://js.paystack.co/v2/inline.js'
+        script.async = true
+        script.onload = openPaystackPopup
+        script.onerror = () => {
+          setError('Failed to load Paystack payment library.')
+          toast.error('Could not load Paystack checkout script', 'Network Error')
+        }
+        document.body.appendChild(script)
+      } else {
+        if ((window as any).PaystackPop) {
+          openPaystackPopup()
+        } else {
+          script.addEventListener('load', openPaystackPopup)
+        }
+      }
+    }
+  }, [config, onSuccess, onClose, toast])
 
   if (config?.type === 'DVA') {
     return (

@@ -4,6 +4,7 @@ import { EmailService } from '../../../shared/infrastructure/email/email.service
 import { AdminLogService } from '../../../shared/infrastructure/admin-log/admin-log.service'
 import { formatName } from '@upward/common-utils'
 import { wrapInBaseTemplate } from '../../../shared/infrastructure/email/templates'
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Injectable()
 export class SendBulkEmailUseCase {
@@ -13,6 +14,7 @@ export class SendBulkEmailUseCase {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly adminLogService: AdminLogService,
+    private readonly encryption: EncryptionService,
   ) {}
 
   async execute(payload: {
@@ -29,19 +31,23 @@ export class SendBulkEmailUseCase {
     const results = []
 
     for (const user of users) {
+      const email = this.encryption.decrypt(user.email)
+      const firstName = this.encryption.decrypt(user.firstName)
+      const lastName = this.encryption.decrypt(user.lastName)
+      
       try {
         const customizedContent = payload.content
-          .replace(/{{firstName}}/g, user.firstName ? formatName(user.firstName) : 'there')
-          .replace(/{{lastName}}/g, user.lastName ? formatName(user.lastName) : '')
-          .replace(/{{email}}/g, user.email)
+          .replace(/{{firstName}}/g, firstName ? formatName(firstName) : 'there')
+          .replace(/{{lastName}}/g, lastName ? formatName(lastName) : '')
+          .replace(/{{email}}/g, email)
 
-        const finalHtml = wrapInBaseTemplate(customizedContent, payload.subject, user.email)
-        await this.emailService.sendGenericEmail(user.email, payload.subject, finalHtml, String(user.id))
-        results.push({ email: user.email, status: 'SENT' })
+        const finalHtml = wrapInBaseTemplate(customizedContent, payload.subject, email)
+        await this.emailService.sendGenericEmail(email, payload.subject, finalHtml, String(user.id))
+        results.push({ email, status: 'SENT' })
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-        this.logger.error(`Failed to send email to ${user.email}`, error)
-        results.push({ email: user.email, status: 'FAILED', error: errorMessage })
+        this.logger.error(`Failed to send email to ${email}`, error)
+        results.push({ email, status: 'FAILED', error: errorMessage })
       }
     }
 
