@@ -81,7 +81,7 @@ export class VerifyGatewayTransactionUseCase {
           this.logger.log(`No DVA transaction found for account ${accountNumber} after ${sessionTimestamp}`)
 
           const isTestKey = process.env.PAYSTACK_SECRET_KEY?.startsWith('sk_test_') || !process.env.PAYSTACK_SECRET_KEY
-          if (isTestKey && !this.activeMocks.has(data.reference)) {
+          if (isTestKey && !this.activeMocks.has(data.reference) && process.env.MOCK_PAYMENTS === 'true') {
             this.logger.log(`[MOCK] Test environment detected and no transaction exists. Simulating payment for reference: ${data.reference}`)
             try {
               const prisma = this.moduleRef.get(PrismaService, { strict: false })
