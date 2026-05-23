@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { Prisma } from '@prisma/client'
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Injectable()
 export class GetWaitlistAnalyticsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+  ) {}
 
   private buildUserWhereClause(options: {
     search?: string
@@ -104,6 +108,14 @@ export class GetWaitlistAnalyticsUseCase {
       orderBy: { createdAt: 'desc' },
     })
 
+    const decryptedLast10 = last10Users.map((user) => ({
+      ...user,
+      email: this.encryption.decrypt(user.email),
+      firstName: this.encryption.decrypt(user.firstName),
+      lastName: this.encryption.decrypt(user.lastName),
+      phone: user.phone ? this.encryption.decrypt(user.phone) : user.phone,
+    }))
+
     return {
       totalUsers,
       totalWaitlist: totalUsers, // Map for backward compatibility if needed by layout
@@ -115,7 +127,7 @@ export class GetWaitlistAnalyticsUseCase {
       launchEmailsFailed,
       conversionRate,
       interactionStats,
-      last10Users,
+      last10Users: decryptedLast10,
       distributions: {
         roles: [],
         countries: [],

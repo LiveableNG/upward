@@ -667,45 +667,49 @@ export class InitializePaymentUseCase {
       const appliedCredit = Math.min(totalCredit, requestedTotal)
       const finalAmountToPay = requestedTotal - appliedCredit
 
-      const dva = await this.resolveDedicatedAccount.execute({
-        userPropertyId: userPropertyId,
-        tenantEmail: user.email!,
-        tenantName: `${user.firstName} ${user.lastName}`,
-        tenantPhone: user.phone ?? undefined,
-        subaccountCode: pr.subaccount?.subaccountCode
-      })
+      try {
+        const dva = await this.resolveDedicatedAccount.execute({
+          userPropertyId: userPropertyId,
+          tenantEmail: user.email!,
+          tenantName: `${user.firstName} ${user.lastName}`,
+          tenantPhone: user.phone ?? undefined,
+          subaccountCode: pr.subaccount?.subaccountCode
+        })
 
-      if (data.metadata?.lineItems) {
-        await this.prisma.upward_dedicated_virtual_account.update({
-          where: { accountNumber: dva.accountNumber },
-          data: {
-            metadata: {
-              ...(typeof dva.metadata === 'object' && dva.metadata !== null ? dva.metadata : {}),
-              lastPaymentIntent: {
-                amount: requestedTotal,
-                lineItems: data.metadata.lineItems,
-                timestamp: Date.now()
+        if (data.metadata?.lineItems) {
+          await this.prisma.upward_dedicated_virtual_account.update({
+            where: { accountNumber: dva.accountNumber },
+            data: {
+              metadata: {
+                ...(typeof dva.metadata === 'object' && dva.metadata !== null ? dva.metadata : {}),
+                lastPaymentIntent: {
+                  amount: requestedTotal,
+                  lineItems: data.metadata.lineItems,
+                  timestamp: Date.now()
+                }
               }
             }
-          }
-        })
-      }
+          })
+        }
 
-      this.logger.log(`DVA Initialization for PR ${pr?.uuid || 'manual'}: Amount ${requestedTotal}, Fee ${effectiveFee}, LineItems: ${JSON.stringify(data.metadata?.lineItems || [])}`)
+        this.logger.log(`DVA Initialization for PR ${pr?.uuid || 'manual'}: Amount ${requestedTotal}, Fee ${effectiveFee}, LineItems: ${JSON.stringify(data.metadata?.lineItems || [])}`)
 
-      return {
-        type: 'DVA',
-        amount: requestedTotal,
-        appliedCredit,
-        finalAmount: finalAmountToPay,
-        fee: effectiveFee || flatFee,
-        dva: {
-          accountNumber: dva.accountNumber,
-          accountName: dva.accountName,
-          bankName: dva.bankName,
-          bankCode: dva.bankCode
-        },
-        reference: `DVA_${dva.accountNumber}_${pr?.uuid || 'no-pr'}_${Date.now()}`
+        return {
+          type: 'DVA',
+          amount: requestedTotal,
+          appliedCredit,
+          finalAmount: finalAmountToPay,
+          fee: effectiveFee || flatFee,
+          dva: {
+            accountNumber: dva.accountNumber,
+            accountName: dva.accountName,
+            bankName: dva.bankName,
+            bankCode: dva.bankCode
+          },
+          reference: `DVA_${dva.accountNumber}_${pr?.uuid || 'no-pr'}_${Date.now()}`
+        }
+      } catch (dvaError: any) {
+        this.logger.warn(`DVA generation failed for property ${userPropertyId}: ${dvaError.message || dvaError}. Falling back to standard Paystack checkout.`)
       }
     }
 
