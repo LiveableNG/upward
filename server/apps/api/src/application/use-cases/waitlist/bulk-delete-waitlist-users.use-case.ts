@@ -18,8 +18,8 @@ export class BulkDeleteWaitlistUsersUseCase {
     return this.prisma.$transaction(async (tx) => {
       const count = ids.length
 
-      const result = await tx.upward_waitlist.deleteMany({
-        where: { id: { in: ids } },
+      const result = await tx.upward_user.deleteMany({
+        where: { uuid: { in: ids } },
       })
 
       await this.adminLogService.logAction(

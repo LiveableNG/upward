@@ -6,96 +6,55 @@ import { Prisma } from '@prisma/client'
 export class GetWaitlistUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  private buildWaitlistWhereClause(options: {
+  private buildUserWhereClause(options: {
     search?: string
-    roles?: string[]
-    countries?: string[]
-    cities?: string[]
-    selectedSessions?: string[]
+    isWaitlist?: string
+    isInvited?: string
+    unsubscribed?: string
     createdFrom?: string
     createdTo?: string
-    completed?: string
-    missingName?: string
   }) {
     const {
       search,
-      roles,
-      countries,
-      cities,
-      selectedSessions,
+      isWaitlist,
+      isInvited,
+      unsubscribed,
       createdFrom,
       createdTo,
-      completed,
-      missingName,
     } = options
-    const where: Prisma.upward_waitlistWhereInput = {}
+    const where: Prisma.upward_userWhereInput = {}
 
     if (search) {
       where.OR = [
         { email: { contains: search, mode: 'insensitive' } },
         { firstName: { contains: search, mode: 'insensitive' } },
         { lastName: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
       ]
     }
 
-    if (roles && roles.length > 0) {
-      where.role = { in: roles }
+    if (isWaitlist === 'true') {
+      where.isFromWaitlist = true
+    } else if (isWaitlist === 'false') {
+      where.isFromWaitlist = false
     }
 
-    if (countries && countries.length > 0) {
-      where.country = { in: countries }
+    if (isInvited === 'true') {
+      where.isFromInvite = true
+    } else if (isInvited === 'false') {
+      where.isFromInvite = false
     }
 
-    if (cities && cities.length > 0) {
-      where.city = { in: cities }
-    }
-
-    if (selectedSessions && selectedSessions.length > 0) {
-      const sessionFilters: Prisma.upward_waitlistWhereInput[] = [
-        ...selectedSessions.map((s) => ({
-          selectedSession: { contains: s, mode: 'insensitive' as const },
-        })),
-        { selectedSession: { in: selectedSessions } },
-      ]
-
-      if (where.OR) {
-        const existingOR = where.OR as Prisma.upward_waitlistWhereInput[]
-        delete where.OR
-        where.AND = [{ OR: existingOR }, { OR: sessionFilters }]
-      } else {
-        where.OR = sessionFilters
-      }
-    }
-
-    if (completed === 'true') {
-      where.acceptTerms = true
-    } else if (completed === 'false') {
-      where.acceptTerms = { not: true }
+    if (unsubscribed === 'true') {
+      where.unsubscribed = true
+    } else if (unsubscribed === 'false') {
+      where.unsubscribed = false
     }
 
     if (createdFrom || createdTo) {
       where.createdAt = {
         ...(createdFrom && { gte: new Date(createdFrom) }),
         ...(createdTo && { lte: new Date(createdTo) }),
-      }
-    }
-
-    if (missingName === 'true') {
-      const existingOR = (where.OR as Prisma.upward_waitlistWhereInput[]) || []
-      const nameFilters: Prisma.upward_waitlistWhereInput[] = [
-        { firstName: null },
-        { firstName: '' },
-      ]
-
-      if (existingOR.length > 0) {
-        if (where.AND) {
-          ;(where.AND as Prisma.upward_waitlistWhereInput[]).push({ OR: nameFilters })
-        } else {
-          where.AND = [{ OR: existingOR }, { OR: nameFilters }]
-          delete where.OR
-        }
-      } else {
-        where.OR = nameFilters
       }
     }
 
@@ -106,32 +65,34 @@ export class GetWaitlistUseCase {
     page: number
     limit: number
     search?: string
-    roles?: string[]
-    countries?: string[]
-    cities?: string[]
-    selectedSessions?: string[]
+    isWaitlist?: string
+    isInvited?: string
+    unsubscribed?: string
     createdFrom?: string
     createdTo?: string
-    completed?: string
-    missingName?: string
   }) {
     const { page, limit } = options
     const skip = (page - 1) * limit
-    const where = this.buildWaitlistWhereClause(options)
+    const where = this.buildUserWhereClause(options)
 
-    const [data, total] = await Promise.all([
-      this.prisma.upward_waitlist.findMany({
+    const [users, total] = await Promise.all([
+      this.prisma.upward_user.findMany({
         where,
-        orderBy: { updatedAt: 'desc' },
+        orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
         include: {
-          attendances: true,
           emailLogs: true,
         },
       }),
-      this.prisma.upward_waitlist.count({ where }),
+      this.prisma.upward_user.count({ where }),
     ])
+
+    // Map uuid to id string for frontend compatibility
+    const data = users.map((user) => ({
+      ...user,
+      id: user.uuid,
+    }))
 
     return {
       data,
@@ -144,3 +105,4 @@ export class GetWaitlistUseCase {
     }
   }
 }
+

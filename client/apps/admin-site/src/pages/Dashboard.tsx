@@ -1,12 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { createPortal } from 'react-dom'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   Users,
   Search,
-  MapPin,
   Mail,
   Phone,
-  Globe,
   Clock,
   ChevronDown,
   Download,
@@ -18,8 +15,6 @@ import {
   Filter,
   X,
   CheckCircle2,
-  XCircle,
-  Gem,
   UserPlus,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -27,230 +22,29 @@ import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 import { formatName } from '@upward/common-utils'
 
-const BENEFIT_DESCRIPTIONS: Record<string, string> = {
-  // Tenant
-  PRIORITY: 'Get prioritized by landlords when moving homes',
-  FINANCING: 'Qualify for flexible rent payments while renting',
-  OWNERSHIP: 'Own your own quality home with single-digit home loans',
-  // Owner
-  HISTORY: 'Find verified tenants and enjoy peace of mind',
-  CREDIT: 'Say Goodbye to consistent defaults. Get paid on-time',
-  TITLE: 'Access exclusive brokerage deals',
-}
-
-const BenefitSection = ({
-  title,
-  role,
-  benefits,
-  totalInRole,
-  totalWithBenefits,
-}: {
-  title: string
-  role: string
-  benefits: { label: string; count: number }[]
-  totalInRole: number
-  totalWithBenefits: number
-}) => {
-  if (benefits.length === 0 && totalWithBenefits === 0) return null
-
-  const totalSelectionsInRole = benefits.reduce((acc, b) => acc + b.count, 0)
-
-  return (
-    <div style={{ padding: '0 4px' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          marginBottom: '26px',
-        }}
-      >
-        <div
-          style={{
-            padding: '4px 12px',
-            borderRadius: '20px',
-            background: role === 'TENANT' ? '#3b82f615' : '#10b98115',
-            color: role === 'TENANT' ? '#3b82f6' : '#10b981',
-            fontSize: '11px',
-            fontWeight: 800,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-          }}
-        >
-          {role}
-        </div>
-        <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>
-          {title}
-        </h4>
-        <div
-          style={{
-            fontSize: '11px',
-            color: 'var(--text-muted)',
-            marginLeft: 'auto',
-            background: 'var(--surface-hover)',
-            padding: '4px 10px',
-            borderRadius: '8px',
-            fontWeight: 600,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end',
-            gap: '2px',
-          }}
-        >
-          <div style={{ color: 'var(--text)', fontWeight: 700 }}>
-            {totalWithBenefits} of {totalInRole} users expressed interest
-          </div>
-          <div style={{ opacity: 0.8, fontSize: '10px' }}>
-            {totalSelectionsInRole} total benefit selections
-          </div>
-        </div>
-      </div>
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '32px 60px',
-        }}
-      >
-        {benefits.map((item, i) => {
-          const percentage =
-            totalWithBenefits > 0 ? Math.round((item.count / totalWithBenefits) * 100) : 0
-          return (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                }}
-              >
-                <div style={{ flex: 1, paddingRight: '16px' }}>
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      fontSize: '13px',
-                      color: 'var(--text)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                    }}
-                  >
-                    {item.label === 'CREDIT'
-                      ? 'RENT COLLECTION'
-                      : item.label === 'TITLE'
-                        ? 'BROKERAGE'
-                        : item.label.replace(/_/g, ' ')}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '11px',
-                      color: 'var(--text-muted)',
-                      lineHeight: 1.4,
-                      marginTop: '4px',
-                    }}
-                  >
-                    {BENEFIT_DESCRIPTIONS[item.label] || 'Waitlist benefit selection.'}
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div
-                    style={{
-                      fontSize: '18px',
-                      fontWeight: 800,
-                      color: role === 'TENANT' ? '#3b82f6' : '#10b981',
-                    }}
-                  >
-                    {percentage}%
-                  </div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                    {item.count} users
-                  </div>
-                </div>
-              </div>
-              <div
-                style={{
-                  height: '8px',
-                  background: 'var(--surface-hover)',
-                  borderRadius: '6px',
-                  overflow: 'hidden',
-                  position: 'relative',
-                }}
-              >
-                <div
-                  style={{
-                    width: `${percentage}%`,
-                    height: '100%',
-                    background:
-                      role === 'TENANT'
-                        ? 'linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)'
-                        : 'linear-gradient(90deg, #10b981 0%, #34d399 100%)',
-                    borderRadius: '6px',
-                    transition: 'width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                  }}
-                />
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
 interface Stats {
-  totalWaitlist: number
+  totalUsers: number
   joinedLast24h: number
-  totalCompleted: number
-  totalIncomplete: number
-  completedYesterday: number
-  incompleteYesterday: number
   convertedCount: number
   joinedFromInviteCount: number
   selfSignupCount: number
   launchEmailsSent: number
   launchEmailsFailed: number
   conversionRate: number
-  distributions?: {
-    roles: { label: string; count: number }[]
-    countries: { label: string; count: number }[]
-    cities: { label: string; count: number }[]
-    benefits: { label: string; count: number }[]
-    roleBenefits?: Record<string, { label: string; count: number }[]>
-    roleTotals?: Record<string, number>
-    roleTotalWithBenefits?: Record<string, number>
-    customBenefits: {
-      count: number
-      items: { label: string; count: number }[]
-    }
-  }
 }
 
-interface WaitlistUser {
+interface User {
   id: string
+  uuid: string
   email: string
   firstName?: string
   lastName?: string
   phone?: string
-  role?: string
-  country?: string
-  city?: string
-  benefits?: string[]
-  selectedSession?: string
-  selectedsession?: string
-  wantsAmbassador?: boolean
-  confirmationSent: boolean
-  acceptTerms: boolean
-  confirmationEmailStatus?: string
-  confirmationEmailError?: string
-  confirmationEmailRetries?: number
+  isFromWaitlist: boolean
+  isFromInvite: boolean
+  unsubscribed: boolean
   updatedAt: string
-}
-
-interface FilterOptions {
-  roles: string[]
-  countries: string[]
-  cities: { country: string; city: string }[]
-  sessions: { id: string; name: string }[]
+  createdAt: string
 }
 
 interface Meta {
@@ -268,9 +62,8 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const isSuperadmin = adminRole === 'SUPERADMIN'
   const [stats, setStats] = useState<Stats | null>(null)
-  const [allUsers, setAllUsers] = useState<WaitlistUser[]>([])
+  const [allUsers, setAllUsers] = useState<User[]>([])
   const [meta, setMeta] = useState<Meta | null>(null)
-  const [filterOptions, setFilterOptions] = useState<FilterOptions | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -278,18 +71,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     show: false,
     ids: [],
   })
-  const [showCustomBenefits, setShowCustomBenefits] = useState(false)
-  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
-  const viewAllRef = useRef<HTMLButtonElement>(null)
 
   const [filters, setFilters] = useState({
     search: '',
-    roles: [] as string[],
-    countries: [] as string[],
-    cities: [] as string[],
-    selectedSessions: [] as string[],
-    completed: 'all' as 'all' | 'true' | 'false',
-    missingName: 'all' as 'all' | 'true',
+    isWaitlist: 'all' as 'all' | 'true' | 'false',
+    isInvited: 'all' as 'all' | 'true' | 'false',
+    unsubscribed: 'all' as 'all' | 'true' | 'false',
   })
   const navigate = useNavigate()
   const [dateRange, setDateRange] = useState<'all' | 'today' | 'yesterday' | '2days' | '1week'>(
@@ -324,19 +111,14 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     return null
   }, [dateRange])
 
-  // Fetch Stats & Filter Options
+  // Fetch Stats
   const fetchAnalytics = useCallback(async () => {
     try {
       const params = new URLSearchParams({
         ...(filters.search && { search: filters.search }),
-        ...(filters.roles.length > 0 && { role: filters.roles.join(',') }),
-        ...(filters.countries.length > 0 && { country: filters.countries.join(',') }),
-        ...(filters.cities.length > 0 && { city: filters.cities.join(',') }),
-        ...(filters.selectedSessions.length > 0 && {
-          selectedSession: filters.selectedSessions.join(','),
-        }),
-        ...(filters.completed !== 'all' && { completed: filters.completed }),
-        ...(filters.missingName === 'true' && { missingName: 'true' }),
+        ...(filters.isWaitlist !== 'all' && { isWaitlist: filters.isWaitlist }),
+        ...(filters.isInvited !== 'all' && { isInvited: filters.isInvited }),
+        ...(filters.unsubscribed !== 'all' && { unsubscribed: filters.unsubscribed }),
         ...(dateBounds?.from && { createdFrom: dateBounds.from }),
         ...(dateBounds?.to && { createdTo: dateBounds.to }),
       })
@@ -347,27 +129,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     }
   }, [token, filters, dateBounds])
 
-  useEffect(() => {
-    const initFilters = async () => {
-      try {
-        const filtersRes = await apiService.get('/admin/filters', token)
-        setFilterOptions(filtersRes)
-      } catch (err) {
-        console.error('Failed to fetch filter options', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    initFilters()
-  }, [token])
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      fetchAnalytics()
-    }, 500)
-    return () => clearTimeout(timeout)
-  }, [fetchAnalytics])
-
   // Fetch Users based on filters and page
   const fetchUsers = useCallback(
     async (pageToFetch: number, isLoadMore = false) => {
@@ -377,14 +138,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
           page: pageToFetch.toString(),
           limit: '20',
           ...(filters.search && { search: filters.search }),
-          ...(filters.roles.length > 0 && { role: filters.roles.join(',') }),
-          ...(filters.countries.length > 0 && { country: filters.countries.join(',') }),
-          ...(filters.cities.length > 0 && { city: filters.cities.join(',') }),
-          ...(filters.selectedSessions.length > 0 && {
-            selectedSession: filters.selectedSessions.join(','),
-          }),
-          ...(filters.completed !== 'all' && { completed: filters.completed }),
-          ...(filters.missingName === 'true' && { missingName: 'true' }),
+          ...(filters.isWaitlist !== 'all' && { isWaitlist: filters.isWaitlist }),
+          ...(filters.isInvited !== 'all' && { isInvited: filters.isInvited }),
+          ...(filters.unsubscribed !== 'all' && { unsubscribed: filters.unsubscribed }),
           ...(dateBounds?.from && { createdFrom: dateBounds.from }),
           ...(dateBounds?.to && { createdTo: dateBounds.to }),
         })
@@ -402,10 +158,33 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         console.error('Failed to fetch users', err)
       } finally {
         setLoadingUsers(false)
+        setLoading(false)
       }
     },
     [token, filters, dateBounds],
   )
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      fetchAnalytics()
+    }, 500)
+    return () => clearTimeout(timeout)
+  }, [fetchAnalytics])
+
+  // Trigger search on filter change
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      fetchUsers(1, false)
+    }, 300)
+    return () => clearTimeout(timeout)
+  }, [
+    filters.search,
+    filters.isWaitlist,
+    filters.isInvited,
+    filters.unsubscribed,
+    dateRange,
+    fetchUsers,
+  ])
 
   const handleExportCSV = async () => {
     if (allUsers.length === 0) return
@@ -415,25 +194,21 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       'Last Name',
       'Email',
       'Phone',
-      'Role',
-      'Country',
-      'City',
-      'Session',
-      'Ambassador',
+      'From Waitlist',
+      'From Invite',
+      'Unsubscribed',
       'Updated At',
     ].join(',')
 
     const rows = allUsers.map((user) => {
       return [
-        `"${formatName(user.firstName).replace(/"/g, '""')}"`,
-        `"${formatName(user.lastName).replace(/"/g, '""')}"`,
+        `"${formatName(user.firstName || '').replace(/"/g, '""')}"`,
+        `"${formatName(user.lastName || '').replace(/"/g, '""')}"`,
         `"${(user.email || '').replace(/"/g, '""')}"`,
         `"${(user.phone || '').replace(/"/g, '""')}"`,
-        `"${(user.role || '').replace(/"/g, '""')}"`,
-        `"${(user.country || '').replace(/"/g, '""')}"`,
-        `"${(user.city || '').replace(/"/g, '""')}"`,
-        `"${(user.selectedSession || user.selectedsession || '').replace(/"/g, '""')}"`,
-        user.wantsAmbassador ? 'Yes' : 'No',
+        user.isFromWaitlist ? 'Yes' : 'No',
+        user.isFromInvite ? 'Yes' : 'No',
+        user.unsubscribed ? 'Yes' : 'No',
         new Date(user.updatedAt).toLocaleString(),
       ].join(',')
     })
@@ -446,7 +221,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         '/admin/logs/event',
         {
           action: 'EXPORT_CSV',
-          details: `Exported ${allUsers.length} members to CSV`,
+          details: `Exported ${allUsers.length} users to CSV`,
         },
         token,
       )
@@ -458,12 +233,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
-    link.setAttribute('download', `upward_waitlist_${new Date().toISOString().split('T')[0]}.csv`)
+    link.setAttribute('download', `upward_users_${new Date().toISOString().split('T')[0]}.csv`)
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-    showToast(`Exported ${allUsers.length} members to CSV`)
+    showToast(`Exported ${allUsers.length} users to CSV`)
   }
 
   const toggleSelect = (id: string) => {
@@ -486,10 +261,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       setAllUsers((prev) => prev.filter((u) => !ids.includes(u.id)))
       setSelectedIds(new Set())
       setDeleteModal({ show: false, ids: [] })
-      showToast(`${ids.length} member${ids.length === 1 ? '' : 's'} deleted`)
+      showToast(`${ids.length} user${ids.length === 1 ? '' : 's'} deleted`)
     } catch (err) {
       console.error('Delete error:', err)
-      showToast('Failed to delete members', true)
+      showToast('Failed to delete users', true)
     }
   }
 
@@ -503,20 +278,15 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         page: '1',
         limit: meta.total.toString(),
         ...(filters.search && { search: filters.search }),
-        ...(filters.roles.length > 0 && { role: filters.roles.join(',') }),
-        ...(filters.countries.length > 0 && { country: filters.countries.join(',') }),
-        ...(filters.cities.length > 0 && { city: filters.cities.join(',') }),
-        ...(filters.selectedSessions.length > 0 && {
-          selectedSession: filters.selectedSessions.join(','),
-        }),
-        ...(filters.completed !== 'all' && { completed: filters.completed }),
-        ...(filters.missingName === 'true' && { missingName: 'true' }),
+        ...(filters.isWaitlist !== 'all' && { isWaitlist: filters.isWaitlist }),
+        ...(filters.isInvited !== 'all' && { isInvited: filters.isInvited }),
+        ...(filters.unsubscribed !== 'all' && { unsubscribed: filters.unsubscribed }),
         ...(dateBounds?.from && { createdFrom: dateBounds.from }),
         ...(dateBounds?.to && { createdTo: dateBounds.to }),
       })
 
       const res = await apiService.get(`/admin/users?${params.toString()}`, token)
-      const allFilteredIds = res.data.map((u: WaitlistUser) => u.id)
+      const allFilteredIds = res.data.map((u: User) => u.id)
 
       navigate('/emails', { state: { userIds: allFilteredIds } })
     } catch (err) {
@@ -527,68 +297,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     }
   }
 
-  const handleResendEmail = async (userId: string) => {
-    try {
-      showToast('Resending confirmation email...')
-      const res = await apiService.post(`/admin/email/resend-confirmation/${userId}`, {}, token)
-      if (res.data.success) {
-        showToast('Confirmation email sent successfully')
-        setAllUsers((prev) =>
-          prev.map((u) => (u.id === userId ? { ...u, confirmationEmailStatus: 'SENT' } : u)),
-        )
-      } else {
-        showToast(`Failed to send: ${res.data.error || 'Unknown error'}`, true)
-        setAllUsers((prev) =>
-          prev.map((u) => (u.id === userId ? { ...u, confirmationEmailStatus: 'FAILED' } : u)),
-        )
-      }
-    } catch (err) {
-      console.error('Resend error:', err)
-      showToast('Failed to resend confirmation email', true)
-    }
-  }
-
-  // Trigger search on filter change
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      fetchUsers(1, false)
-    }, 300)
-    return () => clearTimeout(timeout)
-  }, [
-    filters.search,
-    filters.roles,
-    filters.countries,
-    filters.cities,
-    filters.selectedSessions,
-    filters.completed,
-    filters.missingName,
-    dateRange,
-    fetchUsers,
-  ])
-
-  const filteredCities = useMemo(() => {
-    if (!filterOptions) return []
-    if (filters.countries.length === 0)
-      return Array.from(
-        new Set(filterOptions.cities.map((c: { city: string }) => c.city)),
-      ).sort() as string[]
-    return filterOptions.cities
-      .filter((c: { country: string }) => filters.countries.includes(c.country))
-      .map((c: { city: string }) => c.city)
-      .sort()
-  }, [filterOptions, filters.countries])
-
-  // Remove cities from filter that are no longer valid when countries change
-  useEffect(() => {
-    if (filters.cities.length > 0) {
-      const validCities = new Set(filteredCities)
-      const stillValid = filters.cities.filter((c) => validCities.has(c))
-      if (stillValid.length !== filters.cities.length) {
-        setFilters((prev) => ({ ...prev, cities: stillValid }))
-      }
-    }
-  }, [filters.countries, filteredCities])
-
   if (loading || !stats) {
     return (
       <div className="page-container">
@@ -598,7 +306,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   }
 
   const statItems = [
-    { label: 'Total Waitlist', value: stats.totalWaitlist, icon: Users, color: '#d97757' },
+    { label: 'Total Users', value: stats.totalUsers, icon: Users, color: '#d97757' },
     {
       label: 'Joined from Waitlist',
       value: stats.convertedCount,
@@ -618,12 +326,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       color: '#ec4899',
     },
     {
-      label: 'Conversion Rate',
-      value: `${(stats.conversionRate || 0).toFixed(1)}%`,
-      icon: Gem,
-      color: '#3b82f6',
-    },
-    {
       label: 'Launch Emails Sent',
       value: stats.launchEmailsSent,
       icon: Mail,
@@ -637,259 +339,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     },
   ]
 
-  const DistributionCard = ({
-    title,
-    data,
-  }: {
-    title: string
-    data: { label: string; count: number }[]
-  }) => {
-    const total = data.reduce((acc, curr) => acc + curr.count, 0)
-    return (
-      <div className="card" style={{ flex: 1, minWidth: '300px' }}>
-        <h3
-          style={{
-            fontSize: '14px',
-            fontWeight: 700,
-            marginBottom: '20px',
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-          }}
-        >
-          {title}
-        </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {data.length === 0 ? (
-            <div
-              style={{
-                padding: '20px',
-                textAlign: 'center',
-                color: 'var(--text-muted)',
-                fontSize: '13px',
-              }}
-            >
-              No data available
-            </div>
-          ) : (
-            data.slice(0, 6).map((item, i) => {
-              const percentage = Math.round((item.count / total) * 100)
-              return (
-                <div key={i}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontSize: '13px',
-                      marginBottom: '6px',
-                    }}
-                  >
-                    <span style={{ fontWeight: 600 }}>{item.label}</span>
-                    <span style={{ color: 'var(--text-muted)' }}>
-                      {item.count} ({percentage}%)
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      height: '8px',
-                      background: 'var(--surface-hover)',
-                      borderRadius: '4px',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${percentage}%`,
-                        height: '100%',
-                        background: 'var(--accent)',
-                        borderRadius: '4px',
-                        transition: 'width 0.6s ease',
-                      }}
-                    ></div>
-                  </div>
-                </div>
-              )
-            })
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  // ---- Multi-select dropdown component ----
-  const MultiSelect = ({
-    label,
-    options,
-    selected,
-    onChange,
-    placeholder,
-  }: {
-    label: string
-    options: { value: string; label: string }[]
-    selected: string[]
-    onChange: (vals: string[]) => void
-    placeholder?: string
-  }) => {
-    const [open, setOpen] = useState(false)
-    const ref = useRef<HTMLDivElement>(null)
-
-    useEffect(() => {
-      const handleClickOutside = (e: MouseEvent) => {
-        if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-      }
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [])
-
-    const toggle = (val: string) => {
-      onChange(selected.includes(val) ? selected.filter((v) => v !== val) : [...selected, val])
-    }
-
-    const displayText =
-      selected.length === 0
-        ? placeholder || 'All'
-        : selected.length === 1
-          ? options.find((o) => o.value === selected[0])?.label || selected[0]
-          : `${selected.length} selected`
-
-    return (
-      <div className="filter-field" ref={ref} style={{ position: 'relative' }}>
-        <label>{label}</label>
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '9px 12px',
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: '10px',
-            fontSize: '13px',
-            cursor: 'pointer',
-            color: selected.length === 0 ? 'var(--text-muted)' : 'var(--text)',
-            gap: '8px',
-          }}
-        >
-          <span
-            style={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              flex: 1,
-              textAlign: 'left',
-            }}
-          >
-            {displayText}
-          </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-            {selected.length > 0 && (
-              <span
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onChange([])
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                }}
-              >
-                <X size={12} />
-              </span>
-            )}
-            <ChevronDown
-              size={14}
-              style={{
-                color: 'var(--text-muted)',
-                transform: open ? 'rotate(180deg)' : undefined,
-                transition: 'transform 0.2s',
-              }}
-            />
-          </div>
-        </button>
-        {open && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 'calc(100% + 4px)',
-              left: 0,
-              right: 0,
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderRadius: '10px',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-              zIndex: 100,
-              maxHeight: '220px',
-              overflowY: 'auto',
-              padding: '4px',
-            }}
-          >
-            {options.length === 0 ? (
-              <div
-                style={{
-                  padding: '12px',
-                  fontSize: '12px',
-                  color: 'var(--text-muted)',
-                  textAlign: 'center',
-                }}
-              >
-                No options
-              </div>
-            ) : (
-              options.map((opt) => {
-                const isSelected = selected.includes(opt.value)
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => toggle(opt.value)}
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 10px',
-                      background: isSelected ? 'var(--accent-faint)' : 'transparent',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      color: isSelected ? 'var(--accent)' : 'var(--text)',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      fontWeight: isSelected ? 600 : 400,
-                    }}
-                  >
-                    {isSelected ? (
-                      <CheckSquare size={14} color="var(--accent)" />
-                    ) : (
-                      <Square size={14} color="var(--text-muted)" />
-                    )}
-                    <span
-                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                    >
-                      {opt.label}
-                    </span>
-                  </button>
-                )
-              })
-            )}
-          </div>
-        )}
-      </div>
-    )
-  }
-
   const activeFilterCount =
-    filters.roles.length +
-    filters.countries.length +
-    filters.cities.length +
-    filters.selectedSessions.length +
-    (filters.completed !== 'all' ? 1 : 0) +
-    (filters.missingName === 'true' ? 1 : 0)
+    (filters.isWaitlist !== 'all' ? 1 : 0) +
+    (filters.isInvited !== 'all' ? 1 : 0) +
+    (filters.unsubscribed !== 'all' ? 1 : 0)
 
   return (
     <div className="page-container fade-in" style={{ paddingTop: '20px' }}>
@@ -902,8 +355,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
           className="stats-grid"
           style={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${Math.ceil(statItems.length / 2)}, 1fr)`,
-            gridAutoRows: '1fr',
+            gridTemplateColumns: `repeat(auto-fit, minmax(240px, 1fr))`,
             gap: '20px',
             marginBottom: '24px',
           }}
@@ -941,129 +393,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
               </div>
             </div>
           ))}
-        </div>
-
-        <div
-          className="grid-mobile-1"
-          style={{
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            marginBottom: '32px',
-          }}
-        >
-          <DistributionCard title="Role Distribution" data={stats.distributions?.roles || []} />
-          <DistributionCard
-            title="Country Distribution"
-            data={stats.distributions?.countries || []}
-          />
-          <DistributionCard title="Top Cities" data={stats.distributions?.cities || []} />
-          <div className="card" style={{ gridColumn: '1 / -1', padding: '32px' }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '32px',
-                flexWrap: 'wrap',
-                gap: '16px',
-              }}
-            >
-              <h3
-                style={{
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  color: 'var(--text-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  margin: 0,
-                }}
-              >
-                <Gem size={16} /> Benefit Interest Analytics
-              </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-end',
-                  }}
-                >
-                  <div style={{ fontSize: '13px', fontWeight: 700 }}>
-                    {stats.distributions?.customBenefits.count || 0} Custom Suggestions
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    User submitted benefits
-                  </div>
-                </div>
-                {stats.distributions?.customBenefits.items.length ? (
-                  <button
-                    ref={viewAllRef}
-                    onClick={() => {
-                      const rect = viewAllRef.current?.getBoundingClientRect()
-                      setAnchorRect(rect || null)
-                      setShowCustomBenefits(true)
-                    }}
-                    style={{
-                      padding: '8px 16px',
-                      background: 'var(--accent-faint)',
-                      color: 'var(--accent)',
-                      border: '1px solid rgba(217, 119, 87, 0.2)',
-                      borderRadius: '10px',
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'var(--accent)'
-                      e.currentTarget.style.color = 'white'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'var(--accent-faint)'
-                      e.currentTarget.style.color = 'var(--accent)'
-                    }}
-                  >
-                    View All
-                  </button>
-                ) : null}
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '40px',
-              }}
-            >
-              <BenefitSection
-                title="Tenant Experience Interest"
-                role="TENANT"
-                benefits={stats.distributions?.roleBenefits?.['TENANT'] || []}
-                totalInRole={stats.distributions?.roleTotals?.['TENANT'] || 0}
-                totalWithBenefits={stats.distributions?.roleTotalWithBenefits?.['TENANT'] || 0}
-              />
-
-              <div
-                style={{
-                  height: '1px',
-                  background: 'var(--border)',
-                  opacity: 0.5,
-                  margin: '8px 0',
-                }}
-              />
-
-              <BenefitSection
-                title="Owner / Landlord Interest"
-                role="OWNER"
-                benefits={stats.distributions?.roleBenefits?.['OWNER'] || []}
-                totalInRole={stats.distributions?.roleTotals?.['OWNER'] || 0}
-                totalWithBenefits={stats.distributions?.roleTotalWithBenefits?.['OWNER'] || 0}
-              />
-            </div>
-          </div>
         </div>
 
         <div className="card" style={{ marginBottom: '16px', padding: '20px' }}>
@@ -1109,63 +438,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             <div
               style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}
             >
-              <CheckCircle2 size={16} style={{ color: 'var(--text-muted)' }} />
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: 'var(--text-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                Completion Status
-              </span>
-            </div>
-            <div className="date-chips">
-              {[
-                {
-                  key: 'all' as const,
-                  label: 'All',
-                  icon: Filter,
-                },
-                {
-                  key: 'true' as const,
-                  label: 'Completed',
-                  icon: CheckCircle2,
-                },
-                {
-                  key: 'false' as const,
-                  label: 'Not Completed',
-                  icon: XCircle,
-                },
-              ].map(({ key, label, icon: Icon }) => (
-                <button
-                  key={key}
-                  className={`date-chip${filters.completed === key ? ' active' : ''}`}
-                  onClick={() => setFilters((prev) => ({ ...prev, completed: key }))}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    ...(filters.completed === key && key === 'true'
-                      ? { background: '#10b98120', borderColor: '#10b981', color: '#10b981' }
-                      : {}),
-                    ...(filters.completed === key && key === 'false'
-                      ? { background: '#ef444420', borderColor: '#ef4444', color: '#ef4444' }
-                      : {}),
-                  }}
-                >
-                  <Icon size={14} /> {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}
-            >
               <Users size={16} style={{ color: 'var(--text-muted)' }} />
               <span
                 style={{
@@ -1176,32 +448,88 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                   letterSpacing: '0.05em',
                 }}
               >
-                Missing Data
+                Waitlist Status
               </span>
             </div>
             <div className="date-chips">
               {[
-                { key: 'all' as const, label: 'All Recipients' },
-                { key: 'true' as const, label: 'Missing First Name' },
+                { key: 'all' as const, label: 'All' },
+                { key: 'true' as const, label: 'From Waitlist' },
+                { key: 'false' as const, label: 'Self Signed-up' },
               ].map(({ key, label }) => (
                 <button
                   key={key}
-                  className={`date-chip${filters.missingName === key ? ' active' : ''}`}
-                  onClick={() => setFilters((prev) => ({ ...prev, missingName: key }))}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    ...(filters.missingName === key && key === 'true'
-                      ? { background: '#f59e0b20', borderColor: '#f59e0b', color: '#f59e0b' }
-                      : {}),
-                  }}
+                  className={`date-chip${filters.isWaitlist === key ? ' active' : ''}`}
+                  onClick={() => setFilters((prev) => ({ ...prev, isWaitlist: key }))}
                 >
-                  {filters.missingName === key && key === 'true' ? (
-                    <AlertTriangle size={14} />
-                  ) : (
-                    <Filter size={14} />
-                  )}
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}
+            >
+              <UserPlus size={16} style={{ color: 'var(--text-muted)' }} />
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                Invitation Status
+              </span>
+            </div>
+            <div className="date-chips">
+              {[
+                { key: 'all' as const, label: 'All' },
+                { key: 'true' as const, label: 'From Invite' },
+                { key: 'false' as const, label: 'Not Invited' },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  className={`date-chip${filters.isInvited === key ? ' active' : ''}`}
+                  onClick={() => setFilters((prev) => ({ ...prev, isInvited: key }))}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}
+            >
+              <Mail size={16} style={{ color: 'var(--text-muted)' }} />
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                Subscription Status
+              </span>
+            </div>
+            <div className="date-chips">
+              {[
+                { key: 'all' as const, label: 'All' },
+                { key: 'true' as const, label: 'Unsubscribed' },
+                { key: 'false' as const, label: 'Subscribed' },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  className={`date-chip${filters.unsubscribed === key ? ' active' : ''}`}
+                  onClick={() => setFilters((prev) => ({ ...prev, unsubscribed: key }))}
+                >
                   {label}
                 </button>
               ))}
@@ -1242,11 +570,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 onClick={() =>
                   setFilters((prev) => ({
                     ...prev,
-                    roles: [],
-                    countries: [],
-                    cities: [],
-                    selectedSessions: [],
-                    missingName: 'all',
+                    isWaitlist: 'all',
+                    isInvited: 'all',
+                    unsubscribed: 'all',
                   }))
                 }
                 style={{
@@ -1267,7 +593,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             )}
           </div>
           <div className="filter-bar">
-            <div className="filter-field search-field">
+            <div className="filter-field search-field" style={{ flex: 1 }}>
               <label>Search</label>
               <div style={{ position: 'relative' }}>
                 <Search
@@ -1283,56 +609,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 />
                 <input
                   type="text"
-                  placeholder="Email or name..."
+                  placeholder="Email, name or phone..."
                   value={filters.search}
                   onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
                 />
               </div>
             </div>
-
-            <MultiSelect
-              label="Role"
-              placeholder="All Roles"
-              options={(filterOptions?.roles || []).map((r: string) => ({ value: r, label: r }))}
-              selected={filters.roles}
-              onChange={(vals) => setFilters((prev) => ({ ...prev, roles: vals }))}
-            />
-
-            <MultiSelect
-              label="Country"
-              placeholder="All Countries"
-              options={(filterOptions?.countries || []).map((c: string) => ({
-                value: c,
-                label: c,
-              }))}
-              selected={filters.countries}
-              onChange={(vals) => setFilters((prev) => ({ ...prev, countries: vals }))}
-            />
-
-            <MultiSelect
-              label="City"
-              placeholder="All Cities"
-              options={filteredCities.map((city: string) => ({ value: city, label: city }))}
-              selected={filters.cities}
-              onChange={(vals) => setFilters((prev) => ({ ...prev, cities: vals }))}
-            />
-
-            <MultiSelect
-              label="Session"
-              placeholder="All Sessions"
-              options={(() => {
-                const days = new Set<string>()
-                filterOptions?.sessions.forEach((s) => {
-                  const day = s.name.split(/[(\s]/)[0]
-                  if (day) days.add(day)
-                })
-                return Array.from(days)
-                  .sort()
-                  .map((day) => ({ value: day, label: day }))
-              })()}
-              selected={filters.selectedSessions}
-              onChange={(vals) => setFilters((prev) => ({ ...prev, selectedSessions: vals }))}
-            />
           </div>
         </div>
 
@@ -1350,9 +632,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             }}
           >
             <div>
-              <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Waitlist Members</h3>
+              <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Users List</h3>
               <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                Showing {allUsers.length} of {meta?.total || 0} members
+                Showing {allUsers.length} of {meta?.total || 0} users
               </div>
             </div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1483,7 +765,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                       textTransform: 'uppercase',
                     }}
                   >
-                    Location
+                    Origin
                   </th>
                   <th
                     style={{
@@ -1494,7 +776,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                       textTransform: 'uppercase',
                     }}
                   >
-                    Role & Benefits
+                    Subscription
                   </th>
                   <th
                     style={{
@@ -1505,18 +787,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                       textTransform: 'uppercase',
                     }}
                   >
-                    Session
-                  </th>
-                  <th
-                    style={{
-                      padding: '16px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    Last Edited
+                    Joined Date
                   </th>
                   {isSuperadmin && (
                     <th
@@ -1536,10 +807,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 {allUsers.length === 0 && !loadingUsers ? (
                   <tr>
                     <td
-                      colSpan={isSuperadmin ? 8 : 6}
+                      colSpan={isSuperadmin ? 7 : 5}
                       style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}
                     >
-                      No members found matching your criteria.
+                      No users found matching your criteria.
                     </td>
                   </tr>
                 ) : (
@@ -1598,45 +869,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                           </div>
                           <div>
                             <div style={{ fontWeight: 600, fontSize: '14px' }}>
-                              {formatName(user.firstName)} {formatName(user.lastName)}
+                              {formatName(user.firstName || '')} {formatName(user.lastName || '')}
                             </div>
-                            {/* Email Status Badge */}
-                            {(() => {
-                              const status = user.confirmationEmailStatus
-                              const legacySent = !status && user.confirmationSent
-                              const legacyPending =
-                                !status && !user.confirmationSent && user.acceptTerms
-
-                              if (!status && !legacySent && !legacyPending) return null
-
-                              return (
-                                <div
-                                  style={{
-                                    fontSize: '10px',
-                                    marginTop: '2px',
-                                    display: 'inline-block',
-                                    padding: '1px 6px',
-                                    borderRadius: '4px',
-                                    fontWeight: 700,
-                                    backgroundColor:
-                                      status === 'SENT' || legacySent
-                                        ? '#dcfce7'
-                                        : status === 'FAILED' || legacyPending
-                                          ? '#fee2e2'
-                                          : '#fef9c3',
-                                    color:
-                                      status === 'SENT' || legacySent
-                                        ? '#166534'
-                                        : status === 'FAILED' || legacyPending
-                                          ? '#991b1b'
-                                          : '#854d0e',
-                                  }}
-                                >
-                                  Email:{' '}
-                                  {status || (legacySent ? 'SENT (Legacy)' : 'FAILED/PENDING')}
-                                </div>
-                              )
-                            })()}
                           </div>
                         </div>
                       </td>
@@ -1667,69 +901,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                         </div>
                       </td>
                       <td style={{ padding: '16px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              fontSize: '13px',
-                            }}
-                          >
-                            <Globe size={14} color="var(--text-muted)" /> {user.country || '—'}
-                          </div>
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              fontSize: '13px',
-                            }}
-                          >
-                            <MapPin size={14} color="var(--text-muted)" /> {user.city || '—'}
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: '16px' }}>
-                        <div style={{ fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>
-                          {user.role || '—'}
-                        </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                          {user.benefits?.slice(0, 2).map((b: string, i: number) => (
-                            <span
-                              key={i}
-                              style={{
-                                fontSize: '10px',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                background: 'var(--surface-hover)',
-                                color: 'var(--text-muted)',
-                              }}
-                            >
-                              {b}
-                            </span>
-                          ))}
-                          {(user.benefits?.length ?? 0) > 2 && (
-                            <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                              +{(user.benefits?.length ?? 0) - 2} more
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td style={{ padding: '16px' }}>
-                        <div style={{ fontSize: '13px' }}>
-                          {(() => {
-                            const sessionValue = user.selectedSession || user.selectedsession
-                            if (!sessionValue) return 'Not Selected'
-                            const foundSession = filterOptions?.sessions.find(
-                              (s) => s.id === sessionValue || s.name === sessionValue,
-                            )
-                            const fullName = foundSession?.name || sessionValue
-                            return fullName.split(/[(\s]/)[0]
-                          })()}
-                        </div>
-                        {user.wantsAmbassador && (
-                          <div style={{ marginTop: '4px' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {user.isFromWaitlist && (
                             <span
                               style={{
                                 fontSize: '10px',
@@ -1740,18 +913,75 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                                 fontWeight: 700,
                               }}
                             >
-                              Ambassador
+                              Waitlist
                             </span>
-                          </div>
+                          )}
+                          {user.isFromInvite && (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                background: '#f3e8ff',
+                                color: '#6b21a8',
+                                fontWeight: 700,
+                              }}
+                            >
+                              Invitation
+                            </span>
+                          )}
+                          {!user.isFromWaitlist && !user.isFromInvite && (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                background: '#ecfdf5',
+                                color: '#047857',
+                                fontWeight: 700,
+                              }}
+                            >
+                              Self Sign-up
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: '16px' }}>
+                        {user.unsubscribed ? (
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: '#fee2e2',
+                              color: '#b91c1c',
+                              fontWeight: 700,
+                            }}
+                          >
+                            Unsubscribed
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: '#dcfce7',
+                              color: '#15803d',
+                              fontWeight: 700,
+                            }}
+                          >
+                            Subscribed
+                          </span>
                         )}
                       </td>
                       <td style={{ padding: '16px' }}>
                         <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Clock size={14} /> {new Date(user.updatedAt).toLocaleDateString()}
+                            <Clock size={14} /> {new Date(user.createdAt).toLocaleDateString()}
                           </div>
                           <div style={{ fontSize: '11px', marginTop: '2px' }}>
-                            {new Date(user.updatedAt).toLocaleTimeString([], {
+                            {new Date(user.createdAt).toLocaleTimeString([], {
                               hour: '2-digit',
                               minute: '2-digit',
                             })}
@@ -1761,42 +991,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                       {isSuperadmin && (
                         <td style={{ padding: '16px', verticalAlign: 'middle' }}>
                           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            {(() => {
-                              const showResend =
-                                user.confirmationEmailStatus === 'FAILED' ||
-                                (!user.confirmationEmailStatus &&
-                                  !user.confirmationSent &&
-                                  user.acceptTerms)
-
-                              if (!showResend) return null
-
-                              return (
-                                <button
-                                  onClick={() => handleResendEmail(user.id)}
-                                  title="Resend Confirmation Email"
-                                  style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    color: '#d97757',
-                                    cursor: 'pointer',
-                                    padding: '4px',
-                                    borderRadius: '6px',
-                                    transition: 'background-color 0.2s',
-                                  }}
-                                  onMouseEnter={(e) =>
-                                    (e.currentTarget.style.backgroundColor = 'var(--surface-hover)')
-                                  }
-                                  onMouseLeave={(e) =>
-                                    (e.currentTarget.style.backgroundColor = 'transparent')
-                                  }
-                                >
-                                  <Mail size={16} />
-                                </button>
-                              )
-                            })()}
                             <button
                               onClick={() => setDeleteModal({ show: true, ids: [user.id] })}
-                              title="Delete member"
+                              title="Delete user"
                               style={{
                                 background: 'none',
                                 border: 'none',
@@ -1822,7 +1019,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 {loadingUsers && (
                   <tr>
                     <td
-                      colSpan={isSuperadmin ? 8 : 6}
+                      colSpan={isSuperadmin ? 7 : 5}
                       style={{ padding: '24px', textAlign: 'center' }}
                     >
                       <div
@@ -1864,7 +1061,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                   gap: '8px',
                 }}
               >
-                {loadingUsers ? 'Loading...' : 'Show More Members'}
+                {loadingUsers ? 'Loading...' : 'Show More Users'}
                 {!loadingUsers && <ChevronDown size={18} />}
               </button>
             </div>
@@ -1900,8 +1097,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 <AlertTriangle size={32} />
               </div>
               <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px' }}>
-                Delete {deleteModal.ids.length > 1 ? `${deleteModal.ids.length} members` : 'member'}
-                ?
+                Delete {deleteModal.ids.length > 1 ? `${deleteModal.ids.length} users` : 'user'}?
               </h3>
               <p
                 style={{
@@ -1911,8 +1107,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                   lineHeight: 1.6,
                 }}
               >
-                This action cannot be undone. The selected waitlist{' '}
-                {deleteModal.ids.length === 1 ? 'entry' : 'entries'} will be permanently removed.
+                This action cannot be undone. The selected user{' '}
+                {deleteModal.ids.length === 1 ? 'record' : 'records'} will be permanently removed.
               </p>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button
@@ -1950,136 +1146,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         </div>
       )}
 
-      {showCustomBenefits &&
-        createPortal(
-          <div
-            className="modal-overlay"
-            style={{
-              background: 'transparent',
-              backdropFilter: 'none',
-              display: 'block',
-              zIndex: 3000,
-              cursor: 'default',
-            }}
-            onClick={() => setShowCustomBenefits(false)}
-          >
-            <div
-              className="popover slide-up"
-              style={{
-                position: 'fixed',
-                top: anchorRect ? anchorRect.bottom + 12 : '50%',
-                left: anchorRect
-                  ? Math.min(window.innerWidth - 340, Math.max(20, anchorRect.right - 320))
-                  : '50%',
-                width: '320px',
-                maxHeight: '400px',
-                background: 'white',
-                borderRadius: '20px',
-                boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-                border: '1px solid var(--border)',
-                zIndex: 3001,
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                transformOrigin: 'top right',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div
-                style={{
-                  padding: '20px',
-                  borderBottom: '1px solid var(--border)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <span style={{ fontWeight: 800, fontSize: '15px' }}>Custom Suggestions</span>
-                <button
-                  onClick={() => setShowCustomBenefits(false)}
-                  style={{
-                    background: 'var(--surface-hover)',
-                    borderRadius: '50%',
-                    width: '24px',
-                    height: '24px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  <X size={14} />
-                </button>
-              </div>
-
-              <div
-                style={{
-                  maxHeight: '300px',
-                  overflowY: 'auto',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  padding: '12px',
-                }}
-              >
-                {stats.distributions?.customBenefits.items.map((item, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      padding: '12px 14px',
-                      background: 'var(--surface)',
-                      borderRadius: '12px',
-                      marginBottom: '8px',
-                      fontSize: '13px',
-                      lineHeight: 1.4,
-                      color: 'var(--text)',
-                      border: '1px solid transparent',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.borderColor = 'var(--accent-muted)')
-                    }
-                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
-                  >
-                    <span style={{ flex: 1, paddingRight: '12px' }}>{item.label}</span>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                      {(item as any).roles?.map((role: string, idx: number) => (
-                        <span
-                          key={idx}
-                          title={role === 'TENANT' ? 'Tenant' : 'Owner'}
-                          style={{
-                            fontSize: '10px',
-                            color: role === 'TENANT' ? '#3b82f6' : '#10b981',
-                            fontWeight: 900,
-                            background: role === 'TENANT' ? '#3b82f615' : '#10b98115',
-                            width: '22px',
-                            height: '22px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderRadius: '50%',
-                            border: `1px solid ${role === 'TENANT' ? '#3b82f620' : '#10b98120'}`,
-                            cursor: 'help',
-                          }}
-                        >
-                          {role === 'TENANT' ? 'T' : role === 'OWNER' ? 'O' : '?'}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
-
       <style>{`
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 16px; }
       `}</style>
     </div>
   )
