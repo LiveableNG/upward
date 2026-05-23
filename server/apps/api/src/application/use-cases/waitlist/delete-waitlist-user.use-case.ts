@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException } from '@nestjs/common'
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { AdminRole } from '@upward/shared-types'
 import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
@@ -18,18 +18,20 @@ export class DeleteWaitlistUserUseCase {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      const user = await tx.upward_waitlist.findUnique({
-        where: { id },
-        select: { email: true },
+      const user = await tx.upward_user.findUnique({
+        where: { uuid: id },
+        select: { email: true, id: true },
       })
 
-      const deleted = await tx.upward_waitlist.delete({
-        where: { id },
-      })
-
-      if (user) {
-        this.eventBus.publish(new WaitlistUserDeletedEvent(requesterId, id, user.email))
+      if (!user) {
+        throw new NotFoundException('User not found')
       }
+
+      const deleted = await tx.upward_user.delete({
+        where: { id: user.id },
+      })
+
+      this.eventBus.publish(new WaitlistUserDeletedEvent(requesterId, String(user.id), user.email))
 
       return deleted
     })

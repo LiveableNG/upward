@@ -22,8 +22,8 @@ export class SendBulkEmailUseCase {
     sessionId?: string
     requesterId?: string
   }) {
-    const users = await this.prisma.upward_waitlist.findMany({
-      where: { id: { in: payload.userIds }, unsubscribed: false },
+    const users = await this.prisma.upward_user.findMany({
+      where: { uuid: { in: payload.userIds }, unsubscribed: false },
     })
 
     const results = []
@@ -36,7 +36,7 @@ export class SendBulkEmailUseCase {
           .replace(/{{email}}/g, user.email)
 
         const finalHtml = wrapInBaseTemplate(customizedContent, payload.subject, user.email)
-        await this.emailService.sendGenericEmail(user.email, payload.subject, finalHtml, user.id)
+        await this.emailService.sendGenericEmail(user.email, payload.subject, finalHtml, String(user.id))
         results.push({ email: user.email, status: 'SENT' })
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
