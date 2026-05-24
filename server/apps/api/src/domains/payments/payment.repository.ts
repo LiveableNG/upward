@@ -90,6 +90,7 @@ export interface IPaymentGateway {
     reference: string
     subaccount?: string
     metadata?: any
+    channels?: string[]
   }): Promise<{ authorizationUrl: string; accessCode?: string; reference: string }>
   findOrCreateSubaccount(data: {
     businessName: string
