@@ -22,6 +22,7 @@ function LandingPageContent() {
   const email = searchParams.get('email')
 
   const [invitationData, setInvitationData] = useState<InvitationData | null>(null)
+  
   const [pathToken, setPathToken] = useState<string | null>(null)
   const [isPayRoute, setIsPayRoute] = useState(false)
   const [isWaitlistRoute, setIsWaitlistRoute] = useState(false)
