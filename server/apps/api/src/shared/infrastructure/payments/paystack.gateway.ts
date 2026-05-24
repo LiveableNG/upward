@@ -357,13 +357,16 @@ export class PaystackGateway implements IPaymentGateway {
     subaccountCode?: string
   }): Promise<any> {
     try {
-      this.logger.log(`Creating Paystack DVA for customer ${data.customerCode}`)
+      const isTest = this.secretKey.startsWith('sk_test_')
+      const preferredBank = isTest ? 'test-bank' : 'wema-bank'
+      this.logger.log(`Creating Paystack DVA for customer ${data.customerCode} with preferred bank: ${preferredBank}`)
       const res = await fetch(`${this.baseUrl}/dedicated_account`, {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify({
           customer: data.customerCode,
           subaccount: data.subaccountCode,
+          preferred_bank: preferredBank,
         }),
       })
 
