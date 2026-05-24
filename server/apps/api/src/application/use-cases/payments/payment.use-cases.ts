@@ -735,6 +735,7 @@ export class InitializePaymentUseCase {
 
     const metadata = {
       ...data.metadata,
+      source_app: 'upward',
       userId: user.id,
       userUuid: user.uuid,
       paymentRequestUuid: pr?.uuid,
@@ -750,7 +751,8 @@ export class InitializePaymentUseCase {
       amount: Math.round(finalAmountToPay * 100), 
       reference: `PAY-${randomUUID()}`,
       subaccount: pr?.subaccount?.subaccountCode,
-      metadata
+      metadata,
+      channels: ['bank', 'bank_transfer']
     })
 
 
@@ -811,6 +813,20 @@ export class ProcessPaymentWebhookUseCase {
       } else {
         throw new UnauthorizedException('Invalid signature')
       }
+    }
+
+    let rawMetadata = payload.data?.metadata
+    if (typeof rawMetadata === 'string' && rawMetadata.length > 0) {
+      try {
+        rawMetadata = JSON.parse(rawMetadata)
+      } catch (e) {
+      }
+    }
+    const sourceApp = rawMetadata?.source_app || payload.data?.customer?.metadata?.source_app
+
+    if (sourceApp && sourceApp !== 'upward') {
+      this.logger.log(`Webhook ignored: event is for source_app '${sourceApp}'`)
+      return { success: true, message: `Event ignored: for ${sourceApp}` }
     }
 
     if (payload.event === 'charge.success') {

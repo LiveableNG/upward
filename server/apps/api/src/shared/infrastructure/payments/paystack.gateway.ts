@@ -160,6 +160,7 @@ export class PaystackGateway implements IPaymentGateway {
     subaccount?: string
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     metadata?: any
+    channels?: string[]
   }): Promise<{ authorizationUrl: string; accessCode?: string; reference: string }> {
     try {
       this.logger.log(`Initializing transaction ${data.reference} for ${data.email}`)
@@ -172,6 +173,7 @@ export class PaystackGateway implements IPaymentGateway {
           reference: data.reference,
           metadata: data.metadata,
           subaccount: data.subaccount,
+          channels: data.channels,
         }),
       })
 
@@ -289,6 +291,9 @@ export class PaystackGateway implements IPaymentGateway {
           first_name: data.firstName,
           last_name: data.lastName,
           phone: data.phone,
+          metadata: {
+            source_app: 'upward',
+          },
         }),
       })
 
@@ -327,6 +332,9 @@ export class PaystackGateway implements IPaymentGateway {
             phone: data.phone,
             first_name: data.firstName,
             last_name: data.lastName,
+            metadata: {
+              source_app: 'upward',
+            },
           }),
         })
         if (!updateRes.ok) {
