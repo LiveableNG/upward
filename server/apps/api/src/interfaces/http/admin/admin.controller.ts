@@ -105,33 +105,21 @@ export class AdminController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('search') search?: string,
-    @Query('role') role?: string,
-    @Query('country') country?: string,
-    @Query('city') city?: string,
-    @Query('selectedSession') selectedSession?: string,
+    @Query('isWaitlist') isWaitlist?: string,
+    @Query('isInvited') isInvited?: string,
+    @Query('unsubscribed') unsubscribed?: string,
     @Query('createdFrom') createdFrom?: string,
     @Query('createdTo') createdTo?: string,
-    @Query('completed') completed?: string,
   ) {
-    const toArray = (val?: string) =>
-      val
-        ? val
-            .split(',')
-            .map((v) => v.trim())
-            .filter(Boolean)
-        : undefined
-
     return this.getWaitlistUseCase.execute({
       page: page ? parseInt(page) : 1,
       limit: limit ? parseInt(limit) : 20,
       search,
-      roles: toArray(role),
-      countries: toArray(country),
-      cities: toArray(city),
-      selectedSessions: toArray(selectedSession),
+      isWaitlist,
+      isInvited,
+      unsubscribed,
       createdFrom,
       createdTo,
-      completed,
     })
   }
 
@@ -155,32 +143,20 @@ export class AdminController {
   @Get('analytics')
   async getAnalytics(
     @Query('search') search?: string,
-    @Query('role') role?: string,
-    @Query('country') country?: string,
-    @Query('city') city?: string,
-    @Query('selectedSession') selectedSession?: string,
+    @Query('isWaitlist') isWaitlist?: string,
+    @Query('isInvited') isInvited?: string,
+    @Query('unsubscribed') unsubscribed?: string,
     @Query('createdFrom') createdFrom?: string,
     @Query('createdTo') createdTo?: string,
-    @Query('completed') completed?: string,
   ) {
-    const toArray = (val?: string) =>
-      val
-        ? val
-            .split(',')
-            .map((v) => v.trim())
-            .filter(Boolean)
-        : undefined
-
     return {
       data: await this.getWaitlistAnalyticsUseCase.execute({
         search,
-        roles: toArray(role),
-        countries: toArray(country),
-        cities: toArray(city),
-        selectedSessions: toArray(selectedSession),
+        isWaitlist,
+        isInvited,
+        unsubscribed,
         createdFrom,
         createdTo,
-        completed,
       }),
     }
   }

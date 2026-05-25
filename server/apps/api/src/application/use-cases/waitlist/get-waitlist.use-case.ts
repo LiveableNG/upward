@@ -1,76 +1,47 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { Prisma } from '@prisma/client'
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Injectable()
 export class GetWaitlistUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+  ) {}
 
-  private buildWaitlistWhereClause(options: {
-    search?: string
-    roles?: string[]
-    countries?: string[]
-    cities?: string[]
-    selectedSessions?: string[]
+  private buildUserWhereClause(options: {
+    isWaitlist?: string
+    isInvited?: string
+    unsubscribed?: string
     createdFrom?: string
     createdTo?: string
-    completed?: string
-    missingName?: string
   }) {
     const {
-      search,
-      roles,
-      countries,
-      cities,
-      selectedSessions,
+      isWaitlist,
+      isInvited,
+      unsubscribed,
       createdFrom,
       createdTo,
-      completed,
-      missingName,
     } = options
-    const where: Prisma.upward_waitlistWhereInput = {}
+    const where: Prisma.upward_userWhereInput = {}
 
-    if (search) {
-      where.OR = [
-        { email: { contains: search, mode: 'insensitive' } },
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-      ]
+    if (isWaitlist === 'true') {
+      where.isFromWaitlist = true
+    } else if (isWaitlist === 'false') {
+      where.isFromWaitlist = false
     }
 
-    if (roles && roles.length > 0) {
-      where.role = { in: roles }
+    if (isInvited === 'true') {
+      where.isFromInvite = true
+    } else if (isInvited === 'false') {
+      where.isFromInvite = false
     }
 
-    if (countries && countries.length > 0) {
-      where.country = { in: countries }
-    }
-
-    if (cities && cities.length > 0) {
-      where.city = { in: cities }
-    }
-
-    if (selectedSessions && selectedSessions.length > 0) {
-      const sessionFilters: Prisma.upward_waitlistWhereInput[] = [
-        ...selectedSessions.map((s) => ({
-          selectedSession: { contains: s, mode: 'insensitive' as const },
-        })),
-        { selectedSession: { in: selectedSessions } },
-      ]
-
-      if (where.OR) {
-        const existingOR = where.OR as Prisma.upward_waitlistWhereInput[]
-        delete where.OR
-        where.AND = [{ OR: existingOR }, { OR: sessionFilters }]
-      } else {
-        where.OR = sessionFilters
-      }
-    }
-
-    if (completed === 'true') {
-      where.acceptTerms = true
-    } else if (completed === 'false') {
-      where.acceptTerms = { not: true }
+    if (unsubscribed === 'true') {
+      where.unsubscribed = true
+    } else if (unsubscribed === 'false') {
+      where.unsubscribed = false
     }
 
     if (createdFrom || createdTo) {
@@ -80,58 +51,83 @@ export class GetWaitlistUseCase {
       }
     }
 
-    if (missingName === 'true') {
-      const existingOR = (where.OR as Prisma.upward_waitlistWhereInput[]) || []
-      const nameFilters: Prisma.upward_waitlistWhereInput[] = [
-        { firstName: null },
-        { firstName: '' },
-      ]
-
-      if (existingOR.length > 0) {
-        if (where.AND) {
-          ;(where.AND as Prisma.upward_waitlistWhereInput[]).push({ OR: nameFilters })
-        } else {
-          where.AND = [{ OR: existingOR }, { OR: nameFilters }]
-          delete where.OR
-        }
-      } else {
-        where.OR = nameFilters
-      }
-    }
-
     return where
+  }
+
+  private decryptUser(user: any) {
+    return {
+      ...user,
+      email: this.encryption.decrypt(user.email),
+      firstName: this.encryption.decrypt(user.firstName),
+      lastName: this.encryption.decrypt(user.lastName),
+      phone: user.phone ? this.encryption.decrypt(user.phone) : user.phone,
+    }
   }
 
   async execute(options: {
     page: number
     limit: number
     search?: string
-    roles?: string[]
-    countries?: string[]
-    cities?: string[]
-    selectedSessions?: string[]
+    isWaitlist?: string
+    isInvited?: string
+    unsubscribed?: string
     createdFrom?: string
     createdTo?: string
-    completed?: string
-    missingName?: string
   }) {
-    const { page, limit } = options
+    const { page, limit, search } = options
     const skip = (page - 1) * limit
-    const where = this.buildWaitlistWhereClause(options)
+    const where = this.buildUserWhereClause(options)
 
-    const [data, total] = await Promise.all([
-      this.prisma.upward_waitlist.findMany({
+    let finalUsers: any[] = []
+    let total = 0
+
+    if (search) {
+      const allUsers = await this.prisma.upward_user.findMany({
         where,
-        orderBy: { updatedAt: 'desc' },
-        skip,
-        take: limit,
+        orderBy: { createdAt: 'desc' },
         include: {
-          attendances: true,
           emailLogs: true,
         },
-      }),
-      this.prisma.upward_waitlist.count({ where }),
-    ])
+      })
+
+      const decrypted = allUsers.map((u) => this.decryptUser(u))
+      const searchLower = search.toLowerCase()
+
+      const filtered = decrypted.filter((u) => {
+        return (
+          u.email?.toLowerCase().includes(searchLower) ||
+          u.firstName?.toLowerCase().includes(searchLower) ||
+          u.lastName?.toLowerCase().includes(searchLower) ||
+          u.phone?.toLowerCase().includes(searchLower)
+        )
+      })
+
+      total = filtered.length
+      finalUsers = filtered.slice(skip, skip + limit)
+    } else {
+      // Without search, we can let database paginate directly
+      const [users, dbCount] = await Promise.all([
+        this.prisma.upward_user.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+          include: {
+            emailLogs: true,
+          },
+        }),
+        this.prisma.upward_user.count({ where }),
+      ])
+
+      total = dbCount
+      finalUsers = users.map((u) => this.decryptUser(u))
+    }
+
+    // Map uuid to id string for frontend compatibility
+    const data = finalUsers.map((user) => ({
+      ...user,
+      id: user.uuid,
+    }))
 
     return {
       data,
@@ -144,3 +140,4 @@ export class GetWaitlistUseCase {
     }
   }
 }
+

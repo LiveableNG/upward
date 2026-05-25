@@ -96,15 +96,24 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
             entityId = responseBody.uuid || responseBody.id?.toString();
           }
 
+          const headerPlatform = req.headers['x-client-platform'];
+          const rawUserAgent = req.headers['user-agent'] || '';
+          const isCapacitor = headerPlatform === 'capacitor' || /capacitor/i.test(rawUserAgent);
+          
+          let userAgent = rawUserAgent;
+          if (isCapacitor && !userAgent.toLowerCase().includes('capacitor')) {
+            userAgent = userAgent ? `${userAgent} Capacitor` : 'Capacitor';
+          }
+
           // Scrub sensitive metadata from request payload
           const metadata = this.scrubMetadata({
             body: req.body,
             query: req.query,
             params: req.params,
+            clientPlatform: isCapacitor ? 'capacitor' : 'web',
           });
 
           const ipAddress = req.ip || req.raw?.ip;
-          const userAgent = req.headers['user-agent'];
 
           // Construct descriptive message
           let description = `${action} action on ${entityType}`;
