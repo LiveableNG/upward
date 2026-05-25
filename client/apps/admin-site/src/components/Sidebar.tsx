@@ -3,10 +3,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
   Mail,
-  Calendar,
   Settings,
-  BarChart3,
-  FlaskConical,
   FileText,
   ShieldCheck,
   CalendarClock,
@@ -15,7 +12,8 @@ import {
   LifeBuoy,
   Webhook,
   Smartphone,
-  MessageSquare
+  MessageSquare,
+  Landmark,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -24,16 +22,16 @@ interface SidebarProps {
   onClose: () => void
 }
 
+const isProd = import.meta.env.VITE_APP_ENV === 'production' || import.meta.env.MODE === 'production'
+const showSandboxTools = import.meta.env.VITE_SHOW_SANDBOX_TOOLS === 'true' || !isProd
+
 const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }) => {
   const [isHovered, setIsHovered] = useState(false)
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Drop-off Analysis', path: '/drop-off', icon: BarChart3 },
-    { name: 'A/B Test Stats', path: '/ab-stats', icon: FlaskConical },
     { name: 'Emailing', path: '/emails', icon: Mail },
     { name: 'Campaigns', path: '/campaigns', icon: CalendarClock },
-    { name: 'Sessions', path: '/sessions', icon: Calendar },
     { name: 'Announcements', path: '/announcements', icon: Megaphone },
     { name: 'Help Center & Support', path: '/support', icon: LifeBuoy },
     { name: 'Verifications', path: '/verifications', icon: ShieldCheck },
@@ -41,10 +39,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     { name: 'Fairness Stories', path: '/stories', icon: ShieldCheck },
   ]
 
+  if (showSandboxTools) {
+    navItems.push({ name: 'Demo Bank Simulator', path: '/demo-bank', icon: Landmark })
+  }
+
   if (isSuperadmin) {
     navItems.push({ name: 'App Activity Logs', path: '/app-activity', icon: Smartphone })
     navItems.push({ name: 'User Feedback', path: '/feedback', icon: MessageSquare })
-    navItems.push({ name: 'Dev Email Sandbox', path: '/dev-emails', icon: Mail })
+    if (showSandboxTools) {
+      navItems.push({ name: 'Dev Email Sandbox', path: '/dev-emails', icon: Mail })
+    }
     navItems.push({ name: 'Webhook Logs', path: '/webhooks', icon: Webhook })
     navItems.push({ name: 'System Logs', path: '/logs', icon  : FileText })
     navItems.push({ name: 'Settings', path: '/settings', icon: Settings })

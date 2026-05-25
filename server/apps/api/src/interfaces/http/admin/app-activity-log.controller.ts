@@ -18,27 +18,55 @@ export class AppActivityLogController {
     @Query('app') appFilter?: string,
     @Query('action') actionFilter?: string,
     @Query('search') search?: string,
+    @Query('platform') platformFilter?: string,
   ) {
     const pageNum = page ? parseInt(page) : 1
     const limitNum = limit ? parseInt(limit) : 50
     const skip = (pageNum - 1) * limitNum
 
     const where: any = {}
+    const andConditions: any[] = []
 
     if (appFilter && appFilter !== 'ALL') {
-      where.app = appFilter
+      andConditions.push({ app: appFilter })
     }
 
     if (actionFilter && actionFilter !== 'ALL') {
-      where.action = actionFilter
+      andConditions.push({ action: actionFilter })
     }
 
     if (search) {
-      where.OR = [
-        { userEmail: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { entityType: { contains: search, mode: 'insensitive' } },
-      ]
+      andConditions.push({
+        OR: [
+          { userEmail: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+          { entityType: { contains: search, mode: 'insensitive' } },
+        ],
+      })
+    }
+
+    if (platformFilter && platformFilter !== 'ALL') {
+      if (platformFilter === 'mobile') {
+        andConditions.push({
+          OR: [
+            { userAgent: { contains: 'Capacitor', mode: 'insensitive' } },
+            { action: 'APP_INSTALL' },
+          ],
+        })
+      } else if (platformFilter === 'web') {
+        andConditions.push({
+          NOT: {
+            OR: [
+              { userAgent: { contains: 'Capacitor', mode: 'insensitive' } },
+              { action: 'APP_INSTALL' },
+            ],
+          },
+        })
+      }
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions
     }
 
     const [logs, total] = await Promise.all([
@@ -100,11 +128,81 @@ export class AppActivityLogController {
       }
     });
 
+    // Compute today's unique check-ins/activity counts
+    const startOfToday = new Date()
+    startOfToday.setHours(0, 0, 0, 0)
+
+    const todayLogs = await this.prisma.upward_app_activity_log.findMany({
+      where: {
+        createdAt: {
+          gte: startOfToday,
+        },
+      },
+      select: {
+        userId: true,
+        pmId: true,
+        userEmail: true,
+        action: true,
+        userAgent: true,
+        ipAddress: true,
+      },
+    })
+
+    const getUserIdentifier = (log: any) => {
+      if (log.userEmail) return log.userEmail
+      if (log.userId) return `user_${log.userId}`
+      if (log.pmId) return `pm_${log.pmId}`
+      return `ip_${log.ipAddress || 'unknown'}`
+    }
+
+    const uniqueUsersMobile = new Set<string>()
+    const uniqueUsersWeb = new Set<string>()
+
+    const actionUsersMobile: Record<string, Set<string>> = {}
+    const actionUsersWeb: Record<string, Set<string>> = {}
+
+    todayLogs.forEach((log) => {
+      const isMobile = (log.userAgent && log.userAgent.toLowerCase().includes('capacitor')) || log.action === 'APP_INSTALL'
+      const userKey = getUserIdentifier(log)
+
+      if (isMobile) {
+        uniqueUsersMobile.add(userKey)
+        let userSet = actionUsersMobile[log.action]
+        if (!userSet) {
+          userSet = new Set()
+          actionUsersMobile[log.action] = userSet
+        }
+        userSet.add(userKey)
+      } else {
+        uniqueUsersWeb.add(userKey)
+        let userSet = actionUsersWeb[log.action]
+        if (!userSet) {
+          userSet = new Set()
+          actionUsersWeb[log.action] = userSet
+        }
+        userSet.add(userKey)
+      }
+    })
+
+    const todayStats = {
+      uniqueUsersMobileCount: uniqueUsersMobile.size,
+      uniqueUsersWebCount: uniqueUsersWeb.size,
+      mobileActionGrouped: Object.entries(actionUsersMobile).map(([action, users]) => ({
+        action,
+        count: users.size,
+      })),
+      webActionGrouped: Object.entries(actionUsersWeb).map(([action, users]) => ({
+        action,
+        count: users.size,
+      })),
+    }
+
     return {
       totalInstalls,
       platforms,
       activeUsersByApp,
       recentActivityCount,
+      todayStats,
     }
   }
 }
