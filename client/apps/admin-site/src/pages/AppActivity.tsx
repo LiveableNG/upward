@@ -14,6 +14,7 @@ import {
   X,
   Copy,
   Check,
+  Globe,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 
@@ -48,6 +49,12 @@ interface StatsData {
     _count: number
   }[]
   recentActivityCount: number
+  todayStats?: {
+    uniqueUsersMobileCount: number
+    uniqueUsersWebCount: number
+    mobileActionGrouped: { action: string; count: number }[]
+    webActionGrouped: { action: string; count: number }[]
+  }
 }
 
 interface AppActivityProps {
@@ -67,6 +74,7 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
   const [search, setSearch] = useState('')
   const [appFilter, setAppFilter] = useState('ALL')
   const [actionFilter, setActionFilter] = useState('ALL')
+  const [platformFilter, setPlatformFilter] = useState('ALL')
   
   // Modal details
   const [selectedLog, setSelectedLog] = useState<AppActivityLog | null>(null)
@@ -92,6 +100,7 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
       let url = `/admin/app-activity?page=${pageNum}&limit=50`
       if (appFilter !== 'ALL') url += `&app=${appFilter}`
       if (actionFilter !== 'ALL') url += `&action=${actionFilter}`
+      if (platformFilter !== 'ALL') url += `&platform=${platformFilter}`
       if (search.trim()) url += `&search=${encodeURIComponent(search.trim())}`
 
       const response = await apiService.get(url, token)
@@ -113,7 +122,7 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
 
   useEffect(() => {
     fetchLogs(page)
-  }, [page, appFilter, actionFilter])
+  }, [page, appFilter, actionFilter, platformFilter])
 
   // Trigger search on submit or enter key
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -323,6 +332,87 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
         </div>
       </div>
 
+      {/* Today's Closed Testing Telemetry Widget */}
+      <div className="card" style={{ marginBottom: '24px', background: 'var(--white)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+          <Activity size={20} style={{ color: 'var(--accent)' }} />
+          <div>
+            <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>Closed Testing: Today's Check-ins & Interactions</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '2px 0 0 0' }}>
+              Distinct users who checked in today, grouped by their device source and actions.
+            </p>
+          </div>
+        </div>
+
+        <div className="stats-grid grid-mobile-1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          {/* Mobile App Interactions */}
+          <div style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', background: 'var(--surface)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Smartphone size={18} style={{ color: 'var(--accent)' }} />
+                <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>Mobile App (Capacitor)</span>
+              </div>
+              <span className="badge" style={{ background: 'var(--accent-muted)', color: 'var(--accent)', fontSize: '16px', fontWeight: 800, padding: '4px 12px', borderRadius: '8px' }}>
+                {loadingStats ? '...' : stats?.todayStats?.uniqueUsersMobileCount ?? 0}
+              </span>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '6px' }}>Unique active testers on mobile today</p>
+            
+            {loadingStats ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}><div className="loader"></div></div>
+            ) : stats?.todayStats?.mobileActionGrouped && stats.todayStats.mobileActionGrouped.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
+                {stats.todayStats.mobileActionGrouped.map((item) => (
+                  <div key={item.action} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--white)', border: '1px solid var(--border)', padding: '8px 12px', borderRadius: '8px', fontSize: '13px' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--text)' }}>{item.action}</span>
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
+                      {item.count} unique {item.count === 1 ? 'user' : 'users'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', fontStyle: 'italic', marginTop: '16px', textAlign: 'center' }}>
+                No mobile activity recorded today
+              </p>
+            )}
+          </div>
+
+          {/* Web Interactions */}
+          <div style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', background: 'var(--surface)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Globe size={18} style={{ color: '#3b82f6' }} />
+                <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>Web Browser (Standard)</span>
+              </div>
+              <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', fontSize: '16px', fontWeight: 800, padding: '4px 12px', borderRadius: '8px' }}>
+                {loadingStats ? '...' : stats?.todayStats?.uniqueUsersWebCount ?? 0}
+              </span>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '6px' }}>Unique active testers on web today</p>
+            
+            {loadingStats ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}><div className="loader"></div></div>
+            ) : stats?.todayStats?.webActionGrouped && stats.todayStats.webActionGrouped.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
+                {stats.todayStats.webActionGrouped.map((item) => (
+                  <div key={item.action} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--white)', border: '1px solid var(--border)', padding: '8px 12px', borderRadius: '8px', fontSize: '13px' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--text)' }}>{item.action}</span>
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
+                      {item.count} unique {item.count === 1 ? 'user' : 'users'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', fontStyle: 'italic', marginTop: '16px', textAlign: 'center' }}>
+                No web activity recorded today
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Filters/Search Bar */}
       <div className="card" style={{ marginBottom: '24px', padding: '16px' }}>
         <form
@@ -443,6 +533,62 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
                 }}
               />
               <select
+                value={platformFilter}
+                onChange={(e) => {
+                  setPlatformFilter(e.target.value)
+                  setPage(1)
+                }}
+                style={{
+                  width: '100%',
+                  padding: '11px 32px 11px 36px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface)',
+                  fontSize: '14px',
+                  appearance: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="ALL">All Platforms</option>
+                <option value="web">Web Browser</option>
+                <option value="mobile">Mobile App</option>
+              </select>
+              <ChevronDown
+                size={14}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)',
+                  pointerEvents: 'none',
+                }}
+              />
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              flex: '0 1 auto',
+              minWidth: '150px',
+            }}
+          >
+            <div style={{ position: 'relative', width: '100%' }}>
+              <Filter
+                size={16}
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)',
+                  pointerEvents: 'none',
+                }}
+              />
+              <select
                 value={actionFilter}
                 onChange={(e) => {
                   setActionFilter(e.target.value)
@@ -523,18 +669,38 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
                       </div>
                     </td>
                     <td style={{ padding: '16px' }}>
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          background: log.app === 'upward-pay' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
-                          color: log.app === 'upward-pay' ? '#3b82f6' : '#8b5cf6',
-                        }}
-                      >
-                        {log.app}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            background: log.app === 'upward-pay' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
+                            color: log.app === 'upward-pay' ? '#3b82f6' : '#8b5cf6',
+                          }}
+                        >
+                          {log.app}
+                        </span>
+                        {(() => {
+                          const isMobileLog = (log.userAgent && log.userAgent.toLowerCase().includes('capacitor')) || log.action === 'APP_INSTALL';
+                          return (
+                            <span
+                              style={{
+                                fontSize: '9px',
+                                fontWeight: 600,
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                background: isMobileLog ? 'var(--accent-faint)' : 'var(--surface-hover)',
+                                color: isMobileLog ? 'var(--accent)' : 'var(--text-muted)',
+                                border: '1px solid var(--border)',
+                              }}
+                            >
+                              {isMobileLog ? 'Mobile App' : 'Web Browser'}
+                            </span>
+                          )
+                        })()}
+                      </div>
                     </td>
                     <td style={{ padding: '16px' }}>
                       <div style={{ fontSize: '14px', fontWeight: 600 }}>{log.userEmail || 'GUEST'}</div>
@@ -621,18 +787,37 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        background: log.app === 'upward-pay' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
-                        color: log.app === 'upward-pay' ? '#3b82f6' : '#8b5cf6',
-                      }}
-                    >
-                      {log.app}
-                    </span>
+                    {(() => {
+                      const isMobileLog = (log.userAgent && log.userAgent.toLowerCase().includes('capacitor')) || log.action === 'APP_INSTALL';
+                      return (
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: log.app === 'upward-pay' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
+                              color: log.app === 'upward-pay' ? '#3b82f6' : '#8b5cf6',
+                            }}
+                          >
+                            {log.app}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: isMobileLog ? 'var(--accent-faint)' : 'var(--surface-hover)',
+                              color: isMobileLog ? 'var(--accent)' : 'var(--text-muted)',
+                            }}
+                          >
+                            {isMobileLog ? 'Mobile' : 'Web'}
+                          </span>
+                        </div>
+                      )
+                    })()}
                     <span
                       style={{
                         fontSize: '10px',
