@@ -54,6 +54,10 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       headers['Authorization'] = `Bearer ${token}`
     }
 
+    if (Capacitor.isNativePlatform()) {
+      headers['x-client-platform'] = 'capacitor'
+    }
+
     if (options.body && !headers['Content-Type'] && !(options.body instanceof FormData)) {
       headers['Content-Type'] = 'application/json'
     }
@@ -112,6 +116,10 @@ export async function requestBlob(path: string, options: RequestInit = {}): Prom
 
     if (token && Capacitor.isNativePlatform()) {
       headers['Authorization'] = `Bearer ${token}`
+    }
+
+    if (Capacitor.isNativePlatform()) {
+      headers['x-client-platform'] = 'capacitor'
     }
 
     const controller = new AbortController()
