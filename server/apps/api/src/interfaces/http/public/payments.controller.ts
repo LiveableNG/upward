@@ -30,6 +30,7 @@ import {
   ProcessPaymentWebhookUseCase,
   GetBankDetailsUseCase,
   SaveBankDetailsUseCase,
+  SimulateTransferUseCase,
 } from '../../../application/use-cases/payments/payment.use-cases'
 import { VerifyGatewayTransactionUseCase } from '../../../application/use-cases/payments/verify-transaction.use-case'
 
@@ -53,6 +54,7 @@ export class PaymentsController {
     private readonly verifyGatewayTransactionUc: VerifyGatewayTransactionUseCase,
     private readonly getBankDetailsUc: GetBankDetailsUseCase,
     private readonly saveBankDetailsUc: SaveBankDetailsUseCase,
+    private readonly simulateTransferUc: SimulateTransferUseCase,
   ) {}
 
   @Get('verify/:reference')
@@ -242,5 +244,18 @@ export class PaymentsController {
       throw new BadRequestException('Account number and bank code are required')
     }
     return this.resolveSubaccountUc.execute(accountNumber, bankCode, businessName)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('simulate-transfer')
+  async simulateTransfer(@Body() body: any) {
+    if (!body.beneficiaryBank || !body.beneficiaryAccount || !body.amount) {
+      throw new BadRequestException('beneficiaryBank, beneficiaryAccount and amount are required')
+    }
+    return this.simulateTransferUc.execute({
+      beneficiaryBank: body.beneficiaryBank,
+      beneficiaryAccount: body.beneficiaryAccount,
+      amount: Number(body.amount),
+    })
   }
 }

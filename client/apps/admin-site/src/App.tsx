@@ -22,6 +22,8 @@ import Layout from './components/Layout'
 
 import ChangePassword from './components/ChangePassword'
 import './App.css'
+const isProd = import.meta.env.VITE_APP_ENV === 'production' || import.meta.env.MODE === 'production'
+const showSandboxTools = import.meta.env.VITE_SHOW_SANDBOX_TOOLS === 'true' || !isProd
 
 function AppRoutes() {
   const { auth, loading, logout, setAuth } = useAuth()
@@ -57,7 +59,7 @@ function AppRoutes() {
           <Route path="/announcements" element={<Announcements token={auth.token} />} />
           <Route path="/support" element={<SupportTickets token={auth.token} />} />
           <Route path="/verifications" element={<Verifications token={auth.token} />} />
-          <Route path="/demo-bank" element={<DemoBank />} />
+          {showSandboxTools && <Route path="/demo-bank" element={<DemoBank token={auth.token} />} />}
           {auth.user.role === 'SUPERADMIN' && (
             <>
               <Route
@@ -67,7 +69,7 @@ function AppRoutes() {
               <Route path="/logs" element={<Logs token={auth.token} />} />
               <Route path="/app-activity" element={<AppActivity token={auth.token} />} />
               <Route path="/feedback" element={<Feedback token={auth.token} />} />
-              <Route path="/dev-emails" element={<DevEmails token={auth.token} />} />
+              {showSandboxTools && <Route path="/dev-emails" element={<DevEmails token={auth.token} />} />}
               <Route path="/webhooks" element={<Webhooks token={auth.token} />} />
             </>
           )}

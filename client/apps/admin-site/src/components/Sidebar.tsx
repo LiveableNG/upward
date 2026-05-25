@@ -22,6 +22,9 @@ interface SidebarProps {
   onClose: () => void
 }
 
+const isProd = import.meta.env.VITE_APP_ENV === 'production' || import.meta.env.MODE === 'production'
+const showSandboxTools = import.meta.env.VITE_SHOW_SANDBOX_TOOLS === 'true' || !isProd
+
 const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }) => {
   const [isHovered, setIsHovered] = useState(false)
 
@@ -34,13 +37,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     { name: 'Verifications', path: '/verifications', icon: ShieldCheck },
     { name: 'Email Logs', path: '/email-logs', icon: History },
     { name: 'Fairness Stories', path: '/stories', icon: ShieldCheck },
-    { name: 'Demo Bank Simulator', path: '/demo-bank', icon: Landmark },
   ]
+
+  if (showSandboxTools) {
+    navItems.push({ name: 'Demo Bank Simulator', path: '/demo-bank', icon: Landmark })
+  }
 
   if (isSuperadmin) {
     navItems.push({ name: 'App Activity Logs', path: '/app-activity', icon: Smartphone })
     navItems.push({ name: 'User Feedback', path: '/feedback', icon: MessageSquare })
-    navItems.push({ name: 'Dev Email Sandbox', path: '/dev-emails', icon: Mail })
+    if (showSandboxTools) {
+      navItems.push({ name: 'Dev Email Sandbox', path: '/dev-emails', icon: Mail })
+    }
     navItems.push({ name: 'Webhook Logs', path: '/webhooks', icon: Webhook })
     navItems.push({ name: 'System Logs', path: '/logs', icon  : FileText })
     navItems.push({ name: 'Settings', path: '/settings', icon: Settings })

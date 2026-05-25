@@ -16,7 +16,11 @@ const BANKS = [
   'Sterling Bank',
 ]
 
-const DemoBank: React.FC = () => {
+interface DemoBankProps {
+  token: string
+}
+
+const DemoBank: React.FC<DemoBankProps> = ({ token }) => {
   const [balance, setBalance] = useState<number>(INITIAL_BALANCE)
   const [beneficiaryBank, setBeneficiaryBank] = useState<string>('Test Bank')
   const [beneficiaryAccount, setBeneficiaryAccount] = useState<string>('')
@@ -84,62 +88,29 @@ const DemoBank: React.FC = () => {
     setStatus('idle')
     setMessage('')
 
-    const reference = `TFD_${beneficiaryAccount}_${transferAmount}_${Date.now()}`
-    setTxReference(reference)
-
-    const payload = {
-      event: 'charge.success',
-      data: {
-        id: Math.floor(Math.random() * 100000000),
-        domain: 'test',
-        status: 'success',
-        reference: reference,
-        amount: Math.round(transferAmount * 100), // in kobo
-        gateway_response: 'Successful',
-        paid_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        channel: 'dedicated_nuban',
-        currency: 'NGN',
-        ip_address: '127.0.0.1',
-        metadata: {
-          source_app: 'upward',
-        },
-        customer: {
-          id: 999999,
-          first_name: 'Test',
-          last_name: 'User',
-          email: 'user@test.com',
-          customer_code: 'CUS_test_sim',
-        },
-        dedicated_account: {
-          id: 888888,
-          account_name: 'UPWARD MOCK DVA',
-          account_number: beneficiaryAccount,
-          bank: {
-            name: beneficiaryBank,
-            slug: beneficiaryBank.toLowerCase().replace(/\s+/g, '-'),
-          },
-        },
-      },
-    }
-
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1'
 
     try {
       // Simulate real-time bank delay (800ms)
       await new Promise((resolve) => setTimeout(resolve, 800))
 
-      const response = await fetch(`${baseUrl}/payments/webhook`, {
+      const response = await fetch(`${baseUrl}/payments/simulate-transfer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-paystack-signature': 'mock-signature-via-demobank-admin-ui',
+          'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          beneficiaryBank,
+          beneficiaryAccount,
+          amount: transferAmount,
+        }),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error(`Server returned HTTP ${response.status}`)
+        throw new Error(data.message || `Server returned HTTP ${response.status}`)
       }
 
       // Deduct from balance and save
@@ -147,12 +118,13 @@ const DemoBank: React.FC = () => {
       setBalance(newBalance)
       localStorage.setItem(BALANCE_KEY, newBalance.toString())
 
+      setTxReference(data.reference || '')
       setStatus('success')
       setMessage(`Transfer of ${formatCurrency(transferAmount)} initiated successfully!`)
       setAmount('')
       setNarration('')
     } catch (err: any) {
-      console.error('Webhook post failed:', err)
+      console.error('Simulation post failed:', err)
       setStatus('error')
       setMessage(`Simulation failed: ${err.message || 'Could not connect to payment backend.'}`)
     } finally {
