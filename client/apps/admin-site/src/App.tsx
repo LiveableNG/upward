@@ -17,6 +17,7 @@ import Announcements from './pages/Announcements'
 import SupportTickets from './pages/SupportTickets'
 import Verifications from './pages/Verifications'
 import Webhooks from './pages/Webhooks'
+import DemoBank from './pages/DemoBank'
 import Layout from './components/Layout'
 
 import ChangePassword from './components/ChangePassword'
@@ -56,6 +57,7 @@ function AppRoutes() {
           <Route path="/announcements" element={<Announcements token={auth.token} />} />
           <Route path="/support" element={<SupportTickets token={auth.token} />} />
           <Route path="/verifications" element={<Verifications token={auth.token} />} />
+          <Route path="/demo-bank" element={<DemoBank />} />
           {auth.user.role === 'SUPERADMIN' && (
             <>
               <Route

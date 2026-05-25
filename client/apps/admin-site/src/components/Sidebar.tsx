@@ -12,7 +12,8 @@ import {
   LifeBuoy,
   Webhook,
   Smartphone,
-  MessageSquare
+  MessageSquare,
+  Landmark,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -33,6 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     { name: 'Verifications', path: '/verifications', icon: ShieldCheck },
     { name: 'Email Logs', path: '/email-logs', icon: History },
     { name: 'Fairness Stories', path: '/stories', icon: ShieldCheck },
+    { name: 'Demo Bank Simulator', path: '/demo-bank', icon: Landmark },
   ]
 
   if (isSuperadmin) {
