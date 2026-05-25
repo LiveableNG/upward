@@ -584,26 +584,33 @@ export class InitializePaymentUseCase {
   ) { }
 
   async execute(data: {
-    userId: string
+    userId?: string
     amount: number
     paymentRequestUuid?: string
     metadata?: any
   }) {
-    const user = await this.userRepository.findByUuid(data.userId)
-    if (!user) throw new UnauthorizedException('User not found')
-
     let pr: any = null
     if (data.paymentRequestUuid) {
       pr = await this.paymentRequestRepo.findByUuid(data.paymentRequestUuid)
-      if (pr) {
-        const remainingRent = pr.amount - (pr.amountPaid || 0)
-        
-        if (!pr.allowPartial && data.amount < remainingRent && data.amount > 0) {
-          throw new BadRequestException(`Partial payments are not enabled for this request. Please pay the full balance of ₦${remainingRent}.`)
-        }
-        if (pr.allowPartial && pr.minAmount && data.amount < pr.minAmount && data.amount > 0 && data.amount < remainingRent) {
-          throw new BadRequestException(`The minimum allowed partial payment for this request is ₦${pr.minAmount}.`)
-        }
+    }
+
+    let user: any = null
+    if (data.userId) {
+      user = await this.userRepository.findByUuid(data.userId)
+    } else if (pr) {
+      user = await this.userRepository.findById(pr.userId)
+    }
+
+    if (!user) throw new UnauthorizedException('User context required to initialize payment')
+
+    if (pr) {
+      const remainingRent = pr.amount - (pr.amountPaid || 0)
+      
+      if (!pr.allowPartial && data.amount < remainingRent && data.amount > 0) {
+        throw new BadRequestException(`Partial payments are not enabled for this request. Please pay the full balance of ₦${remainingRent}.`)
+      }
+      if (pr.allowPartial && pr.minAmount && data.amount < pr.minAmount && data.amount > 0 && data.amount < remainingRent) {
+        throw new BadRequestException(`The minimum allowed partial payment for this request is ₦${pr.minAmount}.`)
       }
     }
 
@@ -643,9 +650,14 @@ export class InitializePaymentUseCase {
     }
 
     if (userPropertyId) {
-      if (!user.phone || !user.phone.trim() || user.phone.toLowerCase() === 'null' || user.phone.toLowerCase() === 'undefined') {
-        throw new BadRequestException('A phone number is required on your profile to generate a secure virtual payment account. Please add your phone number in Profile settings.')
+      const rawPhone = user.phone || ''
+      const hasPhone = rawPhone && rawPhone.trim() && rawPhone.toLowerCase() !== 'null' && rawPhone.toLowerCase() !== 'undefined'
+      const tenantPhone = hasPhone ? rawPhone : `080${String(user.id || Math.floor(Math.random() * 100000000)).padStart(8, '0')}`
+
+      if (!hasPhone) {
+        this.logger.log(`User ${user.email} does not have a valid phone number on profile. Using generated mock phone number: ${tenantPhone}`)
       }
+
       const availableOverpayments = await this.overpaymentRepo.findByUserIdAndStatus(user.id!, 'AVAILABLE')
       const totalCredit = availableOverpayments.reduce((sum, o) => sum + o.amount, 0)
       
@@ -671,8 +683,8 @@ export class InitializePaymentUseCase {
         const dva = await this.resolveDedicatedAccount.execute({
           userPropertyId: userPropertyId,
           tenantEmail: user.email!,
-          tenantName: `${user.firstName} ${user.lastName}`,
-          tenantPhone: user.phone ?? undefined,
+          tenantName: `${user.firstName || 'Tenant'} ${user.lastName || 'User'}`.trim(),
+          tenantPhone: tenantPhone,
           subaccountCode: pr.subaccount?.subaccountCode
         })
 
