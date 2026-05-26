@@ -144,6 +144,16 @@ export class ProcessHourlySettlementsUseCase {
     for (const tx of transactions) {
       if (!tx.user.bankDetails) {
         this.logger.log(`Refund pending for User ${tx.userId} but no bank details found. Waiting for claim.`);
+        const existingLog = await this.prisma.upward_refund_log.findFirst({
+          where: { transactionId: tx.id },
+          orderBy: { createdAt: 'desc' }
+        });
+        if (existingLog && existingLog.status !== 'PENDING_DISPATCH') {
+          await this.prisma.upward_refund_log.update({
+            where: { id: existingLog.id },
+            data: { status: 'PENDING_DISPATCH' }
+          });
+        }
         continue;
       }
 
@@ -166,9 +176,46 @@ export class ProcessHourlySettlementsUseCase {
           data: { settlementStatus: 'REFUNDED' }
         });
 
+        const existingLog = await this.prisma.upward_refund_log.findFirst({
+          where: { transactionId: tx.id },
+          orderBy: { createdAt: 'desc' }
+        });
+        if (existingLog) {
+          await this.prisma.upward_refund_log.update({
+            where: { id: existingLog.id },
+            data: {
+              status: 'DISPATCHED',
+              resolvedAt: new Date(),
+              metadata: {
+                ...(existingLog.metadata as any || {}),
+                transferReference: `REFUND-${tx.reference}`,
+                refundedAmount: refundAmount,
+                dispatchedAt: new Date()
+              }
+            }
+          });
+        }
+
         this.logger.log(`Refund completed for ${tx.reference}`);
       } catch (e: any) {
         this.logger.error(`Automated refund failed for ${tx.reference}: ${e.message}`);
+        const existingLog = await this.prisma.upward_refund_log.findFirst({
+          where: { transactionId: tx.id },
+          orderBy: { createdAt: 'desc' }
+        });
+        if (existingLog) {
+          await this.prisma.upward_refund_log.update({
+            where: { id: existingLog.id },
+            data: {
+              status: 'FAILED',
+              metadata: {
+                ...(existingLog.metadata as any || {}),
+                failureReason: e.message,
+                failedAt: new Date()
+              }
+            }
+          });
+        }
       }
     }
   }

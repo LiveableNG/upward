@@ -371,6 +371,22 @@ export class RecordTransactionUseCase {
         landlordId: data.landlordId || pr?.subaccount?.uuid || undefined,
       } as any, txClient)
 
+      if (isVerified && result.status === 'SUCCESS' && result.settlementStatus === 'PENDING_REFUND') {
+        const refundReason = (pr && pr.status === 'PAID') ? 'DUPLICATE_PAYMENT' : 'UNDERPAYMENT_VIOLATION';
+        await txClient.upward_refund_log.create({
+          data: {
+            transactionId: result.id,
+            userId: user!.id!,
+            amount: effectiveAmount,
+            currency: result.currency || 'NGN',
+            reason: refundReason,
+            status: 'FLAGGED',
+            actionBy: 'SYSTEM',
+            flaggedAt: new Date()
+          }
+        });
+      }
+
       if (isVerified && result.status === 'SUCCESS' && result.settlementStatus !== 'PENDING_REFUND') {
         if (pr) {
           const settlementPortion = Math.max(0, paymentAmount - upwardFeeAmount)
@@ -971,6 +987,30 @@ export class ProcessPaymentWebhookUseCase {
           where: { reference: originalTxRef },
           data: { settlementStatus: isSuccess ? 'REFUNDED' : 'PENDING_REFUND' }
         })
+
+        const targetTx = await this.prisma.upward_transaction.findUnique({
+          where: { reference: originalTxRef }
+        })
+        if (targetTx) {
+          const logStatus = isSuccess ? 'DISPATCHED' : 'FAILED'
+          const existingLog = await this.prisma.upward_refund_log.findFirst({
+            where: { transactionId: targetTx.id },
+            orderBy: { createdAt: 'desc' }
+          })
+          if (existingLog) {
+            await this.prisma.upward_refund_log.update({
+              where: { id: existingLog.id },
+              data: {
+                status: logStatus,
+                resolvedAt: isSuccess ? new Date() : undefined,
+                metadata: {
+                  ...(existingLog.metadata as any || {}),
+                  webhookPayload: payload.data
+                }
+              }
+            })
+          }
+        }
       }
 
       return { success: true }
