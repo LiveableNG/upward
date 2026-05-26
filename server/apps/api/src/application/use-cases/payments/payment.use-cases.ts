@@ -336,6 +336,14 @@ export class RecordTransactionUseCase {
             this.logger.warn(`Duplicate payment attempt detected for already settled request: ${pr.uuid}. Marking reference ${data.reference} for refund.`)
           }
 
+          // Detect Underpayment Violation
+          const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(pr.userId, pr.userPropertyId)
+          const expectedTotal = pr.amount + dynamicFee
+          if (!pr.allowPartial && effectiveAmount < expectedTotal && !data.settlementStatus) {
+            data.settlementStatus = 'PENDING_REFUND'
+            this.logger.warn(`Full-Payment Violation: User paid ${effectiveAmount} instead of ${expectedTotal}. Marking reference ${data.reference} for refund.`)
+          }
+
           const prItems = await txClient.upward_payment_line_item.findMany({ where: { paymentRequestId: pr.id } })
           const rentRemaining = prItems.reduce((sum, item) => {
             if (item.name === 'Processing Fee') return sum

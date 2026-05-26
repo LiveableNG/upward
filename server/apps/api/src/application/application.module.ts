@@ -100,6 +100,7 @@ import { CreatePlatformUseCase } from './use-cases/platform/create-platform.use-
 import { CreateExternalPaymentRequestUseCase } from './use-cases/external/create-payment-request.use-case'
 import { GetPublicPaymentDetailsUseCase } from './use-cases/external/get-public-payment.use-case'
 import { ConfirmExternalPaymentUseCase } from './use-cases/external/confirm-payment.use-case'
+import { ResolveExternalPendingRefundUseCase } from './use-cases/external/resolve-external-refund.use-case'
 import { AddPropertyUseCase } from './use-cases/external/add-property.use-case'
 import { RenewPropertyUseCase } from './use-cases/external/renew-property.use-case'
 import { UpdatePmProfileUseCase } from './use-cases/pm/update-pm-profile.use-case'
@@ -322,6 +323,7 @@ const UseCases = [
   CreateExternalPaymentRequestUseCase,
   GetPublicPaymentDetailsUseCase,
   ConfirmExternalPaymentUseCase,
+  ResolveExternalPendingRefundUseCase,
   AddPropertyUseCase,
   RenewPropertyUseCase,
   GetCredibilityRequestDetailsUseCase,
