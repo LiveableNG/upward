@@ -235,3 +235,16 @@ model upward_refund_log {
   @@index([userId])
 }
 
+model upward_fee_override {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  targetType  String   // "USER", "PM", "COMPANY", "PLATFORM"
+  targetId    String   // The UUID of the target entity
+  fee         Float    // Custom flat fee in NGN
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([targetType, targetId])
+  @@index([targetType, targetId])
+}
+

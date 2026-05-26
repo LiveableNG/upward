@@ -630,7 +630,7 @@ export class InitializePaymentUseCase {
       }
     }
 
-    const flatFee = this.paymentConfig.getProcessingFee()
+    let flatFee = this.paymentConfig.getProcessingFee()
     let userPropertyId = pr?.userPropertyId
 
     if (pr && !userPropertyId) {
@@ -664,6 +664,8 @@ export class InitializePaymentUseCase {
         }
       }
     }
+
+    flatFee = await this.paymentConfig.getDynamicProcessingFee(user.id, userPropertyId)
 
     if (userPropertyId) {
       const rawPhone = user.phone || ''
@@ -1077,7 +1079,8 @@ export class ProcessPaymentWebhookUseCase {
     }
 
     // Verification Logic: Intercept & Check against Source of Truth
-    const expectedTotal = pr.amount + this.paymentConfig.getProcessingFee()
+    const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(pr.userId, pr.userPropertyId)
+    const expectedTotal = pr.amount + dynamicFee
 
     let settlementStatus = 'VERIFIED'
     if (!pr.allowPartial && amountPaid < expectedTotal) {
@@ -1378,6 +1381,7 @@ export class GetPropertyBalanceUseCase {
     private readonly propertyRepo: PropertyRepository,
     @Inject(PAYMENT_REQUEST_REPOSITORY)
     private readonly paymentRequestRepo: IPaymentRequestRepository,
+    private readonly paymentConfig: PaymentConfigurationService,
   ) { }
 
   async execute(propertyUuid: string) {
@@ -1396,6 +1400,8 @@ export class GetPropertyBalanceUseCase {
       ? Math.max(0, totalOwed - amountPaid)
       : (prop.amountRemaining ?? Math.max(0, totalOwed - amountPaid))
 
+    const processingFee = await this.paymentConfig.getDynamicProcessingFee(prop.userId, prop.id)
+
     return {
       propertyUuid: prop.uuid,
       address: [prop.location?.address, prop.location?.area, prop.location?.state, prop.location?.country].filter(Boolean).join(', '),
@@ -1405,7 +1411,8 @@ export class GetPropertyBalanceUseCase {
       remainingBalance: remainingBalance,
       currency: prop.currency || 'NGN',
       dueDate: prop.rentEndDate,
-      hasActiveRequest: propRequests.length > 0
+      hasActiveRequest: propRequests.length > 0,
+      processingFee,
     }
   }
 }

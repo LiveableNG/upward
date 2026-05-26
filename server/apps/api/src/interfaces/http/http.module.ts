@@ -4,6 +4,7 @@ import { AuthModule } from '../../application/auth/auth.module'
 import { AdminLogModule } from '../../shared/infrastructure/admin-log/admin-log.module'
 import { S3Module } from '../../shared/infrastructure/common/s3/s3.module'
 import { AdminAuthController } from './admin/admin-auth.controller'
+import { AdminFeesController } from './admin/admin-fees.controller'
 import { AdminLogController } from './admin/admin-log.controller'
 import { AdminController } from './admin/admin.controller'
 import { CampaignController } from './admin/campaign.controller'
@@ -53,6 +54,7 @@ import { DevEmailAdminController } from './admin/dev-email-admin.controller'
   imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module],
   controllers: [
     AdminAuthController,
+    AdminFeesController,
     AdminLogController,
     AdminController,
     CampaignController,
