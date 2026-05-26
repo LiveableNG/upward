@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
-import { calculateCombinedFee, getNetAmountFromTotal } from '@/lib/utils'
+
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { useLogin } from '@/features/auth/hooks/useLogin'
@@ -30,7 +30,7 @@ export interface LineItemAllocation {
   remaining: number
 }
 
-function distributeAmount(amount: number, items: LineItemRecord[]): LineItemAllocation[] {
+function distributeAmount(amount: number, items: LineItemRecord[], processingFee = 2000): LineItemAllocation[] {
   const allocs: LineItemAllocation[] = items.map(i => ({
     id: i.id,
     name: i.name,
@@ -44,8 +44,8 @@ function distributeAmount(amount: number, items: LineItemRecord[]): LineItemAllo
   
   const feeItem = allocs.find(a => a.name === 'Processing Fee' || a.id === -2)
   if (feeItem) {
-    const estimatedNet = getNetAmountFromTotal(amount)
-    const dynamicFee = calculateCombinedFee(estimatedNet)
+    const estimatedNet = amount > processingFee ? amount - processingFee : 0
+    const dynamicFee = estimatedNet > 0 ? processingFee : 0
     
     feeItem.totalAmount = dynamicFee
     feeItem.remaining = dynamicFee
@@ -86,6 +86,8 @@ export function usePaymentFlow(uuid: string) {
   const [showRenewalModal, setShowRenewalModal] = useState(false)
   const [autoPrompted, setAutoPrompted] = useState(false)
   const [isPendingRefund, setIsPendingRefund] = useState(false)
+
+  const feeVal = paymentData?.payment?.processingFee ?? 2000
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -144,7 +146,7 @@ export function usePaymentFlow(uuid: string) {
           return sum + Math.max(0, item.totalAmount - item.amountPaid)
         }, 0)
 
-        const finalDue = rentRemaining > 0 ? rentRemaining + calculateCombinedFee(rentRemaining) : 0
+        const finalDue = rentRemaining > 0 ? rentRemaining + (res.data.payment.processingFee ?? 2000) : 0
         setAmountInput(finalDue.toString())
         
         setFormData(prev => ({
@@ -209,7 +211,7 @@ export function usePaymentFlow(uuid: string) {
       return sum + Math.max(0, item.totalAmount - item.amountPaid)
     }, 0)
     if (rentRemaining <= 0) return 0
-    return rentRemaining + calculateCombinedFee(rentRemaining)
+    return rentRemaining + (paymentData.payment.processingFee ?? 2000)
   }, [paymentData])
 
   const parsedAmount = parseFloat(amountInput) || 0
@@ -220,13 +222,13 @@ export function usePaymentFlow(uuid: string) {
   const isFullPaymentRequired = paymentData?.payment?.allowPartial === false
   const isUnderpaying = isFullPaymentRequired && parsedAmount > 0 && parsedAmount < totalOwed
 
-  const autoAllocs = useMemo(() => distributeAmount(Math.min(parsedAmount, totalOwed), lineItems), [parsedAmount, lineItems, totalOwed])
+  const autoAllocs = useMemo(() => distributeAmount(Math.min(parsedAmount, totalOwed), lineItems, feeVal), [parsedAmount, lineItems, totalOwed, feeVal])
 
   const effectiveAllocs: LineItemAllocation[] = useMemo(() => {
     if (Object.keys(manualAllocs).length === 0) return autoAllocs
 
     const manualSum = Object.values(manualAllocs).reduce((acc, val) => acc + val, 0)
-    const dynamicFee = calculateCombinedFee(manualSum)
+    const dynamicFee = manualSum > 0 ? feeVal : 0
     const feePayment = Math.min(parsedAmount - manualSum, dynamicFee)
 
     return lineItems.map(item => {
@@ -250,7 +252,7 @@ export function usePaymentFlow(uuid: string) {
         allocated: manualAllocs[item.id] || 0
       }
     })
-  }, [autoAllocs, manualAllocs, lineItems, parsedAmount])
+  }, [autoAllocs, manualAllocs, lineItems, parsedAmount, feeVal])
 
   const finalLineItemPayments = useMemo(() => 
     effectiveAllocs.filter(a => a.allocated > 0).map(a => ({ id: a.id, amountPaid: a.allocated, name: a.name }))
@@ -286,7 +288,7 @@ export function usePaymentFlow(uuid: string) {
     setManualAllocs(newManual)
     
     const manualSum = Object.values(newManual).reduce((acc, val) => acc + val, 0)
-    const dynamicFee = calculateCombinedFee(manualSum)
+    const dynamicFee = manualSum > 0 ? feeVal : 0
     setAmountInput((manualSum + dynamicFee).toString())
   }
 
