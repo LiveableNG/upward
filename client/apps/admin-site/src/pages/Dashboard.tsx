@@ -16,10 +16,6 @@ import {
   X,
   CheckCircle2,
   UserPlus,
-  Percent,
-  Edit2,
-  Building2,
-  ShieldCheck,
   RefreshCcw
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
