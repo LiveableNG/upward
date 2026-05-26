@@ -79,12 +79,15 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
 
       this.eventBus.publish(new PaymentUpdatedEvent(data.platformId, 'payment.updated', {
         paymentUuid: data.paymentRequestUuid,
+        transactionUuid: tx?.uuid,
         reference: data.reference,
         lineItems: lineItemsPaid,
         currency: data.currency,
         status: statusForWebhook,
         paidAt: new Date(),
-        customerEmail: data.email
+        customerEmail: data.email,
+        isUnderpayment: tx?.settlementStatus === 'PENDING_REFUND',
+        settlementStatus: tx?.settlementStatus
       }))
     } catch (e) {
       this.logger.error(`Failed to publish webhook event in handler:`, e)
