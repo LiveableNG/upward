@@ -1,15 +1,39 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-export class PaymentConfigurationService {
+export class PaymentConfigurationService implements OnModuleInit {
+  private cachedGlobalFee: number | null = null;
+
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
   ) {}
 
+  async onModuleInit() {
+    await this.refreshCache();
+  }
+
+  async refreshCache() {
+    try {
+      const globalOverride = await this.prisma.upward_fee_override.findUnique({
+        where: { targetType_targetId: { targetType: 'SYSTEM', targetId: 'GLOBAL' } },
+      });
+      this.cachedGlobalFee = globalOverride ? globalOverride.fee : null;
+    } catch (e) {
+      this.cachedGlobalFee = null;
+    }
+  }
+
+  setCachedGlobalFee(fee: number | null) {
+    this.cachedGlobalFee = fee;
+  }
+
   getProcessingFee(): number {
+    if (this.cachedGlobalFee !== null) {
+      return this.cachedGlobalFee;
+    }
     return this.configService.get<number>('PAYMENT_PROCESSING_FEE') || 2000;
   }
 
