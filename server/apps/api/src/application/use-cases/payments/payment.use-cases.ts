@@ -371,6 +371,22 @@ export class RecordTransactionUseCase {
         landlordId: data.landlordId || pr?.subaccount?.uuid || undefined,
       } as any, txClient)
 
+      if (isVerified && result.status === 'SUCCESS' && result.settlementStatus === 'PENDING_REFUND') {
+        const refundReason = (pr && pr.status === 'PAID') ? 'DUPLICATE_PAYMENT' : 'UNDERPAYMENT_VIOLATION';
+        await txClient.upward_refund_log.create({
+          data: {
+            transactionId: result.id,
+            userId: user!.id!,
+            amount: effectiveAmount,
+            currency: result.currency || 'NGN',
+            reason: refundReason,
+            status: 'FLAGGED',
+            actionBy: 'SYSTEM',
+            flaggedAt: new Date()
+          }
+        });
+      }
+
       if (isVerified && result.status === 'SUCCESS' && result.settlementStatus !== 'PENDING_REFUND') {
         if (pr) {
           const settlementPortion = Math.max(0, paymentAmount - upwardFeeAmount)
@@ -584,30 +600,37 @@ export class InitializePaymentUseCase {
   ) { }
 
   async execute(data: {
-    userId: string
+    userId?: string
     amount: number
     paymentRequestUuid?: string
     metadata?: any
   }) {
-    const user = await this.userRepository.findByUuid(data.userId)
-    if (!user) throw new UnauthorizedException('User not found')
-
     let pr: any = null
     if (data.paymentRequestUuid) {
       pr = await this.paymentRequestRepo.findByUuid(data.paymentRequestUuid)
-      if (pr) {
-        const remainingRent = pr.amount - (pr.amountPaid || 0)
-        
-        if (!pr.allowPartial && data.amount < remainingRent && data.amount > 0) {
-          throw new BadRequestException(`Partial payments are not enabled for this request. Please pay the full balance of ₦${remainingRent}.`)
-        }
-        if (pr.allowPartial && pr.minAmount && data.amount < pr.minAmount && data.amount > 0 && data.amount < remainingRent) {
-          throw new BadRequestException(`The minimum allowed partial payment for this request is ₦${pr.minAmount}.`)
-        }
+    }
+
+    let user: any = null
+    if (data.userId) {
+      user = await this.userRepository.findByUuid(data.userId)
+    } else if (pr) {
+      user = await this.userRepository.findById(pr.userId)
+    }
+
+    if (!user) throw new UnauthorizedException('User context required to initialize payment')
+
+    if (pr) {
+      const remainingRent = pr.amount - (pr.amountPaid || 0)
+      
+      if (!pr.allowPartial && data.amount < remainingRent && data.amount > 0) {
+        throw new BadRequestException(`Partial payments are not enabled for this request. Please pay the full balance of ₦${remainingRent}.`)
+      }
+      if (pr.allowPartial && pr.minAmount && data.amount < pr.minAmount && data.amount > 0 && data.amount < remainingRent) {
+        throw new BadRequestException(`The minimum allowed partial payment for this request is ₦${pr.minAmount}.`)
       }
     }
 
-    const flatFee = this.paymentConfig.getProcessingFee()
+    let flatFee = this.paymentConfig.getProcessingFee()
     let userPropertyId = pr?.userPropertyId
 
     if (pr && !userPropertyId) {
@@ -642,10 +665,17 @@ export class InitializePaymentUseCase {
       }
     }
 
+    flatFee = await this.paymentConfig.getDynamicProcessingFee(user.id, userPropertyId)
+
     if (userPropertyId) {
-      if (!user.phone || !user.phone.trim() || user.phone.toLowerCase() === 'null' || user.phone.toLowerCase() === 'undefined') {
-        throw new BadRequestException('A phone number is required on your profile to generate a secure virtual payment account. Please add your phone number in Profile settings.')
+      const rawPhone = user.phone || ''
+      const hasPhone = rawPhone && rawPhone.trim() && rawPhone.toLowerCase() !== 'null' && rawPhone.toLowerCase() !== 'undefined'
+      const tenantPhone = hasPhone ? rawPhone : `080${String(user.id || Math.floor(Math.random() * 100000000)).padStart(8, '0')}`
+
+      if (!hasPhone) {
+        this.logger.log(`User ${user.email} does not have a valid phone number on profile. Using generated mock phone number: ${tenantPhone}`)
       }
+
       const availableOverpayments = await this.overpaymentRepo.findByUserIdAndStatus(user.id!, 'AVAILABLE')
       const totalCredit = availableOverpayments.reduce((sum, o) => sum + o.amount, 0)
       
@@ -671,8 +701,8 @@ export class InitializePaymentUseCase {
         const dva = await this.resolveDedicatedAccount.execute({
           userPropertyId: userPropertyId,
           tenantEmail: user.email!,
-          tenantName: `${user.firstName} ${user.lastName}`,
-          tenantPhone: user.phone ?? undefined,
+          tenantName: `${user.firstName || 'Tenant'} ${user.lastName || 'User'}`.trim(),
+          tenantPhone: tenantPhone,
           subaccountCode: pr.subaccount?.subaccountCode
         })
 
@@ -959,6 +989,30 @@ export class ProcessPaymentWebhookUseCase {
           where: { reference: originalTxRef },
           data: { settlementStatus: isSuccess ? 'REFUNDED' : 'PENDING_REFUND' }
         })
+
+        const targetTx = await this.prisma.upward_transaction.findUnique({
+          where: { reference: originalTxRef }
+        })
+        if (targetTx) {
+          const logStatus = isSuccess ? 'DISPATCHED' : 'FAILED'
+          const existingLog = await this.prisma.upward_refund_log.findFirst({
+            where: { transactionId: targetTx.id },
+            orderBy: { createdAt: 'desc' }
+          })
+          if (existingLog) {
+            await this.prisma.upward_refund_log.update({
+              where: { id: existingLog.id },
+              data: {
+                status: logStatus,
+                resolvedAt: isSuccess ? new Date() : undefined,
+                metadata: {
+                  ...(existingLog.metadata as any || {}),
+                  webhookPayload: payload.data
+                }
+              }
+            })
+          }
+        }
       }
 
       return { success: true }
@@ -1025,7 +1079,8 @@ export class ProcessPaymentWebhookUseCase {
     }
 
     // Verification Logic: Intercept & Check against Source of Truth
-    const expectedTotal = pr.amount + this.paymentConfig.getProcessingFee()
+    const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(pr.userId, pr.userPropertyId)
+    const expectedTotal = pr.amount + dynamicFee
 
     let settlementStatus = 'VERIFIED'
     if (!pr.allowPartial && amountPaid < expectedTotal) {
@@ -1326,6 +1381,7 @@ export class GetPropertyBalanceUseCase {
     private readonly propertyRepo: PropertyRepository,
     @Inject(PAYMENT_REQUEST_REPOSITORY)
     private readonly paymentRequestRepo: IPaymentRequestRepository,
+    private readonly paymentConfig: PaymentConfigurationService,
   ) { }
 
   async execute(propertyUuid: string) {
@@ -1344,6 +1400,8 @@ export class GetPropertyBalanceUseCase {
       ? Math.max(0, totalOwed - amountPaid)
       : (prop.amountRemaining ?? Math.max(0, totalOwed - amountPaid))
 
+    const processingFee = await this.paymentConfig.getDynamicProcessingFee(prop.userId, prop.id)
+
     return {
       propertyUuid: prop.uuid,
       address: [prop.location?.address, prop.location?.area, prop.location?.state, prop.location?.country].filter(Boolean).join(', '),
@@ -1353,7 +1411,8 @@ export class GetPropertyBalanceUseCase {
       remainingBalance: remainingBalance,
       currency: prop.currency || 'NGN',
       dueDate: prop.rentEndDate,
-      hasActiveRequest: propRequests.length > 0
+      hasActiveRequest: propRequests.length > 0,
+      processingFee,
     }
   }
 }

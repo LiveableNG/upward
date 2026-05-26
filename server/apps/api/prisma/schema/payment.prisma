@@ -18,6 +18,7 @@ model upward_transaction {
   isManual         Boolean                 @default(false)
   transactionType  String                  @default("PAYMENT")
   overpayments     upward_overpayment[]
+  refundLogs       upward_refund_log[]
   paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
   user             upward_user             @relation(fields: [userId], references: [id], onDelete: Cascade)
   
@@ -208,3 +209,42 @@ model upward_settlement_batch {
   updatedAt       DateTime             @updatedAt
   transactions    upward_transaction[]
 }
+
+model upward_refund_log {
+  id               Int                     @id @default(autoincrement())
+  uuid             String                  @unique @default(uuid())
+  transactionId    Int
+  userId           Int
+  pmId             Int?
+  amount           Float
+  currency         String                  @default("NGN")
+  reason           String                  // DUPLICATE_PAYMENT, UNDERPAYMENT_VIOLATION
+  status           String                  // FLAGGED, PENDING_DISPATCH, DISPATCHED, PM_ACCEPTED, FAILED
+  actionBy         String?                 // SYSTEM, PM_<pmId>, ADMIN_<adminId>
+  metadata         Json?
+  
+  flaggedAt        DateTime                @default(now())
+  resolvedAt       DateTime?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  transaction      upward_transaction      @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  user             upward_user             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([userId])
+}
+
+model upward_fee_override {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  targetType  String   // "USER", "PM", "COMPANY", "PLATFORM"
+  targetId    String   // The UUID of the target entity
+  fee         Float    // Custom flat fee in NGN
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([targetType, targetId])
+  @@index([targetType, targetId])
+}
+

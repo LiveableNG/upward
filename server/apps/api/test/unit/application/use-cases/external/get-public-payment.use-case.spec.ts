@@ -5,6 +5,7 @@ import { PropertyRepository } from '@domains/companies/property.repository'
 import { UserRepository } from '@domains/users/user.repository'
 import { CompanyRepository, ManagerRepository } from '@domains/companies/company.repository'
 import { VerificationTokenRepository } from '@domains/auth/verification-token.repository'
+import { PaymentConfigurationService } from '@shared/infrastructure/common/payment-config.service'
 
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -89,8 +90,13 @@ describe('GetPublicPaymentDetailsUseCase', () => {
   let lineItemRepository: jest.Mocked<IPaymentLineItemRepository>
   let gateway: jest.Mocked<IPaymentGateway>
   let verificationTokenRepository: jest.Mocked<VerificationTokenRepository>
+  let paymentConfig: jest.Mocked<PaymentConfigurationService>
 
   beforeEach(() => {
+    paymentConfig = {
+      getDynamicProcessingFee: jest.fn().mockResolvedValue(2000),
+    } as any
+
     paymentRequestRepository = {
       findByUuid: jest.fn(),
       findById: jest.fn(),
@@ -146,6 +152,7 @@ describe('GetPublicPaymentDetailsUseCase', () => {
       managerRepository,
       gateway,
       verificationTokenRepository,
+      paymentConfig,
     )
   })
 

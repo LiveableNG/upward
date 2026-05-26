@@ -16,6 +16,7 @@ import {
   X,
   CheckCircle2,
   UserPlus,
+  RefreshCcw
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { apiService } from '../services/api.service'
@@ -54,6 +55,24 @@ interface Meta {
   totalPages: number
 }
 
+interface FeeOverride {
+  id: number
+  targetType: string
+  targetId: string
+  fee: number
+  createdAt: string
+  targetName?: string
+  targetEmail?: string
+}
+
+interface FeeTarget {
+  id: string
+  name: string
+  email: string
+  type: string
+  fee: number | null
+}
+
 interface DashboardProps {
   token: string
   adminRole?: string
@@ -61,6 +80,15 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const isSuperadmin = adminRole === 'SUPERADMIN'
+  const navigate = useNavigate()
+
+  // Navigation Tabs
+  const [activeTab, setActiveTab] = useState<'users' | 'pms'>('users')
+
+  // Shared state
+  const [overrides, setOverrides] = useState<FeeOverride[]>([])
+
+  // Users Tab state
   const [stats, setStats] = useState<Stats | null>(null)
   const [allUsers, setAllUsers] = useState<User[]>([])
   const [meta, setMeta] = useState<Meta | null>(null)
@@ -72,17 +100,40 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     ids: [],
   })
 
+  // PMs Tab state
+  const [pmList, setPmList] = useState<FeeTarget[]>([])
+  const [loadingPms, setLoadingPms] = useState(false)
+  const [pmSearch, setPmSearch] = useState('')
+
+  // Filters for Users
   const [filters, setFilters] = useState({
     search: '',
     isWaitlist: 'all' as 'all' | 'true' | 'false',
     isInvited: 'all' as 'all' | 'true' | 'false',
     unsubscribed: 'all' as 'all' | 'true' | 'false',
   })
-  const navigate = useNavigate()
-  const [dateRange, setDateRange] = useState<'all' | 'today' | 'yesterday' | '2days' | '1week'>(
-    'all',
-  )
+  const [dateRange, setDateRange] = useState<'all' | 'today' | 'yesterday' | '2days' | '1week'>('all')
   const [page, setPage] = useState(1)
+
+  // Tenant Editing Modal state
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [editFirstName, setEditFirstName] = useState('')
+  const [editLastName, setEditLastName] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [userFee, setUserFee] = useState('2000')
+  const [savingUser, setSavingUser] = useState(false)
+
+  // PM Override Modal state
+  const [selectedPm, setSelectedPm] = useState<FeeTarget | null>(null)
+  const [pmFee, setPmFee] = useState('2000')
+  
+  // Custom Override Form (Company/Platform) inside PM modal
+  const [customOverrideType, setCustomOverrideType] = useState('COMPANY')
+  const [customOverrideId, setCustomOverrideId] = useState('')
+  const [customOverrideFee, setCustomOverrideFee] = useState('2000')
+
+  const [savingOverride, setSavingOverride] = useState(false)
 
   // Compute date bounds from dateRange
   const dateBounds = useMemo(() => {
@@ -111,6 +162,18 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     return null
   }, [dateRange])
 
+  // Fetch Overrides List
+  const fetchOverrides = async () => {
+    try {
+      const response = await apiService.get('/admin/fees/overrides', token)
+      if (response && response.success) {
+        setOverrides(response.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch overrides:', error)
+    }
+  }
+
   // Fetch Stats
   const fetchAnalytics = useCallback(async () => {
     try {
@@ -129,7 +192,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     }
   }, [token, filters, dateBounds])
 
-  // Fetch Users based on filters and page
+  // Fetch Users
   const fetchUsers = useCallback(
     async (pageToFetch: number, isLoadMore = false) => {
       setLoadingUsers(true)
@@ -164,19 +227,44 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     [token, filters, dateBounds],
   )
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      fetchAnalytics()
-    }, 500)
-    return () => clearTimeout(timeout)
-  }, [fetchAnalytics])
+  // Fetch Property Managers
+  const fetchPms = useCallback(async () => {
+    setLoadingPms(true)
+    try {
+      const response = await apiService.get(`/admin/fees/targets?type=PM&q=${encodeURIComponent(pmSearch)}`, token)
+      if (response && response.success) {
+        setPmList(response.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch PM list:', error)
+    } finally {
+      setLoadingPms(false)
+    }
+  }, [token, pmSearch])
 
-  // Trigger search on filter change
+  // Initial load
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      fetchUsers(1, false)
-    }, 300)
-    return () => clearTimeout(timeout)
+    fetchOverrides()
+  }, [])
+
+  // Sync analytics
+  useEffect(() => {
+    if (activeTab === 'users') {
+      const timeout = setTimeout(() => {
+        fetchAnalytics()
+      }, 500)
+      return () => clearTimeout(timeout)
+    }
+  }, [fetchAnalytics, activeTab])
+
+  // Sync users
+  useEffect(() => {
+    if (activeTab === 'users') {
+      const timeout = setTimeout(() => {
+        fetchUsers(1, false)
+      }, 300)
+      return () => clearTimeout(timeout)
+    }
   }, [
     filters.search,
     filters.isWaitlist,
@@ -184,7 +272,18 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     filters.unsubscribed,
     dateRange,
     fetchUsers,
+    activeTab
   ])
+
+  // Sync PMs
+  useEffect(() => {
+    if (activeTab === 'pms') {
+      const timeout = setTimeout(() => {
+        fetchPms()
+      }, 300)
+      return () => clearTimeout(timeout)
+    }
+  }, [pmSearch, fetchPms, activeTab])
 
   const handleExportCSV = async () => {
     if (allUsers.length === 0) return
@@ -215,7 +314,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
     const csvContent = [headers, ...rows].join('\n')
 
-    // Log export event
     try {
       await apiService.post(
         '/admin/logs/event',
@@ -241,7 +339,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     showToast(`Exported ${allUsers.length} users to CSV`)
   }
 
-  const toggleSelect = (id: string) => {
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
     setSelectedIds((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -273,7 +372,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
     setLoadingUsers(true)
     try {
-      // Fetch ALL IDs for the current filters by setting a high limit
       const params = new URLSearchParams({
         page: '1',
         limit: meta.total.toString(),
@@ -297,789 +395,1092 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     }
   }
 
-  if (loading || !stats) {
-    return (
-      <div className="page-container">
-        <div style={{ color: 'var(--text-muted)' }}>Loading dashboard...</div>
-      </div>
-    )
+  // --- Modal Openers ---
+  const handleOpenUserModal = (user: User) => {
+    setSelectedUser(user)
+    setEditFirstName(user.firstName || '')
+    setEditLastName(user.lastName || '')
+    setEditEmail(user.email || '')
+    setEditPhone(user.phone || '')
+
+    const matchedOverride = overrides.find(o => o.targetType === 'USER' && o.targetId === user.uuid)
+    setUserFee(matchedOverride ? String(matchedOverride.fee) : '2000')
   }
 
-  const statItems = [
-    { label: 'Total Users', value: stats.totalUsers, icon: Users, color: '#d97757' },
-    {
-      label: 'Joined from Waitlist',
-      value: stats.convertedCount,
-      icon: CheckCircle2,
-      color: '#10b981',
-    },
-    {
-      label: 'Joined from Invitation',
-      value: stats.joinedFromInviteCount,
-      icon: UserPlus,
-      color: '#a855f7',
-    },
-    {
-      label: 'Self Sign-ups',
-      value: stats.selfSignupCount,
-      icon: Users,
-      color: '#ec4899',
-    },
-    {
-      label: 'Launch Emails Sent',
-      value: stats.launchEmailsSent,
-      icon: Mail,
-      color: '#6366f1',
-    },
-    {
-      label: 'Launch Emails Failed',
-      value: stats.launchEmailsFailed,
-      icon: AlertTriangle,
-      color: '#f59e0b',
-    },
-  ]
+  const handleOpenPmModal = (pm: FeeTarget) => {
+    setSelectedPm(pm)
+    const matchedOverride = overrides.find(o => o.targetType === 'PM' && o.targetId === pm.id)
+    setPmFee(matchedOverride ? String(matchedOverride.fee) : '2000')
+    setCustomOverrideId('')
+    setCustomOverrideFee('2000')
+  }
+
+  // --- API Action Executions ---
+  const handleSaveUserDetails = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedUser) return
+
+    setSavingUser(true)
+    try {
+      await apiService.patch(`/admin/users/${selectedUser.id}`, {
+        firstName: editFirstName,
+        lastName: editLastName,
+        email: editEmail,
+        phone: editPhone
+      }, token)
+      
+      showToast('User details updated successfully')
+      fetchUsers(page, false)
+      
+      // Update local state if needed
+      setSelectedUser(prev => prev ? {
+        ...prev,
+        firstName: editFirstName,
+        lastName: editLastName,
+        email: editEmail,
+        phone: editPhone
+      } : null)
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to update user', true)
+    } finally {
+      setSavingUser(false)
+    }
+  }
+
+  const handleSaveUserFee = async () => {
+    if (!selectedUser) return
+    const feeNum = parseFloat(userFee)
+    if (isNaN(feeNum) || feeNum < 0) {
+      showToast('Please enter a valid fee.', true)
+      return
+    }
+
+    setSavingOverride(true)
+    try {
+      await apiService.post('/admin/fees/overrides', {
+        targetType: 'USER',
+        targetId: selectedUser.uuid,
+        fee: feeNum
+      }, token)
+      
+      showToast('User custom fee override saved')
+      await fetchOverrides()
+      fetchUsers(page, false)
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to save override', true)
+    } finally {
+      setSavingOverride(false)
+    }
+  }
+
+  const handleDeleteUserFee = async () => {
+    if (!selectedUser) return
+    
+    setSavingOverride(true)
+    try {
+      await apiService.delete(`/admin/fees/overrides/USER/${selectedUser.uuid}`, token)
+      showToast('User fee override removed')
+      setUserFee('2000')
+      await fetchOverrides()
+      fetchUsers(page, false)
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to delete override', true)
+    } finally {
+      setSavingOverride(false)
+    }
+  }
+
+  const handleSavePmFee = async () => {
+    if (!selectedPm) return
+    const feeNum = parseFloat(pmFee)
+    if (isNaN(feeNum) || feeNum < 0) {
+      showToast('Please enter a valid fee.', true)
+      return
+    }
+
+    setSavingOverride(true)
+    try {
+      await apiService.post('/admin/fees/overrides', {
+        targetType: 'PM',
+        targetId: selectedPm.id,
+        fee: feeNum
+      }, token)
+      
+      showToast('Property Manager fee override saved')
+      await fetchOverrides()
+      fetchPms()
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to save PM fee override', true)
+    } finally {
+      setSavingOverride(false)
+    }
+  }
+
+  const handleDeletePmFee = async () => {
+    if (!selectedPm) return
+
+    setSavingOverride(true)
+    try {
+      await apiService.delete(`/admin/fees/overrides/PM/${selectedPm.id}`, token)
+      showToast('PM fee override removed')
+      setPmFee('2000')
+      await fetchOverrides()
+      fetchPms()
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to delete PM override', true)
+    } finally {
+      setSavingOverride(false)
+    }
+  }
+
+  const handleSaveCustomOverride = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!customOverrideId.trim()) {
+      showToast('Please enter a target ID', true)
+      return
+    }
+    const feeNum = parseFloat(customOverrideFee)
+    if (isNaN(feeNum) || feeNum < 0) {
+      showToast('Please enter a valid fee amount', true)
+      return
+    }
+
+    setSavingOverride(true)
+    try {
+      await apiService.post('/admin/fees/overrides', {
+        targetType: customOverrideType,
+        targetId: customOverrideId.trim(),
+        fee: feeNum
+      }, token)
+
+      showToast(`${customOverrideType} override saved successfully`)
+      setCustomOverrideId('')
+      setCustomOverrideFee('2000')
+      await fetchOverrides()
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to save override', true)
+    } finally {
+      setSavingOverride(false)
+    }
+  }
+
+  const handleDeleteOverride = async (type: string, id: string) => {
+    if (!confirm('Are you sure you want to delete this custom override?')) return
+    
+    try {
+      await apiService.delete(`/admin/fees/overrides/${type}/${id}`, token)
+      showToast('Override deleted')
+      fetchOverrides()
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to delete override', true)
+    }
+  }
 
   const activeFilterCount =
     (filters.isWaitlist !== 'all' ? 1 : 0) +
     (filters.isInvited !== 'all' ? 1 : 0) +
     (filters.unsubscribed !== 'all' ? 1 : 0)
 
+  // Get active override details for target
+  const getOverrideLabel = (type: string, id: string) => {
+    const match = overrides.find(o => o.targetType === type && o.targetId === id)
+    return match ? `₦${match.fee.toLocaleString()}` : 'Default (2k)'
+  }
+
   return (
     <div className="page-container fade-in" style={{ paddingTop: '20px' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h2 className="section-title" style={{ marginBottom: '20px' }}>
+      
+      {/* Title & Top Refresh */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 className="section-title" style={{ margin: 0 }}>
           Admin Dashboard
         </h2>
+        <button
+          onClick={() => {
+            fetchOverrides()
+            if (activeTab === 'users') {
+              fetchAnalytics()
+              fetchUsers(page, false)
+            } else {
+              fetchPms()
+            }
+          }}
+          className="btn btn-secondary"
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          <RefreshCcw size={16} /> Refresh
+        </button>
+      </div>
 
-        <div
-          className="stats-grid"
+      {/* Segmented Control Tabs */}
+      <div style={{ display: 'flex', gap: '16px', borderBottom: '1px solid var(--border)', marginBottom: '24px' }}>
+        <button
+          onClick={() => setActiveTab('users')}
           style={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(auto-fit, minmax(240px, 1fr))`,
-            gap: '20px',
-            marginBottom: '24px',
+            padding: '12px 16px',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'users' ? '2px solid var(--accent)' : '2px solid transparent',
+            fontWeight: 600,
+            color: activeTab === 'users' ? 'var(--text)' : 'var(--text-muted)',
+            cursor: 'pointer',
+            transition: 'var(--transition)'
           }}
         >
-          {statItems.map((stat, idx) => (
-            <div
-              key={idx}
-              className="card"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '20px',
-                padding: '24px',
-              }}
-            >
+          Tenants
+        </button>
+        <button
+          onClick={() => setActiveTab('pms')}
+          style={{
+            padding: '12px 16px',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'pms' ? '2px solid var(--accent)' : '2px solid transparent',
+            fontWeight: 600,
+            color: activeTab === 'pms' ? 'var(--text)' : 'var(--text-muted)',
+            cursor: 'pointer',
+            transition: 'var(--transition)'
+          }}
+        >
+          Property Managers & Fees
+        </button>
+      </div>
+
+      {/* ==================== TENANTS TAB CONTENT ==================== */}
+      {activeTab === 'users' && (
+        <>
+          {loading || !stats ? (
+            <div style={{ color: 'var(--text-muted)', padding: '48px 0', textAlign: 'center' }}>
+              Loading analytics and tenant list...
+            </div>
+          ) : (
+            <>
+              {/* Stats Summary Cards */}
               <div
+                className="stats-grid"
                 style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '16px',
-                  backgroundColor: `${stat.color}10`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: stat.color,
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(auto-fit, minmax(240px, 1fr))`,
+                  gap: '20px',
+                  marginBottom: '24px',
                 }}
               >
-                <stat.icon size={24} />
+                {statItems(stats).map((stat, idx) => (
+                  <div
+                    key={idx}
+                    className="card"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '20px',
+                      padding: '24px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '16px',
+                        backgroundColor: `${stat.color}10`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: stat.color,
+                      }}
+                    >
+                      <stat.icon size={24} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div className="section-label" style={{ marginBottom: '4px' }}>
+                        {stat.label}
+                      </div>
+                      <div style={{ fontSize: '24px', fontWeight: 800 }}>{stat.value}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div style={{ flex: 1 }}>
-                <div className="section-label" style={{ marginBottom: '4px' }}>
-                  {stat.label}
+
+              {/* Filters Block */}
+              <div className="card" style={{ marginBottom: '16px', padding: '20px' }}>
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <CalendarDays size={16} style={{ color: 'var(--text-muted)' }} />
+                    <span className="section-label">Sign-up Period</span>
+                  </div>
+                  <div className="date-chips">
+                    {(
+                      [
+                        { key: 'all', label: 'All Time' },
+                        { key: 'today', label: 'Today' },
+                        { key: 'yesterday', label: 'Yesterday' },
+                        { key: '2days', label: 'Last 2 Days' },
+                        { key: '1week', label: 'Last 7 Days' },
+                      ] as const
+                    ).map(({ key, label }) => (
+                      <button
+                        key={key}
+                        className={`date-chip${dateRange === key ? ' active' : ''}`}
+                        onClick={() => setDateRange(key)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ fontSize: '24px', fontWeight: 800 }}>{stat.value}</div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <Users size={16} style={{ color: 'var(--text-muted)' }} />
+                    <span className="section-label">Waitlist Status</span>
+                  </div>
+                  <div className="date-chips">
+                    {[
+                      { key: 'all' as const, label: 'All' },
+                      { key: 'true' as const, label: 'From Waitlist' },
+                      { key: 'false' as const, label: 'Self Signed-up' },
+                    ].map(({ key, label }) => (
+                      <button
+                        key={key}
+                        className={`date-chip${filters.isWaitlist === key ? ' active' : ''}`}
+                        onClick={() => setFilters((prev) => ({ ...prev, isWaitlist: key }))}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <UserPlus size={16} style={{ color: 'var(--text-muted)' }} />
+                    <span className="section-label">Invitation Status</span>
+                  </div>
+                  <div className="date-chips">
+                    {[
+                      { key: 'all' as const, label: 'All' },
+                      { key: 'true' as const, label: 'From Invite' },
+                      { key: 'false' as const, label: 'Not Invited' },
+                    ].map(({ key, label }) => (
+                      <button
+                        key={key}
+                        className={`date-chip${filters.isInvited === key ? ' active' : ''}`}
+                        onClick={() => setFilters((prev) => ({ ...prev, isInvited: key }))}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <Mail size={16} style={{ color: 'var(--text-muted)' }} />
+                    <span className="section-label">Subscription Status</span>
+                  </div>
+                  <div className="date-chips">
+                    {[
+                      { key: 'all' as const, label: 'All' },
+                      { key: 'true' as const, label: 'Unsubscribed' },
+                      { key: 'false' as const, label: 'Subscribed' },
+                    ].map(({ key, label }) => (
+                      <button
+                        key={key}
+                        className={`date-chip${filters.unsubscribed === key ? ' active' : ''}`}
+                        onClick={() => setFilters((prev) => ({ ...prev, unsubscribed: key }))}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                  <Filter size={16} style={{ color: 'var(--text-muted)' }} />
+                  <span className="section-label" style={{ flex: 1 }}>
+                    Filters
+                    {activeFilterCount > 0 && (
+                      <span
+                        style={{
+                          marginLeft: '8px',
+                          background: 'var(--accent)',
+                          color: 'white',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          padding: '1px 6px',
+                          borderRadius: '999px',
+                        }}
+                      >
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </span>
+                  {activeFilterCount > 0 && (
+                    <button
+                      onClick={() =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          isWaitlist: 'all',
+                          isInvited: 'all',
+                          unsubscribed: 'all',
+                        }))
+                      }
+                      style={{
+                        fontSize: '12px',
+                        color: 'var(--text-muted)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                      }}
+                    >
+                      <X size={12} /> Clear filters
+                    </button>
+                  )}
+                </div>
+                <div className="filter-bar">
+                  <div className="filter-field search-field" style={{ flex: 1 }}>
+                    <label>Search Tenants</label>
+                    <div style={{ position: 'relative' }}>
+                      <Search
+                        size={16}
+                        style={{
+                          position: 'absolute',
+                          left: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          color: 'var(--text-muted)',
+                          pointerEvents: 'none',
+                        }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Email, name or phone..."
+                        value={filters.search}
+                        onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
 
-        <div className="card" style={{ marginBottom: '16px', padding: '20px' }}>
-          <div style={{ marginBottom: '16px' }}>
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}
-            >
-              <CalendarDays size={16} style={{ color: 'var(--text-muted)' }} />
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: 'var(--text-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                Sign-up Period
-              </span>
-            </div>
-            <div className="date-chips">
-              {(
-                [
-                  { key: 'all', label: 'All Time' },
-                  { key: 'today', label: 'Today' },
-                  { key: 'yesterday', label: 'Yesterday' },
-                  { key: '2days', label: 'Last 2 Days' },
-                  { key: '1week', label: 'Last 7 Days' },
-                ] as const
-              ).map(({ key, label }) => (
-                <button
-                  key={key}
-                  className={`date-chip${dateRange === key ? ' active' : ''}`}
-                  onClick={() => setDateRange(key)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}
-            >
-              <Users size={16} style={{ color: 'var(--text-muted)' }} />
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: 'var(--text-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                Waitlist Status
-              </span>
-            </div>
-            <div className="date-chips">
-              {[
-                { key: 'all' as const, label: 'All' },
-                { key: 'true' as const, label: 'From Waitlist' },
-                { key: 'false' as const, label: 'Self Signed-up' },
-              ].map(({ key, label }) => (
-                <button
-                  key={key}
-                  className={`date-chip${filters.isWaitlist === key ? ' active' : ''}`}
-                  onClick={() => setFilters((prev) => ({ ...prev, isWaitlist: key }))}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}
-            >
-              <UserPlus size={16} style={{ color: 'var(--text-muted)' }} />
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: 'var(--text-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                Invitation Status
-              </span>
-            </div>
-            <div className="date-chips">
-              {[
-                { key: 'all' as const, label: 'All' },
-                { key: 'true' as const, label: 'From Invite' },
-                { key: 'false' as const, label: 'Not Invited' },
-              ].map(({ key, label }) => (
-                <button
-                  key={key}
-                  className={`date-chip${filters.isInvited === key ? ' active' : ''}`}
-                  onClick={() => setFilters((prev) => ({ ...prev, isInvited: key }))}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}
-            >
-              <Mail size={16} style={{ color: 'var(--text-muted)' }} />
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: 'var(--text-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                Subscription Status
-              </span>
-            </div>
-            <div className="date-chips">
-              {[
-                { key: 'all' as const, label: 'All' },
-                { key: 'true' as const, label: 'Unsubscribed' },
-                { key: 'false' as const, label: 'Subscribed' },
-              ].map(({ key, label }) => (
-                <button
-                  key={key}
-                  className={`date-chip${filters.unsubscribed === key ? ' active' : ''}`}
-                  onClick={() => setFilters((prev) => ({ ...prev, unsubscribed: key }))}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-            <Filter size={16} style={{ color: 'var(--text-muted)' }} />
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                flex: 1,
-              }}
-            >
-              Filters
-              {activeFilterCount > 0 && (
-                <span
+              {/* Tenants Table Card */}
+              <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+                <div
                   style={{
-                    marginLeft: '8px',
-                    background: 'var(--accent)',
-                    color: 'white',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    padding: '1px 6px',
-                    borderRadius: '999px',
-                  }}
-                >
-                  {activeFilterCount}
-                </span>
-              )}
-            </span>
-            {activeFilterCount > 0 && (
-              <button
-                onClick={() =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    isWaitlist: 'all',
-                    isInvited: 'all',
-                    unsubscribed: 'all',
-                  }))
-                }
-                style={{
-                  fontSize: '12px',
-                  color: 'var(--text-muted)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                }}
-              >
-                <X size={12} /> Clear filters
-              </button>
-            )}
-          </div>
-          <div className="filter-bar">
-            <div className="filter-field search-field" style={{ flex: 1 }}>
-              <label>Search</label>
-              <div style={{ position: 'relative' }}>
-                <Search
-                  size={16}
-                  style={{
-                    position: 'absolute',
-                    left: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-muted)',
-                    pointerEvents: 'none',
-                  }}
-                />
-                <input
-                  type="text"
-                  placeholder="Email, name or phone..."
-                  value={filters.search}
-                  onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-          <div
-            style={{
-              padding: '24px',
-              borderBottom: '1px solid var(--border)',
-              display: 'flex',
-              flexWrap: 'wrap',
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: '16px',
-            }}
-          >
-            <div>
-              <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Users List</h3>
-              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                Showing {allUsers.length} of {meta?.total || 0} users
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-              {isSuperadmin && selectedIds.size > 0 && (
-                <button
-                  onClick={() => setDeleteModal({ show: true, ids: Array.from(selectedIds) })}
-                  style={{
+                    padding: '24px',
+                    borderBottom: '1px solid var(--border)',
                     display: 'flex',
+                    flexWrap: 'wrap',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 16px',
-                    backgroundColor: '#fee2e2',
-                    color: '#dc2626',
-                    border: '1px solid #fecaca',
-                    borderRadius: '12px',
-                    fontSize: '14px',
-                    fontWeight: 600,
+                    gap: '16px',
                   }}
                 >
-                  <Trash2 size={16} /> Delete Selected ({selectedIds.size})
-                </button>
-              )}
-              {meta && meta.total > 0 && (
-                <button
-                  onClick={handleEmailFiltered}
-                  disabled={loadingUsers}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 16px',
-                    backgroundColor: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '12px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    color: 'var(--text)',
-                    transition: 'all 0.2s',
-                    cursor: loadingUsers ? 'not-allowed' : 'pointer',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
-                >
-                  <Mail size={16} style={{ color: 'var(--accent)' }} />
-                  Email Filtered ({meta.total})
-                </button>
-              )}
-              <button
-                onClick={handleExportCSV}
-                disabled={allUsers.length === 0}
+                  <div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Tenants list</h3>
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                      Showing {allUsers.length} of {meta?.total || 0} users (Click a row to edit details or configure checkout fees)
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {isSuperadmin && selectedIds.size > 0 && (
+                      <button
+                        onClick={() => setDeleteModal({ show: true, ids: Array.from(selectedIds) })}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '10px 16px',
+                          backgroundColor: '#fee2e2',
+                          color: '#dc2626',
+                          border: '1px solid #fecaca',
+                          borderRadius: '12px',
+                          fontSize: '14px',
+                          fontWeight: 600,
+                        }}
+                      >
+                        <Trash2 size={16} /> Delete Selected ({selectedIds.size})
+                      </button>
+                    )}
+                    {meta && meta.total > 0 && (
+                      <button
+                        onClick={handleEmailFiltered}
+                        disabled={loadingUsers}
+                        className="btn btn-secondary"
+                        style={{ borderRadius: '12px', height: '42px' }}
+                      >
+                        <Mail size={16} style={{ color: 'var(--accent)' }} />
+                        Email Filtered ({meta.total})
+                      </button>
+                    )}
+                    <button
+                      onClick={handleExportCSV}
+                      disabled={allUsers.length === 0}
+                      className="btn btn-secondary"
+                      style={{ borderRadius: '12px', height: '42px' }}
+                    >
+                      <Download size={16} /> Export CSV
+                    </button>
+                  </div>
+                </div>
+
+                <div className="table-container">
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+                        {isSuperadmin && (
+                          <th style={{ padding: '16px 8px 16px 24px', width: '40px' }}>
+                            <button
+                              onClick={toggleSelectAll}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                              }}
+                            >
+                              {selectedIds.size === allUsers.length && allUsers.length > 0 ? (
+                                <CheckSquare size={18} color="var(--accent)" />
+                              ) : (
+                                <Square size={18} />
+                              )}
+                            </button>
+                          </th>
+                        )}
+                        <th style={{ padding: isSuperadmin ? '16px 16px 16px 8px' : '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Member</th>
+                        <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Contact</th>
+                        <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Origin</th>
+                        <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Fee</th>
+                        <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Joined Date</th>
+                        {isSuperadmin && <th style={{ padding: '16px', width: '80px' }} />}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allUsers.map((user) => (
+                        <tr
+                          key={user.id}
+                          onClick={() => handleOpenUserModal(user)}
+                          style={{
+                            borderBottom: '1px solid var(--border)',
+                            verticalAlign: 'top',
+                            backgroundColor: selectedIds.has(user.id) ? 'var(--accent-faint)' : 'transparent',
+                            transition: 'background-color 0.2s',
+                            cursor: 'pointer'
+                          }}
+                          className="table-row-hover"
+                        >
+                          {isSuperadmin && (
+                            <td style={{ padding: '16px 8px 16px 24px', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={(e) => toggleSelect(user.id, e)}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: 'var(--text-muted)',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                }}
+                              >
+                                {selectedIds.has(user.id) ? (
+                                  <CheckSquare size={18} color="var(--accent)" />
+                                ) : (
+                                  <Square size={18} />
+                                )}
+                              </button>
+                            </td>
+                          )}
+                          <td style={{ padding: isSuperadmin ? '16px 16px 16px 8px' : '16px 24px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div
+                                style={{
+                                  width: '40px',
+                                  height: '40px',
+                                  borderRadius: '12px',
+                                  background: 'var(--surface-hover)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: 700,
+                                  color: 'var(--accent)',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {user.firstName ? formatName(user.firstName)[0] : user.email[0].toUpperCase()}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 600, fontSize: '14px' }}>
+                                  {formatName(user.firstName || '')} {formatName(user.lastName || '')}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '16px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
+                                <Mail size={14} color="var(--text-muted)" /> {user.email}
+                              </div>
+                              {user.phone && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
+                                  <Phone size={14} color="var(--text-muted)" /> {user.phone}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td style={{ padding: '16px' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              {user.isFromWaitlist && (
+                                <span className="badge" style={{ background: '#e0f2fe', color: '#0369a1' }}>Waitlist</span>
+                              )}
+                              {user.isFromInvite && (
+                                <span className="badge" style={{ background: '#f3e8ff', color: '#6b21a8' }}>Invitation</span>
+                              )}
+                              {!user.isFromWaitlist && !user.isFromInvite && (
+                                <span className="badge" style={{ background: '#ecfdf5', color: '#047857' }}>Self Signup</span>
+                              )}
+                            </div>
+                          </td>
+                          <td style={{ padding: '16px', verticalAlign: 'middle' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent)' }}>
+                              {getOverrideLabel('USER', user.uuid)}
+                            </span>
+                          </td>
+                          <td style={{ padding: '16px' }}>
+                            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Clock size={14} /> {new Date(user.createdAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </td>
+                          {isSuperadmin && (
+                            <td style={{ padding: '16px', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <button
+                                  onClick={() => setDeleteModal({ show: true, ids: [user.id] })}
+                                  title="Delete user"
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    padding: '4px',
+                                    borderRadius: '6px',
+                                    transition: 'color 0.2s',
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.color = '#dc2626')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {meta && meta.page < meta.totalPages && (
+                  <div style={{ padding: '24px', textAlign: 'center', borderTop: '1px solid var(--border)' }}>
+                    <button
+                      onClick={() => fetchUsers(page + 1, true)}
+                      disabled={loadingUsers}
+                      className="btn btn-secondary"
+                      style={{ height: '48px', padding: '0 32px', borderRadius: '12px' }}
+                    >
+                      {loadingUsers ? 'Loading...' : 'Show More Users'}
+                      {!loadingUsers && <ChevronDown size={18} />}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {/* ==================== PROPERTY MANAGERS TAB CONTENT ==================== */}
+      {activeTab === 'pms' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Property Managers (PMs)</h3>
+            <div style={{ position: 'relative', width: '300px' }}>
+              <Search
+                size={16}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 16px',
-                  backgroundColor: 'var(--white)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '12px',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  opacity: allUsers.length === 0 ? 0.5 : 1,
-                  cursor: allUsers.length === 0 ? 'not-allowed' : 'pointer',
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)',
+                  pointerEvents: 'none',
                 }}
-              >
-                <Download size={16} /> Export CSV
-              </button>
+              />
+              <input
+                type="text"
+                placeholder="Search PMs..."
+                value={pmSearch}
+                onChange={(e) => setPmSearch(e.target.value)}
+                className="input"
+                style={{ paddingLeft: '36px' }}
+              />
             </div>
           </div>
 
           <div className="table-container">
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
-                <tr
-                  style={{
-                    backgroundColor: 'var(--surface)',
-                    borderBottom: '1px solid var(--border)',
-                  }}
-                >
-                  {isSuperadmin && (
-                    <th style={{ padding: '16px 8px 16px 24px', width: '40px' }}>
-                      <button
-                        onClick={toggleSelectAll}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--text-muted)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                        }}
-                      >
-                        {selectedIds.size === allUsers.length && allUsers.length > 0 ? (
-                          <CheckSquare size={18} color="var(--accent)" />
-                        ) : (
-                          <Square size={18} />
-                        )}
-                      </button>
-                    </th>
-                  )}
-                  <th
-                    style={{
-                      padding: isSuperadmin ? '16px 16px 16px 8px' : '16px 24px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    Member
-                  </th>
-                  <th
-                    style={{
-                      padding: '16px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    Contact
-                  </th>
-                  <th
-                    style={{
-                      padding: '16px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    Origin
-                  </th>
-                  <th
-                    style={{
-                      padding: '16px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    Subscription
-                  </th>
-                  <th
-                    style={{
-                      padding: '16px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    Joined Date
-                  </th>
-                  {isSuperadmin && (
-                    <th
-                      style={{
-                        padding: '16px',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        color: 'var(--text-muted)',
-                        textTransform: 'uppercase',
-                        width: '60px',
-                      }}
-                    />
-                  )}
+                <tr style={{ backgroundColor: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+                  <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Property Manager</th>
+                  <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Email</th>
+                  <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Custom Fee</th>
+                  <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {allUsers.length === 0 && !loadingUsers ? (
+                {loadingPms ? (
                   <tr>
-                    <td
-                      colSpan={isSuperadmin ? 7 : 5}
-                      style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}
-                    >
-                      No users found matching your criteria.
+                    <td colSpan={4} style={{ padding: '48px', textAlign: 'center' }}>
+                      <div className="loader" style={{ margin: '0 auto' }}></div>
+                    </td>
+                  </tr>
+                ) : pmList.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      No property managers found.
                     </td>
                   </tr>
                 ) : (
-                  allUsers.map((user) => (
+                  pmList.map((pm) => (
                     <tr
-                      key={user.id}
-                      style={{
-                        borderBottom: '1px solid var(--border)',
-                        verticalAlign: 'top',
-                        backgroundColor: selectedIds.has(user.id)
-                          ? 'var(--accent-faint)'
-                          : 'transparent',
-                        transition: 'background-color 0.2s',
-                      }}
+                      key={pm.id}
+                      onClick={() => handleOpenPmModal(pm)}
+                      style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                      className="table-row-hover"
                     >
-                      {isSuperadmin && (
-                        <td style={{ padding: '16px 8px 16px 24px', verticalAlign: 'middle' }}>
-                          <button
-                            onClick={() => toggleSelect(user.id)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--text-muted)',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                            }}
-                          >
-                            {selectedIds.has(user.id) ? (
-                              <CheckSquare size={18} color="var(--accent)" />
-                            ) : (
-                              <Square size={18} />
-                            )}
-                          </button>
-                        </td>
-                      )}
-                      <td style={{ padding: isSuperadmin ? '16px 16px 16px 8px' : '16px 24px' }}>
+                      <td style={{ padding: '16px 24px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <div
                             style={{
-                              width: '40px',
-                              height: '40px',
-                              borderRadius: '12px',
-                              background: 'var(--surface-hover)',
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '10px',
+                              background: 'var(--accent-faint)',
+                              color: 'var(--accent)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               fontWeight: 700,
-                              color: 'var(--accent)',
-                              flexShrink: 0,
                             }}
                           >
-                            {user.firstName
-                              ? formatName(user.firstName)[0]
-                              : user.email[0].toUpperCase()}
+                            {(pm.name || 'P')[0].toUpperCase()}
                           </div>
-                          <div>
-                            <div style={{ fontWeight: 600, fontSize: '14px' }}>
-                              {formatName(user.firstName || '')} {formatName(user.lastName || '')}
-                            </div>
-                          </div>
+                          <span style={{ fontWeight: 600, fontSize: '14px' }}>{pm.name}</span>
                         </div>
                       </td>
+                      <td style={{ padding: '16px' }}>{pm.email}</td>
                       <td style={{ padding: '16px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              fontSize: '13px',
-                            }}
-                          >
-                            <Mail size={14} color="var(--text-muted)" /> {user.email}
-                          </div>
-                          {user.phone && (
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                fontSize: '13px',
-                              }}
-                            >
-                              <Phone size={14} color="var(--text-muted)" /> {user.phone}
-                            </div>
-                          )}
-                        </div>
+                        <span style={{ fontWeight: 700, color: 'var(--accent)', fontSize: '14px' }}>
+                          {getOverrideLabel('PM', pm.id)}
+                        </span>
                       </td>
-                      <td style={{ padding: '16px' }}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                          {user.isFromWaitlist && (
-                            <span
-                              style={{
-                                fontSize: '10px',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                background: '#e0f2fe',
-                                color: '#0369a1',
-                                fontWeight: 700,
-                              }}
-                            >
-                              Waitlist
-                            </span>
-                          )}
-                          {user.isFromInvite && (
-                            <span
-                              style={{
-                                fontSize: '10px',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                background: '#f3e8ff',
-                                color: '#6b21a8',
-                                fontWeight: 700,
-                              }}
-                            >
-                              Invitation
-                            </span>
-                          )}
-                          {!user.isFromWaitlist && !user.isFromInvite && (
-                            <span
-                              style={{
-                                fontSize: '10px',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                background: '#ecfdf5',
-                                color: '#047857',
-                                fontWeight: 700,
-                              }}
-                            >
-                              Self Sign-up
-                            </span>
-                          )}
-                        </div>
+                      <td style={{ padding: '16px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => handleOpenPmModal(pm)}
+                          className="btn btn-secondary"
+                          style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '12px' }}
+                        >
+                          Configure Override
+                        </button>
                       </td>
-                      <td style={{ padding: '16px' }}>
-                        {user.unsubscribed ? (
-                          <span
-                            style={{
-                              fontSize: '10px',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              background: '#fee2e2',
-                              color: '#b91c1c',
-                              fontWeight: 700,
-                            }}
-                          >
-                            Unsubscribed
-                          </span>
-                        ) : (
-                          <span
-                            style={{
-                              fontSize: '10px',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              background: '#dcfce7',
-                              color: '#15803d',
-                              fontWeight: 700,
-                            }}
-                          >
-                            Subscribed
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: '16px' }}>
-                        <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Clock size={14} /> {new Date(user.createdAt).toLocaleDateString()}
-                          </div>
-                          <div style={{ fontSize: '11px', marginTop: '2px' }}>
-                            {new Date(user.createdAt).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </div>
-                        </div>
-                      </td>
-                      {isSuperadmin && (
-                        <td style={{ padding: '16px', verticalAlign: 'middle' }}>
-                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            <button
-                              onClick={() => setDeleteModal({ show: true, ids: [user.id] })}
-                              title="Delete user"
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                color: 'var(--text-muted)',
-                                cursor: 'pointer',
-                                padding: '4px',
-                                borderRadius: '6px',
-                                transition: 'color 0.2s',
-                              }}
-                              onMouseEnter={(e) => (e.currentTarget.style.color = '#dc2626')}
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.color = 'var(--text-muted)')
-                              }
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      )}
                     </tr>
                   ))
-                )}
-                {loadingUsers && (
-                  <tr>
-                    <td
-                      colSpan={isSuperadmin ? 7 : 5}
-                      style={{ padding: '24px', textAlign: 'center' }}
-                    >
-                      <div
-                        className="loader"
-                        style={{
-                          margin: '0 auto',
-                          border: '3px solid var(--border)',
-                          borderTop: '3px solid var(--accent)',
-                          borderRadius: '50%',
-                          width: '24px',
-                          height: '24px',
-                          animation: 'spin 1s linear infinite',
-                        }}
-                      ></div>
-                    </td>
-                  </tr>
                 )}
               </tbody>
             </table>
           </div>
-
-          {meta && meta.page < meta.totalPages && (
-            <div
-              style={{ padding: '24px', textAlign: 'center', borderTop: '1px solid var(--border)' }}
-            >
-              <button
-                onClick={() => fetchUsers(page + 1, true)}
-                disabled={loadingUsers}
-                style={{
-                  padding: '12px 32px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--border)',
-                  background: 'var(--white)',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                {loadingUsers ? 'Loading...' : 'Show More Users'}
-                {!loadingUsers && <ChevronDown size={18} />}
-              </button>
-            </div>
-          )}
         </div>
-      </div>
+      )}
 
-      {deleteModal.show && (
-        <div
-          className="modal-overlay"
-          style={{ alignItems: 'center' }}
-          onClick={() => setDeleteModal({ show: false, ids: [] })}
-        >
+      {/* ==================== TENANT DETAILS & FEE MODAL ==================== */}
+      {selectedUser && (
+        <div className="modal-overlay" onClick={() => setSelectedUser(null)}>
           <div
-            className="modal-content"
-            style={{ maxWidth: '400px' }}
+            className="modal-content card fade-in"
+            style={{ maxWidth: '540px', padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px' }}
             onClick={(e) => e.stopPropagation()}
           >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>Configure Tenant Details</h3>
+              <button
+                onClick={() => setSelectedUser(null)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', padding: '12px', background: 'var(--surface)', borderRadius: '12px' }}>
+              <UserPlus size={18} style={{ color: 'var(--accent)', marginTop: '2px' }} />
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>UUID target</div>
+                <div style={{ fontSize: '13px', fontFamily: 'monospace', fontWeight: 700, wordBreak: 'break-all' }}>{selectedUser.uuid}</div>
+              </div>
+            </div>
+
+            {/* Member Details Form */}
+            <form onSubmit={handleSaveUserDetails} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: 800, margin: '8px 0 0 0', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
+                1. Edit Details
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>First Name</label>
+                  <input type="text" value={editFirstName} onChange={(e) => setEditFirstName(e.target.value)} className="input" />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>Last Name</label>
+                  <input type="text" value={editLastName} onChange={(e) => setEditLastName(e.target.value)} className="input" />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>Email</label>
+                <input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="input" required />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>Phone</label>
+                <input type="text" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="input" />
+              </div>
+
+              <button type="submit" className="btn btn-secondary" style={{ alignSelf: 'flex-end', height: '40px' }} disabled={savingUser}>
+                {savingUser ? 'Saving details...' : 'Save User Info'}
+              </button>
+            </form>
+
+            <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '4px 0' }} />
+
+            {/* Custom Processing Fee Override */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: 800, margin: 0, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
+                2. Processing Fee Override (₦)
+              </h4>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}>₦</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={userFee}
+                    onChange={(e) => setUserFee(e.target.value)}
+                    className="input"
+                    style={{ paddingLeft: '32px', fontSize: '16px', fontWeight: 700 }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={handleSaveUserFee} className="btn btn-primary" style={{ height: '44px' }} disabled={savingOverride}>
+                    Save Override
+                  </button>
+                  {overrides.some(o => o.targetType === 'USER' && o.targetId === selectedUser.uuid) && (
+                    <button onClick={handleDeleteUserFee} className="btn btn-secondary" style={{ color: 'var(--danger)', height: '44px' }} disabled={savingOverride}>
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+                This sets a custom fee for this user. Fallback is the associated PM fee or Platform Default (₦2,000).
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== PM DETAILS & FEES MODAL ==================== */}
+      {selectedPm && (
+        <div className="modal-overlay" onClick={() => setSelectedPm(null)}>
+          <div
+            className="modal-content card fade-in"
+            style={{ maxWidth: '600px', padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>Configure PM & Hierarchy Fees</h3>
+              <button
+                onClick={() => setSelectedPm(null)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* PM Target Details Info */}
+            <div style={{ background: 'var(--surface)', padding: '16px', borderRadius: '12px' }}>
+              <span className="section-label">Property Manager Details</span>
+              <div style={{ fontWeight: 700, fontSize: '16px', marginTop: '6px' }}>{selectedPm.name}</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{selectedPm.email}</div>
+              <div style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-muted)', marginTop: '4px' }}>Target ID: {selectedPm.id}</div>
+            </div>
+
+            {/* PM Level Override */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
+                1. PM Processing Fee Override
+              </h4>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}>₦</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={pmFee}
+                    onChange={(e) => setPmFee(e.target.value)}
+                    className="input"
+                    style={{ paddingLeft: '32px', fontSize: '15px', fontWeight: 700 }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={handleSavePmFee} className="btn btn-primary" style={{ height: '42px' }} disabled={savingOverride}>
+                    Save Override
+                  </button>
+                  {overrides.some(o => o.targetType === 'PM' && o.targetId === selectedPm.id) && (
+                    <button onClick={handleDeletePmFee} className="btn btn-secondary" style={{ color: 'var(--danger)', height: '42px' }} disabled={savingOverride}>
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
+
+            {/* Hierarchical Override Form (Company / Platform overrides) */}
+            <form onSubmit={handleSaveCustomOverride} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
+                2. Configure Company or Platform Overrides
+              </h4>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>Type</label>
+                  <select
+                    value={customOverrideType}
+                    onChange={(e) => setCustomOverrideType(e.target.value)}
+                    className="input"
+                  >
+                    <option value="COMPANY">Company</option>
+                    <option value="PLATFORM">Platform</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>Target ID (UUID)</label>
+                  <input
+                    type="text"
+                    placeholder="Enter target UUID..."
+                    value={customOverrideId}
+                    onChange={(e) => setCustomOverrideId(e.target.value)}
+                    className="input"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>Fee Amount (₦)</label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}>₦</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={customOverrideFee}
+                    onChange={(e) => setCustomOverrideFee(e.target.value)}
+                    className="input"
+                    style={{ paddingLeft: '32px', fontWeight: 700 }}
+                    required
+                  />
+                </div>
+              </div>
+
+              <button type="submit" className="btn btn-secondary" style={{ alignSelf: 'flex-end', height: '40px' }} disabled={savingOverride}>
+                {savingOverride ? 'Saving...' : 'Add Custom Override'}
+              </button>
+            </form>
+
+            {/* List Active Company/Platform Overrides in System */}
+            {overrides.some(o => o.targetType === 'COMPANY' || o.targetType === 'PLATFORM') && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <span className="section-label">Active Company/Platform Overrides in System</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '160px', overflowY: 'auto' }}>
+                  {overrides
+                    .filter(o => o.targetType === 'COMPANY' || o.targetType === 'PLATFORM')
+                    .map((ov) => (
+                      <div
+                        key={ov.id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '8px 12px',
+                          background: 'var(--surface)',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border)',
+                          fontSize: '13px'
+                        }}
+                      >
+                        <div>
+                          <span
+                            className="badge"
+                            style={{
+                              fontSize: '9px',
+                              padding: '2px 6px',
+                              background: ov.targetType === 'COMPANY' ? 'var(--warning-faint)' : 'var(--success-faint)',
+                              color: ov.targetType === 'COMPANY' ? 'var(--warning)' : 'var(--success)',
+                              marginRight: '6px'
+                            }}
+                          >
+                            {ov.targetType}
+                          </span>
+                          <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{ov.targetId.slice(0, 8)}...</span>
+                          <span style={{ color: 'var(--text-muted)', marginLeft: '6px' }}>({ov.targetName})</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontWeight: 700, color: 'var(--accent)' }}>₦{ov.fee.toLocaleString()}</span>
+                          <button
+                            onClick={() => handleDeleteOverride(ov.targetType, ov.targetId)}
+                            style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ==================== DELETE MODAL ==================== */}
+      {deleteModal.show && (
+        <div className="modal-overlay" style={{ alignItems: 'center' }} onClick={() => setDeleteModal({ show: false, ids: [] })}>
+          <div className="modal-content" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ padding: '32px', textAlign: 'center' }}>
               <div
                 style={{
@@ -1099,44 +1500,21 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
               <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px' }}>
                 Delete {deleteModal.ids.length > 1 ? `${deleteModal.ids.length} users` : 'user'}?
               </h3>
-              <p
-                style={{
-                  color: 'var(--text-muted)',
-                  fontSize: '14px',
-                  marginBottom: '32px',
-                  lineHeight: 1.6,
-                }}
-              >
-                This action cannot be undone. The selected user{' '}
-                {deleteModal.ids.length === 1 ? 'record' : 'records'} will be permanently removed.
+              <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '32px', lineHeight: 1.6 }}>
+                This action cannot be undone. The selected user records will be permanently removed.
               </p>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button
                   onClick={() => setDeleteModal({ show: false, ids: [] })}
-                  style={{
-                    flex: 1,
-                    padding: '12px',
-                    border: '1px solid var(--border)',
-                    background: 'var(--white)',
-                    borderRadius: '12px',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                  }}
+                  className="btn btn-secondary"
+                  style={{ flex: 1, height: '44px' }}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => handleBatchDelete(deleteModal.ids)}
-                  style={{
-                    flex: 1,
-                    padding: '12px',
-                    border: 'none',
-                    background: '#dc2626',
-                    color: 'white',
-                    borderRadius: '12px',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                  }}
+                  className="btn btn-primary"
+                  style={{ flex: 1, backgroundColor: '#dc2626', height: '44px' }}
                 >
                   Delete
                 </button>
@@ -1147,10 +1525,67 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       )}
 
       <style>{`
+        .table-row-hover:hover {
+          background-color: var(--surface-hover) !important;
+        }
+        .date-chip {
+          padding: 8px 16px;
+          background: var(--white);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-muted);
+          cursor: pointer;
+          transition: var(--transition);
+        }
+        .date-chip.active {
+          background: var(--accent);
+          color: white;
+          border-color: var(--accent);
+        }
+        .date-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .filter-bar {
+          display: flex;
+          gap: 16px;
+          margin-top: 12px;
+        }
+        .filter-field label {
+          display: block;
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          margin-bottom: 6px;
+        }
+        .filter-field input {
+          width: 100%;
+          padding: 10px 16px 10px 36px;
+          border-radius: 10px;
+          border: 1px solid var(--border);
+          background: var(--surface);
+          font-size: 14px;
+        }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .spin {
+          animation: spin 1s linear infinite;
+        }
       `}</style>
     </div>
   )
 }
+
+const statItems = (stats: Stats) => [
+  { label: 'Total Users', value: stats.totalUsers, icon: Users, color: '#d97757' },
+  { label: 'Joined from Waitlist', value: stats.convertedCount, icon: CheckCircle2, color: '#10b981' },
+  { label: 'Joined from Invitation', value: stats.joinedFromInviteCount, icon: UserPlus, color: '#a855f7' },
+  { label: 'Self Sign-ups', value: stats.selfSignupCount, icon: Users, color: '#ec4899' },
+  { label: 'Launch Emails Sent', value: stats.launchEmailsSent, icon: Mail, color: '#6366f1' },
+  { label: 'Launch Emails Failed', value: stats.launchEmailsFailed, icon: AlertTriangle, color: '#f59e0b' },
+]
 
 export default Dashboard
