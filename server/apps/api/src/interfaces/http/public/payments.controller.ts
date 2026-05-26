@@ -13,6 +13,7 @@ import {
   BadRequestException,
 } from '@nestjs/common'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
+import { OptionalJwtAuthGuard } from '../../../application/auth/guards/optional-jwt-auth.guard'
 import {
   SaveLandlordUseCase,
   GetSavedLandlordsUseCase,
@@ -147,10 +148,10 @@ export class PaymentsController {
     }
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(OptionalJwtAuthGuard)
   @Post('initialize')
   async initializePayment(@Req() req: any, @Body() body: any) {
-    const userId = req.user.id
+    const userId = req.user?.id
     const result = await this.initializePaymentUc.execute({
       userId,
       amount: body.amount,

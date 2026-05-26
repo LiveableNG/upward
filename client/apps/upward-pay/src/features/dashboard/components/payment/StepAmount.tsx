@@ -73,6 +73,7 @@ export function StepAmount({
     currency: string
     hasActiveRequest: boolean
     dueDate?: string
+    processingFee?: number
   } | null
   requestedAmount?: number
   totalPaidAlready?: number
@@ -133,7 +134,7 @@ export function StepAmount({
     ]
 
     const nonFeeTotal = items.reduce((sum, i) => i.label === 'Processing Fee' ? sum : sum + (Number(i.amount) || 0), 0)
-    const feeAmount = calculateCombinedFee(nonFeeTotal)
+    const feeAmount = nonFeeTotal > 0 ? (propertyBalance?.processingFee ?? 2000) : 0
     
     const feeItem = items.find(i => i.label === 'Processing Fee')
     if (!feeItem) {
@@ -147,7 +148,7 @@ export function StepAmount({
 
   useEffect(() => {
     const nonFeeTotal = lineItems.reduce((sum, i) => i.label === 'Processing Fee' ? sum : sum + (Number(i.amount) || 0), 0)
-    const newFee = calculateCombinedFee(nonFeeTotal);
+    const newFee = nonFeeTotal > 0 ? (propertyBalance?.processingFee ?? 2000) : 0;
     
     setLineItems(prev => {
       const currentFee = prev.find(i => i.label === 'Processing Fee')?.amount;
@@ -157,7 +158,7 @@ export function StepAmount({
       );
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lineItems.filter(i => i.label !== 'Processing Fee').map(i => i.amount).join(',')]);
+  }, [lineItems.filter(i => i.label !== 'Processing Fee').map(i => i.amount).join(','), propertyBalance?.processingFee]);
 
   useEffect(() => {
     const total = lineItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)

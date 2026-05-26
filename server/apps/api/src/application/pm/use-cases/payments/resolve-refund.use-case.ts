@@ -79,18 +79,62 @@ export class ResolvePendingRefundUseCase {
 
       this.logger.log(`Initiating manual refund of ₦${refundAmount} for transaction ${tx.reference}`);
 
-      await this.paymentGateway.initiateTransfer({
-        amount: refundAmount,
-        accountNumber: bank.accountNumber,
-        bankCode: bank.bankCode,
-        reference: `REFUND-${tx.reference}`,
-        narration: `Upward Refund: Manually triggered by Property Manager`
+      const existingLog = await this.prisma.upward_refund_log.findFirst({
+        where: { transactionId: tx.id },
+        orderBy: { createdAt: 'desc' }
       });
 
-      await this.prisma.upward_transaction.update({
-        where: { id: tx.id },
-        data: { settlementStatus: 'REFUNDED' }
-      });
+      try {
+        await this.paymentGateway.initiateTransfer({
+          amount: refundAmount,
+          accountNumber: bank.accountNumber,
+          bankCode: bank.bankCode,
+          reference: `REFUND-${tx.reference}`,
+          narration: `Upward Refund: Manually triggered by Property Manager`
+        });
+
+        await this.prisma.upward_transaction.update({
+          where: { id: tx.id },
+          data: { settlementStatus: 'REFUNDED' }
+        });
+
+        if (existingLog) {
+          await this.prisma.upward_refund_log.update({
+            where: { id: existingLog.id },
+            data: {
+              status: 'DISPATCHED',
+              pmId,
+              actionBy: `PM_${pmId}`,
+              resolvedAt: new Date(),
+              metadata: {
+                ...(existingLog.metadata as any || {}),
+                transferReference: `REFUND-${tx.reference}`,
+                refundedAmount: refundAmount,
+                dispatchedAt: new Date(),
+                resolution: 'PM_REJECTED'
+              }
+            }
+          });
+        }
+      } catch (err: any) {
+        if (existingLog) {
+          await this.prisma.upward_refund_log.update({
+            where: { id: existingLog.id },
+            data: {
+              status: 'FAILED',
+              pmId,
+              actionBy: `PM_${pmId}`,
+              metadata: {
+                ...(existingLog.metadata as any || {}),
+                failureReason: err.message,
+                failedAt: new Date(),
+                resolution: 'PM_REJECTED'
+              }
+            }
+          });
+        }
+        throw err;
+      }
 
       await this.activityLog.log({
         pmId,
@@ -114,6 +158,27 @@ export class ResolvePendingRefundUseCase {
           where: { id: tx.id },
           data: { settlementStatus: 'VERIFIED' }
         });
+
+        const existingLog = await txClient.upward_refund_log.findFirst({
+          where: { transactionId: tx.id },
+          orderBy: { createdAt: 'desc' }
+        });
+        if (existingLog) {
+          await txClient.upward_refund_log.update({
+            where: { id: existingLog.id },
+            data: {
+              status: 'PM_ACCEPTED',
+              pmId,
+              actionBy: `PM_${pmId}`,
+              resolvedAt: new Date(),
+              metadata: {
+                ...(existingLog.metadata as any || {}),
+                resolution: 'PM_ACCEPTED',
+                acceptedAt: new Date()
+              }
+            }
+          });
+        }
 
         // 2. Perform the bookkeeping (allocations, PM sync, settle property)
         if (tx.paymentRequestId) {

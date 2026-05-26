@@ -10,6 +10,7 @@ import { USER_REPOSITORY, UserRepository, PASS_PLACEHOLDERS } from '../../../dom
 import { COMPANY_REPOSITORY, CompanyRepository, MANAGER_REPOSITORY, ManagerRepository } from '../../../domains/companies/company.repository'
 import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../domains/payments/payment.repository'
 import { VERIFICATION_TOKEN_REPOSITORY, VerificationTokenRepository } from '../../../domains/auth/verification-token.repository'
+import { PaymentConfigurationService } from '../../../shared/infrastructure/common/payment-config.service'
 import { randomUUID } from 'node:crypto'
 
 @Injectable()
@@ -25,6 +26,7 @@ export class GetPublicPaymentDetailsUseCase {
     @Inject(MANAGER_REPOSITORY) private readonly managerRepository: ManagerRepository,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: IPaymentGateway,
     @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
+    private readonly paymentConfig: PaymentConfigurationService,
   ) {}
 
   async execute(uuid: string): Promise<any> {
@@ -103,6 +105,8 @@ export class GetPublicPaymentDetailsUseCase {
       }
     }
 
+    const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(user.id!, paymentRequest.userPropertyId)
+
     return {
       payment: {
         uuid: paymentRequest.uuid,
@@ -119,6 +123,7 @@ export class GetPublicPaymentDetailsUseCase {
         remainingBalance: paymentRequest.amount - (paymentRequest.amountPaid || 0),
         lineItemRecords: lineItemRecords,
         verifiedRecipientName: verifiedRecipientName,
+        processingFee: dynamicFee,
       },
       user: {
         uuid: user.uuid,
