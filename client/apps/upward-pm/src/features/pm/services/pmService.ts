@@ -198,3 +198,36 @@ export const deleteLetterhead = async (id: number | string) => {
     method: 'DELETE'
   })
 }
+
+export const fetchSignatures = async () => {
+  return request<any[]>('/pm/signatures', {
+    method: 'GET'
+  })
+}
+
+export const saveSignature = async (data: any) => {
+  return request<any>('/pm/signatures', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
+export const setDefaultSignature = async (id: number | string) => {
+  return request<any>(`/pm/signatures/${id}/set-as-default`, {
+    method: 'PATCH'
+  })
+}
+
+export const deleteSignature = async (id: number | string) => {
+  return request<any>(`/pm/signatures/${id}`, {
+    method: 'DELETE'
+  })
+}
+
+export const uploadSignature = async (params: { base64Data: string, contentType: string }) => {
+  return request<{ fileKey: string, publicUrl: string }>('/pm/signatures/upload', {
+    method: 'POST',
+    body: JSON.stringify(params)
+  })
+}
+
