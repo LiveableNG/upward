@@ -48,14 +48,14 @@ export const uploadAvatar = async (params: { base64Data: string, contentType: st
   })
 }
 
-export const getLetterheadUploadUrl = async (params: { type: 'header' | 'footer', contentType: string, filename: string }) => {
+export const getLetterheadUploadUrl = async (params: { type: string, contentType: string, filename: string }) => {
   return request<any>('/pm/profile/letterhead-url', {
     method: 'POST',
     body: JSON.stringify(params)
   })
 }
 
-export const uploadLetterhead = async (params: { type: 'header' | 'footer', base64Data: string, contentType: string }) => {
+export const uploadLetterhead = async (params: { type: string, base64Data: string, contentType: string }) => {
   return request<{ publicUrl: string }>('/pm/profile/letterhead-upload', {
     method: 'POST',
     body: JSON.stringify(params)
@@ -171,5 +171,30 @@ export const uploadLogo = async (params: { base64Data: string, contentType: stri
   return request<{ publicUrl: string }>('/pm/email-settings/logo-upload', {
     method: 'POST',
     body: JSON.stringify(params)
+  })
+}
+
+export const fetchLetterheads = async () => {
+  return request<any[]>('/pm/letterheads', {
+    method: 'GET'
+  })
+}
+
+export const saveLetterhead = async (data: any) => {
+  return request<any>('/pm/letterheads', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
+export const setDefaultLetterhead = async (id: number | string) => {
+  return request<any>(`/pm/letterheads/${id}/set-as-default`, {
+    method: 'PATCH'
+  })
+}
+
+export const deleteLetterhead = async (id: number | string) => {
+  return request<any>(`/pm/letterheads/${id}`, {
+    method: 'DELETE'
   })
 }

@@ -19,8 +19,6 @@ model upward_property_manager {
   bankCode        String?
   accountNumber   String?
   accountName     String?
-  letterheadHeaderUrl String?
-  letterheadFooterUrl String?
   isVerified      Boolean                     @default(false)
   createdAt       DateTime                    @default(now())
   updatedAt       DateTime                    @updatedAt
@@ -35,6 +33,7 @@ model upward_property_manager {
   documentTemplates upward_pm_document_template[]
   verification    upward_pm_verification?
   emailSetting    upward_pm_email_setting?
+  letterheads     upward_pm_letterhead[]
   
   teamOwner         upward_pm_team_collaboration[] @relation("OwnerTeam")
   teamCollaborator  upward_pm_team_collaboration[] @relation("CollaboratorTeam")
@@ -43,6 +42,23 @@ model upward_property_manager {
   activityLogsOwned     upward_pm_activity_log[] @relation("ActivityOwner")
 
   @@index([email])
+}
+
+model upward_pm_letterhead {
+  id                         Int                     @id @default(autoincrement())
+  uuid                       String                  @unique @default(uuid())
+  pmId                       Int
+  isDefault                  Boolean                 @default(false)
+  pageCount                  Int                     @default(1)
+  templateFileKey            String?
+  previewFirstPageKey        String?
+  previewContinuationPageKey String?
+  templateConfig             Json?
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
+  pm                         upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+
+  @@index([pmId])
 }
 
 model upward_pm_auth_session {

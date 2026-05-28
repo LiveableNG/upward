@@ -35,6 +35,10 @@ export const api = {
   verifyEmailDomain: pmService.verifyEmailDomain,
   sendEmailSettingsTest: pmService.sendEmailSettingsTest,
   uploadLogo: pmService.uploadLogo,
+  fetchLetterheads: pmService.fetchLetterheads,
+  saveLetterhead: pmService.saveLetterhead,
+  setDefaultLetterhead: pmService.setDefaultLetterhead,
+  deleteLetterhead: pmService.deleteLetterhead,
 
   // Properties & Units
   getProperties: propertyService.getProperties,
