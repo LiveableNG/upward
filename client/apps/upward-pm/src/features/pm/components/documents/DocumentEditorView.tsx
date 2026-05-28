@@ -143,7 +143,7 @@ export function DocumentEditorView({
         recipientName: recipient.name,
         recipientEmail: recipient.email,
         paymentRequestUuid, // New field
-        includeLetterhead: hasLetterhead ? includeLetterhead : false
+        includeLetterhead: hasLetterhead && deliveryMode === 'pdf' ? includeLetterhead : false
       })
       
       success(paymentContext ? 'Payment request and document sent successfully' : 'Document sent and recorded successfully')
@@ -350,7 +350,7 @@ export function DocumentEditorView({
                 />
              </div>
 
-             {hasLetterhead && (
+             {hasLetterhead && deliveryMode === 'pdf' && (
                <div 
                  onClick={() => setIncludeLetterhead(!includeLetterhead)}
                  style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', paddingTop: 20, marginTop: 20, borderTop: '1px solid var(--bg)' }}

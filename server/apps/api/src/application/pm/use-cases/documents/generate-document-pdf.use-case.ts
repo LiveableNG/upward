@@ -4,6 +4,7 @@ import {
   PM_UNIT_REPOSITORY, IUnitRepository 
 } from '../../../../domains/pm/IPropertyRepository';
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../../domains/pm/property-manager.repository';
+import { PM_LETTERHEAD_REPOSITORY, IPmLetterheadRepository } from '../../../../domains/pm/pm-letterhead.repository';
 import { S3Service } from '../../../../shared/infrastructure/common/s3/s3.service';
 
 @Injectable()
@@ -12,6 +13,7 @@ export class GenerateDocumentPdfUseCase {
     @Inject(PM_TENANT_REPOSITORY) private readonly tenantRepo: ITenantRepository,
     @Inject(PM_UNIT_REPOSITORY) private readonly unitRepo: IUnitRepository,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepo: PropertyManagerRepository,
+    @Inject(PM_LETTERHEAD_REPOSITORY) private readonly letterheadRepo: IPmLetterheadRepository,
     private readonly s3Service: S3Service,
   ) {}
 
@@ -74,33 +76,45 @@ export class GenerateDocumentPdfUseCase {
       content = content.split(tag).join(value);
     });
 
-    // 1.5 Apply Letterhead if requested
-    if (includeLetterhead && pm) {
-      const headerUrl = pm.letterheadHeaderUrl ? await this.s3Service.getDownloadUrl(pm.letterheadHeaderUrl) : null;
-      const footerUrl = pm.letterheadFooterUrl ? await this.s3Service.getDownloadUrl(pm.letterheadFooterUrl) : null;
+    // 1.5 Fetch Letterhead configuration
+    const activeLetterhead = includeLetterhead && pm ? await this.letterheadRepo.findDefaultByPmId(pmId) : null;
+    let marginStyle = '';
 
-      let wrappedContent = `<div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; max-width: 800px; margin: 0 auto;">`;
+    if (activeLetterhead && activeLetterhead.templateConfig) {
+      const config = activeLetterhead.templateConfig;
+      const fp = config.first_page || { top: 170, bottom: 110, left: 50, right: 50 };
+      const cp = config.continuation_page || { top: 100, bottom: 80, left: 50, right: 50 };
       
-      if (headerUrl) {
-        wrappedContent += `
-          <div style="margin-bottom: 30px; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 20px;">
-            <img src="${headerUrl}" style="max-width: 100%; max-height: 150px; object-fit: contain;" alt="Letterhead Header" />
-          </div>`;
-      }
-
-      wrappedContent += `<div style="padding: 10px 0; min-height: 600px;">${content}</div>`;
-
-      if (footerUrl) {
-        wrappedContent += `
-          <div style="margin-top: 50px; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
-            <img src="${footerUrl}" style="max-width: 100%; max-height: 100px; object-fit: contain;" alt="Letterhead Footer" />
-          </div>`;
-      }
-
-      wrappedContent += `</div>`;
-      content = wrappedContent;
+      marginStyle = `
+        <style>
+          @page :first {
+            margin-top: ${fp.top ?? 170}pt;
+            margin-bottom: ${fp.bottom ?? 110}pt;
+            margin-left: ${fp.left ?? 50}pt;
+            margin-right: ${fp.right ?? 50}pt;
+          }
+          @page {
+            margin-top: ${cp.top ?? 100}pt;
+            margin-bottom: ${cp.bottom ?? 80}pt;
+            margin-left: ${cp.left ?? 50}pt;
+            margin-right: ${cp.right ?? 50}pt;
+          }
+        </style>
+      `;
+    } else {
+      marginStyle = `
+        <style>
+          @page {
+            margin-top: 40px;
+            margin-bottom: 40px;
+            margin-left: 40px;
+            margin-right: 40px;
+          }
+        </style>
+      `;
     }
 
+    content = `${marginStyle}\n<div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6;">${content}</div>`;
     
     let browser;
     try {
@@ -129,11 +143,58 @@ export class GenerateDocumentPdfUseCase {
       
       const pdfBuffer = await page.pdf({
         format: 'A4',
-        margin: { top: '40px', bottom: '40px', left: '40px', right: '40px' },
         printBackground: true
       });
 
       await browser.close();
+
+      // Overlay background letterhead if configuration exists
+      if (activeLetterhead && activeLetterhead.templateFileKey) {
+        try {
+          const downloadUrl = await this.s3Service.getDownloadUrl(activeLetterhead.templateFileKey);
+          const response = await fetch(downloadUrl);
+          const templateBuffer = Buffer.from(await response.arrayBuffer());
+
+          const { PDFDocument: PDFLibDocument } = require('pdf-lib');
+          const contentPdfDoc = await PDFLibDocument.load(pdfBuffer);
+          const templatePdfDoc = await PDFLibDocument.load(templateBuffer);
+
+          const contentPages = contentPdfDoc.getPages();
+          const templatePages = templatePdfDoc.getPages();
+
+          for (let i = 0; i < contentPages.length; i++) {
+            const contentPage = contentPages[i];
+            let bgPageToUse = templatePages[0];
+
+            if (i > 0) {
+              const reuse = activeLetterhead.templateConfig?.reuse_first_page_for_continuation !== false;
+              if (templatePages.length >= 2) {
+                bgPageToUse = templatePages[1];
+              } else if (!reuse) {
+                bgPageToUse = null; // No letterhead on continuation pages if not reusing
+              }
+            }
+
+            if (bgPageToUse) {
+              const [embeddedBg] = await contentPdfDoc.embedPages([bgPageToUse]);
+              contentPage.drawPage(embeddedBg, {
+                x: 0,
+                y: 0,
+                width: contentPage.getWidth(),
+                height: contentPage.getHeight(),
+              });
+            }
+          }
+
+          const modifiedPdfBytes = await contentPdfDoc.save();
+          return Buffer.from(modifiedPdfBytes);
+        } catch (overlayError) {
+          console.error('Failed to overlay PDF template:', overlayError);
+          // Return default PDF if overlay fails
+          return Buffer.from(pdfBuffer);
+        }
+      }
+
       return Buffer.from(pdfBuffer);
     } catch (error) {
       if (browser) await browser.close();
