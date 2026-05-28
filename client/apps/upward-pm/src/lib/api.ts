@@ -39,6 +39,11 @@ export const api = {
   saveLetterhead: pmService.saveLetterhead,
   setDefaultLetterhead: pmService.setDefaultLetterhead,
   deleteLetterhead: pmService.deleteLetterhead,
+  fetchSignatures: pmService.fetchSignatures,
+  saveSignature: pmService.saveSignature,
+  setDefaultSignature: pmService.setDefaultSignature,
+  deleteSignature: pmService.deleteSignature,
+  uploadSignature: pmService.uploadSignature,
 
   // Properties & Units
   getProperties: propertyService.getProperties,
