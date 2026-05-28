@@ -39,6 +39,8 @@ type SavedPmLetterhead = {
   previewContinuationPageKey: string | null
   templateConfig?: LetterheadTemplateConfig | null
   createdAt: string
+  previewFirstPageUrl?: string | null
+  previewContinuationPageUrl?: string | null
 }
 
 export function BrandingTab() {
@@ -48,6 +50,7 @@ export function BrandingTab() {
   // Layout views
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [previewingLetterhead, setPreviewingLetterhead] = useState<SavedPmLetterhead | null>(null)
+  const [editingLetterhead, setEditingLetterhead] = useState<SavedPmLetterhead | null>(null)
   
   // File upload state
   const [uploading, setUploading] = useState(false)
@@ -183,6 +186,42 @@ export function BrandingTab() {
     },
     onError: () => toastError('Failed to delete letterhead')
   })
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: any }) => {
+      return api.patch(`/pm/letterheads/${id}`, payload)
+    },
+    onSuccess: () => {
+      success('Letterhead margins updated successfully')
+      queryClient.invalidateQueries({ queryKey: ['letterheads'] })
+      setEditingLetterhead(null)
+    },
+    onError: (err: any) => {
+      toastError(err.message || 'Failed to update letterhead margins')
+    }
+  })
+
+  const handleUpdateConfig = () => {
+    if (!editingLetterhead) return
+
+    const payload = {
+      templateConfig: {
+        first_page: firstPageMargins,
+        continuation_page: reuseFirstPage ? firstPageMargins : continuationPageMargins,
+        reuse_first_page_for_continuation: reuseFirstPage,
+      }
+    }
+
+    updateMutation.mutate({ id: editingLetterhead.id, payload })
+  }
+
+  const handleStartEditMargins = (lh: SavedPmLetterhead) => {
+    setEditingLetterhead(lh)
+    setFirstPageMargins(lh.templateConfig?.first_page || { top: 170, bottom: 110, left: 50, right: 50 })
+    setContinuationPageMargins(lh.templateConfig?.continuation_page || { top: 100, bottom: 80, left: 50, right: 50 })
+    setReuseFirstPage(lh.templateConfig?.reuse_first_page_for_continuation !== false)
+    setPageCount(lh.pageCount)
+  }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -487,6 +526,9 @@ export function BrandingTab() {
                     </div>
 
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+                      <button className="btn btn--secondary" style={{ fontSize: 12, height: 32, padding: '0 10px', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => handleStartEditMargins(lh)}>
+                        <Settings size={14} /> Edit Margins
+                      </button>
                       {!lh.isDefault && (
                         <button className="btn btn--secondary" style={{ fontSize: 12, height: 32, padding: '0 10px' }} onClick={() => setDefaultMutation.mutate(lh.id)}>
                           Set Default
@@ -503,6 +545,154 @@ export function BrandingTab() {
           </div>
         )}
       </section>
+
+      {editingLetterhead && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div className="glass" style={{
+            background: 'white',
+            borderRadius: 24,
+            border: '1px solid var(--border)',
+            padding: 32,
+            width: '90%',
+            maxWidth: 1000,
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: 'var(--shadow-xl)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 700 }}>Edit Margins for Configuration #{editingLetterhead.id}</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Drag the dashed lines to adjust printable area margins.</p>
+              </div>
+              <button 
+                onClick={() => setEditingLetterhead(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: 'var(--text-muted)' }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 32 }}>
+              {/* Visual preview */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                {editingLetterhead.previewFirstPageUrl ? (
+                  <LetterheadMarginPreview
+                    imageSrc={editingLetterhead.previewFirstPageUrl}
+                    pageWidthPt={595}
+                    pageHeightPt={842}
+                    previewScale={0.6}
+                    margins={firstPageMargins}
+                    onChange={setFirstPageMargins}
+                    caption="Page 1 Layout"
+                  />
+                ) : (
+                  <div style={{ padding: 40, border: '1.5px dashed var(--border)', borderRadius: 16, textAlign: 'center', color: 'var(--text-muted)' }}>
+                    No preview image available for this template.
+                  </div>
+                )}
+
+                {pageCount > 1 && !reuseFirstPage && editingLetterhead.previewContinuationPageUrl && (
+                  <LetterheadMarginPreview
+                    imageSrc={editingLetterhead.previewContinuationPageUrl}
+                    pageWidthPt={595}
+                    pageHeightPt={842}
+                    previewScale={0.6}
+                    margins={continuationPageMargins}
+                    onChange={setContinuationPageMargins}
+                    caption="Continuation Pages Layout"
+                  />
+                )}
+              </div>
+
+              {/* Numeric margin forms */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                <div>
+                  <h4 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>First Page Margins (pt)</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div>
+                      <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Top</label>
+                      <input type="number" min={0} value={firstPageMargins.top} onChange={(e) => setFirstPageMargins({ ...firstPageMargins, top: Number(e.target.value) })} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Bottom</label>
+                      <input type="number" min={0} value={firstPageMargins.bottom} onChange={(e) => setFirstPageMargins({ ...firstPageMargins, bottom: Number(e.target.value) })} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Left</label>
+                      <input type="number" min={0} value={firstPageMargins.left} onChange={(e) => setFirstPageMargins({ ...firstPageMargins, left: Number(e.target.value) })} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Right</label>
+                      <input type="number" min={0} value={firstPageMargins.right} onChange={(e) => setFirstPageMargins({ ...firstPageMargins, right: Number(e.target.value) })} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)' }} />
+                    </div>
+                  </div>
+                </div>
+
+                {pageCount > 1 && (
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 16, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={reuseFirstPage} onChange={(e) => setReuseFirstPage(e.target.checked)} />
+                      Reuse page 1 margins & letterhead artwork for continuation pages
+                    </label>
+                  </div>
+                )}
+
+                {pageCount > 1 && !reuseFirstPage && (
+                  <div>
+                    <h4 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Continuation Page Margins (pt)</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div>
+                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Top</label>
+                        <input type="number" min={0} value={continuationPageMargins.top} onChange={(e) => setContinuationPageMargins({ ...continuationPageMargins, top: Number(e.target.value) })} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)' }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Bottom</label>
+                        <input type="number" min={0} value={continuationPageMargins.bottom} onChange={(e) => setContinuationPageMargins({ ...continuationPageMargins, bottom: Number(e.target.value) })} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)' }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Left</label>
+                        <input type="number" min={0} value={continuationPageMargins.left} onChange={(e) => setContinuationPageMargins({ ...continuationPageMargins, left: Number(e.target.value) })} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)' }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Right</label>
+                        <input type="number" min={0} value={continuationPageMargins.right} onChange={(e) => setContinuationPageMargins({ ...continuationPageMargins, right: Number(e.target.value) })} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)' }} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 'auto', paddingTop: 20, borderTop: '1px solid var(--border)' }}>
+                  <button 
+                    type="button" 
+                    className="btn btn--secondary" 
+                    onClick={() => setEditingLetterhead(null)}
+                    disabled={updateMutation.isPending}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn btn--primary" 
+                    onClick={handleUpdateConfig}
+                    disabled={updateMutation.isPending}
+                  >
+                    {updateMutation.isPending ? <Loader2 size={16} className="animate-spin text-forest" /> : 'Save Margins'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .hidden { display: none; }
