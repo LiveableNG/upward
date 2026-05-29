@@ -10,6 +10,8 @@ import {
   ArrowRight,
   Eye,
   FileText,
+  Paperclip,
+  Download,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 
@@ -21,6 +23,7 @@ interface DevEmail {
   html: string
   text: string | null
   createdAt: string
+  attachments?: Array<{ filename: string; url: string }>
 }
 
 interface DevEmailsProps {
@@ -50,6 +53,17 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
   const [selectedEmail, setSelectedEmail] = useState<DevEmail | null>(null)
   const [viewMode, setViewMode] = useState<'HTML' | 'TEXT'>('HTML')
 
+  const fetchEmailDetails = async (uuid: string) => {
+    try {
+      const response = await apiService.get(`/admin/dev-emails/${uuid}`, token)
+      if (response) {
+        setSelectedEmail(response)
+      }
+    } catch (error) {
+      console.error('Failed to fetch dev email details:', error)
+    }
+  }
+
   const fetchEmails = async (pageNum = page) => {
     setLoading(true)
     try {
@@ -63,7 +77,7 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
 
         // Select the first email if none selected yet
         if (response.data.length > 0 && !selectedEmail) {
-          setSelectedEmail(response.data[0])
+          fetchEmailDetails(response.data[0].uuid)
         }
       }
     } catch (error) {
@@ -250,7 +264,7 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
                   <div
                     key={email.id}
                     onClick={() => {
-                      setSelectedEmail(email)
+                      fetchEmailDetails(email.uuid)
                       setViewMode('HTML')
                     }}
                     style={{
@@ -362,6 +376,60 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
                       Captured on: {new Date(selectedEmail.createdAt).toLocaleString()}
                     </span>
                   </div>
+
+                  {selectedEmail.attachments && Array.isArray(selectedEmail.attachments) && selectedEmail.attachments.length > 0 && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '8px',
+                        marginTop: '12px',
+                        paddingTop: '12px',
+                        borderTop: '1px dashed var(--border)',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          color: 'var(--text-muted)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          width: '100%',
+                        }}
+                      >
+                        <Paperclip size={14} /> Attachments ({selectedEmail.attachments.length})
+                      </span>
+                      {selectedEmail.attachments.map((att, idx) => (
+                        <a
+                          key={idx}
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 12px',
+                            background: 'var(--white)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '20px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            color: 'var(--accent)',
+                            fontWeight: 600,
+                            textDecoration: 'none',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          <FileText size={14} />
+                          <span>{att.filename}</span>
+                          <Download size={12} style={{ marginLeft: '4px', opacity: 0.7 }} />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* View Mode Toggle */}

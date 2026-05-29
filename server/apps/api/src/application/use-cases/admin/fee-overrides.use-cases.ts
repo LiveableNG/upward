@@ -55,7 +55,7 @@ export class GetFeeOverridesUseCase {
             where: { uuid: override.targetId }
           })
           if (p) {
-            name = p.name || 'Unnamed Platform'
+            name = p.name ? (p.name.includes(':') ? this.encryption.decrypt(p.name) : p.name) : 'Unnamed Platform'
             email = p.email ? (p.email.includes(':') ? this.encryption.decrypt(p.email) : p.email) : ''
           }
         }
@@ -158,7 +158,7 @@ export class SearchFeeTargetsUseCase {
       const platforms = await this.prisma.upward_platform.findMany()
       for (const p of platforms) {
         const email = p.email ? (p.email.includes(':') ? this.encryption.decrypt(p.email) : p.email) : ''
-        const name = p.name || ''
+        const name = p.name ? (p.name.includes(':') ? this.encryption.decrypt(p.name) : p.name) : ''
 
         const matchesSearch = !searchString || 
           name.toLowerCase().includes(searchString) || 

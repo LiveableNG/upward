@@ -325,13 +325,14 @@ model upward_app_activity_log {
 }
 
 model upward_dev_email_preview {
-  id        Int      @id @default(autoincrement())
-  uuid      String   @unique @default(uuid())
-  to        String
-  subject   String
-  html      String
-  text      String?
-  createdAt DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  to          String
+  subject     String
+  html        String
+  text        String?
+  attachments Json?
+  createdAt   DateTime @default(now())
 
   @@index([to])
   @@index([createdAt])

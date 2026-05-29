@@ -42,7 +42,8 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
       const blob = await generatePdf.mutateAsync({
         content: doc.content,
         tenantUuid: doc.tenant?.uuid,
-        recipientName: doc.recipientName
+        recipientName: doc.recipientName,
+        includeLetterhead: doc.includeLetterhead,
       })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
