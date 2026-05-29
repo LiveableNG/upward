@@ -120,6 +120,12 @@ export class GenerateDocumentPdfUseCase {
           background: transparent !important;
           -webkit-print-color-adjust: exact;
         }
+        /* Strip any borders/outlines on top-level page wrappers from templates/editor */
+        body > div, body > div > div {
+          border: none !important;
+          box-shadow: none !important;
+          outline: none !important;
+        }
       </style>
       ${marginStyle}
       <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6;">${content}</div>
