@@ -47,7 +47,7 @@ export class EmailLogEventHandler implements OnModuleInit, OnModuleDestroy {
               if (waitUser) {
                 finalUserId = waitUser.id
               } else {
-                finalUserId = event.userId
+                finalUserId = null
               }
             }
           }
