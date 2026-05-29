@@ -66,12 +66,10 @@ export class EmailService {
             try {
               const uuid = randomUUID()
 
-              // 1. Upload HTML content to S3
               const htmlBuffer = Buffer.from(data.html || '')
               const htmlKey = `dev-emails/${uuid}/body.html`
               await this.s3Service.uploadBuffer(htmlBuffer, htmlKey, 'text/html')
 
-              // 2. Upload attachments to S3 if any exist
               const attachmentsData = []
               if (data.attachment && Array.isArray(data.attachment)) {
                 for (const att of data.attachment) {
