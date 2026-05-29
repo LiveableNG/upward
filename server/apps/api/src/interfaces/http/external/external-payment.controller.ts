@@ -4,6 +4,7 @@ import { CreateExternalPaymentRequestUseCase } from '../../../application/use-ca
 import { ExternalPaymentRequestPayloadDto } from '../../../application/use-cases/external/external-api.dto'
 import { GetPublicPaymentDetailsUseCase } from '../../../application/use-cases/external/get-public-payment.use-case'
 import { ConfirmExternalPaymentUseCase } from '../../../application/use-cases/external/confirm-payment.use-case'
+import { ResolveExternalPendingRefundUseCase, ExternalRefundResolutionAction } from '../../../application/use-cases/external/resolve-external-refund.use-case'
 
 @Controller('payment-request')
 export class ExternalPaymentController {
@@ -11,6 +12,7 @@ export class ExternalPaymentController {
     private readonly createPaymentRequestUseCase: CreateExternalPaymentRequestUseCase,
     private readonly getPublicPaymentDetailsUseCase: GetPublicPaymentDetailsUseCase,
     private readonly confirmExternalPaymentUseCase: ConfirmExternalPaymentUseCase,
+    private readonly resolveExternalPendingRefundUseCase: ResolveExternalPendingRefundUseCase,
   ) {}
 
   @Post()
@@ -40,5 +42,19 @@ export class ExternalPaymentController {
     @Body('lineItemPayments') lineItemPayments?: any[]
   ) {
     return this.confirmExternalPaymentUseCase.execute(uuid, reference, lineItemPayments)
+  }
+
+  @Post('transaction/:uuid/accept')
+  @UseGuards(ApiKeyGuard)
+  async acceptRefund(@Param('uuid') uuid: string, @Req() req: any) {
+    const platformId = req.platformId
+    return this.resolveExternalPendingRefundUseCase.execute(platformId, uuid, ExternalRefundResolutionAction.ACCEPT)
+  }
+
+  @Post('transaction/:uuid/reject')
+  @UseGuards(ApiKeyGuard)
+  async rejectRefund(@Param('uuid') uuid: string, @Req() req: any) {
+    const platformId = req.platformId
+    return this.resolveExternalPendingRefundUseCase.execute(platformId, uuid, ExternalRefundResolutionAction.REJECT)
   }
 }

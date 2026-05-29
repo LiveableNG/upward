@@ -10,14 +10,20 @@ export class UploadPmLetterheadUseCase {
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
-  async execute(pmUuid: string, type: 'header' | 'footer', base64Data: string, contentType: string) {
+  async execute(pmUuid: string, type: 'header' | 'footer' | 'template_pdf', base64Data: string, contentType: string) {
     const pm = await this.pmRepository.findByUuid(pmUuid)
     if (!pm) {
       throw new BadRequestException('Property manager not found')
     }
 
-    if (!contentType.startsWith('image/')) {
-      throw new BadRequestException('Only image files are allowed for letterheads')
+    if (type === 'template_pdf') {
+      if (contentType !== 'application/pdf') {
+        throw new BadRequestException('Only PDF files are allowed for templates')
+      }
+    } else {
+      if (!contentType.startsWith('image/')) {
+        throw new BadRequestException('Only image files are allowed for previews')
+      }
     }
 
     // Convert base64 to buffer

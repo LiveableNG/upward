@@ -128,6 +128,11 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const [selectedPm, setSelectedPm] = useState<FeeTarget | null>(null)
   const [pmFee, setPmFee] = useState('2000')
   
+  // Base Fee Configuration state
+  const [baseFeeInput, setBaseFeeInput] = useState('2000')
+  const [savingBaseFee, setSavingBaseFee] = useState(false)
+  const [feeTargetType, setFeeTargetType] = useState<'PM' | 'COMPANY' | 'PLATFORM'>('PM')
+
   // Custom Override Form (Company/Platform) inside PM modal
   const [customOverrideType, setCustomOverrideType] = useState('COMPANY')
   const [customOverrideId, setCustomOverrideId] = useState('')
@@ -168,6 +173,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       const response = await apiService.get('/admin/fees/overrides', token)
       if (response && response.success) {
         setOverrides(response.data)
+        const globalOverride = response.data.find((o: any) => o.targetType === 'SYSTEM' && o.targetId === 'GLOBAL')
+        if (globalOverride) {
+          setBaseFeeInput(String(globalOverride.fee))
+        } else {
+          setBaseFeeInput('2000')
+        }
       }
     } catch (error) {
       console.error('Failed to fetch overrides:', error)
@@ -227,20 +238,20 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     [token, filters, dateBounds],
   )
 
-  // Fetch Property Managers
+  // Fetch Property Managers, Companies, or Platforms
   const fetchPms = useCallback(async () => {
     setLoadingPms(true)
     try {
-      const response = await apiService.get(`/admin/fees/targets?type=PM&q=${encodeURIComponent(pmSearch)}`, token)
+      const response = await apiService.get(`/admin/fees/targets?type=${feeTargetType}&q=${encodeURIComponent(pmSearch)}`, token)
       if (response && response.success) {
         setPmList(response.data)
       }
     } catch (error) {
-      console.error('Failed to fetch PM list:', error)
+      console.error('Failed to fetch target list:', error)
     } finally {
       setLoadingPms(false)
     }
-  }, [token, pmSearch])
+  }, [token, pmSearch, feeTargetType])
 
   // Initial load
   useEffect(() => {
@@ -409,7 +420,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
   const handleOpenPmModal = (pm: FeeTarget) => {
     setSelectedPm(pm)
-    const matchedOverride = overrides.find(o => o.targetType === 'PM' && o.targetId === pm.id)
+    const matchedOverride = overrides.find(o => o.targetType === pm.type && o.targetId === pm.id)
     setPmFee(matchedOverride ? String(matchedOverride.fee) : '2000')
     setCustomOverrideId('')
     setCustomOverrideFee('2000')
@@ -504,17 +515,17 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     setSavingOverride(true)
     try {
       await apiService.post('/admin/fees/overrides', {
-        targetType: 'PM',
+        targetType: selectedPm.type,
         targetId: selectedPm.id,
         fee: feeNum
       }, token)
       
-      showToast('Property Manager fee override saved')
+      showToast(`${selectedPm.type} fee override saved`)
       await fetchOverrides()
       fetchPms()
     } catch (err: any) {
       console.error(err)
-      showToast(err.message || 'Failed to save PM fee override', true)
+      showToast(err.message || `Failed to save ${selectedPm.type} fee override`, true)
     } finally {
       setSavingOverride(false)
     }
@@ -525,16 +536,40 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
     setSavingOverride(true)
     try {
-      await apiService.delete(`/admin/fees/overrides/PM/${selectedPm.id}`, token)
-      showToast('PM fee override removed')
+      await apiService.delete(`/admin/fees/overrides/${selectedPm.type}/${selectedPm.id}`, token)
+      showToast(`${selectedPm.type} fee override removed`)
       setPmFee('2000')
       await fetchOverrides()
       fetchPms()
     } catch (err: any) {
       console.error(err)
-      showToast(err.message || 'Failed to delete PM override', true)
+      showToast(err.message || `Failed to delete ${selectedPm.type} override`, true)
     } finally {
       setSavingOverride(false)
+    }
+  }
+  const handleSaveBaseFee = async () => {
+    const feeNum = parseFloat(baseFeeInput)
+    if (isNaN(feeNum) || feeNum < 0) {
+      showToast('Please enter a valid fee amount', true)
+      return
+    }
+
+    setSavingBaseFee(true)
+    try {
+      await apiService.post('/admin/fees/overrides', {
+        targetType: 'SYSTEM',
+        targetId: 'GLOBAL',
+        fee: feeNum
+      }, token)
+
+      showToast('Global base processing fee updated successfully')
+      await fetchOverrides()
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to update base fee', true)
+    } finally {
+      setSavingBaseFee(false)
     }
   }
 
@@ -1114,105 +1149,155 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         </>
       )}
 
-      {/* ==================== PROPERTY MANAGERS TAB CONTENT ==================== */}
+      {/* ==================== PROPERTY MANAGERS & FEE TAB CONTENT ==================== */}
       {activeTab === 'pms' && (
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Property Managers (PMs)</h3>
-            <div style={{ position: 'relative', width: '300px' }}>
-              <Search
-                size={16}
-                style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
-                  pointerEvents: 'none',
-                }}
-              />
-              <input
-                type="text"
-                placeholder="Search PMs..."
-                value={pmSearch}
-                onChange={(e) => setPmSearch(e.target.value)}
-                className="input"
-                style={{ paddingLeft: '36px' }}
-              />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* Base Fee Configuration */}
+          <div className="card" style={{ padding: '20px' }}>
+            <h4 style={{ fontSize: '14px', fontWeight: 800, margin: '0 0 12px 0', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+              Global Base Processing Fee
+            </h4>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', maxWidth: '400px' }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}>₦</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={baseFeeInput}
+                  onChange={(e) => setBaseFeeInput(e.target.value)}
+                  className="input"
+                  style={{ paddingLeft: '32px', fontSize: '16px', fontWeight: 700 }}
+                />
+              </div>
+              <button onClick={handleSaveBaseFee} className="btn btn-primary" style={{ height: '44px' }} disabled={savingBaseFee}>
+                {savingBaseFee ? 'Saving...' : 'Save Base Fee'}
+              </button>
             </div>
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '8px 0 0 0' }}>
+              This sets the fallback processing fee for all users across the system if no individual tenant, PM, company, or platform override exists. Default is ₦2,000.
+            </p>
           </div>
 
-          <div className="table-container">
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ backgroundColor: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-                  <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Property Manager</th>
-                  <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Email</th>
-                  <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Custom Fee</th>
-                  <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'center' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loadingPms ? (
-                  <tr>
-                    <td colSpan={4} style={{ padding: '48px', textAlign: 'center' }}>
-                      <div className="loader" style={{ margin: '0 auto' }}></div>
-                    </td>
+          <div className="card">
+            {/* Sub-tabs Segmented Control */}
+            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border)', marginBottom: '20px', paddingBottom: '12px' }}>
+              {(['PM', 'COMPANY', 'PLATFORM'] as const).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => {
+                    setFeeTargetType(type)
+                    setPmSearch('')
+                  }}
+                  className={`date-chip${feeTargetType === type ? ' active' : ''}`}
+                  style={{ borderRadius: '8px' }}
+                >
+                  {type === 'PM' ? 'Property Managers' : type === 'COMPANY' ? 'Companies' : 'Platforms'}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>
+                {feeTargetType === 'PM' ? 'Property Managers (PMs)' : feeTargetType === 'COMPANY' ? 'Companies' : 'Platforms'}
+              </h3>
+              <div style={{ position: 'relative', width: '300px' }}>
+                <Search
+                  size={16}
+                  style={{
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--text-muted)',
+                    pointerEvents: 'none',
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder={`Search ${feeTargetType === 'PM' ? 'PMs' : feeTargetType === 'COMPANY' ? 'Companies' : 'Platforms'}...`}
+                  value={pmSearch}
+                  onChange={(e) => setPmSearch(e.target.value)}
+                  className="input"
+                  style={{ paddingLeft: '36px' }}
+                />
+              </div>
+            </div>
+
+            <div className="table-container">
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ backgroundColor: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                      {feeTargetType === 'PM' ? 'Property Manager' : feeTargetType === 'COMPANY' ? 'Company Name' : 'Platform Name'}
+                    </th>
+                    <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Email</th>
+                    <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Custom Fee</th>
+                    <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'center' }}>Actions</th>
                   </tr>
-                ) : pmList.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                      No property managers found.
-                    </td>
-                  </tr>
-                ) : (
-                  pmList.map((pm) => (
-                    <tr
-                      key={pm.id}
-                      onClick={() => handleOpenPmModal(pm)}
-                      style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
-                      className="table-row-hover"
-                    >
-                      <td style={{ padding: '16px 24px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div
-                            style={{
-                              width: '36px',
-                              height: '36px',
-                              borderRadius: '10px',
-                              background: 'var(--accent-faint)',
-                              color: 'var(--accent)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontWeight: 700,
-                            }}
-                          >
-                            {(pm.name || 'P')[0].toUpperCase()}
-                          </div>
-                          <span style={{ fontWeight: 600, fontSize: '14px' }}>{pm.name}</span>
-                        </div>
-                      </td>
-                      <td style={{ padding: '16px' }}>{pm.email}</td>
-                      <td style={{ padding: '16px' }}>
-                        <span style={{ fontWeight: 700, color: 'var(--accent)', fontSize: '14px' }}>
-                          {getOverrideLabel('PM', pm.id)}
-                        </span>
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => handleOpenPmModal(pm)}
-                          className="btn btn-secondary"
-                          style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '12px' }}
-                        >
-                          Configure Override
-                        </button>
+                </thead>
+                <tbody>
+                  {loadingPms ? (
+                    <tr>
+                      <td colSpan={4} style={{ padding: '48px', textAlign: 'center' }}>
+                        <div className="loader" style={{ margin: '0 auto' }}></div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : pmList.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        No targets found.
+                      </td>
+                    </tr>
+                  ) : (
+                    pmList.map((pm) => (
+                      <tr
+                        key={pm.id}
+                        onClick={() => handleOpenPmModal(pm)}
+                        style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                        className="table-row-hover"
+                      >
+                        <td style={{ padding: '16px 24px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div
+                              style={{
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '10px',
+                                background: 'var(--accent-faint)',
+                                color: 'var(--accent)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 700,
+                              }}
+                            >
+                              {(pm.name || 'P')[0].toUpperCase()}
+                            </div>
+                            <span style={{ fontWeight: 600, fontSize: '14px' }}>{pm.name}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '16px' }}>{pm.email}</td>
+                        <td style={{ padding: '16px' }}>
+                          <span style={{ fontWeight: 700, color: 'var(--accent)', fontSize: '14px' }}>
+                            {getOverrideLabel(pm.type, pm.id)}
+                          </span>
+                        </td>
+                        <td style={{ padding: '16px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleOpenPmModal(pm)}
+                            className="btn btn-secondary"
+                            style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '12px' }}
+                          >
+                            Configure Override
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

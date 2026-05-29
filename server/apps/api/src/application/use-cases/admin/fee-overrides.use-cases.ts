@@ -74,12 +74,17 @@ export class GetFeeOverridesUseCase {
   }
 }
 
+import { PaymentConfigurationService } from '../../../shared/infrastructure/common/payment-config.service'
+
 @Injectable()
 export class UpsertFeeOverrideUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly paymentConfig: PaymentConfigurationService,
+  ) {}
 
   async execute(data: { targetType: string; targetId: string; fee: number }) {
-    return this.prisma.upward_fee_override.upsert({
+    const res = await this.prisma.upward_fee_override.upsert({
       where: {
         targetType_targetId: {
           targetType: data.targetType,
@@ -95,15 +100,24 @@ export class UpsertFeeOverrideUseCase {
         fee: data.fee
       }
     })
+
+    if (data.targetType === 'SYSTEM' && data.targetId === 'GLOBAL') {
+      await this.paymentConfig.refreshCache()
+    }
+
+    return res
   }
 }
 
 @Injectable()
 export class DeleteFeeOverrideUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly paymentConfig: PaymentConfigurationService,
+  ) {}
 
   async execute(targetType: string, targetId: string) {
-    return this.prisma.upward_fee_override.delete({
+    const res = await this.prisma.upward_fee_override.delete({
       where: {
         targetType_targetId: {
           targetType,
@@ -111,6 +125,12 @@ export class DeleteFeeOverrideUseCase {
         }
       }
     })
+
+    if (targetType === 'SYSTEM' && targetId === 'GLOBAL') {
+      await this.paymentConfig.refreshCache()
+    }
+
+    return res
   }
 }
 

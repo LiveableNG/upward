@@ -1,14 +1,16 @@
 
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   ChevronLeft, 
   Download,
   Send,
   Mail,
   Users,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  Loader2
 } from 'lucide-react'
 import { RichTextEditor } from '@/components/common/RichTextEditor'
 import { useTenants } from '../../hooks/useTenants'
@@ -18,6 +20,8 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { RecipientSelectModal } from './RecipientSelectModal'
 import { useCreatePaymentRequest } from '../../hooks/usePayments'
 import { CreditCard } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 
 interface DocumentEditorViewProps {
   initialContent?: string
@@ -80,7 +84,23 @@ export function DocumentEditorView({
   const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false)
   const [includeLetterhead, setIncludeLetterhead] = useState(true)
   const { user } = useAuth()
-  const hasLetterhead = !!(user?.letterheadHeaderUrl || user?.letterheadFooterUrl)
+  const { data: letterheads = [] } = useQuery<any[]>({
+    queryKey: ['letterheads'],
+    queryFn: () => api.fetchLetterheads()
+  })
+  const hasLetterhead = letterheads.length > 0 || !!(user?.letterheadHeaderUrl || user?.letterheadFooterUrl)
+
+  const [isPreviewingPdf, setIsPreviewingPdf] = useState(false)
+  const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null)
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false)
+
+  useEffect(() => {
+    return () => {
+      if (previewPdfUrl) {
+        window.URL.revokeObjectURL(previewPdfUrl)
+      }
+    }
+  }, [previewPdfUrl])
 
   const selectedTenant = tenants.find(t => t.uuid === selectedTenantUuid)
 
@@ -114,6 +134,36 @@ export function DocumentEditorView({
     }
   }
 
+  const handlePreviewPdf = async () => {
+    if (!content) return error('No content to preview')
+    setIsPreviewLoading(true)
+    try {
+      const recipientName = recipientType === 'existing' 
+        ? (selectedTenant ? `${selectedTenant.firstName} ${selectedTenant.lastName}` : undefined)
+        : newRecipient.name;
+
+      const blob = await generatePdf.mutateAsync({ 
+        content, 
+        tenantUuid: recipientType === 'existing' ? (selectedTenantUuid || undefined) : undefined,
+        recipientName: recipientName || undefined,
+        includeLetterhead: hasLetterhead ? includeLetterhead : false
+      })
+      
+      if (previewPdfUrl) {
+        window.URL.revokeObjectURL(previewPdfUrl)
+      }
+      
+      const url = window.URL.createObjectURL(blob)
+      setPreviewPdfUrl(url)
+      setIsPreviewingPdf(true)
+      success('Preview generated successfully')
+    } catch (err) {
+      error('Failed to generate preview PDF')
+    } finally {
+      setIsPreviewLoading(false)
+    }
+  }
+
   const handleSend = async () => {
     if (!subject) return error('Please enter a subject')
     if (!content) return error('Please enter document content')
@@ -143,7 +193,7 @@ export function DocumentEditorView({
         recipientName: recipient.name,
         recipientEmail: recipient.email,
         paymentRequestUuid, // New field
-        includeLetterhead: hasLetterhead ? includeLetterhead : false
+        includeLetterhead: hasLetterhead && deliveryMode === 'pdf' ? includeLetterhead : false
       })
       
       success(paymentContext ? 'Payment request and document sent successfully' : 'Document sent and recorded successfully')
@@ -167,6 +217,17 @@ export function DocumentEditorView({
           </h1>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
+          {deliveryMode === 'pdf' && (
+            <button 
+              onClick={handlePreviewPdf}
+              disabled={isPreviewLoading}
+              className="btn btn--secondary" 
+              style={{ borderRadius: 12, height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8, borderColor: 'var(--brand)' }}
+            >
+              {isPreviewLoading ? <Loader2 size={20} className="animate-spin text-brand" /> : <Eye size={20} />} 
+              {isPreviewLoading ? 'Generating Preview...' : 'Preview PDF'}
+            </button>
+          )}
           <button 
             onClick={handleSaveAsPdf}
             disabled={isDownloading}
@@ -350,7 +411,7 @@ export function DocumentEditorView({
                 />
              </div>
 
-             {hasLetterhead && (
+             {hasLetterhead && deliveryMode === 'pdf' && (
                <div 
                  onClick={() => setIncludeLetterhead(!includeLetterhead)}
                  style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', paddingTop: 20, marginTop: 20, borderTop: '1px solid var(--bg)' }}
@@ -399,6 +460,63 @@ export function DocumentEditorView({
           setIsRecipientModalOpen(false)
         }}
       />
+
+      {isPreviewingPdf && previewPdfUrl && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div className="glass" style={{
+            background: 'white',
+            borderRadius: 24,
+            border: '1px solid var(--border)',
+            padding: 24,
+            width: '90%',
+            maxWidth: 1000,
+            height: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: 'var(--shadow-xl)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)' }}>PDF Document Preview</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Review formatting and custom letterhead overlay.</p>
+              </div>
+              <button 
+                onClick={() => setIsPreviewingPdf(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: 'var(--text-muted)' }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div style={{ flex: 1, borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)' }}>
+              <iframe 
+                src={previewPdfUrl} 
+                title="PDF Document Preview" 
+                style={{ width: '100%', height: '100%', border: 'none' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
+              <button 
+                onClick={() => setIsPreviewingPdf(false)}
+                className="btn btn--primary" 
+                style={{ borderRadius: 12, height: 44, padding: '0 24px' }}
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .document-editor {

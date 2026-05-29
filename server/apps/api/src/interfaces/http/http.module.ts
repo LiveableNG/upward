@@ -33,6 +33,8 @@ import { PmVerificationAdminController } from './admin/pm-verification-admin.con
 import { PmAuthController } from './pm/pm-auth.controller'
 import { PmProfileController } from './pm/pm-profile.controller'
 import { PmEmailSettingController } from './pm/pm-email-setting.controller'
+import { PmLetterheadController } from './pm/pm-letterhead.controller'
+import { PmSignatureController } from './pm/pm-signature.controller'
 import { PmPropertyController } from './controllers/pm-property.controller'
 import { PmActivityController } from './controllers/pm-activity.controller'
 import { PmTenantController } from './controllers/pm-tenant.controller'
@@ -81,6 +83,8 @@ import { DevEmailAdminController } from './admin/dev-email-admin.controller'
     PmAuthController,
     PmProfileController,
     PmEmailSettingController,
+    PmLetterheadController,
+    PmSignatureController,
     PmPropertyController,
     PmActivityController,
     PmTenantController,
