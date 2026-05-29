@@ -1113,9 +1113,6 @@ export class ProcessPaymentWebhookUseCase {
       }
     }
 
-    // Record Transaction with the determined settlement status
-    // When there's no stored checkout intent and partial is allowed,
-    // use sequential fill so line items are cleared top-to-bottom by sortOrder.
     const hasNoIntent = !lineItemPayments
     const sequentialFill = hasNoIntent && pr.allowPartial && !!pr.id
 
@@ -1133,7 +1130,6 @@ export class ProcessPaymentWebhookUseCase {
       sequentialFill
     })
 
-    // Trigger Alerts if it's an underpayment
     if (settlementStatus === 'PENDING_REFUND') {
       this.eventBus.publish(new UnderpaymentDetectedEvent(
         pr.user.id,
@@ -1142,7 +1138,7 @@ export class ProcessPaymentWebhookUseCase {
         amountPaid,
         expectedTotal,
         data.reference,
-        true // It's a violation because it was Full-Only
+        true 
       ))
     }
 
