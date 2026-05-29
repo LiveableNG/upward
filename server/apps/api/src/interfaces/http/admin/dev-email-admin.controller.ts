@@ -4,11 +4,15 @@ import { RolesGuard } from '../../../application/auth/guards/roles.guard'
 import { Roles } from '../../../application/auth/decorators/roles.decorator'
 import { AdminRole } from '@upward/shared-types'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 
 @Controller('admin/dev-emails')
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
 export class DevEmailAdminController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly s3Service: S3Service,
+  ) {}
 
   @Get()
   @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
@@ -55,9 +59,33 @@ export class DevEmailAdminController {
   @Get(':uuid')
   @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
   async getDevEmailDetails(@Param('uuid') uuid: string) {
-    return this.prisma.upward_dev_email_preview.findUnique({
+    const email = (await this.prisma.upward_dev_email_preview.findUnique({
       where: { uuid },
-    })
+    })) as any
+
+    if (!email) return null
+
+    if (email.html && !email.html.includes(' ') && email.html.startsWith('dev-emails/')) {
+      try {
+        email.html = await this.s3Service.getFileContent(email.html)
+      } catch (err) {
+        console.error('Failed to get email HTML from S3:', err)
+      }
+    }
+
+    if (email.attachments && Array.isArray(email.attachments)) {
+      const resolvedAttachments = []
+      for (const att of email.attachments as any[]) {
+        const signedUrl = att.s3Key ? await this.s3Service.getDownloadUrl(att.s3Key) : ''
+        resolvedAttachments.push({
+          filename: att.filename,
+          url: signedUrl,
+        })
+      }
+      ;(email as any).attachments = resolvedAttachments
+    }
+
+    return email
   }
 
   @Delete()
