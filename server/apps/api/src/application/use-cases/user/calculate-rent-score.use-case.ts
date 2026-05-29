@@ -224,34 +224,25 @@ export class CalculateRentScoreUseCase {
     let fields = 0
     let total = 11
 
-    // 1-6: Basic details (User Repo decodes these)
     if (user.firstName) fields++
     if (user.lastName) fields++
     if (user.email) fields++
     if (user.dateOfBirth) fields++
     
-    // 7: Gender
     if (user.gender && user.gender !== 'Prefer not to say') fields++
 
-    // 8-13: Property Details (from the first property)
     const firstProp = user.properties?.[0]
     if (firstProp) {
-      // 8: Rent Date
       if (firstProp.rentEndDate) fields++
       
-      // 9: Location Area/Street
       if (firstProp.location?.area || firstProp.location?.address) fields++
       
-      // 10: State
       if (firstProp.location?.state) fields++
       
-      // 11: Country
       if (firstProp.location?.country) fields++
 
-      // 12: Rent Amount
       if (firstProp.rentAmount && firstProp.rentAmount > 0) fields++
       
-      // 13: Management Info (Company or Manager)
       const hasManagement = !!(
         firstProp.company?.name || 
         firstProp.companyName || 
@@ -289,6 +280,7 @@ export class CalculateRentScoreUseCase {
           bio: user.bio,
           profilePic: user.profilePic ? await this.s3Service.getDownloadUrl(user.profilePic) : null,
           profileSlug: user.profileSlug || `${user.firstName}-${user.lastName}-${user.uuid.split('-')[0]}`.toLowerCase(),
+          uuid: user.uuid,
           profileCompletion: this.calculateProfileCompletion(user)
         },
         properties: user.properties || [],
