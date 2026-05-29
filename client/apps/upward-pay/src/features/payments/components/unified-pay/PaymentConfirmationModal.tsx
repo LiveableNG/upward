@@ -60,7 +60,7 @@ export function PaymentConfirmationModal({
                 {isFullRequired ? (
                   <><strong>Full payment only.</strong> This invoice does not allow partial payments. Ensure the amount above is the complete balance owed before proceeding.</>
                 ) : (
-                  <><strong>Important:</strong> In case of underpayment (paying less than the amount specified), a refund will be issued. Please note that refunds may take some time to process.</>
+                  <><strong>Partial Payments:</strong> Please note that the processing fee is enforced on every single partial payment transaction. Additionally, transferring less than the amount specified will trigger an underpayment refund.</>
                 )}
               </p>
             </div>
