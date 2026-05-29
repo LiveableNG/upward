@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { Prisma } from '@prisma/client'
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Injectable()
 export class GetEmailLogsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+  ) {}
 
   async execute(query: {
     email?: string
@@ -53,8 +57,21 @@ export class GetEmailLogsUseCase {
       this.prisma.upward_email_log.count({ where }),
     ])
 
+    const decryptedData = data.map((log) => {
+      const decryptedLog = { ...log }
+      if (decryptedLog.registeredUser) {
+        decryptedLog.registeredUser = {
+          ...decryptedLog.registeredUser,
+          firstName: this.encryption.decrypt(decryptedLog.registeredUser.firstName),
+          lastName: this.encryption.decrypt(decryptedLog.registeredUser.lastName),
+          email: this.encryption.decrypt(decryptedLog.registeredUser.email),
+        }
+      }
+      return decryptedLog
+    })
+
     return {
-      data,
+      data: decryptedData,
       meta: {
         total,
         page,
