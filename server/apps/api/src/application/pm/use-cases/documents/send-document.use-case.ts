@@ -14,6 +14,8 @@ import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.s
 import * as crypto from 'crypto';
 
 
+import { GenerateDocumentPdfUseCase } from './generate-document-pdf.use-case';
+
 export interface SendDocumentDto {
   tenantUuid?: string;
   unitUuid?: string;
@@ -45,6 +47,7 @@ export class SendDocumentUseCase {
     private readonly s3Service: S3Service,
     private readonly emailService: EmailService,
     private readonly prisma: PrismaService,
+    private readonly generatePdfUseCase: GenerateDocumentPdfUseCase,
   ) {}
 
   async execute(pmId: number, data: SendDocumentDto) {
@@ -212,40 +215,17 @@ export class SendDocumentUseCase {
     );
 
     if (data.documentType === 'PDF') {
-      let browser;
       let pdfBuffer;
       try {
-        if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
-          const chromium = require('@sparticuz/chromium');
-          const puppeteer = require('puppeteer-core');
-          browser = await puppeteer.launch({
-            args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
-            defaultViewport: chromium.defaultViewport,
-            executablePath: await chromium.executablePath(),
-            headless: true,
-            ignoreHTTPSErrors: true,
-          });
-        } else {
-          const puppeteer = require('puppeteer');
-          browser = await puppeteer.launch({ 
-            headless: 'new',
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-          });
-        }
-
-        const page = await browser.newPage();
-        await page.setContent(content, { waitUntil: 'networkidle0' });
-        
-        pdfBuffer = await page.pdf({
-          format: 'A4',
-          margin: { top: '40px', bottom: '40px', left: '40px', right: '40px' },
-          printBackground: true
+        pdfBuffer = await this.generatePdfUseCase.execute({
+          content: data.content,
+          pmId,
+          tenantUuid: data.tenantUuid,
+          unitUuid: data.unitUuid,
+          recipientName: data.recipientName,
+          includeLetterhead: data.includeLetterhead,
         });
-
-        await browser.close();
-        pdfBuffer = Buffer.from(pdfBuffer);
       } catch (error) {
-        if (browser) await browser.close();
         console.error('PDF Generation Error in SendDocument:', error);
         throw error;
       }

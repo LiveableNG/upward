@@ -2,6 +2,8 @@ import { Injectable, Inject, NotFoundException, BadRequestException, Logger } fr
 import { PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository, PAYMENT_GATEWAY, IPaymentGateway } from '../../../domains/payments/payment.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { RecordTransactionUseCase } from '../payments/payment.use-cases'
+import { PaymentConfigurationService } from '../../../shared/infrastructure/common/payment-config.service'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 @Injectable()
 export class ConfirmExternalPaymentUseCase {
@@ -12,6 +14,8 @@ export class ConfirmExternalPaymentUseCase {
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(PAYMENT_GATEWAY) private readonly paymentGateway: IPaymentGateway,
     private readonly recordTransactionUseCase: RecordTransactionUseCase,
+    private readonly paymentConfig: PaymentConfigurationService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(paymentUuid: string, reference: string, lineItemPayments?: any[]): Promise<any> {
@@ -70,11 +74,17 @@ export class ConfirmExternalPaymentUseCase {
 
     if (transaction.status === 'SUCCESS') {
       const updatedPR = await this.paymentRequestRepository.findById(paymentRequest.id!)
+      
+      const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(paymentRequest.userId, paymentRequest.userPropertyUuid ? (await this.prisma.upward_user_property.findUnique({ where: { uuid: paymentRequest.userPropertyUuid } }))?.id : undefined)
+      const expectedTotal = paymentRequest.amount + dynamicFee
+      const isUnderpayment = !paymentRequest.allowPartial && actualAmount < expectedTotal
+
       return {
         success: true,
         transactionUuid: transaction.uuid,
         status: updatedPR?.status || 'PAID',
-        settlementStatus: transaction.settlementStatus
+        settlementStatus: transaction.settlementStatus,
+        isUnderpayment
       }
     } else {
       throw new BadRequestException('Payment verification failed or returned non-success status')

@@ -330,10 +330,16 @@ export class RecordTransactionUseCase {
       if (isVerified && data.paymentRequestId) {
         pr = await this.paymentRequestRepo.findById(data.paymentRequestId, txClient)
         if (pr) {
-          // Detect Duplicate/Excess payment if the request is already settled
           if (pr.status === 'PAID' && !data.settlementStatus) {
             data.settlementStatus = 'PENDING_REFUND'
             this.logger.warn(`Duplicate payment attempt detected for already settled request: ${pr.uuid}. Marking reference ${data.reference} for refund.`)
+          }
+
+          const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(pr.userId, pr.userPropertyId)
+          const expectedTotal = pr.amount + dynamicFee
+          if (!pr.allowPartial && effectiveAmount < expectedTotal && !data.settlementStatus) {
+            data.settlementStatus = 'PENDING_REFUND'
+            this.logger.warn(`Full-Payment Violation: User paid ${effectiveAmount} instead of ${expectedTotal}. Marking reference ${data.reference} for refund.`)
           }
 
           const prItems = await txClient.upward_payment_line_item.findMany({ where: { paymentRequestId: pr.id } })
@@ -520,18 +526,6 @@ export class ResolveDedicatedAccountUseCase {
       this.logger.log(`Using existing DVA for User Property ${data.userPropertyId}: ${existing.accountNumber}`)
       return existing
     }
-    let finalSubaccountCode = data.subaccountCode
-    if (!finalSubaccountCode) {
-      const prop = await this.prisma.upward_user_property.findUnique({
-        where: { id: data.userPropertyId },
-        include: { subaccount: true }
-      })
-      if (prop?.subaccount) {
-        finalSubaccountCode = prop.subaccount.subaccountCode
-        this.logger.log(`Auto-resolved subaccount ${finalSubaccountCode} for DVA creation`)
-      }
-    }
-
     const baseEmail = data.tenantEmail || `prop-${data.userPropertyId}@upward.ng`
     const [local, domain] = baseEmail.split('@')
     const customerEmail = `${local}+p${data.userPropertyId}@${domain}`
@@ -543,10 +537,9 @@ export class ResolveDedicatedAccountUseCase {
     const customerCode = await this.gateway.createCustomer({ email: customerEmail, firstName, lastName, phone: data.tenantPhone })
     if (!customerCode) throw new Error('Failed to resolve customer for DVA')
 
-    this.logger.log(`Requesting DVA creation from Paystack for customer ${customerCode} with subaccount ${finalSubaccountCode || 'none'}`)
+    this.logger.log(`Requesting DVA creation from Paystack for customer ${customerCode} (routing directly to main platform account)`)
     const res = await this.gateway.createDedicatedAccount({
-      customerCode,      
-      subaccountCode: finalSubaccountCode 
+      customerCode
     })
 
     if (!res.status || !res.data) {
@@ -557,14 +550,11 @@ export class ResolveDedicatedAccountUseCase {
 
     this.logger.log(`DVA created successfully: ${account.account_number}. Saving to DB...`)
     
-    // Safety check: if this account number somehow already exists (e.g. from a previous failed run or overlapping data)
     const existingByAccount = await this.dvaRepo.findByAccountNumber(account.account_number)
     if (existingByAccount) {
       if (existingByAccount.userPropertyId === data.userPropertyId) return existingByAccount
       
       this.logger.warn(`Account ${account.account_number} already exists for another property (${existingByAccount.userPropertyId}). Re-associating to current property.`)
-      // We can't have two records with same account number, so we might need to update or just return existing
-      // But for better tracking, we'll return the existing one if it's already there
       return existingByAccount
     }
 
@@ -1123,9 +1113,6 @@ export class ProcessPaymentWebhookUseCase {
       }
     }
 
-    // Record Transaction with the determined settlement status
-    // When there's no stored checkout intent and partial is allowed,
-    // use sequential fill so line items are cleared top-to-bottom by sortOrder.
     const hasNoIntent = !lineItemPayments
     const sequentialFill = hasNoIntent && pr.allowPartial && !!pr.id
 
@@ -1143,7 +1130,6 @@ export class ProcessPaymentWebhookUseCase {
       sequentialFill
     })
 
-    // Trigger Alerts if it's an underpayment
     if (settlementStatus === 'PENDING_REFUND') {
       this.eventBus.publish(new UnderpaymentDetectedEvent(
         pr.user.id,
@@ -1152,7 +1138,7 @@ export class ProcessPaymentWebhookUseCase {
         amountPaid,
         expectedTotal,
         data.reference,
-        true // It's a violation because it was Full-Only
+        true 
       ))
     }
 

@@ -98,11 +98,23 @@ describe('ConfirmExternalPaymentUseCase', () => {
       execute: jest.fn(),
     } as any
 
+    const paymentConfig = {
+      getDynamicProcessingFee: jest.fn().mockResolvedValue(2000),
+    } as any
+
+    const prisma = {
+      upward_user_property: {
+        findUnique: jest.fn().mockResolvedValue({ id: 1 }),
+      },
+    } as any
+
     useCase = new ConfirmExternalPaymentUseCase(
       paymentRequestRepository,
       userRepository,
       paymentGateway,
       recordTransactionUseCase,
+      paymentConfig,
+      prisma,
     )
   })
 

@@ -2,6 +2,7 @@
 
 import React, { useRef } from 'react'
 import { Editor } from '@hugerte/hugerte-react'
+import { api } from '@/lib/api'
 
 interface RichTextEditorProps {
   value: string
@@ -47,8 +48,58 @@ export function RichTextEditor({
             editor.ui.registry.addButton('signatures', {
               text: 'Signatures',
               icon: 'signature',
-              onAction: () => {
-                editor.insertContent('<strong>[SIGNATURE_PLACEHOLDER]</strong>');
+              onAction: async () => {
+                try {
+                  const signatures = await api.fetchSignatures()
+                  if (!signatures || signatures.length === 0) {
+                    editor.windowManager.alert('No signatures found. Please configure them in Settings -> Branding.')
+                    return
+                  }
+
+                  editor.windowManager.open({
+                    title: 'Insert Signature',
+                    body: {
+                      type: 'panel',
+                      items: [
+                        {
+                          type: 'selectbox',
+                          name: 'signatureId',
+                          label: 'Select Signature',
+                          items: signatures.map((sig: any) => ({
+                            text: `${sig.name} (${sig.type})`,
+                            value: sig.id.toString()
+                          }))
+                        }
+                      ]
+                    },
+                    buttons: [
+                      {
+                        type: 'cancel',
+                        text: 'Cancel'
+                      },
+                      {
+                        type: 'submit',
+                        text: 'Insert',
+                        primary: true
+                      }
+                    ],
+                    onSubmit: (apiInstance: any) => {
+                      const data = apiInstance.getData()
+                      const selectedSig = signatures.find((s: any) => s.id.toString() === data.signatureId)
+                      if (selectedSig) {
+                        if (selectedSig.type === 'digital') {
+                          editor.insertContent(selectedSig.content)
+                        } else {
+                          editor.insertContent(`<img src="${selectedSig.fileUrl}" alt="${selectedSig.name}" style="max-height: 80px; width: auto;" />`)
+                        }
+                      }
+                      apiInstance.close()
+                    }
+                  })
+                } catch (err) {
+                  console.error(err)
+                  editor.windowManager.alert('Failed to load signatures.')
+                }
               }
             });
 

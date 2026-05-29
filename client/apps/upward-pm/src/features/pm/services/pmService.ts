@@ -48,14 +48,14 @@ export const uploadAvatar = async (params: { base64Data: string, contentType: st
   })
 }
 
-export const getLetterheadUploadUrl = async (params: { type: 'header' | 'footer', contentType: string, filename: string }) => {
+export const getLetterheadUploadUrl = async (params: { type: string, contentType: string, filename: string }) => {
   return request<any>('/pm/profile/letterhead-url', {
     method: 'POST',
     body: JSON.stringify(params)
   })
 }
 
-export const uploadLetterhead = async (params: { type: 'header' | 'footer', base64Data: string, contentType: string }) => {
+export const uploadLetterhead = async (params: { type: string, base64Data: string, contentType: string }) => {
   return request<{ publicUrl: string }>('/pm/profile/letterhead-upload', {
     method: 'POST',
     body: JSON.stringify(params)
@@ -173,3 +173,61 @@ export const uploadLogo = async (params: { base64Data: string, contentType: stri
     body: JSON.stringify(params)
   })
 }
+
+export const fetchLetterheads = async () => {
+  return request<any[]>('/pm/letterheads', {
+    method: 'GET'
+  })
+}
+
+export const saveLetterhead = async (data: any) => {
+  return request<any>('/pm/letterheads', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
+export const setDefaultLetterhead = async (id: number | string) => {
+  return request<any>(`/pm/letterheads/${id}/set-as-default`, {
+    method: 'PATCH'
+  })
+}
+
+export const deleteLetterhead = async (id: number | string) => {
+  return request<any>(`/pm/letterheads/${id}`, {
+    method: 'DELETE'
+  })
+}
+
+export const fetchSignatures = async () => {
+  return request<any[]>('/pm/signatures', {
+    method: 'GET'
+  })
+}
+
+export const saveSignature = async (data: any) => {
+  return request<any>('/pm/signatures', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
+export const setDefaultSignature = async (id: number | string) => {
+  return request<any>(`/pm/signatures/${id}/set-as-default`, {
+    method: 'PATCH'
+  })
+}
+
+export const deleteSignature = async (id: number | string) => {
+  return request<any>(`/pm/signatures/${id}`, {
+    method: 'DELETE'
+  })
+}
+
+export const uploadSignature = async (params: { base64Data: string, contentType: string }) => {
+  return request<{ fileKey: string, publicUrl: string }>('/pm/signatures/upload', {
+    method: 'POST',
+    body: JSON.stringify(params)
+  })
+}
+

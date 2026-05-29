@@ -102,20 +102,20 @@ export class PmProfileController {
   @HttpCode(HttpStatus.OK)
   async getLetterheadUrl(
     @Req() req: FastifyRequest,
-    @Body() body: { type: 'header' | 'footer'; contentType: string; filename: string },
+    @Body() body: { type: string; contentType: string; filename: string },
   ) {
     if (!req.user?.sub) throw new UnauthorizedException()
-    return this.getLetterheadUrlUseCase.execute(req.user.sub, body.type, body.contentType, body.filename)
+    return this.getLetterheadUrlUseCase.execute(req.user.sub, body.type as any, body.contentType, body.filename)
   }
 
   @Post('letterhead-upload')
   @HttpCode(HttpStatus.OK)
   async uploadLetterhead(
     @Req() req: FastifyRequest,
-    @Body() body: { type: 'header' | 'footer'; base64Data: string; contentType: string },
+    @Body() body: { type: string; base64Data: string; contentType: string },
   ) {
     if (!req.user?.sub) throw new UnauthorizedException()
-    return this.uploadLetterheadUseCase.execute(req.user.sub, body.type, body.base64Data, body.contentType)
+    return this.uploadLetterheadUseCase.execute(req.user.sub, body.type as any, body.base64Data, body.contentType)
   }
 
   @Post('verification')
