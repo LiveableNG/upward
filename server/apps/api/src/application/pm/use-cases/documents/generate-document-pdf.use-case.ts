@@ -148,12 +148,9 @@ export class GenerateDocumentPdfUseCase {
 
       await browser.close();
 
-      // Overlay background letterhead if configuration exists
       if (activeLetterhead && activeLetterhead.templateFileKey) {
         try {
-          const downloadUrl = await this.s3Service.getDownloadUrl(activeLetterhead.templateFileKey);
-          const response = await fetch(downloadUrl);
-          const templateBuffer = Buffer.from(await response.arrayBuffer());
+          const templateBuffer = await this.s3Service.getFileBuffer(activeLetterhead.templateFileKey);
 
           const { PDFDocument: PDFLibDocument } = require('pdf-lib');
           const contentPdfDoc = await PDFLibDocument.load(pdfBuffer);

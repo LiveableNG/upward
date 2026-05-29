@@ -56,6 +56,24 @@ export class S3Service {
     }
   }
 
+  async getFileBuffer(keyOrUrl: string): Promise<Buffer> {
+    if (!keyOrUrl) throw new Error('Key or URL is required');
+    const key = keyOrUrl.includes('amazonaws.com/') ? keyOrUrl.split('amazonaws.com/')[1] : keyOrUrl;
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      });
+      const response = await this.s3Client.send(command);
+      if (!response.Body) throw new Error('Response body is empty');
+      const bytes = await response.Body.transformToByteArray();
+      return Buffer.from(bytes);
+    } catch (error) {
+      console.error('Error reading buffer from S3:', error);
+      throw new InternalServerErrorException('Could not read file from storage');
+    }
+  }
+
   async uploadBuffer(buffer: Buffer, key: string, contentType: string) {
     try {
       const command = new PutObjectCommand({
