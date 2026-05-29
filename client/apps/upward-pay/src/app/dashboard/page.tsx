@@ -507,12 +507,12 @@ export default function DashboardPage() {
               <h4 className="bento-app-banner__title">Get the Upward App</h4>
               <p className="bento-app-banner__desc">Manage your lease and build credit on the go. Available for iOS and Android.</p>
               <div className="bento-app-banner__btns">
-                <button className="bento-app-btn">
+                <button className="bento-app-btn bento-app-btn--apple">
                   <div className="bento-app-btn__icon"><AppleIcon size={16} /></div>
                   <div className="bento-app-btn__text">App Store<br /><strong>Download</strong></div>
                 </button>
-                <button className="bento-app-btn">
-                  <div className="bento-app-btn__icon"><PlayStoreIcon size={16} /></div>
+                <button className="bento-app-btn bento-app-btn--playstore">
+                  <div className="bento-app-btn__icon"><PlayStoreIcon size={16} colored /></div>
                   <div className="bento-app-btn__text">Play Store<br /><strong>Download</strong></div>
                 </button>
               </div>
@@ -1369,11 +1369,45 @@ export default function DashboardPage() {
         .bento-app-btn__icon {
           color: var(--text-muted);
           flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .bento-app-btn:hover {
           background: var(--clay-faint);
           border-color: var(--clay);
+        }
+
+        /* Apple Button Custom Style */
+        .bento-app-btn--apple {
+          background: #09090b;
+          border-color: #27272a;
+          color: #ffffff;
+        }
+        .bento-app-btn--apple .bento-app-btn__icon {
+          color: #ffffff;
+        }
+        .bento-app-btn--apple strong {
+          color: #ffffff;
+        }
+        .bento-app-btn--apple:hover {
+          background: #18181b;
+          border-color: #3f3f46;
+        }
+
+        /* Play Store Button Custom Style */
+        .bento-app-btn--playstore {
+          background: #0b0f19;
+          border-color: #1e293b;
+          color: #ffffff;
+        }
+        .bento-app-btn--playstore strong {
+          color: #38bdf8; /* Vibrant Play Store brand light blue */
+        }
+        .bento-app-btn--playstore:hover {
+          background: #0f172a;
+          border-color: #334155;
         }
 
         .bento-app-banner__close {
