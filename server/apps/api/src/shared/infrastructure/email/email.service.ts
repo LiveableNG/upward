@@ -2,12 +2,14 @@ import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import Mailgun from 'mailgun.js'
 import FormData from 'form-data'
+import { randomUUID } from 'crypto'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
-import { formatName } from '@upward/common-utils'
 import { BugsnagService } from '../../../shared/infrastructure/common/bugsnag/bugsnag.service'
 import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
 import { EmailSentEvent } from '../../../application/events/definition/email-sent.event'
 import { Inject } from '@nestjs/common'
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
+import { formatName } from '@upward/common-utils'
 import {
   applyPmBranding,
   getPmTypeLabel,
@@ -40,6 +42,7 @@ export class EmailService {
     private prisma: PrismaService,
     private bugsnag: BugsnagService,
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
+    private s3Service: S3Service,
   ) {
     this.frontendUrl =
       this.configService.get<string>('FRONTEND_URL') || 'https://upward.goodtenants.io'
@@ -61,16 +64,44 @@ export class EmailService {
             const toStr = Array.isArray(data.to) ? data.to.join(', ') : data.to
             this.logger.log(`[MOCK EMAIL] To: ${toStr} | Subject: ${data.subject}`)
             try {
+              const uuid = randomUUID()
+
+              // 1. Upload HTML content to S3
+              const htmlBuffer = Buffer.from(data.html || '')
+              const htmlKey = `dev-emails/${uuid}/body.html`
+              await this.s3Service.uploadBuffer(htmlBuffer, htmlKey, 'text/html')
+
+              // 2. Upload attachments to S3 if any exist
+              const attachmentsData = []
+              if (data.attachment && Array.isArray(data.attachment)) {
+                for (const att of data.attachment) {
+                  const attKey = `dev-emails/${uuid}/attachments/${att.filename}`
+                  const buffer = Buffer.isBuffer(att.data)
+                    ? att.data
+                    : typeof att.data === 'string'
+                      ? Buffer.from(att.data)
+                      : Buffer.from([])
+
+                  await this.s3Service.uploadBuffer(buffer, attKey, 'application/octet-stream')
+                  attachmentsData.push({
+                    filename: att.filename,
+                    s3Key: attKey,
+                  })
+                }
+              }
+
               await this.prisma.upward_dev_email_preview.create({
                 data: {
+                  uuid,
                   to: toStr,
                   subject: data.subject || '',
-                  html: data.html || '',
+                  html: htmlKey,
                   text: data.text || '',
+                  attachments: attachmentsData,
                 },
               })
             } catch (err) {
-              this.logger.error('Failed to save dev email preview to database:', err)
+              this.logger.error('Failed to save dev email preview to database / S3:', err)
             }
             return { id: `mock-mailgun-id-${Date.now()}` }
           },
