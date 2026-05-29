@@ -114,7 +114,16 @@ export class GenerateDocumentPdfUseCase {
       `;
     }
 
-    content = `${marginStyle}\n<div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6;">${content}</div>`;
+    content = `
+      <style>
+        html, body {
+          background: transparent !important;
+          -webkit-print-color-adjust: exact;
+        }
+      </style>
+      ${marginStyle}
+      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6;">${content}</div>
+    `;
     
     let browser;
     try {
@@ -143,7 +152,8 @@ export class GenerateDocumentPdfUseCase {
       
       const pdfBuffer = await page.pdf({
         format: 'A4',
-        printBackground: true
+        printBackground: true,
+        omitBackground: true
       });
 
       await browser.close();
@@ -155,35 +165,48 @@ export class GenerateDocumentPdfUseCase {
           const { PDFDocument: PDFLibDocument } = require('pdf-lib');
           const contentPdfDoc = await PDFLibDocument.load(pdfBuffer);
           const templatePdfDoc = await PDFLibDocument.load(templateBuffer);
-
+          
+          const resultPdfDoc = await PDFLibDocument.create();
           const contentPages = contentPdfDoc.getPages();
           const templatePages = templatePdfDoc.getPages();
 
+          const embeddedContentPages = await resultPdfDoc.embedPages(contentPages);
+          const embeddedTemplatePages = await resultPdfDoc.embedPages(templatePages);
+
           for (let i = 0; i < contentPages.length; i++) {
             const contentPage = contentPages[i];
-            let bgPageToUse = templatePages[0];
+            const { width, height } = contentPage.getSize();
+            const newPage = resultPdfDoc.addPage([width, height]);
 
+            let bgPageToUse = embeddedTemplatePages[0];
             if (i > 0) {
               const reuse = activeLetterhead.templateConfig?.reuse_first_page_for_continuation !== false;
-              if (templatePages.length >= 2) {
-                bgPageToUse = templatePages[1];
+              if (embeddedTemplatePages.length >= 2) {
+                bgPageToUse = embeddedTemplatePages[1];
               } else if (!reuse) {
-                bgPageToUse = null; // No letterhead on continuation pages if not reusing
+                bgPageToUse = null;
               }
             }
 
             if (bgPageToUse) {
-              const [embeddedBg] = await contentPdfDoc.embedPages([bgPageToUse]);
-              contentPage.drawPage(embeddedBg, {
+              newPage.drawPage(bgPageToUse, {
                 x: 0,
                 y: 0,
-                width: contentPage.getWidth(),
-                height: contentPage.getHeight(),
+                width,
+                height,
               });
             }
+
+            const embeddedContentPage = embeddedContentPages[i];
+            newPage.drawPage(embeddedContentPage, {
+              x: 0,
+              y: 0,
+              width,
+              height,
+            });
           }
 
-          const modifiedPdfBytes = await contentPdfDoc.save();
+          const modifiedPdfBytes = await resultPdfDoc.save();
           return Buffer.from(modifiedPdfBytes);
         } catch (overlayError) {
           console.error('Failed to overlay PDF template:', overlayError);
