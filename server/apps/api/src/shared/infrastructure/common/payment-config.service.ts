@@ -65,7 +65,7 @@ export class PaymentConfigurationService implements OnModuleInit {
             const hasBenefits = items.some(
               (item: any) =>
                 item.name === 'Upward Benefits' &&
-                (item.amountPaid > 0 || item.allocated > 0)
+                (item.amount > 0 || item.amountPaid > 0 || item.allocated > 0)
             );
             if (hasBenefits) return true;
           }

@@ -30,38 +30,64 @@ export interface LineItemAllocation {
   remaining: number
 }
 
-function distributeAmount(amount: number, items: LineItemRecord[], processingFee = 2000): LineItemAllocation[] {
-  const allocs: LineItemAllocation[] = items.map(i => ({
-    id: i.id,
-    name: i.name,
-    totalAmount: i.totalAmount,
-    amountPaid: i.amountPaid,
-    remaining: Math.max(0, i.totalAmount - i.amountPaid),
-    allocated: 0
-  }))
+function distributeAmount(
+  amount: number, 
+  items: LineItemRecord[], 
+  transactionFee: number, 
+  benefitsFee: number, 
+  isBenefitsOptedIn: boolean
+): LineItemAllocation[] {
+  const allocs: LineItemAllocation[] = items.map(i => {
+    let remaining = Math.max(0, i.totalAmount - i.amountPaid)
+    let totalAmount = i.totalAmount
+
+    // Set the dynamic fee totalAmounts based on current selection
+    if (i.id === -2 || i.name === 'Transaction Fee') {
+      totalAmount = amount > 0 ? transactionFee : 0
+      remaining = totalAmount
+    } else if (i.id === -3 || i.name === 'Upward Benefits') {
+      totalAmount = (amount > 0 && isBenefitsOptedIn) ? benefitsFee : 0
+      remaining = totalAmount
+    }
+
+    return {
+      id: i.id,
+      name: i.name,
+      totalAmount,
+      amountPaid: i.amountPaid,
+      remaining,
+      allocated: 0
+    }
+  })
 
   let remaining = amount
-  
-  const feeItem = allocs.find(a => a.name === 'Processing Fee' || a.id === -2)
-  if (feeItem) {
-    const estimatedNet = amount > processingFee ? amount - processingFee : 0
-    const dynamicFee = estimatedNet > 0 ? processingFee : 0
-    
-    feeItem.totalAmount = dynamicFee
-    feeItem.remaining = dynamicFee
-    
-    const pay = Math.min(remaining, dynamicFee)
-    feeItem.allocated = pay
+
+  // 1. Pay Transaction Fee first (always repeats)
+  const txFeeItem = allocs.find(a => a.id === -2 || a.name === 'Transaction Fee')
+  if (txFeeItem && txFeeItem.remaining > 0) {
+    const pay = Math.min(remaining, txFeeItem.remaining)
+    txFeeItem.allocated = pay
     remaining -= pay
   }
 
+  // 2. Pay rest of line items (e.g. Rent, management fees)
   for (const item of allocs) {
-    if (item.name === 'Processing Fee' || item.id === -2) continue
+    if (item.id === -2 || item.id === -3 || item.name === 'Transaction Fee' || item.name === 'Upward Benefits') continue
     if (item.remaining <= 0) continue
     const pay = Math.min(remaining, item.remaining)
     item.allocated = pay
     remaining -= pay
     if (remaining <= 0) break
+  }
+
+  // 3. Pay Upward Benefits last (if opted in - lowest priority)
+  if (isBenefitsOptedIn) {
+    const benFeeItem = allocs.find(a => a.id === -3 || a.name === 'Upward Benefits')
+    if (benFeeItem && benFeeItem.remaining > 0) {
+      const pay = Math.min(remaining, benFeeItem.remaining)
+      benFeeItem.allocated = pay
+      remaining -= pay
+    }
   }
 
   return allocs
@@ -124,14 +150,30 @@ export function usePaymentFlow(uuid: string) {
         setPaymentData(res.data)
         let items = (res.data.payment.lineItemRecords || []) as LineItemRecord[]
         
-        // Insert dynamic Processing Fee
+        // Remove any existing dynamic fees to avoid duplicates
+        items = items.filter(i => i.id !== -2 && i.id !== -3 && i.name !== 'Processing Fee' && i.name !== 'Transaction Fee' && i.name !== 'Upward Benefits')
+
+        const dynamicRates = res.data.payment.processingRates || { transactionFee: 2000, benefitsFee: 0 }
+
+        // Insert dynamic Transaction Fee
         items.unshift({
           id: -2,
-          name: 'Processing Fee',
-          totalAmount: 0,
+          name: 'Transaction Fee',
+          totalAmount: dynamicRates.transactionFee,
           amountPaid: 0,
           status: 'PENDING'
         })
+        
+        // Insert dynamic Upward Benefits if benefitsFee > 0
+        if (dynamicRates.benefitsFee > 0) {
+          items.unshift({
+            id: -3,
+            name: 'Upward Benefits',
+            totalAmount: dynamicRates.benefitsFee,
+            amountPaid: 0,
+            status: 'PENDING'
+          })
+        }
         
         setLineItems(items)
         const due = res.data.payment.amount - (res.data.payment.amountPaid || 0)
@@ -145,12 +187,11 @@ export function usePaymentFlow(uuid: string) {
         }
 
         const rentRemaining = items.reduce((sum, item) => {
-          const isFee = item.name === 'Processing Fee' || item.id === -2
+          const isFee = item.name === 'Processing Fee' || item.id === -2 || item.name === 'Transaction Fee' || item.id === -3 || item.name === 'Upward Benefits'
           if (isFee) return sum
           return sum + Math.max(0, item.totalAmount - item.amountPaid)
         }, 0)
 
-        const dynamicRates = res.data.payment.processingRates || { transactionFee: 2000, benefitsFee: 0 }
         const finalDue = rentRemaining > 0 ? rentRemaining + dynamicRates.transactionFee + (isBenefitsOptedIn ? dynamicRates.benefitsFee : 0) : 0
         setAmountInput(finalDue.toString())
         
@@ -211,13 +252,13 @@ export function usePaymentFlow(uuid: string) {
     if (!paymentData?.payment) return 0
     const items = paymentData.payment.lineItemRecords || []
     const rentRemaining = items.reduce((sum: number, item: any) => {
-      const isFee = item.name === 'Processing Fee' || item.id === -2
+      const isFee = item.name === 'Processing Fee' || item.id === -2 || item.name === 'Transaction Fee' || item.id === -3 || item.name === 'Upward Benefits'
       if (isFee) return sum
       return sum + Math.max(0, item.totalAmount - item.amountPaid)
     }, 0)
     if (rentRemaining <= 0) return 0
-    return rentRemaining + feeVal
-  }, [paymentData, feeVal])
+    return rentRemaining + rates.transactionFee + (isBenefitsOptedIn ? rates.benefitsFee : 0)
+  }, [paymentData, rates, isBenefitsOptedIn])
 
   const parsedAmount = parseFloat(amountInput) || 0
   const minRequired = paymentData?.payment?.minAmount || 0
@@ -227,25 +268,46 @@ export function usePaymentFlow(uuid: string) {
   const isFullPaymentRequired = paymentData?.payment?.allowPartial === false
   const isUnderpaying = isFullPaymentRequired && parsedAmount > 0 && parsedAmount < totalOwed
 
-  const autoAllocs = useMemo(() => distributeAmount(Math.min(parsedAmount, totalOwed), lineItems, feeVal), [parsedAmount, lineItems, totalOwed, feeVal])
+  const autoAllocs = useMemo(() => distributeAmount(
+    Math.min(parsedAmount, totalOwed),
+    lineItems,
+    rates.transactionFee,
+    rates.benefitsFee,
+    isBenefitsOptedIn
+  ), [parsedAmount, lineItems, totalOwed, rates, isBenefitsOptedIn])
 
   const effectiveAllocs: LineItemAllocation[] = useMemo(() => {
     if (Object.keys(manualAllocs).length === 0) return autoAllocs
 
     const manualSum = Object.values(manualAllocs).reduce((acc, val) => acc + val, 0)
-    const dynamicFee = manualSum > 0 ? feeVal : 0
-    const feePayment = Math.min(parsedAmount - manualSum, dynamicFee)
+    const dynamicTxFee = manualSum > 0 ? rates.transactionFee : 0
+    const dynamicBenFee = (manualSum > 0 && isBenefitsOptedIn) ? rates.benefitsFee : 0
+    
+    let remaining = parsedAmount - manualSum
 
     return lineItems.map(item => {
-      const isFee = item.name === 'Processing Fee' || item.id === -2
-      if (isFee) {
+      if (item.id === -2 || item.name === 'Transaction Fee') {
+        const pay = Math.min(remaining, dynamicTxFee)
+        remaining -= pay
         return {
           id: item.id,
           name: item.name,
-          totalAmount: dynamicFee,
+          totalAmount: dynamicTxFee,
           amountPaid: item.amountPaid,
-          remaining: dynamicFee,
-          allocated: feePayment
+          remaining: dynamicTxFee,
+          allocated: pay
+        }
+      }
+      if (item.id === -3 || item.name === 'Upward Benefits') {
+        const pay = Math.min(remaining, dynamicBenFee)
+        remaining -= pay
+        return {
+          id: item.id,
+          name: item.name,
+          totalAmount: dynamicBenFee,
+          amountPaid: item.amountPaid,
+          remaining: dynamicBenFee,
+          allocated: pay
         }
       }
       return {
@@ -257,39 +319,15 @@ export function usePaymentFlow(uuid: string) {
         allocated: manualAllocs[item.id] || 0
       }
     })
-  }, [autoAllocs, manualAllocs, lineItems, parsedAmount, feeVal])
+  }, [autoAllocs, manualAllocs, lineItems, parsedAmount, rates, isBenefitsOptedIn])
 
   const finalLineItemPayments = useMemo(() => {
-    const list = effectiveAllocs.filter(a => a.allocated > 0).map(a => ({ id: a.id, amountPaid: a.allocated, name: a.name }))
-    if (list.length > 0) {
-      // Split processing fee into two items inside final payload if benefits are active
-      const feeIdx = list.findIndex(a => a.name === 'Processing Fee' || a.id === -2)
-      if (feeIdx !== -1) {
-        const totalFeePaid = list[feeIdx].amountPaid
-        const isOptedOut = !isBenefitsOptedIn || rates.benefitsFee === 0
-        
-        if (isOptedOut) {
-          list[feeIdx].name = 'Transaction Fee'
-        } else {
-          // split
-          const txnFeeAllocation = Math.min(totalFeePaid, rates.transactionFee)
-          const benefitsFeeAllocation = Math.max(0, totalFeePaid - txnFeeAllocation)
-          
-          list[feeIdx].name = 'Transaction Fee'
-          list[feeIdx].amountPaid = txnFeeAllocation
-          
-          if (benefitsFeeAllocation > 0) {
-            list.push({
-              id: -3,
-              name: 'Upward Benefits',
-              amountPaid: benefitsFeeAllocation
-            })
-          }
-        }
-      }
-    }
-    return list
-  }, [effectiveAllocs, isBenefitsOptedIn, rates])
+    return effectiveAllocs.filter(a => a.allocated > 0).map(a => ({
+      id: a.id,
+      amountPaid: a.allocated,
+      name: a.name
+    }))
+  }, [effectiveAllocs])
 
   const progressPct = totalOwed > 0 ? Math.min(100, (Math.min(parsedAmount, totalOwed) / totalOwed) * 100) : 0
 
@@ -305,7 +343,7 @@ export function usePaymentFlow(uuid: string) {
 
   const handleAllocationChange = (id: number, amount: number) => {
     const item = lineItems.find(a => a.id === id)
-    if (!item || item.name === 'Processing Fee' || item.id === -2 || item.status === 'PAID') return
+    if (!item || item.name === 'Processing Fee' || item.id === -2 || item.name === 'Transaction Fee' || item.id === -3 || item.name === 'Upward Benefits' || item.status === 'PAID') return
 
     const remainingForThisItem = Math.max(0, item.totalAmount - item.amountPaid)
     const finalAmountForThisItem = Math.min(Math.max(0, amount), remainingForThisItem)
@@ -313,7 +351,7 @@ export function usePaymentFlow(uuid: string) {
     let newManual = { ...manualAllocs }
     if (Object.keys(newManual).length === 0) {
       autoAllocs.forEach(a => {
-        if (a.name !== 'Processing Fee' && a.id !== -2) newManual[a.id] = a.allocated
+        if (a.name !== 'Processing Fee' && a.id !== -2 && a.name !== 'Transaction Fee' && a.id !== -3 && a.name !== 'Upward Benefits') newManual[a.id] = a.allocated
       })
     }
 
@@ -321,7 +359,7 @@ export function usePaymentFlow(uuid: string) {
     setManualAllocs(newManual)
     
     const manualSum = Object.values(newManual).reduce((acc, val) => acc + val, 0)
-    const dynamicFee = manualSum > 0 ? feeVal : 0
+    const dynamicFee = manualSum > 0 ? (rates.transactionFee + (isBenefitsOptedIn ? rates.benefitsFee : 0)) : 0
     setAmountInput((manualSum + dynamicFee).toString())
   }
 

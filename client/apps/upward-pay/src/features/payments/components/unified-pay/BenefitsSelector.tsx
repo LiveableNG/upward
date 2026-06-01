@@ -19,6 +19,12 @@ export function BenefitsSelector({
   onToggle
 }: BenefitsSelectorProps) {
   const coverageValue = rentValue * 0.10 // 10% of rent
+  const encodedMsg = encodeURIComponent(
+    `Hi, I'm about to make my rent payment and would like to understand the Upward Benefits package before opting in.`
+  )
+  const contactNum = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '2348160124649'
+  const cleanContactNum = contactNum.replace(/^\+/, '')
+  const whatsappUrl = `https://wa.me/${cleanContactNum}?text=${encodedMsg}`
 
   return (
     <div className="benefits-card">
@@ -29,7 +35,15 @@ export function BenefitsSelector({
 
       <p className="benefits-card__desc">
         Protect and maximize your tenancy experience with exclusive benefits worth up to{' '}
-        <strong className="highlight">{formatCurrency(coverageValue, currency)}</strong>.
+        <strong className="highlight">{formatCurrency(coverageValue, currency)}</strong>.{' '}
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="benefits-card__learn-more"
+        >
+          Learn more
+        </a>
       </p>
 
       <ul className="benefits-card__list">
@@ -119,6 +133,16 @@ export function BenefitsSelector({
         .benefits-card__desc .highlight {
           color: var(--clay);
           font-weight: 800;
+        }
+        .benefits-card__learn-more {
+          color: var(--clay);
+          font-weight: 750;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+          transition: filter 0.2s ease;
+        }
+        .benefits-card__learn-more:hover {
+          filter: brightness(1.15);
         }
         .benefits-card__list {
           list-style: none;
