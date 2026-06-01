@@ -25,12 +25,15 @@ import { SettledStep } from '@/features/payments/components/unified-pay/SettledS
 import { StatusStep } from '@/features/payments/components/unified-pay/StatusStep'
 import { RenewalModal } from '@/features/payments/components/unified-pay/RenewalModal'
 import { PaymentConfirmationModal } from '@/features/payments/components/unified-pay/PaymentConfirmationModal'
+import { BenefitsSelector } from '@/features/payments/components/unified-pay/BenefitsSelector'
+import { BenefitsOptOutModal } from '@/features/payments/components/unified-pay/BenefitsOptOutModal'
 import { usePaymentFlow } from '@/features/payments/hooks/usePaymentFlow'
 
 export default function PayClient({ overrideToken }: { overrideToken?: string }) {
   const router = useRouter()
   const params = useParams()
   const [showPaymentConfirm, setShowPaymentConfirm] = React.useState(false)
+  const [showOptOutModal, setShowOptOutModal] = React.useState(false)
   
   const uuid = useMemo(() => {
     if (overrideToken) return overrideToken
@@ -70,6 +73,9 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     executeLogin,
     authUser,
     isPendingRefund,
+    isBenefitsOptedIn,
+    setIsBenefitsOptedIn,
+    rates
   } = usePaymentFlow(uuid)
 
   if (step === 'loading') return <FallbackSuspense message="Retrieving secure payment details..." />
@@ -256,6 +262,23 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                       isFullPaymentRequired={isFullPaymentRequired}
                       isUnderpaying={isUnderpaying}
                     />
+
+                    {rates.benefitsFee > 0 && (
+                      <BenefitsSelector
+                        benefitsFee={rates.benefitsFee}
+                        currency={currency}
+                        isOptedIn={isBenefitsOptedIn}
+                        rentValue={rates.rentValue}
+                        onToggle={(checked) => {
+                          if (!checked) {
+                            setShowOptOutModal(true)
+                          } else {
+                            setIsBenefitsOptedIn(true)
+                          }
+                        }}
+                      />
+                    )}
+
                     <AllocationBreakdown
                       showBreakdown={showBreakdown}
                       setShowBreakdown={setShowBreakdown}
@@ -282,6 +305,17 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             </div>
           </div>
         </main>
+
+        <BenefitsOptOutModal
+          isOpen={showOptOutModal}
+          rentValue={rates.rentValue}
+          currency={currency}
+          onClose={() => setShowOptOutModal(false)}
+          onConfirmOptOut={() => {
+            setIsBenefitsOptedIn(false)
+            setShowOptOutModal(false)
+          }}
+        />
 
         <footer className="pay-footer">
           <p className="pay-footer__disclaimer">
