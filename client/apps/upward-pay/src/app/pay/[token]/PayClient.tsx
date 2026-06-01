@@ -230,7 +230,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
                 {/* Benefits Card shifted to Left Column on Desktop for balance */}
                 <div className="benefits-desktop-wrap">
-                  {rates.benefitsFee > 0 && (
+                  {rates.benefitsFee > 0 && !rates.benefitsPaid && (
                     <BenefitsSelector
                       benefitsFee={rates.benefitsFee}
                       currency={currency}
@@ -284,7 +284,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
                     {/* Render Benefits Selector inside Right Column on Mobile viewports only */}
                     <div className="benefits-mobile-wrap">
-                      {rates.benefitsFee > 0 && (
+                      {rates.benefitsFee > 0 && !rates.benefitsPaid && (
                         <BenefitsSelector
                           benefitsFee={rates.benefitsFee}
                           currency={currency}
