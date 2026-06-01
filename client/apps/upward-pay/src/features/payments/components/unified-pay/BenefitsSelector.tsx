@@ -37,19 +37,19 @@ export function BenefitsSelector({
           <span className="benefits-card__icon-wrap">
             <Check size={12} />
           </span>
-          <span>Tenancy Credit Scoring boost</span>
+          <span>Rental Credibility & Score Boost</span>
         </li>
         <li className="benefits-card__list-item">
           <span className="benefits-card__icon-wrap">
             <Check size={12} />
           </span>
-          <span>Zero-interest deposit emergency loans</span>
+          <span>Flexible installment rent financing</span>
         </li>
         <li className="benefits-card__list-item">
           <span className="benefits-card__icon-wrap">
             <Check size={12} />
           </span>
-          <span>Upward reward point milestones</span>
+          <span>Verified Tenancy History records</span>
         </li>
       </ul>
 
