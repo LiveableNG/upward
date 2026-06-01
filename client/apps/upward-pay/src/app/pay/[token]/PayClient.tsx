@@ -227,6 +227,25 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                       : 'Amount Outstanding'
                   }
                 />
+
+                {/* Benefits Card shifted to Left Column on Desktop for balance */}
+                <div className="benefits-desktop-wrap">
+                  {rates.benefitsFee > 0 && (
+                    <BenefitsSelector
+                      benefitsFee={rates.benefitsFee}
+                      currency={currency}
+                      isOptedIn={isBenefitsOptedIn}
+                      rentValue={rates.rentValue}
+                      onToggle={(checked) => {
+                        if (!checked) {
+                          setShowOptOutModal(true)
+                        } else {
+                          setIsBenefitsOptedIn(true)
+                        }
+                      }}
+                    />
+                  )}
+                </div>
               </div>
 
               <div className="pay-layout__right">
@@ -263,21 +282,24 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                       isUnderpaying={isUnderpaying}
                     />
 
-                    {rates.benefitsFee > 0 && (
-                      <BenefitsSelector
-                        benefitsFee={rates.benefitsFee}
-                        currency={currency}
-                        isOptedIn={isBenefitsOptedIn}
-                        rentValue={rates.rentValue}
-                        onToggle={(checked) => {
-                          if (!checked) {
-                            setShowOptOutModal(true)
-                          } else {
-                            setIsBenefitsOptedIn(true)
-                          }
-                        }}
-                      />
-                    )}
+                    {/* Render Benefits Selector inside Right Column on Mobile viewports only */}
+                    <div className="benefits-mobile-wrap">
+                      {rates.benefitsFee > 0 && (
+                        <BenefitsSelector
+                          benefitsFee={rates.benefitsFee}
+                          currency={currency}
+                          isOptedIn={isBenefitsOptedIn}
+                          rentValue={rates.rentValue}
+                          onToggle={(checked) => {
+                            if (!checked) {
+                              setShowOptOutModal(true)
+                            } else {
+                              setIsBenefitsOptedIn(true)
+                            }
+                          }}
+                        />
+                      )}
+                    </div>
 
                     <AllocationBreakdown
                       showBreakdown={showBreakdown}
@@ -288,7 +310,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                       canPayPartial={!!paymentData.payment.allowPartial}
                       onAllocationChange={handleAllocationChange}
                     />
-                    <div className="pay-cta">
+                    <div className="pay-cta pay-cta--sticky">
                       <button
                         className="btn btn--primary btn--full btn--pay btn--pill"
                         onClick={() => setShowPaymentConfirm(true)}
@@ -339,8 +361,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
           }
           @supports (backdrop-filter: blur(12px)) {
             .pay-header {
-              opacity: 0.95;
-              backdrop-filter: blur(12px);
+               opacity: 0.95;
+               backdrop-filter: blur(12px);
             }
           }
           .pay-header__content {
@@ -377,6 +399,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
           .pay-main {
             padding-top: 64px;
+            padding-bottom: 96px; /* Added spacing to prevent mobile sticky CTA overlap */
             min-height: calc(100vh - 64px - 52px);
             background: radial-gradient(circle at 80% 0%, var(--clay-faint), transparent 360px), var(--oat-dim);
             display: flex;
@@ -396,7 +419,29 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
           .pay-layout { display: flex; flex-direction: column; gap: 24px; }
           .pay-layout__left { display: flex; flex-direction: column; gap: 16px; }
           .pay-layout__right { display: flex; flex-direction: column; gap: 12px; }
+          
           .pay-cta { margin-top: 8px; }
+          
+          /* Sticky Bottom CTA for MobileUX */
+          @media (max-width: 1023px) {
+            .pay-cta--sticky {
+              position: fixed;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              background: var(--bg);
+              border-top: 1px solid var(--border-solid);
+              padding: 16px 24px;
+              z-index: 45;
+              box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.04);
+            }
+            @supports (backdrop-filter: blur(12px)) {
+              .pay-cta--sticky {
+                background: rgba(255, 255, 255, 0.9);
+                backdrop-filter: blur(12px);
+              }
+            }
+          }
 
           .btn--pay {
             display: flex;
@@ -447,6 +492,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             padding: 0 24px;
             border-top: 1px solid var(--border-solid);
             background: var(--bg);
+            margin-bottom: 74px; /* Space on mobile footer so it's not hidden behind sticky button */
           }
           .pay-footer__disclaimer {
             font-size: 11px;
@@ -473,10 +519,33 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
               background: transparent;
             }
             .pay-layout { gap: 20px; }
-            .pay-footer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 40; }
+            .pay-footer { 
+              position: static; 
+              margin-top: 24px;
+              margin-bottom: 24px;
+              border-top: none;
+            }
+            .benefits-desktop-wrap {
+              display: none;
+            }
+            .benefits-mobile-wrap {
+              display: block;
+              margin-bottom: 24px;
+            }
           }
 
           @media (min-width: 1024px) {
+            .benefits-desktop-wrap {
+              display: block;
+              margin-top: 24px;
+              width: 100%;
+            }
+            .benefits-desktop-wrap :global(.benefits-card) {
+              background: var(--bg);
+            }
+            .benefits-mobile-wrap {
+              display: none;
+            }
             .auth-shell--pay { max-width: 100%; padding: 0; }
             .pay-main {
               padding-top: 80px; padding-bottom: 80px;
@@ -491,6 +560,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             .pay-layout__left {
               flex: 1.1; gap: 32px; padding: 64px;
               background: var(--surface); border-right: 1px solid var(--border-solid);
+              display: flex;
+              flex-direction: column;
             }
             .pay-layout__right { flex: 1; padding: 64px; justify-content: flex-start; gap: 40px; }
             .pay-cta { margin-top: auto; padding-top: 32px; }
