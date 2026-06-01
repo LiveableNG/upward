@@ -45,7 +45,9 @@ export class DistributePaymentAllocationsUseCase {
     if (upwardFeeAmount > 0) {
       const feeInAllocations = lineItemPayments?.find(lp => 
         lp.name === 'Processing Fee' || 
-        ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(lp.name || '')
+        lp.name === 'Transaction Fee' ||
+        lp.name === 'Upward Benefits' ||
+        ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(lp.name || '')
       )
       
       if (!feeInAllocations) {
@@ -79,7 +81,9 @@ export class DistributePaymentAllocationsUseCase {
           return false
         })
         const isFee = lp.name === 'Processing Fee' || 
-                     (item && ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name))
+                     lp.name === 'Transaction Fee' ||
+                     lp.name === 'Upward Benefits' ||
+                     (item && ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(item.name))
         
         const lpAmount = Number(lp.amountPaid || lp.amount || 0)
         
@@ -143,7 +147,7 @@ export class DistributePaymentAllocationsUseCase {
     if (!hasManualAllocations && remainingPayment > 0 && currentItems.length > 0) {
       const unpaidItems = currentItems
         .filter(item => {
-          const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name)
+          const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(item.name)
           const need = item.totalAmount - item.amountPaid
           return !isFee && need > 0
         })

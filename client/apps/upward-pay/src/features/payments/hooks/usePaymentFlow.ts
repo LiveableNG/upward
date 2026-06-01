@@ -87,7 +87,11 @@ export function usePaymentFlow(uuid: string) {
   const [autoPrompted, setAutoPrompted] = useState(false)
   const [isPendingRefund, setIsPendingRefund] = useState(false)
 
-  const feeVal = paymentData?.payment?.processingFee ?? 2000
+  const [isBenefitsOptedIn, setIsBenefitsOptedIn] = useState(true)
+
+  const rates = paymentData?.payment?.processingRates || { transactionFee: 2000, benefitsFee: 0, rentValue: 0 }
+  const activeBenefitsFee = isBenefitsOptedIn ? rates.benefitsFee : 0
+  const feeVal = rates.transactionFee + activeBenefitsFee
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -146,7 +150,8 @@ export function usePaymentFlow(uuid: string) {
           return sum + Math.max(0, item.totalAmount - item.amountPaid)
         }, 0)
 
-        const finalDue = rentRemaining > 0 ? rentRemaining + (res.data.payment.processingFee ?? 2000) : 0
+        const dynamicRates = res.data.payment.processingRates || { transactionFee: 2000, benefitsFee: 0 }
+        const finalDue = rentRemaining > 0 ? rentRemaining + dynamicRates.transactionFee + (isBenefitsOptedIn ? dynamicRates.benefitsFee : 0) : 0
         setAmountInput(finalDue.toString())
         
         setFormData(prev => ({
@@ -168,7 +173,7 @@ export function usePaymentFlow(uuid: string) {
       setErrorMessage(err.message || 'Payment request not found or expired')
       setStep('error')
     }
-  }, [uuid])
+  }, [uuid, isBenefitsOptedIn])
 
   useEffect(() => {
     if (uuid) loadPaymentDetails()
@@ -211,8 +216,8 @@ export function usePaymentFlow(uuid: string) {
       return sum + Math.max(0, item.totalAmount - item.amountPaid)
     }, 0)
     if (rentRemaining <= 0) return 0
-    return rentRemaining + (paymentData.payment.processingFee ?? 2000)
-  }, [paymentData])
+    return rentRemaining + feeVal
+  }, [paymentData, feeVal])
 
   const parsedAmount = parseFloat(amountInput) || 0
   const minRequired = paymentData?.payment?.minAmount || 0
@@ -254,9 +259,37 @@ export function usePaymentFlow(uuid: string) {
     })
   }, [autoAllocs, manualAllocs, lineItems, parsedAmount, feeVal])
 
-  const finalLineItemPayments = useMemo(() => 
-    effectiveAllocs.filter(a => a.allocated > 0).map(a => ({ id: a.id, amountPaid: a.allocated, name: a.name }))
-  , [effectiveAllocs])
+  const finalLineItemPayments = useMemo(() => {
+    const list = effectiveAllocs.filter(a => a.allocated > 0).map(a => ({ id: a.id, amountPaid: a.allocated, name: a.name }))
+    if (list.length > 0) {
+      // Split processing fee into two items inside final payload if benefits are active
+      const feeIdx = list.findIndex(a => a.name === 'Processing Fee' || a.id === -2)
+      if (feeIdx !== -1) {
+        const totalFeePaid = list[feeIdx].amountPaid
+        const isOptedOut = !isBenefitsOptedIn || rates.benefitsFee === 0
+        
+        if (isOptedOut) {
+          list[feeIdx].name = 'Transaction Fee'
+        } else {
+          // split
+          const txnFeeAllocation = Math.min(totalFeePaid, rates.transactionFee)
+          const benefitsFeeAllocation = Math.max(0, totalFeePaid - txnFeeAllocation)
+          
+          list[feeIdx].name = 'Transaction Fee'
+          list[feeIdx].amountPaid = txnFeeAllocation
+          
+          if (benefitsFeeAllocation > 0) {
+            list.push({
+              id: -3,
+              name: 'Upward Benefits',
+              amountPaid: benefitsFeeAllocation
+            })
+          }
+        }
+      }
+    }
+    return list
+  }, [effectiveAllocs, isBenefitsOptedIn, rates])
 
   const progressPct = totalOwed > 0 ? Math.min(100, (Math.min(parsedAmount, totalOwed) / totalOwed) * 100) : 0
 
@@ -381,5 +414,8 @@ export function usePaymentFlow(uuid: string) {
     executeLogin,
     authUser,
     isPendingRefund,
+    isBenefitsOptedIn,
+    setIsBenefitsOptedIn,
+    rates
   }
 }

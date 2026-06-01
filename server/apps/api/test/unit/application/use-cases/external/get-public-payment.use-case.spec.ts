@@ -94,7 +94,11 @@ describe('GetPublicPaymentDetailsUseCase', () => {
 
   beforeEach(() => {
     paymentConfig = {
-      getDynamicProcessingFee: jest.fn().mockResolvedValue(2000),
+      getDynamicProcessingRates: jest.fn().mockResolvedValue({
+        transactionFee: 2000,
+        benefitsFee: 0,
+        rentValue: 500000,
+      }),
     } as any
 
     paymentRequestRepository = {

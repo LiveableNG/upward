@@ -655,7 +655,10 @@ export class InitializePaymentUseCase {
       }
     }
 
-    flatFee = await this.paymentConfig.getDynamicProcessingFee(user.id, userPropertyId)
+    const rates = await this.paymentConfig.getDynamicProcessingRates(user.id, userPropertyId)
+    const excludeBenefits = data.metadata?.excludeBenefits === true
+    const activeBenefitsFee = excludeBenefits ? 0 : rates.benefitsFee
+    flatFee = rates.transactionFee + activeBenefitsFee
 
     if (userPropertyId) {
       const rawPhone = user.phone || ''
@@ -674,7 +677,7 @@ export class InitializePaymentUseCase {
       let clientFee = 0
       if (data.metadata?.lineItems) {
         const feeItem = data.metadata.lineItems.find((i: any) => 
-          (i.label || i.name) === 'Processing Fee'
+          (i.label || i.name) === 'Processing Fee' || (i.label || i.name) === 'Transaction Fee'
         )
         if (feeItem) clientFee = Number(feeItem.amount)
       } else if (data.metadata?.fee) {
