@@ -46,8 +46,13 @@ function distributeAmount(
       totalAmount = amount > 0 ? transactionFee : 0
       remaining = totalAmount
     } else if (i.id === -3 || i.name === 'Upward Benefits') {
-      totalAmount = (amount > 0 && isBenefitsOptedIn) ? benefitsFee : 0
-      remaining = totalAmount
+      if (i.status === 'PAID') {
+        totalAmount = i.totalAmount
+        remaining = 0
+      } else {
+        totalAmount = (amount > 0 && isBenefitsOptedIn) ? benefitsFee : 0
+        remaining = totalAmount
+      }
     }
 
     return {
@@ -260,7 +265,7 @@ export function usePaymentFlow(uuid: string) {
       return sum + Math.max(0, item.totalAmount - item.amountPaid)
     }, 0)
     if (rentRemaining <= 0) return 0
-    return rentRemaining + rates.transactionFee + (isBenefitsOptedIn ? rates.benefitsFee : 0)
+    return rentRemaining + rates.transactionFee + ((isBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0)
   }, [paymentData, rates, isBenefitsOptedIn])
 
   const parsedAmount = parseFloat(amountInput) || 0
@@ -302,6 +307,16 @@ export function usePaymentFlow(uuid: string) {
         }
       }
       if (item.id === -3 || item.name === 'Upward Benefits') {
+        if (item.status === 'PAID') {
+          return {
+            id: item.id,
+            name: item.name,
+            totalAmount: item.totalAmount,
+            amountPaid: item.amountPaid,
+            remaining: 0,
+            allocated: 0
+          }
+        }
         const pay = Math.min(remaining, dynamicBenFee)
         remaining -= pay
         return {
