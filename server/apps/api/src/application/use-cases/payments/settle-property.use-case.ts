@@ -75,9 +75,23 @@ export class SettlePropertyBalanceUseCase {
     // Update Rent Cycle for Credit Scoring
     const cycleDueDate = dueDate ? new Date(dueDate) : (prop.rentEndDate ? new Date(prop.rentEndDate) : new Date())
     const paidAt = new Date()
-    const amountOwedForCycle = totalOwedForProp || rentPortion
+    
+    let currentTotalPaid = rentPortion
+    let amountOwedForCycle = totalOwedForProp || rentPortion
 
-    const currentTotalPaid = rentPortion // Simplification: in the cycle we track per-request usually
+    if (paymentRequestId) {
+      const rentLineItems = await txClient.upward_payment_line_item.findMany({
+        where: {
+          paymentRequestId,
+          name: { contains: 'rent', mode: 'insensitive' }
+        }
+      })
+      if (rentLineItems.length > 0) {
+        currentTotalPaid = rentLineItems.reduce((sum: number, item: any) => sum + item.amountPaid, 0)
+        amountOwedForCycle = rentLineItems.reduce((sum: number, item: any) => sum + item.totalAmount, 0)
+      }
+    }
+
     const cycleStatus = currentTotalPaid >= amountOwedForCycle
       ? (paidAt <= cycleDueDate ? 'PAID_ON_TIME' : 'PAID_LATE')
       : (paidAt <= cycleDueDate ? 'PARTIAL_ON_TIME' : 'PARTIAL_LATE')
