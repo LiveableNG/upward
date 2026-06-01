@@ -364,11 +364,13 @@ export class RecordTransactionUseCase {
       }
 
       if (upwardFeeAmount === 0 && pr) {
-        const feeItems = (await txClient.upward_payment_line_item.findMany({ where: { paymentRequestId: pr.id } }))
-          .filter(i => ['Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(i.name))
-        if (feeItems.length > 0) {
-          const totalFeeNeed = feeItems.reduce((sum, fi) => sum + (fi.totalAmount - fi.amountPaid), 0)
-          upwardFeeAmount = Math.min(effectiveAmount, totalFeeNeed)
+        try {
+          const rates = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId)
+          const txFee = rates.transactionFee
+          const benFee = rates.benefitsPaid ? 0 : rates.benefitsFee
+          upwardFeeAmount = txFee + benFee
+        } catch (e: any) {
+          this.logger.error(`Failed to resolve dynamic processing rates in RecordTransactionUseCase: ${e?.message}`)
         }
       }
 
