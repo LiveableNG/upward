@@ -275,7 +275,7 @@ export function usePaymentFlow(uuid: string) {
     Math.min(parsedAmount, totalOwed),
     lineItems,
     rates.transactionFee,
-    rates.benefitsFee,
+    rates.benefitsPaid ? 0 : rates.benefitsFee,
     isBenefitsOptedIn
   ), [parsedAmount, lineItems, totalOwed, rates, isBenefitsOptedIn])
 
@@ -284,7 +284,7 @@ export function usePaymentFlow(uuid: string) {
 
     const manualSum = Object.values(manualAllocs).reduce((acc, val) => acc + val, 0)
     const dynamicTxFee = manualSum > 0 ? rates.transactionFee : 0
-    const dynamicBenFee = (manualSum > 0 && isBenefitsOptedIn) ? rates.benefitsFee : 0
+    const dynamicBenFee = (manualSum > 0 && isBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0
     
     let remaining = parsedAmount - manualSum
 
@@ -362,7 +362,7 @@ export function usePaymentFlow(uuid: string) {
     setManualAllocs(newManual)
     
     const manualSum = Object.values(newManual).reduce((acc, val) => acc + val, 0)
-    const dynamicFee = manualSum > 0 ? (rates.transactionFee + (isBenefitsOptedIn ? rates.benefitsFee : 0)) : 0
+    const dynamicFee = manualSum > 0 ? (rates.transactionFee + ((isBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0)) : 0
     setAmountInput((manualSum + dynamicFee).toString())
   }
 
