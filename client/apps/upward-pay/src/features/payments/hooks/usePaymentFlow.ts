@@ -115,8 +115,8 @@ export function usePaymentFlow(uuid: string) {
 
   const [isBenefitsOptedIn, setIsBenefitsOptedIn] = useState(true)
 
-  const rates = paymentData?.payment?.processingRates || { transactionFee: 2000, benefitsFee: 0, rentValue: 0 }
-  const activeBenefitsFee = isBenefitsOptedIn ? rates.benefitsFee : 0
+  const rates = paymentData?.payment?.processingRates || { transactionFee: 2000, benefitsFee: 0, rentValue: 0, benefitsPaid: false }
+  const activeBenefitsFee = (isBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0
   const feeVal = rates.transactionFee + activeBenefitsFee
 
   const [formData, setFormData] = useState({
@@ -153,7 +153,7 @@ export function usePaymentFlow(uuid: string) {
         // Remove any existing dynamic fees to avoid duplicates
         items = items.filter(i => i.id !== -2 && i.id !== -3 && i.name !== 'Processing Fee' && i.name !== 'Transaction Fee' && i.name !== 'Upward Benefits')
 
-        const dynamicRates = res.data.payment.processingRates || { transactionFee: 2000, benefitsFee: 0 }
+        const dynamicRates = res.data.payment.processingRates || { transactionFee: 2000, benefitsFee: 0, benefitsPaid: false }
 
         // Insert dynamic Transaction Fee
         items.unshift({
@@ -164,14 +164,14 @@ export function usePaymentFlow(uuid: string) {
           status: 'PENDING'
         })
         
-        // Insert dynamic Upward Benefits if benefitsFee > 0
-        if (dynamicRates.benefitsFee > 0) {
+        // Insert dynamic Upward Benefits if benefitsFee > 0 or already paid
+        if (dynamicRates.benefitsFee > 0 || dynamicRates.benefitsPaid) {
           items.unshift({
             id: -3,
             name: 'Upward Benefits',
             totalAmount: dynamicRates.benefitsFee,
-            amountPaid: 0,
-            status: 'PENDING'
+            amountPaid: dynamicRates.benefitsPaid ? dynamicRates.benefitsFee : 0,
+            status: dynamicRates.benefitsPaid ? 'PAID' : 'PENDING'
           })
         }
         
@@ -192,7 +192,7 @@ export function usePaymentFlow(uuid: string) {
           return sum + Math.max(0, item.totalAmount - item.amountPaid)
         }, 0)
 
-        const finalDue = rentRemaining > 0 ? rentRemaining + dynamicRates.transactionFee + (isBenefitsOptedIn ? dynamicRates.benefitsFee : 0) : 0
+        const finalDue = rentRemaining > 0 ? rentRemaining + dynamicRates.transactionFee + ((isBenefitsOptedIn && !dynamicRates.benefitsPaid) ? dynamicRates.benefitsFee : 0) : 0
         setAmountInput(finalDue.toString())
         
         setFormData(prev => ({

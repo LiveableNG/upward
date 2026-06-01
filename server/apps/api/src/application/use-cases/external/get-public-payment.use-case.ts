@@ -128,7 +128,8 @@ export class GetPublicPaymentDetailsUseCase {
         processingRates: {
           transactionFee: dynamicRates.transactionFee,
           benefitsFee: dynamicRates.benefitsFee,
-          rentValue: dynamicRates.rentValue
+          rentValue: dynamicRates.rentValue,
+          benefitsPaid: (dynamicRates as any).benefitsPaid || false
         },
       },
       user: {

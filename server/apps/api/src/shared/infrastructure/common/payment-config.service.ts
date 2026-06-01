@@ -80,7 +80,7 @@ export class PaymentConfigurationService implements OnModuleInit {
   async getDynamicProcessingRates(
     userId: number,
     propertyId?: number | null
-  ): Promise<{ transactionFee: number; benefitsFee: number; rentValue: number }> {
+  ): Promise<{ transactionFee: number; benefitsFee: number; rentValue: number; benefitsPaid?: boolean }> {
     let rentValue = 0;
     try {
       let activePropertyId = propertyId;
@@ -167,18 +167,19 @@ export class PaymentConfigurationService implements OnModuleInit {
 
           const hasPaidBenefits = await this.hasPaidBenefitsInCurrentTenure(userId, property.id);
           if (hasPaidBenefits) {
-            return { ...defaultRates, benefitsFee: 0, rentValue };
+            return { ...defaultRates, rentValue, benefitsPaid: true };
           }
         }
       }
     } catch (error) {}
 
-    return { ...defaultRates, rentValue };
+    return { ...defaultRates, rentValue, benefitsPaid: false };
   }
 
   async getDynamicProcessingFee(userId: number, propertyId?: number | null): Promise<number> {
     const rates = await this.getDynamicProcessingRates(userId, propertyId);
-    return rates.transactionFee + rates.benefitsFee;
+    const activeBenefitsFee = (rates as any).benefitsPaid ? 0 : rates.benefitsFee;
+    return rates.transactionFee + activeBenefitsFee;
   }
 
   getGatewayFee(): number {
