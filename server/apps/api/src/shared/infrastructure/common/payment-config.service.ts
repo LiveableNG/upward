@@ -55,6 +55,9 @@ export class PaymentConfigurationService implements OnModuleInit {
         where: {
           userId,
           status: 'SUCCESS',
+          paymentRequest: {
+            userPropertyId: propertyId,
+          },
         },
       });
 
