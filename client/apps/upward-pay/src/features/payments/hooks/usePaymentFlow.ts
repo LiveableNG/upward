@@ -115,7 +115,7 @@ export function usePaymentFlow(uuid: string) {
 
   const [isBenefitsOptedIn, setIsBenefitsOptedIn] = useState(true)
 
-  const rates = paymentData?.payment?.processingRates || { transactionFee: 2000, benefitsFee: 0, rentValue: 0, benefitsPaid: false }
+  const rates = paymentData?.payment?.processingRates || { transactionFee: 2000, benefitsFee: 0, rentValue: 0, benefitsPaid: false, benefitsPaidForRequest: false }
   const activeBenefitsFee = (isBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0
   const feeVal = rates.transactionFee + activeBenefitsFee
 
@@ -153,7 +153,7 @@ export function usePaymentFlow(uuid: string) {
         // Remove any existing dynamic fees to avoid duplicates
         items = items.filter(i => i.id !== -2 && i.id !== -3 && i.name !== 'Processing Fee' && i.name !== 'Transaction Fee' && i.name !== 'Upward Benefits')
 
-        const dynamicRates = res.data.payment.processingRates || { transactionFee: 2000, benefitsFee: 0, benefitsPaid: false }
+        const dynamicRates = res.data.payment.processingRates || { transactionFee: 2000, benefitsFee: 0, benefitsPaid: false, benefitsPaidForRequest: false }
 
         // Insert dynamic Transaction Fee
         items.unshift({
@@ -164,14 +164,17 @@ export function usePaymentFlow(uuid: string) {
           status: 'PENDING'
         })
         
-        // Insert dynamic Upward Benefits if benefitsFee > 0 or already paid
-        if (dynamicRates.benefitsFee > 0 || dynamicRates.benefitsPaid) {
+        // Insert dynamic Upward Benefits if not paid yet in tenure, or if paid specifically for this request
+        const shouldShowBenefitsItem = (dynamicRates.benefitsFee > 0 && !dynamicRates.benefitsPaid) || 
+                                       (dynamicRates.benefitsPaid && dynamicRates.benefitsPaidForRequest)
+        
+        if (shouldShowBenefitsItem) {
           items.unshift({
             id: -3,
             name: 'Upward Benefits',
             totalAmount: dynamicRates.benefitsFee,
-            amountPaid: dynamicRates.benefitsPaid ? dynamicRates.benefitsFee : 0,
-            status: dynamicRates.benefitsPaid ? 'PAID' : 'PENDING'
+            amountPaid: dynamicRates.benefitsPaidForRequest ? dynamicRates.benefitsFee : 0,
+            status: dynamicRates.benefitsPaidForRequest ? 'PAID' : 'PENDING'
           })
         }
         
