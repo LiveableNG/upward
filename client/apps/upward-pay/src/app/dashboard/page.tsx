@@ -1381,33 +1381,33 @@ export default function DashboardPage() {
 
         /* Apple Button Custom Style */
         .bento-app-btn--apple {
-          background: #09090b;
-          border-color: #27272a;
-          color: #ffffff;
+          background: var(--bg);
+          border-color: var(--border-solid);
+          color: var(--text);
         }
         .bento-app-btn--apple .bento-app-btn__icon {
-          color: #ffffff;
+          color: var(--text);
         }
         .bento-app-btn--apple strong {
-          color: #ffffff;
+          color: var(--text);
         }
         .bento-app-btn--apple:hover {
-          background: #18181b;
-          border-color: #3f3f46;
+          background: var(--surface2);
+          border-color: var(--text);
         }
 
         /* Play Store Button Custom Style */
         .bento-app-btn--playstore {
-          background: #0b0f19;
-          border-color: #1e293b;
-          color: #ffffff;
+          background: var(--bg);
+          border-color: var(--border-solid);
+          color: var(--text);
         }
         .bento-app-btn--playstore strong {
-          color: #38bdf8; /* Vibrant Play Store brand light blue */
+          color: #0284c7; /* Vibrant Play Store brand light blue */
         }
         .bento-app-btn--playstore:hover {
-          background: #0f172a;
-          border-color: #334155;
+          background: var(--surface2);
+          border-color: #0284c7;
         }
 
         .bento-app-banner__close {

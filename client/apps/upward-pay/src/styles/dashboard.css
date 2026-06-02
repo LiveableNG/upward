@@ -1408,12 +1408,16 @@
 
   .dashboard__stat-card--request-cta {
     background: var(--clay-faint);
-    border-color: var(--clay-glow);
+    border: 1.5px solid var(--clay) !important;
+    box-shadow: 0 4px 12px var(--clay-glow);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .dashboard__stat-card--request-cta:hover {
     background: var(--clay);
-    border-color: var(--clay);
+    border-color: var(--clay) !important;
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 24px rgba(217, 119, 87, 0.3);
   }
 
   .dashboard__stat-card--request-cta:hover .dashboard__stat-label,
