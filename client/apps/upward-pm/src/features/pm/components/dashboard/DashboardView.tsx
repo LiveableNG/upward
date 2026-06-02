@@ -50,12 +50,53 @@ export function DashboardView() {
   const totalRevenue = requests
     .reduce((sum, r) => sum + r.amountPaid, 0)
 
-  const overduePayments = [...requests]
-    .filter(r => (r.status === 'PENDING' || r.status === 'PARTIAL') && new Date(r.dueDate) < new Date())
+  // Helper to normalize dates to the start of the day in local time
+  const getStartOfDay = (date: Date) => {
+    const d = new Date(date)
+    d.setHours(0, 0, 0, 0)
+    return d
+  }
+
+  const activeRequests = requests.filter(r => r.status === 'PENDING' || r.status === 'PARTIAL')
+  
+  const unbilledUnits = units.filter(u => {
+    if (u.status !== 'OCCUPIED' || !u.tenantId || !u.rentDueDate) return false
+    return !activeRequests.some(r => r.unitId === u.id)
+  })
+
+  const unbilledRequests = unbilledUnits.map(u => {
+    const property = properties.find(p => p.id === u.propertyId || p.uuid === (u as any).propertyUuid)
+    return {
+      uuid: u.uuid,
+      amount: u.rentAmount,
+      amountPaid: 0,
+      status: 'UNBILLED',
+      dueDate: u.rentDueDate!,
+      tenant: u.tenant,
+      unit: {
+        ...u,
+        property
+      },
+      isUnbilled: true
+    }
+  })
+
+  const allArrearsAndUpcoming = [...activeRequests, ...unbilledRequests]
+
+  const overduePayments = allArrearsAndUpcoming
+    .filter(r => {
+      const today = getStartOfDay(new Date())
+      const dueDate = getStartOfDay(new Date(r.dueDate))
+      return dueDate < today
+    })
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
 
-  const upcomingPayments = [...requests]
-    .filter(r => (r.status === 'PENDING' || r.status === 'PARTIAL') && new Date(r.dueDate) >= new Date())
+  const upcomingPayments = allArrearsAndUpcoming
+    .filter(r => {
+      const today = getStartOfDay(new Date())
+      const dueDate = getStartOfDay(new Date(r.dueDate))
+      return dueDate >= today
+    })
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
 
   const completedPayments = [...requests]
@@ -72,17 +113,23 @@ export function DashboardView() {
   }
 
   const getDaysAgo = (dateStr: string) => {
-    const diffTime = Math.abs(new Date().getTime() - new Date(dateStr).getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    const today = getStartOfDay(new Date())
+    const dueDate = getStartOfDay(new Date(dateStr))
+    const diffTime = today.getTime() - dueDate.getTime()
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+    if (diffDays <= 0) return 'Due today'
     return diffDays === 1 ? '1 day overdue' : `${diffDays} days overdue`
   }
 
   const getDaysUntil = (dateStr: string) => {
-    const diffTime = new Date(dateStr).getTime() - new Date().getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    const today = getStartOfDay(new Date())
+    const dueDate = getStartOfDay(new Date(dateStr))
+    const diffTime = dueDate.getTime() - today.getTime()
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
     if (diffDays < 0) return 'Overdue'
     if (diffDays === 0) return 'Due today'
-    return diffDays === 1 ? 'Due tomorrow' : `Due in ${diffDays} days`
+    if (diffDays === 1) return 'Due tomorrow'
+    return `Due in ${diffDays} days`
   }
 
   const handleCopyLink = (req: any) => {
@@ -125,6 +172,7 @@ export function DashboardView() {
     const initials = req.tenant ? `${req.tenant.firstName?.[0] || ''}${req.tenant.lastName?.[0] || ''}` : 'U'
     const propertyName = req.unit?.property?.name || 'N/A'
     const unitName = req.unit?.unitName || 'N/A'
+    const isUnbilled = req.isUnbilled
     
     return (
       <div 
@@ -190,10 +238,15 @@ export function DashboardView() {
                 Paid
               </span>
             )}
+            {req.status === 'UNBILLED' && (
+              <span className="payments-tracker__status status-chip status-chip--pending status-chip--sm" style={{ background: '#fef3c7', color: '#d97706' }}>
+                Unbilled
+              </span>
+            )}
           </div>
 
           <div className="payments-tracker__actions">
-            {type !== 'completed' && (
+            {type !== 'completed' && !isUnbilled && (
               <>
                 <button 
                   className="payments-tracker__action-btn"
@@ -218,16 +271,41 @@ export function DashboardView() {
                 </button>
               </>
             )}
-            <button 
-              className="payments-tracker__action-btn"
-              onClick={() => {
-                const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
-                router.push(isPortal ? `/portal/payments/${req.uuid}` : `/payments/${req.uuid}`)
-              }}
-              title="View Request Details"
-            >
-              <ExternalLink size={14} />
-            </button>
+            {isUnbilled ? (
+              <>
+                <button 
+                  className="btn btn--primary btn--sm"
+                  style={{ padding: '4px 10px', fontSize: 11, borderRadius: 8, height: 28, whiteSpace: 'nowrap' }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    router.push(`/properties?tab=units&search=${req.unit?.unitName}`)
+                  }}
+                  title="Create Payment Request"
+                >
+                  Request Payment
+                </button>
+                <button 
+                  className="payments-tracker__action-btn"
+                  onClick={() => {
+                    router.push(`/properties/units/${req.uuid}`)
+                  }}
+                  title="View Unit Details"
+                >
+                  <ExternalLink size={14} />
+                </button>
+              </>
+            ) : (
+              <button 
+                className="payments-tracker__action-btn"
+                onClick={() => {
+                  const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
+                  router.push(isPortal ? `/portal/payments/${req.uuid}` : `/payments/${req.uuid}`)
+                }}
+                title="View Request Details"
+              >
+                <ExternalLink size={14} />
+              </button>
+            )}
           </div>
         </div>
       </div>

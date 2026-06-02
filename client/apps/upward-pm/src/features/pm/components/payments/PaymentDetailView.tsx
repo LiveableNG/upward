@@ -25,6 +25,12 @@ import { useToast } from '@/components/common/Toast'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import Link from 'next/link'
 
+const getStartOfDay = (date: Date) => {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
 export const PaymentDetailView: React.FC = () => {
   const { uuid } = useParams()
   const router = useRouter()
@@ -171,7 +177,7 @@ export const PaymentDetailView: React.FC = () => {
           )}
         </div>
       </header>
-
+ 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 32, alignItems: 'start' }}>
         {/* Main Content */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
@@ -196,7 +202,7 @@ export const PaymentDetailView: React.FC = () => {
                 </span>
               </div>
             </div>
-
+ 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
               <div style={{ padding: '20px', background: 'var(--bg)', borderRadius: 16 }}>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase' }}>Total Amount</label>
@@ -208,7 +214,11 @@ export const PaymentDetailView: React.FC = () => {
               </div>
               <div style={{ padding: '20px', background: 'var(--bg)', borderRadius: 16 }}>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase' }}>Due Date</label>
-                <div style={{ fontSize: 24, fontWeight: 800, color: request.status !== 'PAID' && new Date(request.dueDate) < new Date() ? 'var(--error)' : 'var(--dark)' }}>
+                <div style={{ 
+                  fontSize: 24, 
+                  fontWeight: 800, 
+                  color: (request.status === 'PENDING' || request.status === 'PARTIAL') && getStartOfDay(new Date(request.dueDate)) < getStartOfDay(new Date()) ? 'var(--error)' : 'var(--dark)' 
+                }}>
                   {formatDate(request.dueDate)}
                 </div>
               </div>
