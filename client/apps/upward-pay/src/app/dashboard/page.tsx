@@ -56,6 +56,16 @@ export default function DashboardPage() {
     }
   }, [error, router])
 
+  useEffect(() => {
+    const user = data?.user
+    if (typeof window !== 'undefined' && user && !user.isIdentityVerified) {
+      const shown = localStorage.getItem('welcome_modal_shown') === 'true'
+      if (!shown) {
+        setShowWelcomeModal(true)
+      }
+    }
+  }, [data])
+
 
   if (loading && !data) return <FallbackSuspense message="Loading dashboard…" />
 
@@ -76,15 +86,6 @@ export default function DashboardPage() {
   }
 
   const { user, pendingPayments: rawPending, completedPayments } = data
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && user && !user.isIdentityVerified) {
-      const shown = localStorage.getItem('welcome_modal_shown') === 'true'
-      if (!shown) {
-        setShowWelcomeModal(true)
-      }
-    }
-  }, [user])
 
   const handleCloseWelcomeModal = () => {
     if (typeof window !== 'undefined') {
