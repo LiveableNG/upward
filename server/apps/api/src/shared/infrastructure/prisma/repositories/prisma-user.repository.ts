@@ -26,6 +26,7 @@ export class PrismaUserRepository implements UserRepository {
       passwordHash: model.passwordHash,
       gender: model.gender,
       dateOfBirth: model.dateOfBirth,
+      isIdentityVerified: model.isIdentityVerified,
       isFromWaitlist: model.isFromWaitlist,
       isFromInvite: model.isFromInvite,
       profilePic: model.profilePic,
@@ -236,6 +237,7 @@ export class PrismaUserRepository implements UserRepository {
         passwordHash: user.passwordHash,
         gender: user.gender,
         dateOfBirth: user.dateOfBirth,
+        isIdentityVerified: user.isIdentityVerified,
         isFromWaitlist: user.isFromWaitlist,
         isFromInvite: user.isFromInvite,
         profilePic: user.profilePic,
@@ -254,7 +256,7 @@ export class PrismaUserRepository implements UserRepository {
     
     // Pick direct scalar fields
     const scalarFields = [
-      'passwordHash', 'gender', 'dateOfBirth', 
+      'passwordHash', 'gender', 'dateOfBirth', 'isIdentityVerified',
       'isFromWaitlist', 'isFromInvite', 'profilePic', 'profileSlug', 
       'bio', 'resetPasswordOTP', 'resetPasswordExpires'
     ]

@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Loader2,
   Sparkles,
+  Calendar,
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { UpwardLogo } from '@/components/PoweredByUpward'
@@ -38,6 +39,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [localError, setLocalError] = useState('')
 
@@ -189,7 +191,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
         } else if (isInvited) {
           setOtpError('Invite verification failed. Please try again.')
         } else {
-          signup({ email, password, firstName, lastName })
+          signup({ email, password, firstName, lastName, dateOfBirth })
         }
       }
     } catch (err: any) {
@@ -335,6 +337,20 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             </div>
           </div>
 
+          <div className="auth-form__field mt-1">
+            <label htmlFor="signup-dob">Date of Birth</label>
+            <div className="input-with-icon">
+              <Calendar size={17} />
+              <input
+                id="signup-dob"
+                type="date"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
           <div className="auth-form__row mt-1">
             <div className="auth-form__field">
               <label htmlFor="signup-password">Create Password</label>
@@ -389,6 +405,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
               emailExists ||
               !firstName ||
               !lastName ||
+              !dateOfBirth ||
               !password ||
               !(/.{8,}/.test(password) && /[A-Z]/.test(password) && /[0-9!@#$%^&*(),.?":{}|<> ]/.test(password)) ||
               !confirmPassword
