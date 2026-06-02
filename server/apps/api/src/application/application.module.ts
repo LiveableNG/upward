@@ -91,6 +91,7 @@ import { IngestPastRecordsUseCase } from './use-cases/user/ingest-past-records.u
 import { RequestCredibilityRecordsUseCase } from './use-cases/user/request-credibility-records.use-case'
 import { GetCredibilityRequestsUseCase } from './use-cases/user/get-credibility-requests.use-case'
 import { CheckSlugAvailabilityUseCase } from './use-cases/user/check-slug-availability.use-case'
+import { VerifyBvnUseCase } from './use-cases/user/verify-bvn.use-case'
 import { GetCredibilityRequestDetailsUseCase } from './use-cases/external/get-credibility-request-details.use-case'
 import { FulfillCredibilityRequestUseCase } from './use-cases/external/fulfill-credibility-request.use-case'
 import { SingleInviteUseCase } from './use-cases/external/single-invite.use-case'
@@ -306,6 +307,7 @@ const UseCases = [
   IngestPastRecordsUseCase,
   RequestCredibilityRecordsUseCase,
   GetCredibilityRequestsUseCase,
+  VerifyBvnUseCase,
   SaveLandlordUseCase,
   GetSavedLandlordsUseCase,
   RecordTransactionUseCase,

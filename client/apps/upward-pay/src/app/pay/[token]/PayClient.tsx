@@ -6,7 +6,9 @@ import {
   Lock,
   CreditCard,
   ArrowRight,
-  ChevronRight
+  ChevronRight,
+  ShieldAlert,
+  X
 } from 'lucide-react'
 import { formatCurrency, generateId } from '@/lib/utils'
 import { UpwardLogo } from '@/components/PoweredByUpward'
@@ -34,6 +36,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
   const params = useParams()
   const [showPaymentConfirm, setShowPaymentConfirm] = React.useState(false)
   const [showOptOutModal, setShowOptOutModal] = React.useState(false)
+  const [showUnverifiedModal, setShowUnverifiedModal] = React.useState(false)
   
   const uuid = useMemo(() => {
     if (overrideToken) return overrideToken
@@ -313,7 +316,13 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                     <div className="pay-cta pay-cta--sticky">
                       <button
                         className="btn btn--primary btn--full btn--pay btn--pill"
-                        onClick={() => setShowPaymentConfirm(true)}
+                        onClick={() => {
+                          if (authUser && !authUser.isIdentityVerified) {
+                            setShowUnverifiedModal(true)
+                          } else {
+                            setShowPaymentConfirm(true)
+                          }
+                        }}
                         disabled={ctaDisabled}
                       >
                         <CreditCard size={18} className="icon--left" />
@@ -593,6 +602,53 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             setStep('checkout')
           }}
         />
+
+        {showUnverifiedModal && (
+          <div className="modal-overlay" onClick={() => setShowUnverifiedModal(false)}>
+            <div className="modal-card animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-card__header">
+                <div className="modal-card__badge" style={{ background: 'var(--error)' }}>
+                  VERIFICATION REQUIRED
+                </div>
+                <button className="modal-card__close" onClick={() => setShowUnverifiedModal(false)}>
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="modal-card__body py-6 text-center">
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                  <div style={{ background: '#fee2e2', color: 'var(--error)', borderRadius: '50%', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ShieldAlert size={36} />
+                  </div>
+                </div>
+                <h3 className="modal-card__title" style={{ fontSize: '20px', fontWeight: 800 }}>Verify Your Identity</h3>
+                <p className="modal-card__text" style={{ marginTop: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  To comply with financial regulations and secure your transactions, you must verify your identity using your Bank Verification Number (BVN) before completing payments.
+                </p>
+                <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '12px', marginTop: '16px', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left' }}>
+                  <Lock size={16} style={{ flexShrink: 0, color: 'var(--clay)' }} />
+                  <span>Your BVN is only used for one-time verification. <strong>We do not save your BVN number</strong>.</span>
+                </div>
+              </div>
+              <div className="modal-card__footer flex flex-col gap-3 pt-2">
+                <button
+                  className="btn btn--primary btn--full btn--pill"
+                  onClick={() => {
+                    setShowUnverifiedModal(false)
+                    router.push(`/dashboard/verify-identity?redirect=${encodeURIComponent(`/pay/${uuid}`)}`)
+                  }}
+                >
+                  Verify Identity Now <ArrowRight size={16} />
+                </button>
+                <button
+                  className="btn btn--ghost btn--full btn--pill"
+                  onClick={() => setShowUnverifiedModal(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }

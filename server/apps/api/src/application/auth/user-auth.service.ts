@@ -103,6 +103,7 @@ export class UserAuthService extends BaseAuthService {
     }>
     isFromWaitlist?: boolean
     isFromInvite?: boolean
+    dateOfBirth?: string
   }): Promise<UserAuthResponse & { refreshToken: string }> {
     if (dto.phone && !/^\+234\d{10}$/.test(dto.phone)) {
       throw new Error('Phone number must be in format +2348000000000');
@@ -121,6 +122,7 @@ export class UserAuthService extends BaseAuthService {
           firstName: dto.firstName,
           lastName: dto.lastName,
           phone: dto.phone,
+          dateOfBirth: dto.dateOfBirth,
           firstNameHash: (this.userRepository as any).encryption.hash(dto.firstName),
           lastNameHash: (this.userRepository as any).encryption.hash(dto.lastName),
           phoneHash: dto.phone ? (this.userRepository as any).encryption.hash(dto.phone) : null,
@@ -149,6 +151,7 @@ export class UserAuthService extends BaseAuthService {
       lastNameHash: (this.userRepository as any).encryption.hash(dto.lastName),
       phone: dto.phone,
       phoneHash: dto.phone ? (this.userRepository as any).encryption.hash(dto.phone) : null,
+      dateOfBirth: dto.dateOfBirth,
       isFromWaitlist: dto.isFromWaitlist ?? false,
       isFromInvite: dto.isFromInvite ?? false,
     }

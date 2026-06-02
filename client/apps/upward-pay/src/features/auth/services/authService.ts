@@ -6,6 +6,7 @@ export async function signup(data: {
   password: string
   firstName: string
   lastName: string
+  dateOfBirth?: string
   phone?: string
   address?: string
   isFromWaitlist?: boolean
@@ -125,6 +126,13 @@ export async function loginWithOTP(email: string, otp: string) {
   return request<AuthResponse>('/user/auth/otp-login', {
     method: 'POST',
     body: JSON.stringify({ email, otp }),
+  })
+}
+
+export async function verifyBvn(bvn: string) {
+  return request<{ success: boolean; message: string }>('/user/auth/verify-bvn', {
+    method: 'POST',
+    body: JSON.stringify({ bvn }),
   })
 }
 

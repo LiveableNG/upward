@@ -13,6 +13,7 @@ export interface UserProfile {
   lastName: string
   phone?: string | null
   dateOfBirth?: string
+  isIdentityVerified?: boolean
   gender?: string
   address?: string
   rentEndDate?: string
