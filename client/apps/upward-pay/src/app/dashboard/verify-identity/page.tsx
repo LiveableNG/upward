@@ -16,6 +16,7 @@ import { verifyBvn, getMe } from '@/features/auth/services/authService'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/AuthContext'
 import { PageHeader } from '@/components/common/PageHeader'
+import { Modal } from '@/components/common/Modal'
 
 export default function VerifyIdentityPage() {
   const router = useRouter()
@@ -214,55 +215,43 @@ export default function VerifyIdentityPage() {
           </div>
         </div>
 
-      {showInfoModal && (
-        <div
-          className="verify-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowInfoModal(false)
-          }}
-        >
-          <div className="verify-modal-card animate-in zoom-in-95 duration-200">
-            <button className="verify-modal-close" onClick={() => setShowInfoModal(false)}>
-              <X size={16} />
-            </button>
-            <div className="info-sheet">
-              <div className="info-sheet__header">
-                <h3>Why we need your BVN?</h3>
-              </div>
-              
-              <p className="info-sheet__text">
-                The goal of the Bank Verification Number (BVN) is to uniquely verify the identity of a customer for &apos;know your customer&apos; (KYC) purposes.
-              </p>
+      <Modal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} size="md">
+        <div className="info-sheet" style={{ padding: 0 }}>
+          <div className="info-sheet__header">
+            <h3>Why we need your BVN?</h3>
+          </div>
+          
+          <p className="info-sheet__text">
+            The goal of the Bank Verification Number (BVN) is to uniquely verify the identity of a customer for &apos;know your customer&apos; (KYC) purposes.
+          </p>
 
-              <div className="info-sheet__block">
-                <div className="info-sheet__block-icon">
-                  <Check size={14} strokeWidth={3} />
-                </div>
-                <div className="info-sheet__block-content">
-                  <strong>We only have access to your:</strong>
-                  <ul>
-                    <li>Name</li>
-                    <li>Phone number</li>
-                    <li>Email address</li>
-                    <li>Date of birth</li>
-                  </ul>
-                </div>
-              </div>
-
-              <p className="info-sheet__disclaimer">
-                Confirming your BVN does not give us access to details of your bank account(s) and we cannot use your BVN to transfer money from your account(s).
-              </p>
-
-              <div className="info-sheet__footer">
-                <Lock size={14} className="info-sheet__footer-icon" />
-                <span>
-                  Your data is safe with us and we won&apos;t share your BVN with anyone. <strong>We do not save your BVN number</strong>.
-                </span>
-              </div>
+          <div className="info-sheet__block">
+            <div className="info-sheet__block-icon">
+              <Check size={14} strokeWidth={3} />
+            </div>
+            <div className="info-sheet__block-content">
+              <strong>We only have access to your:</strong>
+              <ul>
+                <li>Name</li>
+                <li>Phone number</li>
+                <li>Email address</li>
+                <li>Date of birth</li>
+              </ul>
             </div>
           </div>
+
+          <p className="info-sheet__disclaimer">
+            Confirming your BVN does not give us access to details of your bank account(s) and we cannot use your BVN to transfer money from your account(s).
+          </p>
+
+          <div className="info-sheet__footer">
+            <Lock size={14} className="info-sheet__footer-icon" />
+            <span>
+              Your data is safe with us and we won&apos;t share your BVN with anyone. <strong>We do not save your BVN number</strong>.
+            </span>
+          </div>
         </div>
-      )}
+      </Modal>
 
       </div>
 
