@@ -335,7 +335,7 @@ export class RecordTransactionUseCase {
             this.logger.warn(`Duplicate payment attempt detected for already settled request: ${pr.uuid}. Marking reference ${data.reference} for refund.`)
           }
 
-          const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(pr.userId, pr.userPropertyId)
+          const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(pr.userId, pr.userPropertyId, pr.id)
           const expectedTotal = pr.amount + dynamicFee
           if (!pr.allowPartial && effectiveAmount < expectedTotal && !data.settlementStatus) {
             data.settlementStatus = 'PENDING_REFUND'
@@ -1083,7 +1083,7 @@ export class ProcessPaymentWebhookUseCase {
     }
 
     // Verification Logic: Intercept & Check against Source of Truth
-    const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(pr.userId, pr.userPropertyId)
+    const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(pr.userId, pr.userPropertyId, pr.id)
     const expectedTotal = pr.amount + dynamicFee
 
     let settlementStatus = 'VERIFIED'

@@ -75,7 +75,7 @@ export class ConfirmExternalPaymentUseCase {
     if (transaction.status === 'SUCCESS') {
       const updatedPR = await this.paymentRequestRepository.findById(paymentRequest.id!)
       
-      const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(paymentRequest.userId, paymentRequest.userPropertyUuid ? (await this.prisma.upward_user_property.findUnique({ where: { uuid: paymentRequest.userPropertyUuid } }))?.id : undefined)
+      const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(paymentRequest.userId, paymentRequest.userPropertyUuid ? (await this.prisma.upward_user_property.findUnique({ where: { uuid: paymentRequest.userPropertyUuid } }))?.id : undefined, paymentRequest.id)
       const expectedTotal = paymentRequest.amount + dynamicFee
       const isUnderpayment = !paymentRequest.allowPartial && actualAmount < expectedTotal
 
