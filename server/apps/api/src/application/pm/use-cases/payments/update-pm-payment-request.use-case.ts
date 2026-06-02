@@ -17,6 +17,9 @@ export interface UpdatePmPaymentRequestDto {
   lineItems?: { name: string; amount: number }[];
   rentType?: string;
   reminderFrequency?: string;
+  scheduledAt?: string; // Edit scheduled activation time
+  isRecurring?: boolean;
+  recurrenceInterval?: string | null;
 }
 
 @Injectable()
@@ -52,21 +55,26 @@ export class UpdatePmPaymentRequestUseCase {
       minAmount = 0;
     }
 
-    const payload: ExternalPaymentRequestPayloadDto = {
-      paymentRequestId: pmPR.paymentRequestId ?? undefined,
-      userPropertyUuid: unit.userPropertyUuid ?? undefined,
-      amount: data.amount ?? pmPR.amount,
-      dueDate: (data.dueDate || pmPR.dueDate.toISOString().split('T')[0]) as string,
-      description: (data.description ?? pmPR.description) ?? undefined,
-      allowPartial,
-      minAmount,
-      lineItems: data.lineItems,
-      rentType: data.rentType,
-      bankCode: pm.bankCode ?? undefined,
-      accountNumber: pm.accountNumber ?? undefined,
-    };
+    const isScheduled = pmPR.status === 'SCHEDULED';
+    
+    // Only invoke gateway if the request is active (PENDING / PARTIAL)
+    if (!isScheduled) {
+      const payload: ExternalPaymentRequestPayloadDto = {
+        paymentRequestId: pmPR.paymentRequestId ?? undefined,
+        userPropertyUuid: unit.userPropertyUuid ?? undefined,
+        amount: data.amount ?? pmPR.amount,
+        dueDate: (data.dueDate || pmPR.dueDate.toISOString().split('T')[0]) as string,
+        description: (data.description ?? pmPR.description) ?? undefined,
+        allowPartial,
+        minAmount,
+        lineItems: data.lineItems,
+        rentType: data.rentType,
+        bankCode: pm.bankCode ?? undefined,
+        accountNumber: pm.accountNumber ?? undefined,
+      };
 
-    const result = await this.createExternalPaymentRequestUseCase.execute(payload, 0); 
+      await this.createExternalPaymentRequestUseCase.execute(payload, 0); 
+    }
      
     let nextReminderAt = pmPR.nextReminderAt;
     if (data.reminderFrequency && data.reminderFrequency !== pmPR.reminderFrequency) {
@@ -88,9 +96,11 @@ export class UpdatePmPaymentRequestUseCase {
       rentType: data.rentType ?? pmPR.rentType,
       reminderFrequency: data.reminderFrequency ?? pmPR.reminderFrequency,
       nextReminderAt,
+      scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : pmPR.scheduledAt,
+      isRecurring: data.isRecurring !== undefined ? data.isRecurring : (pmPR as any).isRecurring,
+      recurrenceInterval: data.recurrenceInterval !== undefined ? data.recurrenceInterval : (pmPR as any).recurrenceInterval,
     });
 
     return updated;
   }
 }
-

@@ -119,7 +119,7 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
       align: 'right',
       render: (req) => (
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          {req.status === 'PENDING' && req.amountPaid === 0 && (
+          {(req.status === 'PENDING' || req.status === 'SCHEDULED') && req.amountPaid === 0 && (
             <button 
               className="btn-icon-sm" 
               onClick={(e) => {
@@ -395,7 +395,7 @@ export function PaymentsView() {
               <div className="dropdown-section" style={{ marginBottom: 20 }}>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 12, textTransform: 'uppercase' }}>Status</label>
                 <div className="filter-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {['All', 'PAID', 'PENDING', 'PARTIAL', 'OVERDUE'].map(s => (
+                  {['All', 'PAID', 'PENDING', 'SCHEDULED', 'PARTIAL', 'OVERDUE'].map(s => (
                     <button 
                       key={s}
                       className={`filter-tag ${statusFilter === s ? 'active' : ''}`}

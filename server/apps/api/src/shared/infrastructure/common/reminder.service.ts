@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from './notification.service';
 import { EmailService } from '../email/email.service';
 import { EncryptionService } from './encryption.service';
+import { ProcessScheduledPmPaymentRequestsUseCase } from '../../../application/pm/use-cases/payments/process-scheduled-payment-requests.use-case';
 
 @Injectable()
 export class UnifiedReminderService {
@@ -14,18 +15,30 @@ export class UnifiedReminderService {
     private readonly notificationService: NotificationService,
     private readonly emailService: EmailService,
     private readonly encryption: EncryptionService,
+    private readonly processScheduledRequestsUseCase: ProcessScheduledPmPaymentRequestsUseCase,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
   async handleReminders() {
-    this.logger.log('[ReminderService] Checking for scheduled reminders...');
+    this.logger.log('[ReminderService] Checking for scheduled reminders and activating scheduled payments...');
     
+    try {
+      await this.processScheduledRequests();
+    } catch (error: any) {
+      this.logger.error(`[ReminderService] Error processing scheduled payment requests: ${error.message}`);
+    }
+
     await this.processPmPaymentReminders();
     
     const now = new Date();
     if (now.getHours() === 9) {
       await this.processPmDailyCrons();
     }
+  }
+
+  async processScheduledRequests() {
+    this.logger.log('[ReminderService] Processing scheduled payment requests...');
+    await this.processScheduledRequestsUseCase.execute();
   }
 
   private async processPmPaymentReminders() {
