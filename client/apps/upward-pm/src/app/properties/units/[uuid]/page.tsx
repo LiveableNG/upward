@@ -489,8 +489,68 @@ function UnitDetailContent() {
                   </div>
                   <div>
                     <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Rent Reminders</div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: unit?.rentReminderEnabled ? 'var(--forest)' : 'var(--text-muted)' }}>
-                      {unit?.rentReminderEnabled ? `Active (${unit.rentReminderDaysBefore} days before)` : 'Disabled'}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: unit?.rentReminderEnabled ? 'var(--forest)' : 'var(--text-muted)' }}>
+                        {unit?.rentReminderEnabled ? `Active (${unit.rentReminderDaysBefore}d before)` : 'Disabled'}
+                      </span>
+                      <button
+                        onClick={() => {
+                          handleUpdate({
+                            ...unit,
+                            rentReminderEnabled: !unit?.rentReminderEnabled
+                          })
+                        }}
+                        style={{
+                          width: 36,
+                          height: 18,
+                          background: unit?.rentReminderEnabled ? 'var(--forest)' : '#ccc',
+                          borderRadius: 9,
+                          border: 'none',
+                          cursor: 'pointer',
+                          position: 'relative',
+                          transition: '0.2s',
+                          padding: 0,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          verticalAlign: 'middle'
+                        }}
+                        title={unit?.rentReminderEnabled ? 'Disable reminders' : 'Enable reminders'}
+                      >
+                        <div style={{
+                          width: 14,
+                          height: 14,
+                          background: 'white',
+                          borderRadius: '50%',
+                          position: 'absolute',
+                          left: unit?.rentReminderEnabled ? 20 : 2,
+                          transition: '0.2s'
+                        }} />
+                      </button>
+                      
+                      {unit?.rentReminderEnabled && (
+                        <select
+                          value={unit.rentReminderDaysBefore || 7}
+                          onChange={(e) => {
+                            handleUpdate({
+                              ...unit,
+                              rentReminderDaysBefore: Number(e.target.value)
+                            })
+                          }}
+                          style={{
+                            fontSize: 11,
+                            padding: '2px 4px',
+                            borderRadius: 4,
+                            border: '1px solid var(--border)',
+                            background: 'white',
+                            color: 'var(--text)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {[1, 2, 3, 5, 7, 10, 14, 30].map(d => (
+                            <option key={d} value={d}>{d}d before</option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   </div>
 
@@ -1063,7 +1123,17 @@ function DigitalRequestsSection({ unitId, onEdit, unitCurrency }: { unitId?: num
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--forest)' }}>
                   ₦{req.amount.toLocaleString()}
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: req.status === 'PARTIAL' ? 'var(--clay)' : 'var(--text-muted)', textTransform: 'uppercase' }}>
+                <div style={{ 
+                  fontSize: 10, 
+                  fontWeight: 700, 
+                  color: req.status === 'SCHEDULED' ? '#d97706' : req.status === 'PARTIAL' ? 'var(--forest)' : 'var(--text-muted)', 
+                  textTransform: 'uppercase', 
+                  background: req.status === 'SCHEDULED' ? '#fef3c7' : req.status === 'PARTIAL' ? 'var(--forest-faint)' : 'transparent', 
+                  padding: req.status === 'SCHEDULED' || req.status === 'PARTIAL' ? '2px 6px' : 0, 
+                  borderRadius: req.status === 'SCHEDULED' || req.status === 'PARTIAL' ? 4 : 0, 
+                  display: 'inline-block', 
+                  marginTop: 4 
+                }}>
                   {req.status}
                 </div>
               </div>

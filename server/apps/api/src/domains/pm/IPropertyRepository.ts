@@ -53,6 +53,14 @@ export interface TenantEntity {
   lastName?: string | null;
   email?: string | null;
   phone?: string | null;
+  firstNameEncrypted?: string | null;
+  firstNameSearch?: string | null;
+  lastNameEncrypted?: string | null;
+  lastNameSearch?: string | null;
+  emailEncrypted?: string | null;
+  emailHash?: string | null;
+  phoneEncrypted?: string | null;
+  phoneHash?: string | null;
   inviteStatus: string;
   inviteSentAt: Date | null;
   formerAddress?: string | null;
@@ -146,6 +154,9 @@ export interface PmPaymentRequestEntity {
   reminderFrequency: string;
   nextReminderAt: Date | null;
   reminderCount: number;
+  scheduledAt?: Date | null;
+  isRecurring?: boolean;
+  recurrenceInterval?: string | null;
   createdAt: Date;
   updatedAt: Date;
   

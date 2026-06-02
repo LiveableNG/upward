@@ -24,6 +24,9 @@ export interface CreatePmPaymentRequestDto {
   lineItems?: { name: string; amount: number }[];
   rentType?: string;
   reminderFrequency?: string;
+  scheduledAt?: string; // Future scheduled delivery time
+  isRecurring?: boolean;
+  recurrenceInterval?: string | null;
 }
 
 @Injectable()
@@ -60,32 +63,46 @@ export class CreatePmPaymentRequestUseCase {
       throw new BadRequestException('Please set up your bank information in settings to receive payments');
     }
 
-    const payload: ExternalPaymentRequestPayloadDto = {
-      userPropertyUuid: unit.userPropertyUuid ?? undefined,
-      amount: data.amount,
-      dueDate: data.rentEndDate || data.dueDate,
-      rentStartDate: data.rentStartDate,
-      rentEndDate: data.rentEndDate,
-      description: data.description,
-      allowPartial: data.allowPartial,
-      minAmount: data.allowPartial === false ? 0 : data.minAmount,
-      lineItems: data.lineItems,
-      rentType: data.rentType,
-      bankCode: pm.bankCode ?? undefined,
-      accountNumber: pm.accountNumber ?? undefined,
-    };
+    const isScheduled = data.scheduledAt && new Date(data.scheduledAt) > new Date();
+    
+    let corePRId: number | null = null;
+    let status = 'PENDING';
+    let paymentLink = '';
+    let corePRUuid = '';
 
-    const result = await this.createExternalPaymentRequestUseCase.execute(payload, 0); 
+    if (!isScheduled) {
+      const payload: ExternalPaymentRequestPayloadDto = {
+        userPropertyUuid: unit.userPropertyUuid ?? undefined,
+        amount: data.amount,
+        dueDate: data.rentEndDate || data.dueDate,
+        rentStartDate: data.rentStartDate,
+        rentEndDate: data.rentEndDate,
+        description: data.description,
+        allowPartial: data.allowPartial,
+        minAmount: data.allowPartial === false ? 0 : data.minAmount,
+        lineItems: data.lineItems,
+        rentType: data.rentType,
+        bankCode: pm.bankCode ?? undefined,
+        accountNumber: pm.accountNumber ?? undefined,
+      };
 
-    const corePR = await this.corePaymentRepo.findByUuid(result.paymentUuid);
-    if (!corePR) {
-      throw new BadRequestException('Failed to synchronize with payment gateway');
+      const result = await this.createExternalPaymentRequestUseCase.execute(payload, 0); 
+
+      const corePR = await this.corePaymentRepo.findByUuid(result.paymentUuid);
+      if (!corePR) {
+        throw new BadRequestException('Failed to synchronize with payment gateway');
+      }
+      corePRId = corePR.id ?? null;
+      paymentLink = result.paymentLink;
+      corePRUuid = corePR.uuid;
+    } else {
+      status = 'SCHEDULED';
     }
 
     // Set initial reminder time if enabled
     let nextReminderAt: Date | null = null;
     const frequency = data.reminderFrequency || 'NONE';
-    if (frequency !== 'NONE') {
+    if (frequency !== 'NONE' && !isScheduled) {
       nextReminderAt = new Date();
       nextReminderAt.setDate(nextReminderAt.getDate() + 1); // Start tomorrow
       nextReminderAt.setHours(9, 0, 0, 0); // 9 AM
@@ -95,7 +112,7 @@ export class CreatePmPaymentRequestUseCase {
       pmId,
       unitId: unit.id,
       tenantId: unit.tenantId,
-      paymentRequestId: corePR.id ?? null,
+      paymentRequestId: corePRId,
       amount: data.amount,
       currency: unit.currency || 'NGN',
       description: data.description || null,
@@ -106,10 +123,13 @@ export class CreatePmPaymentRequestUseCase {
       reminderFrequency: frequency,
       nextReminderAt,
       reminderCount: 0,
-      status: 'PENDING',
+      status: status,
       amountPaid: 0,
       allowPartial: data.allowPartial || false,
       minAmount: (data.allowPartial === false) ? 0 : (data.minAmount || null),
+      scheduledAt: isScheduled ? new Date(data.scheduledAt!) : null,
+      isRecurring: isScheduled ? (data.isRecurring || false) : false,
+      recurrenceInterval: isScheduled && data.isRecurring ? (data.recurrenceInterval || null) : null,
     });
 
     // Log Activity
@@ -119,23 +139,41 @@ export class CreatePmPaymentRequestUseCase {
     });
 
     if (property) {
+        const descriptionText = isScheduled
+          ? `Scheduled invoice of ${data.amount} ${unit.currency || 'NGN'} for ${unit.unitName} (${property.name}) for ${new Date(data.scheduledAt!).toLocaleString()}`
+          : `Sent invoice of ${data.amount} ${unit.currency || 'NGN'} for ${unit.unitName} (${property.name})`;
+
         await this.activityLog.log({
             pmId,
             ownerPmId: property.pmId,
             action: ActivityAction.SEND_INVOICE,
             entityType: 'PAYMENT',
             entityId: pmPR.uuid,
-            description: `Sent invoice of ${data.amount} ${unit.currency || 'NGN'} for ${unit.unitName} (${property.name})`,
+            description: descriptionText,
             metadata: {
                 amount: data.amount,
                 unit: unit.unitName,
-                property: property.name
+                property: property.name,
+                scheduledAt: data.scheduledAt
             }
         });
     }
 
-    // Trigger Notification Event asynchronously
-    if (unit.tenantId) {
+    // PM / Tenant Notifications
+    if (isScheduled) {
+      // Create PM in-app notification about scheduled request
+      await (this.unitRepo as any).prisma.upward_pm_notification.create({
+        data: {
+          pmId,
+          title: 'Rent Request Scheduled 🗓️',
+          message: `Rent request of NGN ${data.amount.toLocaleString()} for Unit ${unit.unitName} has been scheduled for delivery on ${new Date(data.scheduledAt!).toLocaleString()}`,
+          type: 'SYSTEM',
+          isPopup: false,
+          url: '/dashboard',
+        }
+      });
+    } else if (unit.tenantId) {
+      // Trigger Notification Event asynchronously
       this.pmTenantRepo.findById(unit.tenantId).then(tenant => {
         if (tenant && tenant.email) {
           const pmName = pm.businessName || `${pm.firstName} ${pm.lastName}`;
@@ -147,8 +185,8 @@ export class CreatePmPaymentRequestUseCase {
             unit.currency || 'NGN',
             data.rentEndDate || data.dueDate,
             data.description,
-            result.paymentLink,
-            corePR.uuid,
+            paymentLink,
+            corePRUuid,
             false,
             pm.pmType
           ));

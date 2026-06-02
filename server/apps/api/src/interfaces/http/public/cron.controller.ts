@@ -85,6 +85,16 @@ export class CronController {
       }
     }
 
+    if (shouldRun('processScheduledRequests')) {
+      try {
+        await this.unifiedReminderService.processScheduledRequests();
+        results.processScheduledRequests = 'completed';
+      } catch (e: any) {
+        this.logger.error('Error in unifiedReminderService.processScheduledRequests', e);
+        results.processScheduledRequests = 'failed: ' + e.message;
+      }
+    }
+
     if (shouldRun('settlements') || shouldRun('refunds')) {
       try {
         await this.processHourlySettlementsUseCase.execute();

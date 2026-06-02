@@ -227,6 +227,9 @@ model upward_pm_payment_request {
   reminderFrequency String                  @default("NONE") // NONE, DAILY, EVERY_2_DAYS, WEEKLY
   nextReminderAt   DateTime?
   reminderCount    Int                     @default(0)
+  scheduledAt      DateTime?               // Scheduled delivery/activation time
+  isRecurring      Boolean                 @default(false)
+  recurrenceInterval String?               // e.g. 'MONTHLY', 'QUARTERLY', 'YEARLY'
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
   paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
