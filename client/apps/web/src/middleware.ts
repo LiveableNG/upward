@@ -204,7 +204,12 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/documents') ||
     pathname.startsWith('/api/v1')
 
-  if (isProtectedRoute && (!hasToken || isExpired) && !pathname.startsWith('/api/v1')) {
+  const hasPmRefresh = !!pmRefreshCookie || !!landlordRefreshCookie
+  const hasValidSession = routeToPm
+    ? (hasToken && !isExpired) || hasPmRefresh
+    : (hasToken && !isExpired)
+
+  if (isProtectedRoute && !hasValidSession && !pathname.startsWith('/api/v1')) {
 
     const loginPath = routeToPm ? (pathname.startsWith('/portal') ? '/portal/login' : '/pm-login') : '/login'
     // Prevent redirect loop: if we're already on the login page, don't redirect again

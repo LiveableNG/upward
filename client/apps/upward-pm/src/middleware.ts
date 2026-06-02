@@ -91,7 +91,7 @@ export function middleware(request: NextRequest) {
 
   // Protected paths
   if (!isPublicPath && !isLoggedIn && !pathname.startsWith('/api')) {
-    const loginUrl = new URL('/login', baseUrl)
+    const loginUrl = new URL('/pm-login', baseUrl)
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
   }
