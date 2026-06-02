@@ -85,10 +85,13 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
     }
   }
 
-  const sections = [
+  const accountGroup = [
     { id: 'personal', title: 'Personal Details', icon: User, onClick: () => onNavigate('personal') },
     { id: 'banking', title: 'Banking & Payouts', icon: Building, onClick: () => onNavigate('banking') },
     { id: 'contracts', title: 'Tenancy Agreement', icon: FileText, onClick: () => router.push('/dashboard/contracts') },
+  ]
+
+  const supportGroup = [
     { id: 'support', title: 'Customer Service Center', icon: MessageCircle, onClick: () => router.push('/dashboard/help') },
     { id: 'legal', title: 'Legal & Privacy', icon: Shield, onClick: () => router.push('/dashboard/legal') },
   ]
@@ -153,50 +156,71 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
         )}
       </div>
 
-      <div className="premium-menu-list animate-slide-up" style={{ animationDelay: '0.1s' }}>
-        {sections.map((s, idx) => {
-          const Icon = s.icon
-          const showWarning = s.id === 'personal' && !isProfileComplete
+      <div className="premium-menu-container animate-slide-up" style={{ animationDelay: '0.1s' }}>
+        <h3 className="premium-menu-group-title">Account</h3>
+        <div className="premium-menu-group">
+          {accountGroup.map((s, idx) => {
+            const Icon = s.icon
+            const showWarning = s.id === 'personal' && !isProfileComplete
 
-          return (
-            <div key={idx} className="premium-menu-item" onClick={s.onClick}>
-              <div className="flex items-center gap-4">
-                <div className="premium-menu-item__icon-wrap">
-                  <Icon size={18} />
-                </div>
-                <span className="premium-menu-item__title">{s.title}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {showWarning && (
-                  <div className="premium-menu-item__warning" title="Profile Incomplete">
-                    <AlertCircle size={16} color="var(--warning)" />
+            return (
+              <div key={idx} className="premium-menu-item" onClick={s.onClick}>
+                <div className="flex items-center gap-4">
+                  <div className="premium-menu-item__icon-wrap">
+                    <Icon size={18} />
                   </div>
-                )}
-                <ChevronRight size={18} color="var(--text-muted)" />
+                  <span className="premium-menu-item__title">{s.title}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {showWarning && (
+                    <div className="premium-menu-item__warning" title="Profile Incomplete">
+                      <AlertCircle size={16} color="var(--warning)" />
+                    </div>
+                  )}
+                  <ChevronRight size={18} color="var(--text-muted)" />
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
 
-        <div className="premium-menu-item premium-menu-item--logout" onClick={logout}>
-          <div className="flex items-center gap-4">
-            <div className="premium-menu-item__icon-wrap premium-menu-item__icon-wrap--logout">
-              <LogOut size={18} />
-            </div>
-            <span className="premium-menu-item__title text-red-500">Sign Out</span>
-          </div>
+        <h3 className="premium-menu-group-title">Support & Info</h3>
+        <div className="premium-menu-group">
+          {supportGroup.map((s, idx) => {
+            const Icon = s.icon
+
+            return (
+              <div key={idx} className="premium-menu-item" onClick={s.onClick}>
+                <div className="flex items-center gap-4">
+                  <div className="premium-menu-item__icon-wrap">
+                    <Icon size={18} />
+                  </div>
+                  <span className="premium-menu-item__title">{s.title}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ChevronRight size={18} color="var(--text-muted)" />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="logout-container">
+          <button className="logout-btn" onClick={logout}>
+            <LogOut size={18} className="mr-2" /> Sign Out
+          </button>
         </div>
       </div>
 
       <style jsx>{`
         .profile-shell {
           width: 100%;
-          max-width: 800px;
+          max-width: 600px;
           margin: 0 auto;
           padding: 1rem;
           display: flex;
           flex-direction: column;
-          gap: 1.5rem;
+          gap: 1rem;
         }
 
         @media (min-width: 768px) {
@@ -206,22 +230,21 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
         }
 
         .premium-hero {
-          background: var(--surface);
-          border-radius: 28px;
-          padding: 3rem 2rem;
+          padding: 2.5rem 1rem 1rem;
           text-align: center;
           display: flex;
           flex-direction: column;
           align-items: center;
-          border: 1px solid var(--border-solid);
-          box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+          background: transparent;
+          border: none;
+          box-shadow: none;
         }
 
         .premium-hero__avatar-wrap {
           position: relative;
-          margin-bottom: 1.5rem;
+          margin-bottom: 1.25rem;
           cursor: pointer;
-          transition: transform 0.2s;
+          transition: transform 0.2s ease;
         }
 
         .premium-hero__avatar-wrap:hover {
@@ -230,8 +253,8 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
 
         .premium-hero__avatar-edit {
           position: absolute;
-          bottom: 2px;
-          right: 2px;
+          bottom: -2px;
+          right: -2px;
           background: var(--clay);
           color: white;
           width: 32px;
@@ -240,37 +263,39 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 3px solid var(--surface);
-          box-shadow: 0 4px 12px rgba(var(--clay-rgb), 0.3);
+          border: 3px solid var(--bg);
+          box-shadow: var(--shadow-md);
         }
 
         .premium-hero__name {
-          font-size: 1.6rem;
-          font-weight: 800;
+          font-size: 1.5rem;
+          font-weight: 700;
           margin: 0 0 0.25rem;
           letter-spacing: -0.02em;
           color: var(--text);
         }
 
         .premium-hero__email {
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           color: var(--text-muted);
-          margin: 0 0 2rem;
+          margin: 0 0 1.25rem;
         }
 
         .premium-hero__share-btn {
-          margin-bottom: 2rem;
-          padding: 14px 24px;
-          font-size: 0.95rem;
+          margin-bottom: 1.5rem;
+          padding: 10px 18px;
+          font-size: 0.875rem;
+          font-weight: 600;
         }
 
         .premium-hero__tenancy {
           width: 100%;
-          max-width: 420px;
-          background: var(--surface2);
-          padding: 1.5rem;
+          max-width: 100%;
+          background: var(--surface);
+          padding: 1.25rem;
           border-radius: 20px;
-          border: 1px solid var(--border-solid);
+          border: 1px solid var(--border);
+          margin-top: 1rem;
         }
 
         .premium-hero__tenancy-icon {
@@ -302,43 +327,61 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
           max-width: 250px;
         }
 
-        /* Menu List */
-        .premium-menu-list {
-          background: var(--surface);
-          border-radius: 28px;
-          padding: 1rem;
-          border: 1px solid var(--border-solid);
-          box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+        /* Menu Groups */
+        .premium-menu-container {
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
+          gap: 1.5rem;
+        }
+
+        .premium-menu-group-title {
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-muted);
+          margin-bottom: 0.5rem;
+          padding-left: 0.5rem;
+        }
+
+        .premium-menu-group {
+          background: var(--bg);
+          border-radius: 20px;
+          overflow: hidden;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+          border: 1px solid var(--border);
+          display: flex;
+          flex-direction: column;
         }
 
         .premium-menu-item {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 1rem 1.25rem;
-          border-radius: 18px;
+          padding: 1.125rem 1.25rem;
           cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          transition: background 0.15s ease;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .premium-menu-item:last-child {
+          border-bottom: none;
         }
 
         .premium-menu-item:hover {
-          background: var(--bg);
-          transform: translateX(4px);
+          background: var(--surface);
         }
 
         .premium-menu-item__icon-wrap {
-          width: 42px;
-          height: 42px;
-          background: var(--bg);
-          border-radius: 12px;
+          width: 36px;
+          height: 36px;
+          background: var(--surface);
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: var(--text-muted);
-          transition: all 0.2s;
+          color: var(--text-secondary);
+          transition: all 0.2s ease;
         }
 
         .premium-menu-item:hover .premium-menu-item__icon-wrap {
@@ -347,30 +390,37 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
         }
 
         .premium-menu-item__title {
-          font-weight: 700;
+          font-weight: 600;
           font-size: 0.95rem;
           color: var(--text);
         }
 
-        .premium-menu-item--logout {
-          margin-top: 0.5rem;
-          border-top: 1px solid var(--border-solid);
-          border-top-left-radius: 0;
-          border-top-right-radius: 0;
-          padding-top: 1.5rem;
+        .logout-container {
+          margin-top: 1rem;
+          display: flex;
+          justify-content: center;
+          width: 100%;
         }
 
-        .premium-menu-item--logout:hover {
+        .logout-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.875rem 1.5rem;
+          border-radius: 14px;
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          background: transparent;
+          color: var(--error);
+          font-weight: 600;
+          font-size: 0.95rem;
+          cursor: pointer;
+          width: 100%;
+          transition: all 0.2s ease;
+        }
+
+        .logout-btn:hover {
           background: rgba(239, 68, 68, 0.05);
-        }
-
-        .premium-menu-item__icon-wrap--logout {
-          color: var(--error);
-        }
-
-        .premium-menu-item--logout:hover .premium-menu-item__icon-wrap--logout {
-          background: rgba(239, 68, 68, 0.1);
-          color: var(--error);
+          border-color: var(--error);
         }
 
         .hidden { display: none; }
