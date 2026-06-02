@@ -1632,6 +1632,7 @@
   position: sticky;
   top: 0;
   z-index: 1001;
+  background: var(--bg);
   /* Compensate for the dashboard padding so it reaches edge-to-edge */
   margin-left: calc(var(--space-5) * -1);
   margin-right: calc(var(--space-5) * -1);

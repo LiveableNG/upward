@@ -12,11 +12,13 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('system')
+  // Force theme to default to 'light' (temporarily ignoring system or saved preferences)
+  const [theme, setThemeState] = useState<Theme>('light')
 
   // Load from localStorage on mount
   useEffect(() => {
-    // Shared localStorage key with upward-pay
+    // Stored theme is ignored for now to default to light mode across the app
+    /*
     const saved = localStorage.getItem('upward-theme') as Theme
     if (saved) {
       setThemeState(saved)
@@ -25,29 +27,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       setThemeState(isDark ? 'dark' : 'light')
     }
+    */
+    setThemeState('light')
   }, [])
 
   const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme)
-    localStorage.setItem('upward-theme', newTheme)
+    // Temporarily always set 'light' mode
+    setThemeState('light')
   }
 
   // Apply classes to root element
   useEffect(() => {
     const root = window.document.documentElement
     root.classList.remove('theme--light', 'theme--dark')
-
-    if (theme === 'dark') {
-      root.classList.add('theme--dark')
-    } else if (theme === 'light') {
-      root.classList.add('theme--light')
-    } else if (theme === 'system') {
-      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      root.classList.add(isDark ? 'theme--dark' : 'theme--light')
-    }
+    root.classList.add('theme--light') // Always force light mode
   }, [theme])
 
-  return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>
+  return <ThemeContext.Provider value={{ theme: 'light', setTheme }}>{children}</ThemeContext.Provider>
 }
 
 export function useTheme() {
