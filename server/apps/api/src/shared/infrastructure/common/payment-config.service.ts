@@ -195,11 +195,9 @@ export class PaymentConfigurationService implements OnModuleInit {
             }
           }
 
-          const hasPaidBenefits = await this.hasPaidBenefitsInCurrentTenure(userId, property.id);
           const benefitsPaidForRequest = paymentRequestId ? await this.hasPaidBenefitsForRequest(paymentRequestId) : false;
-          if (hasPaidBenefits) {
-            return { ...defaultRates, rentValue, benefitsPaid: true, benefitsPaidForRequest };
-          }
+          const benefitsPaid = benefitsPaidForRequest;
+          return { ...defaultRates, rentValue, benefitsPaid, benefitsPaidForRequest };
         }
       }
     } catch (error) {}
@@ -207,8 +205,8 @@ export class PaymentConfigurationService implements OnModuleInit {
     return { ...defaultRates, rentValue, benefitsPaid: false, benefitsPaidForRequest: false };
   }
 
-  async getDynamicProcessingFee(userId: number, propertyId?: number | null): Promise<number> {
-    const rates = await this.getDynamicProcessingRates(userId, propertyId);
+  async getDynamicProcessingFee(userId: number, propertyId?: number | null, paymentRequestId?: number | null): Promise<number> {
+    const rates = await this.getDynamicProcessingRates(userId, propertyId, paymentRequestId);
     const activeBenefitsFee = (rates as any).benefitsPaid ? 0 : rates.benefitsFee;
     return rates.transactionFee + activeBenefitsFee;
   }
