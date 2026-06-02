@@ -13,6 +13,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('system')
+  const [mounted, setMounted] = useState(false)
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -20,6 +21,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (saved) {
       setThemeState(saved)
     }
+    setMounted(true)
   }, [])
 
   const setTheme = (newTheme: Theme) => {
@@ -29,6 +31,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // Apply classes to root element
   useEffect(() => {
+    if (!mounted) return
+
     const root = window.document.documentElement
     root.classList.remove('theme--light', 'theme--dark')
 
@@ -40,7 +44,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       root.classList.add(isDark ? 'theme--dark' : 'theme--light')
     }
-  }, [theme])
+  }, [theme, mounted])
 
   return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>
 }
