@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronRight, ArrowLeft } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/features/auth/AuthContext'
+import { PageHeader } from '@/components/common/PageHeader'
 
 import { type Landlord, type PayRentStep } from '@/features/dashboard/components/payment/types'
 import { StepSelect } from '@/features/dashboard/components/payment/StepSelect'
@@ -208,7 +209,14 @@ export default function PayRentPage() {
           }
         `}</style>
 
-        <div className="pay-rent__header">
+        <PageHeader
+          title={stepTitle[step]}
+          showBack
+          onBack={handleBack}
+          showSettings={false}
+        />
+
+        <div className="pay-rent__header desktop-only">
           <div className="dashboard__header-left">
             <button className="dashboard__back" onClick={handleBack}>
               <ArrowLeft size={20} />

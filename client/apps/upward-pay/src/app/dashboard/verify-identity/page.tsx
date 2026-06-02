@@ -15,6 +15,7 @@ import {
 import { verifyBvn, getMe } from '@/features/auth/services/authService'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/AuthContext'
+import { PageHeader } from '@/components/common/PageHeader'
 
 export default function VerifyIdentityPage() {
   const router = useRouter()
@@ -97,7 +98,13 @@ export default function VerifyIdentityPage() {
         
         {/* Left Column: Form Entry */}
         <div className="verify-column verify-column--form">
-          <header className="verify-header">
+          <PageHeader
+            title="Verify Identity"
+            showBack
+            onBack={handleBack}
+            showSettings={false}
+          />
+          <header className="verify-header desktop-only">
             <button className="verify-back-btn" onClick={handleBack}>
               <ChevronLeft size={20} />
             </button>

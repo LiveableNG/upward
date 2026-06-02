@@ -13,6 +13,7 @@ import {
   X,
   Download,
 } from 'lucide-react'
+import { PageHeader } from '@/components/common/PageHeader'
 import { TransactionSkeleton } from './TransactionSkeleton'
 import { useDashboard } from '../../hooks/useDashboard'
 import { formatCurrency, groupTransactionsByDate, formatTime, formatDate } from '@/lib/utils'
@@ -64,11 +65,28 @@ export function TransactionList() {
 
   return (
     <div className="transactions-list-page dashboard--nav-offset">
-      <div className="transactions-list__header">
+      <PageHeader
+        title="Transactions"
+        showBack
+        backPath="/dashboard"
+        showSettings={false}
+        rightElement={
+          <div className="dashboard__filter">
+            <input
+              type="date"
+              className="dashboard__filter-input"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+            />
+            <div className="dashboard__filter-icon">
+              <Filter size={18} />
+            </div>
+          </div>
+        }
+      />
+
+      <div className="transactions-list__header desktop-only">
         <div className="dashboard__header-left">
-          <button className="dashboard__back mobile-only" onClick={() => router.push('/dashboard')}>
-            <ArrowLeft size={20} />
-          </button>
           <h2 className="dashboard__title">Transactions</h2>
         </div>
         <div className="dashboard__header-right">
