@@ -77,17 +77,99 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
 
   if (loading) {
     return (
-      <div className="banking-view dashboard--nav-offset">
+      <div className="banking-view dashboard--nav-offset animate-pulse">
         <PageHeader
           title="Banking & Payouts"
           showBack
           backLabel="Profile"
           onBack={onBack}
         />
-        <div className="flex flex-col justify-center items-center h-[60vh]">
-          <Loader2 className="animate-spin text-clay" size={32} />
-          <p className="text-muted text-sm mt-4 animate-pulse">Loading banking details...</p>
+        <div className="banking-content">
+          <div className="banking-sections">
+            <section className="premium-card">
+              <div className="premium-card__header premium-card__header--split">
+                <div style={{ flex: 1 }}>
+                  <div className="skeleton-text" style={{ width: 140, height: 20, marginBottom: 8 }} />
+                  <div className="skeleton-text" style={{ width: '80%', height: 14 }} />
+                </div>
+              </div>
+
+              {/* Notice Banner Skeleton */}
+              <div className="notice-banner-skeleton" style={{ background: 'var(--surface2)', height: 110, borderRadius: 16, marginBottom: 24 }} />
+
+              <div className="premium-details-list">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="premium-field--readonly" style={{ borderBottom: i === 3 ? 'none' : '1px solid var(--border)' }}>
+                    <div className="skeleton-text" style={{ width: 80, height: 12, marginBottom: 8 }} />
+                    <div className="skeleton-text" style={{ width: 180, height: 16 }} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
         </div>
+
+        <style jsx>{`
+          .skeleton-text {
+            background: var(--surface2);
+            border-radius: 4px;
+          }
+          .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+          }
+          .banking-view {
+            max-width: 640px;
+            margin: 0 auto;
+            padding-top: 1rem;
+          }
+          @media (min-width: 1024px) {
+            .banking-view {
+              padding-top: 2rem;
+            }
+          }
+          .banking-content {
+            padding: 1rem 1rem 10rem;
+          }
+          @media (min-width: 768px) {
+            .banking-content {
+              padding: 2rem 1.5rem 10rem;
+            }
+          }
+          .banking-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+          }
+          .premium-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+          }
+          .premium-card__header {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+          }
+          .premium-card__header--split {
+            justify-content: space-between;
+          }
+          .premium-details-list {
+            display: flex;
+            flex-direction: column;
+          }
+          .premium-field--readonly {
+            display: flex;
+            flex-direction: column;
+            padding: 1rem 0.5rem;
+          }
+        `}</style>
       </div>
     )
   }
