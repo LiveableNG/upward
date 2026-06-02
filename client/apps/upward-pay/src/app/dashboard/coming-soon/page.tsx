@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Smartphone, Gift, Wand2, Rocket, TrendingUp } from 'lucide-react'
+import { PageHeader } from '@/components/common/PageHeader'
 
 export default function ComingSoonPage() {
   const router = useRouter()
@@ -35,7 +36,14 @@ export default function ComingSoonPage() {
 
   return (
     <div className="dashboard dashboard--nav-offset">
-      <header className="dashboard__header">
+      <PageHeader
+        title="Upcoming Features"
+        showBack
+        backPath="/dashboard"
+        showSettings={false}
+      />
+
+      <header className="dashboard__header desktop-only">
         <div className="dashboard__header-left">
           <button className="dashboard__back" onClick={() => router.push('/dashboard')}>
             <ArrowLeft size={20} />

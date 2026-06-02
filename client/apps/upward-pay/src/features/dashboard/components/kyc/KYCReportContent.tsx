@@ -29,6 +29,7 @@ import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Capacitor } from '@capacitor/core'
 import FallbackSuspense from '@/components/FallbackSuspense'
+import { PageHeader } from '@/components/common/PageHeader'
 
 import { useToast } from '@/components/common/Toast'
 import { useScoreProfile, usePublicScoreProfile } from '../../services/scoreService'
@@ -155,24 +156,24 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
     <div className={`kyc-page ${!isPublic ? 'kyc-page--dashboard' : 'public-cv'}`}>
       {!isPublic && (
         <>
-          {/* Mobile Fixed Header */}
-          <header className="mobile-header mobile-only">
-            <button className="mobile-header__back" onClick={() => router.push('/dashboard')}>
-              <ArrowLeft size={22} />
-            </button>
-            <h2 className="mobile-header__title">Credibility Profile</h2>
-            <div className="mobile-header__actions">
+          {/* Mobile Unified Header */}
+          <PageHeader
+            title="Credibility Profile"
+            showBack
+            backPath="/dashboard"
+            showSettings={false}
+            rightElement={
               <button 
-                className="mobile-header__icon-btn" 
+                className="dashboard__icon-btn" 
                 onClick={handleShare} 
                 title={isVerified ? "Copy Link" : "Verification required to share profile"}
                 disabled={!isVerified}
-                style={{ opacity: isVerified ? 1 : 0.5 }}
+                style={{ opacity: isVerified ? 1 : 0.5, border: 'none', background: 'none', padding: 0 }}
               >
                 <Link2 size={20} />
               </button>
-            </div>
-          </header>
+            }
+          />
 
           {/* Desktop Header removed for cleaner UI */}
         </>
