@@ -9,7 +9,8 @@ import {
   AlertCircle, 
   Check, 
   HelpCircle,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react'
 import { verifyBvn, getMe } from '@/features/auth/services/authService'
 import { useQueryClient } from '@tanstack/react-query'
@@ -25,6 +26,7 @@ export default function VerifyIdentityPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
+  const [showInfoModal, setShowInfoModal] = useState(false)
   
   const redirectPath = searchParams ? searchParams.get('redirect') : null
 
@@ -155,9 +157,13 @@ export default function VerifyIdentityPage() {
             </form>
 
             <div className="verify-notice-mobile">
-              <a href="#why-bvn-info" className="verify-info-trigger">
+              <button 
+                type="button" 
+                className="verify-info-trigger"
+                onClick={() => setShowInfoModal(true)}
+              >
                 <HelpCircle size={14} /> Why we need your BVN?
-              </a>
+              </button>
             </div>
           </div>
         </div>
@@ -200,6 +206,56 @@ export default function VerifyIdentityPage() {
             </div>
           </div>
         </div>
+
+      {showInfoModal && (
+        <div
+          className="verify-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowInfoModal(false)
+          }}
+        >
+          <div className="verify-modal-card animate-in zoom-in-95 duration-200">
+            <button className="verify-modal-close" onClick={() => setShowInfoModal(false)}>
+              <X size={16} />
+            </button>
+            <div className="info-sheet">
+              <div className="info-sheet__header">
+                <h3>Why we need your BVN?</h3>
+              </div>
+              
+              <p className="info-sheet__text">
+                The goal of the Bank Verification Number (BVN) is to uniquely verify the identity of a customer for &apos;know your customer&apos; (KYC) purposes.
+              </p>
+
+              <div className="info-sheet__block">
+                <div className="info-sheet__block-icon">
+                  <Check size={14} strokeWidth={3} />
+                </div>
+                <div className="info-sheet__block-content">
+                  <strong>We only have access to your:</strong>
+                  <ul>
+                    <li>Name</li>
+                    <li>Phone number</li>
+                    <li>Email address</li>
+                    <li>Date of birth</li>
+                  </ul>
+                </div>
+              </div>
+
+              <p className="info-sheet__disclaimer">
+                Confirming your BVN does not give us access to details of your bank account(s) and we cannot use your BVN to transfer money from your account(s).
+              </p>
+
+              <div className="info-sheet__footer">
+                <Lock size={14} className="info-sheet__footer-icon" />
+                <span>
+                  Your data is safe with us and we won&apos;t share your BVN with anyone. <strong>We do not save your BVN number</strong>.
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       </div>
 
@@ -493,6 +549,53 @@ export default function VerifyIdentityPage() {
           margin-top: 2px;
         }
 
+        .verify-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+
+        .verify-modal-card {
+          background: var(--surface, #ffffff);
+          border: 1px solid var(--border-solid);
+          border-radius: 28px;
+          padding: 36px 24px 24px;
+          width: 100%;
+          max-width: 440px;
+          position: relative;
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .verify-modal-close {
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          background: var(--surface2, #f5f5f7);
+          border: none;
+          color: var(--text-muted);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .verify-modal-close:hover {
+          background: var(--border-solid);
+          color: var(--text);
+          transform: scale(1.05);
+        }
+
         @media (max-width: 768px) {
           .verify-page {
             padding: 0;
@@ -515,7 +618,7 @@ export default function VerifyIdentityPage() {
           }
 
           .verify-column--info {
-            padding: 32px 24px 48px;
+            display: none;
           }
 
           .verify-notice-mobile {
@@ -532,6 +635,10 @@ export default function VerifyIdentityPage() {
             align-items: center;
             gap: 6px;
             text-decoration: underline;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
           }
         }
       `}</style>
