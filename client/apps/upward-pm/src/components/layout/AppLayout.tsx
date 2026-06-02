@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { Sidebar } from "@/components/layout/Sidebar"
 import { MobileHeader } from "@/components/layout/MobileHeader"
 import { DesktopHeader } from "@/components/layout/DesktopHeader"
+import { NotificationPopup } from "@/components/common/NotificationPopup"
 import { cn } from '@/lib/utils'
 
 interface AppLayoutProps {
@@ -47,6 +48,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="layout__content">
         <MobileHeader onMenuClick={() => setIsSidebarOpen(true)} />
         <DesktopHeader />
+        <NotificationPopup />
         <main className="layout__main">
           {children}
         </main>
