@@ -1,3 +1,9 @@
+// Guarantee that all toLocaleString formatting uses commas as thousands separators (en-US format)
+const originalToLocaleString = Number.prototype.toLocaleString;
+Number.prototype.toLocaleString = function (locales, options) {
+  return originalToLocaleString.call(this, locales || 'en-US', options);
+};
+
 import { NestFactory } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { FastifyAdapter } from '@nestjs/platform-fastify'

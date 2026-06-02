@@ -75,6 +75,16 @@ export class CronController {
       }
     }
 
+    if (shouldRun('pmDailyDigest')) {
+      try {
+        await this.unifiedReminderService.processPmDailyCrons();
+        results.pmDailyDigest = 'completed';
+      } catch (e: any) {
+        this.logger.error('Error in unifiedReminderService.processPmDailyCrons', e);
+        results.pmDailyDigest = 'failed: ' + e.message;
+      }
+    }
+
     if (shouldRun('settlements') || shouldRun('refunds')) {
       try {
         await this.processHourlySettlementsUseCase.execute();

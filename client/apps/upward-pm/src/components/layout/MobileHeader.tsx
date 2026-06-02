@@ -54,9 +54,9 @@ export function MobileHeader({ onMenuClick }: { onMenuClick: () => void }) {
         )}
       </div>
 
-      <button className="mobile-header__notif">
+      <Link href="/notifications" className="mobile-header__notif" title="Notifications">
         <Bell size={20} />
-      </button>
+      </Link>
     </header>
   )
 }

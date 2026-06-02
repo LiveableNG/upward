@@ -165,6 +165,12 @@ import { LandlordChangePasswordUseCase } from './pm/use-cases/landlord/landlord-
 import { LandlordService } from './pm/services/landlord.service'
 import { GetPmLandlordsUseCase } from './pm/use-cases/landlord/get-pm-landlords.use-case'
 import { GetLandlordPropertyDetailsUseCase } from './pm/use-cases/landlord/get-landlord-property-details.use-case'
+import {
+  GetPmNotificationsUseCase,
+  MarkPmNotificationReadUseCase,
+  MarkAllPmNotificationsReadUseCase,
+  GetUnreadPmPopupsUseCase,
+} from './pm/use-cases/notifications/pm-notification.use-cases'
 
 import { RejectCredibilityRequestUseCase } from './use-cases/external/reject-credibility-request.use-case'
 import { AuthModule } from './auth/auth.module'
@@ -434,6 +440,10 @@ const UseCases = [
   InvitePmUseCase,
   SubmitUnitRequestUseCase,
   DiscoverLinkedPropertiesUseCase,
+  GetPmNotificationsUseCase,
+  MarkPmNotificationReadUseCase,
+  MarkAllPmNotificationsReadUseCase,
+  GetUnreadPmPopupsUseCase,
 ]
 
 @Module({
