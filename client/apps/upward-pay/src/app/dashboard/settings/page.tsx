@@ -3,9 +3,9 @@
 
 import React, { useState } from 'react'
 import {
-  Sun,
-  Moon,
-  Monitor,
+  // Sun,
+  // Moon,
+  // Monitor,
   Lock,
   LogOut,
   Eye,
@@ -14,7 +14,7 @@ import {
   MessageSquare,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
-import { useTheme } from '@/features/dashboard/components/ThemeProvider'
+// import { useTheme } from '@/features/dashboard/components/ThemeProvider'
 import { PageHeader } from '@/components/common/PageHeader'
 import { BiometricSwitch } from '@/features/auth/component/BiometricSwitch'
 import { NotificationSwitch } from '@/features/notifications/components/NotificationSwitch'
@@ -23,7 +23,7 @@ import { useToast } from '@/components/common/Toast'
 
 export default function SettingsPage() {
   const { user, logout, refreshUser } = useAuth()
-  const { theme, setTheme } = useTheme()
+  // const { theme, setTheme } = useTheme()
   const { success, error } = useToast()
 
   const [isChangingPassword, setIsChangingPassword] = useState(false)
@@ -89,7 +89,8 @@ export default function SettingsPage() {
 
       <div className="dashboard__main-grid">
         <div className="dashboard__col--left">
-          {/* Theme Section */}
+          {/* Theme Section - Temporarily Disabled */}
+          {/*
           <section className="settings-section">
             <h3 className="settings-section__title">Appearance</h3>
             <div className="theme-selector">
@@ -122,6 +123,7 @@ export default function SettingsPage() {
               </button>
             </div>
           </section>
+          */}
 
 
 

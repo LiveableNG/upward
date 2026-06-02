@@ -43,6 +43,9 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
+                  // Default to light mode (dark mode support is temporarily disabled)
+                  document.documentElement.classList.add('theme--light');
+                  /*
                   const theme = localStorage.getItem('upward-theme');
                   const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
                   if (theme === 'dark' || (theme === 'system' && supportDarkMode) || (!theme && supportDarkMode)) {
@@ -50,6 +53,7 @@ export default function RootLayout({
                   } else {
                     document.documentElement.classList.add('theme--light');
                   }
+                  */
                 } catch (e) {}
               })();
             `,
