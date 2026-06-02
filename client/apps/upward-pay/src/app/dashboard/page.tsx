@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowRight, TrendingUp, Flame, ShieldCheck, Zap, Receipt
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { Modal } from '@/components/common/Modal'
 
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
 import { StatStrip } from '@/features/dashboard/components/StatStrip'
@@ -605,46 +606,33 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {showWelcomeModal && (
-        <div
-          className="rent-reminder-popup"
-          style={{ background: 'rgba(0,0,0,0.55)', zIndex: 100 }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleCloseWelcomeModal()
+      <Modal isOpen={showWelcomeModal} onClose={handleCloseWelcomeModal} size="md">
+        <div className="rent-reminder-popup__badge" style={{ background: 'var(--clay)', alignSelf: 'flex-start' }}>
+          WELCOME TO UPWARD
+        </div>
+        <div className="rent-reminder-popup__icon" style={{ background: 'var(--clay-faint)', color: 'var(--clay)', marginTop: '16px', marginBottom: '16px', alignSelf: 'flex-start' }}>
+          <ShieldAlert size={32} />
+        </div>
+        <div className="rent-reminder-popup__headline">
+          <h2 className="rent-reminder-popup__title" style={{ margin: 0, textAlign: 'left' }}>Welcome, {firstName}!</h2>
+        </div>
+        <p className="rent-reminder-popup__body" style={{ margin: '16px 0 24px', padding: 0, textAlign: 'left' }}>
+          Confirming your identity helps us verify your account, protect against fraud, and comply with financial regulations. It takes less than a minute, and <strong>we do not save your BVN number</strong>.
+        </p>
+        <button
+          className="rent-reminder-popup__cta"
+          style={{ background: 'var(--clay)', color: 'white', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          onClick={() => {
+            handleCloseWelcomeModal()
+            router.push('/dashboard/verify-identity')
           }}
         >
-          <div className="rent-reminder-popup__card" style={{ borderColor: 'rgba(217, 119, 87, 0.15)' }}>
-            <button className="rent-reminder-popup__close" onClick={handleCloseWelcomeModal}>
-              <X size={16} />
-            </button>
-            <div className="rent-reminder-popup__badge" style={{ background: 'var(--clay)' }}>
-              WELCOME TO UPWARD
-            </div>
-            <div className="rent-reminder-popup__icon" style={{ background: 'var(--clay-faint)', color: 'var(--clay)' }}>
-              <ShieldAlert size={32} />
-            </div>
-            <div className="rent-reminder-popup__headline">
-              <h2 className="rent-reminder-popup__title">Welcome, {firstName}!</h2>
-            </div>
-            <p className="rent-reminder-popup__body">
-              Confirming your identity helps us verify your account, protect against fraud, and comply with financial regulations. It takes less than a minute, and <strong>we do not save your BVN number</strong>.
-            </p>
-            <button
-              className="rent-reminder-popup__cta"
-              style={{ background: 'var(--clay)', color: 'white' }}
-              onClick={() => {
-                handleCloseWelcomeModal()
-                router.push('/dashboard/verify-identity')
-              }}
-            >
-              Verify Identity Now <ArrowRight size={16} />
-            </button>
-            <button className="rent-reminder-popup__skip" onClick={handleCloseWelcomeModal}>
-              Skip for now
-            </button>
-          </div>
-        </div>
-      )}
+          Verify Identity Now <ArrowRight size={16} />
+        </button>
+        <button className="rent-reminder-popup__skip" onClick={handleCloseWelcomeModal} style={{ alignSelf: 'center', marginTop: '16px' }}>
+          Skip for now
+        </button>
+      </Modal>
 
       <style jsx>{`
         /* Show/hide zones */
