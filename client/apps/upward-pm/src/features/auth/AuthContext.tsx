@@ -44,6 +44,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isPublicPage = window.location.pathname === '/' ||
                            window.location.pathname === '/login' || 
                            window.location.pathname === '/signup' ||
+                           window.location.pathname === '/pm-login' || 
+                           window.location.pathname === '/pm-signup' ||
                            window.location.pathname.startsWith('/invite') ||
                            window.location.pathname.startsWith('/reset-password') ||
                            isPortalPublic
