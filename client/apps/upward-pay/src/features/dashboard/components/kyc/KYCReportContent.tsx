@@ -18,6 +18,11 @@ import {
   Building2,
   Calendar,
   Shield,
+  Mail,
+  MessageCircle,
+  MessageSquare,
+  Copy,
+  X,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
@@ -51,21 +56,65 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   
   const { data: scoreProfile, isLoading } = isPublic ? publicProfile : privateProfile
   
-  const handleShare = async () => {
+  const [showShareMenu, setShowShareMenu] = useState(false)
+
+  const handleShare = () => {
+    setShowShareMenu(true)
+  }
+
+  const handleShareSocial = async (platform: 'whatsapp' | 'email' | 'sms' | 'copy') => {
     const p = scoreProfile?.data?.profile
-    
-    // Always use UUID for sharing as per user request
     const identifier = p?.uuid
-    
     const defaultWebUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
     const baseUrl = Capacitor.isNativePlatform() 
       ? defaultWebUrl 
       : (typeof window !== 'undefined' ? window.location.origin : defaultWebUrl)
 
     const url = `${baseUrl}/profile/${identifier}`
-    
-    navigator.clipboard.writeText(url)
-    success('Public profile link copied to clipboard!')
+    const shareText = `Check out my Rent Credibility Portfolio on Upward: ${url}`
+
+    setShowShareMenu(false)
+
+    if (platform === 'copy') {
+      navigator.clipboard.writeText(url)
+      success('Link copied to clipboard!')
+      return
+    }
+
+    let shareUrl = ''
+    if (platform === 'whatsapp') {
+      if (Capacitor.isNativePlatform()) {
+        shareUrl = `whatsapp://send?text=${encodeURIComponent(shareText)}`
+      } else {
+        shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`
+      }
+    } else if (platform === 'email') {
+      shareUrl = `mailto:?subject=${encodeURIComponent('Rent Credibility Portfolio')}&body=${encodeURIComponent(shareText)}`
+    } else if (platform === 'sms') {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
+      if (isIOS) {
+        shareUrl = `sms:&body=${encodeURIComponent(shareText)}`
+      } else {
+        shareUrl = `sms:?body=${encodeURIComponent(shareText)}`
+      }
+    }
+
+    if (shareUrl) {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { Share } = await import('@capacitor/share')
+          await Share.share({
+            title: 'Rent Credibility Portfolio',
+            text: shareText,
+            url: url
+          })
+        } catch (e) {
+          window.open(shareUrl, '_system')
+        }
+      } else {
+        window.open(shareUrl, '_blank')
+      }
+    }
   }
 
 
@@ -404,6 +453,45 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
               )}
             </div>
         )}
+
+        {showShareMenu && (
+          <div className="share-overlay" onClick={() => setShowShareMenu(false)}>
+            <div className="share-menu" onClick={(e) => e.stopPropagation()}>
+              <div className="share-menu__header">
+                <h4>Share Portfolio</h4>
+                <button className="share-menu__close" onClick={() => setShowShareMenu(false)}>
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="share-menu__options">
+                <button className="share-menu__option" onClick={() => handleShareSocial('whatsapp')}>
+                  <div className="share-menu__icon whatsapp-color">
+                    <MessageCircle size={20} />
+                  </div>
+                  <span className="share-menu__text">WhatsApp</span>
+                </button>
+                <button className="share-menu__option" onClick={() => handleShareSocial('email')}>
+                  <div className="share-menu__icon email-color">
+                    <Mail size={20} />
+                  </div>
+                  <span className="share-menu__text">Email</span>
+                </button>
+                <button className="share-menu__option" onClick={() => handleShareSocial('sms')}>
+                  <div className="share-menu__icon sms-color">
+                    <MessageSquare size={20} />
+                  </div>
+                  <span className="share-menu__text">SMS</span>
+                </button>
+                <button className="share-menu__option" onClick={() => handleShareSocial('copy')}>
+                  <div className="share-menu__icon copy-color">
+                    <Copy size={20} />
+                  </div>
+                  <span className="share-menu__text">Copy Link</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <style jsx>{`
@@ -432,11 +520,59 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
         .kyc-report {
            position: relative;
            overflow: hidden;
-           background: var(--surface);
-           border-radius: 40px;
+           background: var(--bg);
+           border-radius: 24px;
            border: 1px solid var(--border-solid);
-           box-shadow: 0 30px 60px -12px rgba(0,0,0,0.5);
+           box-shadow: 0 12px 40px rgba(0,0,0,0.06);
            transition: transform 0.3s ease;
+           width: 100%;
+        }
+        @media (min-width: 641px) {
+          .kyc-report {
+             border-radius: 36px;
+             box-shadow: 0 30px 60px -12px rgba(0,0,0,0.08);
+          }
+        }
+        .kyc-report__header {
+            border-bottom: 1px solid var(--border-solid);
+            padding: 24px 16px 20px;
+            text-align: center;
+            background: linear-gradient(180deg, var(--clay-faint) 0%, transparent 100%);
+        }
+        .kyc-report__body {
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        @media (min-width: 641px) {
+            .kyc-report__header {
+                padding: 40px 32px 28px;
+            }
+            .kyc-report__body {
+                padding: 32px;
+                gap: 28px;
+            }
+        }
+        .kyc-report__meta {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            padding: 0 12px;
+        }
+        .kyc-report__meta-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            opacity: 0.5;
+            display: inline-block;
+            margin: 0 4px;
         }
         .kyc-report__watermark {
             position: absolute;
@@ -453,42 +589,60 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
         }
 
         .kyc-report__score-box {
-            background: linear-gradient(135deg, var(--surface2) 0%, var(--surface) 100%);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 24px;
-            padding: 2rem;
+            background: linear-gradient(135deg, rgba(217, 119, 87, 0.05) 0%, rgba(217, 119, 87, 0.02) 100%);
+            border: 1px solid rgba(217, 119, 87, 0.15);
+            border-radius: 20px;
+            padding: 1.25rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin: 2rem 0;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+            margin: 1.5rem 0;
+            box-shadow: 0 8px 24px rgba(217, 119, 87, 0.04);
+        }
+        @media (min-width: 641px) {
+            .kyc-report__score-box {
+                padding: 1.75rem;
+                margin: 2rem 0;
+            }
         }
         .kyc-report__score-value-wrap {
             display: flex;
             align-items: baseline;
             gap: 4px;
-            margin: 0.5rem 0;
+            margin: 0.25rem 0;
         }
         .kyc-report__score-value {
-            font-size: 4rem;
+            font-size: 2.75rem;
             font-weight: 900;
             line-height: 1;
-            color: var(--dark);
+            color: var(--text) !important;
+        }
+        @media (min-width: 641px) {
+            .kyc-report__score-value {
+                font-size: 3.5rem;
+            }
         }
         .kyc-report__score-max {
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 700;
             color: var(--text-muted);
             opacity: 0.6;
         }
         .kyc-report__score-gauge {
             position: relative;
-            width: 120px;
-            height: 120px;
+            width: 85px;
+            height: 85px;
             display: flex;
             align-items: center;
             justify-content: center;
+            background: transparent !important;
+            flex-shrink: 0;
+        }
+        @media (min-width: 641px) {
+            .kyc-report__score-gauge {
+                width: 110px;
+                height: 110px;
+            }
         }
         .kyc-report__gauge-svg {
             position: absolute;
@@ -500,18 +654,24 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             fill: none;
             stroke: var(--border-solid);
             stroke-width: 6;
+            opacity: 0.4;
         }
         .kyc-report__gauge-fill {
             fill: none;
             stroke: var(--clay);
-            stroke-width: 6;
+            stroke-width: 8;
             stroke-linecap: round;
             transition: stroke-dasharray 1s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .kyc-report__score-gauge-inner {
-            font-size: 1.25rem;
+            font-size: 1.1rem;
             font-weight: 800;
-            color: var(--clay);
+            color: var(--text) !important;
+        }
+        @media (min-width: 641px) {
+            .kyc-report__score-gauge-inner {
+                font-size: 1.25rem;
+            }
         }
 
         .kyc-report__metrics-grid {
@@ -761,6 +921,130 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                 order: 1;
             }
 
+        }
+
+        .share-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 10000;
+          background: rgba(0, 0, 0, 0.4);
+          backdrop-filter: blur(8px) saturate(140%);
+          -webkit-backdrop-filter: blur(8px) saturate(140%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+          animation: shareFadeIn 0.25s ease-out;
+        }
+
+        .share-menu {
+          background: var(--bg);
+          border: 1px solid var(--border-solid);
+          border-radius: 24px;
+          width: 100%;
+          max-width: 380px;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+          animation: sharePop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          overflow: hidden;
+        }
+
+        .share-menu__header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 20px 24px 16px;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .share-menu__header h4 {
+          font-size: 1rem;
+          font-weight: 800;
+          color: var(--text);
+          margin: 0;
+        }
+
+        .share-menu__close {
+          background: var(--surface2);
+          border: none;
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          color: var(--text-secondary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .share-menu__close:hover {
+          background: var(--border);
+          color: var(--text);
+        }
+
+        .share-menu__options {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+          padding: 20px 24px 24px;
+        }
+
+        .share-menu__option {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          padding: 16px;
+          background: var(--surface);
+          border: 1px solid var(--border-solid);
+          border-radius: 16px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .share-menu__option:hover {
+          background: var(--surface2);
+          border-color: var(--clay);
+          transform: translateY(-2px);
+        }
+
+        .share-menu__icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background: var(--bg);
+          border: 1px solid var(--border-solid);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+
+        .share-menu__option:hover .share-menu__icon {
+          border-color: var(--clay);
+          box-shadow: 0 4px 12px var(--clay-glow);
+        }
+
+        .share-menu__text {
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: var(--text-secondary);
+        }
+
+        .whatsapp-color { color: #25D366; }
+        .email-color { color: #3b82f6; }
+        .sms-color { color: #d97757; }
+        .copy-color { color: #0284c7; }
+
+        @keyframes shareFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes sharePop {
+          from { transform: scale(0.95) translateY(10px); opacity: 0; }
+          to { transform: scale(1) translateY(0); opacity: 1; }
         }
       `}</style>
     </div>
