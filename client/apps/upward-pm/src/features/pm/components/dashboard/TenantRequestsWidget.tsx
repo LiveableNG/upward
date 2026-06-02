@@ -87,11 +87,6 @@ export function TenantRequestsWidget() {
             setIsAddTenantModalOpen(false);
             setSelectedRequest(null);
             queryClient.invalidateQueries({ queryKey: ['tenant-join-requests'] });
-            // Ideally we'd dismiss the log here if the tenant was actually created, 
-            // but the backend will handle that logic natively via Confirm connection or just auto-sync.
-            // Wait, if PM adds the tenant, the tenant now exists. Next time tenant visits dashboard or signs in,
-            // they will be synced, OR we could dismiss the request right now since we handled it.
-            dismissMutation.mutate(selectedRequest.uuid);
           }}
           initialData={{
             firstName: selectedRequest.tenantFirstName,

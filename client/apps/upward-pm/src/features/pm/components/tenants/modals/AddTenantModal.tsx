@@ -24,6 +24,30 @@ const tenantSchema = z.object({
   rentType: z.enum(['Monthly', 'Annually']).optional(),
   rentStartDate: z.string().optional(),
   rentEndDate: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.unitUuid && data.unitUuid.trim() !== '') {
+    if (!data.rentAmount || parseFloat(data.rentAmount) <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['rentAmount'],
+        message: 'Rent amount is required and must be greater than 0'
+      })
+    }
+    if (!data.rentStartDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['rentStartDate'],
+        message: 'Rent start date is required'
+      })
+    }
+    if (!data.rentEndDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['rentEndDate'],
+        message: 'Rent end date is required'
+      })
+    }
+  }
 })
 
 type TenantFormData = z.infer<typeof tenantSchema>
@@ -216,87 +240,107 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
 
              {showLeaseFields && (
                 <div className="animate-fade-in" style={{ marginTop: 20 }}>
-                    {initialData?.unitDetails && (
+                    {vacantUnits.length === 0 ? (
                         <div style={{ 
-                          marginBottom: 16, 
-                          padding: '14px 18px', 
-                          backgroundColor: 'rgba(22,101,52,0.04)', 
-                          borderRadius: 16, 
-                          border: '1px solid rgba(22,101,52,0.1)', 
+                          padding: '16px', 
+                          backgroundColor: '#fffbeb', 
+                          borderRadius: 12, 
+                          border: '1px solid #fef3c7', 
                           fontSize: 13, 
-                          display: 'flex', 
-                          flexDirection: 'column', 
-                          gap: 6 
+                          color: '#b45309',
+                          lineHeight: 1.5
                         }}>
-                             <span style={{ fontWeight: 800, textTransform: 'uppercase', fontSize: 10, color: 'var(--forest)', letterSpacing: '0.05em' }}>Tenant's Requested Connection</span>
-                             <p style={{ margin: 0, color: 'var(--text-secondary)', fontWeight: 500 }}>
-                                <strong>Requested Unit/Address:</strong> {initialData.unitDetails.address}
-                             </p>
-                             <p style={{ margin: 0, color: 'var(--text-secondary)', fontWeight: 500 }}>
-                                <strong>Requested Rent:</strong> ₦{initialData.unitDetails.rentAmount?.toLocaleString()}
-                             </p>
+                          <strong>No vacant units available.</strong> You cannot configure lease details without a vacant unit. You can still save this tenant's profile now and assign them to a unit later once a unit is available.
                         </div>
+                    ) : (
+                        <>
+                            {initialData?.unitDetails && (
+                                <div style={{ 
+                                  marginBottom: 16, 
+                                  padding: '14px 18px', 
+                                  backgroundColor: 'rgba(22,101,52,0.04)', 
+                                  borderRadius: 16, 
+                                  border: '1px solid rgba(22,101,52,0.1)', 
+                                  fontSize: 13, 
+                                  display: 'flex', 
+                                  flexDirection: 'column', 
+                                  gap: 6 
+                                }}>
+                                     <span style={{ fontWeight: 800, textTransform: 'uppercase', fontSize: 10, color: 'var(--forest)', letterSpacing: '0.05em' }}>Tenant's Requested Connection</span>
+                                     <p style={{ margin: 0, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                                        <strong>Requested Unit/Address:</strong> {initialData.unitDetails.address}
+                                     </p>
+                                     <p style={{ margin: 0, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                                        <strong>Requested Rent:</strong> ₦{initialData.unitDetails.rentAmount?.toLocaleString()}
+                                     </p>
+                                </div>
+                            )}
+
+                            <div className="form-group">
+                                <label className="form-label">Select Unit</label>
+                                <select 
+                                    className={cn("form-input", errors.unitUuid && "form-input--error")}
+                                    {...register('unitUuid')}
+                                    style={{ appearance: 'none' }}
+                                >
+                                    <option value="">-- Choose a vacant unit --</option>
+                                    {vacantUnits.map(u => (
+                                        <option key={u.uuid} value={u.uuid}>
+                                            {u.property?.name} - Unit {u.unitName}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.unitUuid && <span className="form-error-text">{errors.unitUuid.message}</span>}
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
+                                <div className="form-group">
+                                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <CreditCard size={14} /> Rent Amount (₦)
+                                    </label>
+                                    <input 
+                                        type="number" 
+                                        className={cn("form-input", errors.rentAmount && "form-input--error")}
+                                        placeholder="e.g. 2500000"
+                                        {...register('rentAmount')}
+                                    />
+                                    {errors.rentAmount && <span className="form-error-text">{errors.rentAmount.message}</span>}
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Rent Cycle</label>
+                                    <select className="form-input" {...register('rentType')}>
+                                        <option value="Annually">Annually</option>
+                                        <option value="Monthly">Monthly</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
+                                <div className="form-group">
+                                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <Calendar size={14} /> Start Date
+                                    </label>
+                                    <input 
+                                        type="date" 
+                                        className={cn("form-input", errors.rentStartDate && "form-input--error")}
+                                        {...register('rentStartDate')}
+                                    />
+                                    {errors.rentStartDate && <span className="form-error-text">{errors.rentStartDate.message}</span>}
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <Calendar size={14} /> End Date
+                                    </label>
+                                    <input 
+                                        type="date" 
+                                        className={cn("form-input", errors.rentEndDate && "form-input--error")}
+                                        {...register('rentEndDate')}
+                                    />
+                                    {errors.rentEndDate && <span className="form-error-text">{errors.rentEndDate.message}</span>}
+                                </div>
+                            </div>
+                        </>
                     )}
-
-                    <div className="form-group">
-                        <label className="form-label">Select Unit</label>
-                        <select 
-                            className="form-input" 
-                            {...register('unitUuid')}
-                            style={{ appearance: 'none' }}
-                        >
-                            <option value="">-- Choose a vacant unit --</option>
-                            {vacantUnits.map(u => (
-                                <option key={u.uuid} value={u.uuid}>
-                                    {u.property?.name} - Unit {u.unitName}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
-                        <div className="form-group">
-                            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <CreditCard size={14} /> Rent Amount (₦)
-                            </label>
-                            <input 
-                                type="number" 
-                                className="form-input"
-                                placeholder="e.g. 2500000"
-                                {...register('rentAmount')}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label">Rent Cycle</label>
-                            <select className="form-input" {...register('rentType')}>
-                                <option value="Annually">Annually</option>
-                                <option value="Monthly">Monthly</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
-                        <div className="form-group">
-                            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <Calendar size={14} /> Start Date
-                            </label>
-                            <input 
-                                type="date" 
-                                className="form-input"
-                                {...register('rentStartDate')}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <Calendar size={14} /> End Date
-                            </label>
-                            <input 
-                                type="date" 
-                                className="form-input"
-                                {...register('rentEndDate')}
-                            />
-                        </div>
-                    </div>
                 </div>
              )}
           </div>

@@ -69,6 +69,7 @@ export const useTenantActions = () => {
       queryClient.invalidateQueries({ queryKey: ['tenant', variables.tenantUuid] })
       queryClient.invalidateQueries({ queryKey: ['pm-units'] })
       queryClient.invalidateQueries({ queryKey: ['pm-unit'] })
+      queryClient.invalidateQueries({ queryKey: ['tenant-join-requests'] })
       toast.success('Tenant assigned successfully')
     },
     onError: (error: any) => {

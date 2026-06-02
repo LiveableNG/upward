@@ -282,10 +282,16 @@ export function PaymentsView() {
     success('Statement exported successfully!')
   }
 
-  // Consolidated filtering logic
   const filteredRequests = (requests || []).filter(req => {
-    // 1. Status Filter (including derived OVERDUE)
-    const isOverdue = req.status === 'PENDING' && new Date(req.dueDate) < new Date()
+    const getStartOfDay = (date: Date) => {
+      const d = new Date(date)
+      d.setHours(0, 0, 0, 0)
+      return d
+    }
+
+    const today = getStartOfDay(new Date())
+    const dueDate = getStartOfDay(new Date(req.dueDate))
+    const isOverdue = (req.status === 'PENDING' || req.status === 'PARTIAL') && dueDate < today
     const matchesStatus = 
       statusFilter === 'All' || 
       (statusFilter === 'OVERDUE' ? isOverdue : req.status === statusFilter)
