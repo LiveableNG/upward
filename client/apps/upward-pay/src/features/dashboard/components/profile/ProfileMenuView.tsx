@@ -88,7 +88,7 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
   const accountGroup = [
     { id: 'personal', title: 'Personal Details', icon: User, onClick: () => onNavigate('personal') },
     { id: 'banking', title: 'Banking & Payouts', icon: Building, onClick: () => onNavigate('banking') },
-    { id: 'contracts', title: 'Tenancy Agreement', icon: FileText, onClick: () => router.push('/dashboard/contracts') },
+    { id: 'contracts', title: 'My Documents', icon: FileText, onClick: () => router.push('/dashboard/documents') },
   ]
 
   const supportGroup = [
@@ -147,7 +147,7 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
               </span>
               <button
                 className="btn btn--secondary btn--sm"
-                onClick={() => router.push('/dashboard/contracts')}
+                onClick={() => router.push('/dashboard/documents')}
               >
                 Manage
               </button>

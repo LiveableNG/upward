@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, CreditCard, History, Sparkles, User } from 'lucide-react'
+import { Home, CreditCard, History, FileText, User } from 'lucide-react'
 
 export function BottomNav() {
   const pathname = usePathname()
@@ -10,7 +10,7 @@ export function BottomNav() {
     { label: 'Home', icon: Home, href: '/dashboard' },
     { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent' },
     { label: 'Transactions', icon: History, href: '/dashboard/transactions' },
-    { label: 'Upcoming', icon: Sparkles, href: '/dashboard/coming-soon' },
+    { label: 'Documents', icon: FileText, href: '/dashboard/documents' },
     { label: 'Me', icon: User, href: '/dashboard/me' },
   ]
 

@@ -9,6 +9,15 @@ export interface Contract {
   fileSize: number
   createdAt?: Date
   updatedAt?: Date
+  userProperty?: {
+    uuid: string
+    location?: {
+      address?: string | null
+      area?: string
+      state?: string
+      country?: string
+    } | null
+  } | null
 }
 
 export const CONTRACT_REPOSITORY = Symbol('CONTRACT_REPOSITORY')
