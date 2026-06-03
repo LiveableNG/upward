@@ -40,7 +40,7 @@ function UnitDetailContent() {
   const router = useRouter()
   const { success, error, info } = useToast()
 
-  const { data: unit } = useUnit(uuid as string)
+  const { data: unit, isLoading } = useUnit(uuid as string)
   const { data: payments = [] } = useUnitPayments(uuid as string)
   const { data: allRequests = [] } = usePaymentRequests()
   const { data: tenants = [] } = useTenants()
@@ -99,6 +99,10 @@ function UnitDetailContent() {
       })
     }
   }, [unit])
+
+  if (isLoading || !unit) {
+    return <Splash />
+  }
 
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'rent'>('overview')

@@ -128,8 +128,7 @@ export class SyncUnitToUpwardUseCase {
 
       if (existingUserProperty) {
         const updateData: any = {
-          companyId: company.id,
-          managerId: manager?.id,
+          company: { connect: { id: company.id } },
           rentAmount: unit.rentAmount,
           currency: unit.currency,
           rentStartDate: unit.rentStartDate || undefined,
@@ -138,9 +137,13 @@ export class SyncUnitToUpwardUseCase {
           isPastTenancy: false,
           amountRemaining: unit.rentAmount,
           rentType: unit.rentType,
-          pmUnitId: unit.id,
+          pmUnit: { connect: { id: unit.id } },
           verificationStatus: 'VERIFIED',
         };
+
+        if (manager?.id) {
+          updateData.manager = { connect: { id: manager.id } };
+        }
 
         const resolvedSubaccountId = subaccountId || existingUserProperty.subaccountId;
         if (resolvedSubaccountId) {
@@ -165,10 +168,9 @@ export class SyncUnitToUpwardUseCase {
 
         // Create new upward_user_property
         const createData: any = {
-          userId: upwardUser.id!,
-          locationId: location.id,
-          companyId: company.id,
-          managerId: manager?.id,
+          user: { connect: { id: upwardUser.id! } },
+          location: { connect: { id: location.id } },
+          company: { connect: { id: company.id } },
           rentAmount: unit.rentAmount,
           currency: unit.currency,
           rentStartDate: unit.rentStartDate || undefined,
@@ -177,10 +179,14 @@ export class SyncUnitToUpwardUseCase {
           verificationStatus: 'VERIFIED',
           amountPaid: 0,
           amountRemaining: unit.rentAmount,
-          pmId,
-          pmUnitId: unit.id,
+          pm: { connect: { id: pmId } },
+          pmUnit: { connect: { id: unit.id } },
           rentType: unit.rentType,
         };
+
+        if (manager?.id) {
+          createData.manager = { connect: { id: manager.id } };
+        }
 
         if (subaccountId) {
           createData.subaccount = { connect: { id: subaccountId } };

@@ -22,11 +22,12 @@ import { Plus, CreditCard } from 'lucide-react'
 import { CreatePaymentRequestModal } from '../payments/modals/CreatePaymentRequestModal'
 import { usePaymentRequests } from '@/features/pm/hooks/usePayments'
 import { DocumentEditorView } from '../documents/DocumentEditorView'
+import { Splash } from '@/components/common/Splash'
 
 export const TenantDetailView: React.FC = () => {
   const { uuid } = useParams()
   const router = useRouter()
-  const { data: tenant } = useTenant(uuid as string)
+  const { data: tenant, isLoading } = useTenant(uuid as string)
   const { data: paymentRequests } = usePaymentRequests()
   const { inviteTenant } = useTenantActions()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -40,6 +41,10 @@ export const TenantDetailView: React.FC = () => {
   const [showEditor, setShowEditor] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
   const [paymentContext, setPaymentContext] = useState<any>(null)
+
+  if (isLoading || !tenant) {
+    return <Splash />
+  }
 
   const handleOpenPaymentRequest = (unit: any) => {
     setSelectedRequestForEdit(null)

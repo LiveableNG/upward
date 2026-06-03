@@ -6,7 +6,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { useTenantActions } from '../../../hooks/useTenants'
-import { useUnits } from '../../../hooks/useProperties'
+import { useUnits, useProperties, useCreateProperty, useBulkCreateUnits } from '../../../hooks/useProperties'
 import { PhoneInput } from '@/components/common/PhoneInput'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 import { cn } from '@/lib/utils'
@@ -25,6 +25,7 @@ const tenantSchema = z.object({
   rentStartDate: z.string().optional(),
   rentEndDate: z.string().optional(),
 }).superRefine((data, ctx) => {
+
   if (data.unitUuid && data.unitUuid.trim() !== '') {
     if (!data.rentAmount || parseFloat(data.rentAmount) <= 0) {
       ctx.addIssue({
@@ -78,11 +79,22 @@ interface AddTenantModalProps {
 export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose, mode = 'add-tenant', initialData }) => {
   const { createTenant, assignTenant } = useTenantActions()
   const { data: units = [] } = useUnits()
+  const { data: properties = [] } = useProperties()
+  const createPropertyMutation = useCreateProperty()
+  const bulkCreateUnitsMutation = useBulkCreateUnits()
 
   const isJoinRequest = mode === 'join-request'
 
-  // Auto-expand unit section for join requests, otherwise collapsed by default
   const [showLeaseFields, setShowLeaseFields] = useState(isJoinRequest || !!initialData?.unitDetails)
+
+  const [assignMode, setAssignMode] = useState<'existing' | 'create'>('existing')
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('')
+  const [newPropertyName, setNewPropertyName] = useState<string>('')
+  const [newPropertyAddress, setNewPropertyAddress] = useState<string>('')
+  const [newUnitName, setNewUnitName] = useState<string>('')
+  const [isCreatingUnit, setIsCreatingUnit] = useState(false)
+
+  const vacantUnits = units.filter(u => !u.tenant && u.status !== 'MAINTENANCE')
 
   const {
     register,
@@ -116,7 +128,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
   const rentStartDate = watch('rentStartDate')
   const rentType = watch('rentType')
 
-  // Auto-fill unit based on address if possible
+  // Auto-fill unit based on address if possible (only for existing mode)
   useEffect(() => {
     if (initialData?.unitDetails?.address && units.length > 0) {
       const addr = initialData.unitDetails.address.toLowerCase()
@@ -130,6 +142,24 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
       }
     }
   }, [initialData, units, setValue, selectedUnitUuid])
+
+  // Prefill create-unit states if initialData exists
+  useEffect(() => {
+    if (initialData?.unitDetails) {
+      setNewPropertyName(initialData.unitDetails.area || initialData.unitDetails.address || '')
+      setNewPropertyAddress(initialData.unitDetails.address || '')
+      setNewUnitName(initialData.unitDetails.subarea || '')
+    }
+  }, [initialData])
+
+  // Default assign mode to create if there are no vacant units
+  useEffect(() => {
+    if (vacantUnits.length === 0) {
+      setAssignMode('create')
+    } else {
+      setAssignMode('existing')
+    }
+  }, [vacantUnits.length])
 
   // Auto-calculate End Date if Start Date or Type changes
   useEffect(() => {
@@ -146,35 +176,118 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
 
   if (!isOpen) return null
 
-  const onSubmit = (data: TenantFormData) => {
+  const onSubmit = async (data: TenantFormData) => {
     const { unitUuid, rentAmount, rentType, rentStartDate, rentEndDate, ...tenantData } = data
 
-    createTenant.mutate(tenantData, {
-      onSuccess: (tenant) => {
-        if (unitUuid && rentAmount && rentType && rentStartDate && rentEndDate) {
-          assignTenant.mutate({
-            tenantUuid: tenant.uuid,
-            unitUuid,
+    if (showLeaseFields && assignMode === 'create') {
+      if (!selectedPropertyId) {
+        alert('Please select or create a property')
+        return
+      }
+      if (selectedPropertyId === 'NEW' && !newPropertyName.trim()) {
+        alert('Please enter a property name')
+        return
+      }
+      if (!newUnitName.trim()) {
+        alert('Please enter a unit name')
+        return
+      }
+      if (!rentAmount || parseFloat(rentAmount) <= 0) {
+        alert('Rent amount is required and must be greater than 0')
+        return
+      }
+      if (!rentStartDate || !rentEndDate) {
+        alert('Rent start and end dates are required')
+        return
+      }
+
+      setIsCreatingUnit(true)
+      try {
+        let propertyUuid = ''
+        if (selectedPropertyId === 'NEW') {
+          const newProp = await createPropertyMutation.mutateAsync({
+            name: newPropertyName.trim(),
+            address: newPropertyAddress.trim() || undefined,
+          })
+          propertyUuid = newProp.uuid
+        } else {
+          const prop = properties.find(p => p.id === parseInt(selectedPropertyId))
+          if (prop) {
+            propertyUuid = prop.uuid
+          }
+        }
+
+        if (!propertyUuid) {
+          throw new Error('Property selection failed')
+        }
+
+        const createUnitRes = await bulkCreateUnitsMutation.mutateAsync({
+          propertyUuid,
+          units: [{
+            unitName: newUnitName.trim(),
             rentAmount: parseFloat(rentAmount),
-            rentType,
+            rentType: rentType || 'Annually',
             rentStartDate,
             rentDueDate: rentEndDate,
-            rentAmountPaid: 0
-          }, {
-            onSuccess: () => {
-              reset()
-              onClose()
-            }
-          })
-        } else {
-          reset()
-          onClose()
+            status: 'VACANT',
+          }]
+        })
+
+        const createdUnit = (createUnitRes as any).units?.[0]
+        if (!createdUnit) {
+          throw new Error('Failed to retrieve newly created unit')
         }
+
+        createTenant.mutate(tenantData, {
+          onSuccess: (tenant) => {
+            assignTenant.mutate({
+              tenantUuid: tenant.uuid,
+              unitUuid: createdUnit.uuid,
+              rentAmount: parseFloat(rentAmount),
+              rentType: rentType || 'Annually',
+              rentStartDate,
+              rentDueDate: rentEndDate,
+              rentAmountPaid: 0
+            }, {
+              onSuccess: () => {
+                reset()
+                onClose()
+              }
+            })
+          }
+        })
+      } catch (err: any) {
+        alert(err.message || 'Failed to create unit and assign tenant')
+      } finally {
+        setIsCreatingUnit(false)
       }
-    })
+    } else {
+      createTenant.mutate(tenantData, {
+        onSuccess: (tenant) => {
+          if (showLeaseFields && unitUuid && rentAmount && rentType && rentStartDate && rentEndDate) {
+            assignTenant.mutate({
+              tenantUuid: tenant.uuid,
+              unitUuid,
+              rentAmount: parseFloat(rentAmount),
+              rentType,
+              rentStartDate,
+              rentDueDate: rentEndDate,
+              rentAmountPaid: 0
+            }, {
+              onSuccess: () => {
+                reset()
+                onClose()
+              }
+            })
+          } else {
+            reset()
+            onClose()
+          }
+        }
+      })
+    }
   }
 
-  const vacantUnits = units.filter(u => !u.tenant && u.status !== 'MAINTENANCE')
   const ud = initialData?.unitDetails
 
   // Build a readable location string from the tenant's request
@@ -332,34 +445,113 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
 
             {showLeaseFields && (
               <div className="animate-fade-in" style={{ marginTop: 20 }}>
-                {vacantUnits.length === 0 ? (
-                  <div className="no-units-warning">
-                    <strong>No vacant units available.</strong> You cannot assign this tenant without a vacant unit.
-                    You can still save their profile now and assign them once a unit is available.
+                {/* Mode Selector */}
+                {vacantUnits.length > 0 && (
+                  <div style={{ display: 'flex', gap: 20, marginBottom: 20, paddingBottom: 16, borderBottom: '1px dashed var(--border)' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--text)', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="assignMode"
+                        checked={assignMode === 'existing'}
+                        onChange={() => setAssignMode('existing')}
+                      />
+                      Assign to Vacant Unit
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--text)', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="assignMode"
+                        checked={assignMode === 'create'}
+                        onChange={() => setAssignMode('create')}
+                      />
+                      Create New Unit
+                    </label>
                   </div>
-                ) : (
-                  <>
+                )}
+
+                {assignMode === 'existing' && vacantUnits.length > 0 && (
+                  <div className="form-group">
+                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Building2 size={14} />
+                      {isJoinRequest ? 'Select Matching Unit' : 'Select Unit'}
+                    </label>
+                    <select
+                      className={cn("form-input", errors.unitUuid && "form-input--error")}
+                      {...register('unitUuid')}
+                      style={{ appearance: 'none' }}
+                    >
+                      <option value="">-- Choose a vacant unit --</option>
+                      {vacantUnits.map(u => (
+                        <option key={u.uuid} value={u.uuid}>
+                          {u.property?.name} — Unit {u.unitName}
+                          {u.property?.address ? ` (${u.property.address})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.unitUuid && <span className="form-error-text">{errors.unitUuid.message}</span>}
+                  </div>
+                )}
+
+                {assignMode === 'create' && (
+                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <div className="form-group">
                       <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Building2 size={14} />
-                        {isJoinRequest ? 'Select Matching Unit' : 'Select Unit'}
+                        <Building2 size={14} /> Select Property
                       </label>
                       <select
-                        className={cn("form-input", errors.unitUuid && "form-input--error")}
-                        {...register('unitUuid')}
+                        className="form-input"
+                        value={selectedPropertyId}
+                        onChange={(e) => setSelectedPropertyId(e.target.value)}
                         style={{ appearance: 'none' }}
                       >
-                        <option value="">-- Choose a vacant unit --</option>
-                        {vacantUnits.map(u => (
-                          <option key={u.uuid} value={u.uuid}>
-                            {u.property?.name} — Unit {u.unitName}
-                            {u.property?.address ? ` (${u.property.address})` : ''}
-                          </option>
+                        <option value="">-- Select Property --</option>
+                        {properties.map(p => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
                         ))}
+                        <option value="NEW">+ Create New Property</option>
                       </select>
-                      {errors.unitUuid && <span className="form-error-text">{errors.unitUuid.message}</span>}
                     </div>
 
+                    {selectedPropertyId === 'NEW' && (
+                      <div className="animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        <div className="form-group">
+                          <label className="form-label">Property Name</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            placeholder="e.g. Oakwood Heights"
+                            value={newPropertyName}
+                            onChange={(e) => setNewPropertyName(e.target.value)}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Property Address</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            placeholder="e.g. 12 Park Avenue"
+                            value={newPropertyAddress}
+                            onChange={(e) => setNewPropertyAddress(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="form-group">
+                      <label className="form-label">Unit Name</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="e.g. Apartment 4B"
+                        value={newUnitName}
+                        onChange={(e) => setNewUnitName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {(assignMode === 'create' || (assignMode === 'existing' && vacantUnits.length > 0)) && (
+                  <>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
                       <div className="form-group">
                         <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -421,15 +613,15 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
               type="submit"
               className="btn btn--primary"
               style={{ flex: 1 }}
-              disabled={createTenant.isPending || assignTenant.isPending || !isValid}
+              disabled={createTenant.isPending || assignTenant.isPending || isCreatingUnit || (!isValid && assignMode === 'existing')}
             >
-              {createTenant.isPending || assignTenant.isPending ? (
+              {createTenant.isPending || assignTenant.isPending || isCreatingUnit ? (
                 <Loader2 size={18} className="animate-spin" />
               ) : (
                 <>
                   {isJoinRequest
-                    ? (selectedUnitUuid ? <><CheckCircle2 size={18} style={{ marginRight: 8 }} />Approve & Assign Unit</> : <><UserPlus size={18} style={{ marginRight: 8 }} />Approve Request</>)
-                    : (selectedUnitUuid ? <><UserPlus size={18} style={{ marginRight: 8 }} />Add & Assign</> : <><UserPlus size={18} style={{ marginRight: 8 }} />Add Tenant</>)
+                    ? (selectedUnitUuid || assignMode === 'create' ? <><CheckCircle2 size={18} style={{ marginRight: 8 }} />Approve & Assign Unit</> : <><UserPlus size={18} style={{ marginRight: 8 }} />Approve Request</>)
+                    : (selectedUnitUuid || assignMode === 'create' ? <><UserPlus size={18} style={{ marginRight: 8 }} />Add & Assign</> : <><UserPlus size={18} style={{ marginRight: 8 }} />Add Tenant</>)
                   }
                 </>
               )}
