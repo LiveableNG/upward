@@ -26,6 +26,7 @@ export class GetContractsUseCase {
         return {
           ...c,
           fileUrl: url,
+          source: (c as any).source || 'TENANT',
         }
       }),
     )

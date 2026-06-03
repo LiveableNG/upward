@@ -33,6 +33,7 @@ import { RentHistoryEntryModeModal } from '@/features/pm/components/properties/m
 import { CreatePaymentRequestModal } from '@/features/pm/components/payments/modals/CreatePaymentRequestModal'
 import { EditUnitModal } from '@/features/pm/components/properties/modals/EditUnitModal'
 import { DocumentEditorView } from '@/features/pm/components/documents/DocumentEditorView'
+import { SendToVaultModal } from '@/features/pm/components/documents/modals/SendToVaultModal'
 import { useToast } from '@/components/common/Toast'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import { cn, formatCurrency } from '@/lib/utils'
@@ -75,45 +76,19 @@ function UnitDetailContent() {
   const [editingDocUuid, setEditingDocUuid] = useState<string | undefined>(undefined)
   const [editingRecipient, setEditingRecipient] = useState<any>(null)
   const [downloadingDocUuid, setDownloadingDocUuid] = useState<string | null>(null)
+  const [isVaultModalOpen, setIsVaultModalOpen] = useState(false)
 
   // Fetch unit documents
   const { documents: allPmDocs = [], generatePdf } = useDocuments()
   const { data: tenantUploadedDocs = [] } = useUnitDocuments(uuid as string)
 
-  const pmUnitDocs = allPmDocs.filter((doc: any) => doc.unit?.uuid === uuid)
-
   const allUnitDocs = React.useMemo(() => {
-    const mappedPmDocs = pmUnitDocs.map((doc: any) => ({
-      uuid: doc.uuid,
-      subject: doc.subject,
-      content: doc.content,
-      documentType: doc.documentType,
-      createdAt: doc.createdAt,
-      recipientName: doc.recipientName,
-      recipientEmail: doc.recipientEmail,
-      isTenantUploaded: false,
-      status: doc.status || 'SENT',
-      includeLetterhead: doc.includeLetterhead,
-      tenant: doc.tenant
-    }));
-
-    const mappedTenantDocs = tenantUploadedDocs.map((doc: any) => ({
-      uuid: doc.uuid,
-      subject: doc.fileName,
-      content: null,
-      documentType: doc.fileType.includes('/') ? doc.fileType.split('/')[1]?.toUpperCase() : doc.fileType.toUpperCase(),
-      createdAt: doc.createdAt,
-      recipientName: doc.user ? `${doc.user.firstName} ${doc.user.lastName}` : 'Tenant',
-      recipientEmail: doc.user?.email || '',
-      isTenantUploaded: true,
-      fileUrl: doc.fileUrl,
-      status: 'UPLOADED'
-    }));
-
-    return [...mappedPmDocs, ...mappedTenantDocs].sort(
+    // tenantUploadedDocs already returns vault-only docs (PM-pushed + tenant-uploaded)
+    // with source field set correctly by the backend
+    return [...(tenantUploadedDocs as any[])].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  }, [pmUnitDocs, tenantUploadedDocs]);
+  }, [tenantUploadedDocs]);
 
   const [formData, setFormData] = useState<any>({
     unitName: '',
@@ -903,13 +878,18 @@ function UnitDetailContent() {
       {activeTab === 'documents' && (
         <div className="unit-documents-view animate-fade-in" style={{ paddingBottom: 60 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dark)' }}>Documents &amp; Contracts</h2>
+            <div>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dark)', margin: 0 }}>Tenant Document Vault</h2>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>Documents shared with or uploaded by this tenant.</p>
+            </div>
             <button
               className="btn btn--primary"
-              onClick={() => router.push(`/documents?unitUuid=${unit?.uuid}&tenantUuid=${unit?.tenant?.uuid || ''}`)}
+              onClick={() => setIsVaultModalOpen(true)}
               style={{ borderRadius: 12, height: 42, display: 'flex', alignItems: 'center', gap: 6 }}
+              disabled={!unit?.tenant}
+              title={!unit?.tenant ? 'Assign a tenant first to push documents' : undefined}
             >
-              <Plus size={16} /> Attach Document
+              <Plus size={16} /> Add Document
             </button>
           </div>
 
@@ -918,29 +898,23 @@ function UnitDetailContent() {
               <table className="rent-history__table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead style={{ background: 'var(--ivory-dim)' }}>
                   <tr>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Recipient / Tenant</th>
                     <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Document Name</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Document Type</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Date Sent/Uploaded</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Source</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Type</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Date Added</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Added By</th>
                     <th style={{ padding: '16px 24px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {allUnitDocs.length > 0 ? allUnitDocs.map((doc: any) => {
+                    const isPmDoc = doc.source === 'PM' || !doc.isTenantUploaded
                     return (
                       <tr key={doc.uuid} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td style={{ padding: '20px 24px', fontSize: 14, fontWeight: 500, color: 'var(--dark)' }}>
-                          <div>
-                            <div style={{ fontWeight: 600 }}>{doc.recipientName}</div>
-                            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>{doc.recipientEmail}</div>
-                          </div>
-                        </td>
                         <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-secondary)' }}>
-                          {doc.subject}
+                          {doc.fileName || doc.subject}
                         </td>
-                        <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>
-                          {doc.documentType}
+                        <td style={{ padding: '20px 24px', fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>
+                          {(doc.fileType || doc.documentType || 'FILE').toUpperCase().replace('APPLICATION/', '')}
                         </td>
                         <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-muted)' }}>
                           {new Date(doc.createdAt).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -951,74 +925,22 @@ function UnitDetailContent() {
                             fontWeight: 700,
                             padding: '3px 8px',
                             borderRadius: 6,
-                            background: doc.isTenantUploaded ? 'var(--clay-faint)' : 'var(--forest-faint)',
-                            color: doc.isTenantUploaded ? 'var(--clay)' : 'var(--forest)',
+                            background: isPmDoc ? 'var(--forest-faint)' : 'var(--clay-faint)',
+                            color: isPmDoc ? 'var(--forest)' : 'var(--clay)',
                           }}>
-                            {doc.isTenantUploaded ? 'Tenant Uploaded' : 'PM Sent'}
+                            {isPmDoc ? 'PM Sent' : 'Tenant Uploaded'}
                           </span>
                         </td>
                         <td style={{ padding: '20px 24px', textAlign: 'right' }}>
-                          <div style={{ display: 'inline-flex', gap: 12, justifyContent: 'flex-end', width: '100%' }}>
-                            <button
-                              onClick={async () => {
-                                if (doc.isTenantUploaded) {
-                                  window.open(doc.fileUrl, '_blank');
-                                } else {
-                                  setDownloadingDocUuid(doc.uuid);
-                                  try {
-                                    const blob = await generatePdf.mutateAsync({
-                                      content: doc.content,
-                                      tenantUuid: doc.tenant?.uuid,
-                                      recipientName: doc.recipientName,
-                                      includeLetterhead: doc.includeLetterhead,
-                                    });
-                                    const url = window.URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = url;
-                                    a.download = `${doc.subject || 'document'}.pdf`;
-                                    document.body.appendChild(a);
-                                    a.click();
-                                    window.URL.revokeObjectURL(url);
-                                    document.body.removeChild(a);
-                                  } catch (err) {
-                                    console.error('Failed to download PDF:', err);
-                                  } finally {
-                                    setDownloadingDocUuid(null);
-                                  }
-                                }
-                              }}
-                              className="btn btn--secondary btn--sm"
-                              style={{ height: 32, fontSize: 12, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 4 }}
-                              disabled={downloadingDocUuid === doc.uuid}
-                            >
-                              <Download size={14} />
-                              {downloadingDocUuid === doc.uuid ? 'Downloading...' : 'Download'}
-                            </button>
-                            {!doc.isTenantUploaded && (
-                              <button
-                                onClick={() => {
-                                  setEditingTemplate({
-                                    name: doc.subject,
-                                    content: doc.content
-                                  });
-                                  setEditingDocUuid(doc.uuid);
-                                  setEditingRecipient({
-                                    type: doc.tenant?.uuid ? 'existing' : 'new',
-                                    uuid: doc.tenant?.uuid,
-                                    name: doc.recipientName,
-                                    email: doc.recipientEmail,
-                                    deliveryMode: doc.documentType?.toLowerCase() === 'pdf' ? 'pdf' : 'email'
-                                  });
-                                  setShowEditor(true);
-                                }}
-                                className="btn btn--secondary btn--sm"
-                                style={{ height: 32, fontSize: 12, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 4 }}
-                              >
-                                <Edit size={14} />
-                                Edit
-                              </button>
-                            )}
-                          </div>
+                          <a
+                            href={doc.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn--secondary btn--sm"
+                            style={{ height: 32, fontSize: 12, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
+                          >
+                            <Download size={14} /> Download
+                          </a>
                         </td>
                       </tr>
                     );
@@ -1112,6 +1034,14 @@ function UnitDetailContent() {
         confirmText="Remove Tenant"
         type="danger"
         isPending={unassignTenant.isPending}
+      />
+
+      <SendToVaultModal
+        isOpen={isVaultModalOpen}
+        onClose={() => setIsVaultModalOpen(false)}
+        unitUuid={uuid as string}
+        tenantUuid={unit?.tenant?.uuid}
+        tenantName={unit?.tenant ? `${unit.tenant.firstName} ${unit.tenant.lastName}` : undefined}
       />
 
       {isAssignModalOpen && (

@@ -5,6 +5,7 @@ import { GetTenantUploadedDocumentsUseCase } from '../../../application/pm/use-c
 import { SaveDocumentTemplateUseCase, SaveDocumentTemplateDto } from '../../../application/pm/use-cases/documents/save-document-template.use-case';
 import { SendDocumentUseCase, SendDocumentDto } from '../../../application/pm/use-cases/documents/send-document.use-case';
 import { GenerateDocumentPdfUseCase } from '../../../application/pm/use-cases/documents/generate-document-pdf.use-case';
+import { SendToTenantVaultUseCase } from '../../../application/pm/use-cases/documents/send-to-tenant-vault.use-case';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 
 @Controller('pm/documents')
@@ -16,6 +17,7 @@ export class PmDocumentController {
     private readonly saveTemplateUseCase: SaveDocumentTemplateUseCase,
     private readonly sendDocumentUseCase: SendDocumentUseCase,
     private readonly generatePdfUseCase: GenerateDocumentPdfUseCase,
+    private readonly sendToVaultUseCase: SendToTenantVaultUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -49,6 +51,37 @@ export class PmDocumentController {
   async sendDocument(@Request() req: any, @Body() data: SendDocumentDto) {
     const pmId = await this.getPmId(req);
     return this.sendDocumentUseCase.execute(pmId, data);
+  }
+
+  @Post('send-to-vault')
+  async sendFileToVault(@Request() req: any) {
+    const pmId = await this.getPmId(req);
+    if (!req.isMultipart || !req.isMultipart()) {
+      throw new Error('Request must be multipart/form-data');
+    }
+    const data = await req.file();
+    if (!data) throw new Error('No file uploaded');
+    const buffer = await data.toBuffer();
+    const fields = data.fields as any;
+
+    return this.sendToVaultUseCase.executeFile(pmId, {
+      fileBuffer: buffer,
+      fileName: data.filename,
+      mimeType: data.mimetype,
+      fileSize: buffer.length,
+      subject: fields?.subject?.value ? String(fields.subject.value) : undefined,
+      tenantUuid: fields?.tenantUuid?.value ? String(fields.tenantUuid.value) : undefined,
+      unitUuid: fields?.unitUuid?.value ? String(fields.unitUuid.value) : undefined,
+    });
+  }
+
+  @Post('template-to-vault')
+  async sendTemplateToVault(
+    @Request() req: any,
+    @Body() body: { content: string; subject: string; includeLetterhead?: boolean; tenantUuid?: string; unitUuid?: string },
+  ) {
+    const pmId = await this.getPmId(req);
+    return this.sendToVaultUseCase.executeTemplate(pmId, body);
   }
 
   @Post('generate-pdf')

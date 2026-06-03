@@ -17,6 +17,7 @@ interface Contract {
   createdAt: string
   fileSize: number
   fileType: string
+  source?: string  // 'TENANT' | 'PM'
   userProperty?: {
     uuid: string
     location?: {
@@ -303,11 +304,30 @@ export default function DocumentsPage() {
                       {group.list.map((contract) => (
                         <div key={contract.uuid} className="contract-item theme-card">
                           <div className="contract-item__info">
-                            <div className="contract-item__icon">
+                            <div className="contract-item__icon" style={{
+                              background: contract.source === 'PM' ? 'var(--forest-faint)' : 'var(--clay-faint)',
+                              color: contract.source === 'PM' ? 'var(--forest)' : 'var(--clay)',
+                            }}>
                               <FileText size={20} />
                             </div>
                             <div className="contract-item__details">
-                              <span className="contract-item__name">{contract.fileName}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                <span className="contract-item__name">{contract.fileName}</span>
+                                {contract.source === 'PM' && (
+                                  <span style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    padding: '2px 7px',
+                                    borderRadius: 6,
+                                    background: 'var(--forest-faint)',
+                                    color: 'var(--forest)',
+                                    letterSpacing: '0.03em',
+                                    flexShrink: 0,
+                                  }}>
+                                    From PM
+                                  </span>
+                                )}
+                              </div>
                               <span className="contract-item__meta">
                                 {formatDate(contract.createdAt)} • {formatFileSize(contract.fileSize)}
                               </span>
@@ -331,13 +351,15 @@ export default function DocumentsPage() {
                             >
                               <Download size={18} />
                             </button>
-                            <button
-                              className="action-btn action-btn--danger"
-                              onClick={() => handleDelete(contract.uuid)}
-                              title="Delete"
-                            >
-                              <Trash2 size={18} />
-                            </button>
+                            {contract.source !== 'PM' && (
+                              <button
+                                className="action-btn action-btn--danger"
+                                onClick={() => handleDelete(contract.uuid)}
+                                title="Delete"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
