@@ -71,6 +71,7 @@ function UnitDetailContent() {
 
   // Payment -> Document Editor Flow
   const [showEditor, setShowEditor] = useState(false)
+  const [isVaultMode, setIsVaultMode] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
   const [paymentContext, setPaymentContext] = useState<any>(null)
   const [editingDocUuid, setEditingDocUuid] = useState<string | undefined>(undefined)
@@ -298,8 +299,10 @@ function UnitDetailContent() {
           paymentContext={paymentContext}
           unitUuid={uuid as string}
           documentUuid={editingDocUuid}
+          isVaultMode={isVaultMode}
           onBack={() => {
             setShowEditor(false)
+            setIsVaultMode(false)
             setEditingDocUuid(undefined)
             setEditingRecipient(null)
             setEditingTemplate(null)
@@ -1049,6 +1052,7 @@ function UnitDetailContent() {
         onProceedToEditor={(template) => {
           setEditingTemplate(template)
           setPaymentContext(null)
+          setIsVaultMode(true)
           setIsVaultModalOpen(false)
           setShowEditor(true)
         }}

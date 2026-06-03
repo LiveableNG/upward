@@ -85,41 +85,39 @@ export class SendToTenantVaultUseCase {
    */
   async executeTemplate(pmId: number, dto: SendTemplateToVaultDto) {
     const { content, subject, includeLetterhead, tenantUuid, unitUuid } = dto;
-
-    // Generate PDF from the HTML template (needs to run synchronously to get size and verify content)
-    let pdfBuffer: Buffer;
-    try {
-      pdfBuffer = await this.generatePdfUseCase.execute({
-        content,
-        pmId,
-        tenantUuid,
-        unitUuid,
-        includeLetterhead,
-      });
-    } catch (err) {
-      this.logger.error('PDF generation failed for vault push:', err);
-      throw new BadRequestException('Failed to generate PDF from template');
-    }
-
     const vaultUuid = crypto.randomUUID();
     const s3Key = `pm-docs/vault/pm_${pmId}/${vaultUuid}.pdf`;
-    const fileSize = pdfBuffer.length;
 
-    // Upload generated PDF to S3 in the background
-    this.s3Service.uploadBuffer(pdfBuffer, s3Key, 'application/pdf')
-      .catch((err) => this.logger.error(`Background S3 upload failed for ${s3Key}:`, err));
-
-    return this._saveVaultRecord(pmId, {
+    const result = await this._saveVaultRecord(pmId, {
       vaultUuid,
       s3Key,
       fileName: `${subject}.pdf`,
       fileType: 'application/pdf',
-      fileSize,
+      fileSize: 0,
       documentType: 'PDF',
       tenantUuid,
       unitUuid,
       isHtml: false,
     });
+
+    // Run PDF generation, S3 upload, and database update in the background to prevent Vercel 503 timeouts
+    this.generatePdfUseCase.execute({
+      content,
+      pmId,
+      tenantUuid,
+      unitUuid,
+      includeLetterhead,
+    }).then(async (pdfBuffer) => {
+      await this.s3Service.uploadBuffer(pdfBuffer, s3Key, 'application/pdf');
+      await this.prisma.upward_user_contract.update({
+        where: { uuid: vaultUuid },
+        data: { fileSize: pdfBuffer.length }
+      });
+    }).catch((err) => {
+      this.logger.error(`Background PDF generation/upload failed for ${s3Key}:`, err);
+    });
+
+    return result;
   }
 
   private async _saveVaultRecord(
@@ -196,7 +194,6 @@ export class SendToTenantVaultUseCase {
     });
     if (!userProperty) throw new NotFoundException('User property not found');
 
-    // 1. Save to upward_pm_sent_document (PM side tracking)
     const sentDoc = await this.prisma.upward_pm_sent_document.create({
       data: {
         uuid: opts.vaultUuid,
