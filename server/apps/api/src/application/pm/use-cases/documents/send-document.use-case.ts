@@ -290,15 +290,7 @@ export class SendDocumentUseCase {
         }
       });
 
-      // Update tenant's contract
-      await this.prisma.upward_user_contract.updateMany({
-        where: { uuid: sentUuid },
-        data: {
-          fileName: `${data.subject}.html`,
-          fileSize: content.length,
-          fileUrl: s3Key,
-        }
-      });
+
 
       return this.documentRepo.findSentDocumentByUuid(sentUuid);
     } else {
@@ -316,25 +308,7 @@ export class SendDocumentUseCase {
         includeLetterhead: data.includeLetterhead || false,
       });
 
-      // Synchronize with tenant's user documents
-      if (unit && unit.userPropertyUuid) {
-        const userProperty = await this.prisma.upward_user_property.findFirst({
-          where: { uuid: unit.userPropertyUuid }
-        });
-        if (userProperty) {
-          await this.prisma.upward_user_contract.create({
-            data: {
-              uuid: sentUuid,
-              userId: userProperty.userId,
-              userPropertyId: userProperty.id,
-              fileName: `${data.subject}.html`,
-              fileUrl: s3Key,
-              fileType: 'text/html',
-              fileSize: content.length,
-            }
-          });
-        }
-      }
+
 
       return result;
     }

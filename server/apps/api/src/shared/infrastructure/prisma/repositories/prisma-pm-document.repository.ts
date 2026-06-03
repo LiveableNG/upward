@@ -51,7 +51,7 @@ export class PrismaPmDocumentRepository implements IPmDocumentRepository {
 
   async findSentDocumentsByPmId(pmId: number): Promise<SentDocumentEntity[]> {
     const documents = await this.prisma.upward_pm_sent_document.findMany({
-      where: { pmId },
+      where: { pmId, isVaultDocument: false },
       include: { tenant: true, unit: { include: { property: true } } },
       orderBy: { createdAt: 'desc' },
     });

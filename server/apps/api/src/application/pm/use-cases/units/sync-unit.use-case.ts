@@ -108,6 +108,8 @@ export class SyncUnitToUpwardUseCase {
       }
     }
 
+    let syncedUserPropertyId: number | undefined;
+
     // Perform transaction
     await this.prisma.$transaction(async (tx) => {
       const existingUserProperty = await tx.upward_user_property.findFirst({
@@ -252,20 +254,20 @@ export class SyncUnitToUpwardUseCase {
         url: `/properties/${userProperty.uuid}`
       });
 
-      // 4. Pre-provision Dedicated Virtual Account (DVA)
-      if (userProperty.id) {
-        try {
-          await this.resolveDedicatedAccount.execute({
-            userPropertyId: userProperty.id,
-            tenantEmail: upwardUser.email!,
-            tenantName: `${upwardUser.firstName} ${upwardUser.lastName}`,
-            tenantPhone: upwardUser.phone ?? undefined,
-          });
-        } catch (e: any) {
-          this.logger.warn(`Failed to pre-provision DVA during sync: ${e.message}`);
-        }
-      }
+      syncedUserPropertyId = userProperty.id;
     });
+
+    // 4. Pre-provision Dedicated Virtual Account (DVA) in the background (outside Prisma transaction to prevent transaction timeouts)
+    if (syncedUserPropertyId) {
+      this.resolveDedicatedAccount.execute({
+        userPropertyId: syncedUserPropertyId,
+        tenantEmail: upwardUser.email!,
+        tenantName: `${upwardUser.firstName} ${upwardUser.lastName}`,
+        tenantPhone: upwardUser.phone ?? undefined,
+      }).catch((e: any) => {
+        this.logger.warn(`Failed to pre-provision DVA during sync background task: ${e.message}`);
+      });
+    }
 
     this.logger.log(`Unit ${unitUuid} synced to Upward Pay for user ${upwardUser.email}`);
   }
