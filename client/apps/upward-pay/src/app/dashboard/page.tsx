@@ -60,7 +60,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const user = data?.user
     if (typeof window !== 'undefined' && user && !user.isIdentityVerified) {
-      const shown = localStorage.getItem('welcome_modal_shown') === 'true'
+      const shown = localStorage.getItem(`welcome_modal_shown_${user.uuid}`) === 'true'
       if (!shown) {
         setShowWelcomeModal(true)
       }
@@ -89,8 +89,8 @@ export default function DashboardPage() {
   const { user, pendingPayments: rawPending, completedPayments } = data
 
   const handleCloseWelcomeModal = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('welcome_modal_shown', 'true')
+    if (typeof window !== 'undefined' && user?.uuid) {
+      localStorage.setItem(`welcome_modal_shown_${user.uuid}`, 'true')
     }
     setShowWelcomeModal(false)
   }
