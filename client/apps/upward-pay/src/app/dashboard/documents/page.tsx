@@ -121,35 +121,12 @@ export default function DocumentsPage() {
         fileName = `${fileName}.${originalExt}`
       }
 
-      // 2. Fetch pre-signed S3 URL and generated uuid
-      const { uuid, uploadUrl, fileUrl } = await api.getContractUploadUrl(
-        fileName,
-        selectedFile.type,
-        selectedFile.size
+      const fileToUpload = new File([selectedFile], fileName, { type: selectedFile.type })
+      await api.uploadContract(
+        fileToUpload,
+        selectedPropertyUuid || undefined,
+        fileName
       )
-
-      // 3. Upload file directly to S3
-      const s3Res = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: selectedFile,
-        headers: {
-          'Content-Type': selectedFile.type,
-        },
-      })
-
-      if (!s3Res.ok) {
-        throw new Error('Failed to upload file to storage server')
-      }
-
-      // 4. Register metadata with the backend database
-      await api.uploadContract({
-        uuid,
-        fileName,
-        fileUrl, // S3 key
-        fileType: selectedFile.type,
-        fileSize: selectedFile.size,
-        propertyUuid: selectedPropertyUuid || undefined,
-      })
 
       // Re-fetch list to include newly created contract with its resolved userProperty relation
       await fetchContracts()

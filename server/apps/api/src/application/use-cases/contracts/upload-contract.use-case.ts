@@ -2,14 +2,15 @@ import { Injectable, Inject, BadRequestException } from '@nestjs/common'
 import { CONTRACT_REPOSITORY, ContractRepository } from '../../../domains/contracts/contract.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { PROPERTY_REPOSITORY, PropertyRepository } from '../../../domains/companies/property.repository'
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
+import * as crypto from 'crypto'
 
 export interface UploadContractDto {
   userId: string
   propertyUuid?: string
   userPropertyId?: number
   fileName: string
-  fileUrl: string
-  uuid: string
+  fileBuffer: Buffer
   fileType: string
   fileSize: number
 }
@@ -23,6 +24,7 @@ export class UploadContractUseCase {
     @Inject(CONTRACT_REPOSITORY) private readonly contractRepository: ContractRepository,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(PROPERTY_REPOSITORY) private readonly propertyRepository: PropertyRepository,
+    private readonly s3Service: S3Service,
   ) { }
 
   async execute(dto: UploadContractDto) {
@@ -68,13 +70,21 @@ export class UploadContractUseCase {
       throw new BadRequestException('Only PDF, Image, and Word files are allowed for contracts.')
     }
 
-    // 6. Save to DB
+    // 6. Generate S3 path
+    const fileExtension = dto.fileName.split('.').pop()
+    const uuid = crypto.randomUUID()
+    const s3Key = `users/${user.uuid}/contracts/${uuid}.${fileExtension}`
+
+    // 7. Upload buffer directly to S3
+    await this.s3Service.uploadBuffer(dto.fileBuffer, s3Key, dto.fileType)
+
+    // 8. Save to DB
     const contract = await this.contractRepository.save({
-      uuid: dto.uuid,
+      uuid,
       userId: user.id!,
       userPropertyId,
       fileName: dto.fileName,
-      fileUrl: dto.fileUrl, // Store the S3 key
+      fileUrl: s3Key, // Store the S3 key
       fileType: dto.fileType,
       fileSize: dto.fileSize,
     })
