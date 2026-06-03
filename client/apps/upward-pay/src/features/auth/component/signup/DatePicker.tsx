@@ -21,17 +21,28 @@ function daysInMonth(month: number, year: number) {
 }
 
 export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
-  // Parse existing value
-  const parts = value ? value.split('-') : []
-  const yearVal  = parts[0] || ''
-  const monthVal = parts[1] ? String(Number(parts[1])) : ''   // strip leading zero
-  const dayVal   = parts[2] ? String(Number(parts[2])) : ''
+  const [localYear, setLocalYear] = React.useState('')
+  const [localMonth, setLocalMonth] = React.useState('')
+  const [localDay, setLocalDay] = React.useState('')
+
+  const localIso = (localYear && localMonth && localDay)
+    ? `${localYear}-${localMonth.padStart(2, '0')}-${localDay.padStart(2, '0')}`
+    : ''
+
+  React.useEffect(() => {
+    if (value !== localIso) {
+      const parts = value ? value.split('-') : []
+      setLocalYear(parts[0] || '')
+      setLocalMonth(parts[1] ? String(Number(parts[1])) : '')
+      setLocalDay(parts[2] ? String(Number(parts[2])) : '')
+    }
+  }, [value, localIso])
 
   const currentYear = new Date().getFullYear()
   const minYear = currentYear - 100
-  const maxYear = currentYear - 16  // must be at least 16
+  const maxYear = currentYear - 10  // must be at least 16
 
-  const numDays = daysInMonth(Number(monthVal), Number(yearVal))
+  const numDays = daysInMonth(Number(localMonth), Number(localYear))
   const days = Array.from({ length: numDays }, (_, i) => i + 1)
   const months = MONTHS.map((m, i) => ({ label: m, value: i + 1 }))
   const years = Array.from({ length: maxYear - minYear + 1 }, (_, i) => maxYear - i)
@@ -46,17 +57,30 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
     }
   }
 
-  const handleDay   = (v: string) => emit(yearVal, monthVal, v)
-  const handleMonth = (v: string) => {
-    // If day would exceed new month's days, clamp it
-    const maxD = daysInMonth(Number(v), Number(yearVal))
-    const clampedDay = dayVal && Number(dayVal) > maxD ? String(maxD) : dayVal
-    emit(yearVal, v, clampedDay)
+  const handleDay = (v: string) => {
+    setLocalDay(v)
+    emit(localYear, localMonth, v)
   }
-  const handleYear  = (v: string) => {
-    const maxD = daysInMonth(Number(monthVal), Number(v))
-    const clampedDay = dayVal && Number(dayVal) > maxD ? String(maxD) : dayVal
-    emit(v, monthVal, clampedDay)
+
+  const handleMonth = (v: string) => {
+    setLocalMonth(v)
+    // If day would exceed new month's days, clamp it
+    const maxD = daysInMonth(Number(v), Number(localYear))
+    const clampedDay = localDay && Number(localDay) > maxD ? String(maxD) : localDay
+    if (clampedDay !== localDay) {
+      setLocalDay(clampedDay)
+    }
+    emit(localYear, v, clampedDay)
+  }
+
+  const handleYear = (v: string) => {
+    setLocalYear(v)
+    const maxD = daysInMonth(Number(localMonth), Number(v))
+    const clampedDay = localDay && Number(localDay) > maxD ? String(maxD) : localDay
+    if (clampedDay !== localDay) {
+      setLocalDay(clampedDay)
+    }
+    emit(v, localMonth, clampedDay)
   }
 
   return (
@@ -65,8 +89,8 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
       <div className="dob-picker__field">
         <div className="dob-select-wrap">
           <select
-            className={`dob-select ${dayVal ? 'has-value' : ''}`}
-            value={dayVal}
+            className={`dob-select ${localDay ? 'has-value' : ''}`}
+            value={localDay}
             onChange={e => handleDay(e.target.value)}
             required={required}
             aria-label="Day"
@@ -84,8 +108,8 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
       <div className="dob-picker__field" style={{ flex: 1.6 }}>
         <div className="dob-select-wrap">
           <select
-            className={`dob-select ${monthVal ? 'has-value' : ''}`}
-            value={monthVal}
+            className={`dob-select ${localMonth ? 'has-value' : ''}`}
+            value={localMonth}
             onChange={e => handleMonth(e.target.value)}
             required={required}
             aria-label="Month"
@@ -103,8 +127,8 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
       <div className="dob-picker__field">
         <div className="dob-select-wrap">
           <select
-            className={`dob-select ${yearVal ? 'has-value' : ''}`}
-            value={yearVal}
+            className={`dob-select ${localYear ? 'has-value' : ''}`}
+            value={localYear}
             onChange={e => handleYear(e.target.value)}
             required={required}
             aria-label="Year"
