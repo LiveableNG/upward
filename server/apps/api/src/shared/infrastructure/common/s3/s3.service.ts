@@ -20,6 +20,7 @@ export class S3Service {
         accessKeyId,
         secretAccessKey,
       },
+      requestChecksumCalculation: 'WHEN_REQUIRED',
     })
   }
 
