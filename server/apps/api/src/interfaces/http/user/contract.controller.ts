@@ -55,32 +55,32 @@ export class ContractController {
   @Post('upload')
   @HttpCode(HttpStatus.CREATED)
   async upload(
-    @Req() req: any,
-    @Body() body: {
-      uuid: string
-      fileName: string
-      fileUrl: string
-      fileType: string
-      fileSize: number
-      propertyUuid?: string
-      userPropertyId?: number
-    }
+    @Req() req: any
   ) {
     const userId = req.user.id // From JwtAuthGuard
 
-    if (!body.uuid || !body.fileName || !body.fileUrl || !body.fileType || !body.fileSize) {
-      throw new BadRequestException('uuid, fileName, fileUrl, fileType, and fileSize are required')
+    if (!req.isMultipart || !req.isMultipart()) {
+      throw new BadRequestException('Request must be multipart/form-data')
     }
+
+    const data = await req.file()
+    if (!data) {
+      throw new BadRequestException('No file uploaded')
+    }
+
+    const buffer = await data.toBuffer()
+    const fields = data.fields as any
+
+    const fileName = fields?.fileName?.value ? String(fields.fileName.value) : data.filename
+    const propertyUuid = fields?.propertyUuid?.value ? String(fields.propertyUuid.value) : undefined
 
     const result = await this.uploadContract.execute({
       userId,
-      propertyUuid: body.propertyUuid,
-      userPropertyId: body.userPropertyId,
-      fileName: body.fileName,
-      fileUrl: body.fileUrl,
-      uuid: body.uuid,
-      fileType: body.fileType,
-      fileSize: body.fileSize,
+      propertyUuid,
+      fileName,
+      fileBuffer: buffer,
+      fileType: data.mimetype,
+      fileSize: buffer.length,
     })
 
     return {

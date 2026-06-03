@@ -9,27 +9,19 @@ export async function getContracts() {
   return res.contracts || []
 }
 
-export interface UploadContractPayload {
-  uuid: string
-  fileName: string
-  fileUrl: string
-  fileType: string
-  fileSize: number
-  propertyUuid?: string
-  userPropertyId?: number
-}
+export async function uploadContract(file: File, propertyUuid?: string, customFileName?: string) {
+  const formData = new FormData()
+  formData.append('file', file)
+  if (propertyUuid) {
+    formData.append('propertyUuid', propertyUuid)
+  }
+  if (customFileName) {
+    formData.append('fileName', customFileName)
+  }
 
-export async function getContractUploadUrl(fileName: string, fileType: string, fileSize?: number) {
-  return request<{ success: boolean; uuid: string; uploadUrl: string; fileUrl: string }>('/user/contracts/upload-url', {
-    method: 'POST',
-    body: JSON.stringify({ fileName, fileType, fileSize }),
-  })
-}
-
-export async function uploadContract(payload: UploadContractPayload) {
   const res = await request<{ success: boolean; contract: any }>('/user/contracts/upload', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: formData,
   })
   return res.contract
 }
@@ -38,4 +30,9 @@ export async function removeContract(uuid: string) {
   return request<{ success: boolean; message: string }>(`/user/contracts/${uuid}`, {
     method: 'DELETE',
   })
+}
+
+/** @deprecated Used for legacy direct uploads, use uploadContract instead. */
+export async function getContractUploadUrl(fileName: string, fileType: string, fileSize?: number) {
+  return { success: true, uuid: '', uploadUrl: '', fileUrl: '' }
 }
