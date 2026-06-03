@@ -65,11 +65,9 @@ export class CreateTenantUseCase {
       });
     }
 
-    try {
-      await this.inviteTenantUseCase.execute(pmId, tenant.uuid);
-    } catch (error) {
+    this.inviteTenantUseCase.execute(pmId, tenant.uuid).catch((error) => {
       console.error(`[CreateTenantUseCase] Failed to auto-sync/invite tenant ${tenant.uuid}:`, error);
-    }
+    });
 
     try {
       const logs = await this.prisma.upward_pm_activity_log.findMany({
