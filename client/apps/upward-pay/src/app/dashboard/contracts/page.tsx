@@ -69,8 +69,9 @@ export default function ContractsPage() {
       const res = await api.uploadContract(formData)
       setContracts((prev) => [res, ...prev])
       success('Contract uploaded successfully')
-    } catch {
-      error('Failed to upload contract')
+    } catch (err: any) {
+      console.error('Failed to upload contract:', err)
+      error(err?.message || 'Failed to upload contract')
     } finally {
       setUploading(false)
     }

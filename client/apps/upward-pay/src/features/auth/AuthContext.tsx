@@ -32,20 +32,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const INACTIVITY_TIMEOUT = 5 * 60 * 1000 // 5 minutes
 
   const refreshUser = async () => {
-    console.log('[Auth] Refreshing user...')
     try {
       const profile = await getMe()
-      console.log('[Auth] Refresh success, profile:', profile)
       setUser(profile)
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('upward_session_active', 'true')
       }
     } catch (err) {
-      console.error('[Auth] Refresh failed:', err)
       // Call logout to clear any stale cookies and break potential redirect loops
       await logout()
     } finally {
-      console.log('[Auth] Refresh done, setting loading=false')
       setLoading(false)
     }
   }
