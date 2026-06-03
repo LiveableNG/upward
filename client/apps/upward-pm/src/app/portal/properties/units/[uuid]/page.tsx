@@ -100,10 +100,6 @@ function UnitDetailContent() {
     }
   }, [unit])
 
-  if (isLoading || !unit) {
-    return <Splash />
-  }
-
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'rent'>('overview')
   const [rentFilters, setRentFilters] = useState({
@@ -140,6 +136,10 @@ function UnitDetailContent() {
       }
     }
   }, [formData.rentStartDate, formData.rentType, isEditing])
+
+  if (isLoading || !unit) {
+    return <Splash />
+  }
 
   const handleUpdate = (data: any) => {
     updateUnitMutation.mutate({
