@@ -10,6 +10,7 @@ import { BulkCreateTenantRecordsUseCase } from '../../../application/pm/use-case
 import { BulkInviteTenantsUseCase, BulkInviteDto } from '../../../application/pm/use-cases/tenants/bulk-invite-tenants.use-case';
 import { GetPendingJoinRequestsUseCase } from '../../../application/pm/use-cases/tenants/get-pending-join-requests.use-case';
 import { DismissJoinRequestUseCase } from '../../../application/pm/use-cases/tenants/dismiss-join-request.use-case';
+import { ResolveDuplicateJoinRequestUseCase } from '../../../application/pm/use-cases/tenants/resolve-duplicate-join-request.use-case';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 
 @Controller('pm/tenants')
@@ -26,6 +27,7 @@ export class PmTenantController {
     private readonly bulkInviteTenantsUseCase: BulkInviteTenantsUseCase,
     private readonly getPendingJoinRequestsUseCase: GetPendingJoinRequestsUseCase,
     private readonly dismissJoinRequestUseCase: DismissJoinRequestUseCase,
+    private readonly resolveDuplicateJoinRequestUseCase: ResolveDuplicateJoinRequestUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -53,6 +55,12 @@ export class PmTenantController {
   async dismissJoinRequest(@Req() req: any, @Param('uuid') uuid: string) {
     const pmId = await this.getPmId(req);
     return this.dismissJoinRequestUseCase.execute(pmId, uuid);
+  }
+
+  @Post('join-requests/:uuid/resolve-duplicate')
+  async resolveDuplicateJoinRequest(@Req() req: any, @Param('uuid') uuid: string) {
+    const pmId = await this.getPmId(req);
+    return this.resolveDuplicateJoinRequestUseCase.execute(pmId, uuid);
   }
 
   @Get(':uuid')

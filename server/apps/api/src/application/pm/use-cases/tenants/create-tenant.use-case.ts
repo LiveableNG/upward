@@ -3,6 +3,7 @@ import { PM_TENANT_REPOSITORY, ITenantRepository, TenantEntity } from '../../../
 import { USER_REPOSITORY, UserRepository } from '../../../../domains/users/user.repository';
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 import { InviteTenantUseCase } from './invite-tenant.use-case';
+import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 
 export interface CreateTenantDto {
   firstName: string;
@@ -21,6 +22,7 @@ export class CreateTenantUseCase {
     private readonly userRepo: UserRepository,
     private readonly encryption: EncryptionService,
     private readonly inviteTenantUseCase: InviteTenantUseCase,
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(pmId: number, data: CreateTenantDto): Promise<TenantEntity> {
@@ -66,6 +68,64 @@ export class CreateTenantUseCase {
       await this.inviteTenantUseCase.execute(pmId, tenant.uuid);
     } catch (error) {
       console.error(`[CreateTenantUseCase] Failed to auto-sync/invite tenant ${tenant.uuid}:`, error);
+    }
+
+    // Resolve pending join request and verify tenant's property record if any
+    try {
+      const logs = await this.prisma.upward_pm_activity_log.findMany({
+        where: {
+          ownerPmId: pmId,
+          action: 'TENANT_JOIN_REQUEST',
+        },
+      });
+
+      for (const log of logs) {
+        const metadata = log.metadata as any;
+        if (metadata && metadata.status === 'PENDING') {
+          let matches = false;
+          try {
+            const decryptedEmail = this.encryption.decrypt(metadata.userEmail);
+            if (decryptedEmail && decryptedEmail.toLowerCase() === data.email.toLowerCase()) {
+              matches = true;
+            }
+          } catch (e) {
+            // ignore decryption error
+          }
+
+          if (matches) {
+            // Mark request as accepted
+            metadata.status = 'ACCEPTED';
+            await this.prisma.upward_pm_activity_log.update({
+              where: { id: log.id },
+              data: { metadata },
+            });
+
+            // Verify the tenant's property record
+            if (existingUser) {
+              const pendingProp = await this.prisma.upward_user_property.findFirst({
+                where: {
+                  userId: existingUser.id!,
+                  pmId: pmId,
+                  verificationStatus: 'PENDING',
+                },
+                orderBy: { createdAt: 'desc' }
+              });
+
+              if (pendingProp) {
+                await this.prisma.upward_user_property.update({
+                  where: { id: pendingProp.id },
+                  data: {
+                    isVerified: true,
+                    verificationStatus: 'VERIFIED',
+                  }
+                });
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[CreateTenantUseCase] Failed to resolve pending join request:', err);
     }
 
     return tenant;

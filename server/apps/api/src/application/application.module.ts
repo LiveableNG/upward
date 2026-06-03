@@ -151,6 +151,7 @@ import { BulkCreateTenantRecordsUseCase } from './pm/use-cases/bulk-create-tenan
 import { BulkInviteTenantsUseCase } from './pm/use-cases/tenants/bulk-invite-tenants.use-case'
 import { GetPendingJoinRequestsUseCase } from './pm/use-cases/tenants/get-pending-join-requests.use-case'
 import { DismissJoinRequestUseCase } from './pm/use-cases/tenants/dismiss-join-request.use-case'
+import { ResolveDuplicateJoinRequestUseCase } from './pm/use-cases/tenants/resolve-duplicate-join-request.use-case'
 import { BulkFullImportUseCase } from './pm/use-cases/bulk-full-import.use-case'
 import { InviteTeamMemberUseCase } from './pm/use-cases/team/invite-team-member.use-case';
 import { GetTeamMembersUseCase } from './pm/use-cases/team/get-team-members.use-case';
@@ -414,6 +415,7 @@ const UseCases = [
   BulkInviteTenantsUseCase,
   GetPendingJoinRequestsUseCase,
   DismissJoinRequestUseCase,
+  ResolveDuplicateJoinRequestUseCase,
   BulkFullImportUseCase,
   SendLandlordReportUseCase,
   GetLandlordReportsUseCase,

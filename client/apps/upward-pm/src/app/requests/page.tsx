@@ -46,6 +46,20 @@ export default function RequestsPage() {
     name: ''
   })
 
+  const [resolveDuplicateModal, setResolveDuplicateModal] = useState<{
+    isOpen: boolean,
+    uuid: string,
+    name: string,
+    unitName: string,
+    propertyName: string
+  }>({
+    isOpen: false,
+    uuid: '',
+    name: '',
+    unitName: '',
+    propertyName: ''
+  })
+
   const { data: credibilityRequests = [], isLoading: loadingCred } = useCredibilityRequests()
   const { data: joinRequests = [], isLoading: loadingJoin } = useQuery({
     queryKey: ['tenant-join-requests'],
@@ -79,9 +93,35 @@ export default function RequestsPage() {
     }
   })
 
+  const resolveDuplicateMutation = useMutation({
+    mutationFn: (uuid: string) => api.post(`/pm/tenants/join-requests/${uuid}/resolve-duplicate`, {}),
+    onSuccess: () => {
+      toastSuccess('Duplicate request resolved')
+      queryClient.invalidateQueries({ queryKey: ['tenant-join-requests'] })
+      setResolveDuplicateModal(prev => ({ ...prev, isOpen: false }))
+    },
+    onError: () => {
+      toastError('Failed to resolve request')
+    }
+  })
+
   const handleJoinClick = (req: any) => {
     setSelectedJoinReq(req)
     setIsAddModalOpen(true)
+  }
+
+  const openResolveDuplicateModal = (req: any) => {
+    setResolveDuplicateModal({
+      isOpen: true,
+      uuid: req.uuid,
+      name: `${req.tenantFirstName} ${req.tenantLastName}`,
+      unitName: req.existingConnection.unitName,
+      propertyName: req.existingConnection.propertyName
+    })
+  }
+
+  const handleConfirmResolveDuplicate = () => {
+    resolveDuplicateMutation.mutate(resolveDuplicateModal.uuid)
   }
 
   const openRejectModal = (e: React.MouseEvent, type: 'JOIN' | 'CREDIBILITY', uuid: string, name: string) => {
@@ -185,10 +225,31 @@ export default function RequestsPage() {
                             <span className="request-meta-item__text">{format(new Date(req.createdAt), 'MMM d, yyyy')}</span>
                           </div>
                         </div>
+
+                        {req.existingConnection && (
+                          <div style={{
+                            marginTop: 14,
+                            padding: '10px 14px',
+                            background: '#eff6ff',
+                            border: '1px solid #bfdbfe',
+                            borderRadius: 12,
+                            fontSize: 12,
+                            color: '#1e3a8a',
+                            lineHeight: 1.5,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 4
+                          }} onClick={(e) => e.stopPropagation()}>
+                            <strong>Duplicate Request Detected</strong>
+                            <span>
+                              This tenant is already registered and synced to <strong>{req.existingConnection.propertyName} - Unit {req.existingConnection.unitName}</strong>.
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     
-                    <div className="request-premium-card__footer">
+                    <div className="request-premium-card__footer" onClick={(e) => e.stopPropagation()}>
                       <button 
                         className="btn-card-reject"
                         onClick={(e) => openRejectModal(e, 'JOIN', req.uuid, `${req.tenantFirstName} ${req.tenantLastName}`)}
@@ -197,10 +258,24 @@ export default function RequestsPage() {
                         <XCircle size={18} />
                         <span>Decline</span>
                       </button>
-                      <button className="btn-card-action btn-card-action--forest">
-                        <span>Verify & Assign</span>
-                        <ChevronRight size={16} />
-                      </button>
+                      {req.existingConnection ? (
+                        <button 
+                          className="btn-card-action"
+                          style={{ background: '#2563eb', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(37,99,235,0.2)' }}
+                          onClick={() => openResolveDuplicateModal(req)}
+                        >
+                          <span>Resolve Duplicate</span>
+                          <CheckCircle2 size={16} style={{ marginLeft: 6 }} />
+                        </button>
+                      ) : (
+                        <button 
+                          className="btn-card-action btn-card-action--forest"
+                          onClick={() => handleJoinClick(req)}
+                        >
+                          <span>Verify & Assign</span>
+                          <ChevronRight size={16} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -299,6 +374,17 @@ export default function RequestsPage() {
         confirmText="Yes, Reject"
         type="danger"
         isPending={dismissMutation.isPending || rejectCredMutation.isPending}
+      />
+
+      <ConfirmationModal
+        isOpen={resolveDuplicateModal.isOpen}
+        onClose={() => setResolveDuplicateModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={handleConfirmResolveDuplicate}
+        title="Resolve Duplicate Request?"
+        message={`Are you sure you want to resolve the request from ${resolveDuplicateModal.name}? Since they are already active and synced to ${resolveDuplicateModal.propertyName} - Unit ${resolveDuplicateModal.unitName}, this will approve this request and clean up any duplicate pending property connections on their profile.`}
+        confirmText="Yes, Resolve"
+        type="primary"
+        isPending={resolveDuplicateMutation.isPending}
       />
 
       {isAddModalOpen && selectedJoinReq && (
