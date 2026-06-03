@@ -134,12 +134,12 @@ export class SyncUnitToUpwardUseCase {
           currency: unit.currency,
           rentStartDate: unit.rentStartDate || undefined,
           rentEndDate: unit.rentDueDate || undefined,
-          isVerified: pmRecord.isVerified,
+          isVerified: true,
           isPastTenancy: false,
           amountRemaining: unit.rentAmount,
           rentType: unit.rentType,
           pmUnitId: unit.id,
-          verificationStatus: pmRecord.isVerified ? 'VERIFIED' : 'PENDING',
+          verificationStatus: 'VERIFIED',
         };
 
         const resolvedSubaccountId = subaccountId || existingUserProperty.subaccountId;
@@ -173,8 +173,8 @@ export class SyncUnitToUpwardUseCase {
           currency: unit.currency,
           rentStartDate: unit.rentStartDate || undefined,
           rentEndDate: unit.rentDueDate || undefined,
-          isVerified: pmRecord.isVerified,
-          verificationStatus: pmRecord.isVerified ? 'VERIFIED' : 'PENDING',
+          isVerified: true,
+          verificationStatus: 'VERIFIED',
           amountPaid: 0,
           amountRemaining: unit.rentAmount,
           pmId,

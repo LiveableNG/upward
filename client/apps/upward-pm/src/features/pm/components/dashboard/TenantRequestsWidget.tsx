@@ -83,6 +83,7 @@ export function TenantRequestsWidget() {
       {isAddTenantModalOpen && selectedRequest && (
         <AddTenantModal
           isOpen={isAddTenantModalOpen}
+          mode="join-request"
           onClose={() => {
             setIsAddTenantModalOpen(false);
             setSelectedRequest(null);
@@ -92,6 +93,7 @@ export function TenantRequestsWidget() {
             firstName: selectedRequest.tenantFirstName,
             lastName: selectedRequest.tenantLastName,
             email: selectedRequest.tenantEmail,
+            phone: selectedRequest.tenantPhone || '',
             unitDetails: selectedRequest.unitDetails,
           }}
         />

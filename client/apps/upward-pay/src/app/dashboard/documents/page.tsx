@@ -1,13 +1,14 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { FileText, Download, FileBadge, Upload, Trash2, Eye, X, ChevronDown, Check, Building } from 'lucide-react'
+import { FileText, Download, FileBadge, Upload, Trash2, Eye, X, ChevronDown, Check, Building, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
 import { formatDate } from '@/lib/utils'
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard'
 import { Modal } from '@/components/common/Modal'
+import { AddPropertyModal } from '@/features/dashboard/components/profile/AddPropertyModal'
 
 interface Contract {
   uuid: string
@@ -29,12 +30,13 @@ interface Contract {
 
 export default function DocumentsPage() {
   const { success, error } = useToast()
-  const { data: dashboardData } = useDashboard()
+  const { data: dashboardData, reload: reloadDashboard } = useDashboard()
   const [contracts, setContracts] = useState<Contract[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [selectedPropertyUuid, setSelectedPropertyUuid] = useState<string>('')
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [isAddPropertyModalOpen, setIsAddPropertyModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null)
   const [previewFile, setPreviewFile] = useState<Contract | null>(null)
@@ -262,6 +264,23 @@ export default function DocumentsPage() {
               <div className="list-loading">
                 <div className="spinner" />
               </div>
+            ) : properties.length === 0 ? (
+              <div className="empty-state empty-state--no-properties">
+                <div className="empty-state__icon-wrap">
+                  <Building size={48} />
+                </div>
+                <h4 className="empty-state__title">No Properties Linked</h4>
+                <p className="empty-state__description">
+                  To upload and manage tenancy documents, you need to add your rented property first.
+                </p>
+                <button
+                  className="btn btn--primary empty-state__btn"
+                  onClick={() => setIsAddPropertyModalOpen(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '12px', background: 'var(--clay)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, marginTop: '1rem' }}
+                >
+                  <Plus size={16} /> Add Property
+                </button>
+              </div>
             ) : groupedContracts.length === 0 ? (
               <div className="empty-state">
                 <FileBadge size={48} color="var(--border-solid)" />
@@ -334,11 +353,8 @@ export default function DocumentsPage() {
       {/* Preview Modal */}
       <Modal isOpen={showPreviewModal} onClose={() => setShowPreviewModal(false)} size="lg">
         <div className="preview-modal">
-          <div className="preview-modal__header">
+          <div className="preview-modal__header" style={{ paddingRight: '2.5rem' }}>
             <h3 className="preview-modal__title">{previewFile?.fileName}</h3>
-            <button className="preview-modal__close" onClick={() => setShowPreviewModal(false)}>
-              <X size={20} />
-            </button>
           </div>
 
           <div className="preview-modal__body">
@@ -402,14 +418,8 @@ export default function DocumentsPage() {
       {/* Upload Modal */}
       <Modal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} size="md">
         <div className="upload-modal" style={{ padding: '1.5rem 1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <div style={{ marginBottom: '1.5rem', paddingRight: '2.5rem' }}>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text)' }}>Upload New Document</h3>
-            <button 
-              onClick={() => setIsUploadModalOpen(false)} 
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-            >
-              <X size={20} />
-            </button>
           </div>
           
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>PDF, Word, or Images (Max 10MB)</p>
@@ -505,9 +515,54 @@ export default function DocumentsPage() {
         </div>
       </Modal>
 
+      {/* Add Property Modal */}
+      <AddPropertyModal
+        isOpen={isAddPropertyModalOpen}
+        onClose={() => setIsAddPropertyModalOpen(false)}
+        onSuccess={() => {
+          reloadDashboard()
+        }}
+      />
+
       <style jsx>{`
         .documents-page {
           padding-bottom: 5rem;
+        }
+        @media (max-width: 1023px) {
+          .dashboard__main-grid {
+            margin-top: 1.5rem;
+          }
+        }
+        .empty-state--no-properties {
+          background: var(--surface);
+          border: 1px solid var(--border-solid);
+          border-radius: 28px;
+          padding: 4rem 2rem;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+        }
+        .empty-state__icon-wrap {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          background: var(--clay-faint);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--clay);
+          margin-bottom: 0.5rem;
+        }
+        .empty-state__title {
+          font-size: 1.25rem;
+          font-weight: 800;
+          color: var(--text);
+          margin: 0;
+        }
+        .empty-state__description {
+          font-size: 0.95rem;
+          color: var(--text-secondary);
+          line-height: 1.6;
+          max-width: 360px;
+          margin: 0;
         }
         .theme-card {
           background: var(--surface);

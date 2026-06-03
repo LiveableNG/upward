@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { X, Search, CheckCircle2, UserPlus, Building2, MapPin, Calendar, CreditCard, ChevronRight, Globe, Hash } from 'lucide-react'
 import { api } from '@/lib/api'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { COUNTRIES, STATES } from '@/lib/location-data'
 import { useToast } from '@/components/common/Toast'
 import './AddPropertyModal.css'
@@ -14,6 +14,7 @@ interface AddPropertyModalProps {
 }
 
 export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: AddPropertyModalProps) {
+  const queryClient = useQueryClient()
   const [step, setStep] = useState<'LOOKUP' | 'DETAILS'>('LOOKUP')
   const [pmEmail, setPmEmail] = useState('')
   const [pmInviteEmail, setPmInviteEmail] = useState('')
@@ -111,8 +112,8 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      if (initialData?.isManaged || initialData?.isVerified) {
-        throw new Error('This property is managed and cannot be edited from here.')
+      if (initialData?.isVerified) {
+        throw new Error('This property is verified and cannot be edited from here.')
       }
 
       const unitDetails: {
@@ -138,7 +139,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
       
       if (formData.uuid) unitDetails.uuid = formData.uuid;
 
-      const targetEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pmEmail.trim()) ? pmEmail : pmInviteEmail;
+      const targetEmail = pmFound ? pmEmail : (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pmEmail.trim()) ? pmEmail : pmInviteEmail);
 
       const payload = {
         pmEmail: targetEmail,
@@ -152,6 +153,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
     },
     onSuccess: () => {
       toast.success('Your property details have been saved and the manager notified.', 'Property Added')
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       onSuccess()
       onClose()
     },
