@@ -34,6 +34,9 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [selectedPropertyUuid, setSelectedPropertyUuid] = useState<string>('')
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [documentToDelete, setDocumentToDelete] = useState<string | null>(null)
   const [previewFile, setPreviewFile] = useState<Contract | null>(null)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
 
@@ -105,15 +108,23 @@ export default function DocumentsPage() {
     }
   }
 
-  const handleDelete = async (uuid: string) => {
-    if (!confirm('Are you sure you want to remove this document?')) return
+  const handleDelete = (uuid: string) => {
+    setDocumentToDelete(uuid)
+    setIsDeleteModalOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!documentToDelete) return
 
     try {
-      await api.deleteContract(uuid)
-      setContracts((prev) => prev.filter((c) => c.uuid !== uuid))
+      await api.deleteContract(documentToDelete)
+      setContracts((prev) => prev.filter((c) => c.uuid !== documentToDelete))
       success('Document removed successfully')
     } catch {
       error('Failed to remove document')
+    } finally {
+      setIsDeleteModalOpen(false)
+      setDocumentToDelete(null)
     }
   }
 
@@ -232,59 +243,18 @@ export default function DocumentsPage() {
 
       <div className="dashboard__main-grid">
         <div className="dashboard__col--left">
-          {/* Upload Section */}
-          <div className="upload-card theme-card">
-            <div className="upload-card__header">
-              <h3 className="upload-card__title">Upload New Document</h3>
-              <p className="upload-card__sub">PDF, Word, or Images (Max 10MB)</p>
+          {/* Upload Button */}
+          {properties.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem', padding: '0 1rem' }}>
+              <button
+                className="btn btn--primary"
+                onClick={() => setIsUploadModalOpen(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '12px', background: 'var(--clay)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+              >
+                <Upload size={18} /> Upload Document
+              </button>
             </div>
-
-            {properties.length > 0 && (
-              <div className="property-select-group">
-                <label className="property-select-label">Attach to Property</label>
-                <div className="property-select-wrapper">
-                  <select
-                    className="property-select"
-                    value={selectedPropertyUuid}
-                    onChange={(e) => setSelectedPropertyUuid(e.target.value)}
-                  >
-                    {properties.map((p: any) => (
-                      <option key={p.uuid} value={p.uuid}>
-                        {getPropertyLabel(p)}
-                      </option>
-                    ))}
-                    <option value="">General / Unlinked</option>
-                  </select>
-                  <ChevronDown className="property-select-icon" size={16} />
-                </div>
-              </div>
-            )}
-
-            <label className={`upload-zone ${uploading ? 'is-uploading' : ''}`}>
-              <input
-                type="file"
-                className="upload-zone__input"
-                onChange={handleFileUpload}
-                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                disabled={uploading}
-              />
-              <div className="upload-zone__content">
-                {uploading ? (
-                  <div className="upload-loader">
-                    <div className="spinner" />
-                    <span>Uploading...</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="upload-icon-wrap">
-                      <Upload size={24} />
-                    </div>
-                    <span className="upload-text">Tap to select file</span>
-                  </>
-                )}
-              </div>
-            </label>
-          </div>
+          )}
 
           {/* List Section grouped by Property */}
           <div className="documents-list-section">
@@ -425,6 +395,112 @@ export default function DocumentsPage() {
                 )}
               </>
             )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Upload Modal */}
+      <Modal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} size="md">
+        <div className="upload-modal" style={{ padding: '1.5rem 1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text)' }}>Upload New Document</h3>
+            <button 
+              onClick={() => setIsUploadModalOpen(false)} 
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+            >
+              <X size={20} />
+            </button>
+          </div>
+          
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>PDF, Word, or Images (Max 10MB)</p>
+
+          {properties.length > 0 && (
+            <div className="property-select-group" style={{ marginBottom: '1.5rem' }}>
+              <label className="property-select-label">Attach to Property</label>
+              <div className="property-select-wrapper">
+                <select
+                  className="property-select"
+                  value={selectedPropertyUuid}
+                  onChange={(e) => setSelectedPropertyUuid(e.target.value)}
+                >
+                  {properties.map((p: any) => (
+                    <option key={p.uuid} value={p.uuid}>
+                      {getPropertyLabel(p)}
+                    </option>
+                  ))}
+                  <option value="">General / Unlinked</option>
+                </select>
+                <ChevronDown className="property-select-icon" size={16} />
+              </div>
+            </div>
+          )}
+
+          <label className={`upload-zone ${uploading ? 'is-uploading' : ''}`}>
+            <input
+              type="file"
+              className="upload-zone__input"
+              onChange={async (e) => {
+                await handleFileUpload(e);
+                setIsUploadModalOpen(false);
+              }}
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+              disabled={uploading}
+            />
+            <div className="upload-zone__content">
+              {uploading ? (
+                <div className="upload-loader">
+                  <div className="spinner" />
+                  <span>Uploading...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="upload-icon-wrap">
+                    <Upload size={24} />
+                  </div>
+                  <span className="upload-text">Tap to select file</span>
+                </>
+              )}
+            </div>
+          </label>
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={isDeleteModalOpen} onClose={() => {
+        setIsDeleteModalOpen(false)
+        setDocumentToDelete(null)
+      }} size="md">
+        <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text)', marginBottom: '1rem' }}>Delete Document</h3>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '2rem' }}>
+            Are you sure you want to delete this document? This action cannot be undone and will permanently remove it.
+          </p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <button
+              className="btn btn--secondary"
+              onClick={() => {
+                setIsDeleteModalOpen(false)
+                setDocumentToDelete(null)
+              }}
+              style={{ padding: '10px 24px', borderRadius: '10px' }}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn"
+              onClick={confirmDelete}
+              style={{
+                padding: '10px 24px',
+                borderRadius: '10px',
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Delete
+            </button>
           </div>
         </div>
       </Modal>

@@ -127,23 +127,29 @@ export class SyncUnitToUpwardUseCase {
       let userProperty;
 
       if (existingUserProperty) {
+        const updateData: any = {
+          companyId: company.id,
+          managerId: manager?.id,
+          rentAmount: unit.rentAmount,
+          currency: unit.currency,
+          rentStartDate: unit.rentStartDate || undefined,
+          rentEndDate: unit.rentDueDate || undefined,
+          isVerified: pmRecord.isVerified,
+          isPastTenancy: false,
+          amountRemaining: unit.rentAmount,
+          rentType: unit.rentType,
+          pmUnitId: unit.id,
+          verificationStatus: pmRecord.isVerified ? 'VERIFIED' : 'PENDING',
+        };
+
+        const resolvedSubaccountId = subaccountId || existingUserProperty.subaccountId;
+        if (resolvedSubaccountId) {
+          updateData.subaccount = { connect: { id: resolvedSubaccountId } };
+        }
+
         userProperty = await tx.upward_user_property.update({
           where: { id: existingUserProperty.id },
-          data: {
-            companyId: company.id,
-            managerId: manager?.id,
-            rentAmount: unit.rentAmount,
-            currency: unit.currency,
-            rentStartDate: unit.rentStartDate || undefined,
-            rentEndDate: unit.rentDueDate || undefined,
-            isVerified: pmRecord.isVerified,
-            isPastTenancy: false,
-            amountRemaining: unit.rentAmount,
-            rentType: unit.rentType,
-            subaccountId: subaccountId || existingUserProperty.subaccountId,
-            pmUnitId: unit.id,
-            verificationStatus: pmRecord.isVerified ? 'VERIFIED' : 'PENDING',
-          }
+          data: updateData
         });
       } else {
         // Create location record (only for new properties)
@@ -158,25 +164,30 @@ export class SyncUnitToUpwardUseCase {
         } as any);
 
         // Create new upward_user_property
+        const createData: any = {
+          userId: upwardUser.id!,
+          locationId: location.id,
+          companyId: company.id,
+          managerId: manager?.id,
+          rentAmount: unit.rentAmount,
+          currency: unit.currency,
+          rentStartDate: unit.rentStartDate || undefined,
+          rentEndDate: unit.rentDueDate || undefined,
+          isVerified: pmRecord.isVerified,
+          verificationStatus: pmRecord.isVerified ? 'VERIFIED' : 'PENDING',
+          amountPaid: 0,
+          amountRemaining: unit.rentAmount,
+          pmId,
+          pmUnitId: unit.id,
+          rentType: unit.rentType,
+        };
+
+        if (subaccountId) {
+          createData.subaccount = { connect: { id: subaccountId } };
+        }
+
         userProperty = await tx.upward_user_property.create({
-          data: {
-            userId: upwardUser.id!,
-            locationId: location.id,
-            companyId: company.id,
-            managerId: manager?.id,
-            rentAmount: unit.rentAmount,
-            currency: unit.currency,
-            rentStartDate: unit.rentStartDate || undefined,
-            rentEndDate: unit.rentDueDate || undefined,
-            isVerified: pmRecord.isVerified,
-            verificationStatus: pmRecord.isVerified ? 'VERIFIED' : 'PENDING',
-            amountPaid: 0,
-            amountRemaining: unit.rentAmount,
-            pmId,
-            pmUnitId: unit.id,
-            rentType: unit.rentType,
-            subaccountId: subaccountId,
-          }
+          data: createData
         });
       }
 
