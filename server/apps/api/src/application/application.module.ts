@@ -115,6 +115,7 @@ import { CreatePropertyUseCase } from './pm/use-cases/create-property.use-case'
 import { UpdatePropertyUseCase } from './pm/use-cases/update-property.use-case'
 import { DeletePropertyUseCase } from './pm/use-cases/delete-property.use-case'
 import { GetPmPropertiesUseCase } from './pm/use-cases/get-pm-properties.use-case'
+import { GetPmDashboardSummaryUseCase } from './pm/use-cases/get-pm-dashboard-summary.use-case'
 import { GetPmPropertyUseCase } from './pm/use-cases/get-pm-property.use-case'
 import { BulkCreateUnitsUseCase } from './pm/use-cases/bulk-create-units.use-case'
 import { GetPmUnitsUseCase } from './pm/use-cases/get-pm-units.use-case'
@@ -378,6 +379,7 @@ const UseCases = [
   UpdatePropertyUseCase,
   DeletePropertyUseCase,
   GetPmPropertiesUseCase,
+  GetPmDashboardSummaryUseCase,
   GetPmPropertyUseCase,
   BulkCreateUnitsUseCase,
   GetPmUnitsUseCase,

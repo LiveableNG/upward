@@ -40,7 +40,7 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
 
   const currentYear = new Date().getFullYear()
   const minYear = currentYear - 100
-  const maxYear = currentYear - 10  // must be at least 16
+  const maxYear = currentYear - 10  // must be at least 10
 
   const numDays = daysInMonth(Number(localMonth), Number(localYear))
   const days = Array.from({ length: numDays }, (_, i) => i + 1)

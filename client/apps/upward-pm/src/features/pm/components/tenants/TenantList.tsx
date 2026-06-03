@@ -17,8 +17,10 @@ import { Building2 } from 'lucide-react'
 
 export const TenantList: React.FC = () => {
   const router = useRouter()
-  const { data: tenants = [] } = useTenants()
-  const { data: properties = [] } = useProperties()
+  const { data: tenants = [], isLoading: loadingTenants } = useTenants()
+  const { data: properties = [], isLoading: loadingProperties } = useProperties()
+  
+  const isLoading = loadingTenants || loadingProperties
   const { bulkInvite, inviteTenant } = useTenantActions()
   
   const [searchQuery, setSearchQuery] = useState('')
@@ -278,6 +280,7 @@ export const TenantList: React.FC = () => {
         keyExtractor={(tenant) => tenant.uuid}
         rowClassName={(tenant) => selectedTenants.has(tenant.uuid) ? 'selected' : ''}
         pageSize={10}
+        isLoading={isLoading}
       />
     </div>
   )
