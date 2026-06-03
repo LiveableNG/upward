@@ -1,5 +1,7 @@
+'use client'
+
 import React from 'react'
-import { Check, X, Shield, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { Check, X, ShieldCheck, ShieldAlert, Shield } from 'lucide-react'
 
 interface PasswordStrengthMeterProps {
   password?: string
@@ -8,112 +10,106 @@ interface PasswordStrengthMeterProps {
 export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({ password = '' }) => {
   const requirements = [
     { label: 'Min. 8 characters', regex: /.{8,}/ },
-    { label: 'At least one uppercase', regex: /[A-Z]/ },
-    { label: 'At least one number or symbol', regex: /[0-9!@#$%^&*(),.?":{}|<>]/ },
+    { label: 'One uppercase letter', regex: /[A-Z]/ },
+    { label: 'One number or symbol', regex: /[0-9!@#$%^&*(),.?":{}|<>]/ },
   ]
 
   const metCount = requirements.filter(req => req.regex.test(password)).length
-  const strength = password.length === 0 ? 0 : (metCount / requirements.length) * 100
 
-  const getStrengthLabel = () => {
-    if (password.length === 0) return { text: 'Too Short', color: 'var(--text-muted)' }
-    if (metCount === 1) return { text: 'Weak', color: 'var(--error)' }
-    if (metCount === 2) return { text: 'Moderate', color: 'var(--warning)' }
-    if (metCount === 3) return { text: 'Strong', color: 'var(--success)' }
-    return { text: 'Too Short', color: 'var(--text-muted)' }
+  const getStrength = () => {
+    if (password.length === 0) return { text: 'Too short', color: 'var(--text-muted)', fill: 0 }
+    if (metCount === 1) return { text: 'Weak', color: '#ef4444', fill: 33 }
+    if (metCount === 2) return { text: 'Fair', color: '#f59e0b', fill: 66 }
+    return { text: 'Strong', color: '#22c55e', fill: 100 }
   }
 
-  const label = getStrengthLabel()
+  const { text, color, fill } = getStrength()
 
   return (
-    <div className="password-meter">
-      <div className="password-meter__header">
-        <div className="password-meter__strength">
-           {metCount === 3 ? <ShieldCheck size={14} color="var(--success)" /> : 
-            metCount >= 1 ? <ShieldAlert size={14} color={label.color} /> : 
-            <Shield size={14} color="var(--text-muted)" />}
-           <span style={{ color: label.color, fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-             {label.text}
-           </span>
+    <div className="psm">
+      {/* Strength bar + label row */}
+      <div className="psm__row">
+        <div className="psm__segments">
+          {[0, 1, 2].map(i => (
+            <div
+              key={i}
+              className="psm__seg"
+              style={{
+                background: i < metCount ? color : 'var(--surface2)',
+                transition: 'background 0.35s ease',
+                boxShadow: i < metCount && metCount === 3 ? `0 0 6px ${color}66` : 'none',
+              }}
+            />
+          ))}
         </div>
-      </div>
-      
-      <div className="password-meter__bar-container">
-        <div 
-          className="password-meter__bar" 
-          style={{ 
-            width: `${strength}%`, 
-            backgroundColor: label.color,
-            boxShadow: metCount === 3 ? '0 0 8px rgba(34, 197, 94, 0.4)' : 'none'
-          }} 
-        />
+        <span className="psm__label" style={{ color }}>
+          {text}
+        </span>
       </div>
 
-      <ul className="password-meter__requirements">
+      {/* Compact requirements row */}
+      <div className="psm__reqs">
         {requirements.map((req, idx) => {
-          const isMet = req.regex.test(password)
+          const met = req.regex.test(password)
           return (
-            <li key={idx} className={isMet ? 'met' : ''}>
-              {isMet ? <Check size={12} /> : <X size={12} />}
+            <span key={idx} className={`psm__req ${met ? 'met' : ''}`}>
+              {met ? <Check size={10} strokeWidth={2.5} /> : <X size={10} strokeWidth={2.5} />}
               {req.label}
-            </li>
+            </span>
           )
         })}
-      </ul>
+      </div>
 
       <style jsx>{`
-        .password-meter {
-          margin-top: 12px;
-          padding: 12px;
-          background: var(--surface);
-          border-radius: var(--radius-md);
-          border: 1px solid var(--border);
-          animation: slideDown 0.3s ease-out;
+        .psm {
+          margin-top: 8px;
+          animation: psm-in 0.2s ease-out;
         }
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-8px); }
-          to { opacity: 1; transform: translateY(0); }
+        @keyframes psm-in {
+          from { opacity: 0; transform: translateY(-4px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
-        .password-meter__header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 8px;
-        }
-        .password-meter__strength {
+        .psm__row {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 10px;
+          margin-bottom: 7px;
         }
-        .password-meter__bar-container {
-          height: 4px;
-          background: var(--surface2);
-          border-radius: 2px;
-          overflow: hidden;
-          margin-bottom: 12px;
-        }
-        .password-meter__bar {
-          height: 100%;
-          transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .password-meter__requirements {
-          list-style: none;
-          padding: 0;
-          margin: 0;
+        .psm__segments {
           display: flex;
-          flex-direction: column;
-          gap: 6px;
+          gap: 4px;
+          flex: 1;
         }
-        .password-meter__requirements li {
+        .psm__seg {
+          flex: 1;
+          height: 3px;
+          border-radius: 99px;
+        }
+        .psm__label {
           font-size: 11px;
-          color: var(--text-muted);
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          transition: all 0.2s;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          white-space: nowrap;
+          min-width: 40px;
+          text-align: right;
         }
-        .password-meter__requirements li.met {
-          color: var(--success);
+        .psm__reqs {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px 12px;
+        }
+        .psm__req {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 10.5px;
+          color: var(--text-muted);
+          transition: color 0.25s;
+          line-height: 1;
+        }
+        .psm__req.met {
+          color: #22c55e;
           font-weight: 600;
         }
       `}</style>

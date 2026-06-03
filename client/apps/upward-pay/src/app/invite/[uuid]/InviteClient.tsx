@@ -12,6 +12,8 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
@@ -192,6 +194,13 @@ export default function InviteClient() {
                         minLength={8}
                         placeholder="Min. 8 characters"
                       />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
                     </div>
                     {formData.password.length > 0 && (
                       <PasswordStrengthMeter password={formData.password} />
@@ -208,16 +217,24 @@ export default function InviteClient() {
                         value={formData.confirmPassword}
                         onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
                         required
-                        placeholder="Confirm password"
+                        placeholder="Re-enter your password"
+                        className={
+                          formData.confirmPassword.length > 0
+                            ? formData.confirmPassword === formData.password
+                              ? 'input--match'
+                              : 'input--error'
+                            : ''
+                        }
                       />
-                      <button
-                        type="button"
-                        className="password-toggle"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
+                      {formData.confirmPassword.length > 0 && formData.confirmPassword === formData.password && (
+                        <CheckCircle2 size={17} className="match-icon" />
+                      )}
                     </div>
+                    {formData.confirmPassword.length > 0 && formData.confirmPassword !== formData.password && (
+                      <div className="field-hint field-hint--error">
+                        <AlertCircle size={12} /> Passwords don't match
+                      </div>
+                    )}
                   </div>
 
                   <div className="form-info-box mt-4">
@@ -244,7 +261,6 @@ export default function InviteClient() {
           </div>
 
           <style jsx>{`
-            .mt-1 { margin-top: 12px; }
             .mt-4 { margin-top: 24px; }
             .mt-6 { margin-top: 32px; }
             .form-info-box {
@@ -274,6 +290,17 @@ export default function InviteClient() {
               grid-template-columns: 1fr 1fr;
               gap: 16px;
             }
+            .input--error { border-color: var(--error) !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.1) !important; }
+            .input--match { border-color: #22c55e !important; box-shadow: 0 0 0 3px rgba(34,197,94,0.1) !important; }
+            .match-icon { position: absolute; right: 12px; color: #22c55e; pointer-events: none; }
+            .field-hint {
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              font-size: 11px;
+              margin-top: 5px;
+            }
+            .field-hint--error { color: var(--error); }
             @media (max-width: 480px) {
               .auth-form__row {
                 grid-template-columns: 1fr;
