@@ -321,14 +321,12 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
                   <p className="premium-card__desc">Residential assets verifying your credibility.</p>
                 </div>
               </div>
-              {isEditing && (
-                <button
-                  className="btn btn--secondary btn--sm btn--pill premium-add-btn"
-                  onClick={() => setIsAddPropertyModalOpen(true)}
-                >
-                  <Plus size={14} className="mr-1" /> Add Property
-                </button>
-              )}
+              <button
+                className="btn btn--secondary btn--sm btn--pill premium-add-btn"
+                onClick={() => setIsAddPropertyModalOpen(true)}
+              >
+                <Plus size={14} className="mr-1" /> Add Property
+              </button>
             </div>
 
             <div className="properties-list">
@@ -336,11 +334,9 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
                 <div className="empty-state">
                   <Building2 size={32} className="text-muted mb-2" />
                   <p>No properties added yet.</p>
-                  {isEditing && (
-                    <button className="btn btn--ghost btn--sm mt-2" onClick={() => setIsAddPropertyModalOpen(true)}>
-                      Add Your First Property
-                    </button>
-                  )}
+                  <button className="btn btn--ghost btn--sm mt-2" onClick={() => setIsAddPropertyModalOpen(true)}>
+                    Add Your First Property
+                  </button>
                 </div>
               )}
               
@@ -418,51 +414,49 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
                         </div>
                       </div>
 
-                      {isEditing && (
-                        <div className="prop-card__actions">
-                          {prop.isVerified && (
-                            <div className="managed-notice">
-                              <Shield size={14} className="text-clay" />
-                              <span>Verified by {prop.company?.name || prop.companyName}. Restricted editing.</span>
-                            </div>
-                          )}
-                          <div className="flex gap-2 w-full justify-end">
-                            {!prop.isVerified && (
-                              <button
-                                className="btn btn--outline btn--sm text-red-500 hover:bg-red-50"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  const newProps = [...(formData.properties || [])]
-                                  newProps.splice(idx, 1)
-                                  setFormData({ ...formData, properties: newProps })
-                                }}
-                              >
-                                <Trash2 size={14} className="mr-1" /> Remove
-                              </button>
-                            )}
-                            {!prop.isVerified && (
-                              <button
-                                className="btn btn--secondary btn--sm"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setSelectedProperty(prop)
-                                  setIsAddPropertyModalOpen(true)
-                                }}
-                              >
-                                <Edit2 size={14} className="mr-1" /> {prop.verificationStatus === 'REJECTED' ? 'Edit & Retry' : 'Edit'}
-                              </button>
-                            )}
+                      <div className="prop-card__actions">
+                        {prop.isVerified && (
+                          <div className="managed-notice">
+                            <Shield size={14} className="text-clay" />
+                            <span>Verified by {prop.company?.name || prop.companyName}. Restricted editing.</span>
                           </div>
-                          {prop.verificationStatus === 'REJECTED' && (
-                            <div className="rejection-alert">
-                              <AlertCircle size={14} />
-                              <span>
-                                {prop.rejectionReason || "Your connection request was declined. Please verify the manager's contact details and retry."}
-                              </span>
-                            </div>
+                        )}
+                        <div className="flex gap-2 w-full justify-end">
+                          {isEditing && !prop.isVerified && (
+                            <button
+                              className="btn btn--outline btn--sm text-red-500 hover:bg-red-50"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                const newProps = [...(formData.properties || [])]
+                                newProps.splice(idx, 1)
+                                setFormData({ ...formData, properties: newProps })
+                              }}
+                            >
+                              <Trash2 size={14} className="mr-1" /> Remove
+                            </button>
+                          )}
+                          {!prop.isVerified && (
+                            <button
+                              className="btn btn--secondary btn--sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedProperty(prop)
+                                setIsAddPropertyModalOpen(true)
+                              }}
+                            >
+                              <Edit2 size={14} className="mr-1" /> {prop.verificationStatus === 'REJECTED' ? 'Edit & Retry' : 'Edit'}
+                            </button>
                           )}
                         </div>
-                      )}
+                        {prop.verificationStatus === 'REJECTED' && (
+                          <div className="rejection-alert">
+                            <AlertCircle size={14} />
+                            <span>
+                              {prop.rejectionReason || "Your connection request was declined. Please verify the manager's contact details and retry."}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
