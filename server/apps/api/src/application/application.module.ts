@@ -230,6 +230,7 @@ import { HandlePaymentOverpaymentUseCase } from './use-cases/payments/handle-ove
 import { ProcessHourlySettlementsUseCase } from './use-cases/payments/settlement-cron.use-case'
 
 import { UploadContractUseCase } from './use-cases/contracts/upload-contract.use-case'
+import { GetContractUploadUrlUseCase } from './use-cases/contracts/get-contract-upload-url.use-case'
 import { GetContractsUseCase } from './use-cases/contracts/get-contracts.use-case'
 import { DeleteContractUseCase } from './use-cases/contracts/delete-contract.use-case'
 import { DownloadContractUseCase } from './use-cases/contracts/download-contract.use-case'
@@ -359,6 +360,7 @@ const UseCases = [
   SaveBankDetailsUseCase,
 
   UploadContractUseCase,
+  GetContractUploadUrlUseCase,
   GetContractsUseCase,
   DeleteContractUseCase,
   DownloadContractUseCase,

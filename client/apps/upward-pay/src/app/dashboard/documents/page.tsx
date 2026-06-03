@@ -30,7 +30,7 @@ interface Contract {
 }
 
 export default function DocumentsPage() {
-  const { success, error } = useToast()
+  const { success, error, info } = useToast()
   const { data: dashboardData, reload: reloadDashboard } = useDashboard()
   const [contracts, setContracts] = useState<Contract[]>([])
   const [loading, setLoading] = useState(true)
@@ -103,15 +103,45 @@ export default function DocumentsPage() {
     if (!selectedFile) return
 
     setUploading(true)
-    const formData = new FormData()
-    formData.append('file', selectedFile)
-    formData.append('fileName', customDocName.trim() || selectedFile.name)
-    if (selectedPropertyUuid) {
-      formData.append('propertyUuid', selectedPropertyUuid)
-    }
 
     try {
-      const res = await api.uploadContract(formData)
+      // 1. Resolve and format filename
+      let fileName = customDocName.trim() || selectedFile.name
+      const originalExt = selectedFile.name.split('.').pop()
+      if (originalExt && !fileName.toLowerCase().endsWith(`.${originalExt.toLowerCase()}`)) {
+        fileName = `${fileName}.${originalExt}`
+      }
+
+      // 2. Fetch pre-signed S3 URL and generated uuid
+      const { uuid, uploadUrl, fileUrl } = await api.getContractUploadUrl(
+        fileName,
+        selectedFile.type,
+        selectedFile.size
+      )
+
+      // 3. Upload file directly to S3
+      const s3Res = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: selectedFile,
+        headers: {
+          'Content-Type': selectedFile.type,
+        },
+      })
+
+      if (!s3Res.ok) {
+        throw new Error('Failed to upload file to storage server')
+      }
+
+      // 4. Register metadata with the backend database
+      await api.uploadContract({
+        uuid,
+        fileName,
+        fileUrl, // S3 key
+        fileType: selectedFile.type,
+        fileSize: selectedFile.size,
+        propertyUuid: selectedPropertyUuid || undefined,
+      })
+
       // Re-fetch list to include newly created contract with its resolved userProperty relation
       await fetchContracts()
       success('Document uploaded successfully')
@@ -148,7 +178,7 @@ export default function DocumentsPage() {
 
   const handleDownload = async (contract: Contract) => {
     try {
-      success('Downloading...')
+      info('Preparing your download...', 'Downloading')
       const blob = await import('@/lib/api-client').then(m => 
         m.requestBlob(`/user/contracts/${contract.uuid}/download`, { method: 'GET' })
       )
@@ -188,9 +218,12 @@ export default function DocumentsPage() {
             url: writeResult.uri,
           })
           
+          success('Document shared successfully')
           return
         } catch (err) {
           console.error('Native download/sharing failed:', err)
+          error('Failed to share document')
+          return
         }
       }
 
@@ -203,6 +236,7 @@ export default function DocumentsPage() {
       link.click()
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
+      success('Document downloaded successfully')
     } catch (err) {
       console.error('Download failed:', err)
       error('Failed to download document')
