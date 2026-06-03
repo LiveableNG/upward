@@ -130,30 +130,7 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
           <Share2 size={16} className="mr-2" /> Share Credibility Profile
         </button>
 
-        {contracts.length > 0 && (
-          <div className="premium-hero__tenancy">
-            <div className="flex gap-4 items-center mb-4">
-              <div className="premium-hero__tenancy-icon">
-                <FileText size={18} />
-              </div>
-              <div className="text-left">
-                <h4 className="premium-hero__tenancy-title">Active Tenancy</h4>
-                <p className="premium-hero__tenancy-property">{contracts[0].fileName}</p>
-              </div>
-            </div>
-            <div className="flex justify-between items-center pt-3 border-t border-solid border-opacity-10 border-[var(--text)]">
-              <span className="text-xs text-muted">
-                Uploaded {formatDate(contracts[0].createdAt)}
-              </span>
-              <button
-                className="btn btn--secondary btn--sm"
-                onClick={() => router.push('/dashboard/documents')}
-              >
-                Manage
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Active Tenancy Card Removed */}
       </div>
 
       <div className="premium-menu-container animate-slide-up" style={{ animationDelay: '0.1s' }}>

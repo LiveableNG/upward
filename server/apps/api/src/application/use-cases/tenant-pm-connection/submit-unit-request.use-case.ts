@@ -104,7 +104,7 @@ export class SubmitUnitRequestUseCase {
       });
     }
 
-    const propertyBaseData = {
+    const propertyBaseData: any = {
       user: { connect: { id: fullUser.id } },
       pm: { connect: { id: pm.id } },
       rentAmount: unitDetails.rentAmount,
@@ -125,6 +125,7 @@ export class SubmitUnitRequestUseCase {
       });
       if (subaccount) {
         subaccountId = subaccount.id;
+        propertyBaseData.subaccount = { connect: { id: subaccountId } };
       }
     }
 
@@ -141,7 +142,6 @@ export class SubmitUnitRequestUseCase {
         where: { uuid: unitDetails.uuid, userId: fullUser.id },
         data: {
           ...propertyBaseData,
-          subaccountId,
           location: {
             update: {
               address: unitDetails.address,
@@ -157,7 +157,6 @@ export class SubmitUnitRequestUseCase {
       await (this.prisma as any).upward_user_property.create({
         data: {
           ...propertyBaseData,
-          subaccountId,
           location: {
             create: {
               address: unitDetails.address,
