@@ -232,6 +232,7 @@ import { ProcessHourlySettlementsUseCase } from './use-cases/payments/settlement
 import { UploadContractUseCase } from './use-cases/contracts/upload-contract.use-case'
 import { GetContractsUseCase } from './use-cases/contracts/get-contracts.use-case'
 import { DeleteContractUseCase } from './use-cases/contracts/delete-contract.use-case'
+import { DownloadContractUseCase } from './use-cases/contracts/download-contract.use-case'
 
 import { CreateSupportTicketUseCase } from './use-cases/support/create-support-ticket.use-case'
 import { GetUserTicketsUseCase } from './use-cases/support/get-user-tickets.use-case'
@@ -360,6 +361,7 @@ const UseCases = [
   UploadContractUseCase,
   GetContractsUseCase,
   DeleteContractUseCase,
+  DownloadContractUseCase,
 
   CreateSupportTicketUseCase,
   GetUserTicketsUseCase,

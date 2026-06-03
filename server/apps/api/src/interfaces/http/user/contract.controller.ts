@@ -9,11 +9,13 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  Res,
 } from '@nestjs/common'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import { UploadContractUseCase } from '../../../application/use-cases/contracts/upload-contract.use-case'
 import { GetContractsUseCase } from '../../../application/use-cases/contracts/get-contracts.use-case'
 import { DeleteContractUseCase } from '../../../application/use-cases/contracts/delete-contract.use-case'
+import { DownloadContractUseCase } from '../../../application/use-cases/contracts/download-contract.use-case'
 
 @Controller('user/contracts')
 @UseGuards(JwtAuthGuard)
@@ -22,6 +24,7 @@ export class ContractController {
     private readonly uploadContract: UploadContractUseCase,
     private readonly getContracts: GetContractsUseCase,
     private readonly deleteContract: DeleteContractUseCase,
+    private readonly downloadContract: DownloadContractUseCase,
   ) {}
 
   @Post('upload')
@@ -48,11 +51,20 @@ export class ContractController {
       ? parseInt(data.fields.userPropertyId.value) 
       : undefined
 
+    let fileName = data.fields?.fileName?.value 
+      ? String(data.fields.fileName.value) 
+      : data.filename
+
+    const originalExt = data.filename.split('.').pop()
+    if (originalExt && !fileName.toLowerCase().endsWith(`.${originalExt.toLowerCase()}`)) {
+      fileName = `${fileName}.${originalExt}`
+    }
+
     const result = await this.uploadContract.execute({
       userId,
       propertyUuid,
       userPropertyId,
-      fileName: data.filename,
+      fileName,
       fileBuffer: buffer,
       fileType: data.mimetype,
       fileSize: buffer.length,
@@ -72,6 +84,32 @@ export class ContractController {
     return {
       success: true,
       contracts,
+    }
+  }
+
+  @Get(':uuid/download')
+  async download(
+    @Req() req: any,
+    @Param('uuid') uuid: string,
+    @Res() res: any,
+  ) {
+    const userId = req.user.id
+    const { buffer, fileName, fileType } = await this.downloadContract.execute(userId, uuid)
+
+    const sanitizedFileName = encodeURIComponent(fileName || 'document.pdf')
+
+    if (typeof res.set === 'function') {
+      res.set({
+        'Content-Type': fileType || 'application/octet-stream',
+        'Content-Disposition': `attachment; filename="${sanitizedFileName}"`,
+        'Content-Length': buffer.length,
+      })
+      res.send(buffer)
+    } else {
+      res.header('Content-Type', fileType || 'application/octet-stream')
+      res.header('Content-Disposition', `attachment; filename="${sanitizedFileName}"`)
+      res.header('Content-Length', buffer.length)
+      res.send(buffer)
     }
   }
 
