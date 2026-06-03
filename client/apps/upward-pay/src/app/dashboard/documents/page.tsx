@@ -9,6 +9,7 @@ import { formatDate } from '@/lib/utils'
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard'
 import { Modal } from '@/components/common/Modal'
 import { AddPropertyModal } from '@/features/dashboard/components/profile/AddPropertyModal'
+import { useRouter } from 'next/navigation'
 
 interface Contract {
   uuid: string
@@ -30,6 +31,7 @@ interface Contract {
 }
 
 export default function DocumentsPage() {
+  const router = useRouter()
   const { success, error, info } = useToast()
   const { data: dashboardData, reload: reloadDashboard } = useDashboard()
   const [contracts, setContracts] = useState<Contract[]>([])
@@ -62,9 +64,16 @@ export default function DocumentsPage() {
     try {
       const data = await api.getContracts()
       setContracts(data || [])
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch documents:', err)
       setContracts([])
+      if (
+        err?.message?.toLowerCase().includes('expired') ||
+        err?.message?.toLowerCase().includes('session') ||
+        err?.status === 401
+      ) {
+        router.push('/login')
+      }
     } finally {
       setLoading(false)
     }
@@ -536,7 +545,6 @@ export default function DocumentsPage() {
                       {getPropertyLabel(p)}
                     </option>
                   ))}
-                  <option value="">General / Unlinked</option>
                 </select>
                 <ChevronDown className="property-select-icon" size={16} />
               </div>
