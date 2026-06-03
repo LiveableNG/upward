@@ -63,7 +63,9 @@ export class SendToTenantVaultUseCase {
     const ext = mimeType === 'application/pdf' ? 'pdf' : mimeType === 'image/png' ? 'png' : 'jpg';
     const s3Key = `pm-docs/vault/pm_${pmId}/${vaultUuid}.${ext}`;
 
-    await this.s3Service.uploadBuffer(fileBuffer, s3Key, mimeType);
+    // Upload buffer to S3 in the background to speed up request lifecycle
+    this.s3Service.uploadBuffer(fileBuffer, s3Key, mimeType)
+      .catch((err) => this.logger.error(`Background S3 upload failed for ${s3Key}:`, err));
 
     return this._saveVaultRecord(pmId, {
       vaultUuid,
@@ -84,7 +86,7 @@ export class SendToTenantVaultUseCase {
   async executeTemplate(pmId: number, dto: SendTemplateToVaultDto) {
     const { content, subject, includeLetterhead, tenantUuid, unitUuid } = dto;
 
-    // Generate PDF from the HTML template
+    // Generate PDF from the HTML template (needs to run synchronously to get size and verify content)
     let pdfBuffer: Buffer;
     try {
       pdfBuffer = await this.generatePdfUseCase.execute({
@@ -103,7 +105,9 @@ export class SendToTenantVaultUseCase {
     const s3Key = `pm-docs/vault/pm_${pmId}/${vaultUuid}.pdf`;
     const fileSize = pdfBuffer.length;
 
-    await this.s3Service.uploadBuffer(pdfBuffer, s3Key, 'application/pdf');
+    // Upload generated PDF to S3 in the background
+    this.s3Service.uploadBuffer(pdfBuffer, s3Key, 'application/pdf')
+      .catch((err) => this.logger.error(`Background S3 upload failed for ${s3Key}:`, err));
 
     return this._saveVaultRecord(pmId, {
       vaultUuid,
@@ -257,18 +261,16 @@ export class SendToTenantVaultUseCase {
         </div>
       `;
 
-      try {
-        await this.emailService.sendEmailWithRetry({
-          email: tenantEmail,
-          subject: `New document added to your Upward vault by ${pmName}`,
-          html: notificationHtml,
-          type: 'VAULT_DOCUMENT_NOTIFICATION',
-          pmUuid: pm.uuid,
-        });
-      } catch (err) {
-        this.logger.error('Failed to send vault document notification email:', err);
-        // Non-fatal — document is already saved
-      }
+      // Send vault document notification email in the background to avoid blocking the client response
+      this.emailService.sendEmailWithRetry({
+        email: tenantEmail,
+        subject: `New document added to your Upward vault by ${pmName}`,
+        html: notificationHtml,
+        type: 'VAULT_DOCUMENT_NOTIFICATION',
+        pmUuid: pm.uuid,
+      }).catch((err) => {
+        this.logger.error('Failed to send vault document notification email in background:', err);
+      });
     }
 
     return {

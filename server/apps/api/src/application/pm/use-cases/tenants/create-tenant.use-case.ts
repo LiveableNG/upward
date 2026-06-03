@@ -48,29 +48,29 @@ export class CreateTenantUseCase {
     const emailHash = this.encryption.hash(data.email);
     const existingTenant = await this.tenantRepo.findByEmailHash(pmId, emailHash);
     
-    if (existingTenant) {
-      throw new ConflictException(`A tenant with the email "${data.email}" is already in your list.`);
-    }
-
     const existingUser = await this.userRepo.findByEmail(data.email);
     const initialStatus = existingUser ? 'ON_UPWARD' : 'PENDING';
 
-    const { units, ...tenantData } = data;
-    const tenant = await this.tenantRepo.create({
-      pmId,
-      ...tenantData,
-      inviteStatus: initialStatus,
-      inviteSentAt: null,
-    });
+    let tenant: TenantEntity;
 
-    // Always attempt to sync/invite to ensure properties are linked in Core
+    if (existingTenant) {
+      tenant = existingTenant;
+    } else {
+      const { units, ...tenantData } = data;
+      tenant = await this.tenantRepo.create({
+        pmId,
+        ...tenantData,
+        inviteStatus: initialStatus,
+        inviteSentAt: null,
+      });
+    }
+
     try {
       await this.inviteTenantUseCase.execute(pmId, tenant.uuid);
     } catch (error) {
       console.error(`[CreateTenantUseCase] Failed to auto-sync/invite tenant ${tenant.uuid}:`, error);
     }
 
-    // Resolve pending join request and verify tenant's property record if any
     try {
       const logs = await this.prisma.upward_pm_activity_log.findMany({
         where: {
@@ -100,7 +100,7 @@ export class CreateTenantUseCase {
               data: { metadata },
             });
 
-            // Verify the tenant's property record
+
             if (existingUser) {
               const pendingProp = await this.prisma.upward_user_property.findFirst({
                 where: {
