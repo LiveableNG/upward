@@ -211,6 +211,7 @@ export class CalculateRentScoreUseCase {
           profilePic: user.profilePic ? await this.s3Service.getDownloadUrl(user.profilePic) : null,
           profileSlug: user.profileSlug || `${user.firstName}-${user.lastName}-${user.uuid.split('-')[0]}`.toLowerCase(),
           uuid: user.uuid,
+          isIdentityVerified: !!user.isIdentityVerified,
           profileCompletion: this.calculateProfileCompletion(user)
         },
         properties: user.properties || [],
@@ -281,6 +282,7 @@ export class CalculateRentScoreUseCase {
           profilePic: user.profilePic ? await this.s3Service.getDownloadUrl(user.profilePic) : null,
           profileSlug: user.profileSlug || `${user.firstName}-${user.lastName}-${user.uuid.split('-')[0]}`.toLowerCase(),
           uuid: user.uuid,
+          isIdentityVerified: !!user.isIdentityVerified,
           profileCompletion: this.calculateProfileCompletion(user)
         },
         properties: user.properties || [],

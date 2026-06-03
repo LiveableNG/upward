@@ -31,6 +31,7 @@ export class GetPendingJoinRequestsUseCase {
         tenantFirstName: this.encryption.decrypt(metadata.userFirstName),
         tenantLastName: this.encryption.decrypt(metadata.userLastName),
         tenantEmail: this.encryption.decrypt(metadata.userEmail),
+        tenantPhone: metadata.userPhone ? this.encryption.decrypt(metadata.userPhone) : null,
         tenantUuid: metadata.userUuid,
         unitDetails: metadata.unitDetails,
         createdAt: log.createdAt,

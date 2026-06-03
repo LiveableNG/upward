@@ -304,6 +304,7 @@ export default function RequestsPage() {
       {isAddModalOpen && selectedJoinReq && (
         <AddTenantModal
           isOpen={isAddModalOpen}
+          mode="join-request"
           onClose={() => {
             setIsAddModalOpen(false)
             setSelectedJoinReq(null)
@@ -313,6 +314,7 @@ export default function RequestsPage() {
             firstName: selectedJoinReq.tenantFirstName,
             lastName: selectedJoinReq.tenantLastName,
             email: selectedJoinReq.tenantEmail,
+            phone: selectedJoinReq.tenantPhone || '',
             unitDetails: selectedJoinReq.unitDetails,
           }}
         />

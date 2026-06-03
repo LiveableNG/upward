@@ -119,7 +119,14 @@ export default function DashboardPage() {
     firstProp?.rentEndDate
 
   const isNewUser = !isProfileComplete
-  const isVerified = user.properties?.some((p: any) => p.isVerified) || pendingPayments.some((p: any) => p.isVerified) || false
+
+  // Full verified state: identity (BVN) verified + has made at least one payment + has a PM-verified or platform-synced property
+  const isIdentityVerified = user.isIdentityVerified || false
+  const hasPaidPayments = completedPayments.length > 0
+  const hasVerifiedPmProperty = user.properties?.some(
+    (p: any) => p.isPlatformLinked || p.isPmVerified
+  ) || false
+  const isVerified = isIdentityVerified && hasPaidPayments && hasVerifiedPmProperty
   const totalPaid = completedPayments.reduce((sum: number, p: any) => sum + p.amount, 0)
   const currency = completedPayments[0]?.currency || 'NGN'
 

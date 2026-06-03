@@ -126,8 +126,9 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
   const { isScorable, score, rank, band, metrics, profile, cycles, properties = [] } = scoreProfile.data
   const isFaded = !isScorable
-  const isVerified = properties.some((p: any) => p.isVerified)
   const paidPaymentsCount = cycles.filter((c: any) => c.status && (c.status.includes('PAID') || c.status.includes('PARTIAL'))).length
+  const hasVerifiedPmProperty = properties.some((p: any) => p.isVerified && (p.isPmVerified || p.isPlatformLinked || p.pm?.isVerified || !!p.company?.platformId))
+  const isVerified = !!profile.isIdentityVerified && paidPaymentsCount > 0 && hasVerifiedPmProperty
   const initials = profile.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)
 
   const getRankColor = () => {
@@ -282,26 +283,47 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                 {properties.length === 0 ? (
                   <div className="kyc-report__property-empty">No verified properties linked yet.</div>
                 ) : (
-                  properties.map((p: any, i: number) => (
-                    <div key={i} className="kyc-report__property-item">
-                       <div className="kyc-report__property-head">
-                          <span className="kyc-report__property-addr">{p.location?.address}, {p.location?.area}</span>
-                          {p.isVerified && (
-                             <span className="kyc-report__property-badge">Verified</span>
-                          )}
-                       </div>
-                       <div className="kyc-report__property-meta">
-                          <span>{p.location?.state}, {p.location?.country}</span>
-                          <span className="kyc-report__meta-dot" />
-                          <span>
-                            {p.rentStartDate ? new Date(p.rentStartDate).getFullYear() : 'N/A'}
-                            {p.isPastTenancy || (p.rentEndDate && new Date(p.rentEndDate) < new Date()) 
-                              ? ` — ${p.rentEndDate ? new Date(p.rentEndDate).getFullYear() : 'Present'}` 
-                              : ' — Present'}
-                          </span>
-                       </div>
-                    </div>
-                  ))
+                  properties.map((p: any, i: number) => {
+                    const isPmVerified = p.isPmVerified || p.pm?.isVerified;
+                    const isPlatformLinked = p.isPlatformLinked || !!p.company?.platformId;
+                    
+                    return (
+                      <div key={i} className="kyc-report__property-item">
+                         <div className="kyc-report__property-head" style={{ alignItems: 'flex-start' }}>
+                            <span className="kyc-report__property-addr">{p.location?.address || 'Property Address'}, {p.location?.area || 'Area'}</span>
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 12 }}>
+                              {p.isVerified ? (
+                                 <span className="kyc-report__property-badge" style={{ background: 'var(--success)' }}>Verified Connection</span>
+                              ) : (
+                                 <span className="kyc-report__property-badge" style={{ background: '#f59e0b', color: 'white' }}>Pending Connection</span>
+                              )}
+                              
+                              {isPlatformLinked && (
+                                 <span className="kyc-report__property-badge" style={{ background: 'var(--clay)', color: 'white' }}>Platform Synced</span>
+                              )}
+                              
+                              {!isPlatformLinked && p.isVerified && (
+                                 isPmVerified ? (
+                                    <span className="kyc-report__property-badge" style={{ background: 'var(--clay)', color: 'white' }}>Verified PM</span>
+                                 ) : (
+                                    <span className="kyc-report__property-badge" style={{ background: '#928e89', color: 'white' }}>Unverified PM</span>
+                                 )
+                              )}
+                            </div>
+                         </div>
+                         <div className="kyc-report__property-meta">
+                            <span>{p.location?.state}, {p.location?.country}</span>
+                            <span className="kyc-report__meta-dot" />
+                            <span>
+                              {p.rentStartDate ? new Date(p.rentStartDate).getFullYear() : 'N/A'}
+                              {p.isPastTenancy || (p.rentEndDate && new Date(p.rentEndDate) < new Date()) 
+                                ? ` — ${p.rentEndDate ? new Date(p.rentEndDate).getFullYear() : 'Present'}` 
+                                : ' — Present'}
+                            </span>
+                         </div>
+                      </div>
+                    )
+                  })
                 )}
               </div>
             </section>

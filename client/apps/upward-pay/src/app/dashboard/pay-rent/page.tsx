@@ -280,7 +280,7 @@ export default function PayRentPage() {
                setShowRenewalModal(true)
              }
 
-             if (prop.isVerified || prop.subaccount || prop.dedicatedAccount || prop.isManaged) {
+             if (prop.isVerified || prop.subaccount || prop.dedicatedAccount) {
                const managedLandlord = {
                  uuid: 'verified',
                  name: prop.company?.name || 

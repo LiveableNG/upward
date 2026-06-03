@@ -47,16 +47,25 @@ export class SubmitUnitRequestUseCase {
     }
 
     let pm = await this.pmRepository.findByEmail(pmEmail);
+    if (!pm) {
+      pm = await this.pmRepository.findByPhone(pmEmail);
+    }
+    
     let isNewShadowPm = false;
 
     if (!pm) {
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pmEmail.trim());
+      if (!isEmail) {
+        throw new Error('A valid email address is required to invite a new property manager.');
+      }
+
       if (!pmName) {
         pmName = pmEmail.split('@')[0]; // Fallback
       }
 
       const newPmData = {
         uuid: crypto.randomUUID(),
-        email: pmEmail,
+        email: pmEmail.trim(),
         firstName: pmName?.split(' ')[0] || 'Property',
         lastName: pmName?.split(' ').slice(1).join(' ') || 'Manager',
         passwordHash: 'PENDING_INVITE',
@@ -99,6 +108,7 @@ export class SubmitUnitRequestUseCase {
           userFirstName: fullUser.firstName, // Keep encrypted in metadata as GetPendingJoinRequestsUseCase decrypts it
           userLastName: fullUser.lastName,
           userEmail: fullUser.email,
+          userPhone: fullUser.phone || null,
           unitDetails: unitDetails,
         }
       });
@@ -179,9 +189,9 @@ export class SubmitUnitRequestUseCase {
     };
 
     if (isNewShadowPm) {
-      await this.invitePmUseCase.execute(decryptedUser, pmEmail, pm.firstName, true, pm.uuid);
+      await this.invitePmUseCase.execute(decryptedUser, pm.email, pm.firstName, true, pm.uuid);
     } else if (pm.passwordHash === 'PENDING_INVITE') {
-      await this.invitePmUseCase.execute(decryptedUser, pmEmail, pm.firstName, false, pm.uuid);
+      await this.invitePmUseCase.execute(decryptedUser, pm.email, pm.firstName, false, pm.uuid);
     }
 
     return {

@@ -51,7 +51,7 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
         rentStartDate: p.rentStartDate ? p.rentStartDate.split('T')[0] : '',
         rentEndDate: p.rentEndDate ? p.rentEndDate.split('T')[0] : '',
         isPastTenancy: !!p.isPastTenancy,
-        isVerified: !!p.isVerified || !!p.isManaged,
+        isVerified: !!p.isVerified,
         managerName: p.manager?.firstName ? `${p.manager.firstName} ${p.manager.lastName || ''}`.trim() : p.managerName,
         managerPhone: p.manager?.phone || p.managerPhone,
         managerEmail: p.manager?.email || p.managerEmail,
@@ -363,9 +363,14 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
                       </div>
                     </div>
                     <div className="prop-card__status-group">
-                      {(prop.isVerified || prop.isManaged) && (
+                      {prop.isVerified && (
                         <div className="status-badge status-badge--shield" title="Verified Management">
                           <Shield size={12} />
+                        </div>
+                      )}
+                      {!prop.isVerified && prop.verificationStatus === 'PENDING' && (
+                        <div className="status-badge status-badge--pending" title="Verification Pending">
+                          Pending Verification
                         </div>
                       )}
                       {prop.isPastTenancy && (
@@ -415,14 +420,14 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
 
                       {isEditing && (
                         <div className="prop-card__actions">
-                          {(prop.isVerified || prop.isManaged) && (
+                          {prop.isVerified && (
                             <div className="managed-notice">
                               <Shield size={14} className="text-clay" />
                               <span>Verified by {prop.company?.name || prop.companyName}. Restricted editing.</span>
                             </div>
                           )}
                           <div className="flex gap-2 w-full justify-end">
-                            {!(prop.isVerified || prop.isManaged) && (
+                            {!prop.isVerified && (
                               <button
                                 className="btn btn--outline btn--sm text-red-500 hover:bg-red-50"
                                 onClick={(e) => {
@@ -435,7 +440,7 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
                                 <Trash2 size={14} className="mr-1" /> Remove
                               </button>
                             )}
-                            {!(prop.isVerified || prop.isManaged) && (
+                            {!prop.isVerified && (
                               <button
                                 className="btn btn--secondary btn--sm"
                                 onClick={(e) => {
@@ -774,6 +779,12 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
         .status-badge--rejected {
           background: #ef4444;
           color: white;
+          font-size: 9px;
+        }
+        
+        .status-badge--pending {
+          background: #fef3c7;
+          color: #d97706;
           font-size: 9px;
         }
 
