@@ -28,13 +28,11 @@ export class UploadContractUseCase {
   ) { }
 
   async execute(dto: UploadContractDto) {
-    // 1. Validate User
     const user = await this.userRepository.findByUuid(dto.userId)
     if (!user) {
       throw new BadRequestException('User not found')
     }
 
-    // 2. Resolve property ID if propertyUuid is supplied
     let userPropertyId = dto.userPropertyId
     if (dto.propertyUuid) {
       const property = await this.propertyRepository.findByUuid(dto.propertyUuid)
@@ -47,18 +45,25 @@ export class UploadContractUseCase {
       userPropertyId = property.id
     }
 
-    // 3. Anti-abuse: Check max contracts
     const count = await this.contractRepository.countByUserId(user.id!)
     if (count >= this.MAX_CONTRACTS) {
       throw new BadRequestException(`Maximum of ${this.MAX_CONTRACTS} documents allowed per user. Please remove old documents.`)
     }
 
-    // 4. Anti-abuse: Check file size
     if (dto.fileSize > this.MAX_FILE_SIZE) {
       throw new BadRequestException(`File size exceeds limit of 10MB.`)
     }
 
-    // 5. Validate file type (optional but recommended)
+    let fileType = dto.fileType
+    if (fileType === 'application/octet-stream' || !fileType) {
+      const ext = dto.fileName.split('.').pop()?.toLowerCase()
+      if (ext === 'pdf') fileType = 'application/pdf'
+      else if (ext === 'docx') fileType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      else if (ext === 'doc') fileType = 'application/msword'
+      else if (ext === 'png') fileType = 'image/png'
+      else if (ext === 'jpg' || ext === 'jpeg') fileType = 'image/jpeg'
+    }
+
     const allowedTypes = [
       'application/pdf', 
       'image/jpeg', 
@@ -66,26 +71,24 @@ export class UploadContractUseCase {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/msword'
     ]
-    if (!allowedTypes.includes(dto.fileType)) {
+    if (!allowedTypes.includes(fileType)) {
       throw new BadRequestException('Only PDF, Image, and Word files are allowed for contracts.')
     }
 
-    // 6. Generate S3 path
     const fileExtension = dto.fileName.split('.').pop()
     const uuid = crypto.randomUUID()
     const s3Key = `users/${user.uuid}/contracts/${uuid}.${fileExtension}`
 
-    // 7. Upload buffer directly to S3
-    await this.s3Service.uploadBuffer(dto.fileBuffer, s3Key, dto.fileType)
+    this.s3Service.uploadBuffer(dto.fileBuffer, s3Key, fileType)
+      .catch((err) => console.error(`Background S3 upload failed for ${s3Key}:`, err))
 
-    // 8. Save to DB
     const contract = await this.contractRepository.save({
       uuid,
       userId: user.id!,
       userPropertyId,
       fileName: dto.fileName,
       fileUrl: s3Key, // Store the S3 key
-      fileType: dto.fileType,
+      fileType: fileType,
       fileSize: dto.fileSize,
     })
 

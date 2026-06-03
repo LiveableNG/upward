@@ -27,6 +27,29 @@ export class CalculateRentScoreUseCase {
       return await this.defaultUnscorableState(user)
     }
 
+    const completedCycles = allCycles.filter(cycle => {
+      const dueDate = new Date(cycle.dueDate)
+      const status = cycle.status as string
+      const isPastDue = dueDate <= now
+      const isFullyPaid = status === 'PAID_ON_TIME' || status === 'PAID' || status === 'PAID_LATE'
+      return isPastDue || isFullyPaid
+    })
+
+    const pendingCycles = allCycles.filter(cycle => {
+      const dueDate = new Date(cycle.dueDate)
+      const status = cycle.status as string
+      const isPastDue = dueDate <= now
+      const isFullyPaid = status === 'PAID_ON_TIME' || status === 'PAID' || status === 'PAID_LATE'
+      return !isPastDue && !isFullyPaid
+    })
+
+    let pendingOwed = 0
+    let pendingPaid = 0
+    pendingCycles.forEach(cycle => {
+      pendingOwed += cycle.amountOwed || 0
+      pendingPaid += cycle.amountPaid || 0
+    })
+
     let totalPTScore = 0
     let partialCyclesCount = 0
 
@@ -37,10 +60,23 @@ export class CalculateRentScoreUseCase {
 
       let ptValue = 0 // default for MISSED or PENDING past due
       let excluded = false
-      const status = cycle.status
+      const status = cycle.status as string
 
-      if (status === 'PAID_ON_TIME') {
-        ptValue = 1.0
+      if (status === 'PAID_ON_TIME' || status === 'PAID') {
+        if (status === 'PAID' && paidDate && dueDate && paidDate > dueDate) {
+          const diffTime = Math.abs(paidDate.getTime() - dueDate.getTime())
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+          if (diffDays < 14) {
+            ptValue = 0.85
+          } else if (diffDays <= 30) {
+            ptValue = 0.7 - ((diffDays - 14) / 16) * 0.2
+          } else {
+            ptValue = 0.3
+          }
+        } else {
+          ptValue = 1.0
+        }
       } else if (status === 'PAID_LATE' && paidDate) {
         const diffTime = Math.abs(paidDate.getTime() - dueDate.getTime())
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
@@ -81,7 +117,7 @@ export class CalculateRentScoreUseCase {
         amount: cycle.amountOwed,
         dueDate: dueDate,
         paidDate: paidDate,
-        status: cycle.status,
+        status: cycle.status as string,
         ptValue: ptValue,
         source: (cycle as any).source,
         excluded: excluded
@@ -131,7 +167,10 @@ export class CalculateRentScoreUseCase {
         const cyclesInMonth = monthsMap[key]
         if (!cyclesInMonth) return
         
-        const allOnTime = cyclesInMonth.every(c => c.status === 'PAID_ON_TIME')
+        const allOnTime = cyclesInMonth.every(c => 
+          c.status === 'PAID_ON_TIME' || 
+          (c.status === 'PAID' && (!c.paidDate || !c.dueDate || c.paidDate <= c.dueDate))
+        )
         
         if (allOnTime) {
           currentStreak++
@@ -144,7 +183,8 @@ export class CalculateRentScoreUseCase {
       })
     }
 
-    if (scoredCount === 0) {
+    const isScorable = scoredCount > 0 || (pendingCycles.length > 0 && pendingPaid > 0)
+    if (!isScorable) {
       return await this.defaultUnscorableState(user)
     }
 
@@ -167,9 +207,30 @@ export class CalculateRentScoreUseCase {
     // Calculate D: Discipline
     const D = scoredCount > 0 ? (1 - (partialCyclesCount / scoredCount)) : 1
 
-    const CoreScore = 300 + (PT * 200) + (PS * 150) + (T * 50) + (D * 100)
-    const SavingsBonus = 0
-    const FinalScore = Math.round(CoreScore + SavingsBonus)
+    // Interpolated score calculation for early/pending partial payments
+    const baseScore = this.calculateScoreFromCycles(completedCycles, now)
+    const potentialCycles = allCycles.map(cycle => {
+      const dueDate = new Date(cycle.dueDate)
+      const status = cycle.status as string
+      const isPastDue = dueDate <= now
+      const isFullyPaid = status === 'PAID_ON_TIME' || status === 'PAID' || status === 'PAID_LATE'
+      if (!isPastDue && !isFullyPaid) {
+        return {
+          ...cycle,
+          status: 'PAID_ON_TIME' as const,
+          paidAt: cycle.paidAt || now
+        }
+      }
+      return cycle
+    })
+    const potentialScore = this.calculateScoreFromCycles(potentialCycles, now)
+    const pendingRatio = pendingOwed > 0 ? pendingPaid / pendingOwed : 0
+    const scoreDiff = potentialScore - baseScore
+    const finalCalculatedScore = scoreDiff > 0
+      ? baseScore + scoreDiff * pendingRatio
+      : baseScore
+
+    const FinalScore = Math.round(finalCalculatedScore)
 
     // Band/Rank
     let band = 'High risk'; let rank = 'E'
@@ -289,5 +350,141 @@ export class CalculateRentScoreUseCase {
         cycles: []
       }
     }
+  }
+
+  private calculateScoreFromCycles(cyclesToScore: any[], now: Date): number {
+    if (cyclesToScore.length === 0) return 500
+
+    let totalPTScore = 0
+    let partialCyclesCount = 0
+    const monthsMap: Record<string, any[]> = {}
+
+    const scoredCycles = cyclesToScore.map(cycle => {
+      const dueDate = new Date(cycle.dueDate)
+      const paidDate = cycle.paidAt ? new Date(cycle.paidAt) : null
+      const isBeforeDueDate = dueDate > now
+      let ptValue = 0
+      let excluded = false
+      const status = cycle.status as string
+
+      if (status === 'PAID_ON_TIME' || status === 'PAID') {
+        if (status === 'PAID' && paidDate && dueDate && paidDate > dueDate) {
+          const diffTime = Math.abs(paidDate.getTime() - dueDate.getTime())
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+          if (diffDays < 14) ptValue = 0.85
+          else if (diffDays <= 30) ptValue = 0.7 - ((diffDays - 14) / 16) * 0.2
+          else ptValue = 0.3
+        } else {
+          ptValue = 1.0
+        }
+      } else if (status === 'PAID_LATE' && paidDate) {
+        const diffTime = Math.abs(paidDate.getTime() - dueDate.getTime())
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        if (diffDays < 14) ptValue = 0.85
+        else if (diffDays <= 30) ptValue = 0.7 - ((diffDays - 14) / 16) * 0.2
+        else ptValue = 0.3
+      } else if (status === 'PARTIAL_ON_TIME' || status === 'PARTIAL_LATE') {
+        if (isBeforeDueDate) {
+          excluded = true
+          ptValue = -1
+        } else {
+          ptValue = 0.5
+          partialCyclesCount++
+        }
+      } else if (status === 'MISSED') {
+        ptValue = 0
+      } else if (status === 'PENDING') {
+        if (isBeforeDueDate) {
+          excluded = true
+          ptValue = -1
+        } else {
+          ptValue = 0
+        }
+      }
+
+      if (!excluded) {
+        totalPTScore += ptValue
+      }
+
+      return {
+        dueDate,
+        paidDate,
+        status,
+        ptValue,
+        excluded
+      }
+    }).filter(c => !c.excluded)
+
+    const scoredCount = scoredCycles.length
+    if (scoredCount === 0) return 500
+
+    let currentStreak = 0
+    let longestStreak = 0
+
+    scoredCycles.forEach(c => {
+      const monthKey = `${c.dueDate.getFullYear()}-${c.dueDate.getMonth()}`
+      if (!monthsMap[monthKey]) monthsMap[monthKey] = []
+      monthsMap[monthKey].push(c)
+    })
+
+    const sortedMonths = Object.keys(monthsMap).sort((a, b) => {
+      const partsA = a.split('-').map(Number)
+      const partsB = b.split('-').map(Number)
+      const ya = partsA[0] || 0
+      const ma = partsA[1] || 0
+      const yb = partsB[0] || 0
+      const mb = partsB[1] || 0
+      return ya !== yb ? ya - yb : ma - mb
+    })
+
+    let lastMonthKey: string | null = null
+    sortedMonths.forEach(key => {
+      const partsCurrent = key.split('-').map(Number)
+      const year = partsCurrent[0] ?? 0
+      const month = partsCurrent[1] ?? 0
+      
+      if (lastMonthKey) {
+        const parts = lastMonthKey.split('-').map(Number)
+        const lastYear = parts[0] as number
+        const lastMonth = parts[1] as number
+        const monthsDiff = (year - lastYear) * 12 + (month - lastMonth)
+        if (monthsDiff > 1) {
+          currentStreak = 0
+        }
+      }
+
+      const cyclesInMonth = monthsMap[key]
+      if (!cyclesInMonth) return
+      
+      const allOnTime = cyclesInMonth.every(c => 
+        c.status === 'PAID_ON_TIME' || 
+        (c.status === 'PAID' && (!c.paidDate || !c.dueDate || c.paidDate <= c.dueDate))
+      )
+      
+      if (allOnTime) {
+        currentStreak++
+        if (currentStreak > longestStreak) longestStreak = currentStreak
+      } else {
+        currentStreak = 0
+      }
+      
+      lastMonthKey = key
+    })
+
+    const PT = totalPTScore / scoredCount
+    const scoredMonthsCount = Object.keys(monthsMap).length
+    const PS = scoredMonthsCount > 0 ? (longestStreak / scoredMonthsCount) : 0
+
+    let yearsOfHistory = 0
+    if (cyclesToScore.length > 0) {
+      const firstCycleDate = new Date(cyclesToScore[0]!.dueDate)
+      const historyMs = now.getTime() - firstCycleDate.getTime()
+      yearsOfHistory = Math.max(0, historyMs / (1000 * 60 * 60 * 24 * 365))
+    }
+    const T = Math.min(1, yearsOfHistory / 3)
+    const D = 1 - (partialCyclesCount / scoredCount)
+
+    const CoreScore = 300 + (PT * 200) + (PS * 150) + (T * 50) + (D * 100)
+    return Math.round(CoreScore)
   }
 }
