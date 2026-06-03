@@ -42,6 +42,8 @@ export default function DocumentsPage() {
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null)
   const [previewFile, setPreviewFile] = useState<Contract | null>(null)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [customDocName, setCustomDocName] = useState<string>('')
 
   const properties = dashboardData?.user?.properties || []
 
@@ -68,7 +70,7 @@ export default function DocumentsPage() {
     }
   }
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -91,9 +93,19 @@ export default function DocumentsPage() {
       return
     }
 
+    setSelectedFile(file)
+    // Prefill custom document name with file name (excluding extension)
+    const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name
+    setCustomDocName(nameWithoutExt)
+  }
+
+  const handleFileUpload = async () => {
+    if (!selectedFile) return
+
     setUploading(true)
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', selectedFile)
+    formData.append('fileName', customDocName.trim() || selectedFile.name)
     if (selectedPropertyUuid) {
       formData.append('propertyUuid', selectedPropertyUuid)
     }
@@ -103,6 +115,9 @@ export default function DocumentsPage() {
       // Re-fetch list to include newly created contract with its resolved userProperty relation
       await fetchContracts()
       success('Document uploaded successfully')
+      setIsUploadModalOpen(false)
+      setSelectedFile(null)
+      setCustomDocName('')
     } catch (err: any) {
       console.error('Failed to upload contract:', err)
       error(err?.message || 'Failed to upload document')
@@ -135,38 +150,59 @@ export default function DocumentsPage() {
     try {
       success('Downloading...')
       const blob = await import('@/lib/api-client').then(m => 
-        m.requestBlob(contract.fileUrl, { method: 'GET' })
+        m.requestBlob(`/user/contracts/${contract.uuid}/download`, { method: 'GET' })
       )
       const filename = contract.fileName || 'document.pdf'
-      const file = new File([blob], filename, { type: contract.fileType || 'application/pdf' })
 
       if (require('@capacitor/core').Capacitor.isNativePlatform()) {
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: 'Tenancy Document',
-            text: `Here is the document: ${filename}`,
+        try {
+          const { Filesystem, Directory } = await import('@capacitor/filesystem')
+          const { Share } = await import('@capacitor/share')
+
+          // Convert Blob to Base64 for Capacitor Filesystem
+          const reader = new FileReader()
+          const base64Data = await new Promise<string>((resolve, reject) => {
+            reader.onloadend = () => {
+              const result = reader.result as string
+              if (result) {
+                resolve(result.split(',')[1]) // Extract pure base64
+              } else {
+                reject(new Error('Failed to convert blob to base64'))
+              }
+            }
+            reader.onerror = reject
+            reader.readAsDataURL(blob)
           })
-        } else {
-          const url = window.URL.createObjectURL(blob)
-          const link = document.createElement('a')
-          link.href = url
-          link.download = filename
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-          window.URL.revokeObjectURL(url)
+
+          const cleanFileName = filename.replace(/\//g, '-')
+          const writeResult = await Filesystem.writeFile({
+            path: cleanFileName,
+            data: base64Data,
+            directory: Directory.Cache,
+          })
+
+          // Trigger native share sheet
+          await Share.share({
+            title: filename,
+            text: `Here is the document: ${filename}`,
+            url: writeResult.uri,
+          })
+          
+          return
+        } catch (err) {
+          console.error('Native download/sharing failed:', err)
         }
-      } else {
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = filename
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
       }
+
+      // Fallback for Web/Non-native
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
     } catch (err) {
       console.error('Download failed:', err)
       error('Failed to download document')
@@ -334,16 +370,18 @@ export default function DocumentsPage() {
                             </div>
                           </div>
                           <div className="contract-item__actions">
-                            <button
-                              className="action-btn"
-                              onClick={() => {
-                                setPreviewFile(contract)
-                                setShowPreviewModal(true)
-                              }}
-                              title="Preview"
-                            >
-                              <Eye size={18} />
-                            </button>
+                            {contract.fileType === 'application/pdf' && (
+                              <button
+                                className="action-btn"
+                                onClick={() => {
+                                  setPreviewFile(contract)
+                                  setShowPreviewModal(true)
+                                }}
+                                title="Preview"
+                              >
+                                <Eye size={18} />
+                              </button>
+                            )}
                             <button
                               className="action-btn"
                               onClick={() => handleDownload(contract)}
@@ -438,7 +476,11 @@ export default function DocumentsPage() {
       </Modal>
 
       {/* Upload Modal */}
-      <Modal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} size="md">
+      <Modal isOpen={isUploadModalOpen} onClose={() => {
+        setIsUploadModalOpen(false)
+        setSelectedFile(null)
+        setCustomDocName('')
+      }} size="md">
         <div className="upload-modal" style={{ padding: '1.5rem 1.25rem' }}>
           <div style={{ marginBottom: '1.5rem', paddingRight: '2.5rem' }}>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text)' }}>Upload New Document</h3>
@@ -467,33 +509,120 @@ export default function DocumentsPage() {
             </div>
           )}
 
-          <label className={`upload-zone ${uploading ? 'is-uploading' : ''}`}>
-            <input
-              type="file"
-              className="upload-zone__input"
-              onChange={async (e) => {
-                await handleFileUpload(e);
-                setIsUploadModalOpen(false);
-              }}
-              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-              disabled={uploading}
-            />
-            <div className="upload-zone__content">
-              {uploading ? (
-                <div className="upload-loader">
-                  <div className="spinner" />
-                  <span>Uploading...</span>
-                </div>
-              ) : (
-                <>
-                  <div className="upload-icon-wrap">
-                    <Upload size={24} />
+          {selectedFile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{
+                padding: '12px 16px',
+                borderRadius: '12px',
+                background: 'var(--bg)',
+                border: '1px solid var(--border-solid)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                  <FileText size={20} style={{ color: 'var(--clay)', flexShrink: 0 }} />
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{
+                      margin: 0,
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      color: 'var(--text)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {selectedFile.name}
+                    </p>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {formatFileSize(selectedFile.size)}
+                    </p>
                   </div>
-                  <span className="upload-text">Tap to select file</span>
-                </>
-              )}
+                </div>
+                <button
+                  onClick={() => { setSelectedFile(null); setCustomDocName(''); }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    padding: '4px'
+                  }}
+                  title="Remove file"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Document Name
+                </label>
+                <input
+                  type="text"
+                  style={{
+                    width: '100%',
+                    height: '44px',
+                    padding: '0 12px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-solid)',
+                    outline: 'none',
+                    fontSize: '0.9rem',
+                    fontWeight: 500,
+                    color: 'var(--text)'
+                  }}
+                  value={customDocName}
+                  onChange={(e) => setCustomDocName(e.target.value)}
+                  placeholder="e.g. Tenancy Agreement"
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '0.5rem' }}>
+                <button
+                  className="btn btn--secondary"
+                  onClick={() => { setSelectedFile(null); setCustomDocName(''); }}
+                  style={{ flex: 1, padding: '10px', borderRadius: '10px', height: '44px' }}
+                  disabled={uploading}
+                >
+                  Clear Selection
+                </button>
+                <button
+                  className="btn btn--primary"
+                  onClick={handleFileUpload}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '10px',
+                    height: '44px',
+                    background: 'var(--clay)',
+                    color: 'white',
+                    border: 'none',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                  disabled={uploading || !customDocName.trim()}
+                >
+                  {uploading ? 'Uploading...' : 'Upload Document'}
+                </button>
+              </div>
             </div>
-          </label>
+          ) : (
+            <label className={`upload-zone ${uploading ? 'is-uploading' : ''}`}>
+              <input
+                type="file"
+                className="upload-zone__input"
+                onChange={handleFileSelect}
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                disabled={uploading}
+              />
+              <div className="upload-zone__content">
+                <div className="upload-icon-wrap">
+                  <Upload size={24} />
+                </div>
+                <span className="upload-text">Tap to select file</span>
+              </div>
+            </label>
+          )}
         </div>
       </Modal>
 
