@@ -17,6 +17,7 @@ import * as crypto from 'crypto';
 import { GenerateDocumentPdfUseCase } from './generate-document-pdf.use-case';
 
 export interface SendDocumentDto {
+  uuid?: string;
   tenantUuid?: string;
   unitUuid?: string;
   subject: string;
@@ -60,7 +61,32 @@ export class SendDocumentUseCase {
     let tenant: TenantEntity | null = null;
     let unit: UnitEntity | null = null;
 
-    if (data.tenantUuid) {
+    const isEdit = !!data.uuid;
+    const sentUuid = data.uuid || crypto.randomUUID();
+    let s3Key = `pm-docs/sent/pm_${pmId}/${sentUuid}.html`;
+
+    if (isEdit) {
+      const existing = await this.prisma.upward_pm_sent_document.findUnique({
+        where: { uuid: data.uuid }
+      });
+      if (!existing) {
+        throw new Error('Document not found');
+      }
+      s3Key = existing.content; // Reuse S3 key
+      tenantId = existing.tenantId;
+      unitId = existing.unitId;
+      if (unitId) {
+        const unitRecord = await this.prisma.upward_pm_unit.findUnique({
+          where: { id: unitId },
+          include: { property: true }
+        });
+        if (unitRecord) {
+          unit = unitRecord as any;
+        }
+      }
+    }
+
+    if (data.tenantUuid && !isEdit) {
       tenant = await this.tenantRepo.findByUuid(data.tenantUuid);
       if (tenant) {
         tenantId = tenant.id;
@@ -71,7 +97,7 @@ export class SendDocumentUseCase {
       }
     }
 
-    if (data.unitUuid && !unit) {
+    if (data.unitUuid && !unit && !isEdit) {
       unit = await this.unitRepo.findByUuid(data.unitUuid);
       if (unit) unitId = unit.id;
     }
@@ -206,8 +232,6 @@ export class SendDocumentUseCase {
     }
 
     // 3. Upload Snapshot to S3
-    const sentUuid = crypto.randomUUID();
-    const s3Key = `pm-docs/sent/pm_${pmId}/${sentUuid}.html`;
     await this.s3Service.uploadBuffer(
       Buffer.from(content),
       s3Key,
@@ -253,18 +277,66 @@ export class SendDocumentUseCase {
     }
 
     // 5. Save the record
-    return this.documentRepo.saveSentDocument({
-      uuid: sentUuid,
-      pmId,
-      tenantId,
-      unitId,
-      subject: data.subject,
-      content: s3Key,
-      documentType: data.documentType,
-      recipientName: data.recipientName,
-      recipientEmail: data.recipientEmail,
-      status: 'SENT',
-      includeLetterhead: data.includeLetterhead || false,
-    });
+    if (isEdit) {
+      await this.prisma.upward_pm_sent_document.update({
+        where: { uuid: sentUuid },
+        data: {
+          subject: data.subject,
+          documentType: data.documentType,
+          recipientName: data.recipientName,
+          recipientEmail: data.recipientEmail,
+          status: 'SENT',
+          includeLetterhead: data.includeLetterhead || false,
+        }
+      });
+
+      // Update tenant's contract
+      await this.prisma.upward_user_contract.updateMany({
+        where: { uuid: sentUuid },
+        data: {
+          fileName: `${data.subject}.html`,
+          fileSize: content.length,
+          fileUrl: s3Key,
+        }
+      });
+
+      return this.documentRepo.findSentDocumentByUuid(sentUuid);
+    } else {
+      const result = await this.documentRepo.saveSentDocument({
+        uuid: sentUuid,
+        pmId,
+        tenantId,
+        unitId,
+        subject: data.subject,
+        content: s3Key,
+        documentType: data.documentType,
+        recipientName: data.recipientName,
+        recipientEmail: data.recipientEmail,
+        status: 'SENT',
+        includeLetterhead: data.includeLetterhead || false,
+      });
+
+      // Synchronize with tenant's user documents
+      if (unit && unit.userPropertyUuid) {
+        const userProperty = await this.prisma.upward_user_property.findFirst({
+          where: { uuid: unit.userPropertyUuid }
+        });
+        if (userProperty) {
+          await this.prisma.upward_user_contract.create({
+            data: {
+              uuid: sentUuid,
+              userId: userProperty.userId,
+              userPropertyId: userProperty.id,
+              fileName: `${data.subject}.html`,
+              fileUrl: s3Key,
+              fileType: 'text/html',
+              fileSize: content.length,
+            }
+          });
+        }
+      }
+
+      return result;
+    }
   }
 }

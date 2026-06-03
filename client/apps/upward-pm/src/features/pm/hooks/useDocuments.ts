@@ -38,3 +38,11 @@ export const useDocuments = () => {
     generatePdf: generatePdfMutation,
   };
 };
+
+export const useUnitDocuments = (unitUuid: string) => {
+  return useQuery({
+    queryKey: ['pm-unit-tenant-documents', unitUuid],
+    queryFn: () => documentService.getTenantUploadedDocuments(unitUuid),
+    enabled: !!unitUuid,
+  });
+};

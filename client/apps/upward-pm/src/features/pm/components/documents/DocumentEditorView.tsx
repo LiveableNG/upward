@@ -36,6 +36,8 @@ interface DocumentEditorViewProps {
   }
   paymentContext?: any
   onBack: () => void
+  unitUuid?: string
+  documentUuid?: string
 }
 
 export function DocumentEditorView({ 
@@ -44,7 +46,9 @@ export function DocumentEditorView({
   initialTemplate,
   initialRecipient,
   paymentContext,
-  onBack 
+  onBack,
+  unitUuid,
+  documentUuid
 }: DocumentEditorViewProps) {
   const { success, error } = useToast()
   const { data: tenants = [] } = useTenants()
@@ -186,7 +190,9 @@ export function DocumentEditorView({
 
       // 2. Send Document (linked to payment if context exists)
       await sendDocument.mutateAsync({
+        uuid: documentUuid,
         tenantUuid: recipientType === 'existing' ? selectedTenantUuid : undefined,
+        unitUuid,
         subject,
         content,
         documentType: deliveryMode.toUpperCase(),
@@ -196,7 +202,7 @@ export function DocumentEditorView({
         includeLetterhead: hasLetterhead && deliveryMode === 'pdf' ? includeLetterhead : false
       })
       
-      success(paymentContext ? 'Payment request and document sent successfully' : 'Document sent and recorded successfully')
+      success(paymentContext ? 'Payment request and document sent successfully' : (documentUuid ? 'Document updated successfully' : 'Document sent and recorded successfully'))
       onBack()
     } catch (err: any) {
       error(err.message || (paymentContext ? 'Failed to process payment request' : 'Failed to send document'))

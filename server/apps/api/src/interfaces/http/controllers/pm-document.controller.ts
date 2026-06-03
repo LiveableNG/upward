@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Patch, Body, UseGuards, Request, Inject, UnauthorizedException, Res } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, UseGuards, Request, Inject, UnauthorizedException, Res, Param } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
 import { GetPmDocumentsUseCase } from '../../../application/pm/use-cases/documents/get-pm-documents.use-case';
+import { GetTenantUploadedDocumentsUseCase } from '../../../application/pm/use-cases/documents/get-tenant-uploaded-documents.use-case';
 import { SaveDocumentTemplateUseCase, SaveDocumentTemplateDto } from '../../../application/pm/use-cases/documents/save-document-template.use-case';
 import { SendDocumentUseCase, SendDocumentDto } from '../../../application/pm/use-cases/documents/send-document.use-case';
 import { GenerateDocumentPdfUseCase } from '../../../application/pm/use-cases/documents/generate-document-pdf.use-case';
@@ -11,6 +12,7 @@ import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../..
 export class PmDocumentController {
   constructor(
     private readonly getDocumentsUseCase: GetPmDocumentsUseCase,
+    private readonly getTenantUploadedDocumentsUseCase: GetTenantUploadedDocumentsUseCase,
     private readonly saveTemplateUseCase: SaveDocumentTemplateUseCase,
     private readonly sendDocumentUseCase: SendDocumentUseCase,
     private readonly generatePdfUseCase: GenerateDocumentPdfUseCase,
@@ -29,6 +31,12 @@ export class PmDocumentController {
   async getDocuments(@Request() req: any) {
     const pmId = await this.getPmId(req);
     return this.getDocumentsUseCase.execute(pmId);
+  }
+
+  @Get('tenant-uploaded/:unitUuid')
+  async getTenantUploadedDocuments(@Request() req: any, @Param('unitUuid') unitUuid: string) {
+    const pmId = await this.getPmId(req);
+    return this.getTenantUploadedDocumentsUseCase.execute(pmId, unitUuid);
   }
 
   @Post('templates')
