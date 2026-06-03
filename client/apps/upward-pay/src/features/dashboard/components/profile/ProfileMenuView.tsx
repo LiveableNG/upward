@@ -1,13 +1,11 @@
 'use client'
 
 import React, { useRef, useMemo } from 'react'
-import { Camera, Share2, FileText, ChevronRight, LogOut, User, Building, Shield, MessageCircle, AlertCircle } from 'lucide-react'
+import { Camera, ChevronRight, LogOut, User, Building, Shield, MessageCircle, AlertCircle, Settings, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { Capacitor } from '@capacitor/core'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useToast } from '@/components/common/Toast'
 import { api } from '@/lib/api'
-import { formatDate } from '@/lib/utils'
 import { type UserProfile, type ContractData } from '../../types'
 
 interface ProfileMenuViewProps {
@@ -72,19 +70,6 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
     }
   }
 
-  const handleCopyLink = async () => {
-    const defaultWebUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
-    const baseUrl = Capacitor.isNativePlatform() ? defaultWebUrl : window.location.origin
-    const url = `${baseUrl}/profile/${profile?.uuid}`
-    
-    try {
-      await navigator.clipboard.writeText(url)
-      success('Link copied to clipboard')
-    } catch (err) {
-      toastError('Failed to copy link')
-    }
-  }
-
   const accountGroup = [
     { id: 'personal', title: 'Personal Details', icon: User, onClick: () => onNavigate('personal') },
     { id: 'banking', title: 'Banking & Payouts', icon: Building, onClick: () => onNavigate('banking') },
@@ -98,39 +83,63 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
 
   return (
     <div className="profile-shell">
-      <div className="premium-hero animate-slide-up">
-        <div className="premium-hero__avatar-wrap" onClick={() => fileInputRef.current?.click()}>
-          <UserAvatar
-            src={profile.profilePic}
-            size={96}
-            className="premium-hero__avatar"
-            color="var(--bg)"
-          />
-          <div className="premium-hero__avatar-edit">
-            <Camera size={16} />
+      {/* Header Section */}
+      <header className="profile-header animate-slide-up">
+        <div className="profile-header__title-wrap">
+          <h1 className="profile-header__title">Profile</h1>
+          <p className="profile-header__subtitle">Manage your account and settings</p>
+        </div>
+        <button 
+          className="profile-header__settings-btn"
+          onClick={() => router.push('/dashboard/settings')}
+          title="Settings"
+          type="button"
+        >
+          <Settings size={20} />
+        </button>
+      </header>
+
+      {/* User Hero Card */}
+      <div className="profile-hero-card animate-slide-up" style={{ animationDelay: '0.05s' }}>
+        <div className="profile-hero-card__avatar-section">
+          <div className="profile-hero-card__avatar-wrap" onClick={() => fileInputRef.current?.click()}>
+            <UserAvatar
+              src={profile.profilePic}
+              size={72}
+              className="profile-hero-card__avatar"
+              color="var(--bg)"
+            />
+            <div className="profile-hero-card__avatar-edit">
+              <Camera size={12} />
+            </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept="image/*"
+            />
           </div>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-            accept="image/*"
-          />
         </div>
 
-        <h2 className="premium-hero__name">
-          {profile.firstName} {profile.lastName}
-        </h2>
-        <p className="premium-hero__email">{profile.email}</p>
-
-        <button 
-          className="btn btn--primary btn--pill shadow-md premium-hero__share-btn"
-          onClick={() => router.push('/dashboard/kyc')}
-        >
-          <Share2 size={16} className="mr-2" /> Share Credibility Profile
-        </button>
-
-        {/* Active Tenancy Card Removed */}
+        <div className="profile-hero-card__info-section">
+          <h2 className="profile-hero-card__name">
+            Hello, {profile.firstName || 'User'}
+          </h2>
+          <p className="profile-hero-card__subtext">Welcome back!</p>
+          
+          {isProfileComplete ? (
+            <div className="profile-hero-card__status profile-hero-card__status--verified">
+              <Shield size={12} />
+              <span>Verified</span>
+            </div>
+          ) : (
+            <div className="profile-hero-card__status profile-hero-card__status--incomplete" onClick={() => onNavigate('personal')}>
+              <AlertCircle size={12} />
+              <span>Incomplete Profile</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="premium-menu-container animate-slide-up" style={{ animationDelay: '0.1s' }}>
@@ -140,19 +149,30 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
             const Icon = s.icon
             const showWarning = s.id === 'personal' && !isProfileComplete
 
+            let itemClass = ""
+            if (s.id === 'personal') itemClass = "premium-menu-item__icon-wrap--purple"
+            else if (s.id === 'banking') itemClass = "premium-menu-item__icon-wrap--teal"
+            else if (s.id === 'contracts') itemClass = "premium-menu-item__icon-wrap--blue"
+
+            let desc = ""
+            if (s.id === 'personal') desc = "Update your personal information"
+            else if (s.id === 'banking') desc = "Manage your bank accounts"
+            else if (s.id === 'contracts') desc = "View and manage your documents"
+
             return (
               <div key={idx} className="premium-menu-item" onClick={s.onClick}>
                 <div className="flex items-center gap-4">
-                  <div className="premium-menu-item__icon-wrap">
+                  <div className={`premium-menu-item__icon-wrap ${itemClass}`}>
                     <Icon size={18} />
                   </div>
-                  <span className="premium-menu-item__title">{s.title}</span>
+                  <div className="premium-menu-item__text-wrap">
+                    <span className="premium-menu-item__title">{s.title}</span>
+                    {desc && <span className="premium-menu-item__desc">{desc}</span>}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {showWarning && (
-                    <div className="premium-menu-item__warning" title="Profile Incomplete">
-                      <AlertCircle size={16} color="var(--warning)" />
-                    </div>
+                    <div className="premium-menu-item__warning-dot" title="Profile Incomplete" />
                   )}
                   <ChevronRight size={18} color="var(--text-muted)" />
                 </div>
@@ -166,13 +186,24 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
           {supportGroup.map((s, idx) => {
             const Icon = s.icon
 
+            let itemClass = ""
+            if (s.id === 'support') itemClass = "premium-menu-item__icon-wrap--red"
+            else if (s.id === 'legal') itemClass = "premium-menu-item__icon-wrap--blue-alt"
+
+            let desc = ""
+            if (s.id === 'support') desc = "Get help and support"
+            else if (s.id === 'legal') desc = "Policies, terms and privacy"
+
             return (
               <div key={idx} className="premium-menu-item" onClick={s.onClick}>
                 <div className="flex items-center gap-4">
-                  <div className="premium-menu-item__icon-wrap">
+                  <div className={`premium-menu-item__icon-wrap ${itemClass}`}>
                     <Icon size={18} />
                   </div>
-                  <span className="premium-menu-item__title">{s.title}</span>
+                  <div className="premium-menu-item__text-wrap">
+                    <span className="premium-menu-item__title">{s.title}</span>
+                    {desc && <span className="premium-menu-item__desc">{desc}</span>}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <ChevronRight size={18} color="var(--text-muted)" />
@@ -194,114 +225,158 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
           width: 100%;
           max-width: 600px;
           margin: 0 auto;
-          padding: 1rem;
+          padding: 1rem 1rem 3rem;
           display: flex;
           flex-direction: column;
-          gap: 1rem;
+          gap: 1.25rem;
         }
 
         @media (min-width: 768px) {
           .profile-shell {
-            padding: 1.5rem;
+            padding: 1.5rem 1.5rem 4rem;
+            gap: 1.5rem;
           }
         }
 
-        .premium-hero {
-          padding: 2.5rem 1rem 1rem;
-          text-align: center;
+        /* Profile Header */
+        .profile-header {
           display: flex;
-          flex-direction: column;
+          justify-content: space-between;
           align-items: center;
-          background: transparent;
-          border: none;
-          box-shadow: none;
+          padding: 0.75rem 0.25rem 0.5rem;
         }
 
-        .premium-hero__avatar-wrap {
+        .profile-header__title-wrap {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .profile-header__title {
+          font-size: 1.85rem;
+          font-weight: 800;
+          color: var(--text);
+          letter-spacing: -0.02em;
+          margin: 0;
+        }
+
+        .profile-header__subtitle {
+          font-size: 0.9rem;
+          color: var(--text-muted);
+          margin: 0;
+        }
+
+        .profile-header__settings-btn {
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          background: var(--bg);
+          border: 1px solid var(--border);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--text);
+          cursor: pointer;
+          box-shadow: var(--shadow-sm);
+          transition: all 0.2s ease;
+        }
+
+        .profile-header__settings-btn:hover {
+          background: var(--surface);
+          color: var(--text);
+          transform: scale(1.03);
+        }
+
+        /* Profile Hero Card */
+        .profile-hero-card {
+          background: var(--bg);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          padding: 1.5rem;
+          display: flex;
+          align-items: center;
+          gap: 1.25rem;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+          margin-bottom: 0.25rem;
+        }
+
+        .profile-hero-card__avatar-section {
+          flex-shrink: 0;
+        }
+
+        .profile-hero-card__avatar-wrap {
           position: relative;
-          margin-bottom: 1.25rem;
           cursor: pointer;
           transition: transform 0.2s ease;
         }
 
-        .premium-hero__avatar-wrap:hover {
-          transform: scale(1.02);
+        .profile-hero-card__avatar-wrap:hover {
+          transform: scale(1.03);
         }
 
-        .premium-hero__avatar-edit {
+        .profile-hero-card__avatar-edit {
           position: absolute;
           bottom: -2px;
           right: -2px;
           background: var(--clay);
           color: white;
-          width: 32px;
-          height: 32px;
+          width: 24px;
+          height: 24px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 3px solid var(--bg);
-          box-shadow: var(--shadow-md);
+          border: 2.5px solid var(--bg);
+          box-shadow: var(--shadow-sm);
         }
 
-        .premium-hero__name {
-          font-size: 1.5rem;
-          font-weight: 700;
-          margin: 0 0 0.25rem;
-          letter-spacing: -0.02em;
-          color: var(--text);
-        }
-
-        .premium-hero__email {
-          font-size: 0.9rem;
-          color: var(--text-muted);
-          margin: 0 0 1.25rem;
-        }
-
-        .premium-hero__share-btn {
-          margin-bottom: 1.5rem;
-          padding: 10px 18px;
-          font-size: 0.875rem;
-          font-weight: 600;
-        }
-
-        .premium-hero__tenancy {
-          width: 100%;
-          max-width: 100%;
-          background: var(--surface);
-          padding: 1.25rem;
-          border-radius: 20px;
-          border: 1px solid var(--border);
-          margin-top: 1rem;
-        }
-
-        .premium-hero__tenancy-icon {
-          width: 44px;
-          height: 44px;
-          background: var(--clay-faint);
-          color: var(--clay);
-          border-radius: 14px;
+        .profile-hero-card__info-section {
           display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
+          flex-direction: column;
+          gap: 2px;
+          align-items: flex-start;
         }
 
-        .premium-hero__tenancy-title {
-          font-size: 0.9rem;
+        .profile-hero-card__name {
+          font-size: 1.35rem;
           font-weight: 800;
           color: var(--text);
-          margin: 0 0 2px;
+          letter-spacing: -0.015em;
+          margin: 0;
         }
 
-        .premium-hero__tenancy-property {
-          font-size: 0.8rem;
+        .profile-hero-card__subtext {
+          font-size: 0.85rem;
           color: var(--text-muted);
-          margin: 0;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          max-width: 250px;
+          margin: 0 0 6px;
+        }
+
+        .profile-hero-card__status {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 5px 12px;
+          border-radius: var(--radius-full);
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+        }
+
+        .profile-hero-card__status--verified {
+          background: var(--success-bg);
+          color: var(--success);
+        }
+
+        .profile-hero-card__status--incomplete {
+          background: rgba(245, 158, 11, 0.08);
+          color: var(--warning);
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+
+        .profile-hero-card__status--incomplete:hover {
+          opacity: 0.9;
         }
 
         /* Menu Groups */
@@ -350,30 +425,69 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
         }
 
         .premium-menu-item__icon-wrap {
-          width: 36px;
-          height: 36px;
-          background: var(--surface);
-          border-radius: 10px;
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: var(--text-secondary);
-          transition: all 0.2s ease;
+          transition: transform 0.2s ease;
         }
 
         .premium-menu-item:hover .premium-menu-item__icon-wrap {
-          background: var(--clay-faint);
-          color: var(--clay);
+          transform: scale(1.05);
+        }
+
+        /* Icon Colors */
+        .premium-menu-item__icon-wrap--purple {
+          background: rgba(112, 72, 232, 0.08);
+          color: #7048e8;
+        }
+        .premium-menu-item__icon-wrap--teal {
+          background: rgba(12, 166, 120, 0.08);
+          color: #0ca678;
+        }
+        .premium-menu-item__icon-wrap--blue {
+          background: rgba(28, 126, 214, 0.08);
+          color: #1c7ed6;
+        }
+        .premium-menu-item__icon-wrap--red {
+          background: rgba(240, 62, 62, 0.08);
+          color: #f03e3e;
+        }
+        .premium-menu-item__icon-wrap--blue-alt {
+          background: rgba(59, 130, 246, 0.08);
+          color: #3b82f6;
+        }
+
+        .premium-menu-item__text-wrap {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          text-align: left;
         }
 
         .premium-menu-item__title {
-          font-weight: 600;
+          font-weight: 700;
           font-size: 0.95rem;
           color: var(--text);
         }
 
+        .premium-menu-item__desc {
+          font-size: 0.78rem;
+          color: var(--text-muted);
+          font-weight: 500;
+        }
+
+        .premium-menu-item__warning-dot {
+          width: 8px;
+          height: 8px;
+          background: var(--warning);
+          border-radius: 50%;
+        }
+
         .logout-container {
-          margin-top: 1rem;
+          margin-top: 1.25rem;
           display: flex;
           justify-content: center;
           width: 100%;
@@ -383,12 +497,12 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 0.875rem 1.5rem;
-          border-radius: 14px;
+          padding: 0.9rem;
+          border-radius: 16px;
           border: 1px solid rgba(239, 68, 68, 0.2);
-          background: transparent;
+          background: var(--bg);
           color: var(--error);
-          font-weight: 600;
+          font-weight: 700;
           font-size: 0.95rem;
           cursor: pointer;
           width: 100%;
@@ -396,12 +510,16 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
         }
 
         .logout-btn:hover {
-          background: rgba(239, 68, 68, 0.05);
+          background: rgba(239, 68, 68, 0.04);
           border-color: var(--error);
         }
 
         .hidden { display: none; }
-        .text-muted { color: var(--text-muted); }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-4 { gap: 1rem; }
+        .mr-2 { margin-right: 0.5rem; }
 
         @keyframes slideUp {
           from { opacity: 0; transform: translateY(10px); }
