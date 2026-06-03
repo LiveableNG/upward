@@ -16,6 +16,7 @@ export const api = {
   updatePmProfile: pmService.updateProfile,
   updatePmBankInfo: pmService.updateBankInfo,
   verifyPmBank: pmService.verifyBank,
+  getDashboardSummary: pmService.getDashboardSummary,
   getBanks: pmService.getBanks,
   changePmPassword: pmService.changePassword,
   getPmAvatarUploadUrl: pmService.getAvatarUploadUrl,

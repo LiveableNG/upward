@@ -64,9 +64,11 @@ export function PropertiesView() {
   const [paymentContext, setPaymentContext] = useState<any>(null)
   
   // Data Hooks
-  const { data: properties = [] } = useProperties()
-  const { data: units = [] } = useUnits()
+  const { data: properties = [], isLoading: loadingProperties } = useProperties()
+  const { data: units = [], isLoading: loadingUnits } = useUnits()
   const { data: paymentRequests = [] } = usePaymentRequests()
+  
+  const isLoading = loadingProperties || loadingUnits
   
   const createPropertyMutation = useCreateProperty()
   const updatePropertyMutation = useUpdateProperty()
@@ -286,6 +288,13 @@ export function PropertiesView() {
   }, [properties, searchQuery])
 
   const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="upward-table-container animate-pulse" style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>
+          Loading properties and units data...
+        </div>
+      )
+    }
     if (activeTab === 'units') {
       return (
         <UnitsTable 
