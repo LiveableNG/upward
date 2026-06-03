@@ -11,11 +11,12 @@ interface SendToVaultModalProps {
   unitUuid: string
   tenantUuid?: string
   tenantName?: string
+  onProceedToEditor?: (template: any) => void
 }
 
 type TabType = 'upload' | 'template'
 
-export function SendToVaultModal({ isOpen, onClose, unitUuid, tenantUuid, tenantName }: SendToVaultModalProps) {
+export function SendToVaultModal({ isOpen, onClose, unitUuid, tenantUuid, tenantName, onProceedToEditor }: SendToVaultModalProps) {
   const { templates, isLoading: loadingTemplates } = useDocuments()
   const { sendFileToVault, sendTemplateToVault } = useVaultActions()
   const { success, error } = useToast()
@@ -322,6 +323,18 @@ export function SendToVaultModal({ isOpen, onClose, unitUuid, tenantUuid, tenant
 
             <div style={{ display: 'flex', gap: 12, marginTop: 28 }}>
               <button type="button" className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+              {selectedTemplateUuid && onProceedToEditor && (
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  style={{ flex: 1, borderColor: 'var(--forest)', color: 'var(--forest)' }}
+                  onClick={() => {
+                    onProceedToEditor(selectedTemplate)
+                  }}
+                >
+                  Edit & Customize
+                </button>
+              )}
               <button
                 className="btn btn--primary"
                 style={{ flex: 1 }}

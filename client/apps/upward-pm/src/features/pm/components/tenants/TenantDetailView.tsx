@@ -36,8 +36,7 @@ export const TenantDetailView: React.FC = () => {
   const [selectedUnitForPayment, setSelectedUnitForPayment] = useState<any>(null)
   const [selectedRequestForEdit, setSelectedRequestForEdit] = useState<any>(null)
   const [activeDetailTab, setActiveDetailTab] = useState<'profile' | 'rent' | 'actions' | 'documents'>('profile')
-  
-  // Payment -> Document Editor Flow
+
   const [showEditor, setShowEditor] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
   const [paymentContext, setPaymentContext] = useState<any>(null)

@@ -1046,6 +1046,12 @@ function UnitDetailContent() {
         unitUuid={uuid as string}
         tenantUuid={unit?.tenant?.uuid}
         tenantName={unit?.tenant ? `${unit.tenant.firstName} ${unit.tenant.lastName}` : undefined}
+        onProceedToEditor={(template) => {
+          setEditingTemplate(template)
+          setPaymentContext(null)
+          setIsVaultModalOpen(false)
+          setShowEditor(true)
+        }}
       />
 
       {isAssignModalOpen && (
