@@ -140,6 +140,7 @@ import { CancelPmPaymentRequestUseCase } from './pm/use-cases/payments/cancel-pm
 import { ProcessScheduledPmPaymentRequestsUseCase } from './pm/use-cases/payments/process-scheduled-payment-requests.use-case'
 import { ResolvePendingRefundUseCase } from './pm/use-cases/payments/resolve-refund.use-case'
 import { GetPmDocumentsUseCase } from './pm/use-cases/documents/get-pm-documents.use-case'
+import { GetTenantUploadedDocumentsUseCase } from './pm/use-cases/documents/get-tenant-uploaded-documents.use-case'
 import { SaveDocumentTemplateUseCase } from './pm/use-cases/documents/save-document-template.use-case'
 import { SendDocumentUseCase } from './pm/use-cases/documents/send-document.use-case'
 import { GenerateDocumentPdfUseCase } from './pm/use-cases/documents/generate-document-pdf.use-case'
@@ -400,6 +401,7 @@ const UseCases = [
   CancelPmPaymentRequestUseCase,
   ProcessScheduledPmPaymentRequestsUseCase,
   GetPmDocumentsUseCase,
+  GetTenantUploadedDocumentsUseCase,
   SaveDocumentTemplateUseCase,
   SendDocumentUseCase,
   GenerateDocumentPdfUseCase,

@@ -18,9 +18,12 @@ import {
   UserPlus,
   Unlink,
   Download,
-  Edit
+  Edit,
+  FileText,
+  Plus
 } from 'lucide-react'
 import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useUpdateUnitPayment, useAddUnitPayment } from '@/features/pm/hooks/useProperties'
+import { useDocuments, useUnitDocuments } from '@/features/pm/hooks/useDocuments'
 import { usePaymentRequests, useCreatePaymentRequest } from '@/features/pm/hooks/usePayments'
 import { useTenants, useTenantActions } from '@/features/pm/hooks/useTenants'
 import { TenantAssignmentSection } from '@/features/pm/components/tenants/TenantAssignmentSection'
@@ -69,6 +72,48 @@ function UnitDetailContent() {
   const [showEditor, setShowEditor] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
   const [paymentContext, setPaymentContext] = useState<any>(null)
+  const [editingDocUuid, setEditingDocUuid] = useState<string | undefined>(undefined)
+  const [editingRecipient, setEditingRecipient] = useState<any>(null)
+  const [downloadingDocUuid, setDownloadingDocUuid] = useState<string | null>(null)
+
+  // Fetch unit documents
+  const { documents: allPmDocs = [], generatePdf } = useDocuments()
+  const { data: tenantUploadedDocs = [] } = useUnitDocuments(uuid as string)
+
+  const pmUnitDocs = allPmDocs.filter((doc: any) => doc.unit?.uuid === uuid)
+
+  const allUnitDocs = React.useMemo(() => {
+    const mappedPmDocs = pmUnitDocs.map((doc: any) => ({
+      uuid: doc.uuid,
+      subject: doc.subject,
+      content: doc.content,
+      documentType: doc.documentType,
+      createdAt: doc.createdAt,
+      recipientName: doc.recipientName,
+      recipientEmail: doc.recipientEmail,
+      isTenantUploaded: false,
+      status: doc.status || 'SENT',
+      includeLetterhead: doc.includeLetterhead,
+      tenant: doc.tenant
+    }));
+
+    const mappedTenantDocs = tenantUploadedDocs.map((doc: any) => ({
+      uuid: doc.uuid,
+      subject: doc.fileName,
+      content: null,
+      documentType: doc.fileType.includes('/') ? doc.fileType.split('/')[1]?.toUpperCase() : doc.fileType.toUpperCase(),
+      createdAt: doc.createdAt,
+      recipientName: doc.user ? `${doc.user.firstName} ${doc.user.lastName}` : 'Tenant',
+      recipientEmail: doc.user?.email || '',
+      isTenantUploaded: true,
+      fileUrl: doc.fileUrl,
+      status: 'UPLOADED'
+    }));
+
+    return [...mappedPmDocs, ...mappedTenantDocs].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, [pmUnitDocs, tenantUploadedDocs]);
 
   const [formData, setFormData] = useState<any>({
     unitName: '',
@@ -101,7 +146,7 @@ function UnitDetailContent() {
   }, [unit])
 
   const [isEditing, setIsEditing] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'rent'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'rent' | 'documents'>('overview')
   const [rentFilters, setRentFilters] = useState({
     startDate: '',
     endDate: '',
@@ -264,15 +309,22 @@ function UnitDetailContent() {
       <div className="container" style={{ padding: '20px 0' }}>
         <DocumentEditorView
           initialTemplate={editingTemplate}
-          initialRecipient={unit?.tenant ? {
+          initialRecipient={editingRecipient || (unit?.tenant ? {
             type: 'existing',
             uuid: unit.tenant.uuid,
             name: `${unit.tenant.firstName} ${unit.tenant.lastName}`,
             email: unit.tenant.email,
-            deliveryMode: 'email'
-          } : undefined}
+            deliveryMode: 'pdf'
+          } : undefined)}
           paymentContext={paymentContext}
-          onBack={() => setShowEditor(false)}
+          unitUuid={uuid as string}
+          documentUuid={editingDocUuid}
+          onBack={() => {
+            setShowEditor(false)
+            setEditingDocUuid(undefined)
+            setEditingRecipient(null)
+            setEditingTemplate(null)
+          }}
         />
       </div>
     )
@@ -413,7 +465,7 @@ function UnitDetailContent() {
 
       {/* Tabs */}
       <div className="unit-tabs" style={{ marginBottom: 32, display: 'flex', gap: 40, borderBottom: '1px solid var(--border)' }}>
-        {['Overview', 'Rent History'].map(tab => {
+        {['Overview', 'Rent History', 'Documents'].map(tab => {
           const tabKey = tab.toLowerCase().replace(' ', '') === 'renthistory' ? 'rent' : tab.toLowerCase().replace(' ', '');
           return (
             <button
@@ -837,6 +889,143 @@ function UnitDetailContent() {
                     <tr>
                       <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                         No rent payments recorded yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {activeTab === 'documents' && (
+        <div className="unit-documents-view animate-fade-in" style={{ paddingBottom: 60 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dark)' }}>Documents &amp; Contracts</h2>
+            <button
+              className="btn btn--primary"
+              onClick={() => router.push(`/documents?unitUuid=${unit?.uuid}&tenantUuid=${unit?.tenant?.uuid || ''}`)}
+              style={{ borderRadius: 12, height: 42, display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <Plus size={16} /> Attach Document
+            </button>
+          </div>
+
+          <div className="rent-history glass" style={{ padding: 0, overflow: 'hidden', borderRadius: 16, background: 'white' }}>
+            <div className="rent-history__table-container">
+              <table className="rent-history__table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead style={{ background: 'var(--ivory-dim)' }}>
+                  <tr>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Recipient / Tenant</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Document Name</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Document Type</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Date Sent/Uploaded</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Source</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allUnitDocs.length > 0 ? allUnitDocs.map((doc: any) => {
+                    return (
+                      <tr key={doc.uuid} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td style={{ padding: '20px 24px', fontSize: 14, fontWeight: 500, color: 'var(--dark)' }}>
+                          <div>
+                            <div style={{ fontWeight: 600 }}>{doc.recipientName}</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>{doc.recipientEmail}</div>
+                          </div>
+                        </td>
+                        <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-secondary)' }}>
+                          {doc.subject}
+                        </td>
+                        <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>
+                          {doc.documentType}
+                        </td>
+                        <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-muted)' }}>
+                          {new Date(doc.createdAt).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td style={{ padding: '20px 24px' }}>
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: 6,
+                            background: doc.isTenantUploaded ? 'var(--clay-faint)' : 'var(--forest-faint)',
+                            color: doc.isTenantUploaded ? 'var(--clay)' : 'var(--forest)',
+                          }}>
+                            {doc.isTenantUploaded ? 'Tenant Uploaded' : 'PM Sent'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '20px 24px', textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', gap: 12, justifyContent: 'flex-end', width: '100%' }}>
+                            <button
+                              onClick={async () => {
+                                if (doc.isTenantUploaded) {
+                                  window.open(doc.fileUrl, '_blank');
+                                } else {
+                                  setDownloadingDocUuid(doc.uuid);
+                                  try {
+                                    const blob = await generatePdf.mutateAsync({
+                                      content: doc.content,
+                                      tenantUuid: doc.tenant?.uuid,
+                                      recipientName: doc.recipientName,
+                                      includeLetterhead: doc.includeLetterhead,
+                                    });
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `${doc.subject || 'document'}.pdf`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    document.body.removeChild(a);
+                                  } catch (err) {
+                                    console.error('Failed to download PDF:', err);
+                                  } finally {
+                                    setDownloadingDocUuid(null);
+                                  }
+                                }
+                              }}
+                              className="btn btn--secondary btn--sm"
+                              style={{ height: 32, fontSize: 12, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 4 }}
+                              disabled={downloadingDocUuid === doc.uuid}
+                            >
+                              <Download size={14} />
+                              {downloadingDocUuid === doc.uuid ? 'Downloading...' : 'Download'}
+                            </button>
+                            {!doc.isTenantUploaded && (
+                              <button
+                                onClick={() => {
+                                  setEditingTemplate({
+                                    name: doc.subject,
+                                    content: doc.content
+                                  });
+                                  setEditingDocUuid(doc.uuid);
+                                  setEditingRecipient({
+                                    type: doc.tenant?.uuid ? 'existing' : 'new',
+                                    uuid: doc.tenant?.uuid,
+                                    name: doc.recipientName,
+                                    email: doc.recipientEmail,
+                                    deliveryMode: doc.documentType?.toLowerCase() === 'pdf' ? 'pdf' : 'email'
+                                  });
+                                  setShowEditor(true);
+                                }}
+                                className="btn btn--secondary btn--sm"
+                                style={{ height: 32, fontSize: 12, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 4 }}
+                              >
+                                <Edit size={14} />
+                                Edit
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }) : (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        No documents associated with this unit yet.
                       </td>
                     </tr>
                   )}

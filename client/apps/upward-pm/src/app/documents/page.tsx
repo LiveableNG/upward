@@ -1,25 +1,60 @@
-
 'use client'
 
-import React, { useState, Suspense } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { DocumentManagementView } from '@/features/pm/components/documents/DocumentManagementView'
 import { DocumentEditorView } from '@/features/pm/components/documents/DocumentEditorView'
+import { useTenants } from '@/features/pm/hooks/useTenants'
 import { Splash } from '@/components/common/Splash'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 
-export default function DocumentManagementPage() {
+function DocumentManagementContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const unitUuid = searchParams.get('unitUuid')
+  const tenantUuid = searchParams.get('tenantUuid')
+  
+  const { data: tenants = [] } = useTenants()
+
+  // Fetch unit details if unitUuid is provided to display context
+  const { data: unit } = useQuery({
+    queryKey: ['pm-unit-detail', unitUuid],
+    queryFn: () => api.getUnit(unitUuid as string),
+    enabled: !!unitUuid
+  })
+
   const [view, setView] = useState<'list' | 'editor'>('list')
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
   const [initialRecipient, setInitialRecipient] = useState<any>(null)
 
+  // Resolve recipient from query parameters
+  useEffect(() => {
+    if (unitUuid && tenantUuid && tenants.length > 0 && !initialRecipient) {
+      const tenant = tenants.find(t => t.uuid === tenantUuid)
+      setInitialRecipient({
+        type: 'existing',
+        uuid: tenantUuid,
+        name: tenant ? `${tenant.firstName} ${tenant.lastName}` : 'Tenant',
+        email: tenant?.email || '',
+        deliveryMode: 'pdf'
+      })
+    }
+  }, [unitUuid, tenantUuid, tenants, initialRecipient])
+
   const handleNewDocument = () => {
     setEditingTemplate(null)
-    setInitialRecipient(null)
+    if (!unitUuid || !tenantUuid) {
+      setInitialRecipient(null)
+    }
     setView('editor')
   }
 
   const handleSelectTemplate = (template: any) => {
     setEditingTemplate(template)
-    setInitialRecipient(null)
+    if (!unitUuid || !tenantUuid) {
+      setInitialRecipient(null)
+    }
     setView('editor')
   }
 
@@ -39,28 +74,80 @@ export default function DocumentManagementPage() {
   }
 
   const handleBack = () => {
-    setView('list')
-    setEditingTemplate(null)
-    setInitialRecipient(null)
+    if (view === 'editor') {
+      setView('list')
+      setEditingTemplate(null)
+      // Only clear recipient if we are not in unit attachment flow
+      if (!unitUuid || !tenantUuid) {
+        setInitialRecipient(null)
+      }
+    } else if (unitUuid) {
+      router.push(`/properties/units/${unitUuid}`)
+    }
+  }
+
+  const handleEditorBack = () => {
+    if (unitUuid) {
+      router.push(`/properties/units/${unitUuid}`)
+    } else {
+      setView('list')
+      setEditingTemplate(null)
+      setInitialRecipient(null)
+    }
   }
 
   return (
+    <div className="container" style={{ padding: '40px' }}>
+      {view === 'list' && unit && (
+        <div style={{
+          background: 'var(--ivory-dim)',
+          border: '1px solid var(--border)',
+          padding: '16px 24px',
+          borderRadius: 16,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 32,
+          animation: 'fade-in 0.2s ease'
+        }}>
+          <div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--forest)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Unit Attachment Context</span>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--dark)', marginTop: 4 }}>
+              Attaching document to unit: <strong>{unit.unitName}</strong> at <strong>{unit.property?.name || 'Property'}</strong>
+            </h3>
+          </div>
+          <button 
+            className="btn btn--secondary" 
+            onClick={handleBack}
+            style={{ height: 40, borderRadius: 10 }}
+          >
+            ← Return to Unit
+          </button>
+        </div>
+      )}
+
+      {view === 'list' ? (
+        <DocumentManagementView 
+          onNewDocument={handleNewDocument}
+          onSelectTemplate={handleSelectTemplate}
+          onResendDocument={handleResendDocument}
+        />
+      ) : (
+        <DocumentEditorView 
+          initialTemplate={editingTemplate}
+          initialRecipient={initialRecipient}
+          unitUuid={unitUuid || undefined}
+          onBack={handleEditorBack}
+        />
+      )}
+    </div>
+  )
+}
+
+export default function DocumentManagementPage() {
+  return (
     <Suspense fallback={<Splash />}>
-      <div className="container" style={{ padding: '40px' }}>
-        {view === 'list' ? (
-          <DocumentManagementView 
-            onNewDocument={handleNewDocument}
-            onSelectTemplate={handleSelectTemplate}
-            onResendDocument={handleResendDocument}
-          />
-        ) : (
-          <DocumentEditorView 
-            initialTemplate={editingTemplate}
-            initialRecipient={initialRecipient}
-            onBack={handleBack}
-          />
-        )}
-      </div>
+      <DocumentManagementContent />
     </Suspense>
   )
 }

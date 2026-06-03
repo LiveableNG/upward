@@ -374,7 +374,7 @@ export default function DocumentsPage() {
           <div className="preview-modal__body">
             {previewFile && (
               <>
-                {previewFile.fileType === 'application/pdf' ? (
+                {previewFile.fileType === 'application/pdf' || previewFile.fileType === 'text/html' ? (
                   <div className="preview-container">
                     <iframe
                       src={previewFile.fileUrl}

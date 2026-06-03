@@ -35,6 +35,10 @@ export const documentService = {
     return api.get('/pm/documents');
   },
 
+  getTenantUploadedDocuments: async (unitUuid: string) => {
+    return api.get(`/pm/documents/tenant-uploaded/${unitUuid}`);
+  },
+
   saveTemplate: async (data: Partial<DocumentTemplate>) => {
     return api.post('/pm/documents/templates', data);
   },
