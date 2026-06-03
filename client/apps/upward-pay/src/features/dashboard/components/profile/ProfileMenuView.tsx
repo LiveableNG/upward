@@ -149,11 +149,6 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
             const Icon = s.icon
             const showWarning = s.id === 'personal' && !isProfileComplete
 
-            let itemClass = ""
-            if (s.id === 'personal') itemClass = "premium-menu-item__icon-wrap--purple"
-            else if (s.id === 'banking') itemClass = "premium-menu-item__icon-wrap--teal"
-            else if (s.id === 'contracts') itemClass = "premium-menu-item__icon-wrap--blue"
-
             let desc = ""
             if (s.id === 'personal') desc = "Update your personal information"
             else if (s.id === 'banking') desc = "Manage your bank accounts"
@@ -162,7 +157,7 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
             return (
               <div key={idx} className="premium-menu-item" onClick={s.onClick}>
                 <div className="flex items-center gap-4">
-                  <div className={`premium-menu-item__icon-wrap ${itemClass}`}>
+                  <div className="premium-menu-item__icon-wrap">
                     <Icon size={18} />
                   </div>
                   <div className="premium-menu-item__text-wrap">
@@ -186,10 +181,6 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
           {supportGroup.map((s, idx) => {
             const Icon = s.icon
 
-            let itemClass = ""
-            if (s.id === 'support') itemClass = "premium-menu-item__icon-wrap--red"
-            else if (s.id === 'legal') itemClass = "premium-menu-item__icon-wrap--blue-alt"
-
             let desc = ""
             if (s.id === 'support') desc = "Get help and support"
             else if (s.id === 'legal') desc = "Policies, terms and privacy"
@@ -197,7 +188,7 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
             return (
               <div key={idx} className="premium-menu-item" onClick={s.onClick}>
                 <div className="flex items-center gap-4">
-                  <div className={`premium-menu-item__icon-wrap ${itemClass}`}>
+                  <div className="premium-menu-item__icon-wrap">
                     <Icon size={18} />
                   </div>
                   <div className="premium-menu-item__text-wrap">
@@ -431,33 +422,15 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: transform 0.2s ease;
+          background: var(--clay-faint);
+          color: var(--clay);
+          transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
         }
 
         .premium-menu-item:hover .premium-menu-item__icon-wrap {
           transform: scale(1.05);
-        }
-
-        /* Icon Colors */
-        .premium-menu-item__icon-wrap--purple {
-          background: rgba(112, 72, 232, 0.08);
-          color: #7048e8;
-        }
-        .premium-menu-item__icon-wrap--teal {
-          background: rgba(12, 166, 120, 0.08);
-          color: #0ca678;
-        }
-        .premium-menu-item__icon-wrap--blue {
-          background: rgba(28, 126, 214, 0.08);
-          color: #1c7ed6;
-        }
-        .premium-menu-item__icon-wrap--red {
-          background: rgba(240, 62, 62, 0.08);
-          color: #f03e3e;
-        }
-        .premium-menu-item__icon-wrap--blue-alt {
-          background: rgba(59, 130, 246, 0.08);
-          color: #3b82f6;
+          background: var(--clay);
+          color: white;
         }
 
         .premium-menu-item__text-wrap {
