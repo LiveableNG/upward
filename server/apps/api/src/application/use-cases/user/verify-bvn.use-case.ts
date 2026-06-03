@@ -74,6 +74,25 @@ export class VerifyBvnUseCase {
       throw new NotFoundException('User not found')
     }
 
+    const isTestBvn = bvn === '12345678901' || bvn === '12345678902'
+    if (isTestBvn) {
+      this.logger.log(`Test BVN ${bvn} detected for user ID: ${user.id!}. Bypassing CreditChek API fetch and auto-matching details.`)
+      await this.userRepository.update(user.id!, { isIdentityVerified: true })
+      return {
+        success: true,
+        message: 'Identity verified successfully (Sandbox Mock)',
+      }
+    }
+
+    const isErrorTestBvn = bvn === '00000000000'
+    if (isErrorTestBvn) {
+      this.logger.log(`Error test BVN ${bvn} detected for user ID: ${user.id!}. Simulating details mismatch error.`)
+      return {
+        success: false,
+        message: 'The names on your account do not match the ones registered under this BVN.',
+      }
+    }
+
     const secretKey = this.configService.get<string>('CREDITCHEK_SECRET_KEY') || 
                       'SqwF5qvuHvM01vVGJiKTc8rHCzezvAvywCwES4+xFhUVFPfXvJokASZyuGxBVWhy'
 
@@ -104,19 +123,8 @@ export class VerifyBvnUseCase {
       const bvnLast = bvnData.lastName || ''
       const bvnDob = bvnData.dateOfBirth || ''
 
-      const isTestBvn = bvn === '12345678901' || bvn === '12345678902'
-      
-      let nameMatched = false
-      let dobMatched = false
-
-      if (isTestBvn) {
-        this.logger.log('Test BVN detected. Auto-matching identity details.')
-        nameMatched = true
-        dobMatched = true
-      } else {
-        nameMatched = checkNameMatch(user.firstName, user.lastName, bvnFirst, bvnLast)
-        dobMatched = datesMatch(user.dateOfBirth, bvnDob)
-      }
+      const nameMatched = checkNameMatch(user.firstName, user.lastName, bvnFirst, bvnLast)
+      const dobMatched = datesMatch(user.dateOfBirth, bvnDob)
 
       if (!nameMatched || !dobMatched) {
         this.logger.warn(
