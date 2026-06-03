@@ -39,13 +39,18 @@ export class ContractController {
     const buffer = await data.toBuffer()
     const userId = req.user.id // From JwtAuthGuard
 
-    // Optionally get userPropertyId from fields
+    // Optionally get propertyUuid or userPropertyId from fields
+    const propertyUuid = data.fields?.propertyUuid?.value 
+      ? String(data.fields.propertyUuid.value) 
+      : undefined
+
     const userPropertyId = data.fields?.userPropertyId?.value 
       ? parseInt(data.fields.userPropertyId.value) 
       : undefined
 
     const result = await this.uploadContract.execute({
       userId,
+      propertyUuid,
       userPropertyId,
       fileName: data.filename,
       fileBuffer: buffer,
