@@ -19,6 +19,15 @@ export function SuccessStep({
   isPendingRefund,
   onDone
 }: SuccessStepProps) {
+  React.useEffect(() => {
+    if (!isPendingRefund) {
+      const timer = setTimeout(() => {
+        onDone()
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [isPendingRefund, onDone])
+
   return (
     <div className={`pay-success-view ${isPendingRefund ? 'is-warning' : ''}`}>
       <div className="pay-success-card">
@@ -57,6 +66,12 @@ export function SuccessStep({
           <span>Go to Dashboard</span>
           <ChevronRight size={18} />
         </button>
+
+        {!isPendingRefund && (
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 16 }}>
+            Redirecting to dashboard automatically...
+          </p>
+        )}
       </div>
 
 
