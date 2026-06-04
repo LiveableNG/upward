@@ -95,18 +95,16 @@ export class VerifyBvnUseCase {
     }
 
     const secretKey = this.configService.get<string>('CREDITCHEK_SECRET_KEY') || 
-                      'SqwF5qvuHvM01vVGJiKTc8rHCzezvAvywCwES4+xFhUVFPfXvJokASZyuGxBVWhy'
+                      'b4NuOyplWUsfYT/UgBcwztZi+YV1K57Pr5vJ+S0bwIJb9g3F/B/kKh/ROzJNsKLS'
 
     this.logger.log(`Initiating BVN verification for user ID: ${user.id!} (UUID: ${userUuid}) using CreditChek...`)
 
     try {
-      const response = await fetch('https://api.creditchek.africa/v1/identity/bvn-basic-verifcation', {
+      const response = await fetch(`https://api.creditchek.africa/v1/identity/verifyData?bvn=${bvn}`, {
         method: 'POST',
         headers: {
           'token': secretKey,
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ bvn }),
       })
 
       const responseData = await response.json()
