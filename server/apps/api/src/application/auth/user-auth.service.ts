@@ -297,6 +297,8 @@ export class UserAuthService extends BaseAuthService {
       verificationStatus: p.verificationStatus || (p.isVerified ? 'VERIFIED' : 'PENDING'),
     }))
 
+    ;(profile as any).verificationOn = process.env.VERIFICATION_ON !== 'false'
+
     return profile
   }
 

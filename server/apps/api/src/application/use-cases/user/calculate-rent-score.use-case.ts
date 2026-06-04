@@ -273,6 +273,7 @@ export class CalculateRentScoreUseCase {
           profileSlug: user.profileSlug || `${user.firstName}-${user.lastName}-${user.uuid.split('-')[0]}`.toLowerCase(),
           uuid: user.uuid,
           isIdentityVerified: !!user.isIdentityVerified,
+          verificationOn: process.env.VERIFICATION_ON !== 'false',
           profileCompletion: this.calculateProfileCompletion(user)
         },
         properties: user.properties || [],
@@ -344,6 +345,7 @@ export class CalculateRentScoreUseCase {
           profileSlug: user.profileSlug || `${user.firstName}-${user.lastName}-${user.uuid.split('-')[0]}`.toLowerCase(),
           uuid: user.uuid,
           isIdentityVerified: !!user.isIdentityVerified,
+          verificationOn: process.env.VERIFICATION_ON !== 'false',
           profileCompletion: this.calculateProfileCompletion(user)
         },
         properties: user.properties || [],
