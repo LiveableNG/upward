@@ -25,6 +25,7 @@ export interface ScoreProfile {
       uuid: string
       profileCompletion: number
       isIdentityVerified?: boolean
+      verificationOn?: boolean
       bio?: string
       gender?: string
     }

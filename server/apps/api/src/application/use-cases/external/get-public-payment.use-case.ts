@@ -143,6 +143,7 @@ export class GetPublicPaymentDetailsUseCase {
         email: user.email,
         phone: user.phone,
         paidRequestsCount: paidRequestsCount,
+        verificationOn: process.env.VERIFICATION_ON !== 'false',
       },
       property: {
         uuid: property.uuid,
