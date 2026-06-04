@@ -74,7 +74,8 @@ export class VerifyBvnUseCase {
       throw new NotFoundException('User not found')
     }
 
-    const isTestBvn = bvn === '12345678901' || bvn === '12345678902'
+    const isTestMode = this.configService.get<string>('CREDIT_CHEK_TEST') === 'true'
+    const isTestBvn = isTestMode && (bvn === '12345678901' || bvn === '12345678902')
     if (isTestBvn) {
       this.logger.log(`Test BVN ${bvn} detected for user ID: ${user.id!}. Bypassing CreditChek API fetch and auto-matching details.`)
       await this.userRepository.update(user.id!, { isIdentityVerified: true })
@@ -84,7 +85,7 @@ export class VerifyBvnUseCase {
       }
     }
 
-    const isErrorTestBvn = bvn === '00000000000'
+    const isErrorTestBvn = isTestMode && bvn === '00000000000'
     if (isErrorTestBvn) {
       this.logger.log(`Error test BVN ${bvn} detected for user ID: ${user.id!}. Simulating details mismatch error.`)
       return {
