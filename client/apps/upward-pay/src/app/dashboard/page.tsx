@@ -59,7 +59,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const user = data?.user
-    if (typeof window !== 'undefined' && user && !user.isIdentityVerified) {
+    const verificationOn = user?.verificationOn ?? true
+    if (verificationOn && typeof window !== 'undefined' && user && !user.isIdentityVerified) {
       const shown = localStorage.getItem(`welcome_modal_shown_${user.uuid}`) === 'true'
       if (!shown) {
         setShowWelcomeModal(true)
@@ -232,7 +233,12 @@ export default function DashboardPage() {
                     See all {notifCount > 0 && <span className="activity-center__badge">{notifCount}</span>}
                   </button>
                 </div>
-                <ActionCarousel pendingPayments={pendingPayments} showKYC={isNewUser} rentReminders={propertyReminders} isIdentityVerified={!!user.isIdentityVerified} />
+                <ActionCarousel
+                  pendingPayments={pendingPayments}
+                  showKYC={isNewUser}
+                  rentReminders={propertyReminders}
+                  isIdentityVerified={!(user?.verificationOn ?? true) || !!user.isIdentityVerified}
+                />
               </div>
             )}
             <RentCredibilityScore user={user} onShowPayRent={() => router.push('/dashboard/pay-rent')} />
@@ -288,7 +294,8 @@ export default function DashboardPage() {
             const beamClass = hasSlides ? (isOverdue ? 'animate-beam-red' : 'animate-beam-clay') : ''
             const isManual = hasSlides && (heroItem.isManual || (!heroItem.company_name && !heroItem.manager_name) || heroItem.company_name === 'Manual Payment')
 
-            if (!user.isIdentityVerified) {
+            const verificationOn = user?.verificationOn ?? true
+            if (verificationOn && !user.isIdentityVerified) {
               return (
                 <div className="bento-cell bento-cell--hero is-overdue alert-beam-red animate-beam-red" style={{ borderColor: 'rgba(239, 68, 68, 0.3)' }}>
                   <div className="bento-hero-pending__top">

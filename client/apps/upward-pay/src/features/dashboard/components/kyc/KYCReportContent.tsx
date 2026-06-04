@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   ShieldCheck,
-  Link2,
+  Share2,
   Award,
   CheckCircle2,
   MapPin,
@@ -128,7 +128,8 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   const isFaded = !isScorable
   const paidPaymentsCount = cycles.filter((c: any) => c.status && (c.status.includes('PAID') || c.status.includes('PARTIAL'))).length
   const hasVerifiedPmProperty = properties.some((p: any) => p.isVerified && (p.isPmVerified || p.isPlatformLinked || p.pm?.isVerified || !!p.company?.platformId))
-  const isVerified = !!profile.isIdentityVerified && paidPaymentsCount > 0 && hasVerifiedPmProperty
+  const verificationOn = profile?.verificationOn ?? true
+  const isVerified = (verificationOn === false || !!profile.isIdentityVerified) && paidPaymentsCount > 0 && hasVerifiedPmProperty
   const initials = profile.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)
 
   const getRankColor = () => {
@@ -171,7 +172,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                 disabled={!isVerified}
                 style={{ opacity: isVerified ? 1 : 0.5, border: 'none', background: 'none', padding: 0 }}
               >
-                <Link2 size={20} />
+                <Share2 size={20} />
               </button>
             }
           />
@@ -430,7 +431,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                   filter: isVerified ? 'none' : 'grayscale(0.5)'
                 }}
               >
-                <Link2 size={18} />
+                <Share2 size={18} />
                 {isVerified ? 'Copy Credibility Portfolio Link' : 'Verification Required to Share'}
               </button>
 
