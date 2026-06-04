@@ -45,6 +45,9 @@ export class GetPublicPaymentDetailsUseCase {
       throw new NotFoundException('Associated user not found')
     }
 
+    const paidRequests = await this.paymentRequestRepository.findByUserIdAndStatus(user.id!, 'PAID')
+    const paidRequestsCount = paidRequests.filter(pr => pr.id !== paymentRequest.id).length
+
     let company = null
     if (property.companyId) {
       company = await this.companyRepository.findById(property.companyId)
@@ -139,6 +142,7 @@ export class GetPublicPaymentDetailsUseCase {
         lastName: user.lastName,
         email: user.email,
         phone: user.phone,
+        paidRequestsCount: paidRequestsCount,
       },
       property: {
         uuid: property.uuid,
