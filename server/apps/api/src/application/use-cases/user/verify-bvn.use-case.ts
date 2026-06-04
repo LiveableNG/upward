@@ -94,8 +94,7 @@ export class VerifyBvnUseCase {
       }
     }
 
-    const secretKey = this.configService.get<string>('CREDITCHEK_SECRET_KEY') || 
-                      'b4NuOyplWUsfYT/UgBcwztZi+YV1K57Pr5vJ+S0bwIJb9g3F/B/kKh/ROzJNsKLS'
+    const secretKey = this.configService.get<string>('CREDITCHEK_SECRET_KEY') || ''
 
     this.logger.log(`Initiating BVN verification for user ID: ${user.id!} (UUID: ${userUuid}) using CreditChek...`)
 

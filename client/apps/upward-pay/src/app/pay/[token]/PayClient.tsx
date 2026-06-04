@@ -317,8 +317,9 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                       <button
                         className="btn btn--primary btn--full btn--pay btn--pill"
                         onClick={() => {
+                          const verificationOn = paymentData?.user?.verificationOn ?? true
                           const hasPaidBefore = (paymentData?.user?.paidRequestsCount ?? 0) >= 1
-                          if (authUser && !authUser.isIdentityVerified && !isGuest && hasPaidBefore) {
+                          if (verificationOn && authUser && !authUser.isIdentityVerified && !isGuest && hasPaidBefore) {
                             setShowUnverifiedModal(true)
                           } else {
                             setShowPaymentConfirm(true)
