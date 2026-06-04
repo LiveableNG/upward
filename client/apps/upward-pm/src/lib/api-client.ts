@@ -66,7 +66,8 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     }
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000)
+    const timeoutMs = options.body instanceof FormData ? 120000 : 15000
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
     const fetchOptions: RequestInit = {
       credentials: 'include',

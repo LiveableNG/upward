@@ -18,9 +18,7 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useProperties, useUnits } from '@/features/pm/hooks/useProperties'
-import { useTenants } from '@/features/pm/hooks/useTenants'
-import { usePaymentRequests, useResendPaymentRequest } from '@/features/pm/hooks/usePayments'
+import { useDashboardSummary, useResendPaymentRequest } from '@/features/pm/hooks/usePayments'
 import { ActivityCarousel } from './ActivityCarousel'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
@@ -32,36 +30,45 @@ export function DashboardView() {
   const router = useRouter()
   const toast = useToast()
   
-  const { data: properties = [] } = useProperties()
-  const { data: units = [] } = useUnits()
-  const { data: tenants = [] } = useTenants()
-  const { data: requests = [] } = usePaymentRequests()
   const resendMutation = useResendPaymentRequest()
-
+  const { data: dashboardData, isLoading } = useDashboardSummary()
   const [activeTab, setActiveTab] = useState<'arrears' | 'upcoming' | 'completed'>('arrears')
 
-  const totalUnits = units.length
-  const activeTenants = tenants.filter(t => t.inviteStatus === 'ON_UPWARD' || t.inviteStatus === 'ACCEPTED').length
+  if (isLoading) {
+    return (
+      <div className="dashboard animate-pulse" style={{ padding: '24px 0' }}>
+        <div style={{ height: 48, background: 'var(--dark)', opacity: 0.1, borderRadius: 12, marginBottom: 24, width: '40%' }}></div>
+        <div style={{ height: 160, background: 'var(--dark)', opacity: 0.05, borderRadius: 16, marginBottom: 32 }}></div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24, marginBottom: 40 }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} style={{ height: 120, background: 'var(--dark)', opacity: 0.05, borderRadius: 16 }}></div>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 40 }}>
+          <div style={{ height: 400, background: 'var(--dark)', opacity: 0.05, borderRadius: 16 }}></div>
+          <div style={{ height: 400, background: 'var(--dark)', opacity: 0.05, borderRadius: 16 }}></div>
+        </div>
+      </div>
+    )
+  }
+
+  const {
+    totalUnits = 0,
+    activeTenants = 0,
+    pendingBalance = 0,
+    totalRevenue = 0,
+    overduePayments = [],
+    upcomingPayments = [],
+    completedPayments = [],
+    properties = [],
+    propertiesCount = 0,
+    hasProperties = false,
+    openRequestsCount = 0
+  } = dashboardData || {}
+
+  const pendingAmount = pendingBalance
+  const totalRevenueVal = totalRevenue // Keep variable reference clear if totalRevenue is reused
   
-  const pendingAmount = requests
-    .filter(r => r.status !== 'PAID')
-    .reduce((sum, r) => sum + (r.amount - r.amountPaid), 0)
-    
-  const totalRevenue = requests
-    .reduce((sum, r) => sum + r.amountPaid, 0)
-
-  const overduePayments = [...requests]
-    .filter(r => (r.status === 'PENDING' || r.status === 'PARTIAL') && new Date(r.dueDate) < new Date())
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-
-  const upcomingPayments = [...requests]
-    .filter(r => (r.status === 'PENDING' || r.status === 'PARTIAL') && new Date(r.dueDate) >= new Date())
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-
-  const completedPayments = [...requests]
-    .filter(r => r.status === 'PAID')
-    .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
-
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'N/A'
     return new Intl.DateTimeFormat('en-US', {
@@ -72,17 +79,27 @@ export function DashboardView() {
   }
 
   const getDaysAgo = (dateStr: string) => {
-    const diffTime = Math.abs(new Date().getTime() - new Date(dateStr).getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const dueDate = new Date(dateStr)
+    dueDate.setHours(0, 0, 0, 0)
+    const diffTime = today.getTime() - dueDate.getTime()
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+    if (diffDays <= 0) return 'Due today'
     return diffDays === 1 ? '1 day overdue' : `${diffDays} days overdue`
   }
 
   const getDaysUntil = (dateStr: string) => {
-    const diffTime = new Date(dateStr).getTime() - new Date().getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const dueDate = new Date(dateStr)
+    dueDate.setHours(0, 0, 0, 0)
+    const diffTime = dueDate.getTime() - today.getTime()
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
     if (diffDays < 0) return 'Overdue'
     if (diffDays === 0) return 'Due today'
-    return diffDays === 1 ? 'Due tomorrow' : `Due in ${diffDays} days`
+    if (diffDays === 1) return 'Due tomorrow'
+    return `Due in ${diffDays} days`
   }
 
   const handleCopyLink = (req: any) => {
@@ -125,6 +142,7 @@ export function DashboardView() {
     const initials = req.tenant ? `${req.tenant.firstName?.[0] || ''}${req.tenant.lastName?.[0] || ''}` : 'U'
     const propertyName = req.unit?.property?.name || 'N/A'
     const unitName = req.unit?.unitName || 'N/A'
+    const isUnbilled = req.isUnbilled
     
     return (
       <div 
@@ -190,10 +208,15 @@ export function DashboardView() {
                 Paid
               </span>
             )}
+            {req.status === 'UNBILLED' && (
+              <span className="payments-tracker__status status-chip status-chip--pending status-chip--sm" style={{ background: '#fef3c7', color: '#d97706' }}>
+                Unbilled
+              </span>
+            )}
           </div>
 
           <div className="payments-tracker__actions">
-            {type !== 'completed' && (
+            {type !== 'completed' && !isUnbilled && (
               <>
                 <button 
                   className="payments-tracker__action-btn"
@@ -218,16 +241,41 @@ export function DashboardView() {
                 </button>
               </>
             )}
-            <button 
-              className="payments-tracker__action-btn"
-              onClick={() => {
-                const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
-                router.push(isPortal ? `/portal/payments/${req.uuid}` : `/payments/${req.uuid}`)
-              }}
-              title="View Request Details"
-            >
-              <ExternalLink size={14} />
-            </button>
+            {isUnbilled ? (
+              <>
+                <button 
+                  className="btn btn--primary btn--sm"
+                  style={{ padding: '4px 10px', fontSize: 11, borderRadius: 8, height: 28, whiteSpace: 'nowrap' }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    router.push(`/properties?tab=units&search=${req.unit?.unitName}`)
+                  }}
+                  title="Create Payment Request"
+                >
+                  Request Payment
+                </button>
+                <button 
+                  className="payments-tracker__action-btn"
+                  onClick={() => {
+                    router.push(`/properties/units/${req.uuid}`)
+                  }}
+                  title="View Unit Details"
+                >
+                  <ExternalLink size={14} />
+                </button>
+              </>
+            ) : (
+              <button 
+                className="payments-tracker__action-btn"
+                onClick={() => {
+                  const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
+                  router.push(isPortal ? `/portal/payments/${req.uuid}` : `/payments/${req.uuid}`)
+                }}
+                title="View Request Details"
+              >
+                <ExternalLink size={14} />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -253,7 +301,7 @@ export function DashboardView() {
           label="Total Units" 
           value={totalUnits} 
           icon={Building2} 
-          trend={{ value: properties.length, label: 'Properties', isUp: true }}
+          trend={{ value: propertiesCount, label: 'Properties', isUp: true }}
           variant="accent"
         />
         <StatCard 
@@ -266,7 +314,7 @@ export function DashboardView() {
           label="Pending Balance" 
           value={`₦${pendingAmount.toLocaleString()}`} 
           icon={CreditCard} 
-          trend={{ value: requests.filter(r => r.status !== 'PAID').length, label: 'open requests', isUp: false }}
+          trend={{ value: openRequestsCount, label: 'open requests', isUp: false }}
         />
         <StatCard 
           label="Total Revenue" 
@@ -328,7 +376,7 @@ export function DashboardView() {
           <div className="payments-tracker__list">
             {activeTab === 'arrears' && (
               <>
-                {overduePayments.slice(0, 5).map((req) => renderPaymentItem(req, 'arrears'))}
+                {overduePayments.slice(0, 5).map((req: any) => renderPaymentItem(req, 'arrears'))}
                 {overduePayments.length === 0 && renderEmptyState('arrears')}
                 {overduePayments.length > 5 && (
                   <button 
@@ -343,7 +391,7 @@ export function DashboardView() {
 
             {activeTab === 'upcoming' && (
               <>
-                {upcomingPayments.slice(0, 5).map((req) => renderPaymentItem(req, 'upcoming'))}
+                {upcomingPayments.slice(0, 5).map((req: any) => renderPaymentItem(req, 'upcoming'))}
                 {upcomingPayments.length === 0 && renderEmptyState('upcoming')}
                 {upcomingPayments.length > 5 && (
                   <button 
@@ -358,7 +406,7 @@ export function DashboardView() {
 
             {activeTab === 'completed' && (
               <>
-                {completedPayments.slice(0, 5).map((req) => renderPaymentItem(req, 'completed'))}
+                {completedPayments.slice(0, 5).map((req: any) => renderPaymentItem(req, 'completed'))}
                 {completedPayments.length === 0 && renderEmptyState('completed')}
                 {completedPayments.length > 5 && (
                   <button 
@@ -380,16 +428,14 @@ export function DashboardView() {
           </div>
           
           <div className="property-summary">
-            {properties.slice(0, 3).map(prop => {
-              const propUnits = units.filter(u => (u as any).propertyUuid === prop.uuid || u.propertyId === prop.id)
-              const occupiedCount = propUnits.filter(u => u.status === 'OCCUPIED').length
-              const rate = propUnits.length > 0 ? Math.round((occupiedCount / propUnits.length) * 100) : 0
+            {properties.map((prop: any) => {
+              const rate = prop.occupancyRate
               
               return (
                 <div key={prop.uuid} className="property-item-mini" onClick={() => router.push(`/properties`)} style={{ cursor: 'pointer' }}>
                   <div className="property-item-mini__info">
                     <h4>{prop.name}</h4>
-                    <p>{prop.area}, {prop.state} • {propUnits.length} Units</p>
+                    <p>{prop.area}, {prop.state} • {prop.totalUnits} Units</p>
                   </div>
                   <div className={cn(
                     "property-item-mini__status",
@@ -400,7 +446,7 @@ export function DashboardView() {
                 </div>
               )
             })}
-            {properties.length === 0 && (
+            {!hasProperties && (
               <div className="empty-state-mini">
                 <MapPin size={32} className="text-muted" />
                 <p>No properties added yet.</p>

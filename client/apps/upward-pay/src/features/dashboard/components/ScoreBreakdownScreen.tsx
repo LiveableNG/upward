@@ -56,7 +56,7 @@ export function ScoreBreakdownScreen() {
   }
 
   const { isScorable, score, rank, band, metrics, cycles, properties = [] } = scoreProfile.data
-  const isVerified = properties.some((p: any) => p.isManaged)
+  const isVerified = properties.some((p: any) => p.isVerified)
 
   const getRankColor = () => {
     if (!isScorable) return 'var(--text-muted)'

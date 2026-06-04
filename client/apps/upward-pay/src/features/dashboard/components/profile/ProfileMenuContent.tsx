@@ -74,12 +74,6 @@ function ProfileMenuContentInner() {
 
   return (
     <div className="profile-menu-page dashboard--nav-offset">
-      <PageHeader 
-        title="Profile" 
-        showBack 
-        backPath="/dashboard" 
-        showSettings={true}
-      />
       <div className="profile-content-scroll">
         <ProfileMenuView 
           profile={profile}

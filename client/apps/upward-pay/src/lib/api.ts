@@ -51,6 +51,7 @@ export const api = {
   // Documents
   getMyDocuments: documentService.getMyDocuments,
   getContracts: documentService.getContracts,
+  getContractUploadUrl: documentService.getContractUploadUrl,
   uploadContract: documentService.uploadContract,
   deleteContract: documentService.removeContract,
 

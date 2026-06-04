@@ -20,6 +20,7 @@ import { IngestPastRecordsUseCase } from '../../../application/use-cases/user/in
 import { RequestCredibilityRecordsUseCase } from '../../../application/use-cases/user/request-credibility-records.use-case'
 import { GetCredibilityRequestsUseCase } from '../../../application/use-cases/user/get-credibility-requests.use-case'
 import { GenerateKYCReportPdfUseCase } from '../../../application/use-cases/user/generate-kyc-report-pdf.use-case'
+import { VerifyBvnUseCase } from '../../../application/use-cases/user/verify-bvn.use-case'
 
 import { CheckSlugAvailabilityUseCase } from '../../../application/use-cases/user/check-slug-availability.use-case'
 interface FastifyReply {
@@ -87,6 +88,7 @@ export class UserController {
     private readonly getCredibilityRequests: GetCredibilityRequestsUseCase,
     private readonly generateKYCPdf: GenerateKYCReportPdfUseCase,
     private readonly checkSlugAvailability: CheckSlugAvailabilityUseCase,
+    private readonly verifyBvnUseCase: VerifyBvnUseCase,
   ) { }
 
   @Post('signup')
@@ -102,6 +104,7 @@ export class UserController {
       address?: string;
       isFromWaitlist?: boolean;
       isFromInvite?: boolean;
+      dateOfBirth?: string;
     },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
@@ -280,6 +283,19 @@ export class UserController {
     const { refreshToken, ...rest } = await this.userAuthService.generateFullAuthResponse(user)
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(rest)
+  }
+
+  @Post('verify-bvn')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async verifyBvn(
+    @Req() req: FastifyRequest,
+    @Body() body: { bvn: string },
+  ) {
+    if (!req.user?.id) {
+      throw new UnauthorizedException('No user in request')
+    }
+    return this.verifyBvnUseCase.execute(req.user.id, body.bvn)
   }
 
   @Post('past-records')

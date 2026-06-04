@@ -1,13 +1,22 @@
-import { useQuery, useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { CreatePaymentRequestDto, UpdatePmPaymentRequestDto } from '../services/paymentService'
 
 export const usePaymentRequests = () => {
-  return useSuspenseQuery({
+  return useQuery({
     queryKey: ['pm-payment-requests'],
     queryFn: () => api.getPaymentRequests(),
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
+  })
+}
+
+export const useDashboardSummary = () => {
+  return useQuery({
+    queryKey: ['pm-dashboard-summary'],
+    queryFn: () => api.getDashboardSummary(),
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   })
 }
 

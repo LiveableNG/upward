@@ -1,9 +1,9 @@
-import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { tenantService, CreateTenantDto } from '../services/tenantService'
 import { useToast } from '@/components/common/Toast'
 
 export const useTenants = () => {
-  return useSuspenseQuery({
+  return useQuery({
     queryKey: ['tenants'],
     queryFn: () => tenantService.getTenants(),
     staleTime: 5 * 60 * 1000,
@@ -12,9 +12,10 @@ export const useTenants = () => {
 }
 
 export const useTenant = (uuid: string) => {
-  return useSuspenseQuery({
+  return useQuery({
     queryKey: ['tenant', uuid],
     queryFn: () => tenantService.getTenant(uuid),
+    enabled: !!uuid,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   })
@@ -69,6 +70,7 @@ export const useTenantActions = () => {
       queryClient.invalidateQueries({ queryKey: ['tenant', variables.tenantUuid] })
       queryClient.invalidateQueries({ queryKey: ['pm-units'] })
       queryClient.invalidateQueries({ queryKey: ['pm-unit'] })
+      queryClient.invalidateQueries({ queryKey: ['tenant-join-requests'] })
       toast.success('Tenant assigned successfully')
     },
     onError: (error: any) => {

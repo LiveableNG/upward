@@ -26,6 +26,7 @@ export class PrismaUserRepository implements UserRepository {
       passwordHash: model.passwordHash,
       gender: model.gender,
       dateOfBirth: model.dateOfBirth,
+      isIdentityVerified: model.isIdentityVerified,
       isFromWaitlist: model.isFromWaitlist,
       isFromInvite: model.isFromInvite,
       profilePic: model.profilePic,
@@ -42,7 +43,9 @@ export class PrismaUserRepository implements UserRepository {
         currency: p.currency,
         location: p.location,
         isManaged: !!p.pmId || !!p.company?.platformId,
-        isVerified: !!p.isVerified || !!p.pm?.isVerified || !!p.pmId || !!p.company?.platformId,
+        isVerified: !!p.isVerified || !!p.company?.platformId,
+        isPmVerified: p.pm ? !!p.pm.isVerified : false,
+        isPlatformLinked: !!p.company?.platformId,
         isPastTenancy: p.isPastTenancy,
         verificationStatus: p.verificationStatus,
         rejectionReason: p.rejectionReason,
@@ -236,6 +239,7 @@ export class PrismaUserRepository implements UserRepository {
         passwordHash: user.passwordHash,
         gender: user.gender,
         dateOfBirth: user.dateOfBirth,
+        isIdentityVerified: user.isIdentityVerified,
         isFromWaitlist: user.isFromWaitlist,
         isFromInvite: user.isFromInvite,
         profilePic: user.profilePic,
@@ -254,7 +258,7 @@ export class PrismaUserRepository implements UserRepository {
     
     // Pick direct scalar fields
     const scalarFields = [
-      'passwordHash', 'gender', 'dateOfBirth', 
+      'passwordHash', 'gender', 'dateOfBirth', 'isIdentityVerified',
       'isFromWaitlist', 'isFromInvite', 'profilePic', 'profileSlug', 
       'bio', 'resetPasswordOTP', 'resetPasswordExpires'
     ]

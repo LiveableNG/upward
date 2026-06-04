@@ -105,7 +105,8 @@ export class GetPublicPaymentDetailsUseCase {
       }
     }
 
-    const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(user.id!, paymentRequest.userPropertyId)
+    const dynamicRates = await this.paymentConfig.getDynamicProcessingRates(user.id!, paymentRequest.userPropertyId, paymentRequest.id)
+    const dynamicFee = dynamicRates.transactionFee + (dynamicRates.benefitsPaid ? 0 : dynamicRates.benefitsFee)
 
     return {
       payment: {
@@ -124,6 +125,13 @@ export class GetPublicPaymentDetailsUseCase {
         lineItemRecords: lineItemRecords,
         verifiedRecipientName: verifiedRecipientName,
         processingFee: dynamicFee,
+        processingRates: {
+          transactionFee: dynamicRates.transactionFee,
+          benefitsFee: dynamicRates.benefitsFee,
+          rentValue: dynamicRates.rentValue,
+          benefitsPaid: (dynamicRates as any).benefitsPaid || false,
+          benefitsPaidForRequest: (dynamicRates as any).benefitsPaidForRequest || false
+        },
       },
       user: {
         uuid: user.uuid,

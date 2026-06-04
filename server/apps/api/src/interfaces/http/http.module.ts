@@ -42,6 +42,7 @@ import { PmCredibilityController } from './controllers/pm-credibility.controller
 import { InternalScoreController } from './internal/internal-score.controller'
 import { InternalPaymentsController } from './internal/internal-payments.controller'
 import { PmDocumentController } from './controllers/pm-document.controller'
+import { PmNotificationController } from './controllers/pm-notification.controller'
 import { LandlordAuthController } from './landlord/landlord-auth.controller'
 import { LandlordPortfolioController } from './landlord/landlord-portfolio.controller'
 import { LandlordManagementController } from './landlord/landlord-management.controller'
@@ -92,6 +93,7 @@ import { DevEmailAdminController } from './admin/dev-email-admin.controller'
     InternalScoreController,
     InternalPaymentsController,
     PmDocumentController,
+    PmNotificationController,
     PublicUserController,
     FeedbackController,
     LandlordAuthController,

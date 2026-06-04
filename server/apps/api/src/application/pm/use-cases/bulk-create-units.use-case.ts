@@ -111,6 +111,8 @@ export class BulkCreateUnitsUseCase {
         userPropertyUuid: null,
       });
 
+      unitsToCreate.push(newUnit);
+
       // If tenant is already on upward, mark for sync
       if (tenantId && (initialStatus === 'ON_UPWARD' || initialStatus === 'ACCEPTED')) {
         unitsToSync.push(newUnit.uuid);
@@ -170,6 +172,6 @@ export class BulkCreateUnitsUseCase {
       }
     }
 
-    return { count: dto.units.length };
+    return { count: dto.units.length, units: unitsToCreate };
   }
 }

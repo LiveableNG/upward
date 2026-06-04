@@ -6,6 +6,8 @@ import {
   TRANSACTION_REPOSITORY,
 } from '../../../domains/payments/payment.repository'
 import { LineItemPayment } from './payment.use-cases'
+import { PaymentConfigurationService } from '../../../shared/infrastructure/common/payment-config.service'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 @Injectable()
 export class DistributePaymentAllocationsUseCase {
@@ -16,6 +18,8 @@ export class DistributePaymentAllocationsUseCase {
     private readonly lineItemRepo: IPaymentLineItemRepository,
     @Inject(TRANSACTION_REPOSITORY)
     private readonly txRepo: ITransactionRepository,
+    private readonly paymentConfig: PaymentConfigurationService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(params: {
@@ -35,29 +39,52 @@ export class DistributePaymentAllocationsUseCase {
     let remainingPayment = amount
     const allocatedItems: any[] = []
     let foundRentItem = false
+    let benFeeToPay = 0
 
     const currentItems = paymentRequestId 
       ? await this.lineItemRepo.findByPaymentRequestId(paymentRequestId, txClient) 
       : []
 
-    // 0. Deduct Upward Fee first if specified and not already in allocations
-    // This ensures the fee is prioritized and doesn't "steal" from rent/mgt portions incorrectly
+    // 0. Deduct Transaction Fee first
+    // This ensures the mandatory transaction fee is prioritized and settled first
     if (upwardFeeAmount > 0) {
       const feeInAllocations = lineItemPayments?.find(lp => 
         lp.name === 'Processing Fee' || 
-        ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(lp.name || '')
+        lp.name === 'Transaction Fee' ||
+        lp.name === 'Upward Benefits' ||
+        ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(lp.name || '')
       )
       
       if (!feeInAllocations) {
-        const feeToPay = Math.min(remainingPayment, upwardFeeAmount)
-        allocatedItems.push({
-          name: 'Processing Fee',
-          label: 'Processing Fee',
-          amount: feeToPay,
-          category: 'Fee'
-        })
-        remainingPayment -= feeToPay
-        this.logger.log(`Deducted Processing Fee: ${feeToPay}. Remaining for items: ${remainingPayment}`)
+        let txFeeToPay = Math.min(remainingPayment, upwardFeeAmount)
+        
+        if (paymentRequestId) {
+          try {
+            const db = txClient || this.prisma
+            const pr = await db.upward_payment_request.findUnique({
+              where: { id: paymentRequestId }
+            })
+            if (pr) {
+              const rates = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId)
+              const feeToPay = Math.min(remainingPayment, upwardFeeAmount)
+              txFeeToPay = Math.min(feeToPay, rates.transactionFee)
+              benFeeToPay = Math.max(0, feeToPay - txFeeToPay)
+            }
+          } catch (e: any) {
+            this.logger.error(`Failed to resolve dynamic rates for splitting DVA fees: ${e?.message}`)
+          }
+        }
+        
+        if (txFeeToPay > 0) {
+          allocatedItems.push({
+            name: 'Transaction Fee',
+            label: 'Transaction Fee',
+            amount: txFeeToPay,
+            category: 'Fee'
+          })
+          remainingPayment -= txFeeToPay
+          this.logger.log(`Deducted Transaction Fee first: ${txFeeToPay}. Remaining for items: ${remainingPayment}`)
+        }
       }
     }
 
@@ -79,7 +106,9 @@ export class DistributePaymentAllocationsUseCase {
           return false
         })
         const isFee = lp.name === 'Processing Fee' || 
-                     (item && ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name))
+                     lp.name === 'Transaction Fee' ||
+                     lp.name === 'Upward Benefits' ||
+                     (item && ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(item.name))
         
         const lpAmount = Number(lp.amountPaid || lp.amount || 0)
         
@@ -143,7 +172,7 @@ export class DistributePaymentAllocationsUseCase {
     if (!hasManualAllocations && remainingPayment > 0 && currentItems.length > 0) {
       const unpaidItems = currentItems
         .filter(item => {
-          const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee'].includes(item.name)
+          const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(item.name)
           const need = item.totalAmount - item.amountPaid
           return !isFee && need > 0
         })
@@ -239,13 +268,17 @@ export class DistributePaymentAllocationsUseCase {
       }
     }
 
-    if (upwardFeeAmount > 0 && !allocatedItems.find(a => a.name === 'Processing Fee')) {
+    // 4. Pay Upward Benefits last (lowest priority because it is optional)
+    if (benFeeToPay > 0 && remainingPayment > 0) {
+      const benAllocation = Math.min(remainingPayment, benFeeToPay)
       allocatedItems.push({
-        name: 'Processing Fee',
-        label: 'Processing Fee',
-        amount: upwardFeeAmount,
+        name: 'Upward Benefits',
+        label: 'Upward Benefits',
+        amount: benAllocation,
         category: 'Fee'
       })
+      remainingPayment -= benAllocation
+      this.logger.log(`Deducted Upward Benefits fee last: ${benAllocation}. Remaining for overpayment/excess: ${remainingPayment}`)
     }
 
     // 3. Handle manual items (Case C from monolith)

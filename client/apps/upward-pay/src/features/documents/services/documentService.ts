@@ -9,11 +9,19 @@ export async function getContracts() {
   return res.contracts || []
 }
 
-export async function uploadContract(formData: FormData) {
+export async function uploadContract(file: File, propertyUuid?: string, customFileName?: string) {
+  const formData = new FormData()
+  formData.append('file', file)
+  if (propertyUuid) {
+    formData.append('propertyUuid', propertyUuid)
+  }
+  if (customFileName) {
+    formData.append('fileName', customFileName)
+  }
+
   const res = await request<{ success: boolean; contract: any }>('/user/contracts/upload', {
     method: 'POST',
     body: formData,
-    headers: {}, // Browser set boundary
   })
   return res.contract
 }
@@ -22,4 +30,9 @@ export async function removeContract(uuid: string) {
   return request<{ success: boolean; message: string }>(`/user/contracts/${uuid}`, {
     method: 'DELETE',
   })
+}
+
+/** @deprecated Used for legacy direct uploads, use uploadContract instead. */
+export async function getContractUploadUrl(fileName: string, fileType: string, fileSize?: number) {
+  return { success: true, uuid: '', uploadUrl: '', fileUrl: '' }
 }

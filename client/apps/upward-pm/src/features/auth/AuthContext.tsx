@@ -35,17 +35,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null)
       setAccessToken(null)
       
+      const isPortal = window.location.pathname.startsWith('/portal')
+      const isPortalLoginPath = window.location.pathname === '/portal/login'
+      const isPortalSignupPath = window.location.pathname === '/portal/signup'
+      const isPortalPublic = isPortalLoginPath || isPortalSignupPath || window.location.pathname.startsWith('/portal/reset-password')
+
       // Redirect to login if we're on a protected page and auth fails
       const isPublicPage = window.location.pathname === '/' ||
                            window.location.pathname === '/login' || 
                            window.location.pathname === '/signup' ||
+                           window.location.pathname === '/pm-login' || 
+                           window.location.pathname === '/pm-signup' ||
                            window.location.pathname.startsWith('/invite') ||
-                           window.location.pathname.startsWith('/reset-password')
+                           window.location.pathname.startsWith('/reset-password') ||
+                           isPortalPublic
       
       if (!isPublicPage) {
         toastError('Your session has expired. Please login again.', 'Session Expired')
         // Use window.location.href for a hard redirect to ensure navigation happens
-        const redirectUrl = `/login?redirect=${encodeURIComponent(window.location.pathname)}`
+        const loginPath = isPortal ? '/portal/login' : '/pm-login'
+        const redirectUrl = `${loginPath}?redirect=${encodeURIComponent(window.location.pathname)}`
         window.location.href = redirectUrl
       }
     } finally {
@@ -68,7 +77,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       queryClient.clear()
       setAccessToken(null)
       setUser(null)
-      router.replace('/login')
+      
+      const isPortal = window.location.pathname.startsWith('/portal')
+      router.replace(isPortal ? '/portal/login' : '/pm-login')
     }
   }
 

@@ -91,6 +91,7 @@ import { IngestPastRecordsUseCase } from './use-cases/user/ingest-past-records.u
 import { RequestCredibilityRecordsUseCase } from './use-cases/user/request-credibility-records.use-case'
 import { GetCredibilityRequestsUseCase } from './use-cases/user/get-credibility-requests.use-case'
 import { CheckSlugAvailabilityUseCase } from './use-cases/user/check-slug-availability.use-case'
+import { VerifyBvnUseCase } from './use-cases/user/verify-bvn.use-case'
 import { GetCredibilityRequestDetailsUseCase } from './use-cases/external/get-credibility-request-details.use-case'
 import { FulfillCredibilityRequestUseCase } from './use-cases/external/fulfill-credibility-request.use-case'
 import { SingleInviteUseCase } from './use-cases/external/single-invite.use-case'
@@ -114,6 +115,7 @@ import { CreatePropertyUseCase } from './pm/use-cases/create-property.use-case'
 import { UpdatePropertyUseCase } from './pm/use-cases/update-property.use-case'
 import { DeletePropertyUseCase } from './pm/use-cases/delete-property.use-case'
 import { GetPmPropertiesUseCase } from './pm/use-cases/get-pm-properties.use-case'
+import { GetPmDashboardSummaryUseCase } from './pm/use-cases/get-pm-dashboard-summary.use-case'
 import { GetPmPropertyUseCase } from './pm/use-cases/get-pm-property.use-case'
 import { BulkCreateUnitsUseCase } from './pm/use-cases/bulk-create-units.use-case'
 import { GetPmUnitsUseCase } from './pm/use-cases/get-pm-units.use-case'
@@ -136,16 +138,20 @@ import { GetPmPaymentRequestUseCase } from './pm/use-cases/payments/get-pm-payme
 import { ResendPmPaymentRequestUseCase } from './pm/use-cases/payments/resend-pm-payment-request.use-case'
 import { UpdatePmPaymentRequestUseCase } from './pm/use-cases/payments/update-pm-payment-request.use-case'
 import { CancelPmPaymentRequestUseCase } from './pm/use-cases/payments/cancel-pm-payment-request.use-case'
+import { ProcessScheduledPmPaymentRequestsUseCase } from './pm/use-cases/payments/process-scheduled-payment-requests.use-case'
 import { ResolvePendingRefundUseCase } from './pm/use-cases/payments/resolve-refund.use-case'
 import { GetPmDocumentsUseCase } from './pm/use-cases/documents/get-pm-documents.use-case'
+import { GetTenantUploadedDocumentsUseCase } from './pm/use-cases/documents/get-tenant-uploaded-documents.use-case'
 import { SaveDocumentTemplateUseCase } from './pm/use-cases/documents/save-document-template.use-case'
 import { SendDocumentUseCase } from './pm/use-cases/documents/send-document.use-case'
 import { GenerateDocumentPdfUseCase } from './pm/use-cases/documents/generate-document-pdf.use-case'
+import { SendToTenantVaultUseCase } from './pm/use-cases/documents/send-to-tenant-vault.use-case'
 import { GetPendingCredibilityRequestsUseCase } from './pm/use-cases/get-pending-credibility-requests.use-case'
 import { BulkCreateTenantRecordsUseCase } from './pm/use-cases/bulk-create-tenant-records.use-case'
 import { BulkInviteTenantsUseCase } from './pm/use-cases/tenants/bulk-invite-tenants.use-case'
 import { GetPendingJoinRequestsUseCase } from './pm/use-cases/tenants/get-pending-join-requests.use-case'
 import { DismissJoinRequestUseCase } from './pm/use-cases/tenants/dismiss-join-request.use-case'
+import { ResolveDuplicateJoinRequestUseCase } from './pm/use-cases/tenants/resolve-duplicate-join-request.use-case'
 import { BulkFullImportUseCase } from './pm/use-cases/bulk-full-import.use-case'
 import { InviteTeamMemberUseCase } from './pm/use-cases/team/invite-team-member.use-case';
 import { GetTeamMembersUseCase } from './pm/use-cases/team/get-team-members.use-case';
@@ -165,6 +171,12 @@ import { LandlordChangePasswordUseCase } from './pm/use-cases/landlord/landlord-
 import { LandlordService } from './pm/services/landlord.service'
 import { GetPmLandlordsUseCase } from './pm/use-cases/landlord/get-pm-landlords.use-case'
 import { GetLandlordPropertyDetailsUseCase } from './pm/use-cases/landlord/get-landlord-property-details.use-case'
+import {
+  GetPmNotificationsUseCase,
+  MarkPmNotificationReadUseCase,
+  MarkAllPmNotificationsReadUseCase,
+  GetUnreadPmPopupsUseCase,
+} from './pm/use-cases/notifications/pm-notification.use-cases'
 
 import { RejectCredibilityRequestUseCase } from './use-cases/external/reject-credibility-request.use-case'
 import { AuthModule } from './auth/auth.module'
@@ -218,8 +230,10 @@ import { HandlePaymentOverpaymentUseCase } from './use-cases/payments/handle-ove
 import { ProcessHourlySettlementsUseCase } from './use-cases/payments/settlement-cron.use-case'
 
 import { UploadContractUseCase } from './use-cases/contracts/upload-contract.use-case'
+import { GetContractUploadUrlUseCase } from './use-cases/contracts/get-contract-upload-url.use-case'
 import { GetContractsUseCase } from './use-cases/contracts/get-contracts.use-case'
 import { DeleteContractUseCase } from './use-cases/contracts/delete-contract.use-case'
+import { DownloadContractUseCase } from './use-cases/contracts/download-contract.use-case'
 
 import { CreateSupportTicketUseCase } from './use-cases/support/create-support-ticket.use-case'
 import { GetUserTicketsUseCase } from './use-cases/support/get-user-tickets.use-case'
@@ -299,6 +313,7 @@ const UseCases = [
   IngestPastRecordsUseCase,
   RequestCredibilityRecordsUseCase,
   GetCredibilityRequestsUseCase,
+  VerifyBvnUseCase,
   SaveLandlordUseCase,
   GetSavedLandlordsUseCase,
   RecordTransactionUseCase,
@@ -345,8 +360,10 @@ const UseCases = [
   SaveBankDetailsUseCase,
 
   UploadContractUseCase,
+  GetContractUploadUrlUseCase,
   GetContractsUseCase,
   DeleteContractUseCase,
+  DownloadContractUseCase,
 
   CreateSupportTicketUseCase,
   GetUserTicketsUseCase,
@@ -367,6 +384,7 @@ const UseCases = [
   UpdatePropertyUseCase,
   DeletePropertyUseCase,
   GetPmPropertiesUseCase,
+  GetPmDashboardSummaryUseCase,
   GetPmPropertyUseCase,
   BulkCreateUnitsUseCase,
   GetPmUnitsUseCase,
@@ -389,15 +407,19 @@ const UseCases = [
   ResendPmPaymentRequestUseCase,
   UpdatePmPaymentRequestUseCase,
   CancelPmPaymentRequestUseCase,
+  ProcessScheduledPmPaymentRequestsUseCase,
   GetPmDocumentsUseCase,
+  GetTenantUploadedDocumentsUseCase,
   SaveDocumentTemplateUseCase,
   SendDocumentUseCase,
   GenerateDocumentPdfUseCase,
+  SendToTenantVaultUseCase,
   GetPendingCredibilityRequestsUseCase,
   BulkCreateTenantRecordsUseCase,
   BulkInviteTenantsUseCase,
   GetPendingJoinRequestsUseCase,
   DismissJoinRequestUseCase,
+  ResolveDuplicateJoinRequestUseCase,
   BulkFullImportUseCase,
   SendLandlordReportUseCase,
   GetLandlordReportsUseCase,
@@ -434,6 +456,10 @@ const UseCases = [
   InvitePmUseCase,
   SubmitUnitRequestUseCase,
   DiscoverLinkedPropertiesUseCase,
+  GetPmNotificationsUseCase,
+  MarkPmNotificationReadUseCase,
+  MarkAllPmNotificationsReadUseCase,
+  GetUnreadPmPopupsUseCase,
 ]
 
 @Module({

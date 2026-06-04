@@ -12,6 +12,7 @@ export interface User {
   passwordHash: string
   gender?: string | null
   dateOfBirth?: string | null
+  isIdentityVerified?: boolean
   isFromWaitlist: boolean
   isFromInvite: boolean
   profilePic?: string | null

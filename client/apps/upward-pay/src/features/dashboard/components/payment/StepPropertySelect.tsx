@@ -89,7 +89,7 @@ export function StepPropertySelect({
                    (prop.manager?.firstName ? `${prop.manager.firstName} ${prop.manager.lastName || ''}` : null) ||
                    prop.managerName || 
                    'Private Landlord'}
-                  {(prop.subaccount || prop.dedicatedAccount || prop.isVerified || prop.isManaged) && (
+                  {(prop.subaccount || prop.dedicatedAccount || prop.isVerified) && (
                     <span style={{ 
                       marginLeft: 8, padding: '2px 8px', background: 'var(--clay-faint)', 
                       color: 'var(--clay)', borderRadius: 12, fontSize: 10, fontWeight: 800,
@@ -97,7 +97,7 @@ export function StepPropertySelect({
                       display: 'inline-flex', alignItems: 'center', gap: 4
                     }}>
                       <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clay)' }} />
-                      {prop.isManaged ? 'Verified' : 'Verified Recipient'}
+                      {prop.isVerified ? 'Verified' : 'Verified Recipient'}
                     </span>
                   )}
                 </div>

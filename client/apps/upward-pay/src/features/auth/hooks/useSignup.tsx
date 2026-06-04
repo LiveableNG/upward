@@ -16,6 +16,7 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
       password: string; 
       firstName: string; 
       lastName: string;
+      dateOfBirth?: string;
       phone?: string;
       rentEndDate?: string;
       address?: string;
@@ -43,6 +44,7 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
       password: string; 
       firstName: string; 
       lastName: string;
+      dateOfBirth?: string;
       phone?: string;
       rentEndDate?: string;
       address?: string;

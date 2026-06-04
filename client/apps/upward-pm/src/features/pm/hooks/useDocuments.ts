@@ -38,3 +38,35 @@ export const useDocuments = () => {
     generatePdf: generatePdfMutation,
   };
 };
+
+export const useUnitDocuments = (unitUuid: string) => {
+  return useQuery({
+    queryKey: ['pm-unit-vault-documents', unitUuid],
+    queryFn: () => documentService.getTenantUploadedDocuments(unitUuid),
+    enabled: !!unitUuid,
+  });
+};
+
+export const useVaultActions = () => {
+  const queryClient = useQueryClient();
+
+  const sendFileToVault = useMutation({
+    mutationFn: documentService.sendFileToVault,
+    onSuccess: (_, vars) => {
+      if (vars.unitUuid) {
+        queryClient.invalidateQueries({ queryKey: ['pm-unit-vault-documents', vars.unitUuid] });
+      }
+    },
+  });
+
+  const sendTemplateToVault = useMutation({
+    mutationFn: documentService.sendTemplateToVault,
+    onSuccess: (_, vars) => {
+      if (vars.unitUuid) {
+        queryClient.invalidateQueries({ queryKey: ['pm-unit-vault-documents', vars.unitUuid] });
+      }
+    },
+  });
+
+  return { sendFileToVault, sendTemplateToVault };
+};

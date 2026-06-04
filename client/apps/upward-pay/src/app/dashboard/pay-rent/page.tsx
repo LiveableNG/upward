@@ -149,6 +149,66 @@ export default function PayRentPage() {
           @keyframes successPop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
           @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
+          .profile-header {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 0.75rem 0.25rem 1rem;
+            margin-bottom: 0.75rem;
+            border-bottom: none;
+          }
+
+          .profile-header__left-section {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            width: 100%;
+          }
+
+          .profile-header__back-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text);
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+          }
+
+          .profile-header__back-btn:hover {
+            background: var(--surface);
+            transform: scale(1.03);
+          }
+
+          .profile-header__title-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            text-align: left;
+          }
+
+          .profile-header__title {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -0.02em;
+            margin: 0;
+            line-height: 1.25;
+          }
+
+          .profile-header__subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.35;
+          }
+
           /* Desktop Card Optimization */
           @media (min-width: 1024px) {
             .pay-rent-layout {
@@ -169,53 +229,46 @@ export default function PayRentPage() {
               margin: 10px auto; /* Reduced from 20px */
               transition: all 0.3s ease;
             }
-            .pay-rent__header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              padding: var(--space-4) var(--space-5);
-              margin-bottom: var(--space-2);
-              border-bottom: 1px solid var(--border-solid);
-            }
-
-            .dashboard__back {
-              display: flex;
-              align-items: center;
-              justify-content: center;
+            .profile-header {
               padding: 0;
-              background: none;
-              border: none;
-              color: var(--text);
-              margin-right: var(--space-3);
-            }
-
-            @media (min-width: 1024px) {
-              .pay-rent__header {
-                border-bottom: none !important;
-                padding: 0 !important;
-                margin-bottom: 24px !important;
-                background: transparent !important;
-              }
-            }
-            .dashboard__title {
-              font-size: 24px;
-              font-weight: 800;
               margin-bottom: 24px;
             }
-            .dashboard__back {
-              /* Ensure global desktop styles applied */
+            .profile-header__title {
+              font-size: 1.85rem;
             }
           }
         `}</style>
 
-        <div className="pay-rent__header">
-          <div className="dashboard__header-left">
-            <button className="dashboard__back" onClick={handleBack}>
-              <ArrowLeft size={20} />
-            </button>
-            <h2 className="dashboard__title">{stepTitle[step]}</h2>
+        {/* Unified Custom Header */}
+        <header className="profile-header animate-slide-up">
+          <div className="profile-header__left-section">
+            {step !== 'select' && (
+              <button 
+                className="profile-header__back-btn" 
+                onClick={handleBack}
+                type="button"
+                title="Go Back"
+              >
+                <ArrowLeft size={20} />
+              </button>
+            )}
+            <div className="profile-header__title-wrap">
+              <h1 className="profile-header__title">{stepTitle[step]}</h1>
+              {step === 'select' && (
+                <p className="profile-header__subtitle">Send payments to your landlord or property manager</p>
+              )}
+              {step === 'property-select' && (
+                <p className="profile-header__subtitle">Select the property you are paying for</p>
+              )}
+              {step === 'new' && (
+                <p className="profile-header__subtitle">Enter recipient account details</p>
+              )}
+              {step === 'confirm' && (
+                <p className="profile-header__subtitle">Review and authorize payment details</p>
+              )}
+            </div>
           </div>
-        </div>
+        </header>
 
       {step === 'select' && (
         <StepSelect
@@ -272,7 +325,7 @@ export default function PayRentPage() {
                setShowRenewalModal(true)
              }
 
-             if (prop.isVerified || prop.subaccount || prop.dedicatedAccount || prop.isManaged) {
+             if (prop.isVerified || prop.subaccount || prop.dedicatedAccount) {
                const managedLandlord = {
                  uuid: 'verified',
                  name: prop.company?.name || 

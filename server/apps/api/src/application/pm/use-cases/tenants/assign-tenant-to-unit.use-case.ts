@@ -10,6 +10,7 @@ import {
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import { SyncUnitToUpwardUseCase } from '../units/sync-unit.use-case';
 import { USER_REPOSITORY, UserRepository } from '../../../../domains/users/user.repository';
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 
 @Injectable()
 export class AssignTenantToUnitUseCase {
@@ -24,6 +25,7 @@ export class AssignTenantToUnitUseCase {
     private readonly userRepo: UserRepository,
     private readonly prisma: PrismaService,
     private readonly syncUnitToUpwardUseCase: SyncUnitToUpwardUseCase,
+    private readonly encryption: EncryptionService,
   ) {}
 
   async execute(
@@ -47,12 +49,9 @@ export class AssignTenantToUnitUseCase {
 
     if (tenantUuid) {
       const tenant = await this.tenantRepo.findByUuid(tenantUuid);
-      // Allow if user owns tenant OR if tenant belongs to the unit's owner
       if (!tenant || (tenant.pmId !== pmId && tenant.pmId !== property.pmId)) {
         throw new NotFoundException('Tenant not found');
       }
-
-      // Update unit with tenant and potentially new rent terms
       await this.unitRepo.update(unitUuid, { 
         tenantId: tenant.id,
         status: 'OCCUPIED',
@@ -62,7 +61,6 @@ export class AssignTenantToUnitUseCase {
         rentDueDate: rentDueDate || unit.rentDueDate,
       });
 
-      // Handle initial payment if provided
       if (rentAmountPaid !== undefined && rentAmountPaid >= 0) {
         const activeRentStartDate = rentStartDate || unit.rentStartDate;
         const activeRentType = rentType || unit.rentType;
@@ -91,7 +89,6 @@ export class AssignTenantToUnitUseCase {
         });
       }
 
-      // Check if user exists on Upward Core platform
       const upwardUser = tenant.email ? await this.userRepo.findByEmail(tenant.email) : null;
       
       if (upwardUser || tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED') {
@@ -101,8 +98,49 @@ export class AssignTenantToUnitUseCase {
           console.error(`Auto-sync failed for unit ${unitUuid} during assignment:`, error);
         }
       }
+
+      try {
+        const logs = await this.prisma.upward_pm_activity_log.findMany({
+          where: {
+            ownerPmId: pmId,
+            action: 'TENANT_JOIN_REQUEST',
+          },
+        });
+
+        for (const log of logs) {
+          const metadata = log.metadata as any;
+          if (metadata && metadata.status === 'PENDING') {
+            let matches = false;
+
+            if (tenant.email) {
+              try {
+                const decryptedEmail = this.encryption.decrypt(metadata.userEmail);
+                if (decryptedEmail && decryptedEmail.toLowerCase() === tenant.email.toLowerCase()) {
+                  matches = true;
+                }
+              } catch (e) {
+                // ignore decryption error
+              }
+            }
+
+            // 2. Try matching by userUuid
+            if (upwardUser && metadata.userUuid === upwardUser.uuid) {
+              matches = true;
+            }
+
+            if (matches) {
+              metadata.status = 'ACCEPTED';
+              await this.prisma.upward_pm_activity_log.update({
+                where: { id: log.id },
+                data: { metadata },
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to resolve pending join request log during assignment:', err);
+      }
     } else {
-      // ... (existing unassign logic)
       if (unit.isSynced && unit.userPropertyUuid) {
         await this.prisma.upward_user_property.updateMany({
           where: { uuid: unit.userPropertyUuid },

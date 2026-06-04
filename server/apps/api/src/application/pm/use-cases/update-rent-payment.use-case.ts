@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { IUnitRepository, PM_UNIT_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
@@ -21,6 +21,10 @@ export class UpdateRentPaymentUseCase {
 
     if (!payment || payment.unit.property.pmId !== pmId) {
       throw new NotFoundException('Rent record not found');
+    }
+
+    if (payment.method?.toUpperCase() === 'PAYSTACK') {
+      throw new BadRequestException('Payments recorded automatically via the Upward Pay app cannot be edited.');
     }
 
     // 2. Update the PM record

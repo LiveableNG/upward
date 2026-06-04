@@ -1,11 +1,8 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, Smartphone, Gift, Wand2, Rocket, TrendingUp } from 'lucide-react'
+import { Smartphone, Gift, Wand2, Rocket, TrendingUp } from 'lucide-react'
 
 export default function ComingSoonPage() {
-  const router = useRouter()
-
   const features = [
     {
       title: 'AI Housing Planner',
@@ -35,12 +32,11 @@ export default function ComingSoonPage() {
 
   return (
     <div className="dashboard dashboard--nav-offset">
-      <header className="dashboard__header">
-        <div className="dashboard__header-left">
-          <button className="dashboard__back" onClick={() => router.push('/dashboard')}>
-            <ArrowLeft size={20} />
-          </button>
-          <h2 className="dashboard__title">Upcoming Features</h2>
+      {/* Unified Custom Header */}
+      <header className="profile-header animate-slide-up">
+        <div className="profile-header__title-wrap">
+          <h1 className="profile-header__title">Upcoming Features</h1>
+          <p className="profile-header__subtitle">Explore new tools and experiences</p>
         </div>
       </header>
 
@@ -80,6 +76,44 @@ export default function ComingSoonPage() {
           })}
         </div>
       </div>
+
+      <style jsx>{`
+        .profile-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.75rem 0.25rem 1.5rem;
+          border-bottom: none;
+        }
+
+        .profile-header__title-wrap {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          text-align: left;
+        }
+
+        .profile-header__title {
+          font-size: 1.85rem;
+          font-weight: 800;
+          color: var(--text);
+          letter-spacing: -0.02em;
+          margin: 0;
+        }
+
+        .profile-header__subtitle {
+          font-size: 0.9rem;
+          color: var(--text-muted);
+          margin: 0;
+        }
+
+        @media (min-width: 1024px) {
+          .profile-header {
+            padding: 1.5rem 0;
+            margin-bottom: 24px;
+          }
+        }
+      `}</style>
     </div>
   )
 }

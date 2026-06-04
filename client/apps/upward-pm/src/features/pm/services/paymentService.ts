@@ -14,7 +14,7 @@ export interface PmPaymentRequest {
   dueDate: string;
   rentStartDate?: string | null;
   rentEndDate?: string | null;
-  status: 'PENDING' | 'PARTIAL' | 'PAID' | 'CANCELLED';
+  status: 'PENDING' | 'SCHEDULED' | 'PARTIAL' | 'PAID' | 'CANCELLED';
   amountPaid: number;
   allowPartial: boolean;
   minAmount: number | null;
@@ -23,6 +23,9 @@ export interface PmPaymentRequest {
   updatedAt?: string;
   lineItems?: { name: string; amount: number }[];
   reminderFrequency?: string;
+  scheduledAt?: string | null;
+  isRecurring?: boolean;
+  recurrenceInterval?: string | null;
   transactions?: any[];
 }
 
@@ -37,6 +40,9 @@ export interface CreatePaymentRequestDto {
   minAmount?: number;
   lineItems?: { name: string; amount: number }[];
   reminderFrequency?: string;
+  scheduledAt?: string | null;
+  isRecurring?: boolean;
+  recurrenceInterval?: string | null;
 }
 
 export interface UpdatePmPaymentRequestDto {
@@ -49,6 +55,9 @@ export interface UpdatePmPaymentRequestDto {
   minAmount?: number;
   lineItems?: { name: string; amount: number }[];
   reminderFrequency?: string;
+  scheduledAt?: string | null;
+  isRecurring?: boolean;
+  recurrenceInterval?: string | null;
 }
 
 export const getPaymentRequests = () => {

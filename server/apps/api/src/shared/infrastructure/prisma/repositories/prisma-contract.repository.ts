@@ -30,22 +30,46 @@ export class PrismaContractRepository implements ContractRepository {
   }
 
   async findById(id: number): Promise<Contract | null> {
-    return this.prisma.upward_user_contract.findUnique({
+    const record = await this.prisma.upward_user_contract.findUnique({
       where: { id },
+      include: {
+        userProperty: {
+          include: {
+            location: true,
+          },
+        },
+      },
     })
+    return record as unknown as Contract | null
   }
 
   async findByUuid(uuid: string): Promise<Contract | null> {
-    return this.prisma.upward_user_contract.findUnique({
+    const record = await this.prisma.upward_user_contract.findUnique({
       where: { uuid },
+      include: {
+        userProperty: {
+          include: {
+            location: true,
+          },
+        },
+      },
     })
+    return record as unknown as Contract | null
   }
 
   async findByUserId(userId: number): Promise<Contract[]> {
-    return this.prisma.upward_user_contract.findMany({
+    const records = await this.prisma.upward_user_contract.findMany({
       where: { userId },
+      include: {
+        userProperty: {
+          include: {
+            location: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     })
+    return records as unknown as Contract[]
   }
 
   async delete(uuid: string): Promise<void> {

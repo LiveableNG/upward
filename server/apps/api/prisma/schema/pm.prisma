@@ -35,6 +35,7 @@ model upward_property_manager {
   emailSetting    upward_pm_email_setting?
   letterheads     upward_pm_letterhead[]
   signatures      upward_pm_signature[]
+  notifications   upward_pm_notification[]
   
   teamOwner         upward_pm_team_collaboration[] @relation("OwnerTeam")
   teamCollaborator  upward_pm_team_collaboration[] @relation("CollaboratorTeam")
@@ -226,6 +227,9 @@ model upward_pm_payment_request {
   reminderFrequency String                  @default("NONE") // NONE, DAILY, EVERY_2_DAYS, WEEKLY
   nextReminderAt   DateTime?
   reminderCount    Int                     @default(0)
+  scheduledAt      DateTime?               // Scheduled delivery/activation time
+  isRecurring      Boolean                 @default(false)
+  recurrenceInterval String?               // e.g. 'MONTHLY', 'QUARTERLY', 'YEARLY'
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
   paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
@@ -330,4 +334,24 @@ model upward_pm_signature {
   pm        upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
 
   @@index([pmId])
+}
+
+model upward_pm_notification {
+  id        Int                     @id @default(autoincrement())
+  uuid      String                  @unique @default(uuid())
+  pmId      Int
+  title     String
+  message   String
+  type      String                  @default("SYSTEM") // PAYMENT_COMPLETED, PAYMENT_DUE, PAYMENT_OVERDUE, SYSTEM
+  url       String?
+  isRead    Boolean                 @default(false)
+  isPopup   Boolean                 @default(false)
+  popupSeen Boolean                 @default(false)
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+  pm        upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+
+  @@index([pmId])
+  @@index([isRead])
+  @@index([createdAt])
 }

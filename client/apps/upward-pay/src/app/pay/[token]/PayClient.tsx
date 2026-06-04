@@ -6,7 +6,9 @@ import {
   Lock,
   CreditCard,
   ArrowRight,
-  ChevronRight
+  ChevronRight,
+  ShieldAlert,
+  X
 } from 'lucide-react'
 import { formatCurrency, generateId } from '@/lib/utils'
 import { UpwardLogo } from '@/components/PoweredByUpward'
@@ -25,12 +27,16 @@ import { SettledStep } from '@/features/payments/components/unified-pay/SettledS
 import { StatusStep } from '@/features/payments/components/unified-pay/StatusStep'
 import { RenewalModal } from '@/features/payments/components/unified-pay/RenewalModal'
 import { PaymentConfirmationModal } from '@/features/payments/components/unified-pay/PaymentConfirmationModal'
+import { BenefitsSelector } from '@/features/payments/components/unified-pay/BenefitsSelector'
+import { BenefitsOptOutModal } from '@/features/payments/components/unified-pay/BenefitsOptOutModal'
 import { usePaymentFlow } from '@/features/payments/hooks/usePaymentFlow'
 
 export default function PayClient({ overrideToken }: { overrideToken?: string }) {
   const router = useRouter()
   const params = useParams()
   const [showPaymentConfirm, setShowPaymentConfirm] = React.useState(false)
+  const [showOptOutModal, setShowOptOutModal] = React.useState(false)
+  const [showUnverifiedModal, setShowUnverifiedModal] = React.useState(false)
   
   const uuid = useMemo(() => {
     if (overrideToken) return overrideToken
@@ -70,6 +76,9 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     executeLogin,
     authUser,
     isPendingRefund,
+    isBenefitsOptedIn,
+    setIsBenefitsOptedIn,
+    rates
   } = usePaymentFlow(uuid)
 
   if (step === 'loading') return <FallbackSuspense message="Retrieving secure payment details..." />
@@ -221,6 +230,25 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                       : 'Amount Outstanding'
                   }
                 />
+
+                {/* Benefits Card shifted to Left Column on Desktop for balance */}
+                <div className="benefits-desktop-wrap">
+                  {rates.benefitsFee > 0 && !rates.benefitsPaid && (
+                    <BenefitsSelector
+                      benefitsFee={rates.benefitsFee}
+                      currency={currency}
+                      isOptedIn={isBenefitsOptedIn}
+                      rentValue={rates.rentValue}
+                      onToggle={(checked) => {
+                        if (!checked) {
+                          setShowOptOutModal(true)
+                        } else {
+                          setIsBenefitsOptedIn(true)
+                        }
+                      }}
+                    />
+                  )}
+                </div>
               </div>
 
               <div className="pay-layout__right">
@@ -256,6 +284,26 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                       isFullPaymentRequired={isFullPaymentRequired}
                       isUnderpaying={isUnderpaying}
                     />
+
+                    {/* Render Benefits Selector inside Right Column on Mobile viewports only */}
+                    <div className="benefits-mobile-wrap">
+                      {rates.benefitsFee > 0 && !rates.benefitsPaid && (
+                        <BenefitsSelector
+                          benefitsFee={rates.benefitsFee}
+                          currency={currency}
+                          isOptedIn={isBenefitsOptedIn}
+                          rentValue={rates.rentValue}
+                          onToggle={(checked) => {
+                            if (!checked) {
+                              setShowOptOutModal(true)
+                            } else {
+                              setIsBenefitsOptedIn(true)
+                            }
+                          }}
+                        />
+                      )}
+                    </div>
+
                     <AllocationBreakdown
                       showBreakdown={showBreakdown}
                       setShowBreakdown={setShowBreakdown}
@@ -265,10 +313,16 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                       canPayPartial={!!paymentData.payment.allowPartial}
                       onAllocationChange={handleAllocationChange}
                     />
-                    <div className="pay-cta">
+                    <div className="pay-cta pay-cta--sticky">
                       <button
                         className="btn btn--primary btn--full btn--pay btn--pill"
-                        onClick={() => setShowPaymentConfirm(true)}
+                        onClick={() => {
+                          if (authUser && !authUser.isIdentityVerified) {
+                            setShowUnverifiedModal(true)
+                          } else {
+                            setShowPaymentConfirm(true)
+                          }
+                        }}
                         disabled={ctaDisabled}
                       >
                         <CreditCard size={18} className="icon--left" />
@@ -282,6 +336,17 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             </div>
           </div>
         </main>
+
+        <BenefitsOptOutModal
+          isOpen={showOptOutModal}
+          rentValue={rates.rentValue}
+          currency={currency}
+          onClose={() => setShowOptOutModal(false)}
+          onConfirmOptOut={() => {
+            setIsBenefitsOptedIn(false)
+            setShowOptOutModal(false)
+          }}
+        />
 
         <footer className="pay-footer">
           <p className="pay-footer__disclaimer">
@@ -305,8 +370,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
           }
           @supports (backdrop-filter: blur(12px)) {
             .pay-header {
-              opacity: 0.95;
-              backdrop-filter: blur(12px);
+               opacity: 0.95;
+               backdrop-filter: blur(12px);
             }
           }
           .pay-header__content {
@@ -343,6 +408,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
           .pay-main {
             padding-top: 64px;
+            padding-bottom: 96px; /* Added spacing to prevent mobile sticky CTA overlap */
             min-height: calc(100vh - 64px - 52px);
             background: radial-gradient(circle at 80% 0%, var(--clay-faint), transparent 360px), var(--oat-dim);
             display: flex;
@@ -362,7 +428,29 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
           .pay-layout { display: flex; flex-direction: column; gap: 24px; }
           .pay-layout__left { display: flex; flex-direction: column; gap: 16px; }
           .pay-layout__right { display: flex; flex-direction: column; gap: 12px; }
+          
           .pay-cta { margin-top: 8px; }
+          
+          /* Sticky Bottom CTA for MobileUX */
+          @media (max-width: 1023px) {
+            .pay-cta--sticky {
+              position: fixed;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              background: var(--bg);
+              border-top: 1px solid var(--border-solid);
+              padding: 16px 24px;
+              z-index: 45;
+              box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.04);
+            }
+            @supports (backdrop-filter: blur(12px)) {
+              .pay-cta--sticky {
+                background: rgba(255, 255, 255, 0.9);
+                backdrop-filter: blur(12px);
+              }
+            }
+          }
 
           .btn--pay {
             display: flex;
@@ -413,6 +501,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             padding: 0 24px;
             border-top: 1px solid var(--border-solid);
             background: var(--bg);
+            margin-bottom: 74px; /* Space on mobile footer so it's not hidden behind sticky button */
           }
           .pay-footer__disclaimer {
             font-size: 11px;
@@ -439,10 +528,33 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
               background: transparent;
             }
             .pay-layout { gap: 20px; }
-            .pay-footer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 40; }
+            .pay-footer { 
+              position: static; 
+              margin-top: 24px;
+              margin-bottom: 24px;
+              border-top: none;
+            }
+            .benefits-desktop-wrap {
+              display: none;
+            }
+            .benefits-mobile-wrap {
+              display: block;
+              margin-bottom: 24px;
+            }
           }
 
           @media (min-width: 1024px) {
+            .benefits-desktop-wrap {
+              display: block;
+              margin-top: 24px;
+              width: 100%;
+            }
+            .benefits-desktop-wrap :global(.benefits-card) {
+              background: var(--bg);
+            }
+            .benefits-mobile-wrap {
+              display: none;
+            }
             .auth-shell--pay { max-width: 100%; padding: 0; }
             .pay-main {
               padding-top: 80px; padding-bottom: 80px;
@@ -457,6 +569,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             .pay-layout__left {
               flex: 1.1; gap: 32px; padding: 64px;
               background: var(--surface); border-right: 1px solid var(--border-solid);
+              display: flex;
+              flex-direction: column;
             }
             .pay-layout__right { flex: 1; padding: 64px; justify-content: flex-start; gap: 40px; }
             .pay-cta { margin-top: auto; padding-top: 32px; }
@@ -488,6 +602,53 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             setStep('checkout')
           }}
         />
+
+        {showUnverifiedModal && (
+          <div className="modal-overlay" onClick={() => setShowUnverifiedModal(false)}>
+            <div className="modal-card animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-card__header">
+                <div className="modal-card__badge" style={{ background: 'var(--error)' }}>
+                  VERIFICATION REQUIRED
+                </div>
+                <button className="modal-card__close" onClick={() => setShowUnverifiedModal(false)}>
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="modal-card__body py-6 text-center">
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                  <div style={{ background: '#fee2e2', color: 'var(--error)', borderRadius: '50%', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ShieldAlert size={36} />
+                  </div>
+                </div>
+                <h3 className="modal-card__title" style={{ fontSize: '20px', fontWeight: 800 }}>Verify Your Identity</h3>
+                <p className="modal-card__text" style={{ marginTop: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  To comply with financial regulations and secure your transactions, you must verify your identity using your Bank Verification Number (BVN) before completing payments.
+                </p>
+                <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '12px', marginTop: '16px', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left' }}>
+                  <Lock size={16} style={{ flexShrink: 0, color: 'var(--clay)' }} />
+                  <span>Your BVN is only used for one-time verification. <strong>We do not save your BVN number</strong>.</span>
+                </div>
+              </div>
+              <div className="modal-card__footer flex flex-col gap-3 pt-2">
+                <button
+                  className="btn btn--primary btn--full btn--pill"
+                  onClick={() => {
+                    setShowUnverifiedModal(false)
+                    router.push(`/dashboard/verify-identity?redirect=${encodeURIComponent(`/pay/${uuid}`)}`)
+                  }}
+                >
+                  Verify Identity Now <ArrowRight size={16} />
+                </button>
+                <button
+                  className="btn btn--ghost btn--full btn--pill"
+                  onClick={() => setShowUnverifiedModal(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
