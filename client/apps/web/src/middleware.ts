@@ -49,9 +49,9 @@ export async function middleware(request: NextRequest) {
 
   // 1. Pay / Tenant Auth cookies
   const payTokenCookie = request.cookies.get('pay_access_token')
-  const hasPayToken = !!payTokenCookie
   const payTokenValue = payTokenCookie?.value
   const isPayExpired = payTokenValue ? isTokenExpired(payTokenValue) : true
+  const hasActivePayToken = !!payTokenCookie && !isPayExpired
 
   // 2. PM / Landlord Auth cookies
   const pmTokenCookie = request.cookies.get('pm_access_token')
@@ -59,7 +59,9 @@ export async function middleware(request: NextRequest) {
   const landlordTokenCookie = request.cookies.get('landlord_access_token')
   const landlordRefreshCookie = request.cookies.get('landlord_refresh_token')
 
-  const hasPmToken = !!pmTokenCookie || !!landlordTokenCookie || !!pmRefreshCookie || !!landlordRefreshCookie
+  const isPmExpired = pmTokenCookie ? isTokenExpired(pmTokenCookie.value) : true
+  const isLandlordExpired = landlordTokenCookie ? isTokenExpired(landlordTokenCookie.value) : true
+  const hasActivePmToken = (!!pmTokenCookie && !isPmExpired) || (!!landlordTokenCookie && !isLandlordExpired)
 
   // 3. Determine routing destination (Pay vs PM App)
   const redirectParam = request.nextUrl.searchParams.get('redirect') || ''
@@ -93,7 +95,28 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/invite')
 
   // Rule: Should this request route to the PM app instead of the Pay app?
-  const routeToPm = isPmPath || (isSharedRoute && (hasPmToken || isPmRedirectParam))
+  let routeToPm = isPmPath
+  if (!routeToPm && isSharedRoute) {
+    if (isPmRedirectParam) {
+      routeToPm = true
+    } else if (hasActivePmToken && !hasActivePayToken) {
+      routeToPm = true
+    } else if (hasActivePayToken && !hasActivePmToken) {
+      routeToPm = false
+    } else {
+      // If neither or both are active, check refresh tokens or fallback
+      const hasPmSession = hasActivePmToken || !!pmRefreshCookie || !!landlordRefreshCookie
+      const hasPaySession = hasActivePayToken || !!payTokenCookie
+      if (hasPmSession && !hasPaySession) {
+        routeToPm = true
+      } else if (hasPaySession && !hasPmSession) {
+        routeToPm = false
+      } else {
+        // Fallback: route to PM if they have any PM session, otherwise default to Pay
+        routeToPm = hasPmSession
+      }
+    }
+  }
 
   const targetBase = routeToPm ? PM_URL : APP_URL
   const tokenCookie = routeToPm ? (pmTokenCookie || landlordTokenCookie) : payTokenCookie
@@ -161,14 +184,11 @@ export async function middleware(request: NextRequest) {
     if (!alreadyGoingToDashboard) {
       const dashboardUrl = new URL('/dashboard', request.url)
       // 1. If PM/Landlord user has an active token, redirect straight to PM dashboard
-      if (hasPmToken && pmTokenCookie && !isTokenExpired(pmTokenCookie.value)) {
-        return NextResponse.redirect(dashboardUrl)
-      }
-      if (hasPmToken && landlordTokenCookie && !isTokenExpired(landlordTokenCookie.value)) {
+      if (hasActivePmToken) {
         return NextResponse.redirect(dashboardUrl)
       }
       // 2. If Tenant user has an active token, redirect straight to Tenant dashboard
-      if (hasPayToken && payTokenCookie && !isTokenExpired(payTokenCookie.value)) {
+      if (hasActivePayToken) {
         return NextResponse.redirect(dashboardUrl)
       }
     }
@@ -184,7 +204,12 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/documents') ||
     pathname.startsWith('/api/v1')
 
-  if (isProtectedRoute && (!hasToken || isExpired) && !pathname.startsWith('/api/v1')) {
+  const hasPmRefresh = !!pmRefreshCookie || !!landlordRefreshCookie
+  const hasValidSession = routeToPm
+    ? (hasToken && !isExpired) || hasPmRefresh
+    : (hasToken && !isExpired)
+
+  if (isProtectedRoute && !hasValidSession && !pathname.startsWith('/api/v1')) {
 
     const loginPath = routeToPm ? (pathname.startsWith('/portal') ? '/portal/login' : '/pm-login') : '/login'
     // Prevent redirect loop: if we're already on the login page, don't redirect again

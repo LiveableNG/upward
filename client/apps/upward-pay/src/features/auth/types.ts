@@ -13,6 +13,7 @@ export interface UserProfile {
   lastName: string
   phone?: string | null
   dateOfBirth?: string
+  isIdentityVerified?: boolean
   gender?: string
   address?: string
   rentEndDate?: string
@@ -26,6 +27,9 @@ export interface UserProfile {
     rentEndDate: string;
     rentAmount?: number;
     isManaged?: boolean;
+    isVerified?: boolean;
+    isPmVerified?: boolean;
+    isPlatformLinked?: boolean;
     managerName?: string;
     managerPhone?: string;
     managerEmail?: string;
@@ -33,7 +37,6 @@ export interface UserProfile {
     companyPhone?: string;
     companyEmail?: string;
     isPastTenancy?: boolean;
-    isVerified?: boolean;
     location?: {
       area?: string;
       subarea?: string;

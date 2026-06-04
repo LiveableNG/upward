@@ -20,7 +20,12 @@ function isTokenExpired(token: string): boolean {
 }
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname, search } = request.nextUrl
+
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const host = forwardedHost || request.headers.get('host')
+  const protocol = request.headers.get('x-forwarded-proto') || (host?.includes('localhost') ? 'http' : 'https')
+  const baseUrl = `${protocol}://${host}`
   
   // PM Auth
   const accessToken = request.cookies.get('pm_access_token')?.value
@@ -52,13 +57,13 @@ export function middleware(request: NextRequest) {
     
     if (isPortalLoginPath || isPortalSignupPath) {
       if (isLandlordLoggedIn) {
-        return NextResponse.redirect(new URL('/portal', request.url))
+        return NextResponse.redirect(new URL('/portal', baseUrl))
       }
       return NextResponse.next()
     }
     
     if (!isPortalPublic && !isLandlordLoggedIn) {
-      const loginUrl = new URL('/portal/login', request.url)
+      const loginUrl = new URL('/portal/login', baseUrl)
       loginUrl.searchParams.set('redirect', pathname)
       return NextResponse.redirect(loginUrl)
     }
@@ -67,26 +72,26 @@ export function middleware(request: NextRequest) {
 
   // PM Auth Logic
   if (isPublicPath && isLoggedIn) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    return NextResponse.redirect(new URL('/dashboard', baseUrl))
   }
 
   if (isPublicRequestPath) {
     if (isLoggedIn) {
       const newPath = pathname.replace('/public/requests/', '/requests/')
-      return NextResponse.redirect(new URL(newPath, request.url))
+      return NextResponse.redirect(new URL(newPath + search, baseUrl))
     }
     return NextResponse.next()
   }
 
   // Root path handling
   if (pathname === '/') {
-    if (isLoggedIn) return NextResponse.redirect(new URL('/dashboard', request.url))
+    if (isLoggedIn) return NextResponse.redirect(new URL('/dashboard', baseUrl))
     return NextResponse.next()
   }
 
   // Protected paths
   if (!isPublicPath && !isLoggedIn && !pathname.startsWith('/api')) {
-    const loginUrl = new URL('/login', request.url)
+    const loginUrl = new URL('/pm-login', baseUrl)
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
   }

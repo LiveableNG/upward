@@ -44,6 +44,10 @@ export function CreatePaymentRequestModal({
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>('')
   const [includeManagementFee, setIncludeManagementFee] = useState(false)
   const [reminderFrequency, setReminderFrequency] = useState<string>('NONE')
+  const [isScheduled, setIsScheduled] = useState(false)
+  const [scheduledAt, setScheduledAt] = useState<string>('')
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [recurrenceInterval, setRecurrenceInterval] = useState<string>('MONTHLY')
   const { templates } = useDocuments()
 
   const { success, error } = useToast()
@@ -70,6 +74,22 @@ export function CreatePaymentRequestModal({
       setAllowPartial(existingRequest.allowPartial)
       setMinAmount(existingRequest.minAmount?.toString() || '')
       setReminderFrequency(existingRequest.reminderFrequency || 'NONE')
+      
+      const isSched = !!existingRequest.scheduledAt
+      setIsScheduled(isSched)
+      setIsRecurring(existingRequest.isRecurring || false)
+      setRecurrenceInterval(existingRequest.recurrenceInterval || 'MONTHLY')
+      if (existingRequest.scheduledAt) {
+        const date = new Date(existingRequest.scheduledAt)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        setScheduledAt(`${year}-${month}-${day}T${hours}:${minutes}`)
+      } else {
+        setScheduledAt('')
+      }
 
       if (existingRequest.lineItems) {
         setLineItems(existingRequest.lineItems.map(li => ({
@@ -83,7 +103,6 @@ export function CreatePaymentRequestModal({
       setRentType(type)
       setReminderFrequency('WEEKLY') // Default to weekly for new requests
 
-      // 1. Determine if we should request for the CURRENT period (balance) or NEXT period
       let calculatedStartDate = unit.rentStartDate ? new Date(unit.rentStartDate) : new Date()
       let calculatedEndDate = unit.rentDueDate ? new Date(unit.rentDueDate) : new Date()
       
@@ -144,6 +163,8 @@ export function CreatePaymentRequestModal({
       setRentStartDate(startDateStr)
       setRentEndDate(endDateStr)
       setDueDate(startDateStr)
+      setIsScheduled(false)
+      setScheduledAt('')
       setHasInitialized(true)
     }
   }, [isOpen, unit, existingRequest, payments, hasInitialized])
@@ -210,6 +231,11 @@ export function CreatePaymentRequestModal({
     if (!dueDate) return error('Please select a due date')
     if (!hasBankDetails) return error('Please set up your bank information in settings to receive payments')
     if (!isEditing && !selectedTemplateUuid) return error('Please select a document template')
+    
+    if (isScheduled) {
+      if (!scheduledAt) return error('Please select a scheduled delivery date and time')
+      if (new Date(scheduledAt) <= new Date()) return error('Scheduled date and time must be in the future')
+    }
 
     const paymentContext = {
       unitUuid: unit!.uuid,
@@ -222,6 +248,9 @@ export function CreatePaymentRequestModal({
       description: description || `Payment request for Unit ${unit!.unitName}`,
       allowPartial,
       minAmount: allowPartial ? parseFloat(minAmount) || 0 : undefined,
+      scheduledAt: isScheduled && scheduledAt ? new Date(scheduledAt).toISOString() : null,
+      isRecurring: isScheduled ? isRecurring : false,
+      recurrenceInterval: isScheduled && isRecurring ? recurrenceInterval : null,
       lineItems: lineItems.filter(li => li.name && li.amount).map(li => ({
         name: li.name,
         amount: parseFloat(li.amount)
@@ -481,6 +510,73 @@ export function CreatePaymentRequestModal({
                 onChange={(e) => setMinAmount(e.target.value)}
                 className="form-input"
               />
+            </div>
+          )}
+        </div>
+
+        <div className="form-group">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="checkbox"
+              id="isScheduled"
+              checked={isScheduled}
+              onChange={(e) => setIsScheduled(e.target.checked)}
+              style={{ width: 18, height: 18 }}
+            />
+            <label htmlFor="isScheduled" className="form-label" style={{ marginBottom: 0 }}>Schedule Delivery (Bill in Advance)</label>
+          </div>
+
+          {isScheduled && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{
+                background: 'var(--ivory-dim)',
+                padding: '12px 16px',
+                borderRadius: 10,
+                fontSize: 12,
+                color: 'var(--text-muted)',
+                marginBottom: 16,
+                borderLeft: '3px solid var(--clay)',
+                lineHeight: 1.5
+              }}>
+                <p style={{ margin: 0 }}>
+                  <strong>How it works:</strong> The tenant won't receive the payment link immediately.
+                  It will automatically be delivered on your scheduled date and time.
+                </p>
+              </div>
+              <label className="form-label">Activation Date & Time</label>
+              <input
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                className="form-input"
+                style={{ marginBottom: 16 }}
+              />
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: isRecurring ? 12 : 0 }}>
+                <input
+                  type="checkbox"
+                  id="isRecurring"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  style={{ width: 16, height: 16 }}
+                />
+                <label htmlFor="isRecurring" className="form-label" style={{ marginBottom: 0, fontSize: 13, color: 'var(--text)' }}>Repeat this schedule (Recurring)</label>
+              </div>
+
+              {isRecurring && (
+                <div>
+                  <label className="form-label" style={{ fontSize: 12 }}>Repeat Interval</label>
+                  <select
+                    className="form-input"
+                    value={recurrenceInterval}
+                    onChange={(e) => setRecurrenceInterval(e.target.value)}
+                  >
+                    <option value="MONTHLY">Monthly</option>
+                    <option value="QUARTERLY">Quarterly</option>
+                    <option value="YEARLY">Yearly</option>
+                  </select>
+                </div>
+              )}
             </div>
           )}
         </div>

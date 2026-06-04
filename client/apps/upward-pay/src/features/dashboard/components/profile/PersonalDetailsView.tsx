@@ -51,7 +51,7 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
         rentStartDate: p.rentStartDate ? p.rentStartDate.split('T')[0] : '',
         rentEndDate: p.rentEndDate ? p.rentEndDate.split('T')[0] : '',
         isPastTenancy: !!p.isPastTenancy,
-        isVerified: !!p.isVerified || !!p.isManaged,
+        isVerified: !!p.isVerified,
         managerName: p.manager?.firstName ? `${p.manager.firstName} ${p.manager.lastName || ''}`.trim() : p.managerName,
         managerPhone: p.manager?.phone || p.managerPhone,
         managerEmail: p.manager?.email || p.managerEmail,
@@ -177,107 +177,89 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
       <div className="personal-content">
         <div className="personal-sections">
           
-          {/* Section 1: Core Details */}
+          {/* Section 1: Identity & Contact */}
           <section className="premium-card animate-slide-up">
-            <div className="premium-card__header">
-              <div className="premium-card__icon-wrap bg-clay-faint text-clay">
-                <User size={20} />
+            <div className="premium-card__header premium-card__header--split">
+              <div className="flex gap-4 items-center">
+                <div className="premium-card__icon-wrap bg-clay-faint text-clay">
+                  <User size={20} />
+                </div>
+                <div>
+                  <h3 className="premium-card__title">Identity & Contact</h3>
+                  <p className="premium-card__desc">Manage your core profile details.</p>
+                </div>
               </div>
-              <div>
-                <h3 className="premium-card__title">Identity & Contact</h3>
-                <p className="premium-card__desc">Manage your core profile details.</p>
-              </div>
+              {!isEditing && (
+                <button 
+                  className="btn btn--secondary btn--sm btn--pill desktop-only" 
+                  onClick={() => setIsEditing(true)}
+                  title="Edit Profile"
+                >
+                  <Pencil size={14} className="mr-1" /> Edit Profile
+                </button>
+              )}
             </div>
 
-            <div className="premium-form premium-form--grid">
-              <div className="premium-field">
-                <label className="premium-field__label">First Name</label>
-                <div className="premium-field__input-wrap">
-                  <User className="premium-field__icon" size={18} />
-                  {isEditing ? (
+            <div className={isEditing ? "premium-form premium-form--grid" : "premium-details-list"}>
+              {isEditing ? (
+                <>
+                  <div className="premium-field">
+                    <label className="premium-field__label">First Name</label>
                     <input
                       type="text"
                       className="premium-field__input"
                       value={formData.firstName || ''}
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     />
-                  ) : (
-                    <div className="premium-field__read-only">{formData.firstName || <span className="text-muted italic">Not Set</span>}</div>
-                  )}
-                </div>
-              </div>
+                  </div>
 
-              <div className="premium-field">
-                <label className="premium-field__label">Last Name</label>
-                <div className="premium-field__input-wrap">
-                  <User className="premium-field__icon" size={18} />
-                  {isEditing ? (
+                  <div className="premium-field">
+                    <label className="premium-field__label">Last Name</label>
                     <input
                       type="text"
                       className="premium-field__input"
                       value={formData.lastName || ''}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                     />
-                  ) : (
-                    <div className="premium-field__read-only">{formData.lastName || <span className="text-muted italic">Not Set</span>}</div>
-                  )}
-                </div>
-              </div>
+                  </div>
 
-              <div className="premium-field">
-                <label className="premium-field__label">Email Address</label>
-                <div className="premium-field__input-wrap">
-                  <Mail className="premium-field__icon" size={18} />
-                  <div className="premium-field__read-only text-muted">{user.email}</div>
-                </div>
-              </div>
+                  <div className="premium-field">
+                    <label className="premium-field__label">Email Address</label>
+                    <input
+                      type="text"
+                      className="premium-field__input text-muted"
+                      value={user.email}
+                      disabled
+                    />
+                  </div>
 
-              <div className="premium-field">
-                <label className="premium-field__label">Phone Number</label>
-                <div className="premium-field__input-wrap">
-                  <Phone className="premium-field__icon" size={18} />
-                  {isEditing ? (
-                    <>
-                      <input
-                        type="tel"
-                        className={`premium-field__input ${validationErrors.phone ? 'premium-field__input--error' : ''}`}
-                        value={formData.phone || ''}
-                        onChange={(e) => {
-                          const val = e.target.value
-                          setFormData({ ...formData, phone: val })
-                          setValidationErrors(prev => ({ ...prev, phone: validatePhone(val) }))
-                        }}
-                      />
-                      {validationErrors.phone && <span className="premium-field__error-msg">{validationErrors.phone}</span>}
-                    </>
-                  ) : (
-                    <div className="premium-field__read-only">{formData.phone || <span className="text-muted italic">Not Set</span>}</div>
-                  )}
-                </div>
-              </div>
+                  <div className="premium-field">
+                    <label className="premium-field__label">Phone Number</label>
+                    <input
+                      type="tel"
+                      className={`premium-field__input ${validationErrors.phone ? 'premium-field__input--error' : ''}`}
+                      value={formData.phone || ''}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setFormData({ ...formData, phone: val })
+                        setValidationErrors(prev => ({ ...prev, phone: validatePhone(val) }))
+                      }}
+                    />
+                    {validationErrors.phone && <span className="premium-field__error-msg">{validationErrors.phone}</span>}
+                  </div>
 
-              <div className="premium-field">
-                <label className="premium-field__label">Date of Birth</label>
-                <div className="premium-field__input-wrap">
-                  <Calendar className="premium-field__icon" size={18} />
-                  {isEditing ? (
+                  <div className="premium-field">
+                    <label className="premium-field__label">Date of Birth</label>
                     <input
                       type="date"
                       className="premium-field__input"
                       value={formData.dateOfBirth || ''}
                       onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                     />
-                  ) : (
-                    <div className="premium-field__read-only">{formData.dateOfBirth || <span className="text-muted italic">Not Set</span>}</div>
-                  )}
-                </div>
-              </div>
+                  </div>
 
-              <div className="premium-field">
-                <label className="premium-field__label">Gender</label>
-                <div className="premium-field__input-wrap">
-                  <User className="premium-field__icon" size={18} />
-                  {isEditing ? (
+                  <div className="premium-field">
+                    <label className="premium-field__label">Gender</label>
                     <select
                       className="premium-field__input premium-field__select"
                       value={formData.gender || ''}
@@ -289,11 +271,41 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
                       <option value="Other">Other</option>
                       <option value="Prefer not to say">Prefer not to say</option>
                     </select>
-                  ) : (
-                    <div className="premium-field__read-only">{formData.gender || <span className="text-muted italic">Not Set</span>}</div>
-                  )}
+                  </div>
+                </>
+              ) : (
+                <div className="premium-details-list">
+                  <div className="premium-field--readonly">
+                    <span className="premium-field__label--readonly">First Name</span>
+                    <span className="premium-field__value--readonly">{formData.firstName || <span className="text-muted italic">Not Set</span>}</span>
+                  </div>
+
+                  <div className="premium-field--readonly">
+                    <span className="premium-field__label--readonly">Last Name</span>
+                    <span className="premium-field__value--readonly">{formData.lastName || <span className="text-muted italic">Not Set</span>}</span>
+                  </div>
+
+                  <div className="premium-field--readonly">
+                    <span className="premium-field__label--readonly">Email Address</span>
+                    <span className="premium-field__value--readonly text-muted">{user.email}</span>
+                  </div>
+
+                  <div className="premium-field--readonly">
+                    <span className="premium-field__label--readonly">Phone Number</span>
+                    <span className="premium-field__value--readonly">{formData.phone || <span className="text-muted italic">Not Set</span>}</span>
+                  </div>
+
+                  <div className="premium-field--readonly">
+                    <span className="premium-field__label--readonly">Date of Birth</span>
+                    <span className="premium-field__value--readonly">{formData.dateOfBirth || <span className="text-muted italic">Not Set</span>}</span>
+                  </div>
+
+                  <div className="premium-field--readonly">
+                    <span className="premium-field__label--readonly">Gender</span>
+                    <span className="premium-field__value--readonly">{formData.gender || <span className="text-muted italic">Not Set</span>}</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </section>
 
@@ -309,14 +321,12 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
                   <p className="premium-card__desc">Residential assets verifying your credibility.</p>
                 </div>
               </div>
-              {isEditing && (
-                <button
-                  className="btn btn--secondary btn--sm btn--pill premium-add-btn"
-                  onClick={() => setIsAddPropertyModalOpen(true)}
-                >
-                  <Plus size={14} className="mr-1" /> Add Property
-                </button>
-              )}
+              <button
+                className="btn btn--secondary btn--sm btn--pill premium-add-btn"
+                onClick={() => setIsAddPropertyModalOpen(true)}
+              >
+                <Plus size={14} className="mr-1" /> Add Property
+              </button>
             </div>
 
             <div className="properties-list">
@@ -324,11 +334,9 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
                 <div className="empty-state">
                   <Building2 size={32} className="text-muted mb-2" />
                   <p>No properties added yet.</p>
-                  {isEditing && (
-                    <button className="btn btn--ghost btn--sm mt-2" onClick={() => setIsAddPropertyModalOpen(true)}>
-                      Add Your First Property
-                    </button>
-                  )}
+                  <button className="btn btn--ghost btn--sm mt-2" onClick={() => setIsAddPropertyModalOpen(true)}>
+                    Add Your First Property
+                  </button>
                 </div>
               )}
               
@@ -351,9 +359,14 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
                       </div>
                     </div>
                     <div className="prop-card__status-group">
-                      {(prop.isVerified || prop.isManaged) && (
+                      {prop.isVerified && (
                         <div className="status-badge status-badge--shield" title="Verified Management">
                           <Shield size={12} />
+                        </div>
+                      )}
+                      {!prop.isVerified && prop.verificationStatus === 'PENDING' && (
+                        <div className="status-badge status-badge--pending" title="Verification Pending">
+                          Pending Verification
                         </div>
                       )}
                       {prop.isPastTenancy && (
@@ -401,51 +414,49 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
                         </div>
                       </div>
 
-                      {isEditing && (
-                        <div className="prop-card__actions">
-                          {(prop.isVerified || prop.isManaged) && (
-                            <div className="managed-notice">
-                              <Shield size={14} className="text-clay" />
-                              <span>Verified by {prop.company?.name || prop.companyName}. Restricted editing.</span>
-                            </div>
-                          )}
-                          <div className="flex gap-2 w-full justify-end">
-                            {!(prop.isVerified || prop.isManaged) && (
-                              <button
-                                className="btn btn--outline btn--sm text-red-500 hover:bg-red-50"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  const newProps = [...(formData.properties || [])]
-                                  newProps.splice(idx, 1)
-                                  setFormData({ ...formData, properties: newProps })
-                                }}
-                              >
-                                <Trash2 size={14} className="mr-1" /> Remove
-                              </button>
-                            )}
-                            {!(prop.isVerified || prop.isManaged) && (
-                              <button
-                                className="btn btn--secondary btn--sm"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setSelectedProperty(prop)
-                                  setIsAddPropertyModalOpen(true)
-                                }}
-                              >
-                                <Edit2 size={14} className="mr-1" /> {prop.verificationStatus === 'REJECTED' ? 'Edit & Retry' : 'Edit'}
-                              </button>
-                            )}
+                      <div className="prop-card__actions">
+                        {prop.isVerified && (
+                          <div className="managed-notice">
+                            <Shield size={14} className="text-clay" />
+                            <span>Verified by {prop.company?.name || prop.companyName}. Restricted editing.</span>
                           </div>
-                          {prop.verificationStatus === 'REJECTED' && (
-                            <div className="rejection-alert">
-                              <AlertCircle size={14} />
-                              <span>
-                                {prop.rejectionReason || "Your connection request was declined. Please verify the manager's contact details and retry."}
-                              </span>
-                            </div>
+                        )}
+                        <div className="flex gap-2 w-full justify-end">
+                          {isEditing && !prop.isVerified && (
+                            <button
+                              className="btn btn--outline btn--sm text-red-500 hover:bg-red-50"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                const newProps = [...(formData.properties || [])]
+                                newProps.splice(idx, 1)
+                                setFormData({ ...formData, properties: newProps })
+                              }}
+                            >
+                              <Trash2 size={14} className="mr-1" /> Remove
+                            </button>
+                          )}
+                          {!prop.isVerified && (
+                            <button
+                              className="btn btn--secondary btn--sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedProperty(prop)
+                                setIsAddPropertyModalOpen(true)
+                              }}
+                            >
+                              <Edit2 size={14} className="mr-1" /> {prop.verificationStatus === 'REJECTED' ? 'Edit & Retry' : 'Edit'}
+                            </button>
                           )}
                         </div>
-                      )}
+                        {prop.verificationStatus === 'REJECTED' && (
+                          <div className="rejection-alert">
+                            <AlertCircle size={14} />
+                            <span>
+                              {prop.rejectionReason || "Your connection request was declined. Please verify the manager's contact details and retry."}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -469,7 +480,7 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
 
       <style jsx>{`
         .personal-details-view {
-          max-width: 860px;
+          max-width: 640px;
           margin: 0 auto;
           padding-top: 1rem;
         }
@@ -493,22 +504,22 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
         .personal-sections {
           display: flex;
           flex-direction: column;
-          gap: 2rem;
+          gap: 1.5rem;
         }
 
         .premium-card {
-          background: var(--surface);
-          border: 1px solid var(--border-solid);
-          border-radius: 24px;
-          padding: 2rem;
-          box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+          background: var(--bg);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          padding: 1.5rem;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
         }
 
         .premium-card__header {
           display: flex;
           gap: 1rem;
           align-items: center;
-          margin-bottom: 2rem;
+          margin-bottom: 1.5rem;
         }
 
         .premium-card__header--split {
@@ -549,23 +560,54 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
           margin: 0;
         }
 
-        /* Premium Form Fields */
+        /* Premium Form Fields & Lists */
         .premium-form {
           display: flex;
           flex-direction: column;
-          gap: 1.5rem;
+          gap: 1.25rem;
         }
 
         .premium-form--grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
+          gap: 1.25rem;
         }
 
         @media (max-width: 768px) {
           .premium-form--grid {
             grid-template-columns: 1fr;
           }
+        }
+
+        .premium-details-list {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .premium-field--readonly {
+          display: flex;
+          flex-direction: column;
+          padding: 1rem 0.5rem;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .premium-field--readonly:last-child {
+          border-bottom: none;
+        }
+
+        .premium-field__label--readonly {
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 4px;
+        }
+
+        .premium-field__value--readonly {
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--text);
         }
 
         .premium-field {
@@ -575,42 +617,31 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
         }
 
         .premium-field__label {
+          font-size: 0.75rem;
+          font-weight: 700;
           color: var(--text-muted);
           text-transform: uppercase;
           letter-spacing: 0.05em;
           margin-left: 4px;
         }
 
-        .premium-field__input-wrap {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .premium-field__icon {
-          position: absolute;
-          left: 16px;
-          color: var(--text-muted);
-          pointer-events: none;
-        }
-
         .premium-field__input {
           width: 100%;
-          padding: 14px 16px 14px 44px;
-          background: var(--bg);
-          border: 1.5px solid var(--border-solid);
-          border-radius: 16px;
+          padding: 12px 14px;
+          background: var(--surface);
+          border: 1px solid var(--border-solid);
+          border-radius: 12px;
           font-size: 0.95rem;
           font-weight: 500;
           color: var(--text);
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.2s ease;
         }
 
         .premium-field__input:focus {
           outline: none;
           border-color: var(--clay);
+          background: var(--bg);
           box-shadow: 0 0 0 4px var(--clay-glow);
-          background: var(--surface);
         }
 
         .premium-field__input--error {
@@ -618,12 +649,11 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
         }
 
         .premium-field__error-msg {
-          position: absolute;
-          bottom: -20px;
-          left: 4px;
           font-size: 0.7rem;
           color: var(--error);
           font-weight: 600;
+          margin-top: 4px;
+          margin-left: 4px;
         }
 
         .premium-field__select {
@@ -634,14 +664,14 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
           padding-right: 44px;
         }
 
-        .premium-field__read-only {
-          width: 100%;
-          padding: 14px 16px 14px 44px;
-          background: transparent;
-          border: 1.5px solid transparent;
-          font-size: 1rem;
-          font-weight: 600;
-          color: var(--text);
+        /* Desktop & Helpers */
+        .desktop-only {
+          display: none !important;
+        }
+        @media (min-width: 1024px) {
+          .desktop-only {
+            display: flex !important;
+          }
         }
 
         /* Property Cards */
@@ -653,7 +683,7 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
 
         .prop-card {
           background: var(--bg);
-          border: 1px solid var(--border-solid);
+          border: 1px solid var(--border);
           border-radius: 16px;
           overflow: hidden;
           transition: all 0.2s;
@@ -743,6 +773,12 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
         .status-badge--rejected {
           background: #ef4444;
           color: white;
+          font-size: 9px;
+        }
+        
+        .status-badge--pending {
+          background: #fef3c7;
+          color: #d97706;
           font-size: 9px;
         }
 
@@ -866,28 +902,18 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
           gap: 1rem;
           position: sticky;
           bottom: 24px;
-          background: rgba(var(--surface-rgb), 0.9);
-          backdrop-filter: blur(12px);
+          background: var(--bg);
           padding: 1rem;
           border-radius: 20px;
-          border: 1px solid var(--border-solid);
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+          border: 1px solid var(--border);
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
           margin-top: 2rem;
           z-index: 20;
         }
 
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .animate-slide-up {
-          animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-        }
-
-        .animate-fade-in {
-          animation: slideUp 0.3s ease both;
-        }
+        .hidden { display: none; }
+        .text-muted { color: var(--text-muted); }
+        .italic { font-style: italic; }
       `}</style>
     </div>
   )

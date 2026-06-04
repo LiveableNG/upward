@@ -18,9 +18,12 @@ import {
   UserPlus,
   Unlink,
   Download,
-  Edit
+  Edit,
+  FileText,
+  Plus
 } from 'lucide-react'
 import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useUpdateUnitPayment, useAddUnitPayment } from '@/features/pm/hooks/useProperties'
+import { useDocuments, useUnitDocuments } from '@/features/pm/hooks/useDocuments'
 import { usePaymentRequests, useCreatePaymentRequest } from '@/features/pm/hooks/usePayments'
 import { useTenants, useTenantActions } from '@/features/pm/hooks/useTenants'
 import { TenantAssignmentSection } from '@/features/pm/components/tenants/TenantAssignmentSection'
@@ -30,6 +33,7 @@ import { RentHistoryEntryModeModal } from '@/features/pm/components/properties/m
 import { CreatePaymentRequestModal } from '@/features/pm/components/payments/modals/CreatePaymentRequestModal'
 import { EditUnitModal } from '@/features/pm/components/properties/modals/EditUnitModal'
 import { DocumentEditorView } from '@/features/pm/components/documents/DocumentEditorView'
+import { SendToVaultModal } from '@/features/pm/components/documents/modals/SendToVaultModal'
 import { useToast } from '@/components/common/Toast'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import { cn, formatCurrency } from '@/lib/utils'
@@ -40,7 +44,7 @@ function UnitDetailContent() {
   const router = useRouter()
   const { success, error, info } = useToast()
 
-  const { data: unit } = useUnit(uuid as string)
+  const { data: unit, isLoading } = useUnit(uuid as string)
   const { data: payments = [] } = useUnitPayments(uuid as string)
   const { data: allRequests = [] } = usePaymentRequests()
   const { data: tenants = [] } = useTenants()
@@ -67,8 +71,25 @@ function UnitDetailContent() {
 
   // Payment -> Document Editor Flow
   const [showEditor, setShowEditor] = useState(false)
+  const [isVaultMode, setIsVaultMode] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
   const [paymentContext, setPaymentContext] = useState<any>(null)
+  const [editingDocUuid, setEditingDocUuid] = useState<string | undefined>(undefined)
+  const [editingRecipient, setEditingRecipient] = useState<any>(null)
+  const [downloadingDocUuid, setDownloadingDocUuid] = useState<string | null>(null)
+  const [isVaultModalOpen, setIsVaultModalOpen] = useState(false)
+
+  // Fetch unit documents
+  const { documents: allPmDocs = [], generatePdf } = useDocuments()
+  const { data: tenantUploadedDocs = [] } = useUnitDocuments(uuid as string)
+
+  const allUnitDocs = React.useMemo(() => {
+    // tenantUploadedDocs already returns vault-only docs (PM-pushed + tenant-uploaded)
+    // with source field set correctly by the backend
+    return [...(tenantUploadedDocs as any[])].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, [tenantUploadedDocs]);
 
   const [formData, setFormData] = useState<any>({
     unitName: '',
@@ -101,7 +122,7 @@ function UnitDetailContent() {
   }, [unit])
 
   const [isEditing, setIsEditing] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'rent'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'rent' | 'documents'>('overview')
   const [rentFilters, setRentFilters] = useState({
     startDate: '',
     endDate: '',
@@ -136,6 +157,10 @@ function UnitDetailContent() {
       }
     }
   }, [formData.rentStartDate, formData.rentType, isEditing])
+
+  if (isLoading || !unit) {
+    return <Splash />
+  }
 
   const handleUpdate = (data: any) => {
     updateUnitMutation.mutate({
@@ -264,15 +289,24 @@ function UnitDetailContent() {
       <div className="container" style={{ padding: '20px 0' }}>
         <DocumentEditorView
           initialTemplate={editingTemplate}
-          initialRecipient={unit?.tenant ? {
+          initialRecipient={editingRecipient || (unit?.tenant ? {
             type: 'existing',
             uuid: unit.tenant.uuid,
             name: `${unit.tenant.firstName} ${unit.tenant.lastName}`,
             email: unit.tenant.email,
-            deliveryMode: 'email'
-          } : undefined}
+            deliveryMode: 'pdf'
+          } : undefined)}
           paymentContext={paymentContext}
-          onBack={() => setShowEditor(false)}
+          unitUuid={uuid as string}
+          documentUuid={editingDocUuid}
+          isVaultMode={isVaultMode}
+          onBack={() => {
+            setShowEditor(false)
+            setIsVaultMode(false)
+            setEditingDocUuid(undefined)
+            setEditingRecipient(null)
+            setEditingTemplate(null)
+          }}
         />
       </div>
     )
@@ -413,7 +447,7 @@ function UnitDetailContent() {
 
       {/* Tabs */}
       <div className="unit-tabs" style={{ marginBottom: 32, display: 'flex', gap: 40, borderBottom: '1px solid var(--border)' }}>
-        {['Overview', 'Rent History'].map(tab => {
+        {['Overview', 'Rent History', 'Documents'].map(tab => {
           const tabKey = tab.toLowerCase().replace(' ', '') === 'renthistory' ? 'rent' : tab.toLowerCase().replace(' ', '');
           return (
             <button
@@ -489,8 +523,68 @@ function UnitDetailContent() {
                   </div>
                   <div>
                     <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Rent Reminders</div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: unit?.rentReminderEnabled ? 'var(--forest)' : 'var(--text-muted)' }}>
-                      {unit?.rentReminderEnabled ? `Active (${unit.rentReminderDaysBefore} days before)` : 'Disabled'}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: unit?.rentReminderEnabled ? 'var(--forest)' : 'var(--text-muted)' }}>
+                        {unit?.rentReminderEnabled ? `Active (${unit.rentReminderDaysBefore}d before)` : 'Disabled'}
+                      </span>
+                      <button
+                        onClick={() => {
+                          handleUpdate({
+                            ...unit,
+                            rentReminderEnabled: !unit?.rentReminderEnabled
+                          })
+                        }}
+                        style={{
+                          width: 36,
+                          height: 18,
+                          background: unit?.rentReminderEnabled ? 'var(--forest)' : '#ccc',
+                          borderRadius: 9,
+                          border: 'none',
+                          cursor: 'pointer',
+                          position: 'relative',
+                          transition: '0.2s',
+                          padding: 0,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          verticalAlign: 'middle'
+                        }}
+                        title={unit?.rentReminderEnabled ? 'Disable reminders' : 'Enable reminders'}
+                      >
+                        <div style={{
+                          width: 14,
+                          height: 14,
+                          background: 'white',
+                          borderRadius: '50%',
+                          position: 'absolute',
+                          left: unit?.rentReminderEnabled ? 20 : 2,
+                          transition: '0.2s'
+                        }} />
+                      </button>
+                      
+                      {unit?.rentReminderEnabled && (
+                        <select
+                          value={unit.rentReminderDaysBefore || 7}
+                          onChange={(e) => {
+                            handleUpdate({
+                              ...unit,
+                              rentReminderDaysBefore: Number(e.target.value)
+                            })
+                          }}
+                          style={{
+                            fontSize: 11,
+                            padding: '2px 4px',
+                            borderRadius: 4,
+                            border: '1px solid var(--border)',
+                            background: 'white',
+                            color: 'var(--text)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {[1, 2, 3, 5, 7, 10, 14, 30].map(d => (
+                            <option key={d} value={d}>{d}d before</option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   </div>
 
@@ -788,6 +882,90 @@ function UnitDetailContent() {
       )}
 
 
+      {activeTab === 'documents' && (
+        <div className="unit-documents-view animate-fade-in" style={{ paddingBottom: 60 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+            <div>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dark)', margin: 0 }}>Tenant Document Vault</h2>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>Documents shared with or uploaded by this tenant.</p>
+            </div>
+            <button
+              className="btn btn--primary"
+              onClick={() => setIsVaultModalOpen(true)}
+              style={{ borderRadius: 12, height: 42, display: 'flex', alignItems: 'center', gap: 6 }}
+              disabled={!unit?.tenant}
+              title={!unit?.tenant ? 'Assign a tenant first to push documents' : undefined}
+            >
+              <Plus size={16} /> Add Document
+            </button>
+          </div>
+
+          <div className="rent-history glass" style={{ padding: 0, overflow: 'hidden', borderRadius: 16, background: 'white' }}>
+            <div className="rent-history__table-container">
+              <table className="rent-history__table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead style={{ background: 'var(--ivory-dim)' }}>
+                  <tr>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Document Name</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Type</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Date Added</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Added By</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allUnitDocs.length > 0 ? allUnitDocs.map((doc: any) => {
+                    const isPmDoc = doc.source === 'PM' || !doc.isTenantUploaded
+                    return (
+                      <tr key={doc.uuid} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-secondary)' }}>
+                          {doc.fileName || doc.subject}
+                        </td>
+                        <td style={{ padding: '20px 24px', fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>
+                          {(doc.fileType || doc.documentType || 'FILE').toUpperCase().replace('APPLICATION/', '')}
+                        </td>
+                        <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-muted)' }}>
+                          {new Date(doc.createdAt).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td style={{ padding: '20px 24px' }}>
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: 6,
+                            background: isPmDoc ? 'var(--forest-faint)' : 'var(--clay-faint)',
+                            color: isPmDoc ? 'var(--forest)' : 'var(--clay)',
+                          }}>
+                            {isPmDoc ? 'PM Sent' : 'Tenant Uploaded'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '20px 24px', textAlign: 'right' }}>
+                          <a
+                            href={doc.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn--secondary btn--sm"
+                            style={{ height: 32, fontSize: 12, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
+                          >
+                            <Download size={14} /> Download
+                          </a>
+                        </td>
+                      </tr>
+                    );
+                  }) : (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        No documents associated with this unit yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+
       <EditRentRecordModal
         isOpen={isEditRentModalOpen}
         onClose={() => {
@@ -863,6 +1041,21 @@ function UnitDetailContent() {
         confirmText="Remove Tenant"
         type="danger"
         isPending={unassignTenant.isPending}
+      />
+
+      <SendToVaultModal
+        isOpen={isVaultModalOpen}
+        onClose={() => setIsVaultModalOpen(false)}
+        unitUuid={uuid as string}
+        tenantUuid={unit?.tenant?.uuid}
+        tenantName={unit?.tenant ? `${unit.tenant.firstName} ${unit.tenant.lastName}` : undefined}
+        onProceedToEditor={(template) => {
+          setEditingTemplate(template)
+          setPaymentContext(null)
+          setIsVaultMode(true)
+          setIsVaultModalOpen(false)
+          setShowEditor(true)
+        }}
       />
 
       {isAssignModalOpen && (
@@ -1063,7 +1256,17 @@ function DigitalRequestsSection({ unitId, onEdit, unitCurrency }: { unitId?: num
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--forest)' }}>
                   ₦{req.amount.toLocaleString()}
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: req.status === 'PARTIAL' ? 'var(--clay)' : 'var(--text-muted)', textTransform: 'uppercase' }}>
+                <div style={{ 
+                  fontSize: 10, 
+                  fontWeight: 700, 
+                  color: req.status === 'SCHEDULED' ? '#d97706' : req.status === 'PARTIAL' ? 'var(--forest)' : 'var(--text-muted)', 
+                  textTransform: 'uppercase', 
+                  background: req.status === 'SCHEDULED' ? '#fef3c7' : req.status === 'PARTIAL' ? 'var(--forest-faint)' : 'transparent', 
+                  padding: req.status === 'SCHEDULED' || req.status === 'PARTIAL' ? '2px 6px' : 0, 
+                  borderRadius: req.status === 'SCHEDULED' || req.status === 'PARTIAL' ? 4 : 0, 
+                  display: 'inline-block', 
+                  marginTop: 4 
+                }}>
                   {req.status}
                 </div>
               </div>

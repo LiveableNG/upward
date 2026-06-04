@@ -15,6 +15,7 @@ model upward_user {
   gender               String?
   dateOfBirth          String?
   isFromWaitlist       Boolean                          @default(false)
+  isIdentityVerified   Boolean                          @default(false)
   isFromInvite         Boolean                          @default(false)
   profileSlug          String?                          @unique
   bio                  String?

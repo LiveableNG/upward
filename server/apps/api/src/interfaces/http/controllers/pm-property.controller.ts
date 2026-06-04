@@ -4,6 +4,7 @@ import { CreatePropertyUseCase } from '../../../application/pm/use-cases/create-
 import { UpdatePropertyUseCase } from '../../../application/pm/use-cases/update-property.use-case';
 import { DeletePropertyUseCase } from '../../../application/pm/use-cases/delete-property.use-case';
 import { GetPmPropertiesUseCase } from '../../../application/pm/use-cases/get-pm-properties.use-case';
+import { GetPmDashboardSummaryUseCase } from '../../../application/pm/use-cases/get-pm-dashboard-summary.use-case';
 import { GetPmPropertyUseCase } from '../../../application/pm/use-cases/get-pm-property.use-case';
 import { BulkCreateUnitsUseCase } from '../../../application/pm/use-cases/bulk-create-units.use-case';
 import { GetPmUnitsUseCase } from '../../../application/pm/use-cases/get-pm-units.use-case';
@@ -49,6 +50,7 @@ export class PmPropertyController {
     private readonly updatePropertyUseCase: UpdatePropertyUseCase,
     private readonly deletePropertyUseCase: DeletePropertyUseCase,
     private readonly getPmPropertiesUseCase: GetPmPropertiesUseCase,
+    private readonly getPmDashboardSummaryUseCase: GetPmDashboardSummaryUseCase,
     private readonly getPmPropertyUseCase: GetPmPropertyUseCase,
     private readonly bulkCreateUnitsUseCase: BulkCreateUnitsUseCase,
     private readonly getPmUnitsUseCase: GetPmUnitsUseCase,
@@ -119,6 +121,12 @@ export class PmPropertyController {
   async deleteProperty(@Req() req: any, @Param('propertyUuid') propertyUuid: string) {
     const pmId = await this.getPmId(req);
     return this.deletePropertyUseCase.execute(pmId, propertyUuid);
+  }
+
+  @Get('dashboard/summary')
+  async getDashboardSummary(@Req() req: any) {
+    const pmId = await this.getPmId(req);
+    return this.getPmDashboardSummaryUseCase.execute(pmId);
   }
 
   @Get('properties')

@@ -209,7 +209,7 @@ export function Header({
       </ul>
 
       <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-        {/* PM App Entry (Forest Green Outline Style) */}
+        {/* PM App Entry (Forest Green Filled Style) */}
         <button
           className="mobile-hide"
           onClick={() => {
@@ -220,31 +220,47 @@ export function Header({
             fontSize: '9px',
             letterSpacing: '0.2em',
             textTransform: 'uppercase',
-            color: '#166534',
-            background: 'transparent',
-            border: '1.5px solid rgba(22, 101, 52, 0.4)',
-            padding: '11px 22px',
+            color: '#ffffff',
+            background: '#166534',
+            border: 'none',
+            padding: '12px 24px',
             borderRadius: '100px',
             fontFamily: 'var(--font-head)',
             fontWeight: 800,
+            position: 'relative',
+            overflow: 'hidden',
             cursor: 'pointer',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: '0 8px 25px rgba(22, 101, 52, 0.25)',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)'
-            e.currentTarget.style.background = 'rgba(22, 101, 52, 0.05)'
-            e.currentTarget.style.borderColor = '#166534'
+            e.currentTarget.style.boxShadow = '0 12px 30px rgba(22, 101, 52, 0.4)'
+            e.currentTarget.style.background = '#14532d'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)'
-            e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.borderColor = 'rgba(22, 101, 52, 0.4)'
+            e.currentTarget.style.boxShadow = '0 8px 25px rgba(22, 101, 52, 0.25)'
+            e.currentTarget.style.background = '#166534'
           }}
         >
-          Landlord & PM
+          Landlord Portal
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: '-150%',
+              width: '100%',
+              height: '100%',
+              background:
+                'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent)',
+              transform: 'skewX(-25deg)',
+              animation: 'beam 4s infinite ease-in-out',
+            }}
+          />
         </button>
 
-        {/* Tenant App Entry (Clay Theme Filled Style) */}
+        {/* Tenant App Entry (Clay Theme Outlined Style) */}
         <button
           className="mobile-hide"
           onClick={() => {
@@ -255,44 +271,29 @@ export function Header({
             fontSize: '9px',
             letterSpacing: '0.2em',
             textTransform: 'uppercase',
-            color: 'var(--btn-text)',
-            background: 'var(--accent)',
-            border: 'none',
-            padding: '12px 24px',
+            color: 'var(--accent)',
+            background: 'var(--bg)',
+            border: '1.5px solid var(--accent)',
+            padding: '11px 22px',
             borderRadius: '100px',
             fontFamily: 'var(--font-head)',
             fontWeight: 800,
-            position: 'relative',
-            overflow: 'hidden',
             cursor: 'pointer',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            boxShadow: '0 8px 25px rgba(217, 119, 87, 0.25)',
+            boxShadow: '0 8px 25px rgba(217, 119, 87, 0.05)',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)'
-            e.currentTarget.style.boxShadow = '0 12px 30px rgba(217, 119, 87, 0.4)'
-            e.currentTarget.style.background = '#bf5f43'
+            e.currentTarget.style.boxShadow = '0 12px 30px rgba(217, 119, 87, 0.15)'
+            e.currentTarget.style.background = 'var(--accent-faint)'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)'
-            e.currentTarget.style.boxShadow = '0 8px 25px rgba(217, 119, 87, 0.25)'
-            e.currentTarget.style.background = 'var(--accent)'
+            e.currentTarget.style.boxShadow = '0 8px 25px rgba(217, 119, 87, 0.05)'
+            e.currentTarget.style.background = 'var(--bg)'
           }}
         >
           Renter Portal
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: '-150%',
-              width: '100%',
-              height: '100%',
-              background:
-                'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)',
-              transform: 'skewX(-25deg)',
-              animation: 'beam 4s infinite ease-in-out',
-            }}
-          />
         </button>
 
         {/* Mobile Menu Toggle */}

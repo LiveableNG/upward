@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common'
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
@@ -20,6 +20,7 @@ export class S3Service {
         accessKeyId,
         secretAccessKey,
       },
+      requestChecksumCalculation: 'WHEN_REQUIRED',
     })
   }
 
@@ -68,8 +69,11 @@ export class S3Service {
       if (!response.Body) throw new Error('Response body is empty');
       const bytes = await response.Body.transformToByteArray();
       return Buffer.from(bytes);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error reading buffer from S3:', error);
+      if (error.name === 'NoSuchKey' || error.code === 'NoSuchKey') {
+        throw new NotFoundException('The requested document file could not be found in storage. It may have failed to generate or was deleted.');
+      }
       throw new InternalServerErrorException('Could not read file from storage');
     }
   }

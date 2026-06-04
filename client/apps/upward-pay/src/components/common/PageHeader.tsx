@@ -52,7 +52,7 @@ export function PageHeader({
   const effectiveBackLabel = backLabel || (backPath === '/dashboard' ? 'Back to Dashboard' : 'Back')
 
   return (
-    <header className="dashboard__header page-header-sticky page-header--flush">
+    <header className="dashboard__header page-header-sticky page-header--flush mobile-only">
       <div className="dashboard__header-left" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
         {showBack && (
           <button

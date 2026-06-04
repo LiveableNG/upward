@@ -14,6 +14,8 @@ import {
   ShieldCheck,
   Loader2,
   Sparkles,
+  Calendar,
+  CheckCircle2,
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { UpwardLogo } from '@/components/PoweredByUpward'
@@ -24,6 +26,7 @@ import { setAccessToken } from '@/lib/auth-token'
 import { setCookie } from '@/lib/cookie-utils'
 import { ConnectPmStep } from './ConnectPmStep'
 import { PasswordStrengthMeter } from './PasswordStrengthMeter'
+import { DatePicker } from './DatePicker'
 
 interface SignupFormFlowProps {
   onBackToWelcome: () => void
@@ -38,6 +41,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [localError, setLocalError] = useState('')
 
@@ -189,7 +193,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
         } else if (isInvited) {
           setOtpError('Invite verification failed. Please try again.')
         } else {
-          signup({ email, password, firstName, lastName })
+          signup({ email, password, firstName, lastName, dateOfBirth })
         }
       }
     } catch (err: any) {
@@ -335,46 +339,72 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             </div>
           </div>
 
-          <div className="auth-form__row mt-1">
-            <div className="auth-form__field">
-              <label htmlFor="signup-password">Create Password</label>
-              <div className="input-with-icon">
-                <Lock size={17} />
-                <input
-                  id="signup-password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Min. 8 characters"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              {password.length > 0 && (
-                <PasswordStrengthMeter password={password} />
+          <div className="auth-form__field mt-1">
+            <label htmlFor="signup-dob">
+              <Calendar size={14} style={{ display: 'inline', marginRight: 5, verticalAlign: 'middle', color: 'var(--text-muted)' }} />
+              Date of Birth
+            </label>
+            <DatePicker
+              id="signup-dob"
+              value={dateOfBirth}
+              onChange={setDateOfBirth}
+              required
+            />
+          </div>
+
+          <div className="auth-form__field mt-1">
+            <label htmlFor="signup-password">Create Password</label>
+            <div className="input-with-icon">
+              <Lock size={17} />
+              <input
+                id="signup-password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Min. 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            {password.length > 0 && (
+              <PasswordStrengthMeter password={password} />
+            )}
+          </div>
+
+          <div className="auth-form__field mt-1">
+            <label htmlFor="confirm-password">Confirm Password</label>
+            <div className="input-with-icon">
+              <Lock size={17} />
+              <input
+                id="confirm-password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Re-enter your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={
+                  confirmPassword.length > 0
+                    ? confirmPassword === password
+                      ? 'input--match'
+                      : 'input--error'
+                    : ''
+                }
+                required
+              />
+              {confirmPassword.length > 0 && confirmPassword === password && (
+                <CheckCircle2 size={17} className="match-icon" />
               )}
             </div>
-
-            <div className="auth-form__field">
-              <label htmlFor="confirm-password">Confirm Password</label>
-              <div className="input-with-icon">
-                <Lock size={17} />
-                <input
-                  id="confirm-password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Confirm password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+            {confirmPassword.length > 0 && confirmPassword !== password && (
+              <div className="field-hint field-hint--error">
+                <AlertCircle size={12} /> Passwords don't match
               </div>
-            </div>
+            )}
           </div>
 
           <button
@@ -389,10 +419,11 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
               emailExists ||
               !firstName ||
               !lastName ||
+              !dateOfBirth ||
               !password ||
               !(/.{8,}/.test(password) && /[A-Z]/.test(password) && /[0-9!@#$%^&*(),.?":{}|<> ]/.test(password)) ||
-              !confirmPassword
-
+              !confirmPassword ||
+              password !== confirmPassword
             }
 
           >
@@ -472,7 +503,14 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           cursor: pointer;
           text-decoration: underline;
         }
-        .input--error { border-color: var(--error) !important; }
+        .input--error { border-color: var(--error) !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.1) !important; }
+        .input--match { border-color: #22c55e !important; box-shadow: 0 0 0 3px rgba(34,197,94,0.1) !important; }
+        .match-icon {
+          position: absolute;
+          right: 12px;
+          color: #22c55e;
+          pointer-events: none;
+        }
         .modal-overlay {
           position: fixed;
           inset: 0;

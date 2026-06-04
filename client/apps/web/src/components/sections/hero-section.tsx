@@ -121,8 +121,46 @@ export function HeroSection({
             <button
               onClick={() => (window.location.href = '/login')}
               style={{
-                background: 'var(--accent)',
-                color: 'var(--btn-text)',
+                background: 'var(--bg)',
+                color: 'var(--accent)',
+                fontFamily: 'var(--font-head)',
+                fontWeight: 800,
+                fontSize: '14px',
+                letterSpacing: '0.1em',
+                padding: '17px 34px',
+                borderRadius: '100px',
+                border: '1.5px solid var(--accent)',
+                cursor: 'pointer',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                boxShadow: '0 10px 40px rgba(217, 119, 87, 0.05)',
+              }}
+              className="desktop-btn"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-3px)'
+                e.currentTarget.style.boxShadow = '0 15px 45px rgba(217, 119, 87, 0.15)'
+                e.currentTarget.style.background = 'var(--accent-faint)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '0 10px 40px rgba(217, 119, 87, 0.05)'
+                e.currentTarget.style.background = 'var(--bg)'
+              }}
+            >
+              Access Renter Portal
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+
+            <button
+              onClick={() => (window.location.href = '/portal/login')}
+              style={{
+                background: '#166534',
+                color: '#ffffff',
                 fontFamily: 'var(--font-head)',
                 fontWeight: 800,
                 fontSize: '14px',
@@ -135,23 +173,23 @@ export function HeroSection({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
-                boxShadow: '0 10px 40px rgba(217, 119, 87, 0.3)',
+                boxShadow: '0 10px 40px rgba(22, 101, 52, 0.25)',
                 position: 'relative',
                 overflow: 'hidden',
               }}
               className="desktop-btn"
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-3px)'
-                e.currentTarget.style.boxShadow = '0 15px 45px rgba(217, 119, 87, 0.45)'
-                e.currentTarget.style.background = '#bf5f43'
+                e.currentTarget.style.boxShadow = '0 15px 45px rgba(22, 101, 52, 0.4)'
+                e.currentTarget.style.background = '#14532d'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '0 10px 40px rgba(217, 119, 87, 0.3)'
-                e.currentTarget.style.background = 'var(--accent)'
+                e.currentTarget.style.boxShadow = '0 10px 40px rgba(22, 101, 52, 0.25)'
+                e.currentTarget.style.background = '#166534'
               }}
             >
-              Access Renter Portal
+              Access Landlord Portal
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"></line>
                 <polyline points="12 5 19 12 12 19"></polyline>
@@ -163,48 +201,11 @@ export function HeroSection({
                   left: '-150%',
                   width: '100%',
                   height: '100%',
-                  background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)',
+                  background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent)',
                   transform: 'skewX(-25deg)',
                   animation: 'beam 4s infinite ease-in-out',
                 }}
               />
-            </button>
-
-            <button
-              onClick={() => (window.location.href = '/portal/login')}
-              style={{
-                background: 'transparent',
-                color: '#166534',
-                fontFamily: 'var(--font-head)',
-                fontWeight: 800,
-                fontSize: '14px',
-                letterSpacing: '0.1em',
-                padding: '18px 36px',
-                borderRadius: '100px',
-                border: '1.5px solid rgba(22, 101, 52, 0.4)',
-                cursor: 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-              }}
-              className="desktop-btn"
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-3px)'
-                e.currentTarget.style.background = 'rgba(22, 101, 52, 0.05)'
-                e.currentTarget.style.borderColor = '#166534'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.borderColor = 'rgba(22, 101, 52, 0.4)'
-              }}
-            >
-              Landlord & PM Suite
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
             </button>
 
             <div ref={menuRef} style={{ position: 'relative' }} className="mobile-get-started">

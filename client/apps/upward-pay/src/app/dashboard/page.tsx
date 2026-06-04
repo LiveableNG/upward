@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle, ArrowRight, TrendingUp, Flame, ShieldCheck, Zap, Receipt, ArrowDownRight, ArrowUpRight, Smartphone, X, ChevronRight, ChevronLeft } from 'lucide-react'
+import { AlertTriangle, ArrowRight, TrendingUp, Flame, ShieldCheck, Zap, Receipt, ArrowDownRight, ArrowUpRight, Smartphone, X, ChevronRight, ChevronLeft, ShieldAlert } from 'lucide-react'
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { Modal } from '@/components/common/Modal'
 
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
 import { StatStrip } from '@/features/dashboard/components/StatStrip'
@@ -33,6 +34,7 @@ export default function DashboardPage() {
 
   const [localDismissedBanner, setLocalDismissedBanner] = useState(false)
   const [heroSlideIndex, setHeroSlideIndex] = useState(0)
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false)
 
 
   useEffect(() => {
@@ -55,6 +57,16 @@ export default function DashboardPage() {
     }
   }, [error, router])
 
+  useEffect(() => {
+    const user = data?.user
+    if (typeof window !== 'undefined' && user && !user.isIdentityVerified) {
+      const shown = localStorage.getItem(`welcome_modal_shown_${user.uuid}`) === 'true'
+      if (!shown) {
+        setShowWelcomeModal(true)
+      }
+    }
+  }, [data])
+
 
   if (loading && !data) return <FallbackSuspense message="Loading dashboard…" />
 
@@ -75,6 +87,13 @@ export default function DashboardPage() {
   }
 
   const { user, pendingPayments: rawPending, completedPayments } = data
+
+  const handleCloseWelcomeModal = () => {
+    if (typeof window !== 'undefined' && user?.uuid) {
+      localStorage.setItem(`welcome_modal_shown_${user.uuid}`, 'true')
+    }
+    setShowWelcomeModal(false)
+  }
   const pendingPayments = [...(rawPending || [])].filter((p: any) => {
     if (!p.userPropertyUuid) return true;
     const prop = user.properties?.find((prop: any) => prop.uuid === p.userPropertyUuid);
@@ -100,7 +119,14 @@ export default function DashboardPage() {
     firstProp?.rentEndDate
 
   const isNewUser = !isProfileComplete
-  const isVerified = user.properties?.some((p: any) => p.isVerified) || pendingPayments.some((p: any) => p.isVerified) || false
+
+  // Full verified state: identity (BVN) verified + has made at least one payment + has a PM-verified or platform-synced property
+  const isIdentityVerified = user.isIdentityVerified || false
+  const hasPaidPayments = completedPayments.length > 0
+  const hasVerifiedPmProperty = user.properties?.some(
+    (p: any) => p.isPlatformLinked || p.isPmVerified
+  ) || false
+  const isVerified = isIdentityVerified && hasPaidPayments && hasVerifiedPmProperty
   const totalPaid = completedPayments.reduce((sum: number, p: any) => sum + p.amount, 0)
   const currency = completedPayments[0]?.currency || 'NGN'
 
@@ -206,7 +232,7 @@ export default function DashboardPage() {
                     See all {notifCount > 0 && <span className="activity-center__badge">{notifCount}</span>}
                   </button>
                 </div>
-                <ActionCarousel pendingPayments={pendingPayments} showKYC={isNewUser} rentReminders={propertyReminders} />
+                <ActionCarousel pendingPayments={pendingPayments} showKYC={isNewUser} rentReminders={propertyReminders} isIdentityVerified={!!user.isIdentityVerified} />
               </div>
             )}
             <RentCredibilityScore user={user} onShowPayRent={() => router.push('/dashboard/pay-rent')} />
@@ -261,6 +287,62 @@ export default function DashboardPage() {
 
             const beamClass = hasSlides ? (isOverdue ? 'animate-beam-red' : 'animate-beam-clay') : ''
             const isManual = hasSlides && (heroItem.isManual || (!heroItem.company_name && !heroItem.manager_name) || heroItem.company_name === 'Manual Payment')
+
+            if (!user.isIdentityVerified) {
+              return (
+                <div className="bento-cell bento-cell--hero is-overdue alert-beam-red animate-beam-red" style={{ borderColor: 'rgba(239, 68, 68, 0.3)' }}>
+                  <div className="bento-hero-pending__top">
+                    <div className="bento-hero-pending__badge" style={{ background: 'white', color: 'var(--error)' }}>
+                      ACTION REQUIRED
+                    </div>
+                  </div>
+                  <div className="bento-hero-main">
+                    <div className="bento-hero-pending">
+                      <h2 className="bento-hero-pending__title animate-text-zoom" style={{ color: 'white' }}>
+                        Verify Your Identity <br />
+                        <span className="bento-hero-pending__accent" style={{ color: '#fee2e2' }}>
+                          BVN Verification Required
+                        </span>
+                      </h2>
+                      <p className="bento-hero-pending__desc" style={{ color: 'white', marginTop: '12px' }}>
+                        To comply with financial regulations and secure your account, you must verify your identity. Confirming your BVN takes 1 minute and we do not store the number.
+                      </p>
+                      <div className="bento-hero-pending__actions" style={{ marginTop: '20px' }}>
+                        <button
+                          className="btn btn--primary bento-hero-btn"
+                          style={{ background: 'white', color: 'var(--error)', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)' }}
+                          onClick={() => router.push('/dashboard/verify-identity')}
+                        >
+                          Verify Identity <ArrowRight size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bento-hero-score-widget">
+                    <svg className="bento-score-svg" viewBox="0 0 100 100">
+                      <circle className="bento-score-bg" cx="50" cy="50" r="45" />
+                      <circle 
+                        className="bento-score-fill" 
+                        cx="50" cy="50" r="45" 
+                        style={{ 
+                          strokeDasharray: `${credPercentage * 2.83} 283`,
+                          stroke: 'white',
+                          opacity: 0.8
+                        }} 
+                      />
+                    </svg>
+                    <div className="bento-score-inner">
+                      <span className="bento-score-num" style={{ color: 'white' }}>{credScore}</span>
+                      <span className="bento-score-lbl" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>UPWARD SCORE</span>
+                    </div>
+                    <div className="bento-score-rank" style={{ borderColor: 'white' }}>
+                      <span className="bento-score-rank-letter" style={{ color: 'white' }}>{rank}</span>
+                      <span className="bento-score-rank-band" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>{band.toUpperCase()}</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
 
             return (
               <div className={`bento-cell bento-cell--hero ${hasSlides ? 'has-pending' : ''} ${isOverdue ? 'is-overdue' : ''}`}>
@@ -530,6 +612,34 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <Modal isOpen={showWelcomeModal} onClose={handleCloseWelcomeModal} size="md">
+        <div className="rent-reminder-popup__badge" style={{ background: 'var(--clay)', alignSelf: 'flex-start' }}>
+          WELCOME TO UPWARD
+        </div>
+        <div className="rent-reminder-popup__icon" style={{ background: 'var(--clay-faint)', color: 'var(--clay)', marginTop: '16px', marginBottom: '16px', alignSelf: 'flex-start' }}>
+          <ShieldAlert size={32} />
+        </div>
+        <div className="rent-reminder-popup__headline">
+          <h2 className="rent-reminder-popup__title" style={{ margin: 0, textAlign: 'left' }}>Welcome, {firstName}!</h2>
+        </div>
+        <p className="rent-reminder-popup__body" style={{ margin: '16px 0 24px', padding: 0, textAlign: 'left' }}>
+          Confirming your identity helps us verify your account, protect against fraud, and comply with financial regulations. It takes less than a minute, and <strong>we do not save your BVN number</strong>.
+        </p>
+        <button
+          className="rent-reminder-popup__cta"
+          style={{ background: 'var(--clay)', color: 'white', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          onClick={() => {
+            handleCloseWelcomeModal()
+            router.push('/dashboard/verify-identity')
+          }}
+        >
+          Verify Identity Now <ArrowRight size={16} />
+        </button>
+        <button className="rent-reminder-popup__skip" onClick={handleCloseWelcomeModal} style={{ alignSelf: 'center', marginTop: '16px' }}>
+          Skip for now
+        </button>
+      </Modal>
 
       <style jsx>{`
         /* Show/hide zones */
@@ -1381,33 +1491,33 @@ export default function DashboardPage() {
 
         /* Apple Button Custom Style */
         .bento-app-btn--apple {
-          background: #09090b;
-          border-color: #27272a;
-          color: #ffffff;
+          background: var(--bg);
+          border-color: var(--border-solid);
+          color: var(--text);
         }
         .bento-app-btn--apple .bento-app-btn__icon {
-          color: #ffffff;
+          color: var(--text);
         }
         .bento-app-btn--apple strong {
-          color: #ffffff;
+          color: var(--text);
         }
         .bento-app-btn--apple:hover {
-          background: #18181b;
-          border-color: #3f3f46;
+          background: var(--surface2);
+          border-color: var(--text);
         }
 
         /* Play Store Button Custom Style */
         .bento-app-btn--playstore {
-          background: #0b0f19;
-          border-color: #1e293b;
-          color: #ffffff;
+          background: var(--bg);
+          border-color: var(--border-solid);
+          color: var(--text);
         }
         .bento-app-btn--playstore strong {
-          color: #38bdf8; /* Vibrant Play Store brand light blue */
+          color: #0284c7; /* Vibrant Play Store brand light blue */
         }
         .bento-app-btn--playstore:hover {
-          background: #0f172a;
-          border-color: #334155;
+          background: var(--surface2);
+          border-color: #0284c7;
         }
 
         .bento-app-banner__close {

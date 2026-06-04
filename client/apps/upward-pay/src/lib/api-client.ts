@@ -62,8 +62,10 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       headers['Content-Type'] = 'application/json'
     }
 
+    const isUpload = options.body instanceof FormData
+    const timeoutDuration = isUpload ? 120000 : 15000 // 2 minutes for uploads, 15 seconds otherwise
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000)
+    const timeoutId = setTimeout(() => controller.abort(), timeoutDuration)
 
     const fetchOptions: RequestInit = {
       credentials: 'include',
@@ -123,7 +125,7 @@ export async function requestBlob(path: string, options: RequestInit = {}): Prom
     }
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 30000)
+    const timeoutId = setTimeout(() => controller.abort(), 120000) // 2 minutes for binary downloads
 
     const res = await fetch(url, {
       credentials: 'include',

@@ -1,13 +1,11 @@
 'use client'
 
 import React, { useRef, useMemo } from 'react'
-import { Camera, Share2, FileText, ChevronRight, LogOut, User, Building, Shield, MessageCircle, AlertCircle } from 'lucide-react'
+import { Camera, ChevronRight, LogOut, User, Building, Shield, MessageCircle, AlertCircle, Settings, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { Capacitor } from '@capacitor/core'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useToast } from '@/components/common/Toast'
 import { api } from '@/lib/api'
-import { formatDate } from '@/lib/utils'
 import { type UserProfile, type ContractData } from '../../types'
 
 interface ProfileMenuViewProps {
@@ -72,278 +70,374 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
     }
   }
 
-  const handleCopyLink = async () => {
-    const defaultWebUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
-    const baseUrl = Capacitor.isNativePlatform() ? defaultWebUrl : window.location.origin
-    const url = `${baseUrl}/profile/${profile?.uuid}`
-    
-    try {
-      await navigator.clipboard.writeText(url)
-      success('Link copied to clipboard')
-    } catch (err) {
-      toastError('Failed to copy link')
-    }
-  }
-
-  const sections = [
+  const accountGroup = [
     { id: 'personal', title: 'Personal Details', icon: User, onClick: () => onNavigate('personal') },
     { id: 'banking', title: 'Banking & Payouts', icon: Building, onClick: () => onNavigate('banking') },
-    { id: 'contracts', title: 'Tenancy Agreement', icon: FileText, onClick: () => router.push('/dashboard/contracts') },
+    { id: 'contracts', title: 'My Documents', icon: FileText, onClick: () => router.push('/dashboard/documents') },
+  ]
+
+  const supportGroup = [
     { id: 'support', title: 'Customer Service Center', icon: MessageCircle, onClick: () => router.push('/dashboard/help') },
     { id: 'legal', title: 'Legal & Privacy', icon: Shield, onClick: () => router.push('/dashboard/legal') },
   ]
 
   return (
     <div className="profile-shell">
-      <div className="premium-hero animate-slide-up">
-        <div className="premium-hero__avatar-wrap" onClick={() => fileInputRef.current?.click()}>
-          <UserAvatar
-            src={profile.profilePic}
-            size={96}
-            className="premium-hero__avatar"
-            color="var(--bg)"
-          />
-          <div className="premium-hero__avatar-edit">
-            <Camera size={16} />
+      {/* Header Section */}
+      <header className="profile-header animate-slide-up">
+        <div className="profile-header__title-wrap">
+          <h1 className="profile-header__title">Profile</h1>
+          <p className="profile-header__subtitle">Manage your account and settings</p>
+        </div>
+        <button 
+          className="profile-header__settings-btn"
+          onClick={() => router.push('/dashboard/settings')}
+          title="Settings"
+          type="button"
+        >
+          <Settings size={20} />
+        </button>
+      </header>
+
+      {/* User Hero Card */}
+      <div className="profile-hero-card animate-slide-up" style={{ animationDelay: '0.05s' }}>
+        <div className="profile-hero-card__avatar-section">
+          <div className="profile-hero-card__avatar-wrap" onClick={() => fileInputRef.current?.click()}>
+            <UserAvatar
+              src={profile.profilePic}
+              size={72}
+              className="profile-hero-card__avatar"
+              color="var(--bg)"
+            />
+            <div className="profile-hero-card__avatar-edit">
+              <Camera size={12} />
+            </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept="image/*"
+            />
           </div>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-            accept="image/*"
-          />
         </div>
 
-        <h2 className="premium-hero__name">
-          {profile.firstName} {profile.lastName}
-        </h2>
-        <p className="premium-hero__email">{profile.email}</p>
-
-        <button 
-          className="btn btn--primary btn--pill shadow-md premium-hero__share-btn"
-          onClick={() => router.push('/dashboard/kyc')}
-        >
-          <Share2 size={16} className="mr-2" /> Share Credibility Profile
-        </button>
-
-        {contracts.length > 0 && (
-          <div className="premium-hero__tenancy">
-            <div className="flex gap-4 items-center mb-4">
-              <div className="premium-hero__tenancy-icon">
-                <FileText size={18} />
-              </div>
-              <div className="text-left">
-                <h4 className="premium-hero__tenancy-title">Active Tenancy</h4>
-                <p className="premium-hero__tenancy-property">{contracts[0].fileName}</p>
-              </div>
+        <div className="profile-hero-card__info-section">
+          <h2 className="profile-hero-card__name">
+            Hello, {profile.firstName || 'User'}
+          </h2>
+          <p className="profile-hero-card__subtext">Welcome back!</p>
+          
+          {isProfileComplete ? (
+            <div className="profile-hero-card__status profile-hero-card__status--verified">
+              <Shield size={12} />
+              <span>Verified</span>
             </div>
-            <div className="flex justify-between items-center pt-3 border-t border-solid border-opacity-10 border-[var(--text)]">
-              <span className="text-xs text-muted">
-                Uploaded {formatDate(contracts[0].createdAt)}
-              </span>
-              <button
-                className="btn btn--secondary btn--sm"
-                onClick={() => router.push('/dashboard/contracts')}
-              >
-                Manage
-              </button>
+          ) : (
+            <div className="profile-hero-card__status profile-hero-card__status--incomplete" onClick={() => onNavigate('personal')}>
+              <AlertCircle size={12} />
+              <span>Incomplete Profile</span>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      <div className="premium-menu-list animate-slide-up" style={{ animationDelay: '0.1s' }}>
-        {sections.map((s, idx) => {
-          const Icon = s.icon
-          const showWarning = s.id === 'personal' && !isProfileComplete
+      <div className="premium-menu-container animate-slide-up" style={{ animationDelay: '0.1s' }}>
+        <h3 className="premium-menu-group-title">Account</h3>
+        <div className="premium-menu-group">
+          {accountGroup.map((s, idx) => {
+            const Icon = s.icon
+            const showWarning = s.id === 'personal' && !isProfileComplete
 
-          return (
-            <div key={idx} className="premium-menu-item" onClick={s.onClick}>
-              <div className="flex items-center gap-4">
-                <div className="premium-menu-item__icon-wrap">
-                  <Icon size={18} />
-                </div>
-                <span className="premium-menu-item__title">{s.title}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {showWarning && (
-                  <div className="premium-menu-item__warning" title="Profile Incomplete">
-                    <AlertCircle size={16} color="var(--warning)" />
+            let desc = ""
+            if (s.id === 'personal') desc = "Update your personal information"
+            else if (s.id === 'banking') desc = "Manage your bank accounts"
+            else if (s.id === 'contracts') desc = "View and manage your documents"
+
+            return (
+              <div key={idx} className="premium-menu-item" onClick={s.onClick}>
+                <div className="flex items-center gap-4">
+                  <div className="premium-menu-item__icon-wrap">
+                    <Icon size={18} />
                   </div>
-                )}
-                <ChevronRight size={18} color="var(--text-muted)" />
+                  <div className="premium-menu-item__text-wrap">
+                    <span className="premium-menu-item__title">{s.title}</span>
+                    {desc && <span className="premium-menu-item__desc">{desc}</span>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {showWarning && (
+                    <div className="premium-menu-item__warning-dot" title="Profile Incomplete" />
+                  )}
+                  <ChevronRight size={18} color="var(--text-muted)" />
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
 
-        <div className="premium-menu-item premium-menu-item--logout" onClick={logout}>
-          <div className="flex items-center gap-4">
-            <div className="premium-menu-item__icon-wrap premium-menu-item__icon-wrap--logout">
-              <LogOut size={18} />
-            </div>
-            <span className="premium-menu-item__title text-red-500">Sign Out</span>
-          </div>
+        <h3 className="premium-menu-group-title">Support & Info</h3>
+        <div className="premium-menu-group">
+          {supportGroup.map((s, idx) => {
+            const Icon = s.icon
+
+            let desc = ""
+            if (s.id === 'support') desc = "Get help and support"
+            else if (s.id === 'legal') desc = "Policies, terms and privacy"
+
+            return (
+              <div key={idx} className="premium-menu-item" onClick={s.onClick}>
+                <div className="flex items-center gap-4">
+                  <div className="premium-menu-item__icon-wrap">
+                    <Icon size={18} />
+                  </div>
+                  <div className="premium-menu-item__text-wrap">
+                    <span className="premium-menu-item__title">{s.title}</span>
+                    {desc && <span className="premium-menu-item__desc">{desc}</span>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ChevronRight size={18} color="var(--text-muted)" />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="logout-container">
+          <button className="logout-btn" onClick={logout}>
+            <LogOut size={18} className="mr-2" /> Sign Out
+          </button>
         </div>
       </div>
 
       <style jsx>{`
         .profile-shell {
           width: 100%;
-          max-width: 800px;
+          max-width: 600px;
           margin: 0 auto;
-          padding: 1rem;
+          padding: 1rem 1rem 3rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+        }
+
+        @media (min-width: 768px) {
+          .profile-shell {
+            padding: 1.5rem 1.5rem 4rem;
+            gap: 1.5rem;
+          }
+        }
+
+        /* Profile Header */
+        .profile-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.75rem 0.25rem 0.5rem;
+        }
+
+        .profile-header__title-wrap {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .profile-header__title {
+          font-size: 1.85rem;
+          font-weight: 800;
+          color: var(--text);
+          letter-spacing: -0.02em;
+          margin: 0;
+        }
+
+        .profile-header__subtitle {
+          font-size: 0.9rem;
+          color: var(--text-muted);
+          margin: 0;
+        }
+
+        .profile-header__settings-btn {
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          background: var(--bg);
+          border: 1px solid var(--border);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--text);
+          cursor: pointer;
+          box-shadow: var(--shadow-sm);
+          transition: all 0.2s ease;
+        }
+
+        .profile-header__settings-btn:hover {
+          background: var(--surface);
+          color: var(--text);
+          transform: scale(1.03);
+        }
+
+        /* Profile Hero Card */
+        .profile-hero-card {
+          background: var(--bg);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          padding: 1.5rem;
+          display: flex;
+          align-items: center;
+          gap: 1.25rem;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+          margin-bottom: 0.25rem;
+        }
+
+        .profile-hero-card__avatar-section {
+          flex-shrink: 0;
+        }
+
+        .profile-hero-card__avatar-wrap {
+          position: relative;
+          cursor: pointer;
+          transition: transform 0.2s ease;
+        }
+
+        .profile-hero-card__avatar-wrap:hover {
+          transform: scale(1.03);
+        }
+
+        .profile-hero-card__avatar-edit {
+          position: absolute;
+          bottom: -2px;
+          right: -2px;
+          background: var(--clay);
+          color: white;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 2.5px solid var(--bg);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .profile-hero-card__info-section {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          align-items: flex-start;
+        }
+
+        .profile-hero-card__name {
+          font-size: 1.35rem;
+          font-weight: 800;
+          color: var(--text);
+          letter-spacing: -0.015em;
+          margin: 0;
+        }
+
+        .profile-hero-card__subtext {
+          font-size: 0.85rem;
+          color: var(--text-muted);
+          margin: 0 0 6px;
+        }
+
+        .profile-hero-card__status {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 5px 12px;
+          border-radius: var(--radius-full);
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+        }
+
+        .profile-hero-card__status--verified {
+          background: var(--success-bg);
+          color: var(--success);
+        }
+
+        .profile-hero-card__status--incomplete {
+          background: rgba(245, 158, 11, 0.08);
+          color: var(--warning);
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+
+        .profile-hero-card__status--incomplete:hover {
+          opacity: 0.9;
+        }
+
+        /* Menu Groups */
+        .premium-menu-container {
           display: flex;
           flex-direction: column;
           gap: 1.5rem;
         }
 
-        @media (min-width: 768px) {
-          .profile-shell {
-            padding: 1.5rem;
-          }
-        }
-
-        .premium-hero {
-          background: var(--surface);
-          border-radius: 28px;
-          padding: 3rem 2rem;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          border: 1px solid var(--border-solid);
-          box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
-        }
-
-        .premium-hero__avatar-wrap {
-          position: relative;
-          margin-bottom: 1.5rem;
-          cursor: pointer;
-          transition: transform 0.2s;
-        }
-
-        .premium-hero__avatar-wrap:hover {
-          transform: scale(1.02);
-        }
-
-        .premium-hero__avatar-edit {
-          position: absolute;
-          bottom: 2px;
-          right: 2px;
-          background: var(--clay);
-          color: white;
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 3px solid var(--surface);
-          box-shadow: 0 4px 12px rgba(var(--clay-rgb), 0.3);
-        }
-
-        .premium-hero__name {
-          font-size: 1.6rem;
-          font-weight: 800;
-          margin: 0 0 0.25rem;
-          letter-spacing: -0.02em;
-          color: var(--text);
-        }
-
-        .premium-hero__email {
-          font-size: 0.95rem;
+        .premium-menu-group-title {
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
           color: var(--text-muted);
-          margin: 0 0 2rem;
+          margin-bottom: 0.5rem;
+          padding-left: 0.5rem;
         }
 
-        .premium-hero__share-btn {
-          margin-bottom: 2rem;
-          padding: 14px 24px;
-          font-size: 0.95rem;
-        }
-
-        .premium-hero__tenancy {
-          width: 100%;
-          max-width: 420px;
-          background: var(--surface2);
-          padding: 1.5rem;
+        .premium-menu-group {
+          background: var(--bg);
           border-radius: 20px;
-          border: 1px solid var(--border-solid);
-        }
-
-        .premium-hero__tenancy-icon {
-          width: 44px;
-          height: 44px;
-          background: var(--clay-faint);
-          color: var(--clay);
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .premium-hero__tenancy-title {
-          font-size: 0.9rem;
-          font-weight: 800;
-          color: var(--text);
-          margin: 0 0 2px;
-        }
-
-        .premium-hero__tenancy-property {
-          font-size: 0.8rem;
-          color: var(--text-muted);
-          margin: 0;
-          white-space: nowrap;
           overflow: hidden;
-          text-overflow: ellipsis;
-          max-width: 250px;
-        }
-
-        /* Menu List */
-        .premium-menu-list {
-          background: var(--surface);
-          border-radius: 28px;
-          padding: 1rem;
-          border: 1px solid var(--border-solid);
-          box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+          border: 1px solid var(--border);
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
         }
 
         .premium-menu-item {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 1rem 1.25rem;
-          border-radius: 18px;
+          padding: 1.125rem 1.25rem;
           cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          transition: background 0.15s ease;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .premium-menu-item:last-child {
+          border-bottom: none;
         }
 
         .premium-menu-item:hover {
-          background: var(--bg);
-          transform: translateX(4px);
+          background: var(--surface);
         }
 
         .premium-menu-item__icon-wrap {
-          width: 42px;
-          height: 42px;
-          background: var(--bg);
+          width: 40px;
+          height: 40px;
           border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: var(--text-muted);
-          transition: all 0.2s;
+          background: var(--clay-faint);
+          color: var(--clay);
+          transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
         }
 
         .premium-menu-item:hover .premium-menu-item__icon-wrap {
-          background: var(--clay-faint);
-          color: var(--clay);
+          transform: scale(1.05);
+          background: var(--clay);
+          color: white;
+        }
+
+        .premium-menu-item__text-wrap {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          text-align: left;
         }
 
         .premium-menu-item__title {
@@ -352,29 +446,53 @@ export function ProfileMenuView({ profile, contracts, refreshUser, logout, onNav
           color: var(--text);
         }
 
-        .premium-menu-item--logout {
-          margin-top: 0.5rem;
-          border-top: 1px solid var(--border-solid);
-          border-top-left-radius: 0;
-          border-top-right-radius: 0;
-          padding-top: 1.5rem;
+        .premium-menu-item__desc {
+          font-size: 0.78rem;
+          color: var(--text-muted);
+          font-weight: 500;
         }
 
-        .premium-menu-item--logout:hover {
-          background: rgba(239, 68, 68, 0.05);
+        .premium-menu-item__warning-dot {
+          width: 8px;
+          height: 8px;
+          background: var(--warning);
+          border-radius: 50%;
         }
 
-        .premium-menu-item__icon-wrap--logout {
+        .logout-container {
+          margin-top: 1.25rem;
+          display: flex;
+          justify-content: center;
+          width: 100%;
+        }
+
+        .logout-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.9rem;
+          border-radius: 16px;
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          background: var(--bg);
           color: var(--error);
+          font-weight: 700;
+          font-size: 0.95rem;
+          cursor: pointer;
+          width: 100%;
+          transition: all 0.2s ease;
         }
 
-        .premium-menu-item--logout:hover .premium-menu-item__icon-wrap--logout {
-          background: rgba(239, 68, 68, 0.1);
-          color: var(--error);
+        .logout-btn:hover {
+          background: rgba(239, 68, 68, 0.04);
+          border-color: var(--error);
         }
 
         .hidden { display: none; }
-        .text-muted { color: var(--text-muted); }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-4 { gap: 1rem; }
+        .mr-2 { margin-right: 0.5rem; }
 
         @keyframes slideUp {
           from { opacity: 0; transform: translateY(10px); }

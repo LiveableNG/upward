@@ -77,17 +77,99 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
 
   if (loading) {
     return (
-      <div className="banking-view dashboard--nav-offset">
+      <div className="banking-view dashboard--nav-offset animate-pulse">
         <PageHeader
           title="Banking & Payouts"
           showBack
           backLabel="Profile"
           onBack={onBack}
         />
-        <div className="flex flex-col justify-center items-center h-[60vh]">
-          <Loader2 className="animate-spin text-clay" size={32} />
-          <p className="text-muted text-sm mt-4 animate-pulse">Loading banking details...</p>
+        <div className="banking-content">
+          <div className="banking-sections">
+            <section className="premium-card">
+              <div className="premium-card__header premium-card__header--split">
+                <div style={{ flex: 1 }}>
+                  <div className="skeleton-text" style={{ width: 140, height: 20, marginBottom: 8 }} />
+                  <div className="skeleton-text" style={{ width: '80%', height: 14 }} />
+                </div>
+              </div>
+
+              {/* Notice Banner Skeleton */}
+              <div className="notice-banner-skeleton" style={{ background: 'var(--surface2)', height: 110, borderRadius: 16, marginBottom: 24 }} />
+
+              <div className="premium-details-list">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="premium-field--readonly" style={{ borderBottom: i === 3 ? 'none' : '1px solid var(--border)' }}>
+                    <div className="skeleton-text" style={{ width: 80, height: 12, marginBottom: 8 }} />
+                    <div className="skeleton-text" style={{ width: 180, height: 16 }} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
         </div>
+
+        <style jsx>{`
+          .skeleton-text {
+            background: var(--surface2);
+            border-radius: 4px;
+          }
+          .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+          }
+          .banking-view {
+            max-width: 640px;
+            margin: 0 auto;
+            padding-top: 1rem;
+          }
+          @media (min-width: 1024px) {
+            .banking-view {
+              padding-top: 2rem;
+            }
+          }
+          .banking-content {
+            padding: 1rem 1rem 10rem;
+          }
+          @media (min-width: 768px) {
+            .banking-content {
+              padding: 2rem 1.5rem 10rem;
+            }
+          }
+          .banking-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+          }
+          .premium-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+          }
+          .premium-card__header {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+          }
+          .premium-card__header--split {
+            justify-content: space-between;
+          }
+          .premium-details-list {
+            display: flex;
+            flex-direction: column;
+          }
+          .premium-field--readonly {
+            display: flex;
+            flex-direction: column;
+            padding: 1rem 0.5rem;
+          }
+        `}</style>
       </div>
     )
   }
@@ -148,11 +230,20 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
           )}
 
           <section className="premium-card animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            <div className="premium-card__header">
+            <div className="premium-card__header premium-card__header--split">
               <div>
                 <h3 className="premium-card__title">Payout Account</h3>
                 <p className="premium-card__desc">Where you receive refunds and overpayment payouts.</p>
               </div>
+              {!isEditing && (
+                <button 
+                  className="btn btn--secondary btn--sm btn--pill desktop-only" 
+                  onClick={handleEditClick}
+                  title="Edit Bank Details"
+                >
+                  <Pencil size={14} className="mr-1" /> Edit Details
+                </button>
+              )}
             </div>
 
             <div className="notice-banner">
@@ -168,12 +259,11 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
               </div>
             </div>
 
-            <div className="premium-form">
-              <div className="premium-field">
-                <label className="premium-field__label">Select Bank</label>
-                <div className="premium-field__input-wrap">
-                  <Building className="premium-field__icon" size={18} />
-                  {isEditing ? (
+            <div className={isEditing ? "premium-form" : "premium-details-list"}>
+              {isEditing ? (
+                <>
+                  <div className="premium-field">
+                    <label className="premium-field__label">Select Bank</label>
                     <select
                       className="premium-field__input premium-field__select"
                       value={bankDetails.bankCode || ''}
@@ -188,19 +278,10 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
                         <option key={b.code} value={b.code}>{b.name}</option>
                       ))}
                     </select>
-                  ) : (
-                    <div className="premium-field__read-only">
-                      {bankDetails.bankName || <span className="text-muted italic">Not Set</span>}
-                    </div>
-                  )}
-                </div>
-              </div>
+                  </div>
 
-              <div className="premium-field">
-                <label className="premium-field__label">Account Number</label>
-                <div className="premium-field__input-wrap">
-                  <CreditCard className="premium-field__icon" size={18} />
-                  {isEditing ? (
+                  <div className="premium-field">
+                    <label className="premium-field__label">Account Number</label>
                     <input
                       type="text"
                       className="premium-field__input"
@@ -226,36 +307,57 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
                         }
                       }}
                     />
-                  ) : (
-                    <div className="premium-field__read-only">
-                      {bankDetails.accountNumber || <span className="text-muted italic">Not Set</span>}
-                    </div>
-                  )}
-                </div>
-              </div>
+                  </div>
 
-              <div className="premium-field">
-                <label className="premium-field__label">Account Name</label>
-                <div className="premium-field__input-wrap">
-                  <User className="premium-field__icon" size={18} />
-                  <div className="premium-field__read-only premium-field__read-only--highlight">
-                    {resolvingBank ? (
-                      <span className="flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Resolving...</span>
-                    ) : (
-                      bankDetails.accountName || <span className="text-muted italic">Not Set</span>
-                    )}
+                  <div className="premium-field">
+                    <label className="premium-field__label">Account Name</label>
+                    <div className="premium-field__read-only-box">
+                      {resolvingBank ? (
+                        <span className="flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Resolving...</span>
+                      ) : (
+                        bankDetails.accountName || <span className="text-muted italic">Not Set</span>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="premium-details-list">
+                  <div className="premium-field--readonly">
+                    <span className="premium-field__label--readonly">Bank Name</span>
+                    <span className="premium-field__value--readonly">{bankDetails.bankName || <span className="text-muted italic">Not Set</span>}</span>
+                  </div>
+
+                  <div className="premium-field--readonly">
+                    <span className="premium-field__label--readonly">Account Number</span>
+                    <span className="premium-field__value--readonly">{bankDetails.accountNumber || <span className="text-muted italic">Not Set</span>}</span>
+                  </div>
+
+                  <div className="premium-field--readonly">
+                    <span className="premium-field__label--readonly">Account Name</span>
+                    <span className="premium-field__value--readonly">{bankDetails.accountName || <span className="text-muted italic">Not Set</span>}</span>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </section>
+
+          {isEditing && (
+            <div className="floating-action-bar animate-slide-up">
+              <button className="btn btn--outline" onClick={() => setIsEditing(false)} disabled={saving}>
+                Cancel
+              </button>
+              <button className="btn btn--primary" onClick={handleSave} disabled={saving || !bankDetails?.accountName}>
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          )}
 
         </div>
       </div>
 
       <style jsx>{`
         .banking-view {
-          max-width: 860px;
+          max-width: 640px;
           margin: 0 auto;
           padding-top: 1rem;
         }
@@ -279,15 +381,15 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
         .banking-sections {
           display: flex;
           flex-direction: column;
-          gap: 2rem;
+          gap: 1.5rem;
         }
 
         .premium-card {
-          background: var(--surface);
-          border: 1px solid var(--border-solid);
-          border-radius: 24px;
-          padding: 2rem;
-          box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+          background: var(--bg);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          padding: 1.5rem;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
         }
 
         .premium-card--alert {
@@ -299,7 +401,11 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
           display: flex;
           gap: 1rem;
           align-items: center;
-          margin-bottom: 2rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .premium-card__header--split {
+          justify-content: space-between;
         }
 
         .premium-card__icon-wrap {
@@ -333,7 +439,7 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
           padding: 1.25rem;
           border-radius: 16px;
           border: 1px solid rgba(var(--clay-rgb), 0.1);
-          margin-bottom: 2rem;
+          margin-bottom: 1.5rem;
         }
 
         .notice-banner__icon {
@@ -355,11 +461,42 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
           margin: 0;
         }
 
-        /* Premium Form Fields */
+        /* Premium Form Fields & Lists */
         .premium-form {
           display: flex;
           flex-direction: column;
-          gap: 1.5rem;
+          gap: 1.25rem;
+        }
+
+        .premium-details-list {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .premium-field--readonly {
+          display: flex;
+          flex-direction: column;
+          padding: 1rem 0.5rem;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .premium-field--readonly:last-child {
+          border-bottom: none;
+        }
+
+        .premium-field__label--readonly {
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 4px;
+        }
+
+        .premium-field__value--readonly {
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--text);
         }
 
         .premium-field {
@@ -377,36 +514,23 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
           margin-left: 4px;
         }
 
-        .premium-field__input-wrap {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .premium-field__icon {
-          position: absolute;
-          left: 16px;
-          color: var(--text-muted);
-          pointer-events: none;
-        }
-
         .premium-field__input {
           width: 100%;
-          padding: 14px 16px 14px 44px;
-          background: var(--bg);
-          border: 1.5px solid var(--border-solid);
-          border-radius: 16px;
+          padding: 12px 14px;
+          background: var(--surface);
+          border: 1px solid var(--border-solid);
+          border-radius: 12px;
           font-size: 0.95rem;
           font-weight: 500;
           color: var(--text);
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.2s ease;
         }
 
         .premium-field__input:focus {
           outline: none;
           border-color: var(--clay);
+          background: var(--bg);
           box-shadow: 0 0 0 4px var(--clay-glow);
-          background: var(--surface);
         }
 
         .premium-field__select {
@@ -417,19 +541,24 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
           padding-right: 44px;
         }
 
-        .premium-field__read-only {
+        .premium-field__read-only-box {
           width: 100%;
-          padding: 14px 16px 14px 44px;
-          background: transparent;
-          border: 1.5px solid transparent;
+          padding: 12px 14px;
+          background: var(--surface2);
+          border-radius: 12px;
           font-size: 1rem;
           font-weight: 600;
           color: var(--text);
         }
 
-        .premium-field__read-only--highlight {
-          background: var(--surface2);
-          border-radius: 16px;
+        /* Desktop & Helpers */
+        .desktop-only {
+          display: none !important;
+        }
+        @media (min-width: 1024px) {
+          .desktop-only {
+            display: flex !important;
+          }
         }
 
         /* Refunds Mini List */
@@ -447,21 +576,24 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
           border: 1px solid rgba(239, 68, 68, 0.1);
         }
 
-        :global(.theme--dark) .refund-item {
-          background: rgba(0, 0, 0, 0.2);
+        /* Floating Action Bar */
+        .floating-action-bar {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+          position: sticky;
+          bottom: 24px;
+          background: var(--bg);
+          padding: 1rem;
+          border-radius: 20px;
+          border: 1px solid var(--border);
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+          margin-top: 2rem;
+          z-index: 20;
         }
 
         .text-muted { color: var(--text-muted); }
         .italic { font-style: italic; }
-
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .animate-slide-up {
-          animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-        }
       `}</style>
     </div>
   )

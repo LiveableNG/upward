@@ -50,6 +50,7 @@
 .status-chip--pending { background: rgba(245, 158, 11, 0.08); color: var(--warning); }
 .status-chip--partial { background: rgba(59, 130, 246, 0.08); color: var(--info); }
 .status-chip--overdue { background: var(--error-bg); color: var(--error); }
+.status-chip--scheduled { background: rgba(217, 119, 6, 0.08); color: #d97706; }
 
 .amount-text {
   font-weight: 700;

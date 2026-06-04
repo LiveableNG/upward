@@ -120,6 +120,7 @@ export function RequestRecordsScreen() {
 
   return (
     <div className="req-records dashboard--nav-offset">
+      <PageHeader title="Request Records" showBack backPath="/dashboard" showSettings={false} />
       <div className="req-main">
         <div className="req-banner">
           <div className="req-banner__icon"><ShieldCheck size={28} /></div>

@@ -231,3 +231,9 @@ export const uploadSignature = async (params: { base64Data: string, contentType:
   })
 }
 
+export const getDashboardSummary = async () => {
+  return request<any>('/pm/dashboard/summary', {
+    method: 'GET'
+  })
+}
+

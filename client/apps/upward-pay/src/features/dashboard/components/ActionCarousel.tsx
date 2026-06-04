@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Clock, MapPin, Bell, ArrowRight, AlertCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, MapPin, Bell, ArrowRight, AlertCircle, ShieldCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { type PendingPayment } from '../types'
@@ -11,6 +11,7 @@ interface ActionCarouselProps {
   showKYC: boolean
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rentReminders: any[]
+  isIdentityVerified: boolean
 }
 const buildPaymentMessage = (p: PendingPayment) => {
   const remaining = p.total_amount - (p.amountPaid || 0)
@@ -61,12 +62,28 @@ const buildPaymentMessage = (p: PendingPayment) => {
   }
 }
 
-export function ActionCarousel({ pendingPayments, showKYC, rentReminders }: ActionCarouselProps) {
+export function ActionCarousel({ pendingPayments, showKYC, rentReminders, isIdentityVerified }: ActionCarouselProps) {
   const router = useRouter()
   const [index, setIndex] = useState(0)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const slides: any[] = []
+
+  // Prepend verification warning if not verified
+  if (!isIdentityVerified) {
+    slides.push({
+      type: 'identity_verification',
+      id: 'verify-identity-alert',
+      title: 'Verify Your Identity',
+      desc: 'To comply with regulations and secure transactions, verify your identity using your BVN. We do not store your BVN.',
+      actionLabel: 'Verify Now',
+      action: () => router.push('/dashboard/verify-identity'),
+      icon: <ShieldCheck size={20} color="white" />,
+      bg: 'var(--error)',
+      isCritical: true,
+      beamClass: 'animate-beam-red',
+    })
+  }
 
   // Pending Payments & Refund Alerts
   pendingPayments.forEach((p: any) => {

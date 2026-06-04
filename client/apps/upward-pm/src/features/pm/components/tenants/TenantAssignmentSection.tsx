@@ -10,7 +10,7 @@ interface TenantAssignmentSectionProps {
 }
 
 export const TenantAssignmentSection: React.FC<TenantAssignmentSectionProps> = ({ unit }) => {
-  const { data: tenants } = useTenants()
+  const { data: tenants = [] } = useTenants()
   const { assignTenant, unassignTenant } = useTenantActions()
   const { mutate: syncToUpward, isPending: isSyncing } = useSyncToUpward()
   const [isAssigning, setIsAssigning] = useState(false)

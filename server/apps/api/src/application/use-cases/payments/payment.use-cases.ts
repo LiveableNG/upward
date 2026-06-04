@@ -335,7 +335,7 @@ export class RecordTransactionUseCase {
             this.logger.warn(`Duplicate payment attempt detected for already settled request: ${pr.uuid}. Marking reference ${data.reference} for refund.`)
           }
 
-          const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(pr.userId, pr.userPropertyId)
+          const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(pr.userId, pr.userPropertyId, pr.id)
           const expectedTotal = pr.amount + dynamicFee
           if (!pr.allowPartial && effectiveAmount < expectedTotal && !data.settlementStatus) {
             data.settlementStatus = 'PENDING_REFUND'
@@ -353,15 +353,24 @@ export class RecordTransactionUseCase {
 
       let upwardFeeAmount = 0
       if (data.lineItemPayments && Array.isArray(data.lineItemPayments)) {
-        const fee = data.lineItemPayments.find(lp => lp.name === 'Processing Fee')
-        if (fee) upwardFeeAmount = Number(fee.amount || fee.amountPaid || 0)
+        const fees = data.lineItemPayments.filter(lp => 
+          lp.name === 'Processing Fee' || 
+          lp.name === 'Transaction Fee' || 
+          lp.name === 'Upward Benefits'
+        )
+        if (fees.length > 0) {
+          upwardFeeAmount = fees.reduce((sum, f) => sum + Number(f.amount || f.amountPaid || 0), 0)
+        }
       }
 
       if (upwardFeeAmount === 0 && pr) {
-        const feeItem = (await txClient.upward_payment_line_item.findMany({ where: { paymentRequestId: pr.id } }))
-          .find(i => i.name === 'Processing Fee')
-        if (feeItem) {
-          upwardFeeAmount = Math.min(effectiveAmount, feeItem.totalAmount - feeItem.amountPaid)
+        try {
+          const rates = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId)
+          const txFee = rates.transactionFee
+          const benFee = rates.benefitsPaid ? 0 : rates.benefitsFee
+          upwardFeeAmount = txFee + benFee
+        } catch (e: any) {
+          this.logger.error(`Failed to resolve dynamic processing rates in RecordTransactionUseCase: ${e?.message}`)
         }
       }
 
@@ -655,7 +664,10 @@ export class InitializePaymentUseCase {
       }
     }
 
-    flatFee = await this.paymentConfig.getDynamicProcessingFee(user.id, userPropertyId)
+    const rates = await this.paymentConfig.getDynamicProcessingRates(user.id, userPropertyId)
+    const excludeBenefits = data.metadata?.excludeBenefits === true
+    const activeBenefitsFee = excludeBenefits ? 0 : rates.benefitsFee
+    flatFee = rates.transactionFee + activeBenefitsFee
 
     if (userPropertyId) {
       const rawPhone = user.phone || ''
@@ -673,10 +685,12 @@ export class InitializePaymentUseCase {
       
       let clientFee = 0
       if (data.metadata?.lineItems) {
-        const feeItem = data.metadata.lineItems.find((i: any) => 
-          (i.label || i.name) === 'Processing Fee'
+        const feeItems = data.metadata.lineItems.filter((i: any) => 
+          ['Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(i.label || i.name || '')
         )
-        if (feeItem) clientFee = Number(feeItem.amount)
+        if (feeItems.length > 0) {
+          clientFee = feeItems.reduce((sum: number, fi: any) => sum + Number(fi.amount || fi.amountPaid || 0), 0)
+        }
       } else if (data.metadata?.fee) {
         clientFee = Number(data.metadata.fee)
       }
@@ -1069,7 +1083,7 @@ export class ProcessPaymentWebhookUseCase {
     }
 
     // Verification Logic: Intercept & Check against Source of Truth
-    const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(pr.userId, pr.userPropertyId)
+    const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(pr.userId, pr.userPropertyId, pr.id)
     const expectedTotal = pr.amount + dynamicFee
 
     let settlementStatus = 'VERIFIED'

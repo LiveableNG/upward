@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { RichTextEditor } from '@/components/common/RichTextEditor'
 import { useTenants } from '../../hooks/useTenants'
-import { useDocuments } from '../../hooks/useDocuments'
+import { useDocuments, useVaultActions } from '../../hooks/useDocuments'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { RecipientSelectModal } from './RecipientSelectModal'
@@ -36,6 +36,9 @@ interface DocumentEditorViewProps {
   }
   paymentContext?: any
   onBack: () => void
+  unitUuid?: string
+  documentUuid?: string
+  isVaultMode?: boolean
 }
 
 export function DocumentEditorView({ 
@@ -44,11 +47,15 @@ export function DocumentEditorView({
   initialTemplate,
   initialRecipient,
   paymentContext,
-  onBack 
+  onBack,
+  unitUuid,
+  documentUuid,
+  isVaultMode = false
 }: DocumentEditorViewProps) {
   const { success, error } = useToast()
   const { data: tenants = [] } = useTenants()
   const { sendDocument, generatePdf } = useDocuments()
+  const { sendTemplateToVault } = useVaultActions()
   const { mutateAsync: createPaymentRequest } = useCreatePaymentRequest()
   
   const [content, setContent] = useState(() => {
@@ -176,30 +183,45 @@ export function DocumentEditorView({
 
     setIsSending(true)
     try {
-      let paymentRequestUuid = undefined;
+      if (isVaultMode) {
+        // Send to vault flow
+        await sendTemplateToVault.mutateAsync({
+          content,
+          subject,
+          includeLetterhead: hasLetterhead ? includeLetterhead : false,
+          tenantUuid: recipientType === 'existing' ? selectedTenantUuid : undefined,
+          unitUuid
+        })
+        success('Document sent to tenant vault successfully')
+      } else {
+        // Normal send flow
+        let paymentRequestUuid = undefined;
 
-      if (paymentContext) {
-        // 1. Create Payment Request
-        const resp = await createPaymentRequest(paymentContext);
-        paymentRequestUuid = resp.uuid;
+        if (paymentContext) {
+          // 1. Create Payment Request
+          const resp = await createPaymentRequest(paymentContext);
+          paymentRequestUuid = resp.uuid;
+        }
+
+        // 2. Send Document (linked to payment if context exists)
+        await sendDocument.mutateAsync({
+          uuid: documentUuid,
+          tenantUuid: recipientType === 'existing' ? selectedTenantUuid : undefined,
+          unitUuid,
+          subject,
+          content,
+          documentType: deliveryMode.toUpperCase(),
+          recipientName: recipient.name,
+          recipientEmail: recipient.email,
+          paymentRequestUuid, // New field
+          includeLetterhead: hasLetterhead && deliveryMode === 'pdf' ? includeLetterhead : false
+        })
+        
+        success(paymentContext ? 'Payment request and document sent successfully' : (documentUuid ? 'Document updated successfully' : 'Document sent and recorded successfully'))
       }
-
-      // 2. Send Document (linked to payment if context exists)
-      await sendDocument.mutateAsync({
-        tenantUuid: recipientType === 'existing' ? selectedTenantUuid : undefined,
-        subject,
-        content,
-        documentType: deliveryMode.toUpperCase(),
-        recipientName: recipient.name,
-        recipientEmail: recipient.email,
-        paymentRequestUuid, // New field
-        includeLetterhead: hasLetterhead && deliveryMode === 'pdf' ? includeLetterhead : false
-      })
-      
-      success(paymentContext ? 'Payment request and document sent successfully' : 'Document sent and recorded successfully')
       onBack()
     } catch (err: any) {
-      error(err.message || (paymentContext ? 'Failed to process payment request' : 'Failed to send document'))
+      error(err.message || (isVaultMode ? 'Failed to send to vault' : (paymentContext ? 'Failed to process payment request' : 'Failed to send document')))
     } finally {
       setIsSending(false)
     }
@@ -212,9 +234,25 @@ export function DocumentEditorView({
           <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 8, background: 'none', border: 'none', cursor: 'pointer' }}>
             <ChevronLeft size={18} /> Back to Documents
           </button>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)' }}>
-            {initialTemplate ? `Edit Template: ${initialTemplate.name}` : 'Create New Document'}
-          </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)', margin: 0 }}>
+              {isVaultMode ? `Vault Document: ${initialTemplate?.name || 'New Document'}` : (initialTemplate ? `Edit Template: ${initialTemplate.name}` : 'Create New Document')}
+            </h1>
+            {isVaultMode && (
+              <span style={{
+                background: 'var(--forest-faint)',
+                color: 'var(--forest)',
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '4px 10px',
+                borderRadius: 100,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Vault Document
+              </span>
+            )}
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           {deliveryMode === 'pdf' && (
@@ -243,7 +281,7 @@ export function DocumentEditorView({
             style={{ borderRadius: 12, height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8 }}
           >
             {paymentContext ? <CreditCard size={20} /> : <Send size={20} />} 
-            {isSending ? 'Processing...' : paymentContext ? 'Request Payment' : 'Send Document'}
+            {isSending ? 'Processing...' : isVaultMode ? 'Send to Vault' : (paymentContext ? 'Request Payment' : 'Send Document')}
           </button>
         </div>
       </header>
@@ -257,76 +295,93 @@ export function DocumentEditorView({
              
              <div style={{ marginBottom: 24 }}>
                 <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>Delivery Mode</label>
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <button 
-                    onClick={() => setDeliveryMode('pdf')}
-                    style={{ 
-                      flex: 1, 
-                      padding: '12px', 
-                      borderRadius: 12, 
-                      border: `1px solid ${deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--border)'}`,
-                      background: deliveryMode === 'pdf' ? 'var(--clay-faint)' : 'white',
-                      color: deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--text-muted)',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 4,
-                      position: 'relative'
-                    }}
-                  >
-                    <div style={{ 
-                        position: 'absolute', 
-                        top: 8, 
-                        left: 8, 
-                        width: 14, 
-                        height: 14, 
-                        borderRadius: '50%', 
-                        border: `1.5px solid ${deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--border)'}`,
+                {isVaultMode ? (
+                  <div style={{ 
+                    padding: '12px 16px', 
+                    borderRadius: 12, 
+                    border: '1.5px solid var(--forest)', 
+                    background: 'var(--forest-faint)', 
+                    color: 'var(--forest)', 
+                    fontSize: 13, 
+                    fontWeight: 600, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 8 
+                  }}>
+                    <Download size={18} /> PDF Attachment (Auto-Saved to Vault)
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <button 
+                      onClick={() => setDeliveryMode('pdf')}
+                      style={{ 
+                        flex: 1, 
+                        padding: '12px', 
+                        borderRadius: 12, 
+                        border: `1px solid ${deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--border)'}`,
+                        background: deliveryMode === 'pdf' ? 'var(--clay-faint)' : 'white',
+                        color: deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--text-muted)',
+                        fontSize: 13,
+                        fontWeight: 600,
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'center',
-                        justifyContent: 'center'
-                     }}>
-                        {deliveryMode === 'pdf' && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clay)' }}></div>}
-                     </div>
-                    <Download size={18} /> PDF Attachment
-                  </button>
-                  <button 
-                    onClick={() => setDeliveryMode('email')}
-                    style={{ 
-                      flex: 1, 
-                      padding: '12px', 
-                      borderRadius: 12, 
-                      border: `1px solid ${deliveryMode === 'email' ? 'var(--clay)' : 'var(--border)'}`,
-                      background: deliveryMode === 'email' ? 'var(--clay-faint)' : 'white',
-                      color: deliveryMode === 'email' ? 'var(--clay)' : 'var(--text-muted)',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 4,
-                      position: 'relative'
-                    }}
-                  >
-                    <div style={{ 
-                        position: 'absolute', 
-                        top: 8, 
-                        left: 8, 
-                        width: 14, 
-                        height: 14, 
-                        borderRadius: '50%', 
-                        border: `1.5px solid ${deliveryMode === 'email' ? 'var(--clay)' : 'var(--border)'}`,
+                        gap: 4,
+                        position: 'relative'
+                      }}
+                    >
+                      <div style={{ 
+                          position: 'absolute', 
+                          top: 8, 
+                          left: 8, 
+                          width: 14, 
+                          height: 14, 
+                          borderRadius: '50%', 
+                          border: `1.5px solid ${deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--border)'}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                       }}>
+                          {deliveryMode === 'pdf' && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clay)' }}></div>}
+                       </div>
+                      <Download size={18} /> PDF Attachment
+                    </button>
+                    <button 
+                      onClick={() => setDeliveryMode('email')}
+                      style={{ 
+                        flex: 1, 
+                        padding: '12px', 
+                        borderRadius: 12, 
+                        border: `1px solid ${deliveryMode === 'email' ? 'var(--clay)' : 'var(--border)'}`,
+                        background: deliveryMode === 'email' ? 'var(--clay-faint)' : 'white',
+                        color: deliveryMode === 'email' ? 'var(--clay)' : 'var(--text-muted)',
+                        fontSize: 13,
+                        fontWeight: 600,
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'center',
-                        justifyContent: 'center'
-                     }}>
-                        {deliveryMode === 'email' && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clay)' }}></div>}
-                     </div>
-                    <Mail size={18} /> Email Body
-                  </button>
-                </div>
+                        gap: 4,
+                        position: 'relative'
+                      }}
+                    >
+                      <div style={{ 
+                          position: 'absolute', 
+                          top: 8, 
+                          left: 8, 
+                          width: 14, 
+                          height: 14, 
+                          borderRadius: '50%', 
+                          border: `1.5px solid ${deliveryMode === 'email' ? 'var(--clay)' : 'var(--border)'}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                       }}>
+                          {deliveryMode === 'email' && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clay)' }}></div>}
+                       </div>
+                      <Mail size={18} /> Email Body
+                    </button>
+                  </div>
+                )}
              </div>
 
              <div style={{ marginBottom: 24 }}>

@@ -1,9 +1,9 @@
-import { useQuery, useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Property, Unit } from '../services/propertyService'
 
 export const useProperties = () => {
-  return useSuspenseQuery({
+  return useQuery({
     queryKey: ['pm-properties'],
     queryFn: () => api.getProperties(),
     staleTime: 5 * 60 * 1000,
@@ -12,9 +12,10 @@ export const useProperties = () => {
 }
 
 export const useProperty = (uuid: string) => {
-  return useSuspenseQuery({
+  return useQuery({
     queryKey: ['pm-property', uuid],
-    queryFn: () => api.getProperty(uuid)
+    queryFn: () => api.getProperty(uuid),
+    enabled: !!uuid
   })
 }
 
@@ -55,7 +56,7 @@ export const useDeleteProperty = () => {
 }
 
 export const useUnits = (propertyUuid?: string) => {
-  return useSuspenseQuery({
+  return useQuery({
     queryKey: ['pm-units', propertyUuid],
     queryFn: () => api.getUnits(propertyUuid),
     staleTime: 5 * 60 * 1000,
@@ -64,9 +65,10 @@ export const useUnits = (propertyUuid?: string) => {
 }
 
 export const useUnit = (uuid: string) => {
-  return useSuspenseQuery({
+  return useQuery({
     queryKey: ['pm-unit', uuid],
-    queryFn: () => api.getUnit(uuid)
+    queryFn: () => api.getUnit(uuid),
+    enabled: !!uuid
   })
 }
 
@@ -93,9 +95,10 @@ export const useDeleteUnit = () => {
 }
 
 export const useUnitPayments = (unitUuid: string) => {
-  return useSuspenseQuery({
+  return useQuery({
     queryKey: ['pm-unit-payments', unitUuid],
-    queryFn: () => api.getUnitPayments(unitUuid)
+    queryFn: () => api.getUnitPayments(unitUuid),
+    enabled: !!unitUuid
   })
 }
 

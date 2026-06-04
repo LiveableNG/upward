@@ -108,6 +108,8 @@ export class SyncUnitToUpwardUseCase {
       }
     }
 
+    let syncedUserPropertyId: number | undefined;
+
     // Perform transaction
     await this.prisma.$transaction(async (tx) => {
       const existingUserProperty = await tx.upward_user_property.findFirst({
@@ -127,23 +129,32 @@ export class SyncUnitToUpwardUseCase {
       let userProperty;
 
       if (existingUserProperty) {
+        const updateData: any = {
+          company: { connect: { id: company.id } },
+          rentAmount: unit.rentAmount,
+          currency: unit.currency,
+          rentStartDate: unit.rentStartDate || undefined,
+          rentEndDate: unit.rentDueDate || undefined,
+          isVerified: true,
+          isPastTenancy: false,
+          amountRemaining: unit.rentAmount,
+          rentType: unit.rentType,
+          pmUnit: { connect: { id: unit.id } },
+          verificationStatus: 'VERIFIED',
+        };
+
+        if (manager?.id) {
+          updateData.manager = { connect: { id: manager.id } };
+        }
+
+        const resolvedSubaccountId = subaccountId || existingUserProperty.subaccountId;
+        if (resolvedSubaccountId) {
+          updateData.subaccount = { connect: { id: resolvedSubaccountId } };
+        }
+
         userProperty = await tx.upward_user_property.update({
           where: { id: existingUserProperty.id },
-          data: {
-            companyId: company.id,
-            managerId: manager?.id,
-            rentAmount: unit.rentAmount,
-            currency: unit.currency,
-            rentStartDate: unit.rentStartDate || undefined,
-            rentEndDate: unit.rentDueDate || undefined,
-            isVerified: pmRecord.isVerified,
-            isPastTenancy: false,
-            amountRemaining: unit.rentAmount,
-            rentType: unit.rentType,
-            subaccountId: subaccountId || existingUserProperty.subaccountId,
-            pmUnitId: unit.id,
-            verificationStatus: pmRecord.isVerified ? 'VERIFIED' : 'PENDING',
-          }
+          data: updateData
         });
       } else {
         // Create location record (only for new properties)
@@ -158,25 +169,33 @@ export class SyncUnitToUpwardUseCase {
         } as any);
 
         // Create new upward_user_property
+        const createData: any = {
+          user: { connect: { id: upwardUser.id! } },
+          location: { connect: { id: location.id } },
+          company: { connect: { id: company.id } },
+          rentAmount: unit.rentAmount,
+          currency: unit.currency,
+          rentStartDate: unit.rentStartDate || undefined,
+          rentEndDate: unit.rentDueDate || undefined,
+          isVerified: true,
+          verificationStatus: 'VERIFIED',
+          amountPaid: 0,
+          amountRemaining: unit.rentAmount,
+          pm: { connect: { id: pmId } },
+          pmUnit: { connect: { id: unit.id } },
+          rentType: unit.rentType,
+        };
+
+        if (manager?.id) {
+          createData.manager = { connect: { id: manager.id } };
+        }
+
+        if (subaccountId) {
+          createData.subaccount = { connect: { id: subaccountId } };
+        }
+
         userProperty = await tx.upward_user_property.create({
-          data: {
-            userId: upwardUser.id!,
-            locationId: location.id,
-            companyId: company.id,
-            managerId: manager?.id,
-            rentAmount: unit.rentAmount,
-            currency: unit.currency,
-            rentStartDate: unit.rentStartDate || undefined,
-            rentEndDate: unit.rentDueDate || undefined,
-            isVerified: pmRecord.isVerified,
-            verificationStatus: pmRecord.isVerified ? 'VERIFIED' : 'PENDING',
-            amountPaid: 0,
-            amountRemaining: unit.rentAmount,
-            pmId,
-            pmUnitId: unit.id,
-            rentType: unit.rentType,
-            subaccountId: subaccountId,
-          }
+          data: createData
         });
       }
 
@@ -235,20 +254,20 @@ export class SyncUnitToUpwardUseCase {
         url: `/properties/${userProperty.uuid}`
       });
 
-      // 4. Pre-provision Dedicated Virtual Account (DVA)
-      if (userProperty.id) {
-        try {
-          await this.resolveDedicatedAccount.execute({
-            userPropertyId: userProperty.id,
-            tenantEmail: upwardUser.email!,
-            tenantName: `${upwardUser.firstName} ${upwardUser.lastName}`,
-            tenantPhone: upwardUser.phone ?? undefined,
-          });
-        } catch (e: any) {
-          this.logger.warn(`Failed to pre-provision DVA during sync: ${e.message}`);
-        }
-      }
+      syncedUserPropertyId = userProperty.id;
     });
+
+    // 4. Pre-provision Dedicated Virtual Account (DVA) in the background (outside Prisma transaction to prevent transaction timeouts)
+    if (syncedUserPropertyId) {
+      this.resolveDedicatedAccount.execute({
+        userPropertyId: syncedUserPropertyId,
+        tenantEmail: upwardUser.email!,
+        tenantName: `${upwardUser.firstName} ${upwardUser.lastName}`,
+        tenantPhone: upwardUser.phone ?? undefined,
+      }).catch((e: any) => {
+        this.logger.warn(`Failed to pre-provision DVA during sync background task: ${e.message}`);
+      });
+    }
 
     this.logger.log(`Unit ${unitUuid} synced to Upward Pay for user ${upwardUser.email}`);
   }

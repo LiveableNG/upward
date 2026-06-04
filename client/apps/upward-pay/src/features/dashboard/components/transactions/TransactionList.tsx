@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  ArrowLeft,
   Filter,
   Receipt,
   AlertTriangle,
@@ -64,14 +63,13 @@ export function TransactionList() {
 
   return (
     <div className="transactions-list-page dashboard--nav-offset">
-      <div className="transactions-list__header">
-        <div className="dashboard__header-left">
-          <button className="dashboard__back mobile-only" onClick={() => router.push('/dashboard')}>
-            <ArrowLeft size={20} />
-          </button>
-          <h2 className="dashboard__title">Transactions</h2>
+      {/* Unified Custom Header */}
+      <header className="profile-header animate-slide-up">
+        <div className="profile-header__title-wrap">
+          <h1 className="profile-header__title">Transactions</h1>
+          <p className="profile-header__subtitle">History of payments and credits</p>
         </div>
-        <div className="dashboard__header-right">
+        <div className="profile-header__right">
           <div className="dashboard__filter">
             <input
               type="date"
@@ -84,7 +82,7 @@ export function TransactionList() {
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       <div className="transaction-search">
         <div className="transaction-search__input-wrap">
@@ -191,13 +189,37 @@ export function TransactionList() {
         </div>
       )}
       <style jsx>{`
-        .transactions-list__header {
+        .profile-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: var(--space-4) var(--space-5);
-          margin-bottom: var(--space-2);
-          border-bottom: 1px solid var(--border-solid);
+          padding: 0.75rem 0.25rem 1rem;
+          border-bottom: none;
+        }
+
+        .profile-header__title-wrap {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .profile-header__title {
+          font-size: 1.85rem;
+          font-weight: 800;
+          color: var(--text);
+          letter-spacing: -0.02em;
+          margin: 0;
+        }
+
+        .profile-header__subtitle {
+          font-size: 0.9rem;
+          color: var(--text-muted);
+          margin: 0;
+        }
+
+        .profile-header__right {
+          display: flex;
+          align-items: center;
         }
 
         .transaction-item__type-badge--future {
@@ -228,13 +250,9 @@ export function TransactionList() {
             /* Inherits from global dashboard.css */
           }
 
-          .transactions-list__header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
+          .profile-header {
             padding: 0;
-            border-bottom: none;
+            margin-bottom: 24px;
           }
 
           .dashboard__title {

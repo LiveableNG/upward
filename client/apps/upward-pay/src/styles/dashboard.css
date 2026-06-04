@@ -64,6 +64,9 @@
 
 /* Modifier to remove the detached rectangular box look on full-page views */
 .page-header--flush {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
   border: none !important;
   border-radius: 0 !important;
   margin-left: calc(-1 * var(--space-5)) !important;
@@ -73,7 +76,9 @@
   padding-right: var(--space-5) !important;
   border-bottom: 1px solid var(--border-solid) !important;
   box-shadow: none !important;
-  background: rgba(var(--surface-rgb), 0.8) !important;
+  background: rgba(var(--bg-rgb), 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
   position: sticky;
   top: 0;
 }
@@ -1403,12 +1408,16 @@
 
   .dashboard__stat-card--request-cta {
     background: var(--clay-faint);
-    border-color: var(--clay-glow);
+    border: 1.5px solid var(--clay) !important;
+    box-shadow: 0 4px 12px var(--clay-glow);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .dashboard__stat-card--request-cta:hover {
     background: var(--clay);
-    border-color: var(--clay);
+    border-color: var(--clay) !important;
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 24px rgba(217, 119, 87, 0.3);
   }
 
   .dashboard__stat-card--request-cta:hover .dashboard__stat-label,
@@ -1632,6 +1641,7 @@
   position: sticky;
   top: 0;
   z-index: 1001;
+  background: var(--bg);
   /* Compensate for the dashboard padding so it reaches edge-to-edge */
   margin-left: calc(var(--space-5) * -1);
   margin-right: calc(var(--space-5) * -1);
