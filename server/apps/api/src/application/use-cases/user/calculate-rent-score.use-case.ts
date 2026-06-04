@@ -59,7 +59,7 @@ export class CalculateRentScoreUseCase {
       const isBeforeDueDate = dueDate > now
 
       let ptValue = 0 // default for MISSED or PENDING past due
-      let excluded = false
+      let excluded = (cycle.amountOwed || 0) <= 0
       const status = cycle.status as string
 
       if (status === 'PAID_ON_TIME' || status === 'PAID') {
@@ -364,7 +364,7 @@ export class CalculateRentScoreUseCase {
       const paidDate = cycle.paidAt ? new Date(cycle.paidAt) : null
       const isBeforeDueDate = dueDate > now
       let ptValue = 0
-      let excluded = false
+      let excluded = (cycle.amountOwed || 0) <= 0
       const status = cycle.status as string
 
       if (status === 'PAID_ON_TIME' || status === 'PAID') {
