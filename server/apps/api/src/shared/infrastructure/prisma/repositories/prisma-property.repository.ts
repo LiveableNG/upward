@@ -116,8 +116,8 @@ export class PrismaPropertyRepository implements PropertyRepository {
       amountPaid: property.amountPaid,
       amountRemaining: property.amountRemaining,
     }
-    if (property.subaccountId) {
-      data.subaccount = { connect: { id: property.subaccountId } }
+    if (property.subaccountId !== undefined) {
+      data.subaccountId = property.subaccountId
     }
     const record = property.id
       ? await prisma.upward_user_property.update({
@@ -131,13 +131,12 @@ export class PrismaPropertyRepository implements PropertyRepository {
   async update(id: number, data: Partial<Property>, tx?: Prisma.TransactionClient): Promise<Property> {
     const prisma = tx || this.prisma
     const prismaData: any = { ...data }
-    if (prismaData.hasOwnProperty('subaccountId')) {
-      const subaccountId = prismaData.subaccountId
-      delete prismaData.subaccountId
-      if (subaccountId) {
-        prismaData.subaccount = { connect: { id: subaccountId } }
-      }
-    }
+    delete prismaData.company
+    delete prismaData.manager
+    delete prismaData.location
+    delete prismaData.pm
+    delete prismaData.pmUnit
+    delete prismaData.subaccount
     const record = await prisma.upward_user_property.update({
       where: { id },
       data: prismaData,
