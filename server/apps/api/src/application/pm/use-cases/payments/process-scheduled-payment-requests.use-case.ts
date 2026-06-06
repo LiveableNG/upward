@@ -149,6 +149,7 @@ export class ProcessScheduledPmPaymentRequestsUseCase {
           const pmLastName = pm.lastName ? this.encryption.decrypt(pm.lastName) : '';
           const decryptedBusinessName = pm.businessName ? this.encryption.decrypt(pm.businessName) : '';
           const pmName = decryptedBusinessName || `${pmFirstName} ${pmLastName}`.trim() || 'Property Manager';
+          const baseUrl = process.env.FRONTEND_URL || 'https://upward.goodtenants.io';
 
           const emailHtml = `
             <div style="background-color: #fafae6; padding: 32px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
@@ -186,7 +187,7 @@ export class ProcessScheduledPmPaymentRequestsUseCase {
                   <p style="font-size: 14px; color: #506256; line-height: 1.5;">You can view and manage all properties, payments, and notifications directly from your Upward dashboard.</p>
                   
                   <div style="margin-top: 32px; text-align: center;">
-                    <a href="https://upward.ng/portal/dashboard" style="display: inline-block; background-color: #1b4332; color: #fffff0; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; letter-spacing: 0.2px;">Open PM Dashboard</a>
+                    <a href="${baseUrl}/portal/dashboard" style="display: inline-block; background-color: #1b4332; color: #fffff0; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; letter-spacing: 0.2px;">Open PM Dashboard</a>
                   </div>
 
                   <p style="margin-top: 32px; font-size: 11px; color: #88998e; text-align: center; border-top: 1px solid #e3e2cf; padding-top: 16px;">

@@ -167,6 +167,7 @@ export class UnifiedReminderService {
 
   async processPmDailyCrons() {
     this.logger.log('[ReminderService] Processing daily Property Manager rent digests...');
+    const baseUrl = process.env.FRONTEND_URL || 'https://upward.goodtenants.io';
     const now = new Date();
     
     // Normalizing today to start of day local time
@@ -372,7 +373,7 @@ export class UnifiedReminderService {
           emailHtml += `
                   <div style="margin-top: 36px; padding: 20px; background-color: #fafae6; border-radius: 12px; border: 1px solid #e3e2cf; text-align: center;">
                     <p style="margin: 0 0 16px 0; font-size: 14px; color: #506256; line-height: 1.5;">You can view and manage all properties, payments, and notifications directly from your Upward dashboard.</p>
-                    <a href="https://upward.ng/portal/dashboard" style="display: inline-block; background-color: #1b4332; color: #fffff0; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; letter-spacing: 0.2px;">Open PM Dashboard</a>
+                    <a href="${baseUrl}/portal/dashboard" style="display: inline-block; background-color: #1b4332; color: #fffff0; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; letter-spacing: 0.2px;">Open PM Dashboard</a>
                   </div>
                   
                   <p style="margin-top: 32px; font-size: 11px; color: #88998e; text-align: center; border-top: 1px solid #e3e2cf; padding-top: 16px;">

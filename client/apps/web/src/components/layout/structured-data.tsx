@@ -11,11 +11,13 @@ export function StructuredData() {
     sameAs: ['https://twitter.com/goodtenants', 'https://linkedin.com/company/goodtenants'],
   }
 
+  const webUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
+
   const projectLd = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: 'Upward',
-    url: 'https://upward.ng',
+    url: webUrl,
     description: 'Track rent payments, build your Rent Passport, and unlock home financing.',
     publisher: {
       '@id': 'https://goodtenants.io#organization',
