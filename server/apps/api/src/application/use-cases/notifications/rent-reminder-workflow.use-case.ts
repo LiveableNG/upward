@@ -132,12 +132,14 @@ export class RentReminderWorkflowUseCase {
         }
     })
 
+    const baseUrl = process.env.FRONTEND_URL || 'https://upward.goodtenants.io'
+
     // 2. Send Email
     await this.emailService.sendEmailWithRetry({
         userId: user.id,
         email: user.email,
         subject: tpl.title,
-        html: `<p>Hi ${name},</p><p>${tpl.email}</p><p><a href="https://upward.ng${payUrl}" style="background:#d97757;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;">Pay Now</a></p><p>Keeping your payments consistent impacts your credit score and helps you unlock better financial opportunities.</p>`,
+        html: `<p>Hi ${name},</p><p>${tpl.email}</p><p><a href="${baseUrl}${payUrl}" style="background:#d97757;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;">Pay Now</a></p><p>Keeping your payments consistent impacts your credit score and helps you unlock better financial opportunities.</p>`,
         type: 'RENT_REMINDER'
     }).catch(() => {})
 

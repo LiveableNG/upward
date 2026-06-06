@@ -14,8 +14,10 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
+const webUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://upward.ng'),
+  metadataBase: new URL(webUrl),
   title: {
     default: 'Upward — Build With Your Rent',
     template: '%s | Upward',
@@ -42,7 +44,7 @@ export const metadata: Metadata = {
     title: 'Upward — Build With Your Rent',
     description:
       'Unlock access to structured, low-cost home financing. Build credibility while you rent.',
-    url: 'https://upward.ng',
+    url: webUrl,
     siteName: 'Upward',
     images: [
       {
