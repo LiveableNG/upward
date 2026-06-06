@@ -90,6 +90,7 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
                    // 2. Send email to PM
                     const pmEmail = pm.email ? this.encryption.decrypt(pm.email) : null;
                     if (pmEmail) {
+                      const baseUrl = process.env.FRONTEND_URL || 'https://upward.goodtenants.io';
                       await this.emailService.sendEmailWithRetry({
                         userId: pm.uuid,
                         email: pmEmail,
@@ -118,7 +119,7 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
                                 <p style="font-size: 14px; color: #506256; line-height: 1.5;">You can view all your payment transactions, tenant ledgers, and payout details on your dashboard.</p>
                                 
                                 <div style="margin-top: 32px; text-align: center;">
-                                  <a href="https://upward.ng/portal/payments" style="display: inline-block; background-color: #1b4332; color: #fffff0; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; letter-spacing: 0.2px;">Go to Payments</a>
+                                  <a href="${baseUrl}/portal/payments" style="display: inline-block; background-color: #1b4332; color: #fffff0; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; letter-spacing: 0.2px;">Go to Payments</a>
                                 </div>
 
                                 <p style="margin-top: 32px; font-size: 11px; color: #88998e; text-align: center; border-top: 1px solid #e3e2cf; padding-top: 16px;">

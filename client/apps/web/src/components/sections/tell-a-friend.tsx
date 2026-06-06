@@ -2,7 +2,8 @@
 import { showToast } from '@upward/client-core'
 
 export function TellAFriend() {
-  const caption = `Tired of paying rent with nothing to show for it? Upward is changing that — turning your rental history into a passport to home ownership. Join me: https://upward.ng #RentPassport #Upward`
+  const webUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
+  const caption = `Tired of paying rent with nothing to show for it? Upward is changing that — turning your rental history into a passport to home ownership. Join me: ${webUrl} #RentPassport #Upward`
 
   return (
     <section
@@ -123,14 +124,14 @@ export function TellAFriend() {
                   setTimeout(() => {
                     window.open(
                       'https://www.linkedin.com/sharing/share-offsite/?url=' +
-                        encodeURIComponent('https://upward.ng'),
+                        encodeURIComponent(webUrl),
                       '_blank',
                     )
                   }, 1200) // delay so user sees the toast
                 } catch {
                   window.open(
                     'https://www.linkedin.com/sharing/share-offsite/?url=' +
-                      encodeURIComponent('https://upward.ng'),
+                      encodeURIComponent(webUrl),
                     '_blank',
                   )
                 }
@@ -227,7 +228,7 @@ export function TellAFriend() {
           >
             Tired of paying rent with nothing to show for it? Upward is changing that
             — turning your rental history into a passport to home ownership. Join me
-            and start building your rental credibility: https://upward.ng
+            and start building your rental credibility: {webUrl}
             #RentPassport #Upward
           </span>
         </div>
