@@ -1,7 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { ArrowRight, CheckCircle2, ShieldCheck, Shuffle, BookOpen, UserCheck } from 'lucide-react'
+import { ArrowRight, CheckCircle2, ShieldCheck, Building2, BookOpen, UserCheck, X, CreditCard, TrendingUp, Users } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
 
 // Authentic Upward Logo SVG for branding consistency
 function UpwardLogo({
@@ -44,6 +47,14 @@ function UpwardLogo({
   )
 }
 
+const contactSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  message: z.string().min(10, 'Message must be at least 10 characters'),
+})
+
+type ContactFormData = z.infer<typeof contactSchema>
+
 export function LandlordPmPage({
   onBack,
   onOpenSignup,
@@ -53,6 +64,21 @@ export function LandlordPmPage({
 }) {
   const [showSplash, setShowSplash] = useState(false)
   const [splashFade, setSplashFade] = useState(false)
+  
+  // Contact Form Modal state
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
+  const [submittedEmail, setSubmittedEmail] = useState('')
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<ContactFormData>({
+    resolver: zodResolver(contactSchema),
+  })
 
   const handlePmRedirect = (e: React.MouseEvent, path: string) => {
     e.preventDefault()
@@ -71,9 +97,39 @@ export function LandlordPmPage({
     }, 2200)
   }
 
-  // Prevent scroll when splash overlay is active
+  const handleContactSubmit = async (data: ContactFormData) => {
+    setIsSubmitting(true)
+    try {
+      const response = await fetch('/api/v1/public/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          type: 'OTHER',
+          message: data.message,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to submit question')
+      }
+
+      setSubmittedEmail(data.email)
+      setIsSuccess(true)
+      reset()
+    } catch (err) {
+      console.error('Error submitting contact question:', err)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Prevent scroll when splash overlay or contact modal is active
   useEffect(() => {
-    if (showSplash) {
+    if (showSplash || isContactModalOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
@@ -81,7 +137,7 @@ export function LandlordPmPage({
     return () => {
       document.body.style.overflow = ''
     }
-  }, [showSplash])
+  }, [showSplash, isContactModalOpen])
 
   return (
     <div className="pm-page-container">
@@ -121,40 +177,59 @@ export function LandlordPmPage({
 
           <h1 className="pm-page-title">Automate Rent splits & ledgers.</h1>
           <p className="pm-page-subtitle">
-            Professional, automated occupancy ledgers and split commission routing. 
-            Reconcile transactions instantly via Dedicated Virtual Accounts and automate 
-            commission payouts directly to your portfolio.
+            Professional, automated occupancy ledgers and rent reconciliation dashboard. 
+            Onboard tenants, manage payment requests, and track property performance in one premium dashboard designed for modern property managers.
           </p>
 
           {/* Pillars List */}
           <div className="pm-pillars">
             <div className="pm-pillar">
               <div className="pm-pillar__icon-wrapper">
-                <Shuffle size={20} />
+                <Building2 size={20} />
               </div>
               <div className="pm-pillar__text">
-                <h3>Split Commission Engine</h3>
-                <p>Automate agency split distributions and tax routing immediately upon tenant checkout confirmation.</p>
+                <h3>Portfolio & Asset Management</h3>
+                <p>Bulk import properties, add multi-unit buildings, assign landlords, and manage rent rates in one dashboard.</p>
               </div>
             </div>
 
             <div className="pm-pillar">
               <div className="pm-pillar__icon-wrapper">
-                <BookOpen size={20} />
+                <CreditCard size={20} />
               </div>
               <div className="pm-pillar__text">
-                <h3>Auto Ledger Matching</h3>
-                <p>Dedicated virtual accounts matching incoming payments directly to active lease items with zero manual entry.</p>
+                <h3>Invoicing & Collection Automation</h3>
+                <p>Share secure digital payment requests, copy pay links, send automated email/SMS reminders, and log offline payments.</p>
               </div>
             </div>
 
             <div className="pm-pillar">
               <div className="pm-pillar__icon-wrapper">
-                <UserCheck size={20} />
+                <TrendingUp size={20} />
               </div>
               <div className="pm-pillar__text">
-                <h3>Tenant Claim Flow</h3>
-                <p>Pre-fill digital lease files and invite tenants to claim their profile to start building their Rent Passport™.</p>
+                <h3>Automated Payouts & Settlement</h3>
+                <p>Disburse collected rent automatically to configured bank accounts and track payouts with detailed settlement history.</p>
+              </div>
+            </div>
+
+            <div className="pm-pillar">
+              <div className="pm-pillar__icon-wrapper">
+                <ShieldCheck size={20} />
+              </div>
+              <div className="pm-pillar__text">
+                <h3>Custom Domain & Branding</h3>
+                <p>Setup custom email sending domains, verify domains, upload letterheads, and configure digital signature templates.</p>
+              </div>
+            </div>
+
+            <div className="pm-pillar">
+              <div className="pm-pillar__icon-wrapper">
+                <Users size={20} />
+              </div>
+              <div className="pm-pillar__text">
+                <h3>Team Workspaces & Roles</h3>
+                <p>Invite team members and configure granular access controls to assign properties and collaborate.</p>
               </div>
             </div>
           </div>
@@ -169,12 +244,24 @@ export function LandlordPmPage({
               <ArrowRight size={16} />
             </button>
             <button
-              onClick={onOpenSignup}
+              onClick={(e) => handlePmRedirect(e, '/pm-signup')}
               className="pm-cta-btn pm-cta-btn--secondary"
             >
               Contact Sales / Setup Demo
             </button>
           </div>
+
+          <p className="pm-questions-text">
+            Have questions about the PM suite?{' '}
+            <button
+              onClick={() => {
+                setIsContactModalOpen(true)
+              }}
+              className="pm-questions-btn"
+            >
+              Ask our team
+            </button>
+          </p>
         </div>
 
         {/* Right: Mockup Display */}
@@ -207,6 +294,101 @@ export function LandlordPmPage({
           </button>
         </div>
       </div>
+
+      {/* ================= FORM MODAL COLLECTING INQUIRIES ================= */}
+      {isContactModalOpen && (
+        <div className="contact-modal-overlay">
+          <div className="contact-modal">
+            <button 
+              onClick={() => {
+                setIsContactModalOpen(false)
+                setIsSuccess(false)
+                reset()
+              }} 
+              className="contact-modal__close"
+            >
+              <X size={20} />
+            </button>
+
+            {!isSuccess ? (
+              <form onSubmit={handleSubmit(handleContactSubmit)} className="contact-form">
+                <h3 className="contact-form__title">Have a Question?</h3>
+                <p className="contact-form__subtitle">
+                  Ask us anything about the Upward PM suite, and our team will get back to you shortly.
+                </p>
+
+                <div className="contact-form__group">
+                  <label htmlFor="contact-name">Full Name *</label>
+                  <input
+                    id="contact-name"
+                    type="text"
+                    {...register('name')}
+                    placeholder="Enter your name"
+                  />
+                  {errors.name && <span className="contact-form__error">{errors.name.message}</span>}
+                </div>
+
+                <div className="contact-form__group">
+                  <label htmlFor="contact-email">Email Address *</label>
+                  <input
+                    id="contact-email"
+                    type="email"
+                    {...register('email')}
+                    placeholder="e.g. name@company.com"
+                  />
+                  {errors.email && <span className="contact-form__error">{errors.email.message}</span>}
+                </div>
+
+                <div className="contact-form__group">
+                  <label htmlFor="contact-message">Your Message / Question *</label>
+                  <textarea
+                    id="contact-message"
+                    rows={4}
+                    {...register('message')}
+                    placeholder="Ask your question here..."
+                  />
+                  {errors.message && <span className="contact-form__error">{errors.message.message}</span>}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="contact-form__submit"
+                >
+                  {isSubmitting ? (
+                    <div className="spinner" />
+                  ) : (
+                    <>
+                      <span>Submit Question</span>
+                      <ArrowRight size={16} />
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : (
+              <div className="contact-success">
+                <div className="contact-success__icon-wrapper">
+                  <CheckCircle2 size={48} className="contact-success__icon" />
+                </div>
+                <h3 className="contact-success__title">Question Sent Successfully!</h3>
+                <p className="contact-success__desc">
+                  Thank you for reaching out. A representative from our property management team 
+                  will contact you at <strong>{submittedEmail}</strong> shortly.
+                </p>
+                <button
+                  onClick={() => {
+                    setIsContactModalOpen(false)
+                    setIsSuccess(false)
+                  }}
+                  className="contact-success__btn"
+                >
+                  Done
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ================= FULL-SCREEN REDIRECT SPLASH OVERLAY ================= */}
       {showSplash && (
@@ -242,7 +424,7 @@ export function LandlordPmPage({
         .pm-page-container {
           min-height: 100vh;
           padding: 90px 20px 60px;
-          maxWidth: 1360px;
+          max-width: 1360px;
           margin: 0 auto;
           position: relative;
           z-index: 1;
@@ -272,7 +454,7 @@ export function LandlordPmPage({
           font-size: 13px;
           text-transform: uppercase;
           letter-spacing: 0.1em;
-          marginBottom: 40px;
+          margin-bottom: 40px;
           padding: 12px 20px;
           border-radius: 100px;
           transition: all 0.3s ease;
@@ -519,9 +701,9 @@ export function LandlordPmPage({
         .pm-renter-banner__btn {
           padding: 12px 24px;
           border-radius: 100px;
-          background: var(--accent);
-          color: var(--btn-text);
-          border: none;
+          background: #ffffff !important;
+          color: var(--accent) !important;
+          border: 1.5px solid var(--accent) !important;
           font-family: var(--font-head);
           font-weight: 700;
           font-size: 13px;
@@ -529,13 +711,54 @@ export function LandlordPmPage({
           display: flex;
           align-items: center;
           gap: 6px;
-          box-shadow: 0 4px 15px rgba(217, 119, 87, 0.15);
-          transition: all 0.3s;
+          box-shadow: 0 4px 15px rgba(217, 119, 87, 0.1);
+          transition: all 0.3s ease;
         }
 
         .pm-renter-banner__btn:hover {
-          background: var(--swatch--clay-interactive);
-          transform: translateY(-1px);
+          background: rgba(217, 119, 87, 0.05) !important;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(217, 119, 87, 0.18);
+        }
+
+        .pm-questions-text {
+          margin-top: 24px;
+          font-size: 14.5px;
+          color: var(--muted);
+          font-weight: 500;
+        }
+
+        .pm-questions-btn {
+          background: none;
+          border: none;
+          color: #166534;
+          font-family: var(--font-head);
+          font-weight: 700;
+          font-size: 14.5px;
+          cursor: pointer;
+          padding: 0;
+          text-decoration: underline;
+          text-underline-offset: 3px;
+          transition: color 0.2s;
+        }
+
+        .theme--dark .pm-questions-btn {
+          color: #22c55e;
+        }
+
+        .pm-questions-btn:hover {
+          color: #0f4c24;
+        }
+
+        .theme--dark .pm-questions-btn:hover {
+          color: #4ade80;
+        }
+
+        .contact-form__error {
+          font-size: 12px;
+          color: #ff4444;
+          margin-top: 4px;
+          font-weight: 500;
         }
 
         /* Splash Overlay */
@@ -673,6 +896,233 @@ export function LandlordPmPage({
           letter-spacing: 0.02em;
         }
 
+        /* Inquiry Modal Styling */
+        .contact-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(10, 10, 10, 0.7);
+          backdrop-filter: blur(12px);
+          z-index: 100000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          animation: fadeIn 0.3s ease;
+        }
+
+        .contact-modal {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 28px;
+          width: 100%;
+          max-width: 520px;
+          padding: 40px;
+          position: relative;
+          box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5);
+          animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .contact-modal__close {
+          position: absolute;
+          top: 24px;
+          right: 24px;
+          background: var(--surface2);
+          border: 1px solid var(--border);
+          color: var(--text);
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s;
+          z-index: 10;
+        }
+
+        .contact-modal__close:hover {
+          background: #166534;
+          color: #ffffff;
+          border-color: #166534;
+        }
+
+        .contact-form {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .contact-form__title {
+          font-family: var(--font-head);
+          font-weight: 800;
+          font-size: 24px;
+          color: var(--text);
+          letter-spacing: -0.02em;
+        }
+
+        .contact-form__subtitle {
+          font-size: 14px;
+          color: var(--muted);
+          line-height: 1.5;
+          margin-bottom: 8px;
+        }
+
+        .contact-form__group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .contact-form__group label {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text);
+          letter-spacing: 0.02em;
+        }
+
+        .contact-form__group input,
+        .contact-form__group textarea,
+        .contact-form__group-sub input {
+          width: 100%;
+          padding: 14px 18px;
+          border-radius: 12px;
+          border: 1px solid var(--border);
+          background: var(--surface2);
+          color: var(--text);
+          font-family: var(--font-body);
+          font-size: 14px;
+          transition: all 0.2s;
+        }
+
+        .contact-form__group input:focus,
+        .contact-form__group textarea:focus,
+        .contact-form__group-sub input:focus {
+          outline: none;
+          border-color: #166534;
+          background: var(--bg);
+          box-shadow: 0 0 0 3px rgba(22, 101, 52, 0.08);
+        }
+
+        .contact-form__row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+
+        .contact-form__group-sub {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .contact-form__group-sub label {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text);
+          letter-spacing: 0.02em;
+        }
+
+        .contact-form__submit {
+          width: 100%;
+          padding: 16px;
+          border-radius: 100px;
+          background: #166534;
+          color: #ffffff;
+          border: none;
+          font-family: var(--font-head);
+          font-weight: 800;
+          font-size: 14px;
+          letter-spacing: 0.05em;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          box-shadow: 0 6px 20px rgba(22, 101, 52, 0.15);
+          transition: all 0.3s;
+          margin-top: 10px;
+        }
+
+        .contact-form__submit:hover {
+          background: #0f4c24;
+          transform: translateY(-2px);
+          box-shadow: 0 10px 25px rgba(22, 101, 52, 0.25);
+        }
+
+        .contact-form__submit:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        /* Success Card */
+        .contact-success {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          padding: 20px 10px;
+        }
+
+        .contact-success__icon-wrapper {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          background: rgba(34, 197, 94, 0.1);
+          color: #22c55e;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 24px;
+        }
+
+        .contact-success__title {
+          font-family: var(--font-head);
+          font-weight: 800;
+          font-size: 22px;
+          color: var(--text);
+          margin-bottom: 12px;
+        }
+
+        .contact-success__desc {
+          font-size: 15px;
+          color: var(--muted);
+          line-height: 1.6;
+          margin-bottom: 32px;
+          max-width: 380px;
+        }
+
+        .contact-success__btn {
+          padding: 14px 40px;
+          border-radius: 100px;
+          background: #166534;
+          color: #ffffff;
+          border: none;
+          font-family: var(--font-head);
+          font-weight: 800;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.3s;
+        }
+
+        .contact-success__btn:hover {
+          background: #0f4c24;
+          transform: translateY(-1px);
+        }
+
+        .spinner {
+          width: 20px;
+          height: 20px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          border-top-color: #ffffff;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
         @keyframes beam {
           0% { transform: scale(0.9); opacity: 0.45; }
           100% { transform: scale(2.8); opacity: 0; }
@@ -691,6 +1141,16 @@ export function LandlordPmPage({
         @keyframes splashFadeOut {
           from { opacity: 1; }
           to { opacity: 0; }
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes scaleUp {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
         }
 
         /* Responsive */
@@ -727,6 +1187,13 @@ export function LandlordPmPage({
             width: 100%;
             text-align: center;
             justify-content: center;
+          }
+          .contact-form__row {
+            grid-template-columns: 1fr;
+            gap: 20px;
+          }
+          .contact-modal {
+            padding: 24px;
           }
         }
       `}</style>
