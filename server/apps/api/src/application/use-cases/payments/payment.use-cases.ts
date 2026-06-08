@@ -282,6 +282,7 @@ export class RecordTransactionUseCase {
       futureCreditName?: string
       lineItems?: any[]
       sequentialFill?: boolean // When true, fills line items top-to-bottom instead of proportionally
+      metadata?: any
     }
   ) {
     this.logger.log(`Recording transaction for reference: ${data.reference}`)
@@ -1098,9 +1099,9 @@ export class ProcessPaymentWebhookUseCase {
       // If the intent is fresh (e.g. < 48 hours) and amount matches exactly
       if (intent && intent.amount === amountPaid && (Date.now() - intent.timestamp < 48 * 60 * 60 * 1000)) {
         lineItemPayments = intent.lineItems
-        excludeBenefits = intent.excludeBenefits === true || (lineItemPayments && !lineItemPayments.some(lp => lp.name === 'Upward Benefits'))
+        excludeBenefits = intent.excludeBenefits === true || !!(lineItemPayments && !lineItemPayments.some(lp => lp.name === 'Upward Benefits'))
         this.logger.log(`Found matching payment intent for DVA transfer. Using manual allocations. ExcludeBenefits: ${excludeBenefits}`)
-        
+       
         // Extract fee if specified
         const feeItem = lineItemPayments?.find(lp => lp.name === 'Processing Fee')
         if (feeItem) {
