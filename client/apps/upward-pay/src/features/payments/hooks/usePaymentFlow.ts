@@ -136,20 +136,26 @@ export function usePaymentFlow(uuid: string) {
 
   const { login: executeLogin, loading: loginLoading } = useLogin(`/pay/${uuid}`)
 
-  const loadPaymentDetails = useCallback(async () => {
+  const loadPaymentDetails = useCallback(async (showLoadingStep = true) => {
     if (!uuid) return
 
-    setStep('loading')
-    const timeout = setTimeout(() => {
-      if (step === 'loading') {
-        setErrorMessage('Connection timed out. Please try again.')
-        setStep('error')
-      }
-    }, 10000)
+    let timeout: any = null
+    if (showLoadingStep) {
+      setStep('loading')
+      timeout = setTimeout(() => {
+        setStep(prev => {
+          if (prev === 'loading') {
+            setErrorMessage('Connection timed out. Please try again.')
+            return 'error'
+          }
+          return prev
+        })
+      }, 10000)
+    }
 
     try {
       const res = await api.get(`/payment-request/${uuid}`)
-      clearTimeout(timeout)
+      if (timeout) clearTimeout(timeout)
       
       if (res.success) {
         setPaymentData(res.data)
@@ -201,7 +207,12 @@ export function usePaymentFlow(uuid: string) {
         } else if (res.data.payment.status === 'CANCELLED') {
           setStep('cancelled')
         } else {
-          setStep('invoice')
+          setStep(prev => {
+            if (prev === 'success' || prev === 'onboarding' || prev === 'already-paid') {
+              return prev
+            }
+            return 'invoice'
+          })
         }
 
         const rentRemaining = items.reduce((sum, item) => {
@@ -228,7 +239,7 @@ export function usePaymentFlow(uuid: string) {
         throw new Error('Could not retrieve payment details')
       }
     } catch (err: any) {
-      clearTimeout(timeout)
+      if (timeout) clearTimeout(timeout)
       setErrorMessage(err.message || 'Payment request not found or expired')
       setStep('error')
     }
@@ -237,6 +248,55 @@ export function usePaymentFlow(uuid: string) {
   useEffect(() => {
     if (uuid) loadPaymentDetails()
   }, [uuid, loadPaymentDetails])
+
+  useEffect(() => {
+    if (!uuid) return
+
+    const getSseUrl = (reqUuid: string) => {
+      if (typeof window === 'undefined') return ''
+      const apiRoot = process.env.NEXT_PUBLIC_API_URL || `${window.location.origin}/api/v1`
+      return `${apiRoot}/payments/sse/request/${reqUuid}`
+    }
+
+    const sseUrl = getSseUrl(uuid)
+    console.log('[SSE Checkout] Connecting to:', sseUrl)
+    const eventSource = new EventSource(sseUrl)
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === 'heartbeat') return
+
+        console.log('[SSE Checkout] Event received:', data)
+
+        if (data.type === 'payment.succeeded') {
+          toastInfo('Payment confirmed. Updating checkout...', 'Payment Success')
+          setStep(prev => {
+            if (prev === 'invoice' || prev === 'checkout' || prev === 'processing') {
+              return 'success'
+            }
+            return prev
+          })
+          loadPaymentDetails(false)
+        } else if (data.type === 'payment.request.updated') {
+          toastInfo('Payment request updated. Refreshing checkout...', 'Invoice Update')
+          loadPaymentDetails(false)
+        }
+      } catch (err) {
+        console.error('[SSE Checkout] Error processing event:', err)
+      }
+    }
+
+    eventSource.onerror = (err) => {
+      console.error('[SSE Checkout] Connection error:', err)
+      eventSource.close()
+    }
+
+    return () => {
+      console.log('[SSE Checkout] Disconnecting')
+      eventSource.close()
+    }
+  }, [uuid, loadPaymentDetails, toastInfo])
 
   // Biometrics
   useEffect(() => {

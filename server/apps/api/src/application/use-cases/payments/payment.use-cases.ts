@@ -9,6 +9,7 @@ import { EVENT_BUS, EventBus } from '../../events/domain-event'
 import { PaymentUpdatedEvent } from '../../events/definition/payment-updated.event'
 import { PaymentSucceededEvent } from '../../events/definition/payment-succeeded.event'
 import { UnderpaymentDetectedEvent } from '../../events/definition/underpayment-detected.event'
+import { PaymentRequestCreatedEvent } from '../../events/definition/payment-request-created.event'
 import {
   ISavedLandlordRepository,
   ITransactionRepository,
@@ -104,6 +105,8 @@ export class CreateManualPaymentRequestUseCase {
     private readonly propertyRepo: PropertyRepository,
     @Inject(PAYMENT_LINE_ITEM_REPOSITORY)
     private readonly lineItemRepo: IPaymentLineItemRepository,
+    @Inject(EVENT_BUS)
+    private readonly eventBus: EventBus,
   ) { }
 
   async execute(data: {
@@ -192,6 +195,13 @@ export class CreateManualPaymentRequestUseCase {
         status: 'PENDING'
       })))
     }
+
+    this.eventBus.publish(new PaymentRequestCreatedEvent(
+      paymentRequest.id!,
+      paymentRequest.uuid,
+      paymentRequest.userId,
+      paymentRequest.amount
+    ))
 
     return {
       uuid: paymentRequest.uuid,
