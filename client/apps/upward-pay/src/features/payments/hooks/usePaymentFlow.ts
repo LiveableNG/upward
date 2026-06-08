@@ -102,7 +102,7 @@ export function usePaymentFlow(uuid: string) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { user: authUser, login } = useAuth()
-  const { success, error: toastError } = useToast()
+  const { success, error: toastError, info: toastInfo } = useToast()
 
   const [step, setStep] = useState<PayStep>('loading')
   const [paymentData, setPaymentData] = useState<any>(null)
@@ -185,6 +185,16 @@ export function usePaymentFlow(uuid: string) {
         
         setLineItems(items)
         const due = res.data.payment.amount - (res.data.payment.amountPaid || 0)
+
+        const pendingRefund = res.data.payment.isPendingRefund || false
+        setIsPendingRefund(pendingRefund)
+
+        if (pendingRefund && !res.data.user.hasBankDetails) {
+          toastInfo(
+            'Add your payout account details under Profile > Banking & Payouts to receive your pending refund.',
+            'Refund Pending'
+          )
+        }
 
         if (res.data.payment.status === 'PAID' || due <= 0) {
           setStep('already-paid')

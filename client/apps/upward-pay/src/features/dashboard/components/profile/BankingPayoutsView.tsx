@@ -218,11 +218,11 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
               <div className="refunds-list">
                 {pendingRefunds.map((r, i) => (
                   <div key={i} className="refund-item">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-red-700">{formatCurrency(r.amount, r.currency)}</span>
-                      <span className="text-xs opacity-70 text-red-600">{r.reference}</span>
+                    <div className="refund-item__header">
+                      <span className="refund-item__amount">{formatCurrency(r.amount, r.currency)}</span>
+                      <span className="refund-item__reference">{r.reference}</span>
                     </div>
-                    <p className="text-xs mt-1 text-red-600/80">{r.property_address}</p>
+                    <p className="refund-item__address">{r.property_address}</p>
                   </div>
                 ))}
               </div>
@@ -574,6 +574,32 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
           padding: 1rem;
           border-radius: 14px;
           border: 1px solid rgba(239, 68, 68, 0.1);
+        }
+
+        .refund-item__header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .refund-item__amount {
+          font-weight: 700;
+          color: #b91c1c;
+          white-space: nowrap;
+        }
+
+        .refund-item__reference {
+          font-size: 0.75rem;
+          color: #dc2626;
+          opacity: 0.7;
+          word-break: break-all;
+        }
+
+        .refund-item__address {
+          font-size: 0.75rem;
+          margin-top: 0.25rem;
+          color: rgba(220, 38, 38, 0.8);
         }
 
         /* Floating Action Bar */
