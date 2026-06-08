@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle2, ShieldCheck, Building2, BookOpen, UserCheck, 
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { createPortal } from 'react-dom'
 
 // Authentic Upward Logo SVG for branding consistency
 function UpwardLogo({
@@ -62,6 +63,7 @@ export function LandlordPmPage({
   onBack: () => void
   onOpenSignup: () => void
 }) {
+  const [mounted, setMounted] = useState(false)
   const [showSplash, setShowSplash] = useState(false)
   const [splashFade, setSplashFade] = useState(false)
   
@@ -70,6 +72,10 @@ export function LandlordPmPage({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [submittedEmail, setSubmittedEmail] = useState('')
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const {
     register,
@@ -237,7 +243,7 @@ export function LandlordPmPage({
           {/* Call to Actions */}
           <div className="pm-cta-group">
             <button
-              onClick={(e) => handlePmRedirect(e, '/portal/login')}
+              onClick={(e) => handlePmRedirect(e, '/pm-login')}
               className="pm-cta-btn pm-cta-btn--primary"
             >
               <span>Access Landlord & PM Suite</span>
@@ -254,7 +260,10 @@ export function LandlordPmPage({
           <p className="pm-questions-text">
             Have questions about the PM suite?{' '}
             <button
-              onClick={() => {
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
                 setIsContactModalOpen(true)
               }}
               className="pm-questions-btn"
@@ -296,11 +305,15 @@ export function LandlordPmPage({
       </div>
 
       {/* ================= FORM MODAL COLLECTING INQUIRIES ================= */}
-      {isContactModalOpen && (
+      {/* Render modal via React Portal to avoid parent transform/overflow clipping */}
+      {isContactModalOpen && mounted && createPortal(
         <div className="contact-modal-overlay">
           <div className="contact-modal">
             <button 
-              onClick={() => {
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
                 setIsContactModalOpen(false)
                 setIsSuccess(false)
                 reset()
@@ -376,7 +389,10 @@ export function LandlordPmPage({
                   will contact you at <strong>{submittedEmail}</strong> shortly.
                 </p>
                 <button
-                  onClick={() => {
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
                     setIsContactModalOpen(false)
                     setIsSuccess(false)
                   }}
@@ -387,7 +403,8 @@ export function LandlordPmPage({
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ================= FULL-SCREEN REDIRECT SPLASH OVERLAY ================= */}

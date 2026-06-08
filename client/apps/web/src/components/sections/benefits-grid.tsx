@@ -16,30 +16,39 @@ export function BenefitsGrid({
   const benefits = [
     {
       id: 0,
-      icon: <ShieldCheck size={20} />,
-      title: 'Rent Passport™',
-      short: 'Build your digital rental history score.',
-      desc: 'Build your digital rental history score. Turn your track record of timely payments into a trusted credit resume.',
+      icon: <Home size={20} />,
+      title: 'Rent Your Next Home with Ease',
+      short: 'Find trusted homes & get prioritized by owners.',
+      desc: 'Still renting? Discover great homes and get prioritised by trusted owners and property managers. Impress landlords with verified application credentials.',
       image: '/attachments/upwardPay-dashboard.png',
-      alt: 'Upward Rent Passport Dashboard Mockup',
+      alt: 'Upward Pay Dashboard Mockup',
     },
     {
       id: 1,
       icon: <CreditCard size={20} />,
-      title: 'Seamless Payments',
-      short: 'Secure checkouts via card, DVA bank transfers, or USSD.',
-      desc: 'Secure checkouts via card, Dedicated Virtual Account (DVA) bank transfers, or USSD code. Reconcile transactions instantly.',
+      title: 'Exclusive Financial Benefits',
+      short: 'Unlock flexible plans, discounts & financing.',
+      desc: 'Unlock rent discounts, flexible payment plans, and affordable financing for household essentials, designed specifically for upwardly mobile salary earners.',
       image: '/attachments/upwardPay-payment-page.png',
       alt: 'Flexible Rental Checkout Mockup',
     },
     {
       id: 2,
       icon: <Key size={20} />,
-      title: 'Collective Financing',
-      short: 'Friendly financing for rent deposits & low rate mortgage.',
-      desc: 'Unlock friendly financing for rent deposits, home furniture, and single-digit interest rates for your first home mortgage.',
+      title: 'From Renter to Homeowner',
+      short: 'Graduate into the Homeowners Collective.',
+      desc: 'Graduate into the Homeowners Collective and access friendly single-digit financing for your first home, converting rental history into ownership equity.',
       image: '/attachments/upwardPaySignup.png',
-      alt: 'Collective Financing and Pathways to Ownership Mockup',
+      alt: 'Pathways to Home Ownership Mockup',
+    },
+    {
+      id: 3,
+      icon: <ShieldCheck size={20} />,
+      title: 'Rent Passport',
+      short: 'Convert rental history into a credit profile.',
+      desc: 'Turn your verified rental history into a trusted credit profile—use it to access financing and home access, even when moving abroad.',
+      image: '/attachments/upward-pay-transactions.png',
+      alt: 'Upward Rent Passport Verification Mockup',
     },
   ]
 
@@ -91,7 +100,7 @@ export function BenefitsGrid({
             <span className="section-label">Features & Perks</span>
             <h2 className="benefits-showcase__title">Why Upward Pay?</h2>
             <p className="benefits-showcase__subtitle">
-              Get verified and reported to build a digital financial identity that works for you.
+              A rental passport that works for you. Turn your biggest monthly expense into your greatest financial asset.
             </p>
           </div>
 
