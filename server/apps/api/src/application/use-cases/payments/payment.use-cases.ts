@@ -282,6 +282,7 @@ export class RecordTransactionUseCase {
       futureCreditName?: string
       lineItems?: any[]
       sequentialFill?: boolean // When true, fills line items top-to-bottom instead of proportionally
+      metadata?: any
     }
   ) {
     this.logger.log(`Recording transaction for reference: ${data.reference}`)
@@ -335,7 +336,15 @@ export class RecordTransactionUseCase {
             this.logger.warn(`Duplicate payment attempt detected for already settled request: ${pr.uuid}. Marking reference ${data.reference} for refund.`)
           }
 
-          const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(pr.userId, pr.userPropertyId, pr.id)
+          const ratesForExpected = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId, pr.id)
+          const hasLineItems = data.lineItemPayments && data.lineItemPayments.length > 0
+          const hasBenefitsItem = data.lineItemPayments?.some(lp => lp.name === 'Upward Benefits')
+          const matchesRentPlusTxFee = effectiveAmount === pr.amount + ratesForExpected.transactionFee
+          const excludeBenefits = (data as any).metadata?.excludeBenefits === true || 
+                                  (hasLineItems && !hasBenefitsItem) ||
+                                  matchesRentPlusTxFee
+          const activeBenefitsFee = (ratesForExpected.benefitsPaid || excludeBenefits) ? 0 : ratesForExpected.benefitsFee
+          const dynamicFee = ratesForExpected.transactionFee + activeBenefitsFee
           const expectedTotal = pr.amount + dynamicFee
           if (!pr.allowPartial && effectiveAmount < expectedTotal && !data.settlementStatus) {
             data.settlementStatus = 'PENDING_REFUND'
@@ -365,9 +374,10 @@ export class RecordTransactionUseCase {
 
       if (upwardFeeAmount === 0 && pr) {
         try {
-          const rates = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId)
+          const rates = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId, pr.id)
           const txFee = rates.transactionFee
-          const benFee = rates.benefitsPaid ? 0 : rates.benefitsFee
+          const excludeBenefits = (data as any).metadata?.excludeBenefits === true
+          const benFee = (rates.benefitsPaid || excludeBenefits) ? 0 : rates.benefitsFee
           upwardFeeAmount = txFee + benFee
         } catch (e: any) {
           this.logger.error(`Failed to resolve dynamic processing rates in RecordTransactionUseCase: ${e?.message}`)
@@ -664,9 +674,9 @@ export class InitializePaymentUseCase {
       }
     }
 
-    const rates = await this.paymentConfig.getDynamicProcessingRates(user.id, userPropertyId)
+    const rates = await this.paymentConfig.getDynamicProcessingRates(user.id, userPropertyId, pr?.id)
     const excludeBenefits = data.metadata?.excludeBenefits === true
-    const activeBenefitsFee = excludeBenefits ? 0 : rates.benefitsFee
+    const activeBenefitsFee = (rates.benefitsPaid || excludeBenefits) ? 0 : rates.benefitsFee
     flatFee = rates.transactionFee + activeBenefitsFee
 
     if (userPropertyId) {
@@ -719,6 +729,7 @@ export class InitializePaymentUseCase {
                 lastPaymentIntent: {
                   amount: requestedTotal,
                   lineItems: data.metadata.lineItems,
+                  excludeBenefits: data.metadata?.excludeBenefits === true,
                   timestamp: Date.now()
                 }
               }
@@ -1082,26 +1093,18 @@ export class ProcessPaymentWebhookUseCase {
       })
     }
 
-    // Verification Logic: Intercept & Check against Source of Truth
-    const dynamicFee = await this.paymentConfig.getDynamicProcessingFee(pr.userId, pr.userPropertyId, pr.id)
-    const expectedTotal = pr.amount + dynamicFee
-
-    let settlementStatus = 'VERIFIED'
-    if (!pr.allowPartial && amountPaid < expectedTotal) {
-      this.logger.warn(`Full-Payment Violation: User ${pr.user.email} paid ${amountPaid} instead of ${expectedTotal}. Marking for refund.`)
-      settlementStatus = 'PENDING_REFUND'
-    }
-
     // 1. Check for stored payment intent in DVA metadata
     let lineItemPayments: any[] | undefined = undefined
     let upwardFeeAmount = 0
+    let excludeBenefits = false
     if (dva.metadata && typeof dva.metadata === 'object' && 'lastPaymentIntent' in (dva.metadata as any)) {
       const intent = (dva.metadata as any).lastPaymentIntent
       // If the intent is fresh (e.g. < 48 hours) and amount matches exactly
       if (intent && intent.amount === amountPaid && (Date.now() - intent.timestamp < 48 * 60 * 60 * 1000)) {
         lineItemPayments = intent.lineItems
-        this.logger.log(`Found matching payment intent for DVA transfer. Using manual allocations.`)
-        
+        excludeBenefits = intent.excludeBenefits === true || !!(lineItemPayments && !lineItemPayments.some(lp => lp.name === 'Upward Benefits'))
+        this.logger.log(`Found matching payment intent for DVA transfer. Using manual allocations. ExcludeBenefits: ${excludeBenefits}`)
+       
         // Extract fee if specified
         const feeItem = lineItemPayments?.find(lp => lp.name === 'Processing Fee')
         if (feeItem) {
@@ -1127,6 +1130,18 @@ export class ProcessPaymentWebhookUseCase {
       }
     }
 
+    // Verification Logic: Intercept & Check against Source of Truth
+    const rates = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId, pr.id)
+    const activeBenefitsFee = (rates.benefitsPaid || excludeBenefits) ? 0 : rates.benefitsFee
+    const dynamicFee = rates.transactionFee + activeBenefitsFee
+    const expectedTotal = pr.amount + dynamicFee
+
+    let settlementStatus = 'VERIFIED'
+    if (!pr.allowPartial && amountPaid < expectedTotal) {
+      this.logger.warn(`Full-Payment Violation: User ${pr.user.email} paid ${amountPaid} instead of ${expectedTotal}. Marking for refund.`)
+      settlementStatus = 'PENDING_REFUND'
+    }
+
     const hasNoIntent = !lineItemPayments
     const sequentialFill = hasNoIntent && pr.allowPartial && !!pr.id
 
@@ -1141,7 +1156,10 @@ export class ProcessPaymentWebhookUseCase {
       narration: `Bank Transfer to ${dva.accountNumber} (${dva.bankName})`,
       settlementStatus,
       lineItemPayments,
-      sequentialFill
+      sequentialFill,
+      metadata: {
+        excludeBenefits
+      }
     })
 
     if (settlementStatus === 'PENDING_REFUND') {
@@ -1502,7 +1520,10 @@ export class GetPmPayoutsUseCase {
 
 @Injectable()
 export class GetPmUnresolvedTransactionsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService
+  ) {}
 
   async execute(pmId: number) {
     const properties = await this.prisma.upward_user_property.findMany({
@@ -1512,7 +1533,7 @@ export class GetPmUnresolvedTransactionsUseCase {
 
     const propertyIds = properties.map(p => p.id);
 
-    return this.prisma.upward_transaction.findMany({
+    const txs = await this.prisma.upward_transaction.findMany({
       where: {
         settlementStatus: 'PENDING_REFUND',
         status: 'SUCCESS',
@@ -1541,6 +1562,21 @@ export class GetPmUnresolvedTransactionsUseCase {
         }
       },
       orderBy: { createdAt: 'desc' }
+    });
+
+    return txs.map(tx => {
+      if (tx.user) {
+        return {
+          ...tx,
+          user: {
+            ...tx.user,
+            firstName: tx.user.firstName ? this.encryption.decrypt(tx.user.firstName) : '',
+            lastName: tx.user.lastName ? this.encryption.decrypt(tx.user.lastName) : '',
+            email: tx.user.email ? this.encryption.decrypt(tx.user.email) : ''
+          }
+        };
+      }
+      return tx;
     });
   }
 }

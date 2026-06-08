@@ -278,6 +278,8 @@ export class ResolvePendingRefundUseCase {
             txClient
           });
         }
+      }, {
+        timeout: 15000
       });
 
       await this.activityLog.log({

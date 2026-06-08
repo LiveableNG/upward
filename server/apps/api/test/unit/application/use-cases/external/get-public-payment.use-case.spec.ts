@@ -91,6 +91,7 @@ describe('GetPublicPaymentDetailsUseCase', () => {
   let gateway: jest.Mocked<IPaymentGateway>
   let verificationTokenRepository: jest.Mocked<VerificationTokenRepository>
   let paymentConfig: jest.Mocked<PaymentConfigurationService>
+  let prisma: jest.Mocked<any>
 
   beforeEach(() => {
     paymentConfig = {
@@ -99,6 +100,15 @@ describe('GetPublicPaymentDetailsUseCase', () => {
         benefitsFee: 0,
         rentValue: 500000,
       }),
+    } as any
+
+    prisma = {
+      upward_transaction: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      upward_user_bank_details: {
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
     } as any
 
     paymentRequestRepository = {
@@ -157,6 +167,7 @@ describe('GetPublicPaymentDetailsUseCase', () => {
       gateway,
       verificationTokenRepository,
       paymentConfig,
+      prisma,
     )
   })
 

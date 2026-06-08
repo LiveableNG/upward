@@ -260,11 +260,13 @@ export default function DashboardPage() {
           {/* CELL 1: Hero — Pending Payment or Score Hero */}
           {(() => {
             const heroSlides = [
-              ...pendingPayments.map(p => ({ ...p, type: 'payment' })),
+              ...pendingPayments.map(p => ({ ...p, type: p.type === 'refund_alert' ? 'refund' : 'payment' })),
               ...propertyReminders.map(r => ({ ...r, type: 'property' }))
             ].sort((a: any, b: any) => {
-              // Priority 1: Payments vs Reminders
-              if (a.type !== b.type) return a.type === 'payment' ? -1 : 1
+              // Priority 1: Payments & Refunds vs Reminders
+              const aIsPayOrRefund = a.type === 'payment' || a.type === 'refund'
+              const bIsPayOrRefund = b.type === 'payment' || b.type === 'refund'
+              if (aIsPayOrRefund !== bIsPayOrRefund) return aIsPayOrRefund ? -1 : 1
               
               const aDate = a.due_date || a.dueDate
               const bDate = b.due_date || b.dueDate
@@ -279,9 +281,9 @@ export default function DashboardPage() {
             const currentHero = hasSlides ? heroSlides[currentIdx] : null
             const heroItem = currentHero as any
             const heroDate = heroItem?.due_date || heroItem?.dueDate
-            const isOverdue = heroItem?.isCritical || (heroDate && new Date(heroDate) < new Date())
+            const isOverdue = heroItem?.isCritical || (heroDate && new Date(heroDate) < new Date()) || heroItem?.type === 'refund'
             
-            const targetPaymentIdx = heroSlides.findIndex((s: any) => s.type === 'payment')
+            const targetPaymentIdx = heroSlides.findIndex((s: any) => s.type === 'payment' || s.type === 'refund')
             const shouldBeamPrev = heroItem?.type === 'property' && targetPaymentIdx !== -1 && targetPaymentIdx < currentIdx
             const shouldBeamNext = heroItem?.type === 'property' && targetPaymentIdx !== -1 && targetPaymentIdx > currentIdx
 
@@ -352,17 +354,25 @@ export default function DashboardPage() {
             }
 
             return (
-              <div className={`bento-cell bento-cell--hero ${hasSlides ? 'has-pending' : ''} ${isOverdue ? 'is-overdue' : ''}`}>
+              <div 
+                className={`bento-cell bento-cell--hero ${hasSlides ? 'has-pending' : ''} ${isOverdue ? 'is-overdue' : ''} ${heroItem?.type === 'refund' ? 'alert-beam-red animate-beam-red' : ''}`}
+                style={heroItem?.type === 'refund' ? { borderColor: 'rgba(239, 68, 68, 0.3)' } : undefined}
+              >
                 {hasSlides && (
                   <div className="bento-hero-pending__top">
-                    <div className="bento-hero-pending__badge">
-                      {isOverdue 
-                        ? (heroItem.type === 'payment' 
-                            ? (isManual ? 'MANUAL ACTION' : 'ACTION REQUIRED') 
-                            : 'RENT OVERDUE')
-                        : (heroItem.type === 'payment' 
-                            ? (isManual ? 'SELF-INITIATED' : ((heroItem.amountPaid || 0) > 0 ? 'PARTIAL PAYMENT' : 'PAYMENT REQUEST')) 
-                            : 'RENT DUE SOON')}
+                    <div 
+                      className="bento-hero-pending__badge"
+                      style={heroItem.type === 'refund' ? { background: 'white', color: 'var(--error)' } : undefined}
+                    >
+                      {heroItem.type === 'refund'
+                        ? 'REFUND PENDING'
+                        : isOverdue 
+                          ? (heroItem.type === 'payment' 
+                              ? (isManual ? 'MANUAL ACTION' : 'ACTION REQUIRED') 
+                              : 'RENT OVERDUE')
+                          : (heroItem.type === 'payment' 
+                              ? (isManual ? 'SELF-INITIATED' : ((heroItem.amountPaid || 0) > 0 ? 'PARTIAL PAYMENT' : 'PAYMENT REQUEST')) 
+                              : 'RENT DUE SOON')}
                     </div>
                     
                     {heroSlides.length > 1 && (
@@ -390,13 +400,37 @@ export default function DashboardPage() {
                     <div className="bento-hero-pending">
                       
                       <h2 className={`bento-hero-pending__title ${isOverdue && heroItem.type === 'payment' ? 'animate-text-zoom' : ''}`}>
-                        {isOverdue ? 'Outstanding Action' : (isManual ? 'Manual Payment' : (daysLeft <= 7 ? 'Payment Due' : 'Rent Payment'))} <br />
+                        {heroItem.type === 'refund'
+                          ? 'Refund Pending'
+                          : isOverdue 
+                            ? 'Outstanding Action' 
+                            : (isManual ? 'Manual Payment' : (daysLeft <= 7 ? 'Payment Due' : 'Rent Payment'))}{' '}
+                        <br />
                         <span className="bento-hero-pending__accent">
-                          {heroItem.company_name || heroItem.property_address || heroItem.title || 'Soon'}
+                          {heroItem.type === 'refund'
+                            ? 'Policy Violation Intercepted'
+                            : (heroItem.company_name || heroItem.property_address || heroItem.title || 'Soon')}
                         </span>
                       </h2>
 
-                      {heroItem.type === 'payment' ? (
+                      {heroItem.type === 'refund' ? (
+                        <>
+                          <div className="bento-hero-pending__amount">
+                            {formatCurrency(heroItem.amount, heroItem.currency)}
+                          </div>
+                          <p className="bento-hero-pending__desc">
+                            A payment of {formatCurrency(heroItem.amount, heroItem.currency)} was intercepted due to a policy violation. Complete your banking details to claim your refund.
+                          </p>
+                          <div className="bento-hero-pending__actions">
+                            <button
+                              className="btn btn--primary bento-hero-btn"
+                              onClick={() => router.push('/dashboard/me?view=banking&edit=true')}
+                            >
+                              Configure Payout Account <ArrowRight size={16} />
+                            </button>
+                          </div>
+                        </>
+                      ) : heroItem.type === 'payment' ? (
                         <>
                           <div className="bento-hero-pending__amount">
                             {formatCurrency(heroItem.total_amount - (heroItem.amountPaid || 0), heroItem.currency)}

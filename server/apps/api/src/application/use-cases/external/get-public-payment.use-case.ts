@@ -11,6 +11,7 @@ import { COMPANY_REPOSITORY, CompanyRepository, MANAGER_REPOSITORY, ManagerRepos
 import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../domains/payments/payment.repository'
 import { VERIFICATION_TOKEN_REPOSITORY, VerificationTokenRepository } from '../../../domains/auth/verification-token.repository'
 import { PaymentConfigurationService } from '../../../shared/infrastructure/common/payment-config.service'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { randomUUID } from 'node:crypto'
 
 @Injectable()
@@ -27,6 +28,7 @@ export class GetPublicPaymentDetailsUseCase {
     @Inject(PAYMENT_GATEWAY) private readonly gateway: IPaymentGateway,
     @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
     private readonly paymentConfig: PaymentConfigurationService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(uuid: string): Promise<any> {
@@ -111,6 +113,19 @@ export class GetPublicPaymentDetailsUseCase {
     const dynamicRates = await this.paymentConfig.getDynamicProcessingRates(user.id!, paymentRequest.userPropertyId, paymentRequest.id)
     const dynamicFee = dynamicRates.transactionFee + (dynamicRates.benefitsPaid ? 0 : dynamicRates.benefitsFee)
 
+    const pendingRefundTx = await this.prisma.upward_transaction.findFirst({
+      where: {
+        paymentRequestId: paymentRequest.id,
+        settlementStatus: 'PENDING_REFUND',
+      },
+    })
+
+    const userBankDetails = await this.prisma.upward_user_bank_details.findUnique({
+      where: {
+        userId: user.id,
+      },
+    })
+
     return {
       payment: {
         uuid: paymentRequest.uuid,
@@ -135,6 +150,7 @@ export class GetPublicPaymentDetailsUseCase {
           benefitsPaid: (dynamicRates as any).benefitsPaid || false,
           benefitsPaidForRequest: (dynamicRates as any).benefitsPaidForRequest || false
         },
+        isPendingRefund: !!pendingRefundTx,
       },
       user: {
         uuid: user.uuid,
@@ -144,6 +160,7 @@ export class GetPublicPaymentDetailsUseCase {
         phone: user.phone,
         paidRequestsCount: paidRequestsCount,
         verificationOn: process.env.VERIFICATION_ON !== 'false',
+        hasBankDetails: !!userBankDetails,
       },
       property: {
         uuid: property.uuid,

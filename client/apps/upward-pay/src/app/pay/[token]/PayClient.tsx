@@ -184,13 +184,14 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     const isLoggedIn = !!authUser
 
     const ctaLabel = () => {
+      if (isPendingRefund) return 'Refund Pending'
       if (parsedAmount === 0) return 'Enter amount to continue'
       if (isBelowMin) return `Minimum is ${formatCurrency(minRequired, currency)}`
       if (isUnderpaying) return `Full payment required — ${formatCurrency(totalOwed, currency)}`
       return `Pay ${formatCurrency(parsedAmount, currency)} now`
     }
 
-    const ctaDisabled = !isValidAmount || isUnderpaying
+    const ctaDisabled = !isValidAmount || isUnderpaying || isPendingRefund
 
     return (
       <div className="auth-shell auth-shell--pay">
@@ -272,8 +273,39 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
                 {!loginRequired && (isLoggedIn || isGuest) && (
                   <>
+                    {isPendingRefund && (
+                      <div className="refund-pending-banner">
+                        <ShieldAlert size={20} className="refund-pending-banner__icon" />
+                        <div className="refund-pending-banner__content">
+                          <h4 className="refund-pending-banner__title">Refund Action Required</h4>
+                          <p className="refund-pending-banner__text">
+                            An underpayment was detected for this payment request. Because this property requires full payment, a refund is currently pending.
+                          </p>
+                          {!paymentData.user.hasBankDetails && (
+                            <div className="refund-pending-banner__bank-warning">
+                              <p className="refund-pending-banner__text refund-pending-banner__text--alert">
+                                <strong>Warning:</strong> You have not set up your payout bank account. Please add your banking details to receive your refund.
+                              </p>
+                              {isLoggedIn ? (
+                                <button 
+                                  className="btn btn--secondary btn--sm btn--pill refund-pending-banner__btn"
+                                  onClick={() => router.push('/dashboard/me?view=banking&edit=true')}
+                                >
+                                  Add Banking Details
+                                </button>
+                              ) : (
+                                <p className="refund-pending-banner__text" style={{ marginTop: '6px', fontStyle: 'italic' }}>
+                                  Please log in or sign up to configure your payout account.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     <PaymentInput
-                      canPayPartial={!!paymentData.payment.allowPartial}
+                      canPayPartial={!!paymentData.payment.allowPartial && !isPendingRefund}
                       isBelowMin={isBelowMin}
                       amountInput={amountInput}
                       currency={currency}
@@ -578,6 +610,55 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             .pay-cta { margin-top: auto; padding-top: 32px; }
             .pay-header__content { max-width: 960px; padding: 0 64px; }
             .pay-footer { position: static; }
+          }
+
+          .refund-pending-banner {
+            display: flex;
+            gap: 12px;
+            background: rgba(239, 68, 68, 0.04);
+            border: 1.5px solid var(--error);
+            padding: 18px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+          }
+          .refund-pending-banner__icon {
+            color: var(--error);
+            flex-shrink: 0;
+          }
+          .refund-pending-banner__content {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+          }
+          .refund-pending-banner__title {
+            font-size: 11px;
+            font-weight: 850;
+            color: var(--error);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin: 0;
+          }
+          .refund-pending-banner__text {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin: 0;
+          }
+          .refund-pending-banner__text--alert {
+            color: #d97706;
+          }
+          .refund-pending-banner__bank-warning {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed rgba(239, 68, 68, 0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .refund-pending-banner__btn {
+            margin-top: 8px;
           }
         `}</style>
 
