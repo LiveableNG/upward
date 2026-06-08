@@ -10,6 +10,9 @@ import { NOTIFICATION_REPOSITORY, NotificationRepository } from '../../../domain
 import { SingleInviteUseCase, InviteRequest } from './single-invite.use-case'
 import { ResolveDedicatedAccountUseCase } from '../payments/payment.use-cases'
 import { randomUUID } from 'crypto'
+import { EVENT_BUS, EventBus } from '../../events/domain-event'
+import { PaymentRequestCreatedEvent } from '../../events/definition/payment-request-created.event'
+import { PaymentRequestUpdatedEvent } from '../../events/definition/payment-request-updated.event'
 
 import { ExternalPaymentRequestPayloadDto as ExternalPaymentRequestPayload } from './external-api.dto'
 
@@ -31,6 +34,7 @@ export class CreateExternalPaymentRequestUseCase {
     @Inject(PAYMENT_GATEWAY) private readonly paymentGateway: IPaymentGateway,
     @Inject(PAYMENT_LINE_ITEM_REPOSITORY) private readonly lineItemRepository: IPaymentLineItemRepository,
     private readonly resolveDedicatedAccount: ResolveDedicatedAccountUseCase,
+    @Inject(EVENT_BUS) private readonly eventBus: EventBus,
   ) { }
 
   async execute(payload: ExternalPaymentRequestPayload, platformId: number): Promise<any> {
@@ -137,6 +141,12 @@ export class CreateExternalPaymentRequestUseCase {
         )
       }
       this.logger.log(`Updated existing payment request: ${paymentRequest.uuid}`)
+      this.eventBus.publish(new PaymentRequestUpdatedEvent(
+        paymentRequest.id,
+        paymentRequest.uuid,
+        paymentRequest.userId,
+        paymentRequest.amount
+      ))
     } else {
       paymentRequest = await this.paymentRequestRepository.create({
         userId: property.userId,
@@ -178,6 +188,12 @@ export class CreateExternalPaymentRequestUseCase {
           url: `/pay/${paymentRequest.uuid}`
         })
       }
+      this.eventBus.publish(new PaymentRequestCreatedEvent(
+        paymentRequest.id,
+        paymentRequest.uuid,
+        paymentRequest.userId,
+        paymentRequest.amount
+      ))
     }
 
     let dvaDetails: any = null

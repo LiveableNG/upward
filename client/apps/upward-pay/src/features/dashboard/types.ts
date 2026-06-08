@@ -22,6 +22,7 @@ export interface PendingPayment {
   due_date?: string | Date
   dueDate?: string | Date
   isManual?: boolean
+  type?: string
 }
 
 export interface CompletedPayment {

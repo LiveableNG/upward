@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { type UserProfile } from './types'
 import { getMe, logout as authLogout, refreshToken as authRefresh } from './services/authService'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, usePathname } from 'next/navigation'
 import { setAccessToken } from '@/lib/auth-token'
 import { usePushNotifications, PushNotificationService } from '@/features/notifications/services/pushNotificationService'
@@ -27,7 +28,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   
+  const queryClient = useQueryClient()
+
   usePushNotifications(!!user)
+
+  useEffect(() => {
+    if (!user?.uuid) return
+
+    const getSseUrl = (userUuid: string) => {
+      if (typeof window === 'undefined') return ''
+      const apiRoot = process.env.NEXT_PUBLIC_API_URL || `${window.location.origin}/api/v1`
+      return `${apiRoot}/payments/sse/${userUuid}`
+    }
+
+    const sseUrl = getSseUrl(user.uuid)
+    console.log('[SSE] Connecting to:', sseUrl)
+    const eventSource = new EventSource(sseUrl)
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === 'heartbeat') return
+
+        console.log('[SSE] Event received:', data)
+
+        if (data.type === 'payment.succeeded') {
+          queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+          queryClient.invalidateQueries({ queryKey: ['scoreProfile'] })
+          queryClient.invalidateQueries({ queryKey: ['notifications'] })
+          
+          window.dispatchEvent(new CustomEvent('upward:payment.succeeded', { detail: data }))
+        } else if (data.type === 'payment.request.created' || data.type === 'payment.request.updated') {
+          queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+          queryClient.invalidateQueries({ queryKey: ['notifications'] })
+          
+          window.dispatchEvent(new CustomEvent('upward:payment.request.changed', { detail: data }))
+        }
+      } catch (err) {
+        console.error('[SSE] Error processing event:', err)
+      }
+    }
+
+    eventSource.onerror = (err) => {
+      console.error('[SSE] Connection error:', err)
+      eventSource.close()
+    }
+
+    return () => {
+      console.log('[SSE] Disconnecting')
+      eventSource.close()
+    }
+  }, [user?.uuid, queryClient])
 
   const INACTIVITY_TIMEOUT = 5 * 60 * 1000 // 5 minutes
 
