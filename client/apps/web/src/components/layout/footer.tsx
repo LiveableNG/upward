@@ -4,7 +4,7 @@ import Link from 'next/link'
 export function Footer({
   onSetView,
 }: {
-  onSetView?: (view: 'home' | 'why') => void
+  onSetView?: (view: 'home' | 'why' | 'fairness' | 'pm') => void
 }) {
   return (
     <footer
@@ -75,7 +75,7 @@ export function Footer({
               ['/?view=why', 'Why Upward?'],
               ['/?view=home#how', 'How it Works'],
               ['/login', 'Renter Portal'],
-              ['/portal/login', 'Landlord Portal'],
+              ['/?view=pm', 'Landlord Portal'],
               ['/?view=why#faq', 'FAQ'],
             ].map(([href, label]) => (
               <li key={label}>
@@ -105,6 +105,9 @@ export function Footer({
                             window.scrollTo({ top, behavior: 'smooth' })
                           }
                         }, 100)
+                      } else if (label === 'Landlord Portal') {
+                        e.preventDefault()
+                        onSetView('pm')
                       }
                     }
                   }}

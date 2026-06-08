@@ -1,26 +1,15 @@
 'use client'
 import { PressLogos } from './press-logos'
-import { useState, useRef, useEffect } from 'react'
 
 export function HeroSection({
   onOpenSignup: _onOpenSignup,
+  onExplorePm,
   variant = 'A',
 }: {
   onOpenSignup: (email?: string) => void
+  onExplorePm?: () => void
   variant?: 'A' | 'B'
 }) {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
 
   const content = {
     A: {
@@ -130,32 +119,32 @@ export function HeroSection({
             <button
               onClick={() => (window.location.href = '/login')}
               style={{
-                background: 'var(--bg)',
-                color: 'var(--accent)',
+                background: 'var(--accent)',
+                color: 'var(--btn-text)',
                 fontFamily: 'var(--font-head)',
                 fontWeight: 800,
                 fontSize: '14px',
                 letterSpacing: '0.1em',
                 padding: '17px 34px',
                 borderRadius: '100px',
-                border: '1.5px solid var(--accent)',
+                border: 'none',
                 cursor: 'pointer',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
-                boxShadow: '0 10px 40px rgba(217, 119, 87, 0.05)',
+                boxShadow: '0 10px 40px rgba(217, 119, 87, 0.2)',
               }}
               className="desktop-btn"
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-3px)'
-                e.currentTarget.style.boxShadow = '0 15px 45px rgba(217, 119, 87, 0.15)'
-                e.currentTarget.style.background = 'var(--accent-faint)'
+                e.currentTarget.style.boxShadow = '0 15px 45px rgba(217, 119, 87, 0.35)'
+                e.currentTarget.style.background = 'var(--swatch--clay-interactive)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '0 10px 40px rgba(217, 119, 87, 0.05)'
-                e.currentTarget.style.background = 'var(--bg)'
+                e.currentTarget.style.boxShadow = '0 10px 40px rgba(217, 119, 87, 0.2)'
+                e.currentTarget.style.background = 'var(--accent)'
               }}
             >
               Access Renter Portal
@@ -166,36 +155,36 @@ export function HeroSection({
             </button>
 
             <button
-              onClick={() => (window.location.href = '/pm')}
+              onClick={() => onExplorePm?.()}
               style={{
-                background: '#166534',
-                color: '#ffffff',
+                background: 'var(--bg)',
+                color: '#166534',
                 fontFamily: 'var(--font-head)',
                 fontWeight: 800,
                 fontSize: '14px',
                 letterSpacing: '0.1em',
-                padding: '18px 36px',
+                padding: '16px 34px',
                 borderRadius: '100px',
-                border: 'none',
+                border: '1.5px solid #166534',
                 cursor: 'pointer',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
-                boxShadow: '0 10px 40px rgba(22, 101, 52, 0.25)',
+                boxShadow: '0 10px 40px rgba(22, 101, 52, 0.05)',
                 position: 'relative',
                 overflow: 'hidden',
               }}
               className="desktop-btn"
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-3px)'
-                e.currentTarget.style.boxShadow = '0 15px 45px rgba(22, 101, 52, 0.4)'
-                e.currentTarget.style.background = '#14532d'
+                e.currentTarget.style.boxShadow = '0 15px 45px rgba(22, 101, 52, 0.15)'
+                e.currentTarget.style.background = 'rgba(22, 101, 52, 0.04)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '0 10px 40px rgba(22, 101, 52, 0.25)'
-                e.currentTarget.style.background = '#166534'
+                e.currentTarget.style.boxShadow = '0 10px 40px rgba(22, 101, 52, 0.05)'
+                e.currentTarget.style.background = 'var(--bg)'
               }}
             >
               Explore Landlord Suite
@@ -210,129 +199,12 @@ export function HeroSection({
                   left: '-150%',
                   width: '100%',
                   height: '100%',
-                  background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent)',
+                  background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent)',
                   transform: 'skewX(-25deg)',
                   animation: 'beam 4s infinite ease-in-out',
                 }}
               />
             </button>
-
-            <div ref={menuRef} style={{ position: 'relative' }} className="mobile-get-started">
-              <button
-                onClick={() => setMenuOpen((v) => !v)}
-                style={{
-                  background: '#3a3a3a',
-                  color: '#f0f0f0',
-                  fontFamily: 'var(--font-head)',
-                  fontWeight: 800,
-                  fontSize: '14px',
-                  letterSpacing: '0.1em',
-                  padding: '18px 32px',
-                  borderRadius: '100px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-                }}
-              >
-                Get Started
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  style={{
-                    transition: 'transform 0.3s ease',
-                    transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                  }}
-                >
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: 'calc(100% + 16px)',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: '260px',
-                  height: '100px',
-                  pointerEvents: menuOpen ? 'auto' : 'none',
-                }}
-              >
-                <div
-                  onClick={() => { window.location.href = '/login'; setMenuOpen(false) }}
-                  style={{
-                    position: 'absolute',
-                    bottom: menuOpen ? '0px' : '-20px',
-                    left: menuOpen ? '0px' : '80px',
-                    opacity: menuOpen ? 1 : 0,
-                    transition: 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    transitionDelay: menuOpen ? '0.05s' : '0s',
-                    background: 'var(--accent)',
-                    color: 'var(--btn-text)',
-                    borderRadius: '100px',
-                    padding: '12px 20px',
-                    fontSize: '12px',
-                    fontFamily: 'var(--font-head)',
-                    fontWeight: 700,
-                    letterSpacing: '0.05em',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 6px 20px rgba(217, 119, 87, 0.35)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                  </svg>
-                  Renter Portal
-                </div>
-
-                <div
-                  onClick={() => { window.location.href = '/pm'; setMenuOpen(false) }}
-                  style={{
-                    position: 'absolute',
-                    bottom: menuOpen ? '0px' : '-20px',
-                    right: menuOpen ? '0px' : '80px',
-                    opacity: menuOpen ? 1 : 0,
-                    transition: 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    transitionDelay: menuOpen ? '0.12s' : '0s',
-                    background: '#166534',
-                    color: '#fff',
-                    borderRadius: '100px',
-                    padding: '12px 20px',
-                    fontSize: '12px',
-                    fontFamily: 'var(--font-head)',
-                    fontWeight: 700,
-                    letterSpacing: '0.05em',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 6px 20px rgba(22, 101, 52, 0.3)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                  </svg>
-                  Landlord Suite
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -385,9 +257,6 @@ export function HeroSection({
             gap: 16px;
             align-items: center;
           }
-          .mobile-get-started {
-            display: none;
-          }
           @media (max-width: 768px) {
             .hero-container {
               padding: 100px 20px 60px !important;
@@ -396,15 +265,18 @@ export function HeroSection({
             }
             .hero-cta-container {
               display: flex;
-              justify-content: center;
+              flex-direction: column;
+              gap: 12px;
+              align-items: stretch;
               width: 100%;
               margin-top: 32px;
+              max-width: 320px;
             }
             .desktop-btn {
-              display: none !important;
-            }
-            .mobile-get-started {
-              display: block;
+              display: flex !important;
+              width: 100% !important;
+              justify-content: center;
+              padding: 16px 24px !important;
             }
             .hero-p {
               margin-left: auto;

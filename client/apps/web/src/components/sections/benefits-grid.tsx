@@ -143,12 +143,18 @@ export function BenefitsGrid({
         </div>
 
         <div className="benefits-showcase__right">
-          <div className="preview-card-wrapper" key={activeIndex}>
+          <div className="preview-card-wrapper">
             <div className="preview-card">
               <div className="preview-card__glow" />
               
               <div className="preview-card__text-content">
-                <p className="preview-card__desc">{activeBenefit?.desc}</p>
+                <p
+                  className="preview-card__desc"
+                  key={activeIndex}
+                  style={{ animation: 'fadeSlideIn 0.3s ease both' }}
+                >
+                  {activeBenefit?.desc}
+                </p>
                 
                 <button
                   onClick={() => onOpenSignup?.()}
@@ -172,12 +178,28 @@ export function BenefitsGrid({
                       <span>upward.pay/dashboard</span>
                     </div>
                   </div>
-                  <div className="device-frame__body">
-                    <img
-                      src={activeBenefit?.image}
-                      alt={activeBenefit?.alt}
-                      className="device-frame__img"
-                    />
+                  <div className="device-frame__body" style={{ aspectRatio: '16/10', width: '100%', position: 'relative', overflow: 'hidden' }}>
+                    {benefits.map((b, i) => (
+                      <img
+                        key={b.id}
+                        src={b.image}
+                        alt={b.alt}
+                        className="device-frame__img"
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          opacity: i === activeIndex ? 1 : 0,
+                          transform: i === activeIndex ? 'scale(1)' : 'scale(0.96)',
+                          transition: 'opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                          pointerEvents: i === activeIndex ? 'auto' : 'none',
+                          zIndex: i === activeIndex ? 2 : 1,
+                        }}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
@@ -246,21 +268,33 @@ export function BenefitsGrid({
           gap: 20px;
           padding: 20px;
           border-radius: 20px;
-          border: 1px solid transparent;
-          background: transparent;
+          border: 1px solid var(--border);
+          background: var(--surface2);
           cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
         }
 
         .benefit-step:hover {
-          background: var(--surface2);
-          border-color: var(--border);
+          background: var(--surface);
+          border-color: var(--accent-muted);
+          transform: scale(1.03) translateY(-2px);
+          box-shadow: 0 12px 24px rgba(217, 119, 87, 0.08);
         }
 
         .benefit-step--active {
-          background: var(--surface);
-          border-color: var(--border);
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+          background: var(--accent-faint);
+          border-color: var(--accent);
+          box-shadow: 0 10px 30px rgba(217, 119, 87, 0.12);
+        }
+
+        .benefit-step:not(.benefit-step--active):hover {
+          animation: pulseSoft 1.5s infinite ease-in-out alternate;
+        }
+
+        @keyframes pulseSoft {
+          0% { transform: scale(1.02) translateY(-2px); }
+          100% { transform: scale(1.04) translateY(-3px); }
         }
 
         .benefit-step__badge-wrapper {

@@ -28,6 +28,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://upward-api.vercel.ap
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
 
+  if (pathname === '/pm') {
+    return NextResponse.redirect(new URL(`/?view=pm`, request.url))
+  }
+
   // Intercept waitlist invites at gateway level to avoid client loading states
   if (pathname.startsWith('/invite/')) {
     const segments = pathname.split('/')
@@ -284,6 +288,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/',
+    '/pm',
     '/_upward_pay/:path*',
     '/_upward_pm/:path*',
     '/login',
