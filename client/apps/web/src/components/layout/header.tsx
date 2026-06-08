@@ -214,7 +214,7 @@ export function Header({
           className="mobile-hide"
           onClick={() => {
             if (trackInteraction) trackInteraction('CLICK', 'HEADER_PM_PORTAL')
-            window.location.href = '/portal/login'
+            window.location.href = '/pm'
           }}
           style={{
             fontSize: '9px',

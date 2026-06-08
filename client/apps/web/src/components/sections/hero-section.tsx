@@ -43,6 +43,7 @@ export function HeroSection({
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
+          alignItems: 'center',
           padding: '120px 40px 40px',
           width: '100%',
         }}
@@ -53,12 +54,14 @@ export function HeroSection({
             animation: 'fadeUp 0.6s ease both',
             display: 'inline-flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: '8px',
             fontSize: '11px',
             letterSpacing: '0.25em',
             textTransform: 'uppercase' as const,
             color: 'var(--accent)',
             marginBottom: '28px',
+            width: '100%',
           }}
         >
           <span
@@ -81,7 +84,8 @@ export function HeroSection({
             lineHeight: 1.05,
             letterSpacing: '-0.04em',
             marginBottom: '32px',
-            maxWidth: '850px',
+            maxWidth: '950px',
+            textAlign: 'center',
             animation: 'fadeUp 0.7s 0.1s ease both',
           }}
         >
@@ -102,6 +106,10 @@ export function HeroSection({
           style={{
             animation: 'fadeUp 0.7s 0.2s ease both',
             marginBottom: '40px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            width: '100%',
           }}
         >
           <p
@@ -111,6 +119,7 @@ export function HeroSection({
               maxWidth: '650px',
               lineHeight: 1.6,
               marginBottom: '28px',
+              textAlign: 'center',
             }}
             className="hero-p"
           >
@@ -157,7 +166,7 @@ export function HeroSection({
             </button>
 
             <button
-              onClick={() => (window.location.href = '/portal/login')}
+              onClick={() => (window.location.href = '/pm')}
               style={{
                 background: '#166534',
                 color: '#ffffff',
@@ -189,7 +198,7 @@ export function HeroSection({
                 e.currentTarget.style.background = '#166534'
               }}
             >
-              Access Landlord Portal
+              Explore Landlord Suite
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"></line>
                 <polyline points="12 5 19 12 12 19"></polyline>
@@ -292,7 +301,7 @@ export function HeroSection({
                 </div>
 
                 <div
-                  onClick={() => { window.location.href = '/portal/login'; setMenuOpen(false) }}
+                  onClick={() => { window.location.href = '/pm'; setMenuOpen(false) }}
                   style={{
                     position: 'absolute',
                     bottom: menuOpen ? '0px' : '-20px',
@@ -325,38 +334,39 @@ export function HeroSection({
               </div>
             </div>
           </div>
-
-          <div
-            style={{
-              display: 'flex',
-              gap: '12px',
-              flexWrap: 'wrap',
-              marginTop: '40px',
-            }}
-            className="audience-tags"
-          >
-            {['Salary earners', 'Freelancers', 'Creatives', 'Business Owners'].map((tag) => (
-              <span
-                key={tag}
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  color: 'var(--text)',
-                  background: 'var(--accent-faint)',
-                  border: '1px solid var(--accent-muted)',
-                  padding: '8px 16px',
-                  borderRadius: '100px',
-                  letterSpacing: '0.02em',
-                }}
-                className="audience-tag"
-              >
-                For {tag}
-              </span>
-            ))}
-          </div>
         </div>
 
-        <div style={{ marginTop: '0px' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: '12px',
+            flexWrap: 'wrap',
+            marginTop: '20px',
+            justifyContent: 'center',
+          }}
+          className="audience-tags"
+        >
+          {['Salary earners', 'Freelancers', 'Creatives', 'Business Owners'].map((tag) => (
+            <span
+              key={tag}
+              style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                color: 'var(--text)',
+                background: 'var(--accent-faint)',
+                border: '1px solid var(--accent-muted)',
+                padding: '8px 16px',
+                borderRadius: '100px',
+                letterSpacing: '0.02em',
+              }}
+              className="audience-tag"
+            >
+              For {tag}
+            </span>
+          ))}
+        </div>
+
+        <div style={{ marginTop: '40px', width: '100%' }}>
           <PressLogos />
         </div>
 
@@ -371,7 +381,9 @@ export function HeroSection({
             to { opacity: 1; transform: translateY(0); }
           }
           .hero-cta-container {
-            display: none;
+            display: flex;
+            gap: 16px;
+            align-items: center;
           }
           .mobile-get-started {
             display: none;

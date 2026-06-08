@@ -104,14 +104,11 @@ export default function HomePage() {
               visibility: view === 'home' ? 'visible' : 'hidden',
             }}
           >
-            <div className="split-layout">
-              <div className="split-hero">
-                <HeroSection onOpenSignup={(e) => openSignup(e)} variant="A" />
-              </div>
-              <div className="split-benefits">
-                <BenefitsGrid onOpenSignup={(e) => openSignup(e)} />
-              </div>
-            </div>
+            <HeroSection onOpenSignup={(e) => openSignup(e)} variant="A" />
+
+            <div className="divider" />
+
+            <BenefitsGrid onOpenSignup={(e) => openSignup(e)} />
 
             <div className="divider" />
 
