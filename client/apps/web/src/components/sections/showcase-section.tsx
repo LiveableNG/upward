@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { ArrowRight, CheckCircle2, Smartphone, ShieldCheck, CreditCard, Sparkles, Building } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Smartphone, ShieldCheck, Zap, Sparkles, Building } from 'lucide-react'
 
 export function ShowcaseSection({
   onExplorePm,
@@ -48,15 +48,15 @@ export function ShowcaseSection({
             </li>
             <li className="showcase__item">
               <div className="showcase__item-icon-wrapper">
-                <CreditCard size={20} className="showcase__item-icon" />
+                <Zap size={20} className="showcase__item-icon" />
               </div>
               <div className="showcase__item-text">
-                <strong>Seamless Payments</strong>
-                <span>Secure checkouts via card, Dedicated Virtual Account (DVA) bank transfers, or USSD code. Reconcile transactions instantly.</span>
+                <strong>Instant Checkout</strong>
+                <span>A simplified, fast, and secure payment experience designed to get your rent sorted without any complex setups.</span>
               </div>
             </li>
             <li className="showcase__item">
-              <div className="showcase__item-icon-wrapper">
+              <div className="showcase__item-icon-wrapper">``
                 <Sparkles size={20} className="showcase__item-icon" />
               </div>
               <div className="showcase__item-text">
