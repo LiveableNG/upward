@@ -56,6 +56,7 @@ export class PrismaPmTenantRepository implements ITenantRepository {
         currency: u.currency,
         status: u.status,
         isSynced: u.isSynced,
+        userPropertyUuid: u.userPropertyUuid,
         tenantId: u.tenantId
       })) : []
     };
