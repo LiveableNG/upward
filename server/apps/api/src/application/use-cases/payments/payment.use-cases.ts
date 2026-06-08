@@ -374,7 +374,7 @@ export class RecordTransactionUseCase {
 
       if (upwardFeeAmount === 0 && pr) {
         try {
-          const rates = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId)
+          const rates = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId, pr.id)
           const txFee = rates.transactionFee
           const excludeBenefits = (data as any).metadata?.excludeBenefits === true
           const benFee = (rates.benefitsPaid || excludeBenefits) ? 0 : rates.benefitsFee
@@ -674,9 +674,9 @@ export class InitializePaymentUseCase {
       }
     }
 
-    const rates = await this.paymentConfig.getDynamicProcessingRates(user.id, userPropertyId)
+    const rates = await this.paymentConfig.getDynamicProcessingRates(user.id, userPropertyId, pr?.id)
     const excludeBenefits = data.metadata?.excludeBenefits === true
-    const activeBenefitsFee = excludeBenefits ? 0 : rates.benefitsFee
+    const activeBenefitsFee = (rates.benefitsPaid || excludeBenefits) ? 0 : rates.benefitsFee
     flatFee = rates.transactionFee + activeBenefitsFee
 
     if (userPropertyId) {
