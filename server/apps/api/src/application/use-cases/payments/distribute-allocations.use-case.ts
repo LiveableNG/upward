@@ -65,7 +65,7 @@ export class DistributePaymentAllocationsUseCase {
               where: { id: paymentRequestId }
             })
             if (pr) {
-              const rates = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId)
+              const rates = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId, pr.id)
               const feeToPay = Math.min(remainingPayment, upwardFeeAmount)
               txFeeToPay = Math.min(feeToPay, rates.transactionFee)
               benFeeToPay = Math.max(0, feeToPay - txFeeToPay)
