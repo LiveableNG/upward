@@ -81,7 +81,10 @@ export class ConfirmExternalPaymentUseCase {
         paymentRequest.id
       )
       const metadata = transaction.metadata as any
-      const excludeBenefits = metadata?.excludeBenefits === true || (lineItemPayments && lineItemPayments.length > 0 && !lineItemPayments.some(lp => lp.name === 'Upward Benefits'))
+      const matchesRentPlusTxFee = actualAmount === paymentRequest.amount + rates.transactionFee
+      const excludeBenefits = metadata?.excludeBenefits === true || 
+                              (lineItemPayments && lineItemPayments.length > 0 && !lineItemPayments.some(lp => lp.name === 'Upward Benefits')) ||
+                              matchesRentPlusTxFee
       const activeBenefitsFee = (rates.benefitsPaid || excludeBenefits) ? 0 : rates.benefitsFee
       const expectedTotal = paymentRequest.amount + rates.transactionFee + activeBenefitsFee
       const isUnderpayment = !paymentRequest.allowPartial && actualAmount < expectedTotal

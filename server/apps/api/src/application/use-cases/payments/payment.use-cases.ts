@@ -339,7 +339,10 @@ export class RecordTransactionUseCase {
           const ratesForExpected = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId, pr.id)
           const hasLineItems = data.lineItemPayments && data.lineItemPayments.length > 0
           const hasBenefitsItem = data.lineItemPayments?.some(lp => lp.name === 'Upward Benefits')
-          const excludeBenefits = (data as any).metadata?.excludeBenefits === true || (hasLineItems && !hasBenefitsItem)
+          const matchesRentPlusTxFee = effectiveAmount === pr.amount + ratesForExpected.transactionFee
+          const excludeBenefits = (data as any).metadata?.excludeBenefits === true || 
+                                  (hasLineItems && !hasBenefitsItem) ||
+                                  matchesRentPlusTxFee
           const activeBenefitsFee = (ratesForExpected.benefitsPaid || excludeBenefits) ? 0 : ratesForExpected.benefitsFee
           const dynamicFee = ratesForExpected.transactionFee + activeBenefitsFee
           const expectedTotal = pr.amount + dynamicFee
