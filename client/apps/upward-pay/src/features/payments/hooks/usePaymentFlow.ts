@@ -238,6 +238,49 @@ export function usePaymentFlow(uuid: string) {
     if (uuid) loadPaymentDetails()
   }, [uuid, loadPaymentDetails])
 
+  useEffect(() => {
+    if (!uuid) return
+
+    const getSseUrl = (reqUuid: string) => {
+      if (typeof window === 'undefined') return ''
+      const apiRoot = process.env.NEXT_PUBLIC_API_URL || `${window.location.origin}/api/v1`
+      return `${apiRoot}/payments/sse/request/${reqUuid}`
+    }
+
+    const sseUrl = getSseUrl(uuid)
+    console.log('[SSE Checkout] Connecting to:', sseUrl)
+    const eventSource = new EventSource(sseUrl)
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === 'heartbeat') return
+
+        console.log('[SSE Checkout] Event received:', data)
+
+        if (data.type === 'payment.succeeded') {
+          toastInfo('Payment confirmed. Updating checkout...', 'Payment Success')
+          loadPaymentDetails()
+        } else if (data.type === 'payment.request.updated') {
+          toastInfo('Payment request updated. Refreshing checkout...', 'Invoice Update')
+          loadPaymentDetails()
+        }
+      } catch (err) {
+        console.error('[SSE Checkout] Error processing event:', err)
+      }
+    }
+
+    eventSource.onerror = (err) => {
+      console.error('[SSE Checkout] Connection error:', err)
+      eventSource.close()
+    }
+
+    return () => {
+      console.log('[SSE Checkout] Disconnecting')
+      eventSource.close()
+    }
+  }, [uuid, loadPaymentDetails, toastInfo])
+
   // Biometrics
   useEffect(() => {
     async function triggerAutoBiometrics() {

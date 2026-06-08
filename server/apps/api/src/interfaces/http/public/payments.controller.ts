@@ -11,7 +11,14 @@ import {
   HttpException,
   HttpStatus,
   BadRequestException,
+  Inject,
+  Sse,
+  MessageEvent,
 } from '@nestjs/common'
+import { Observable, merge, interval } from 'rxjs'
+import { map } from 'rxjs/operators'
+import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import { OptionalJwtAuthGuard } from '../../../application/auth/guards/optional-jwt-auth.guard'
 import {
@@ -56,6 +63,8 @@ export class PaymentsController {
     private readonly getBankDetailsUc: GetBankDetailsUseCase,
     private readonly saveBankDetailsUc: SaveBankDetailsUseCase,
     private readonly simulateTransferUc: SimulateTransferUseCase,
+    private readonly prisma: PrismaService,
+    @Inject(EVENT_BUS) private readonly eventBus: EventBus,
   ) {}
 
   @Get('verify/:reference')
@@ -258,5 +267,121 @@ export class PaymentsController {
       beneficiaryAccount: body.beneficiaryAccount,
       amount: Number(body.amount),
     })
+  }
+
+  @Sse('sse/:userUuid')
+  sse(@Param('userUuid') userUuid: string): Observable<MessageEvent> {
+    const sseObservable = new Observable<MessageEvent>((subscriber) => {
+      let userId: number | null = null;
+      this.prisma.upward_user.findUnique({
+        where: { uuid: userUuid }
+      }).then(user => {
+        if (user) {
+          userId = user.id;
+        }
+      }).catch(err => {
+        console.error('[SSE] Error fetching user ID:', err);
+      });
+
+      const subSucceeded = this.eventBus.subscribe('payment.succeeded', (event: any) => {
+        const belongsToUser = event.data?.userId === userId || 
+                              event.data?.userUuid === userUuid || 
+                              String(event.data?.userId) === userUuid;
+        if (belongsToUser) {
+          subscriber.next({
+            data: {
+              type: 'payment.succeeded',
+              paymentRequestId: event.data.paymentRequestId,
+              paymentRequestUuid: event.data.paymentRequestUuid,
+              amount: event.data.amount,
+              reference: event.data.reference,
+            }
+          } as MessageEvent);
+        }
+      });
+
+      const subRequestCreated = this.eventBus.subscribe('payment.request.created', (event: any) => {
+        const belongsToUser = event.userId === userId || String(event.userId) === userUuid;
+        if (belongsToUser) {
+          subscriber.next({
+            data: {
+              type: 'payment.request.created',
+              paymentRequestId: event.id,
+              paymentRequestUuid: event.uuid,
+              amount: event.amount,
+            }
+          } as MessageEvent);
+        }
+      });
+
+      const subRequestUpdated = this.eventBus.subscribe('payment.request.updated', (event: any) => {
+        const belongsToUser = event.userId === userId || String(event.userId) === userUuid;
+        if (belongsToUser) {
+          subscriber.next({
+            data: {
+              type: 'payment.request.updated',
+              paymentRequestId: event.id,
+              paymentRequestUuid: event.uuid,
+              amount: event.amount,
+            }
+          } as MessageEvent);
+        }
+      });
+
+      return () => {
+        subSucceeded.unsubscribe();
+        subRequestCreated.unsubscribe();
+        subRequestUpdated.unsubscribe();
+      };
+    });
+
+    const heartbeat = interval(15000).pipe(
+      map(() => ({ data: { type: 'heartbeat' } } as MessageEvent))
+    );
+
+    return merge(sseObservable, heartbeat);
+  }
+
+  @Sse('sse/request/:requestUuid')
+  sseRequest(@Param('requestUuid') requestUuid: string): Observable<MessageEvent> {
+    const sseObservable = new Observable<MessageEvent>((subscriber) => {
+      const subSucceeded = this.eventBus.subscribe('payment.succeeded', (event: any) => {
+        if (event.data?.paymentRequestUuid === requestUuid) {
+          subscriber.next({
+            data: {
+              type: 'payment.succeeded',
+              paymentRequestId: event.data.paymentRequestId,
+              paymentRequestUuid: event.data.paymentRequestUuid,
+              amount: event.data.amount,
+              reference: event.data.reference,
+            }
+          } as MessageEvent);
+        }
+      });
+
+      const subRequestUpdated = this.eventBus.subscribe('payment.request.updated', (event: any) => {
+        if (event.uuid === requestUuid) {
+          subscriber.next({
+            data: {
+              type: 'payment.request.updated',
+              paymentRequestId: event.id,
+              paymentRequestUuid: event.uuid,
+              amount: event.amount,
+            }
+          } as MessageEvent);
+        }
+      });
+
+      return () => {
+        subSucceeded.unsubscribe();
+        subRequestUpdated.unsubscribe();
+      };
+    });
+
+    const heartbeat = interval(15000).pipe(
+      map(() => ({ data: { type: 'heartbeat' } } as MessageEvent))
+    );
+
+    return merge(sseObservable, heartbeat);
   }
 }
