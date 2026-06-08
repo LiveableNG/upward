@@ -9,9 +9,10 @@ import { TellAFriend } from '@/components/sections/tell-a-friend'
 import { PartnersBar } from '@/components/sections/partners-bar'
 import { FairHousingPage } from '@/components/sections/fair-housing-page'
 import { ShowcaseSection } from '@/components/sections/showcase-section'
+import { LandlordPmPage } from '@/components/sections/landlord-pm-page'
 
 export default function HomePage() {
-  const [view, setView] = useState<'home' | 'why' | 'fairness'>('home')
+  const [view, setView] = useState<'home' | 'why' | 'fairness' | 'pm'>('home')
 
   const openSignup = (email?: string) => {
     const url = email ? `/signup?email=${encodeURIComponent(email)}` : '/signup'
@@ -28,6 +29,7 @@ export default function HomePage() {
     const viewParam = params.get('view')
     if (viewParam === 'why') setView('why')
     if (viewParam === 'home') setView('home')
+    if (viewParam === 'pm') setView('pm')
 
     // Handle section scrolling
     const hash = window.location.hash
@@ -83,28 +85,34 @@ export default function HomePage() {
         <div
           style={{
             display: 'flex',
-            width: '300%',
+            width: '400%',
             transition: 'transform 0.6s cubic-bezier(0.85, 0, 0.15, 1)',
             transform:
               view === 'home'
                 ? 'translateX(0)'
                 : view === 'why'
-                  ? 'translateX(-33.33%)'
-                  : 'translateX(-66.66%)',
+                  ? 'translateX(-25%)'
+                  : view === 'fairness'
+                    ? 'translateX(-50%)'
+                    : 'translateX(-75%)',
             alignItems: 'flex-start',
           }}
         >
           {/* Home View */}
           <div
             style={{
-              width: '33.33%',
+              width: '25%',
               flexShrink: 0,
               height: view === 'home' ? 'auto' : '0',
               overflow: 'hidden',
               visibility: view === 'home' ? 'visible' : 'hidden',
             }}
           >
-            <HeroSection onOpenSignup={(e) => openSignup(e)} variant="A" />
+            <HeroSection
+              onOpenSignup={(e) => openSignup(e)}
+              onExplorePm={() => setView('pm')}
+              variant="A"
+            />
 
             <div className="divider" />
 
@@ -112,7 +120,7 @@ export default function HomePage() {
 
             <div className="divider" />
 
-            <ShowcaseSection />
+            <ShowcaseSection onExplorePm={() => setView('pm')} />
 
             <div className="divider" />
 
@@ -123,7 +131,7 @@ export default function HomePage() {
 
           <div
             style={{
-              width: '33.33%',
+              width: '25%',
               flexShrink: 0,
               height: view === 'why' ? 'auto' : '0',
               overflow: 'hidden',
@@ -136,7 +144,7 @@ export default function HomePage() {
           {/* Fairness View */}
           <div
             style={{
-              width: '33.33%',
+              width: '25%',
               flexShrink: 0,
               height: view === 'fairness' ? 'auto' : '0',
               overflow: 'hidden',
@@ -144,6 +152,19 @@ export default function HomePage() {
             }}
           >
             <FairHousingPage onBack={() => setView('home')} />
+          </div>
+
+          {/* PM / Landlord View */}
+          <div
+            style={{
+              width: '25%',
+              flexShrink: 0,
+              height: view === 'pm' ? 'auto' : '0',
+              overflow: 'hidden',
+              visibility: view === 'pm' ? 'visible' : 'hidden',
+            }}
+          >
+            <LandlordPmPage onBack={() => setView('home')} onOpenSignup={() => openSignup()} />
           </div>
         </div>
       </main>

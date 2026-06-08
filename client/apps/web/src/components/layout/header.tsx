@@ -8,8 +8,8 @@ export function Header({
   onOpenSignup,
   trackInteraction,
 }: {
-  onSetView: (view: 'home' | 'why' | 'fairness') => void
-  currentView: 'home' | 'why' | 'fairness'
+  onSetView: (view: 'home' | 'why' | 'fairness' | 'pm') => void
+  currentView: 'home' | 'why' | 'fairness' | 'pm'
   onOpenSignup: () => void
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   trackInteraction?: (type: string, target: string, metadata?: any) => void
@@ -214,7 +214,7 @@ export function Header({
           className="mobile-hide"
           onClick={() => {
             if (trackInteraction) trackInteraction('CLICK', 'HEADER_PM_PORTAL')
-            window.location.href = '/pm'
+            onSetView('pm')
           }}
           style={{
             fontSize: '9px',

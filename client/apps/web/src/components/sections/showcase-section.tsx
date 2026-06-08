@@ -3,7 +3,11 @@
 import React from 'react'
 import { ArrowRight, CheckCircle2, Smartphone, ShieldCheck, CreditCard, Sparkles, Building } from 'lucide-react'
 
-export function ShowcaseSection() {
+export function ShowcaseSection({
+  onExplorePm,
+}: {
+  onExplorePm?: () => void
+}) {
   return (
     <section className="showcase">
       {/* Section Header */}
@@ -107,7 +111,7 @@ export function ShowcaseSection() {
             </p>
           </div>
           <button
-            onClick={() => (window.location.href = '/pm')}
+            onClick={() => onExplorePm?.()}
             className="showcase__pm-banner-btn"
           >
             <span>Explore Upward PM</span>
