@@ -23,12 +23,6 @@ export function ShowcaseSection({
       <div className="showcase__layout">
         
         <div className="showcase__info">
-          <h3 className="showcase__name">Build Credibility, Unlock Financing</h3>
-          <p className="showcase__desc">
-            Stop paying rent without anything to show for it. With Upward Pay, every transaction 
-            is verified and reported to build a digital financial identity that works for you.
-          </p>
-
           <ul className="showcase__list">
             <li className="showcase__item">
               <div className="showcase__item-icon-wrapper">
@@ -72,7 +66,7 @@ export function ShowcaseSection({
             onClick={() => (window.location.href = '/signup')}
             className="showcase__btn"
           >
-            <span>Access Renter Portal</span>
+            <span>Get Started</span>
             <ArrowRight size={16} />
           </button>
         </div>
@@ -151,10 +145,10 @@ export function ShowcaseSection({
 
         .showcase__title {
           font-family: var(--font-head);
-          font-weight: 800;
+          font-weight: 500;
           font-size: var(--font-h2);
           line-height: 1.15;
-          letter-spacing: -0.03em;
+          letter-spacing: -0.04em;
           background: var(--heading-mix);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -395,10 +389,10 @@ export function ShowcaseSection({
 
         .showcase__pm-banner-title {
           font-family: var(--font-head);
-          font-weight: 800;
+          font-weight: 500;
           font-size: var(--font-xl);
           color: var(--text);
-          letter-spacing: -0.01em;
+          letter-spacing: -0.03em;
         }
 
         .showcase__pm-banner-desc {

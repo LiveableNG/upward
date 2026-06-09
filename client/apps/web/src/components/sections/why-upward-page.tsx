@@ -251,10 +251,10 @@ export function WhyUpwardPage({
           <h1
             style={{
               fontFamily: 'var(--font-head)',
-              fontWeight: 800,
-              fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
+              fontWeight: 500,
+              fontSize: 'clamp(2.2rem, 5.2vw, 3.8rem)',
               letterSpacing: '-0.04em',
-              lineHeight: 1,
+              lineHeight: 1.1,
               marginBottom: '40px',
               marginTop: '16px',
               background: 'var(--heading-mix)',
@@ -339,10 +339,10 @@ export function WhyUpwardPage({
           <h2
             style={{
               fontFamily: 'var(--font-head)',
-              fontWeight: 800,
-              fontSize: 'clamp(1.8rem, 4vw, 2.8rem)',
+              fontWeight: 500,
+              fontSize: 'clamp(1.6rem, 3.5vw, 2.4rem)',
               letterSpacing: '-0.03em',
-              lineHeight: 1.1,
+              lineHeight: 1.15,
               marginBottom: '32px',
               marginTop: '16px',
             }}
@@ -370,7 +370,8 @@ export function WhyUpwardPage({
               style={{
                 fontFamily: 'var(--font-head)',
                 fontSize: '24px',
-                fontWeight: 800,
+                fontWeight: 500,
+                letterSpacing: '-0.03em',
                 marginBottom: '12px',
               }}
             >

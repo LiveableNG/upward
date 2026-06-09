@@ -520,9 +520,9 @@ export function LandlordPmPage({
 
         .pm-page-title {
           font-family: var(--font-head);
-          font-weight: 800;
+          font-weight: 500;
           font-size: clamp(2.2rem, 5vw, 3.8rem);
-          line-height: 1.05;
+          line-height: 1.1;
           letter-spacing: -0.04em;
           background: linear-gradient(135deg, #0c2310 0%, #166534 100%);
           -webkit-background-clip: text;
@@ -577,10 +577,11 @@ export function LandlordPmPage({
 
         .pm-pillar__text h3 {
           font-family: var(--font-head);
-          font-weight: 700;
+          font-weight: 500;
           font-size: 16px;
           color: var(--text);
           margin-bottom: 4px;
+          letter-spacing: -0.02em;
         }
 
         .pm-pillar__text p {

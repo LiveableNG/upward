@@ -109,11 +109,11 @@ export function HeroSection({
         <h1
           style={{
             fontFamily: 'var(--font-head)',
-            fontWeight: 800,
+            fontWeight: 500,
             fontSize: 'var(--font-h1)',
-            lineHeight: 1.05,
-            letterSpacing: '-0.04em',
-            marginBottom: '32px',
+            lineHeight: 1.1,
+            letterSpacing: '-0.05em',
+            marginBottom: '16px',
             maxWidth: '950px',
             textAlign: 'center',
             animation: 'fadeUp 0.7s 0.1s ease both',
@@ -433,7 +433,7 @@ export function HeroSection({
               font-size: var(--font-base) !important;
             }
             .audience-tags {
-              justify-content: center;
+              display: none !important;
             }
           }
           
