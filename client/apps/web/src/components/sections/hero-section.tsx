@@ -218,8 +218,10 @@ export function HeroSection({
                 color: benefit.color,
               }}
             >
-              {benefit.icon}
-              <span className="floating-icon-tooltip">{benefit.title}</span>
+              <div className="floating-icon-badge__icon-wrapper">
+                {benefit.icon}
+              </div>
+              <span className="floating-icon-badge__label">{benefit.title}</span>
             </div>
           ))}
         </div>
@@ -294,63 +296,44 @@ export function HeroSection({
             position: absolute;
             display: flex;
             align-items: center;
-            justify-content: center;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            gap: 10px;
+            padding: 8px 18px 8px 12px;
+            border-radius: 100px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid var(--border);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             z-index: 10;
             pointer-events: auto;
+            white-space: nowrap;
           }
           .floating-icon-badge:hover {
-            transform: translateY(-5px) scale(1.1) !important;
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.1);
+            transform: translateY(-5px) scale(1.03) !important;
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.25);
+            background-color: rgba(255, 255, 255, 0.08) !important;
+            border-color: currentColor !important;
           }
           .floating-icon-badge svg {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             transition: transform 0.3s ease;
           }
           .floating-icon-badge:hover svg {
-            transform: scale(1.05);
+            transform: scale(1.1);
           }
-          .floating-icon-tooltip {
-            position: absolute;
-            bottom: 120%;
-            left: 50%;
-            transform: translateX(-50%) translateY(6px);
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 6px 12px;
-            border-radius: 8px;
+          .floating-icon-badge__icon-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .floating-icon-badge__label {
+            font-family: var(--font-head);
             font-size: var(--font-xs);
             font-weight: 700;
-            white-space: nowrap;
-            opacity: 0;
-            pointer-events: none;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-            z-index: 100;
-          }
-          .floating-icon-tooltip::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border-width: 5px;
-            border-style: solid;
-            border-color: var(--border) transparent transparent transparent;
-          }
-          .floating-icon-badge:hover .floating-icon-tooltip {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
+            color: var(--text);
+            letter-spacing: 0.02em;
           }
 
           @media (min-width: 769px) {
@@ -392,35 +375,36 @@ export function HeroSection({
               height: 100%;
             }
             .floating-icon-badge {
-              width: 38px;
-              height: 38px;
+              padding: 6px 12px 6px 8px;
+              gap: 6px;
+              height: 32px;
             }
             .floating-icon-badge svg {
-              width: 16px;
-              height: 16px;
+              width: 14px;
+              height: 14px;
+            }
+            .floating-icon-badge__label {
+              font-size: 10px;
             }
             .floating-icon-badge--top-left {
-              top: 20%;
-              left: 16px;
+              top: 14%;
+              left: 8px;
               animation: float-gentle 6s ease-in-out infinite;
             }
             .floating-icon-badge--bottom-left {
-              top: 70%;
-              left: 12px;
+              top: 66%;
+              left: 6px;
               animation: float-gentle 7s ease-in-out infinite 1s;
             }
             .floating-icon-badge--top-right {
               top: 23%;
-              right: 16px;
+              right: 8px;
               animation: float-gentle 6.5s ease-in-out infinite 0.5s;
             }
             .floating-icon-badge--bottom-right {
-              top: 73%;
-              right: 12px;
+              top: 74%;
+              right: 6px;
               animation: float-gentle 7.5s ease-in-out infinite 1.5s;
-            }
-            .floating-icon-tooltip {
-              display: none;
             }
             
             .hero-container {
