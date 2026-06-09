@@ -3,13 +3,13 @@ import { useState, useEffect } from 'react'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { HeroSection } from '@/components/sections/hero-section'
-import { BenefitsGrid } from '@/components/sections/benefits-grid'
 import { WhyUpwardPage } from '@/components/sections/why-upward-page'
 import { TellAFriend } from '@/components/sections/tell-a-friend'
 import { PartnersBar } from '@/components/sections/partners-bar'
 import { FairHousingPage } from '@/components/sections/fair-housing-page'
 import { ShowcaseSection } from '@/components/sections/showcase-section'
 import { LandlordPmPage } from '@/components/sections/landlord-pm-page'
+import { DilemmaSection } from '@/components/sections/dilemma-section'
 
 export default function HomePage() {
   const [view, setView] = useState<'home' | 'why' | 'fairness' | 'pm'>('home')
@@ -116,7 +116,7 @@ export default function HomePage() {
 
             <div className="divider" />
 
-            <BenefitsGrid onOpenSignup={(e) => openSignup(e)} />
+            <DilemmaSection />
 
             <div className="divider" />
 

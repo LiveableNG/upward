@@ -1,9 +1,10 @@
 'use client'
 import { PressLogos } from './press-logos'
+import { ShieldCheck, Percent, Home, Award, ChevronDown } from 'lucide-react'
 
 export function HeroSection({
   onOpenSignup: _onOpenSignup,
-  onExplorePm,
+  onExplorePm: _onExplorePm,
   variant = 'A',
 }: {
   onOpenSignup: (email?: string) => void
@@ -24,6 +25,37 @@ export function HeroSection({
     },
   }[variant]
 
+  const benefits = [
+    {
+      id: 'bias',
+      icon: <ShieldCheck size={20} />,
+      title: 'Zero-Bias Renting',
+      desc: 'Eliminates discrimination bias using verified credentials.',
+      className: 'floating-card--top-left',
+    },
+    {
+      id: 'discounts',
+      icon: <Percent size={20} />,
+      title: 'Rent Discounts',
+      desc: 'Access lower rent rates and friendly deposit financing.',
+      className: 'floating-card--bottom-left',
+    },
+    {
+      id: 'ownership',
+      icon: <Home size={20} />,
+      title: 'Path to Ownership',
+      desc: 'Helps transition from renting to buying a home.',
+      className: 'floating-card--top-right',
+    },
+    {
+      id: 'rewards',
+      icon: <Award size={20} />,
+      title: 'Upward Club',
+      desc: 'Unlock members-only benefits and cashback.',
+      className: 'floating-card--bottom-right',
+    },
+  ]
+
   return (
     <section style={{ position: 'relative', zIndex: 1 }}>
       <div
@@ -35,6 +67,7 @@ export function HeroSection({
           alignItems: 'center',
           padding: '120px 40px 40px',
           width: '100%',
+          position: 'relative',
         }}
         className="hero-container"
       >
@@ -45,7 +78,7 @@ export function HeroSection({
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
-            fontSize: '11px',
+            fontSize: 'var(--font-xs)',
             letterSpacing: '0.25em',
             textTransform: 'uppercase' as const,
             color: 'var(--accent)',
@@ -69,7 +102,7 @@ export function HeroSection({
           style={{
             fontFamily: 'var(--font-head)',
             fontWeight: 800,
-            fontSize: 'clamp(2.4rem, 6vw, 4.5rem)',
+            fontSize: 'var(--font-h1)',
             lineHeight: 1.05,
             letterSpacing: '-0.04em',
             marginBottom: '32px',
@@ -103,7 +136,7 @@ export function HeroSection({
         >
           <p
             style={{
-              fontSize: '20px',
+              fontSize: 'var(--font-lg)',
               color: 'var(--muted)',
               maxWidth: '650px',
               lineHeight: 1.6,
@@ -117,13 +150,20 @@ export function HeroSection({
 
           <div className="hero-cta-container">
             <button
-              onClick={() => (window.location.href = '/login')}
+              onClick={() => {
+                const el = document.getElementById('showcase-section')
+                if (el) {
+                  const navHeight = 80
+                  const top = el.getBoundingClientRect().top + window.pageYOffset - navHeight
+                  window.scrollTo({ top, behavior: 'smooth' })
+                }
+              }}
               style={{
                 background: 'var(--accent)',
                 color: 'var(--btn-text)',
                 fontFamily: 'var(--font-head)',
                 fontWeight: 800,
-                fontSize: '14px',
+                fontSize: 'var(--font-sm)',
                 letterSpacing: '0.1em',
                 padding: '17px 34px',
                 borderRadius: '100px',
@@ -147,64 +187,29 @@ export function HeroSection({
                 e.currentTarget.style.background = 'var(--accent)'
               }}
             >
-              Access Renter Portal
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
-            </button>
-
-            <button
-              onClick={() => onExplorePm?.()}
-              style={{
-                background: 'var(--bg)',
-                color: '#166534',
-                fontFamily: 'var(--font-head)',
-                fontWeight: 800,
-                fontSize: '14px',
-                letterSpacing: '0.1em',
-                padding: '16px 34px',
-                borderRadius: '100px',
-                border: '1.5px solid #166534',
-                cursor: 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                boxShadow: '0 10px 40px rgba(22, 101, 52, 0.05)',
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-              className="desktop-btn"
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-3px)'
-                e.currentTarget.style.boxShadow = '0 15px 45px rgba(22, 101, 52, 0.15)'
-                e.currentTarget.style.background = 'rgba(22, 101, 52, 0.04)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '0 10px 40px rgba(22, 101, 52, 0.05)'
-                e.currentTarget.style.background = 'var(--bg)'
-              }}
-            >
-              Explore Landlord Suite
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
-              <div
+              See the benefits
+              <ChevronDown
+                size={18}
                 style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: '-150%',
-                  width: '100%',
-                  height: '100%',
-                  background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent)',
-                  transform: 'skewX(-25deg)',
-                  animation: 'beam 4s infinite ease-in-out',
+                  animation: 'arrow-beam 2s infinite ease-in-out',
                 }}
               />
             </button>
+          </div>
+
+          {/* Benefits Cards Container */}
+          <div className="hero-benefits-container">
+            {benefits.map((benefit) => (
+              <div key={benefit.id} className={`floating-card ${benefit.className}`}>
+                <div className="floating-card__icon-wrapper">
+                  {benefit.icon}
+                </div>
+                <div className="floating-card__content">
+                  <span className="floating-card__title">{benefit.title}</span>
+                  <span className="floating-card__desc">{benefit.desc}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -222,7 +227,7 @@ export function HeroSection({
             <span
               key={tag}
               style={{
-                fontSize: '12px',
+                fontSize: 'var(--font-xs)',
                 fontWeight: 600,
                 color: 'var(--text)',
                 background: 'var(--accent-faint)',
@@ -252,11 +257,123 @@ export function HeroSection({
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
           }
+          @keyframes float-gentle {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+          }
+          @keyframes arrow-beam {
+            0%, 100% { transform: translateY(0); opacity: 0.7; filter: drop-shadow(0 0 2px rgba(255,255,255,0.4)); }
+            50% { transform: translateY(4px); opacity: 1; filter: drop-shadow(0 0 8px rgba(255,255,255,1)); }
+          }
           .hero-cta-container {
             display: flex;
             gap: 16px;
             align-items: center;
           }
+          
+          /* Benefits Container & Card Styles */
+          .floating-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--nav-bg);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid var(--accent-muted);
+            border-radius: 20px;
+            padding: 14px 18px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.06);
+            max-width: 260px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 10;
+            text-align: left;
+          }
+          .floating-card:hover {
+            transform: translateY(-5px) scale(1.02) !important;
+            border-color: var(--accent);
+            box-shadow: 0 12px 40px var(--accent-faint);
+          }
+          .floating-card__icon-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: var(--accent-faint);
+            color: var(--accent);
+            flex-shrink: 0;
+          }
+          .floating-card__content {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+          }
+          .floating-card__title {
+            font-family: var(--font-head);
+            font-weight: 800;
+            font-size: var(--font-sm);
+            color: var(--text);
+            line-height: 1.2;
+            letter-spacing: -0.01em;
+          }
+          .floating-card__desc {
+            font-size: var(--font-xs);
+            color: var(--muted);
+            line-height: 1.3;
+          }
+
+          @media (min-width: 1250px) {
+            .hero-benefits-container {
+              position: absolute;
+              inset: 0;
+              pointer-events: none;
+              width: 100%;
+              height: 100%;
+            }
+            .floating-card {
+              position: absolute;
+              pointer-events: auto;
+            }
+            .floating-card--top-left {
+              top: 25%;
+              left: 4%;
+              animation: float-gentle 6s ease-in-out infinite;
+            }
+            .floating-card--bottom-left {
+              top: 54%;
+              left: 2%;
+              animation: float-gentle 7s ease-in-out infinite 1s;
+            }
+            .floating-card--top-right {
+              top: 27%;
+              right: 4%;
+              animation: float-gentle 6.5s ease-in-out infinite 0.5s;
+            }
+            .floating-card--bottom-right {
+              top: 56%;
+              right: 2%;
+              animation: float-gentle 7.5s ease-in-out infinite 1.5s;
+            }
+          }
+
+          @media (max-width: 1249px) {
+            .hero-benefits-container {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 16px;
+              max-width: 600px;
+              margin: 40px auto 0;
+              width: 100%;
+            }
+            .floating-card {
+              position: relative;
+              max-width: none;
+              transform: none !important;
+              animation: none !important;
+            }
+          }
+
           @media (max-width: 768px) {
             .hero-container {
               padding: 100px 20px 60px !important;
@@ -281,10 +398,16 @@ export function HeroSection({
             .hero-p {
               margin-left: auto;
               margin-right: auto;
-              font-size: 16px !important;
+              font-size: var(--font-base) !important;
             }
             .audience-tags {
               justify-content: center;
+            }
+            .hero-benefits-container {
+              grid-template-columns: 1fr;
+              gap: 12px;
+              padding: 0 10px;
+              margin-top: 32px;
             }
           }
           @media (min-width: 769px) {
