@@ -26,6 +26,16 @@
   --swatch--oat: #f5f5f0;
   --swatch--transparent: transparent;
 
+  /* --- Typography Scale Design Tokens --- */
+  --font-xs: 11px;
+  --font-sm: 13px;
+  --font-base: 15px;
+  --font-lg: 18px;
+  --font-xl: 24px;
+  --font-xxl: 28px;
+  --font-h1: clamp(2.4rem, 6vw, 4.5rem);
+  --font-h2: clamp(1.8rem, 4vw, 3.2rem);
+
   /* --- Default Theme: Light Mode (Updated) --- */
   --bg: #ffffff;
   --surface: #f7f7f7;

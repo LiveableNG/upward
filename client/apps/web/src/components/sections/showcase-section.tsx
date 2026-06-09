@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { ArrowRight, CheckCircle2, Smartphone, ShieldCheck, Zap, Sparkles, Building } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Smartphone, ShieldCheck, Zap, Sparkles, Building, Home, CreditCard, Key } from 'lucide-react'
 
 export function ShowcaseSection({
   onExplorePm,
@@ -9,7 +9,7 @@ export function ShowcaseSection({
   onExplorePm?: () => void
 }) {
   return (
-    <section className="showcase">
+    <section id="showcase-section" className="showcase">
       {/* Section Header */}
       <div className="showcase__header">
         <span className="showcase__label">The Smart Renter App</span>
@@ -39,29 +39,38 @@ export function ShowcaseSection({
           <ul className="showcase__list">
             <li className="showcase__item">
               <div className="showcase__item-icon-wrapper">
-                <ShieldCheck size={20} className="showcase__item-icon" />
+                <Home size={20} className="showcase__item-icon" />
               </div>
               <div className="showcase__item-text">
-                <strong>Rent Passport™</strong>
-                <span>Build your digital rental history score. Turn your track record of timely payments into a trusted credit resume.</span>
+                <strong>Rent Next Home with Ease</strong>
+                <span>Discover great homes and get prioritized by trusted owners using verified application credentials.</span>
               </div>
             </li>
             <li className="showcase__item">
               <div className="showcase__item-icon-wrapper">
-                <Zap size={20} className="showcase__item-icon" />
+                <CreditCard size={20} className="showcase__item-icon" />
               </div>
               <div className="showcase__item-text">
-                <strong>Instant Checkout</strong>
-                <span>A simplified, fast, and secure payment experience designed to get your rent sorted without any complex setups.</span>
+                <strong>Exclusive Financial Benefits</strong>
+                <span>Unlock rent discounts, flexible payment plans, and affordable financing for household essentials.</span>
               </div>
             </li>
             <li className="showcase__item">
-              <div className="showcase__item-icon-wrapper">``
-                <Sparkles size={20} className="showcase__item-icon" />
+              <div className="showcase__item-icon-wrapper">
+                <Key size={20} className="showcase__item-icon" />
               </div>
               <div className="showcase__item-text">
-                <strong>Collective Financing</strong>
-                <span>Unlock friendly financing for rent deposits, home furniture, and single-digit interest rates for your first home mortgage.</span>
+                <strong>From Renter to Homeowner</strong>
+                <span>Access friendly single-digit interest rates for your first home mortgage by converting rent history to equity.</span>
+              </div>
+            </li>
+            <li className="showcase__item">
+              <div className="showcase__item-icon-wrapper">
+                <ShieldCheck size={20} className="showcase__item-icon" />
+              </div>
+              <div className="showcase__item-text">
+                <strong>Rent Passport™</strong>
+                <span>Convert verified rental history into a trusted credit profile to access financing and home access globally.</span>
               </div>
             </li>
           </ul>
@@ -140,7 +149,7 @@ export function ShowcaseSection({
         }
 
         .showcase__label {
-          font-size: 11px;
+          font-size: var(--font-xs);
           font-weight: 700;
           letter-spacing: 0.25em;
           text-transform: uppercase;
@@ -150,7 +159,7 @@ export function ShowcaseSection({
         .showcase__title {
           font-family: var(--font-head);
           font-weight: 800;
-          font-size: clamp(2rem, 4vw, 3.2rem);
+          font-size: var(--font-h2);
           line-height: 1.15;
           letter-spacing: -0.03em;
           background: var(--heading-mix);
@@ -159,7 +168,7 @@ export function ShowcaseSection({
         }
 
         .showcase__subtitle {
-          font-size: 15px;
+          font-size: var(--font-base);
           color: var(--muted);
           line-height: 1.6;
         }
@@ -188,7 +197,7 @@ export function ShowcaseSection({
           gap: 6px;
           padding: 6px 12px;
           border-radius: 100px;
-          font-size: 11px;
+          font-size: var(--font-xs);
           font-weight: 700;
           letter-spacing: 0.02em;
           margin-bottom: 24px;
@@ -197,7 +206,7 @@ export function ShowcaseSection({
         .showcase__name {
           font-family: var(--font-head);
           font-weight: 800;
-          font-size: 28px;
+          font-size: var(--font-xxl);
           line-height: 1.25;
           color: var(--text);
           margin-bottom: 16px;
@@ -205,7 +214,7 @@ export function ShowcaseSection({
         }
 
         .showcase__desc {
-          font-size: 15px;
+          font-size: var(--font-base);
           color: var(--muted);
           line-height: 1.6;
           margin-bottom: 32px;
@@ -248,12 +257,12 @@ export function ShowcaseSection({
         .showcase__item-text strong {
           font-family: var(--font-head);
           font-weight: 700;
-          font-size: 15px;
+          font-size: var(--font-base);
           color: var(--text);
         }
 
         .showcase__item-text span {
-          font-size: 13.5px;
+          font-size: var(--font-sm);
           color: var(--muted);
           line-height: 1.5;
         }
@@ -263,7 +272,7 @@ export function ShowcaseSection({
           border-radius: 100px;
           font-family: var(--font-head);
           font-weight: 800;
-          font-size: 14px;
+          font-size: var(--font-sm);
           letter-spacing: 0.05em;
           border: none;
           cursor: pointer;
@@ -354,7 +363,7 @@ export function ShowcaseSection({
           bottom: -150px;
           right: -100px;
           pointer-events: none;
-        }
+          }
 
         .showcase__pm-banner-content {
           position: relative;
@@ -379,7 +388,7 @@ export function ShowcaseSection({
           gap: 6px;
           padding: 6px 12px;
           border-radius: 100px;
-          font-size: 11px;
+          font-size: var(--font-xs);
           font-weight: 700;
           letter-spacing: 0.02em;
           background: rgba(34, 197, 94, 0.08);
@@ -394,13 +403,13 @@ export function ShowcaseSection({
         .showcase__pm-banner-title {
           font-family: var(--font-head);
           font-weight: 800;
-          font-size: 22px;
+          font-size: var(--font-xl);
           color: var(--text);
           letter-spacing: -0.01em;
         }
 
         .showcase__pm-banner-desc {
-          font-size: 14px;
+          font-size: var(--font-sm);
           color: var(--muted);
           line-height: 1.6;
         }
@@ -410,7 +419,7 @@ export function ShowcaseSection({
           border-radius: 100px;
           font-family: var(--font-head);
           font-weight: 800;
-          font-size: 13.5px;
+          font-size: var(--font-sm);
           letter-spacing: 0.05em;
           border: none;
           cursor: pointer;
