@@ -20,16 +20,9 @@ export function ShowcaseSection({
         </p>
       </div>
 
-      {/* Renter Showcase Container */}
       <div className="showcase__layout">
         
-        {/* Left: Product Information */}
         <div className="showcase__info">
-          <div className="showcase-card__badge showcase-card__badge--clay">
-            <Smartphone size={14} className="showcase-card__badge-icon" />
-            <span>Upward Pay for Tenants</span>
-          </div>
-
           <h3 className="showcase__name">Build Credibility, Unlock Financing</h3>
           <p className="showcase__desc">
             Stop paying rent without anything to show for it. With Upward Pay, every transaction 

@@ -37,11 +37,6 @@ export function DilemmaSection() {
           <h2 className="dilemma-title">
             Struggling to secure a house despite years of on-time rent payments?
           </h2>
-
-          <div className="dilemma-scroll-hint" onClick={handleScroll}>
-            <span>Discover how we turn rent into your resume</span>
-            <ChevronDown size={18} className="dilemma-scroll-hint__icon" />
-          </div>
         </div>
 
       </div>
@@ -118,31 +113,7 @@ export function DilemmaSection() {
           letter-spacing: -0.02em;
         }
 
-        .dilemma-scroll-hint {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          font-weight: 600;
-          font-size: var(--font-base);
-          color: var(--accent);
-          cursor: pointer;
-          margin-top: 16px;
-          transition: all 0.3s ease;
-        }
 
-        .dilemma-scroll-hint:hover {
-          color: var(--swatch--clay-interactive);
-          text-decoration: underline;
-        }
-
-        .dilemma-scroll-hint__icon {
-          animation: bounce-vertical-hint 2s infinite ease-in-out;
-        }
-
-        @keyframes bounce-vertical-hint {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(4px); }
-        }
 
         @media (max-width: 992px) {
           .dilemma-layout {
