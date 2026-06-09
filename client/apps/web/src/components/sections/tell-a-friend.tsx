@@ -30,11 +30,11 @@ export function TellAFriend() {
         <div
           style={{
             fontFamily: 'var(--font-head)',
-            fontWeight: 800,
+            fontWeight: 500,
             fontSize: 'clamp(1.8rem, 4vw, 2.8rem)',
             letterSpacing: '-0.04em',
             marginBottom: '16px',
-            lineHeight: 1.1,
+            lineHeight: 1.15,
           }}
         >
           Tell a Friend. Build a Movement.

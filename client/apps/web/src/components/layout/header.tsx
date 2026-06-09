@@ -97,7 +97,7 @@ export function Header({
           <div
             style={{
               fontFamily: 'var(--font-head)',
-              fontWeight: 800,
+              fontWeight: 500,
               fontSize: '15px',
               background: 'var(--heading-mix)',
               WebkitBackgroundClip: 'text',
@@ -226,7 +226,7 @@ export function Header({
             padding: '12px 24px',
             borderRadius: '100px',
             fontFamily: 'var(--font-head)',
-            fontWeight: 800,
+            fontWeight: 500,
             cursor: 'pointer',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             boxShadow: '0 8px 25px rgba(217, 119, 87, 0.2)',
@@ -342,7 +342,7 @@ export function Header({
               <div
                 style={{
                   fontFamily: 'var(--font-head)',
-                  fontWeight: 800,
+                  fontWeight: 500,
                   fontSize: '15px',
                   background: 'var(--heading-mix)',
                   WebkitBackgroundClip: 'text',
@@ -438,7 +438,7 @@ export function Header({
                 border: 'none',
                 color: 'var(--btn-text)',
                 fontFamily: 'var(--font-head)',
-                fontWeight: 800,
+                fontWeight: 500,
                 fontSize: '15px',
                 textAlign: 'center',
                 textTransform: 'uppercase',

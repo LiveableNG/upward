@@ -127,8 +127,8 @@ export function FairHousingPage({ onBack }: { onBack: () => void }) {
           <h1
             style={{
               fontFamily: 'var(--font-head)',
-              fontWeight: 800,
-              fontSize: 'clamp(2.2rem, 5vw, 4rem)',
+              fontWeight: 500,
+              fontSize: 'clamp(2rem, 4.8vw, 3.5rem)',
               letterSpacing: '-0.04em',
               lineHeight: 1.1,
               marginBottom: '32px',
@@ -288,11 +288,11 @@ export function FairHousingPage({ onBack }: { onBack: () => void }) {
             <div
               style={{
                 fontFamily: 'var(--font-head)',
-                fontWeight: 800,
+                fontWeight: 500,
                 fontSize: '18px',
                 color: 'var(--text)',
                 marginBottom: '12px',
-                letterSpacing: '-0.01em',
+                letterSpacing: '-0.02em',
               }}
             >
               {item.title}

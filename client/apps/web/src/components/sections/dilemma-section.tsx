@@ -37,6 +37,13 @@ export function DilemmaSection() {
           <h2 className="dilemma-title">
             Struggling to secure a house despite years of on-time rent payments?
           </h2>
+
+          <div className="dilemma-action">
+            <p className="dilemma-action-text">See how we solve this below</p>
+            <button onClick={handleScroll} className="dilemma-action-btn" aria-label="Scroll to solution">
+              <ChevronDown size={24} />
+            </button>
+          </div>
         </div>
 
       </div>
@@ -106,14 +113,57 @@ export function DilemmaSection() {
 
         .dilemma-title {
           font-family: var(--font-head);
-          font-weight: 800;
+          font-weight: 500;
           font-size: var(--font-h2);
-          line-height: 1.2;
+          line-height: 1.15;
           color: var(--text);
-          letter-spacing: -0.02em;
+          letter-spacing: -0.04em;
         }
 
+        .dilemma-action {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 12px;
+          margin-top: 16px;
+        }
 
+        .dilemma-action-text {
+          font-size: var(--font-base);
+          color: var(--muted);
+          font-weight: 400;
+        }
+
+        .dilemma-action-btn {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background: var(--accent);
+          color: var(--btn-text);
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 14px rgba(217, 119, 87, 0.4);
+          transition: background 0.3s, transform 0.2s;
+          animation: beam-pulsate 2s infinite ease-in-out;
+        }
+
+        .dilemma-action-btn:hover {
+          background: var(--swatch--clay-interactive);
+        }
+
+        @keyframes beam-pulsate {
+          0%, 100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(217, 119, 87, 0.6);
+          }
+          50% {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 12px rgba(217, 119, 87, 0);
+          }
+        }
 
         @media (max-width: 992px) {
           .dilemma-layout {
@@ -122,6 +172,9 @@ export function DilemmaSection() {
           }
           .dilemma-info {
             text-align: center;
+            align-items: center;
+          }
+          .dilemma-action {
             align-items: center;
           }
           .dilemma-image-container {
@@ -134,7 +187,7 @@ export function DilemmaSection() {
             padding: 60px 20px;
           }
           .dilemma-title {
-            font-size: 1.8rem;
+            font-size: var(--font-h2);
           }
         }
       `}</style>
