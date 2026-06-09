@@ -27,7 +27,7 @@ export function DilemmaSection() {
           </div>
         </div>
 
-        {/* Right: Compelling text content */}
+        {/* Right: Curiosity-generating heading */}
         <div className="dilemma-info">
           <div className="dilemma-badge">
             <AlertCircle size={14} />
@@ -35,18 +35,8 @@ export function DilemmaSection() {
           </div>
 
           <h2 className="dilemma-title">
-            Still struggling to secure a home despite years of on-time payments?
+            Struggling to secure a house despite years of on-time rent payments?
           </h2>
-          
-          <p className="dilemma-desc">
-            You pay your rent on time, month after month, year after year. It is your largest monthly expense. 
-            Yet, this massive financial commitment is completely invisible to credit bureaus and future landlords. 
-            Traditional scoring ignores your dedication, leaving you starting from scratch every single time you move.
-          </p>
-
-          <p className="dilemma-desc">
-            We believe it is time your rent starts working for you. Turn your biggest liability into your greatest credit asset.
-          </p>
 
           <div className="dilemma-scroll-hint" onClick={handleScroll}>
             <span>Discover how we turn rent into your resume</span>
@@ -67,9 +57,10 @@ export function DilemmaSection() {
 
         .dilemma-layout {
           display: grid;
-          grid-template-columns: 46% 54%;
-          gap: 80px;
+          grid-template-columns: 1fr 1.25fr;
+          gap: 60px;
           align-items: center;
+          width: 100%;
         }
 
         .dilemma-visual {
@@ -127,29 +118,21 @@ export function DilemmaSection() {
           letter-spacing: -0.02em;
         }
 
-        .dilemma-desc {
-          font-size: var(--font-base);
-          color: var(--muted);
-          line-height: 1.65;
-        }
-
         .dilemma-scroll-hint {
-          display: flex;
+          display: inline-flex;
           align-items: center;
-          gap: 10px;
-          font-family: var(--font-head);
-          font-weight: 800;
-          font-size: var(--font-sm);
+          gap: 8px;
+          font-weight: 600;
+          font-size: var(--font-base);
           color: var(--accent);
-          letter-spacing: 0.05em;
-          text-transform: uppercase;
           cursor: pointer;
-          margin-top: 10px;
+          margin-top: 16px;
           transition: all 0.3s ease;
         }
 
         .dilemma-scroll-hint:hover {
           color: var(--swatch--clay-interactive);
+          text-decoration: underline;
         }
 
         .dilemma-scroll-hint__icon {

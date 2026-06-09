@@ -28,31 +28,39 @@ export function HeroSection({
   const benefits = [
     {
       id: 'bias',
-      icon: <ShieldCheck size={20} />,
+      icon: <ShieldCheck />,
       title: 'Zero-Bias Renting',
-      desc: 'Eliminates discrimination bias using verified credentials.',
-      className: 'floating-card--top-left',
+      className: 'floating-icon-badge--top-left',
+      bg: 'rgba(16, 185, 129, 0.06)', // Emerald Green
+      borderColor: 'rgba(16, 185, 129, 0.15)',
+      color: '#10b981',
     },
     {
       id: 'discounts',
-      icon: <Percent size={20} />,
-      title: 'Rent Discounts',
-      desc: 'Access lower rent rates and friendly deposit financing.',
-      className: 'floating-card--bottom-left',
+      icon: <Percent />,
+      title: 'Rent Discounts & Loans',
+      className: 'floating-icon-badge--bottom-left',
+      bg: 'rgba(245, 158, 11, 0.06)', // Amber/Orange
+      borderColor: 'rgba(245, 158, 11, 0.15)',
+      color: '#f59e0b',
     },
     {
       id: 'ownership',
-      icon: <Home size={20} />,
+      icon: <Home />,
       title: 'Path to Ownership',
-      desc: 'Helps transition from renting to buying a home.',
-      className: 'floating-card--top-right',
+      className: 'floating-icon-badge--top-right',
+      bg: 'rgba(59, 130, 246, 0.06)', // Royal Blue
+      borderColor: 'rgba(59, 130, 246, 0.15)',
+      color: '#3b82f6',
     },
     {
       id: 'rewards',
-      icon: <Award size={20} />,
-      title: 'Upward Club',
-      desc: 'Unlock members-only benefits and cashback.',
-      className: 'floating-card--bottom-right',
+      icon: <Award />,
+      title: 'Upward Club Rewards',
+      className: 'floating-icon-badge--bottom-right',
+      bg: 'rgba(236, 72, 153, 0.06)', // Rose/Pink
+      borderColor: 'rgba(236, 72, 153, 0.15)',
+      color: '#ec4899',
     },
   ]
 
@@ -196,21 +204,24 @@ export function HeroSection({
               />
             </button>
           </div>
+        </div>
 
-          {/* Benefits Cards Container */}
-          <div className="hero-benefits-container">
-            {benefits.map((benefit) => (
-              <div key={benefit.id} className={`floating-card ${benefit.className}`}>
-                <div className="floating-card__icon-wrapper">
-                  {benefit.icon}
-                </div>
-                <div className="floating-card__content">
-                  <span className="floating-card__title">{benefit.title}</span>
-                  <span className="floating-card__desc">{benefit.desc}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* Benefits Floating Icons Container */}
+        <div className="hero-benefits-container">
+          {benefits.map((benefit) => (
+            <div
+              key={benefit.id}
+              className={`floating-icon-badge ${benefit.className}`}
+              style={{
+                backgroundColor: benefit.bg,
+                borderColor: benefit.borderColor,
+                color: benefit.color,
+              }}
+            >
+              {benefit.icon}
+              <span className="floating-icon-tooltip">{benefit.title}</span>
+            </div>
+          ))}
         </div>
 
         <div
@@ -261,6 +272,10 @@ export function HeroSection({
             0%, 100% { transform: translateY(0px); }
             50% { transform: translateY(-8px); }
           }
+          @keyframes fadeInSimple {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
           @keyframes arrow-beam {
             0%, 100% { transform: translateY(0); opacity: 0.7; filter: drop-shadow(0 0 2px rgba(255,255,255,0.4)); }
             50% { transform: translateY(4px); opacity: 1; filter: drop-shadow(0 0 8px rgba(255,255,255,1)); }
@@ -271,59 +286,74 @@ export function HeroSection({
             align-items: center;
           }
           
-          /* Benefits Container & Card Styles */
-          .floating-card {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: var(--nav-bg);
-            backdrop-filter: blur(16px) saturate(180%);
-            -webkit-backdrop-filter: blur(16px) saturate(180%);
-            border: 1px solid var(--accent-muted);
-            border-radius: 20px;
-            padding: 14px 18px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.06);
-            max-width: 260px;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            z-index: 10;
-            text-align: left;
+          /* Benefits Floating Icon Badge Styles */
+          .hero-benefits-container {
+            animation: fadeInSimple 0.8s 0.3s ease both;
           }
-          .floating-card:hover {
-            transform: translateY(-5px) scale(1.02) !important;
-            border-color: var(--accent);
-            box-shadow: 0 12px 40px var(--accent-faint);
-          }
-          .floating-card__icon-wrapper {
+          .floating-icon-badge {
+            position: absolute;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            background: var(--accent-faint);
-            color: var(--accent);
-            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 10;
+            pointer-events: auto;
           }
-          .floating-card__content {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
+          .floating-icon-badge:hover {
+            transform: translateY(-5px) scale(1.1) !important;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.1);
           }
-          .floating-card__title {
-            font-family: var(--font-head);
-            font-weight: 800;
-            font-size: var(--font-sm);
+          .floating-icon-badge svg {
+            width: 20px;
+            height: 20px;
+            transition: transform 0.3s ease;
+          }
+          .floating-icon-badge:hover svg {
+            transform: scale(1.05);
+          }
+          .floating-icon-tooltip {
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%) translateY(6px);
+            background: var(--surface2);
+            border: 1px solid var(--border);
             color: var(--text);
-            line-height: 1.2;
-            letter-spacing: -0.01em;
-          }
-          .floating-card__desc {
+            padding: 6px 12px;
+            border-radius: 8px;
             font-size: var(--font-xs);
-            color: var(--muted);
-            line-height: 1.3;
+            font-weight: 700;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+          }
+          .floating-icon-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px;
+            border-style: solid;
+            border-color: var(--border) transparent transparent transparent;
+          }
+          .floating-icon-badge:hover .floating-icon-tooltip {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
           }
 
-          @media (min-width: 1250px) {
+          @media (min-width: 769px) {
             .hero-benefits-container {
               position: absolute;
               inset: 0;
@@ -331,50 +361,68 @@ export function HeroSection({
               width: 100%;
               height: 100%;
             }
-            .floating-card {
-              position: absolute;
-              pointer-events: auto;
-            }
-            .floating-card--top-left {
+            .floating-icon-badge--top-left {
               top: 25%;
-              left: 4%;
+              left: 5%;
               animation: float-gentle 6s ease-in-out infinite;
             }
-            .floating-card--bottom-left {
-              top: 54%;
-              left: 2%;
+            .floating-icon-badge--bottom-left {
+              top: 55%;
+              left: 3%;
               animation: float-gentle 7s ease-in-out infinite 1s;
             }
-            .floating-card--top-right {
+            .floating-icon-badge--top-right {
               top: 27%;
-              right: 4%;
+              right: 5%;
               animation: float-gentle 6.5s ease-in-out infinite 0.5s;
             }
-            .floating-card--bottom-right {
-              top: 56%;
-              right: 2%;
+            .floating-icon-badge--bottom-right {
+              top: 57%;
+              right: 3%;
               animation: float-gentle 7.5s ease-in-out infinite 1.5s;
             }
           }
 
-          @media (max-width: 1249px) {
-            .hero-benefits-container {
-              display: grid;
-              grid-template-columns: repeat(2, 1fr);
-              gap: 16px;
-              max-width: 600px;
-              margin: 40px auto 0;
-              width: 100%;
-            }
-            .floating-card {
-              position: relative;
-              max-width: none;
-              transform: none !important;
-              animation: none !important;
-            }
-          }
-
           @media (max-width: 768px) {
+            .hero-benefits-container {
+              position: absolute;
+              inset: 0;
+              pointer-events: none;
+              width: 100%;
+              height: 100%;
+            }
+            .floating-icon-badge {
+              width: 38px;
+              height: 38px;
+            }
+            .floating-icon-badge svg {
+              width: 16px;
+              height: 16px;
+            }
+            .floating-icon-badge--top-left {
+              top: 20%;
+              left: 16px;
+              animation: float-gentle 6s ease-in-out infinite;
+            }
+            .floating-icon-badge--bottom-left {
+              top: 70%;
+              left: 12px;
+              animation: float-gentle 7s ease-in-out infinite 1s;
+            }
+            .floating-icon-badge--top-right {
+              top: 23%;
+              right: 16px;
+              animation: float-gentle 6.5s ease-in-out infinite 0.5s;
+            }
+            .floating-icon-badge--bottom-right {
+              top: 73%;
+              right: 12px;
+              animation: float-gentle 7.5s ease-in-out infinite 1.5s;
+            }
+            .floating-icon-tooltip {
+              display: none;
+            }
+            
             .hero-container {
               padding: 100px 20px 60px !important;
               text-align: center;
@@ -403,13 +451,8 @@ export function HeroSection({
             .audience-tags {
               justify-content: center;
             }
-            .hero-benefits-container {
-              grid-template-columns: 1fr;
-              gap: 12px;
-              padding: 0 10px;
-              margin-top: 32px;
-            }
           }
+          
           @media (min-width: 769px) {
             .mobile-hide {
               display: initial;
