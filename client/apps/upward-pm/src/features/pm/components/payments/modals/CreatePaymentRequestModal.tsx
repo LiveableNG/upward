@@ -278,8 +278,22 @@ export function CreatePaymentRequestModal({
       })
     } else {
       createMutation.mutate(paymentContext, {
-        onSuccess: () => {
-          success('Payment request sent successfully!')
+        onSuccess: (res: any) => {
+          if (unit.tenant?.email?.endsWith('@upward.com')) {
+            if (res?.paymentLink) {
+              navigator.clipboard.writeText(res.paymentLink)
+                .then(() => {
+                  success('Payment link copied to clipboard! Share it manually as this tenant has no registered email.')
+                })
+                .catch(() => {
+                  success('Payment request created! Share the link: ' + res.paymentLink)
+                })
+            } else {
+              success('Payment request created successfully!')
+            }
+          } else {
+            success('Payment request sent successfully!')
+          }
           onClose()
         },
         onError: (err: any) => {

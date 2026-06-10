@@ -12,7 +12,8 @@ import {
   CheckCircle2, 
   Loader2,
   ExternalLink,
-  Edit
+  Edit,
+  AlertCircle
 } from 'lucide-react'
 import { useTenant, useTenantActions } from '../../hooks/useTenants'
 import Link from 'next/link'
@@ -200,14 +201,45 @@ export const TenantDetailView: React.FC = () => {
             </div>
             <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)', marginBottom: 12 }}>{tenant.firstName} {tenant.lastName}</h1>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', color: 'var(--text-secondary)', fontSize: 13, marginBottom: 32 }}>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', color: 'var(--text-secondary)', fontSize: 13, marginBottom: 32 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Phone size={14} color="var(--forest)" /> {tenant.phone || 'N/A'}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Mail size={14} color="var(--forest)" /> {tenant.email || 'N/A'}
+                {tenant.email?.endsWith('@upward.com') ? (
+                  <>
+                    <AlertCircle size={14} color="var(--error)" /> 
+                    <span style={{ color: 'var(--error)', fontWeight: 600 }}>Not Configured</span>
+                  </>
+                ) : (
+                  <>
+                    <Mail size={14} color="var(--forest)" /> {tenant.email || 'N/A'}
+                  </>
+                )}
               </div>
             </div>
+
+            {tenant.email?.endsWith('@upward.com') && (
+              <div style={{
+                background: 'var(--error-faint)',
+                border: '1px solid var(--error-border)',
+                borderRadius: 12,
+                padding: '12px 16px',
+                fontSize: 12,
+                color: 'var(--error)',
+                textAlign: 'left',
+                marginBottom: 24,
+                display: 'flex',
+                gap: 10,
+                alignItems: 'flex-start'
+              }}>
+                <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <strong style={{ display: 'block', marginBottom: 2 }}>Email Missing</strong>
+                  This tenant has no registered email. Please click <strong>Edit Tenant</strong> to configure their real email.
+                </div>
+              </div>
+            )}
 
             <div style={{ padding: '16px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', marginBottom: 32 }}>
               <span>Tenant ID</span>

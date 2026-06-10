@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
-import { Search, X, Home, Users, CheckCircle2, Loader2 } from 'lucide-react'
+import { Search, X, Home, Users, CheckCircle2, Loader2, AlertCircle } from 'lucide-react'
 import { useTenants, useTenantActions } from '../../hooks/useTenants'
 import { useProperties } from '../../hooks/useProperties'
 import { DataTable, Column } from '@/components/common/DataTable'
@@ -96,7 +96,13 @@ export const TenantList: React.FC = () => {
             <div style={{ fontWeight: 700, color: 'var(--dark)', fontSize: 14, marginBottom: 2 }}>
               {tenant.firstName} {tenant.lastName}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tenant.email}</div>
+            {tenant.email?.endsWith('@upward.com') ? (
+              <div style={{ fontSize: 12, color: 'var(--error)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <AlertCircle size={12} /> Not Configured
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tenant.email}</div>
+            )}
           </div>
         </div>
       )

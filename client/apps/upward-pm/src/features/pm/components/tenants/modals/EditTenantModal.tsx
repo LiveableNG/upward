@@ -11,7 +11,9 @@ import { isValidPhoneNumber } from 'libphonenumber-js'
 const tenantSchema = z.object({
   firstName: z.string().min(2, 'First name is required'),
   lastName: z.string().min(2, 'Last name is required'),
-  email: z.string().email('Invalid email address'),
+  email: z.string().optional().refine((val) => !val || val.trim() === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+    message: 'Invalid email address'
+  }),
   phone: z.string().optional().refine((val) => !val || isValidPhoneNumber(val), {
     message: 'Invalid international phone number'
   }),
@@ -70,7 +72,7 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
       reset({
         firstName: tenant.firstName || '',
         lastName: tenant.lastName || '',
-        email: tenant.email || '',
+        email: tenant.email?.endsWith('@upward.com') ? '' : (tenant.email || ''),
         phone: tenant.phone || '',
         formerAddress: tenant.formerAddress || '',
         nextOfKinName: tenant.nextOfKinName || '',
@@ -89,9 +91,14 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
   if (!isOpen) return null
 
   const onSubmit = (data: TenantFormData) => {
+    const updatedData = { ...data }
+    if (!data.email || data.email.trim() === '') {
+      updatedData.email = tenant.email
+    }
+    
     updateTenant.mutate({ 
       uuid: tenant.uuid, 
-      data 
+      data: updatedData 
     }, {
       onSuccess: () => {
         onClose()
