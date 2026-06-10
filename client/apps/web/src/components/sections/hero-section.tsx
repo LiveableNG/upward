@@ -144,12 +144,13 @@ export function HeroSection({
         >
           <p
             style={{
-              fontSize: 'var(--font-lg)',
+              fontSize: 'clamp(14px, 1.5vw, 20px)',
               color: 'var(--muted)',
               maxWidth: '650px',
-              lineHeight: 1.6,
+              lineHeight: 'clamp(20px, 2.5vw, 35px)',
               marginBottom: '28px',
               textAlign: 'center',
+              fontWeight: 400,
             }}
             className="hero-p"
           >
@@ -170,9 +171,9 @@ export function HeroSection({
                 background: 'var(--accent)',
                 color: 'var(--btn-text)',
                 fontFamily: 'var(--font-head)',
-                fontWeight: 800,
+                fontWeight: 500,
                 fontSize: 'var(--font-sm)',
-                letterSpacing: '0.1em',
+                letterSpacing: '0.05em',
                 padding: '17px 34px',
                 borderRadius: '100px',
                 border: 'none',

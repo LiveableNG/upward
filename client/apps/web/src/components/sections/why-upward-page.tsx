@@ -266,12 +266,12 @@ export function WhyUpwardPage({
           </h1>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-            <p style={{ fontSize: '20px', lineHeight: 1.6, color: 'var(--text)', fontWeight: 500 }}>
+            <p style={{ fontSize: 'clamp(15px, 1.6vw, 20px)', lineHeight: 1.6, color: 'var(--text)', fontWeight: 400 }}>
               Housing should be a source of stability, productivity, and memories but, for many
               people today, renting feels uncertain.
             </p>
 
-            <p style={{ color: 'var(--muted)', fontSize: '17px', lineHeight: 1.8 }}>
+            <p style={{ color: 'var(--muted)', fontSize: 'clamp(14px, 1.3vw, 17px)', lineHeight: 'clamp(22px, 2vw, 28px)', fontWeight: 400 }}>
               Tenants worry about finding trustworthy landlords and safe homes. Landlords worry
               about unreliable tenants and disputes. Property managers struggle to operate in a
               system with little transparency.
@@ -290,11 +290,11 @@ export function WhyUpwardPage({
             >
               <p
                 style={{
-                  fontSize: '19px',
+                  fontSize: 'clamp(15px, 1.5vw, 19px)',
                   fontStyle: 'italic',
                   color: 'var(--text)',
                   lineHeight: 1.6,
-                  fontWeight: 600,
+                  fontWeight: 500,
                 }}
               >
                 &ldquo;Housing improves when responsible people are rewarded for responsible
@@ -302,20 +302,20 @@ export function WhyUpwardPage({
               </p>
             </div>
 
-            <p style={{ color: 'var(--muted)', fontSize: '17px', lineHeight: 1.8 }}>
+            <p style={{ color: 'var(--muted)', fontSize: 'clamp(14px, 1.3vw, 17px)', lineHeight: 'clamp(22px, 2vw, 28px)', fontWeight: 400 }}>
               Over the last five years, we have worked closely with thousands of
               residents, landlords, and property managers. Through those conversations we learned
               something important: trust is the foundation of every home.
             </p>
 
-            <p style={{ color: 'var(--muted)', fontSize: '17px', lineHeight: 1.8 }}>
+            <p style={{ color: 'var(--muted)', fontSize: 'clamp(14px, 1.3vw, 17px)', lineHeight: 'clamp(22px, 2vw, 28px)', fontWeight: 400 }}>
               Upward helps renters build a verified housing reputation through their rental history,
               discipline, and participation in a trusted housing network. Over time, that reputation
               becomes more powerful. It can unlock better rental opportunities, stronger community
               networks, and eventually new pathways to owning a home with other responsible members.
             </p>
 
-            <p style={{ color: 'var(--text)', fontSize: '18px', lineHeight: 1.6, fontWeight: 600 }}>
+            <p style={{ color: 'var(--text)', fontSize: 'clamp(15px, 1.4vw, 18px)', lineHeight: 1.6, fontWeight: 500 }}>
               Because solving housing requires more than technology. It requires trust,
               transparency, and people who are committed to building something better together.
             </p>
@@ -323,8 +323,8 @@ export function WhyUpwardPage({
             <p
               style={{
                 color: 'var(--accent)',
-                fontSize: '19px',
-                fontWeight: 800,
+                fontSize: 'clamp(15px, 1.5vw, 19px)',
+                fontWeight: 500,
                 letterSpacing: '-0.01em',
               }}
             >

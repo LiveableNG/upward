@@ -155,9 +155,11 @@ export function ShowcaseSection({
         }
 
         .showcase__subtitle {
-          font-size: var(--font-base);
+          font-size: clamp(14px, 1.5vw, 18px);
           color: var(--muted);
-          line-height: 1.6;
+          line-height: clamp(20px, 2.2vw, 30px);
+          font-weight: 400;
+          margin-bottom: 16px;
         }
 
         /* Layout */
