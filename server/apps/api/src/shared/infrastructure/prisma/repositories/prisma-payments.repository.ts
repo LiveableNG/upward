@@ -420,6 +420,9 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
           .filter(Boolean)
           .join(', ')
         : undefined,
+      scheduledAt: res.scheduledAt ?? undefined,
+      isRecurring: res.isRecurring ?? false,
+      recurrenceInterval: res.recurrenceInterval ?? undefined,
     } as unknown as PaymentRequest
   }
 
@@ -445,6 +448,9 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
         isManual: data.isManual,
         rentStartDate: data.rentStartDate,
         rentEndDate: data.rentEndDate,
+        scheduledAt: data.scheduledAt,
+        isRecurring: data.isRecurring,
+        recurrenceInterval: data.recurrenceInterval,
       },
       include: this.paymentRequestInclude,
     })
@@ -512,6 +518,9 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
         minAmount: data.minAmount,
         rentStartDate: data.rentStartDate,
         rentEndDate: data.rentEndDate,
+        scheduledAt: data.scheduledAt,
+        isRecurring: data.isRecurring,
+        recurrenceInterval: data.recurrenceInterval,
       },
       include: this.paymentRequestInclude,
     })

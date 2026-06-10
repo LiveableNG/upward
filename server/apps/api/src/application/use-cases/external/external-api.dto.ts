@@ -273,7 +273,72 @@ export class ExternalPaymentRequestPayloadDto {
   @IsOptional()
   @IsNumber()
   paymentRequestId?: number
+
+  @IsOptional()
+  @IsDateString()
+  scheduledAt?: string
+
+  @IsOptional()
+  @IsBoolean()
+  isRecurring?: boolean
+
+  @IsOptional()
+  @IsString()
+  recurrenceInterval?: string
 }
+
+export class UpdateExternalPaymentRequestPayloadDto {
+  @IsOptional()
+  @IsNumber()
+  amount?: number
+
+  @IsOptional()
+  @IsString()
+  description?: string
+
+  @IsOptional()
+  @IsDateString()
+  dueDate?: string
+
+  @IsOptional()
+  @IsBoolean()
+  allowPartial?: boolean
+
+  @IsOptional()
+  @IsNumber()
+  minAmount?: number
+
+  @IsOptional()
+  @IsDateString()
+  rentStartDate?: string
+
+  @IsOptional()
+  @IsDateString()
+  rentEndDate?: string
+
+  @IsOptional()
+  @IsString()
+  rentType?: string
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => LineItemDto)
+  lineItems?: LineItemDto[]
+
+  @IsOptional()
+  @IsDateString()
+  scheduledAt?: string
+
+  @IsOptional()
+  @IsBoolean()
+  isRecurring?: boolean
+
+  @IsOptional()
+  @IsString()
+  recurrenceInterval?: string
+}
+
 
 export class AddPropertyPayloadDto {
   @IsUUID()
