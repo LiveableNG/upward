@@ -78,6 +78,59 @@ const UNIT_COLUMNS: ColumnDef[] = [
   { key: 'unitType', label: 'Unit Type', category: 'unit', type: 'select', options: ['Flat / Apartment', 'Duplex', 'Shared Apartment', 'Studio', 'Bungalow', '4 Bedroom Semi-detached Duplex', 'Detached Duplex', '2 Bedroom Flat', '2 Bedroom Serviced Flat', '3 Bedroom Flat', '3 Bedroom Serviced Flat', '2 Bedroom Apartment', 'Studio / Self Contained Flat', 'Mini Flat / 1 Bedroom Flat', 'Flats', 'Terrace House', 'Town House', 'Detached House', 'Semi-detached Duplex', 'Semi-detached House', 'Shortlet Apartment', 'Office Space', 'Studio Room / Self-contain', 'Block Of Flats'] },
 ]
 
+const formatPhoneNumberByCountry = (phone: string, country: string): string => {
+  let cleaned = (phone || '').toString().trim().replace(/\s+/g, '')
+  if (!cleaned) return ''
+
+  if (cleaned.startsWith('+')) {
+    return cleaned
+  }
+
+  const normalizedCountry = (country || '').trim().toLowerCase()
+
+  if (normalizedCountry === 'nigeria') {
+    if (cleaned.startsWith('0') && cleaned.length === 11) {
+      return '+234' + cleaned.substring(1)
+    }
+    if (cleaned.length === 10 && !cleaned.startsWith('0')) {
+      return '+234' + cleaned
+    }
+  }
+
+  if (normalizedCountry === 'ghana') {
+    if (cleaned.startsWith('0') && cleaned.length === 10) {
+      return '+233' + cleaned.substring(1)
+    }
+    if (cleaned.length === 9 && !cleaned.startsWith('0')) {
+      return '+233' + cleaned
+    }
+  }
+
+  if (normalizedCountry === 'united kingdom' || normalizedCountry === 'uk') {
+    if (cleaned.startsWith('0') && cleaned.length === 11) {
+      return '+44' + cleaned.substring(1)
+    }
+    if (cleaned.length === 10 && !cleaned.startsWith('0')) {
+      return '+44' + cleaned
+    }
+  }
+
+  if (normalizedCountry === 'united states' || normalizedCountry === 'us' || normalizedCountry === 'usa' || normalizedCountry === 'canada') {
+    if (cleaned.startsWith('1') && cleaned.length === 11) {
+      return '+' + cleaned
+    }
+    if (cleaned.length === 10) {
+      return '+1' + cleaned
+    }
+  }
+
+  if (!cleaned.startsWith('+') && normalizedCountry === 'nigeria') {
+    return '+234' + cleaned
+  }
+
+  return cleaned
+}
+
 export const DataImportTab: React.FC = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -213,6 +266,17 @@ export const DataImportTab: React.FC = () => {
             mappedRow.tenantEmail = `guest-${cleanFirst}-${cleanLast}-${randomStr}@upward.com`
           }
 
+          const rowCountry = mode === 'full' 
+            ? (mappedRow.propertyCountry || 'Nigeria') 
+            : (properties.find(p => p.uuid === targetPropertyUuid)?.country || 'Nigeria')
+
+          if (mappedRow.tenantPhone) {
+            mappedRow.tenantPhone = formatPhoneNumberByCountry(mappedRow.tenantPhone, rowCountry)
+          }
+          if (mappedRow.landlordPhone) {
+            mappedRow.landlordPhone = formatPhoneNumberByCountry(mappedRow.landlordPhone, rowCountry)
+          }
+
           columns.forEach(col => {
             const errorMsg = validateCell(rowId, col.key, mappedRow[col.key], col, true, mappedRow)
             if (errorMsg) {
@@ -269,17 +333,34 @@ export const DataImportTab: React.FC = () => {
 
   const updateRow = (index: number, field: string, value: any) => {
     const updated = [...previewRows]
-    updated[index][field] = value
+    
+    let formattedValue = value
+    if (field === 'tenantPhone' || field === 'landlordPhone') {
+      const rowCountry = mode === 'full' ? (updated[index].propertyCountry || 'Nigeria') : (properties.find(p => p.uuid === targetPropertyUuid)?.country || 'Nigeria')
+      formattedValue = formatPhoneNumberByCountry(value, rowCountry)
+    }
+
+    updated[index][field] = formattedValue
+
+    if (field === 'propertyCountry') {
+      if (updated[index].tenantPhone) {
+        updated[index].tenantPhone = formatPhoneNumberByCountry(updated[index].tenantPhone, formattedValue)
+      }
+      if (updated[index].landlordPhone) {
+        updated[index].landlordPhone = formatPhoneNumberByCountry(updated[index].landlordPhone, formattedValue)
+      }
+    }
+
     setPreviewRows(updated)
     
     if (['tenantFirstName', 'tenantLastName', 'tenantEmail', 'tenantPhone'].includes(field)) {
       const row = updated[index]
-      const tenantFields = ['tenantFirstName', 'tenantLastName', 'tenantEmail']
+      const tenantFields = ['tenantFirstName', 'tenantLastName', 'tenantEmail', 'tenantPhone']
       tenantFields.forEach(f => {
         validateCell(row.id, f, row[f], undefined, false, row)
       })
     } else {
-      validateCell(updated[index].id, field, value, undefined, false, updated[index])
+      validateCell(updated[index].id, field, formattedValue, undefined, false, updated[index])
     }
     
     // If unitName or propertyName changed, re-validate duplicates
