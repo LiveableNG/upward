@@ -148,6 +148,9 @@ model upward_pm_tenant {
   uuid               String                      @unique @default(uuid())
   pmId               Int
   /// @encrypted
+  commercialNameEncrypted String?
+  commercialNameSearch    String?
+  /// @encrypted
   firstNameEncrypted String?
   firstNameSearch    String?
   /// @encrypted

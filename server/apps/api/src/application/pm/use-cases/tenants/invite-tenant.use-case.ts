@@ -57,7 +57,11 @@ export class InviteTenantUseCase {
       });
     }
 
-    // Generate platform invite link using SingleInviteUseCase
+    const derivedFirstName = tenant.firstName ||
+      (tenant.commercialName ? tenant.commercialName : '');
+    const derivedLastName = tenant.lastName ||
+      (tenant.commercialName ? '(Commercial)' : '');
+
     const invitePayload: InviteRequest = {
       company: {
         name: pm.businessName || 'UPWARD',
@@ -65,8 +69,8 @@ export class InviteTenantUseCase {
       invite: {
         user: {
           email: tenant.email,
-          firstName: tenant.firstName || '',
-          lastName: tenant.lastName || '',
+          firstName: derivedFirstName,
+          lastName: derivedLastName,
           phone: tenant.phone || '',
         },
         properties: await Promise.all((tenant.units || []).map(async unit => {
@@ -108,9 +112,12 @@ export class InviteTenantUseCase {
       if (tenant.email.endsWith('@upward.com')) {
         success = true;
       } else {
+        const displayName = tenant.commercialName ||
+          `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() ||
+          'Tenant';
         success = await this.emailService.sendTenantInvite({
           email: tenant.email,
-          tenantName: `${tenant.firstName} ${tenant.lastName}`.trim() || 'Tenant',
+          tenantName: displayName,
           pmName: pm.businessName || `${pm.firstName} ${pm.lastName}`,
           pmType: pm.pmType,
           inviteLink: inviteResult.inviteLink,

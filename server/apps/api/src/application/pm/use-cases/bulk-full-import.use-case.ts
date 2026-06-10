@@ -72,30 +72,53 @@ export class BulkFullImportUseCase {
       let tenantUuid: string | null = null;
 
       const email = row.tenantEmail?.trim().toLowerCase();
-      if (email) {
-        const emailHash = this.encryption.hash(email);
-        let tenant = await this.tenantRepository.findByEmailHash(pmId, emailHash);
+      const commercialName = (row as any).tenantCommercialName?.trim();
+      const firstName = row.tenantFirstName?.trim();
+      const lastName = row.tenantLastName?.trim();
 
-        if (!tenant) {
-          const existingUser = await this.userRepository.findByEmail(email);
-          const initialStatus = existingUser ? 'ON_UPWARD' : 'PENDING';
+      // A tenant row is valid if it has email, commercialName, or at least a name
+      const hasTenantIdentifier = !!(email || commercialName || firstName || lastName);
 
-          tenant = await this.tenantRepository.create({
+      if (hasTenantIdentifier) {
+        if (email) {
+          const emailHash = this.encryption.hash(email);
+          let tenant = await this.tenantRepository.findByEmailHash(pmId, emailHash);
+
+          if (!tenant) {
+            const existingUser = await this.userRepository.findByEmail(email);
+            const initialStatus = existingUser ? 'ON_UPWARD' : 'PENDING';
+
+            tenant = await this.tenantRepository.create({
+              pmId,
+              commercialName: commercialName || undefined,
+              firstName: firstName || '',
+              lastName: lastName || '',
+              email,
+              phone: row.tenantPhone?.trim() || '',
+              inviteStatus: initialStatus,
+              inviteSentAt: null,
+            });
+          }
+
+          tenantId = tenant.id;
+          tenantUuid = tenant.uuid;
+
+          if (tenant.inviteStatus === 'PENDING') {
+            createdTenantUuids.push(tenant.uuid);
+          }
+        } else {
+          // No email — commercial/unnamed tenant (no invite sent)
+          const tenant = await this.tenantRepository.create({
             pmId,
-            firstName: row.tenantFirstName?.trim() || '',
-            lastName: row.tenantLastName?.trim() || '',
-            email,
-            phone: row.tenantPhone?.trim() || '',
-            inviteStatus: initialStatus,
+            commercialName: commercialName || undefined,
+            firstName: firstName || undefined,
+            lastName: lastName || undefined,
+            phone: row.tenantPhone?.trim() || undefined,
+            inviteStatus: 'PENDING',
             inviteSentAt: null,
           });
-        }
-
-        tenantId = tenant.id;
-        tenantUuid = tenant.uuid;
-
-        if (tenant.inviteStatus === 'PENDING') {
-          createdTenantUuids.push(tenant.uuid);
+          tenantId = tenant.id;
+          tenantUuid = tenant.uuid;
         }
       }
 

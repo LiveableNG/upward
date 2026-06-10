@@ -49,6 +49,7 @@ export interface TenantEntity {
   id: number;
   uuid: string;
   pmId: number;
+  commercialName?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   email?: string | null;
@@ -57,6 +58,8 @@ export interface TenantEntity {
   firstNameSearch?: string | null;
   lastNameEncrypted?: string | null;
   lastNameSearch?: string | null;
+  commercialNameEncrypted?: string | null;
+  commercialNameSearch?: string | null;
   emailEncrypted?: string | null;
   emailHash?: string | null;
   phoneEncrypted?: string | null;

@@ -318,7 +318,7 @@ export class SingleInviteUseCase {
           await this.resolveDedicatedAccount.execute({
             userPropertyId: property.id,
             tenantEmail: user.email!,
-            tenantName: `${user.firstName} ${user.lastName}`,
+            tenantName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email!.split('@')[0],
             tenantPhone: user.phone ?? undefined,
           });
         } catch (e: any) {

@@ -31,10 +31,19 @@ export class BulkCreateUnitsUseCase {
       throw new Error('Unauthorized to add units to this property');
     }
 
-    const phoneRegex = /^\+234\d{10}$/;
     for (const u of dto.units) {
-      if (u.tenantPhone && !phoneRegex.test(u.tenantPhone)) {
-        throw new Error(`Invalid phone format for tenant ${u.tenantEmail || u.tenantFirstName}. Must be +2348000000000`);
+      if (u.tenantPhone) {
+        let cleaned = u.tenantPhone.trim().replace(/\s+/g, '');
+        if (cleaned.startsWith('0') && cleaned.length === 11) {
+          cleaned = '+234' + cleaned.substring(1);
+        } else if (!cleaned.startsWith('+') && cleaned.length === 10) {
+          cleaned = '+234' + cleaned;
+        }
+
+        if (!/^\+\d{7,15}$/.test(cleaned)) {
+          throw new Error(`Invalid phone format for tenant ${u.tenantEmail || u.tenantFirstName || u.tenantCommercialName || 'unknown'}. Must be in international format (e.g. +234...)`);
+        }
+        u.tenantPhone = cleaned;
       }
     }
 
@@ -47,8 +56,11 @@ export class BulkCreateUnitsUseCase {
       let initialStatus = 'PENDING';
 
       const email = u.tenantEmail?.trim();
+      const commercialName = u.tenantCommercialName?.trim();
       const firstName = u.tenantFirstName?.trim();
       const lastName = u.tenantLastName?.trim();
+
+      const hasTenantIdentifier = !!(email || commercialName || firstName || lastName);
 
       if (u.tenantUuid) {
         const tenant = await this.tenantRepository.findByUuid(u.tenantUuid);
@@ -56,32 +68,47 @@ export class BulkCreateUnitsUseCase {
           tenantId = tenant.id;
           initialStatus = tenant.inviteStatus;
         }
-      } else if (email) {
-        const emailHash = this.encryption.hash(email);
-        let tenant = await this.tenantRepository.findByEmailHash(pmId, emailHash);
-        if (!tenant && pmId !== property.pmId) {
-          tenant = await this.tenantRepository.findByEmailHash(property.pmId, emailHash);
-        }
+      } else if (hasTenantIdentifier) {
+        if (email) {
+          const emailHash = this.encryption.hash(email);
+          let tenant = await this.tenantRepository.findByEmailHash(pmId, emailHash);
+          if (!tenant && pmId !== property.pmId) {
+            tenant = await this.tenantRepository.findByEmailHash(property.pmId, emailHash);
+          }
 
-        if (!tenant) {
-          const existingUser = await this.userRepository.findByEmail(email);
-          initialStatus = existingUser ? 'ON_UPWARD' : 'PENDING';
+          if (!tenant) {
+            const existingUser = await this.userRepository.findByEmail(email);
+            initialStatus = existingUser ? 'ON_UPWARD' : 'PENDING';
 
-          tenant = await this.tenantRepository.create({
+            tenant = await this.tenantRepository.create({
+              pmId,
+              commercialName: commercialName || undefined,
+              firstName: firstName || '',
+              lastName: lastName || '',
+              email: email,
+              phone: u.tenantPhone?.trim() || '',
+              inviteStatus: initialStatus,
+              inviteSentAt: null,
+            });
+          } else {
+            initialStatus = tenant.inviteStatus;
+          }
+          tenantId = tenant.id;
+          if (tenant.inviteStatus === 'PENDING') {
+            createdTenantUuids.push(tenant.uuid);
+          }
+        } else {
+          // No email - create guest tenant
+          const tenant = await this.tenantRepository.create({
             pmId,
-            firstName: firstName || '',
-            lastName: lastName || '',
-            email: email,
-            phone: u.tenantPhone?.trim() || '',
-            inviteStatus: initialStatus,
+            commercialName: commercialName || undefined,
+            firstName: firstName || undefined,
+            lastName: lastName || undefined,
+            phone: u.tenantPhone?.trim() || undefined,
+            inviteStatus: 'PENDING',
             inviteSentAt: null,
           });
-        } else {
-          initialStatus = tenant.inviteStatus;
-        }
-        tenantId = tenant.id;
-        if (tenant.inviteStatus === 'PENDING') {
-          createdTenantUuids.push(tenant.uuid);
+          tenantId = tenant.id;
         }
       }
 

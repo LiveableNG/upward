@@ -44,9 +44,10 @@ const FULL_COLUMNS: ColumnDef[] = [
   { key: 'landlordEmail', label: 'Landlord Email', category: 'landlord', type: 'email' },
   { key: 'landlordPhone', label: 'Landlord Phone', category: 'landlord', type: 'tel' },
 
-  { key: 'tenantFirstName', label: 'Tenant First', category: 'tenant', required: true },
-  { key: 'tenantLastName', label: 'Tenant Last', category: 'tenant', required: true },
-  { key: 'tenantEmail', label: 'Tenant Email', category: 'tenant', required: true, type: 'email' },
+  { key: 'tenantCommercialName', label: 'Tenant Commercial Name', category: 'tenant' },
+  { key: 'tenantFirstName', label: 'Tenant First', category: 'tenant' },
+  { key: 'tenantLastName', label: 'Tenant Last', category: 'tenant' },
+  { key: 'tenantEmail', label: 'Tenant Email', category: 'tenant', type: 'email' },
   { key: 'tenantPhone', label: 'Tenant Phone', category: 'tenant', type: 'tel' },
 
   { key: 'unitName', label: 'Unit Name', category: 'unit', required: true },
@@ -63,9 +64,10 @@ const FULL_COLUMNS: ColumnDef[] = [
 
 const UNIT_COLUMNS: ColumnDef[] = [
   { key: 'unitName', label: 'Unit Name', category: 'unit', required: true },
-  { key: 'tenantFirstName', label: 'Tenant First', category: 'tenant', required: true },
-  { key: 'tenantLastName', label: 'Tenant Last', category: 'tenant', required: true },
-  { key: 'tenantEmail', label: 'Tenant Email', category: 'tenant', required: true, type: 'email' },
+  { key: 'tenantCommercialName', label: 'Tenant Commercial Name', category: 'tenant' },
+  { key: 'tenantFirstName', label: 'Tenant First', category: 'tenant' },
+  { key: 'tenantLastName', label: 'Tenant Last', category: 'tenant' },
+  { key: 'tenantEmail', label: 'Tenant Email', category: 'tenant', type: 'email' },
   { key: 'tenantPhone', label: 'Tenant Phone', category: 'tenant', type: 'tel' },
   { key: 'rentAmount', label: 'Rent Amount', category: 'unit', required: true, type: 'number' },
   { key: 'rentAmountPaid', label: 'Amount Paid', category: 'unit', type: 'number' },
@@ -160,24 +162,27 @@ export const DataImportTab: React.FC = () => {
     const headers = columns.map(c => c.label)
     
     const rows = mode === 'full' ? [
-      // Property 1: 5 Units, same Landlord
-      ['Emerald Court', '12 Admiralty Way, Lekki', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', 'John', 'Doe', 'john@tenant.com', '+2348033334444', 'Apt 101', '2500000', '2500000', 'Annually', 'NGN', '2024-01-01', '2025-01-01', '250000', 'Tenant with 3 units across 3 properties', 'Flat / Apartment'],
-      ['Emerald Court', '12 Admiralty Way, Lekki', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', 'Jane', 'Smith', 'jane@tenant.com', '+2348044445555', 'Apt 102', '2500000', '2500000', 'Annually', 'NGN', '2024-01-01', '2025-01-01', '250000', 'Standard Unit', 'Flat / Apartment'],
-      ['Emerald Court', '12 Admiralty Way, Lekki', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', 'Robert', 'Jackson', 'rob@tenant.com', '+2348055556666', 'Apt 103', '2500000', '0', 'Annually', 'NGN', '2024-01-01', '2025-01-01', '250000', 'Unpaid record', 'Flat / Apartment'],
-      ['Emerald Court', '12 Admiralty Way, Lekki', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', 'Emily', 'Davis', 'emily@tenant.com', '+2348066667777', 'Apt 104', '2500000', '2500000', 'Annually', 'NGN', '2024-01-01', '2025-01-01', '250000', 'Standard Unit', 'Flat / Apartment'],
-      ['Emerald Court', '12 Admiralty Way, Lekki', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', 'Michael', 'Brown', 'mike@tenant.com', '+2348077778888', 'Apt 105', '2500000', '2500000', 'Annually', 'NGN', '2024-01-01', '2025-01-01', '250000', 'Property with 5 units total', 'Flat / Apartment'],
+      // Property 1: 5 Units, same Landlord (TenantCommercialName is empty for regular tenants)
+      ['Emerald Court', '12 Admiralty Way, Lekki', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', '', 'John', 'Doe', 'john@tenant.com', '+2348033334444', 'Apt 101', '2500000', '2500000', 'Annually', 'NGN', '2024-01-01', '2025-01-01', '250000', 'Tenant with 3 units across 3 properties', 'Flat / Apartment'],
+      ['Emerald Court', '12 Admiralty Way, Lekki', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', '', 'Jane', 'Smith', 'jane@tenant.com', '+2348044445555', 'Apt 102', '2500000', '2500000', 'Annually', 'NGN', '2024-01-01', '2025-01-01', '250000', 'Standard Unit', 'Flat / Apartment'],
+      ['Emerald Court', '12 Admiralty Way, Lekki', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', '', 'Robert', 'Jackson', 'rob@tenant.com', '+2348055556666', 'Apt 103', '2500000', '0', 'Annually', 'NGN', '2024-01-01', '2025-01-01', '250000', 'Unpaid record', 'Flat / Apartment'],
+      // Commercial tenant example — use TenantCommercialName, leave first/last/email blank
+      ['Emerald Court', '12 Admiralty Way, Lekki', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', 'Acme Holdings Ltd', '', '', '', '+2348066667777', 'Apt 104', '2500000', '2500000', 'Annually', 'NGN', '2024-01-01', '2025-01-01', '250000', 'Commercial entity tenant', 'Office Space'],
+      ['Emerald Court', '12 Admiralty Way, Lekki', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', '', 'Michael', 'Brown', 'mike@tenant.com', '+2348077778888', 'Apt 105', '2500000', '2500000', 'Annually', 'NGN', '2024-01-01', '2025-01-01', '250000', 'Property with 5 units total', 'Flat / Apartment'],
 
       // Property 2: Same Landlord (Alice), Same Tenant (John Doe)
-      ['Sapphire Heights', '45 Glover Road, Ikoyi', 'Residential', 'Nigeria', 'Lagos', 'Ikoyi', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', 'John', 'Doe', 'john@tenant.com', '+2348033334444', 'Suite 2A', '3500000', '3500000', 'Annually', 'NGN', '2024-02-01', '2025-02-01', '350000', 'Landlord with multiple properties', 'Office Space'],
-      ['Sapphire Heights', '45 Glover Road, Ikoyi', 'Residential', 'Nigeria', 'Lagos', 'Ikoyi', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', 'Sarah', 'Lee', 'sarah@tenant.com', '+2348088889999', 'Suite 2B', '3500000', '3500000', 'Annually', 'NGN', '2024-02-01', '2025-02-01', '350000', 'Commercial Unit', 'Office Space'],
+      ['Sapphire Heights', '45 Glover Road, Ikoyi', 'Residential', 'Nigeria', 'Lagos', 'Ikoyi', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', '', 'John', 'Doe', 'john@tenant.com', '+2348033334444', 'Suite 2A', '3500000', '3500000', 'Annually', 'NGN', '2024-02-01', '2025-02-01', '350000', 'Landlord with multiple properties', 'Office Space'],
+      ['Sapphire Heights', '45 Glover Road, Ikoyi', 'Residential', 'Nigeria', 'Lagos', 'Ikoyi', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', '', 'Sarah', 'Lee', 'sarah@tenant.com', '+2348088889999', 'Suite 2B', '3500000', '3500000', 'Annually', 'NGN', '2024-02-01', '2025-02-01', '350000', 'Commercial Unit', 'Office Space'],
 
       // Property 3: New Landlord, Same Tenant (John Doe)
-      ['Ruby Terraces', '88 Isaac John St, Ikeja', 'Residential', 'Nigeria', 'Lagos', 'Ikeja GRA', 'Charlie', 'Ventures', 'charlie@ventures.com', '+2348033334444', 'John', 'Doe', 'john@tenant.com', '+2348033334444', 'Flat 1', '1800000', '1800000', 'Annually', 'NGN', '2024-03-01', '2025-03-01', '180000', 'Tenant with 3 units total', 'Flat / Apartment'],
-      ['Ruby Terraces', '88 Isaac John St, Ikeja', 'Residential', 'Nigeria', 'Lagos', 'Ikeja GRA', 'Charlie', 'Ventures', 'charlie@ventures.com', '+2348033334444', 'Olivia', 'Taylor', 'olivia@tenant.com', '+2348099990000', 'Flat 2', '1800000', '1800000', 'Annually', 'NGN', '2024-03-01', '2025-03-01', '180000', 'Standard Unit', 'Flat / Apartment'],
+      ['Ruby Terraces', '88 Isaac John St, Ikeja', 'Residential', 'Nigeria', 'Lagos', 'Ikeja GRA', 'Charlie', 'Ventures', 'charlie@ventures.com', '+2348033334444', '', 'John', 'Doe', 'john@tenant.com', '+2348033334444', 'Flat 1', '1800000', '1800000', 'Annually', 'NGN', '2024-03-01', '2025-03-01', '180000', 'Tenant with 3 units total', 'Flat / Apartment'],
+      ['Ruby Terraces', '88 Isaac John St, Ikeja', 'Residential', 'Nigeria', 'Lagos', 'Ikeja GRA', 'Charlie', 'Ventures', 'charlie@ventures.com', '+2348033334444', '', 'Olivia', 'Taylor', 'olivia@tenant.com', '+2348099990000', 'Flat 2', '1800000', '1800000', 'Annually', 'NGN', '2024-03-01', '2025-03-01', '180000', 'Standard Unit', 'Flat / Apartment'],
     ] : [
-      ['101', 'John', 'Doe', 'john@example.com', '+2348012345678', '2000000', '2000000', '2024-01-01', '2024-05-01', 'Monthly', '200000', 'NGN', 'Tenant Unit 1', 'Flat / Apartment'],
-      ['102', 'Jane', 'Smith', 'jane@example.com', '+2348023456789', '2500000', '2500000', '2024-02-01', '2025-02-01', 'Annually', '250000', 'NGN', 'Tenant Unit 2', 'Flat / Apartment'],
-      ['101', 'John', 'Doe', 'john@example.com', '+2348012345678', '1500000', '1500000', '2024-03-01', '2025-03-01', 'Annually', '150000', 'NGN', 'Tenant Unit 3', 'Flat / Apartment'],
+      // Units-only: TenantCommercialName is after unitName, before TenantFirst
+      ['101', '', 'John', 'Doe', 'john@example.com', '+2348012345678', '2000000', '2000000', '2024-01-01', '2024-05-01', 'Monthly', '200000', 'NGN', 'Tenant Unit 1', 'Flat / Apartment'],
+      ['102', '', 'Jane', 'Smith', 'jane@example.com', '+2348023456789', '2500000', '2500000', '2024-02-01', '2025-02-01', 'Annually', '250000', 'NGN', 'Tenant Unit 2', 'Flat / Apartment'],
+      // Commercial tenant example for units-only mode
+      ['103', 'TechCorp Ltd', '', '', '', '+2348023456789', '3000000', '3000000', '2024-03-01', '2025-03-01', 'Annually', '300000', 'NGN', 'Commercial Office Unit', 'Office Space'],
     ]
 
     const csvContent = [headers, ...rows].map(e => e.map(cell => `"${cell}"`).join(',')).join('\n')
@@ -198,6 +203,7 @@ export const DataImportTab: React.FC = () => {
     
     const row = rowData || previewRows.find(r => r.id === rowId)
     const hasAnyTenantData = row ? [
+      row.tenantCommercialName,
       row.tenantFirstName,
       row.tenantLastName,
       row.tenantEmail,
@@ -259,11 +265,13 @@ export const DataImportTab: React.FC = () => {
           })
           
           const hasTenantName = !!(mappedRow.tenantFirstName?.trim() || mappedRow.tenantLastName?.trim())
-          if (hasTenantName && (!mappedRow.tenantEmail || mappedRow.tenantEmail.trim() === '')) {
-            const cleanFirst = (mappedRow.tenantFirstName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-            const cleanLast = (mappedRow.tenantLastName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+          const hasCommercialName = !!(mappedRow.tenantCommercialName?.trim())
+          if ((hasTenantName || hasCommercialName) && (!mappedRow.tenantEmail || mappedRow.tenantEmail.trim() === '')) {
+            const cleanName = hasCommercialName
+              ? (mappedRow.tenantCommercialName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+              : `${(mappedRow.tenantFirstName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}-${(mappedRow.tenantLastName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}`
             const randomStr = Math.random().toString(36).substring(2, 8)
-            mappedRow.tenantEmail = `guest-${cleanFirst}-${cleanLast}-${randomStr}@upward.com`
+            mappedRow.tenantEmail = `guest-${cleanName}-${randomStr}@upward.com`
           }
 
           const rowCountry = mode === 'full' 
