@@ -14,7 +14,9 @@ import { cn } from '@/lib/utils'
 const tenantSchema = z.object({
   firstName: z.string().min(2, 'First name is required'),
   lastName: z.string().min(2, 'Last name is required'),
-  email: z.string().email('Invalid email address'),
+  email: z.string().optional().refine((val) => !val || val.trim() === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+    message: 'Invalid email address'
+  }),
   phone: z.string().refine((val) => !val || isValidPhoneNumber(val), {
     message: 'Invalid international phone number (e.g. +234...)'
   }),
@@ -179,6 +181,21 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
   const onSubmit = async (data: TenantFormData) => {
     const { unitUuid, rentAmount, rentType, rentStartDate, rentEndDate, ...tenantData } = data
 
+    let email = tenantData.email || ''
+    if (!email || email.trim() === '') {
+      const cleanFirst = (tenantData.firstName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const cleanLast = (tenantData.lastName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const randomStr = Math.random().toString(36).substring(2, 8)
+      email = `guest-${cleanFirst}-${cleanLast}-${randomStr}@upward.com`
+    }
+
+    const tenantPayload = {
+      firstName: tenantData.firstName,
+      lastName: tenantData.lastName,
+      email,
+      phone: tenantData.phone
+    }
+
     if (showLeaseFields && assignMode === 'create') {
       if (!selectedPropertyId) {
         alert('Please select or create a property')
@@ -238,7 +255,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
           throw new Error('Failed to retrieve newly created unit')
         }
 
-        createTenant.mutate(tenantData, {
+        createTenant.mutate(tenantPayload, {
           onSuccess: (tenant) => {
             assignTenant.mutate({
               tenantUuid: tenant.uuid,
@@ -262,7 +279,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
         setIsCreatingUnit(false)
       }
     } else {
-      createTenant.mutate(tenantData, {
+      createTenant.mutate(tenantPayload, {
         onSuccess: (tenant) => {
           if (showLeaseFields && unitUuid && rentAmount && rentType && rentStartDate && rentEndDate) {
             assignTenant.mutate({

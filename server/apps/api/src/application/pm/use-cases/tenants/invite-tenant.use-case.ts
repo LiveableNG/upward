@@ -105,14 +105,18 @@ export class InviteTenantUseCase {
 
     let success = true;
     if (!isActuallyOnUpward) {
-      success = await this.emailService.sendTenantInvite({
-        email: tenant.email,
-        tenantName: `${tenant.firstName} ${tenant.lastName}`.trim() || 'Tenant',
-        pmName: pm.businessName || `${pm.firstName} ${pm.lastName}`,
-        pmType: pm.pmType,
-        inviteLink: inviteResult.inviteLink,
-        pmUuid: pm.uuid,
-      });
+      if (tenant.email.endsWith('@upward.com')) {
+        success = true;
+      } else {
+        success = await this.emailService.sendTenantInvite({
+          email: tenant.email,
+          tenantName: `${tenant.firstName} ${tenant.lastName}`.trim() || 'Tenant',
+          pmName: pm.businessName || `${pm.firstName} ${pm.lastName}`,
+          pmType: pm.pmType,
+          inviteLink: inviteResult.inviteLink,
+          pmUuid: pm.uuid,
+        });
+      }
     }
 
     if (success) {

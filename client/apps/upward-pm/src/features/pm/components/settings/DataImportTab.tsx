@@ -139,11 +139,22 @@ export const DataImportTab: React.FC = () => {
     success('Template downloaded!')
   }
 
-  const validateCell = (rowId: number, field: string, value: any, colDef?: ColumnDef, silent = false) => {
+  const validateCell = (rowId: number, field: string, value: any, colDef?: ColumnDef, silent = false, rowData?: any) => {
     let errorMsg = ''
     const config = colDef || columns.find(c => c.key === field)
     
-    if (config?.required && !value && value !== 0) {
+    const row = rowData || previewRows.find(r => r.id === rowId)
+    const hasAnyTenantData = row ? [
+      row.tenantFirstName,
+      row.tenantLastName,
+      row.tenantEmail,
+      row.tenantPhone
+    ].some(val => val && val.toString().trim() !== '') : false
+
+    const isTenantField = ['tenantFirstName', 'tenantLastName', 'tenantEmail'].includes(field)
+    const isRequired = config?.required && !(isTenantField && !hasAnyTenantData)
+
+    if (isRequired && !value && value !== 0) {
       errorMsg = 'Required'
     } else if (config?.type === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
       errorMsg = 'Invalid email'
@@ -192,7 +203,18 @@ export const DataImportTab: React.FC = () => {
             } else {
               mappedRow[col.key] = val
             }
-            const errorMsg = validateCell(rowId, col.key, mappedRow[col.key], col, true)
+          })
+          
+          const hasTenantName = !!(mappedRow.tenantFirstName?.trim() || mappedRow.tenantLastName?.trim())
+          if (hasTenantName && (!mappedRow.tenantEmail || mappedRow.tenantEmail.trim() === '')) {
+            const cleanFirst = (mappedRow.tenantFirstName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+            const cleanLast = (mappedRow.tenantLastName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+            const randomStr = Math.random().toString(36).substring(2, 8)
+            mappedRow.tenantEmail = `guest-${cleanFirst}-${cleanLast}-${randomStr}@upward.com`
+          }
+
+          columns.forEach(col => {
+            const errorMsg = validateCell(rowId, col.key, mappedRow[col.key], col, true, mappedRow)
             if (errorMsg) {
               newErrors[`${rowId}-${col.key}`] = errorMsg
             }
@@ -205,6 +227,9 @@ export const DataImportTab: React.FC = () => {
         const filteredRows = rows.filter((row: any) => {
           const propertyKey = mode === 'full' ? (row.propertyName || '').trim().toLowerCase() : (properties.find(p => p.uuid === targetPropertyUuid)?.name || '').trim().toLowerCase()
           const unitKey = (row.unitName || '').trim().toLowerCase()
+          
+          if (!unitKey) return true
+
           const fullKey = `${propertyKey}|${unitKey}`
           
           if (seenUnits.has(fullKey)) return false
@@ -246,7 +271,16 @@ export const DataImportTab: React.FC = () => {
     const updated = [...previewRows]
     updated[index][field] = value
     setPreviewRows(updated)
-    validateCell(updated[index].id, field, value)
+    
+    if (['tenantFirstName', 'tenantLastName', 'tenantEmail', 'tenantPhone'].includes(field)) {
+      const row = updated[index]
+      const tenantFields = ['tenantFirstName', 'tenantLastName', 'tenantEmail']
+      tenantFields.forEach(f => {
+        validateCell(row.id, f, row[f], undefined, false, row)
+      })
+    } else {
+      validateCell(updated[index].id, field, value, undefined, false, updated[index])
+    }
     
     // If unitName or propertyName changed, re-validate duplicates
     if (field === 'unitName' || field === 'propertyName') {
@@ -315,7 +349,7 @@ export const DataImportTab: React.FC = () => {
     
     // Initial validation for the new row
     columns.forEach(col => {
-      validateCell(rowId, col.key, newRow[col.key], col)
+      validateCell(rowId, col.key, newRow[col.key], col, false, newRow)
     })
   }
 
