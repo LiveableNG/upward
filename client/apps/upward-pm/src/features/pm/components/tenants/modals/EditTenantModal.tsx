@@ -143,6 +143,10 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
             {/* Section: Personal Info */}
             <div style={{ marginBottom: 32 }}>
               <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 16 }}>Personal Information</h3>
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label className="form-label">Commercial / Business Name (Optional fallback)</label>
+                <input type="text" className="form-input" {...register('commercialName')} />
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div className="form-group">
                   <label className="form-label">First Name</label>
