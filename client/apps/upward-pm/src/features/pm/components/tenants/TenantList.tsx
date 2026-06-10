@@ -30,7 +30,7 @@ export const TenantList: React.FC = () => {
 
   const filteredTenants = useMemo(() => {
     return tenants.filter(t => {
-      const fullName = `${t.firstName} ${t.lastName}`.toLowerCase()
+      const fullName = (t.commercialName || `${t.firstName || ''} ${t.lastName || ''}`.trim()).toLowerCase()
       const email = (t.email || '').toLowerCase()
       const query = searchQuery.toLowerCase()
       
@@ -90,11 +90,11 @@ export const TenantList: React.FC = () => {
             fontWeight: 700,
             flexShrink: 0
           }}>
-            {((tenant.firstName || '')[0] || '').toUpperCase()}
+            {((tenant.commercialName || tenant.firstName || 'T')[0] || '').toUpperCase()}
           </div>
           <div>
             <div style={{ fontWeight: 700, color: 'var(--dark)', fontSize: 14, marginBottom: 2 }}>
-              {tenant.firstName} {tenant.lastName}
+              {tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim()}
             </div>
             {tenant.email?.endsWith('@upward.com') ? (
               <div style={{ fontSize: 12, color: 'var(--error)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>

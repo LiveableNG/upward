@@ -9,8 +9,9 @@ import { PhoneInput } from '@/components/common/PhoneInput'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 
 const tenantSchema = z.object({
-  firstName: z.string().min(2, 'First name is required'),
-  lastName: z.string().min(2, 'Last name is required'),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  commercialName: z.string().optional(),
   email: z.string().optional().refine((val) => !val || val.trim() === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
     message: 'Invalid email address'
   }),
@@ -27,6 +28,24 @@ const tenantSchema = z.object({
   emergencyContactName: z.string().optional(),
   emergencyContactEmail: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
+}).superRefine((data, ctx) => {
+  // If no commercialName is set, we need firstName and lastName
+  if (!data.commercialName || data.commercialName.trim() === '') {
+    if (!data.firstName || data.firstName.trim().length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['firstName'],
+        message: 'First name is required (or provide Commercial Name)'
+      });
+    }
+    if (!data.lastName || data.lastName.trim().length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['lastName'],
+        message: 'Last name is required (or provide Commercial Name)'
+      });
+    }
+  }
 })
 
 type TenantFormData = z.infer<typeof tenantSchema>
@@ -52,6 +71,7 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
     defaultValues: {
       firstName: '',
       lastName: '',
+      commercialName: '',
       email: '',
       phone: '',
       formerAddress: '',
@@ -72,6 +92,7 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
       reset({
         firstName: tenant.firstName || '',
         lastName: tenant.lastName || '',
+        commercialName: tenant.commercialName || '',
         email: tenant.email?.endsWith('@upward.com') ? '' : (tenant.email || ''),
         phone: tenant.phone || '',
         formerAddress: tenant.formerAddress || '',

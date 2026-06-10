@@ -12,8 +12,9 @@ import { isValidPhoneNumber } from 'libphonenumber-js'
 import { cn } from '@/lib/utils'
 
 const tenantSchema = z.object({
-  firstName: z.string().min(2, 'First name is required'),
-  lastName: z.string().min(2, 'Last name is required'),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  commercialName: z.string().optional(),
   email: z.string().optional().refine((val) => !val || val.trim() === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
     message: 'Invalid email address'
   }),
@@ -27,6 +28,23 @@ const tenantSchema = z.object({
   rentStartDate: z.string().optional(),
   rentEndDate: z.string().optional(),
 }).superRefine((data, ctx) => {
+  // If no commercialName is set, we need firstName and lastName
+  if (!data.commercialName || data.commercialName.trim() === '') {
+    if (!data.firstName || data.firstName.trim().length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['firstName'],
+        message: 'First name is required (or provide Commercial Name)'
+      });
+    }
+    if (!data.lastName || data.lastName.trim().length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['lastName'],
+        message: 'Last name is required (or provide Commercial Name)'
+      });
+    }
+  }
 
   if (data.unitUuid && data.unitUuid.trim() !== '') {
     if (!data.rentAmount || parseFloat(data.rentAmount) <= 0) {
@@ -112,6 +130,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
     defaultValues: {
       firstName: initialData?.firstName || '',
       lastName: initialData?.lastName || '',
+      commercialName: '',
       email: initialData?.email || '',
       phone: initialData?.phone || '',
       unitUuid: '',
@@ -185,13 +204,16 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
     if (!email || email.trim() === '') {
       const cleanFirst = (tenantData.firstName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
       const cleanLast = (tenantData.lastName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const cleanComm = (tenantData.commercialName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const namePart = cleanFirst && cleanLast ? `${cleanFirst}-${cleanLast}` : cleanComm || 'tenant'
       const randomStr = Math.random().toString(36).substring(2, 8)
-      email = `guest-${cleanFirst}-${cleanLast}-${randomStr}@upward.com`
+      email = `guest-${namePart}-${randomStr}@upward.com`
     }
 
     const tenantPayload = {
-      firstName: tenantData.firstName,
-      lastName: tenantData.lastName,
+      firstName: tenantData.firstName || '',
+      lastName: tenantData.lastName || '',
+      commercialName: tenantData.commercialName || undefined,
       email,
       phone: tenantData.phone
     }
@@ -382,6 +404,19 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
             {isJoinRequest ? 'Tenant Profile (pre-filled from request)' : 'Tenant Details'}
           </div>
           <div className="form-section">
+            {!isJoinRequest && (
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label className="form-label">Commercial / Business Name (Optional fallback)</label>
+                <input
+                  type="text"
+                  className={cn("form-input", errors.commercialName && "form-input--error")}
+                  placeholder="e.g. Acme Holdings Ltd"
+                  {...register('commercialName')}
+                />
+                {errors.commercialName && <span className="form-error-text">{errors.commercialName.message}</span>}
+              </div>
+            )}
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="form-group">
                 <label className="form-label">First Name</label>

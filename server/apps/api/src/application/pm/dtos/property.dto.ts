@@ -101,6 +101,10 @@ export class UnitImportDto {
 
   @IsString()
   @IsOptional()
+  tenantCommercialName?: string;
+
+  @IsString()
+  @IsOptional()
   tenantFirstName?: string;
 
   @IsString()
@@ -224,15 +228,22 @@ export class FullImportRowDto {
   @IsOptional()
   landlordPhone?: string;
 
-  // Tenant (email required)
+  // Tenant (all optional - either firstName+lastName OR commercialName is sufficient)
   @IsString()
-  tenantFirstName!: string;
+  @IsOptional()
+  tenantCommercialName?: string;
 
   @IsString()
-  tenantLastName!: string;
+  @IsOptional()
+  tenantFirstName?: string;
 
   @IsString()
-  tenantEmail!: string;
+  @IsOptional()
+  tenantLastName?: string;
+
+  @IsString()
+  @IsOptional()
+  tenantEmail?: string;
 
   @IsString()
   @IsOptional()

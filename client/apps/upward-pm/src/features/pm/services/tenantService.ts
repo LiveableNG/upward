@@ -1,18 +1,20 @@
 import { request } from '@/lib/api-client'
 
 export interface CreateTenantDto {
-  firstName: string;
-  lastName: string;
-  email: string;
+  commercialName?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
   phone?: string;
 }
 
 export interface Tenant {
   id: number;
   uuid: string;
-  firstName: string;
-  lastName: string;
-  email: string;
+  commercialName?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
   phone?: string;
   inviteStatus: string;
   inviteSentAt: string | null;
