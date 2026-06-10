@@ -114,7 +114,54 @@ export function CreateTemplateModal({ isOpen, onClose }: CreateTemplateModalProp
         </div>
         
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: 400 }}>
-          <label className="form-label" style={{ marginBottom: 10, display: 'block' }}>Template Content</label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <label className="form-label" style={{ margin: 0 }}>Template Content</label>
+            <div>
+              <button
+                type="button"
+                onClick={() => document.getElementById('template-word-upload')?.click()}
+                className="btn btn--secondary"
+                style={{ 
+                  borderRadius: 10, 
+                  padding: '4px 12px', 
+                  height: 32, 
+                  fontSize: 12, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 6,
+                  border: '1px solid var(--border-strong)',
+                  cursor: 'pointer',
+                  background: 'none'
+                }}
+              >
+                <FileText size={14} /> Import from Word (.docx)
+              </button>
+              <input
+                id="template-word-upload"
+                type="file"
+                accept=".docx"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+
+                  try {
+                    const arrayBuffer = await file.arrayBuffer()
+                    const mammoth = (await import('mammoth')).default
+                    const result = await mammoth.convertToHtml({ arrayBuffer })
+                    setContent(result.value)
+                    if (!name) {
+                      setName(file.name.replace('.docx', ''))
+                    }
+                    success('Word document imported successfully')
+                  } catch (err) {
+                    console.error('Failed to convert word doc:', err)
+                    error('Failed to convert Word document')
+                  }
+                }}
+              />
+            </div>
+          </div>
           <div style={{ flex: 1, borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', minHeight: 400 }}>
             <RichTextEditor 
               value={content}
