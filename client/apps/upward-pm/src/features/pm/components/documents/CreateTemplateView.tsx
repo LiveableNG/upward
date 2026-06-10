@@ -1,0 +1,454 @@
+'use client'
+
+import React, { useState, useRef } from 'react'
+import { ChevronLeft, ChevronDown, FileText, Upload, Sparkles } from 'lucide-react'
+import { RichTextEditor } from '@/components/common/RichTextEditor'
+import { useDocuments } from '../../hooks/useDocuments'
+import { useToast } from '@/components/common/Toast'
+
+interface CreateTemplateViewProps {
+  onBack: () => void
+  onCreated?: () => void
+}
+
+const TEMPLATE_TYPES = [
+  { value: 'RENT_REVIEW', label: 'Rent Review' },
+  { value: 'RENT_RENEWAL', label: 'Rent Renewal' },
+  { value: 'LEASE_AGREEMENT', label: 'Lease Agreement' },
+  { value: 'EVICTION_NOTICE', label: 'Eviction Notice' },
+  { value: 'CUSTOM', label: 'Custom Template' },
+]
+
+export function CreateTemplateView({ onBack, onCreated }: CreateTemplateViewProps) {
+  const { success, error } = useToast()
+  const { saveTemplate } = useDocuments()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [name, setName] = useState('')
+  const [type, setType] = useState('RENT_REVIEW')
+  const [content, setContent] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
+
+  const handleCreate = async () => {
+    if (!name.trim()) return error('Please enter a template name')
+    if (!content.trim()) return error('Please add some content to the template')
+
+    setIsSaving(true)
+    try {
+      await saveTemplate.mutateAsync({ name, type, content })
+      success('Template created successfully')
+      onCreated?.()
+      onBack()
+    } catch (err) {
+      error('Failed to create template')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleWordImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsImporting(true)
+    try {
+      const arrayBuffer = await file.arrayBuffer()
+      const mammoth = (await import('mammoth')).default
+      const result = await mammoth.convertToHtml({ arrayBuffer })
+      setContent(result.value)
+      if (!name.trim()) {
+        setName(file.name.replace(/\.docx$/i, ''))
+      }
+      success('Word document imported — edit before saving')
+    } catch (err) {
+      console.error('Failed to convert word doc:', err)
+      error('Failed to import Word document')
+    } finally {
+      setIsImporting(false)
+      // Reset input so the same file can be re-imported if needed
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const selectedType = TEMPLATE_TYPES.find(t => t.value === type)
+
+  return (
+    <div className="create-template-view animate-fade-in">
+
+      {/* ── Header ───────────────────────────────────────── */}
+      <header className="create-template-view__header">
+        <div>
+          <button onClick={onBack} className="create-template-view__back-btn">
+            <ChevronLeft size={18} /> Back to Documents
+          </button>
+          <div className="create-template-view__title-row">
+            <div className="create-template-view__title-icon">
+              <FileText size={20} />
+            </div>
+            <div>
+              <h1 className="create-template-view__title">
+                {name.trim() ? name : 'New Template'}
+              </h1>
+              <p className="create-template-view__subtitle">
+                {selectedType?.label} · Draft
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="create-template-view__actions">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isImporting}
+            className="btn btn--secondary create-template-view__import-btn"
+          >
+            <Upload size={16} />
+            {isImporting ? 'Importing...' : 'Import Word (.docx)'}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".docx"
+            style={{ display: 'none' }}
+            onChange={handleWordImport}
+          />
+          <button
+            onClick={onBack}
+            className="btn btn--secondary"
+            style={{ borderRadius: 12, height: 48, padding: '0 24px' }}
+          >
+            Discard
+          </button>
+          <button
+            onClick={handleCreate}
+            disabled={isSaving}
+            className="btn btn--primary create-template-view__save-btn"
+          >
+            {isSaving ? 'Saving...' : 'Save Template'}
+          </button>
+        </div>
+      </header>
+
+      {/* ── Body ─────────────────────────────────────────── */}
+      <div className="create-template-view__body">
+
+        {/* Left: Settings panel */}
+        <aside className="create-template-view__panel">
+          <div className="create-template-view__panel-section">
+            <h3 className="create-template-view__panel-heading">Template Settings</h3>
+
+            <div className="create-template-view__field">
+              <label className="create-template-view__label">Template Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Standard Rent Increase Notice"
+                className="form-input"
+                style={{ borderRadius: 12, height: 48 }}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+
+            <div className="create-template-view__field">
+              <label className="create-template-view__label">Template Type</label>
+              <div style={{ position: 'relative' }}>
+                <select
+                  className="form-input"
+                  style={{ borderRadius: 12, height: 48, paddingRight: 40, appearance: 'none', background: 'var(--surface)' }}
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                >
+                  {TEMPLATE_TYPES.map(t => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={16}
+                  style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Pro Tip */}
+          <div className="create-template-view__tip">
+            <div className="create-template-view__tip-icon">
+              <Sparkles size={16} />
+            </div>
+            <div>
+              <p className="create-template-view__tip-title">Pro Tip</p>
+              <p className="create-template-view__tip-body">
+                Use <strong>[Tenant Name]</strong>, <strong>[RentAmount]</strong>, <strong>[UnitName]</strong>, <strong>[Date]</strong>, and other placeholders — they'll be auto-filled when you send the document.
+              </p>
+            </div>
+          </div>
+
+          {/* Word import hint */}
+          <div className="create-template-view__import-hint">
+            <Upload size={14} style={{ flexShrink: 0, marginTop: 2 }} />
+            <p>
+              You can import an existing <strong>.docx</strong> Word document to pre-fill the editor, then customise it here before saving.
+            </p>
+          </div>
+        </aside>
+
+        {/* Right: Editor */}
+        <div className="create-template-view__editor">
+          <RichTextEditor
+            value={content}
+            onChange={setContent}
+            height="100%"
+            placeholder="Start writing your template or import a Word document above..."
+          />
+        </div>
+      </div>
+
+      <style jsx>{`
+        .create-template-view {
+          padding: 40px;
+          max-width: 1440px;
+          margin: 0 auto;
+          min-height: calc(100vh - var(--header-height));
+          display: flex;
+          flex-direction: column;
+          gap: 32px;
+        }
+
+        .create-template-view__header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          gap: 24px;
+        }
+
+        .create-template-view__back-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: var(--text-muted);
+          font-size: 14px;
+          font-weight: 500;
+          background: none;
+          border: none;
+          cursor: pointer;
+          margin-bottom: 10px;
+          padding: 0;
+          transition: color 0.2s;
+        }
+        .create-template-view__back-btn:hover {
+          color: var(--text);
+        }
+
+        .create-template-view__title-row {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+
+        .create-template-view__title-icon {
+          width: 48px;
+          height: 48px;
+          background: var(--forest-faint);
+          border: 1px solid var(--forest-glow);
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--forest);
+          flex-shrink: 0;
+        }
+
+        .create-template-view__title {
+          font-size: 24px;
+          font-weight: 850;
+          color: var(--text);
+          margin: 0;
+          letter-spacing: -0.02em;
+        }
+
+        .create-template-view__subtitle {
+          font-size: 13px;
+          color: var(--text-muted);
+          margin: 2px 0 0 0;
+          font-weight: 500;
+        }
+
+        .create-template-view__actions {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-shrink: 0;
+        }
+
+        .create-template-view__import-btn {
+          border-radius: 12px !important;
+          height: 48px !important;
+          padding: 0 20px !important;
+          display: flex !important;
+          align-items: center !important;
+          gap: 8px !important;
+        }
+
+        .create-template-view__save-btn {
+          border-radius: 12px !important;
+          height: 48px !important;
+          padding: 0 32px !important;
+          background: var(--forest) !important;
+          border-color: var(--forest) !important;
+          display: flex !important;
+          align-items: center !important;
+          gap: 8px !important;
+          box-shadow: var(--shadow-forest) !important;
+        }
+        .create-template-view__save-btn:hover:not(:disabled) {
+          background: var(--forest-hover) !important;
+          transform: translateY(-1px);
+        }
+        .create-template-view__save-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .create-template-view__body {
+          display: grid;
+          grid-template-columns: 340px 1fr;
+          gap: 32px;
+          flex: 1;
+          align-items: start;
+          min-height: 700px;
+        }
+
+        .create-template-view__panel {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          position: sticky;
+          top: 24px;
+        }
+
+        .create-template-view__panel-section {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .create-template-view__panel-heading {
+          font-size: 11px;
+          font-weight: 800;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          margin: 0;
+        }
+
+        .create-template-view__field {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .create-template-view__label {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-secondary);
+        }
+
+        .create-template-view__tip {
+          background: var(--forest-faint);
+          border: 1px solid var(--forest-glow);
+          border-radius: 16px;
+          padding: 16px 18px;
+          display: flex;
+          gap: 12px;
+          align-items: flex-start;
+        }
+
+        .create-template-view__tip-icon {
+          width: 28px;
+          height: 28px;
+          background: var(--forest);
+          color: white;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .create-template-view__tip-title {
+          font-size: 12px;
+          font-weight: 800;
+          color: var(--forest);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin: 0 0 4px 0;
+        }
+
+        .create-template-view__tip-body {
+          font-size: 12.5px;
+          color: var(--accent);
+          line-height: 1.6;
+          margin: 0;
+        }
+
+        .create-template-view__import-hint {
+          background: var(--ivory-dim);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 14px 16px;
+          display: flex;
+          gap: 10px;
+          align-items: flex-start;
+          color: var(--text-muted);
+          font-size: 12px;
+          line-height: 1.5;
+        }
+
+        .create-template-view__import-hint p {
+          margin: 0;
+        }
+
+        .create-template-view__editor {
+          height: 750px;
+          border-radius: 20px;
+          overflow: hidden;
+          box-shadow: var(--shadow-lg);
+          background: white;
+          border: 1px solid var(--border);
+        }
+
+        @media (max-width: 1024px) {
+          .create-template-view__body {
+            grid-template-columns: 1fr;
+          }
+          .create-template-view__panel {
+            position: static;
+          }
+          .create-template-view__editor {
+            height: 500px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .create-template-view {
+            padding: 20px;
+          }
+          .create-template-view__header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .create-template-view__actions {
+            width: 100%;
+            flex-wrap: wrap;
+          }
+        }
+      `}</style>
+    </div>
+  )
+}
