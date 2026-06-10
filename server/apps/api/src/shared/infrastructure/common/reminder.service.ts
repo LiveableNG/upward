@@ -229,7 +229,7 @@ export class UnifiedReminderService {
                 message: `Rent for ${tenantName} in Unit ${unit.unitName} is due ${label} (NGN ${unit.rentAmount.toLocaleString()}).`,
                 type: 'PAYMENT_DUE',
                 isPopup: false,
-                url: '/dashboard',
+                url: `/properties/units/${unit.uuid}`,
               }
             });
 
@@ -254,11 +254,11 @@ export class UnifiedReminderService {
               await this.prisma.upward_pm_notification.create({
                 data: {
                   pmId: pm.id,
-                  title: 'Rent Overdue ⚠️',
+                  title: 'Rent Overdue',
                   message: `Rent for ${tenantName} in Unit ${unit.unitName} is ${label} (NGN ${unit.rentAmount.toLocaleString()}).`,
                   type: 'PAYMENT_OVERDUE',
                   isPopup: daysOverdue === 7 || daysOverdue === 14, // Pop up modal for critical overdue milestones
-                  url: '/dashboard',
+                  url: `/properties/units/${unit.uuid}`,
                 }
               });
 

@@ -52,6 +52,11 @@ export function DesktopHeader() {
     }
   }
 
+  const cleanEmoji = (text: string): string => {
+    if (!text) return ''
+    return text.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, '').trim()
+  }
+
   const getRelativeTime = (dateStr: string) => {
     const now = new Date()
     const past = new Date(dateStr)
@@ -136,8 +141,8 @@ export function DesktopHeader() {
                         {getNotificationIcon(notif.type)}
                       </div>
                       <div className="pm-notifications__item-content">
-                        <p className="pm-notifications__item-title">{notif.title}</p>
-                        <p className="pm-notifications__item-msg">{notif.message}</p>
+                        <p className="pm-notifications__item-title">{cleanEmoji(notif.title)}</p>
+                        <p className="pm-notifications__item-msg">{cleanEmoji(notif.message)}</p>
                         <span className="pm-notifications__item-time">{getRelativeTime(notif.createdAt)}</span>
                       </div>
                       {!notif.isRead && (

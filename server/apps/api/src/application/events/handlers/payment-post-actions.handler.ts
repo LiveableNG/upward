@@ -79,11 +79,11 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
                    await this.prisma.upward_pm_notification.create({
                      data: {
                        pmId: prop.pmId,
-                       title: 'Payment Received 🎉',
+                       title: 'Payment Received',
                        message: `Tenant ${tenantName} completed payment of NGN ${amount.toLocaleString()} for Unit ${unitName} at ${propertyName}.`,
                        type: 'PAYMENT_COMPLETED',
                        isPopup: true, // Show popup alert
-                       url: '/payments',
+                       url: data.paymentRequestUuid ? `/payments/${data.paymentRequestUuid}` : '/payments',
                      }
                    });
 
