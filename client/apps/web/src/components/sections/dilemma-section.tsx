@@ -122,8 +122,8 @@ export function DilemmaSection() {
 
         .dilemma-action {
           display: flex;
-          flex-direction: column;
-          align-items: flex-start;
+          flex-direction: row;
+          align-items: center;
           gap: 12px;
           margin-top: 16px;
         }
@@ -175,7 +175,7 @@ export function DilemmaSection() {
             align-items: center;
           }
           .dilemma-action {
-            align-items: center;
+            justify-content: center;
           }
           .dilemma-image-container {
             max-width: 360px;

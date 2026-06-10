@@ -6,6 +6,13 @@
   padding: 0;
 }
 
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 :root {
   /* --- Design Tokens (Swatches) --- */
   --swatch--gray-000: #ffffff;
