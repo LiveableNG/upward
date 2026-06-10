@@ -5,11 +5,12 @@ import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { DocumentManagementView } from '@/features/pm/components/documents/DocumentManagementView'
 import { DocumentEditorView } from '@/features/pm/components/documents/DocumentEditorView'
+import { CreateTemplateView } from '@/features/pm/components/documents/CreateTemplateView'
 import { Splash } from '@/components/common/Splash'
 
 export default function LandlordDocumentManagementPage() {
   const router = useRouter()
-  const [view, setView] = useState<'list' | 'editor'>('list')
+  const [view, setView] = useState<'list' | 'editor' | 'create-template'>('list')
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
   const [initialRecipient, setInitialRecipient] = useState<any>(null)
 
@@ -38,6 +39,10 @@ export default function LandlordDocumentManagementPage() {
       deliveryMode: doc.documentType?.toLowerCase() === 'pdf' ? 'pdf' : 'email'
     })
     setView('editor')
+  }
+
+  const handleCreateTemplate = () => {
+    setView('create-template')
   }
 
   const handleBack = () => {
@@ -74,6 +79,11 @@ export default function LandlordDocumentManagementPage() {
             onNewDocument={handleNewDocument}
             onSelectTemplate={handleSelectTemplate}
             onResendDocument={handleResendDocument}
+            onCreateTemplate={handleCreateTemplate}
+          />
+        ) : view === 'create-template' ? (
+          <CreateTemplateView
+            onBack={() => setView('list')}
           />
         ) : (
           <DocumentEditorView 
