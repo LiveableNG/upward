@@ -5,6 +5,7 @@ import { NotificationService } from './notification.service';
 import { EmailService } from '../email/email.service';
 import { EncryptionService } from './encryption.service';
 import { ProcessScheduledPmPaymentRequestsUseCase } from '../../../application/pm/use-cases/payments/process-scheduled-payment-requests.use-case';
+import { ProcessScheduledExternalPaymentRequestsUseCase } from '../../../application/use-cases/external/process-scheduled-payments.use-case';
 
 @Injectable()
 export class UnifiedReminderService {
@@ -16,6 +17,7 @@ export class UnifiedReminderService {
     private readonly emailService: EmailService,
     private readonly encryption: EncryptionService,
     private readonly processScheduledRequestsUseCase: ProcessScheduledPmPaymentRequestsUseCase,
+    private readonly processScheduledExternalRequestsUseCase: ProcessScheduledExternalPaymentRequestsUseCase,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -39,6 +41,7 @@ export class UnifiedReminderService {
   async processScheduledRequests() {
     this.logger.log('[ReminderService] Processing scheduled payment requests...');
     await this.processScheduledRequestsUseCase.execute();
+    await this.processScheduledExternalRequestsUseCase.execute();
   }
 
   private async processPmPaymentReminders() {

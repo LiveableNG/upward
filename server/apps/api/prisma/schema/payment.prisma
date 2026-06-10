@@ -57,6 +57,9 @@ model upward_payment_request {
   reminderFrequency String                      @default("NONE")
   nextReminderAt    DateTime?
   reminderCount     Int                         @default(0)
+  scheduledAt       DateTime?
+  isRecurring       Boolean                     @default(false)
+  recurrenceInterval String?
   overpayments      upward_overpayment[]
   lineItemRecords   upward_payment_line_item[]
   subaccount        upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
