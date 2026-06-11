@@ -139,8 +139,8 @@ export function Header({
       <ul style={{ display: 'flex', gap: '32px', listStyle: 'none' }} className="mobile-hide">
         {(
           [
-            ['#why', 'Why Upward?'],
-            ['#faq', 'FAQ'],
+            ['#pm', 'PM'],
+            ['#landlord', 'Landlord'],
             ['#fairness', 'End Housing Bias'],
           ] as [string, string][]
         ).map(([href, label]) => {
@@ -154,20 +154,9 @@ export function Header({
                       'CLICK',
                       `NAV_LINK_${label.toUpperCase().replace(/\s+/g, '_')}`,
                     )
-                  if (label === 'Why Upward?' || label === 'FAQ') {
+                  if (label === 'PM' || label === 'Landlord') {
                     e.preventDefault()
-                    onSetView('why')
-                    if (label === 'FAQ') {
-                      setTimeout(() => {
-                        const el = document.getElementById('faq')
-                        if (el) {
-                          const navHeight = 80
-                          const top =
-                            el.getBoundingClientRect().top + window.pageYOffset - navHeight
-                          window.scrollTo({ top, behavior: 'smooth' })
-                        }
-                      }, 150)
-                    }
+                    onSetView('pm')
                   } else if (label === 'End Housing Bias') {
                     e.preventDefault()
                     onSetView('fairness')
@@ -178,7 +167,7 @@ export function Header({
                 style={{
                   fontSize: 'var(--font-xs)',
                   color:
-                    (label === 'Why Upward?' || label === 'FAQ') && currentView === 'why'
+                    (label === 'PM' || label === 'Landlord') && currentView === 'pm'
                       ? 'var(--accent)'
                       : label === 'End Housing Bias' && currentView === 'fairness'
                         ? 'var(--accent)'
@@ -188,7 +177,7 @@ export function Header({
                   letterSpacing: '1px',
                   textTransform: 'uppercase',
                   fontWeight:
-                    ((label === 'Why Upward?' || label === 'FAQ') && currentView === 'why') ||
+                    ((label === 'PM' || label === 'Landlord') && currentView === 'pm') ||
                     (label === 'End Housing Bias' && currentView === 'fairness')
                       ? 700
                       : 400,
@@ -196,7 +185,7 @@ export function Header({
                 onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text)')}
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.color =
-                    (label === 'Why Upward?' || label === 'FAQ') && currentView === 'why'
+                    (label === 'PM' || label === 'Landlord') && currentView === 'pm'
                       ? 'var(--accent)'
                       : 'var(--muted)')
                 }
@@ -226,7 +215,7 @@ export function Header({
             padding: '12px 24px',
             borderRadius: '100px',
             fontFamily: 'var(--font-head)',
-            fontWeight: 500,
+            fontWeight: 600,
             cursor: 'pointer',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             boxShadow: '0 8px 25px rgba(217, 119, 87, 0.2)',
@@ -370,8 +359,8 @@ export function Header({
           </div>
           {(
             [
-              ['#why', 'Why Upward?'],
-              ['#faq', 'FAQ'],
+              ['#pm', 'PM'],
+              ['#landlord', 'Landlord'],
               ['#fairness', 'End Housing Bias'],
             ] as [string, string][]
           ).map(([href, label]) => (
@@ -384,19 +373,9 @@ export function Header({
                     'CLICK',
                     `MOBILE_NAV_LINK_${label.toUpperCase().replace(/\s+/g, '_')}`,
                   )
-                if (label === 'Why Upward?' || label === 'FAQ') {
+                if (label === 'PM' || label === 'Landlord') {
                   e.preventDefault()
-                  onSetView('why')
-                  if (label === 'FAQ') {
-                    setTimeout(() => {
-                      const el = document.getElementById('faq')
-                      if (el) {
-                        const navHeight = 70
-                        const top = el.getBoundingClientRect().top + window.pageYOffset - navHeight
-                        window.scrollTo({ top, behavior: 'smooth' })
-                      }
-                    }, 150)
-                  }
+                  onSetView('pm')
                 } else if (label === 'End Housing Bias') {
                   e.preventDefault()
                   onSetView('fairness')
@@ -413,7 +392,7 @@ export function Header({
                 fontFamily: 'var(--font-head)',
                 fontWeight: 700,
                 color:
-                  ((label === 'Why Upward?' || label === 'FAQ') && currentView === 'why') ||
+                  ((label === 'PM' || label === 'Landlord') && currentView === 'pm') ||
                   (label === 'End Housing Bias' && currentView === 'fairness')
                     ? 'var(--accent)'
                     : 'var(--text)',

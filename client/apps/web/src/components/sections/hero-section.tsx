@@ -14,9 +14,9 @@ export function HeroSection({
 
   const content = {
     A: {
-      titleLine1: 'Paid millions in rent?',
-      titleLine2: 'What do you have to show for it?',
-      sub: 'Upward records every payment, builds your housing reputation, unlocks benefits and opens the door to home ownership.',
+      titleLine1: 'Finally, your rent',
+      titleLine2: 'pays off for you.',
+      sub: 'Join 5,000+ professionals building their Rent Passport™. We verify your payments and property care to unlock rent discounts, low-deposit moves, and ultimately home financing.',
     },
     B: {
       titleLine1: "Don't Just Pay Rent.",
@@ -171,7 +171,7 @@ export function HeroSection({
                 background: 'var(--accent)',
                 color: 'var(--btn-text)',
                 fontFamily: 'var(--font-head)',
-                fontWeight: 500,
+                fontWeight: 600,
                 fontSize: 'var(--font-sm)',
                 letterSpacing: '0.05em',
                 padding: '17px 34px',

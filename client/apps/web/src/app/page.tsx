@@ -10,6 +10,11 @@ import { FairHousingPage } from '@/components/sections/fair-housing-page'
 import { ShowcaseSection } from '@/components/sections/showcase-section'
 import { LandlordPmPage } from '@/components/sections/landlord-pm-page'
 import { DilemmaSection } from '@/components/sections/dilemma-section'
+import { UnfairAdvantages } from '@/components/sections/unfair-advantages'
+import { GrowthSimulator } from '@/components/sections/growth-simulator'
+import { VoicesSection } from '@/components/sections/voices-section'
+import { FaqSection } from '@/components/sections/faq-section'
+import { CtaSection } from '@/components/sections/cta-section'
 
 export default function HomePage() {
   const [view, setView] = useState<'home' | 'why' | 'fairness' | 'pm'>('home')
@@ -124,7 +129,27 @@ export default function HomePage() {
 
             <div className="divider" />
 
+            <UnfairAdvantages />
+
+            <div className="divider" />
+
+            <GrowthSimulator />
+
+            <div className="divider" />
+
+            <VoicesSection />
+
+            <div className="divider" />
+
+            <FaqSection />
+
+            <div className="divider" />
+
             <TellAFriend />
+
+            <div className="divider" />
+
+            <CtaSection onOpenSignup={() => openSignup()} />
 
             <PartnersBar />
           </div>
