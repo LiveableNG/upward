@@ -1,13 +1,9 @@
 'use client'
 
 import React from 'react'
-import { ArrowRight, CheckCircle2, Smartphone, ShieldCheck, Zap, Sparkles, Building, Home, CreditCard, Key } from 'lucide-react'
+import { Home, CreditCard } from 'lucide-react'
 
-export function ShowcaseSection({
-  onExplorePm,
-}: {
-  onExplorePm?: () => void
-}) {
+export function ShowcaseSection() {
   return (
     <section id="showcase-section" className="showcase">
       {/* Section Header */}
@@ -21,7 +17,6 @@ export function ShowcaseSection({
       </div>
 
       <div className="showcase__layout">
-        
         <div className="showcase__info">
           <ul className="showcase__list">
             <li className="showcase__item">
@@ -30,7 +25,7 @@ export function ShowcaseSection({
               </div>
               <div className="showcase__item-text">
                 <strong>Rent Next Home with Ease</strong>
-                <span>Discover great homes and get prioritized by trusted owners using verified application credentials.</span>
+                <span>Get prioritized by trusted owners using verified application credentials.</span>
               </div>
             </li>
             <li className="showcase__item">
@@ -39,87 +34,17 @@ export function ShowcaseSection({
               </div>
               <div className="showcase__item-text">
                 <strong>Exclusive Financial Benefits</strong>
-                <span>Unlock rent discounts, flexible payment plans, and affordable financing for household essentials.</span>
-              </div>
-            </li>
-            <li className="showcase__item">
-              <div className="showcase__item-icon-wrapper">
-                <Key size={20} className="showcase__item-icon" />
-              </div>
-              <div className="showcase__item-text">
-                <strong>From Renter to Homeowner</strong>
-                <span>Access friendly single-digit interest rates for your first home mortgage by converting rent history to equity.</span>
-              </div>
-            </li>
-            <li className="showcase__item">
-              <div className="showcase__item-icon-wrapper">
-                <ShieldCheck size={20} className="showcase__item-icon" />
-              </div>
-              <div className="showcase__item-text">
-                <strong>Rent Passport™</strong>
-                <span>Convert verified rental history into a trusted credit profile to access financing and home access globally.</span>
+                <span>Unlock rent discounts, flexible payment plans, and affordable financing.</span>
               </div>
             </li>
           </ul>
-
-          <button
-            onClick={() => (window.location.href = '/signup')}
-            className="showcase__btn"
-          >
-            <span>Get Started</span>
-            <ArrowRight size={16} />
-          </button>
-        </div>
-
-        {/* Right: Premium Mockups Display */}
-        <div className="showcase__visual">
-          <div className="showcase__image-container">
-            {/* Payment Page Mockup (Underlay) */}
-            <img
-              src="/attachments/upwardPay-payment-page.png"
-              alt="Upward Pay checkout screen"
-              className="showcase__img showcase__img--underlay"
-            />
-            {/* Dashboard / Signup Page Mockup (Foreground) */}
-            <img
-              src="/attachments/upwardPaySignup.png"
-              alt="Upward Pay dashboard interface"
-              className="showcase__img showcase__img--foreground"
-            />
-          </div>
-        </div>
-
-      </div>
-
-      {/* Landlord Call to Action Banner */}
-      <div className="showcase__pm-banner">
-        <div className="showcase__pm-banner-glow" />
-        <div className="showcase__pm-banner-content">
-          <div className="showcase__pm-banner-left">
-            <div className="showcase__pm-banner-badge">
-              <Building size={14} />
-              <span>For Owners & Landlords</span>
-            </div>
-            <h3 className="showcase__pm-banner-title">Are you a Property Manager?</h3>
-            <p className="showcase__pm-banner-desc">
-              Discover Upward PM, our executive package built for real estate portfolios. 
-              Automate commission splits, matching ledgers, and prefitted tenant onboarding.
-            </p>
-          </div>
-          <button
-            onClick={() => onExplorePm?.()}
-            className="showcase__pm-banner-btn"
-          >
-            <span>Explore Upward PM</span>
-            <ArrowRight size={16} />
-          </button>
         </div>
       </div>
 
       <style>{`
         .showcase {
           padding: 100px 40px;
-          max-width: 1360px;
+          max-width: 1200px;
           margin: 0 auto;
           position: relative;
           z-index: 1;
@@ -159,75 +84,51 @@ export function ShowcaseSection({
           color: var(--muted);
           line-height: clamp(20px, 2.2vw, 30px);
           font-weight: 400;
-          margin-bottom: 16px;
         }
 
         /* Layout */
         .showcase__layout {
-          display: grid;
-          grid-template-columns: 50% 50%;
-          gap: 60px;
-          align-items: center;
-          margin-bottom: 80px;
+          display: flex;
+          justify-content: center;
+          width: 100%;
         }
 
         .showcase__info {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-        }
-
-        .showcase-card__badge--clay {
-          background: var(--accent-faint);
-          border: 1px solid var(--accent-muted);
-          color: var(--accent);
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 12px;
-          border-radius: 100px;
-          font-size: var(--font-xs);
-          font-weight: 700;
-          letter-spacing: 0.02em;
-          margin-bottom: 24px;
-        }
-
-        .showcase__name {
-          font-family: var(--font-head);
-          font-weight: 800;
-          font-size: var(--font-xxl);
-          line-height: 1.25;
-          color: var(--text);
-          margin-bottom: 16px;
-          letter-spacing: -0.01em;
-        }
-
-        .showcase__desc {
-          font-size: var(--font-base);
-          color: var(--muted);
-          line-height: 1.6;
-          margin-bottom: 32px;
+          width: 100%;
+          max-width: 960px;
         }
 
         /* List details */
         .showcase__list {
           list-style: none;
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-          margin-bottom: 40px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 40px;
+          width: 100%;
         }
 
         .showcase__item {
           display: flex;
-          gap: 16px;
+          gap: 20px;
           align-items: flex-start;
+          background: var(--surface2);
+          border: 1px solid var(--border);
+          border-radius: 24px;
+          padding: 32px;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .showcase__item:hover {
+          transform: translateY(-4px);
+          border-color: var(--accent-muted);
+          background: var(--surface);
+          box-shadow: 0 16px 32px rgba(217, 119, 87, 0.06);
         }
 
         .showcase__item-icon-wrapper {
-          width: 40px;
-          height: 40px;
-          border-radius: 10px;
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
           background: var(--accent-faint);
           border: 1px solid var(--accent-muted);
           display: flex;
@@ -235,224 +136,44 @@ export function ShowcaseSection({
           justify-content: center;
           color: var(--accent);
           flex-shrink: 0;
+          transition: all 0.3s ease;
+        }
+
+        .showcase__item:hover .showcase__item-icon-wrapper {
+          transform: scale(1.1);
+          background: var(--accent);
+          color: #ffffff;
         }
 
         .showcase__item-text {
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 6px;
         }
 
         .showcase__item-text strong {
           font-family: var(--font-head);
           font-weight: 700;
-          font-size: var(--font-base);
+          font-size: 17px;
           color: var(--text);
         }
 
         .showcase__item-text span {
           font-size: var(--font-sm);
           color: var(--muted);
-          line-height: 1.5;
-        }
-
-        .showcase__btn {
-          padding: 16px 32px;
-          border-radius: 100px;
-          font-family: var(--font-head);
-          font-weight: 800;
-          font-size: var(--font-sm);
-          letter-spacing: 0.05em;
-          border: none;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          background: var(--accent);
-          color: var(--btn-text);
-          box-shadow: 0 6px 20px rgba(217, 119, 87, 0.2);
-          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .showcase__btn:hover {
-          background: var(--swatch--clay-interactive);
-          transform: translateY(-2px);
-          box-shadow: 0 10px 30px rgba(217, 119, 87, 0.35);
-        }
-
-        /* Mockup visuals */
-        .showcase__visual {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          height: 420px;
-        }
-
-        .showcase__image-container {
-          position: relative;
-          width: 100%;
-          height: 100%;
-          max-width: 440px;
-        }
-
-        .showcase__img {
-          border-radius: 20px;
-          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-          position: absolute;
-          transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-          border: 1px solid var(--border);
-        }
-
-        .showcase__img--foreground {
-          z-index: 2;
-          left: 5%;
-          top: 15%;
-          width: 70%;
-        }
-
-        .showcase__img--underlay {
-          z-index: 1;
-          right: 5%;
-          bottom: 10%;
-          width: 65%;
-          opacity: 0.85;
-          transform: rotate(3deg);
-        }
-
-        .showcase__visual:hover .showcase__img--foreground {
-          transform: translateY(-8px) scale(1.02);
-          box-shadow: 0 30px 60px rgba(0, 0, 0, 0.25);
-        }
-
-        .showcase__visual:hover .showcase__img--underlay {
-          transform: rotate(6deg) translate(8px, 8px);
-          opacity: 0.95;
-        }
-
-        /* PM Call to Action Banner */
-        .showcase__pm-banner {
-          background: var(--surface2);
-          border: 1px solid var(--border);
-          border-radius: 24px;
-          padding: 40px;
-          position: relative;
-          overflow: hidden;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
-        }
-
-        .showcase__pm-banner-glow {
-          position: absolute;
-          width: 300px;
-          height: 300px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(22, 101, 52, 0.08) 0%, transparent 70%);
-          filter: blur(50px);
-          bottom: -150px;
-          right: -100px;
-          pointer-events: none;
-          }
-
-        .showcase__pm-banner-content {
-          position: relative;
-          z-index: 1;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 40px;
-        }
-
-        .showcase__pm-banner-left {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 12px;
-          max-width: 700px;
-        }
-
-        .showcase__pm-banner-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 12px;
-          border-radius: 100px;
-          font-size: var(--font-xs);
-          font-weight: 700;
-          letter-spacing: 0.02em;
-          background: rgba(34, 197, 94, 0.08);
-          border: 1px solid rgba(34, 197, 94, 0.15);
-          color: #166534;
-        }
-
-        .theme--dark .showcase__pm-banner-badge {
-          color: #22c55e;
-        }
-
-        .showcase__pm-banner-title {
-          font-family: var(--font-head);
-          font-weight: 500;
-          font-size: var(--font-xl);
-          color: var(--text);
-          letter-spacing: -0.03em;
-        }
-
-        .showcase__pm-banner-desc {
-          font-size: var(--font-sm);
-          color: var(--muted);
           line-height: 1.6;
         }
 
-        .showcase__pm-banner-btn {
-          padding: 16px 28px;
-          border-radius: 100px;
-          font-family: var(--font-head);
-          font-weight: 800;
-          font-size: var(--font-sm);
-          letter-spacing: 0.05em;
-          border: none;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          background: #166534;
-          color: #ffffff;
-          box-shadow: 0 6px 20px rgba(22, 101, 52, 0.15);
-          transition: all 0.3s;
-          flex-shrink: 0;
-        }
-
-        .showcase__pm-banner-btn:hover {
-          background: #0f4c24;
-          transform: translateY(-2px);
-          box-shadow: 0 10px 30px rgba(22, 101, 52, 0.3);
-        }
-
         /* Responsive */
-        @media (max-width: 992px) {
-          .showcase__layout {
-            grid-template-columns: 1fr;
-            gap: 40px;
-          }
-          .showcase__visual {
-            height: 380px;
-          }
-          .showcase__pm-banner-content {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 24px;
-          }
-          .showcase__pm-banner-btn {
-            width: 100%;
-          }
-        }
-
         @media (max-width: 768px) {
           .showcase {
             padding: 60px 20px;
           }
-          .showcase__pm-banner {
+          .showcase__list {
+            grid-template-columns: 1fr;
+            gap: 20px;
+          }
+          .showcase__item {
             padding: 24px;
           }
         }

@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { ChevronDown, AlertCircle } from 'lucide-react'
+import { AlertCircle, TrendingDown, Home, ChevronDown } from 'lucide-react'
 
 export function DilemmaSection() {
   const handleScroll = () => {
@@ -14,86 +14,79 @@ export function DilemmaSection() {
 
   return (
     <section className="dilemma-section">
-      <div className="dilemma-layout">
-        
-        {/* Left: Image display */}
-        <div className="dilemma-visual">
-          <div className="dilemma-image-container">
-            <img
-              src="/attachments/distress-man.png"
-              alt="Distressed tenant looking at rental application paperwork"
-              className="dilemma-img"
-            />
-          </div>
-        </div>
-
-        {/* Right: Curiosity-generating heading */}
-        <div className="dilemma-info">
+      <div className="dilemma-container">
+        {/* Section Header */}
+        <div className="dilemma-header">
           <div className="dilemma-badge">
             <AlertCircle size={14} />
-            <span>The Hard Truth</span>
+            <span>The Rental Dilemma</span>
+          </div>
+          <h2 className="dilemma-main-title">
+            Paid millions in rent? What do you have to show for it?
+          </h2>
+          <p className="dilemma-subtitle">
+            Most professionals spend over 40% of their income on rent with zero return. It's time to change the equation.
+          </p>
+        </div>
+
+        {/* Comparison Grid */}
+        <div className="dilemma-grid">
+          {/* Card 1: Dead End */}
+          <div className="dilemma-card">
+            <div className="dilemma-card__icon-wrapper">
+              <TrendingDown size={24} />
+            </div>
+            <h3 className="dilemma-card__title">Current Rental Model is a Dead End</h3>
+            <p className="dilemma-card__desc">
+              Typical rental payments leave no paper trail that banks or lenders recognize. You're effectively building your landlord's future while yours stays out of sight.
+            </p>
           </div>
 
-          <h2 className="dilemma-title">
-            Struggling to secure a house despite years of on-time rent payments?
-          </h2>
-
-          <div className="dilemma-action">
-            <p className="dilemma-action-text">See how we solve this below</p>
-            <button onClick={handleScroll} className="dilemma-action-btn" aria-label="Scroll to solution">
-              <ChevronDown size={24} />
-            </button>
+          {/* Card 2: Homeownership Struggle */}
+          <div className="dilemma-card">
+            <div className="dilemma-card__icon-wrapper">
+              <Home size={24} />
+            </div>
+            <h3 className="dilemma-card__title">Homeownership Struggle</h3>
+            <p className="dilemma-card__desc">
+              Without a verified rental history or a specialized housing score, homeownership in Nigeria feels like an impossible dream for most professionals.
+            </p>
           </div>
         </div>
 
+        {/* Scroll Action Indicator */}
+        <div className="dilemma-action">
+          <span className="dilemma-action-text">See how we solve this below</span>
+          <button onClick={handleScroll} className="dilemma-action-btn" aria-label="Scroll to solution">
+            <ChevronDown size={24} />
+          </button>
+        </div>
       </div>
 
       <style>{`
         .dilemma-section {
           padding: 100px 40px;
-          max-width: 1360px;
-          margin: 0 auto;
+          background: var(--bg);
           position: relative;
           z-index: 1;
         }
 
-        .dilemma-layout {
-          display: grid;
-          grid-template-columns: 1fr 1.25fr;
-          gap: 60px;
-          align-items: center;
-          width: 100%;
-        }
-
-        .dilemma-visual {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-        }
-
-        .dilemma-image-container {
-          position: relative;
-          width: 100%;
-          max-width: 440px;
-        }
-
-        .dilemma-img {
-          width: 100%;
-          height: auto;
-          display: block;
-          transition: transform 0.5s ease;
-        }
-
-        .dilemma-visual:hover .dilemma-img {
-          transform: scale(1.03);
-        }
-
-        .dilemma-info {
+        .dilemma-container {
+          max-width: 1200px;
+          margin: 0 auto;
           display: flex;
           flex-direction: column;
-          align-items: flex-start;
-          gap: 20px;
+          align-items: center;
+          gap: 60px;
+        }
+
+        .dilemma-header {
+          text-align: center;
+          max-width: 800px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 16px;
         }
 
         .dilemma-badge {
@@ -111,27 +104,94 @@ export function DilemmaSection() {
           color: var(--accent);
         }
 
-        .dilemma-title {
+        .dilemma-main-title {
           font-family: var(--font-head);
           font-weight: 500;
           font-size: var(--font-h2);
-          line-height: 1.15;
+          line-height: 1.2;
           color: var(--text);
           letter-spacing: -0.04em;
         }
 
+        .dilemma-subtitle {
+          font-size: clamp(14px, 1.4vw, 18px);
+          color: var(--muted);
+          line-height: 1.6;
+          max-width: 600px;
+        }
+
+        .dilemma-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 32px;
+          width: 100%;
+        }
+
+        .dilemma-card {
+          background: var(--surface2);
+          border: 1px solid var(--border);
+          border-radius: 28px;
+          padding: 48px;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 20px;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+        }
+
+        .dilemma-card:hover {
+          transform: translateY(-6px);
+          border-color: var(--accent-muted);
+          background: var(--surface);
+          box-shadow: 0 16px 36px rgba(217, 119, 87, 0.08);
+        }
+
+        .dilemma-card__icon-wrapper {
+          width: 52px;
+          height: 52px;
+          border-radius: 16px;
+          background: var(--accent-faint);
+          border: 1px solid var(--accent-muted);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--accent);
+          transition: transform 0.3s ease;
+        }
+
+        .dilemma-card:hover .dilemma-card__icon-wrapper {
+          transform: scale(1.1);
+        }
+
+        .dilemma-card__title {
+          font-family: var(--font-head);
+          font-weight: 700;
+          font-size: var(--font-xl);
+          color: var(--text);
+          letter-spacing: -0.02em;
+        }
+
+        .dilemma-card__desc {
+          font-size: var(--font-base);
+          color: var(--muted);
+          line-height: 1.7;
+        }
+
         .dilemma-action {
           display: flex;
-          flex-direction: row;
+          flex-direction: column;
           align-items: center;
           gap: 12px;
           margin-top: 16px;
         }
 
         .dilemma-action-text {
-          font-size: var(--font-base);
+          font-size: var(--font-sm);
           color: var(--muted);
           font-weight: 400;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
         }
 
         .dilemma-action-btn {
@@ -165,29 +225,19 @@ export function DilemmaSection() {
           }
         }
 
-        @media (max-width: 992px) {
-          .dilemma-layout {
-            grid-template-columns: 1fr;
-            gap: 40px;
-          }
-          .dilemma-info {
-            text-align: center;
-            align-items: center;
-          }
-          .dilemma-action {
-            justify-content: center;
-          }
-          .dilemma-image-container {
-            max-width: 360px;
-          }
-        }
-
         @media (max-width: 768px) {
           .dilemma-section {
             padding: 60px 20px;
           }
-          .dilemma-title {
-            font-size: var(--font-h2);
+          .dilemma-container {
+            gap: 40px;
+          }
+          .dilemma-grid {
+            grid-template-columns: 1fr;
+            gap: 20px;
+          }
+          .dilemma-card {
+            padding: 32px;
           }
         }
       `}</style>
