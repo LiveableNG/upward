@@ -125,7 +125,7 @@ export default function HomePage() {
 
             <div className="divider" />
 
-            <ShowcaseSection onExplorePm={() => setView('pm')} />
+            <ShowcaseSection />
 
             <div className="divider" />
 
