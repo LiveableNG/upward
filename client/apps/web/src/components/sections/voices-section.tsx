@@ -73,7 +73,7 @@ export function VoicesSection() {
         }
 
         .voices__container {
-          max-width: 1200px;
+          max-width: 1440px;
           margin: 0 auto;
           display: flex;
           flex-direction: column;
@@ -110,6 +110,7 @@ export function VoicesSection() {
         }
 
         .voices__subtitle {
+          font-family: var(--font-body);
           font-size: clamp(14px, 1.4vw, 18px);
           color: var(--muted);
           line-height: 1.6;
@@ -155,9 +156,12 @@ export function VoicesSection() {
 
         .voices__quote-icon {
           transform: rotate(180deg);
+          fill: currentColor;
+          opacity: 0.15;
         }
 
         .voices__quote-text {
+          font-family: var(--font-body);
           font-size: var(--font-base);
           color: var(--text);
           line-height: 1.7;
@@ -193,9 +197,10 @@ export function VoicesSection() {
         }
 
         .voices__role {
-          font-size: 12px;
+          font-family: var(--font-body);
+          font-size: 11px;
           color: var(--muted);
-          font-weight: 600;
+          font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.03em;
         }

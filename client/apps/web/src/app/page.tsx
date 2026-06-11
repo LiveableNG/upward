@@ -119,6 +119,8 @@ export default function HomePage() {
               variant="A"
             />
 
+            <PartnersBar />
+
             <div className="divider" />
 
             <DilemmaSection />
@@ -150,8 +152,6 @@ export default function HomePage() {
             <div className="divider" />
 
             <CtaSection onOpenSignup={() => openSignup()} />
-
-            <PartnersBar />
           </div>
 
           <div

@@ -1,511 +1,524 @@
 'use client'
 import React, { useState } from 'react'
-import { Sparkles, TrendingUp, DollarSign, Percent, ShieldCheck } from 'lucide-react'
+import { CalendarCheck, Home, ArrowUp } from 'lucide-react'
 
 export function GrowthSimulator() {
-  const [rent, setRent] = useState(250000) // Default 250,000 Naira
-  const [years, setYears] = useState(3) // Default 3 years
+  const [score, setScore] = useState(500)
 
-  // Calculate results
-  const score = Math.min(880, 560 + (years * 32))
-  const points = rent * 0.12 * years * 12
-  const equity = rent * 12 * years * 0.08
+  const SCORE_MIN = 300
+  const SCORE_MAX = 900
+  const pct = ((score - SCORE_MIN) / (SCORE_MAX - SCORE_MIN)) * 100
 
-  // Discount percentage based on score
-  let discount = 0
-  if (score >= 800) discount = 15
-  else if (score >= 700) discount = 10
-  else if (score >= 650) discount = 8
-  else if (score >= 600) discount = 5
-  else discount = 2
+  const milestones = [
+    { value: 300, bottom: '0%' },
+    { value: 500, bottom: '33.33%' },
+    { value: 650, bottom: '58.33%' },
+    { value: 750, bottom: '75%' },
+    { value: 850, bottom: '91.67%' },
+    { value: 900, bottom: '100%' },
+  ]
 
-  // Format currency
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      maximumFractionDigits: 0,
-    }).format(val)
-  }
+  const steps = [
+    { min: 300, title: '300+', desc: 'Initial profile established' },
+    { min: 500, title: '500+', desc: 'Verified rental history certificate' },
+    { min: 650, title: '650+', desc: 'Zero-deposit moves program' },
+    { min: 750, title: '750+', desc: 'Priority mortgage-ready listings' },
+    { min: 850, title: '850+', desc: 'Single-digit mortgage financing' },
+    { min: 900, title: '900 · Peak', desc: 'Home ownership', highlight: true },
+  ]
 
-  // Format points
-  const formatPoints = (val: number) => {
-    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(val)
-  }
+  // Find the highest step currently unlocked
+  let activeMin = 300
+  steps.forEach((step) => {
+    if (score >= step.min) {
+      activeMin = step.min
+    }
+  })
 
   return (
-    <section className="sim-section">
-      <div className="sim-container">
+    <section id="interactive-score" className="interactive-score-section">
+      <div className="interactive-score-container">
         
-        {/* Header */}
-        <div className="sim-header">
-          <div className="sim-badge">
-            <Sparkles size={14} />
-            <span>Interactive Tool</span>
+        {/* Left side: Info */}
+        <div className="score-info-panel">
+          <div className="score-info-glow" />
+          <div className="score-info-content">
+            <h2 className="score-info-title">Your Digital Housing Asset</h2>
+            <p className="score-info-desc">
+              Every rent payment is an investment in your future credibility. Our proprietary algorithm calculates two critical metrics for lenders.
+            </p>
+            
+            <div className="score-metrics-list">
+              <div className="score-metric-item">
+                <div className="score-metric-icon-box">
+                  <CalendarCheck size={24} />
+                </div>
+                <div>
+                  <h4 className="score-metric-title">Payment Consistency</h4>
+                  <p className="score-metric-desc">Historical rent punctuality (24+ months)</p>
+                </div>
+              </div>
+              <div className="score-metric-item">
+                <div className="score-metric-icon-box">
+                  <Home size={24} />
+                </div>
+                <div>
+                  <h4 className="score-metric-title">Property Care Score</h4>
+                  <p className="score-metric-desc">Verified landlord feedback on maintenance</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <h2 className="sim-title">Simulate Your Growth</h2>
-          <p className="sim-subtitle">
-            Drag the sliders to estimate how your monthly rent payment and consistency can build your Rent Passport™ credentials and unlock financial advantages.
-          </p>
         </div>
 
-        {/* Dashboard Calculator */}
-        <div className="sim-card">
-          <div className="sim-layout">
-            
-            {/* Left Column: Sliders */}
-            <div className="sim-sliders">
-              <h3 className="sim-sidebar-title">Your Rental Inputs</h3>
-              
-              {/* Slider 1: Rent */}
-              <div className="sim-slider-group">
-                <div className="sim-slider-labels">
-                  <span className="sim-slider-label">Monthly Rent</span>
-                  <span className="sim-slider-value">{formatCurrency(rent)}</span>
-                </div>
-                <input
-                  type="range"
-                  min="50000"
-                  max="1500000"
-                  step="25000"
-                  value={rent}
-                  onChange={(e) => setRent(Number(e.target.value))}
-                  className="sim-range-input"
-                />
-                <div className="sim-range-bounds">
-                  <span>₦50k</span>
-                  <span>₦1.5M</span>
-                </div>
-              </div>
+        {/* Right side: Climb Score Widget */}
+        <div className="climb-widget-panel">
+          <div className="climb-widget-header">
+            <h3 className="climb-widget-title">Climb Your Upward Score</h3>
+            <p className="climb-widget-subtitle">Drag upward. Each step unlocks a new benefit — all the way to home ownership.</p>
+          </div>
 
-              {/* Slider 2: Years */}
-              <div className="sim-slider-group">
-                <div className="sim-slider-labels">
-                  <span className="sim-slider-label">Duration of Renting</span>
-                  <span className="sim-slider-value">
-                    {years} {years === 1 ? 'Year' : 'Years'}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  step="1"
-                  value={years}
-                  onChange={(e) => setYears(Number(e.target.value))}
-                  className="sim-range-input"
-                />
-                <div className="sim-range-bounds">
-                  <span>1 Year</span>
-                  <span>10 Years</span>
-                </div>
-              </div>
-
-              <div className="sim-hint">
-                <ShieldCheck size={16} style={{ color: 'var(--accent)' }} />
-                <span>Estimates assume consistent, verified on-time payments through Upward Pay.</span>
-              </div>
+          <div className="climb-widget-body">
+            {/* Score display */}
+            <div className="score-panel">
+              <span className="score-panel__value">{score}</span>
+              <p className="score-panel__label">Upward Score</p>
             </div>
 
-            {/* Right Column: Results Dashboard */}
-            <div className="sim-results">
-              <h3 className="sim-results-title">Simulated Unlocks</h3>
-              
-              <div className="sim-stats-grid">
-                
-                {/* Score Widget */}
-                <div className="sim-stat-box sim-stat-box--highlight">
-                  <span className="sim-stat-label">Estimated Rent Score</span>
-                  <div className="sim-score-wrapper">
-                    <span className="sim-score-big">{score}</span>
-                    <span className="sim-score-max">/900</span>
-                  </div>
-                  <div className="sim-score-progress-track">
-                    <div 
-                      className="sim-score-progress-bar"
-                      style={{ width: `${(score / 900) * 100}%` }}
-                    />
-                  </div>
-                  <span className="sim-score-tier">
-                    {score >= 750 ? 'Platinum Tier' : score >= 680 ? 'Gold Tier' : 'Silver Tier'}
-                  </span>
-                </div>
-
-                {/* Other Unlocks */}
-                <div className="sim-substats-grid">
-                  
-                  {/* Points */}
-                  <div className="sim-stat-box">
-                    <div className="sim-stat-header">
-                      <TrendingUp size={16} className="sim-stat-icon" />
-                      <span className="sim-substat-label">Reward Points Earned</span>
-                    </div>
-                    <span className="sim-stat-value">{formatPoints(points)} pts</span>
-                  </div>
-
-                  {/* Equity */}
-                  <div className="sim-stat-box">
-                    <div className="sim-stat-header">
-                      <DollarSign size={16} className="sim-stat-icon" />
-                      <span className="sim-substat-label">Mortgage Equity Track</span>
-                    </div>
-                    <span className="sim-stat-value">{formatCurrency(equity)}</span>
-                  </div>
-
-                  {/* Discount */}
-                  <div className="sim-stat-box">
-                    <div className="sim-stat-header">
-                      <Percent size={16} className="sim-stat-icon" />
-                      <span className="sim-substat-label">Unlocked Rent Discount</span>
-                    </div>
-                    <span className="sim-stat-value">{discount}% Off</span>
-                  </div>
-
-                </div>
-
+            {/* Vertical climb slider */}
+            <div className="climb-track-wrapper">
+              <div className="climb-track-header">
+                <ArrowUp size={16} />
+                <span>Home</span>
               </div>
 
-              <button
-                onClick={() => (window.location.href = '/signup')}
-                className="sim-cta-btn"
-              >
-                Start Building Free
-              </button>
+              <div className="upward-climb">
+                <div className="upward-climb-rail">
+                  <div className="upward-climb-fill" style={{ height: `${pct}%` }} />
+                </div>
+                {milestones.map((m) => (
+                  <div 
+                    key={m.value}
+                    className={`upward-milestone ${score >= m.value ? 'unlocked' : ''}`}
+                    style={{ bottom: m.bottom }}
+                  />
+                ))}
+                <div className="upward-thumb" style={{ bottom: `${pct}%` }} />
+                <input 
+                  type="range" 
+                  min={SCORE_MIN} 
+                  max={SCORE_MAX} 
+                  value={score} 
+                  onChange={(e) => setScore(Number(e.target.value))}
+                  className="upward-slider" 
+                  aria-label="Upward score slider"
+                />
+              </div>
 
+              <p className="climb-track-footer">Start</p>
             </div>
 
+            {/* Benefit steps */}
+            <div className="benefit-ladder">
+              {steps.map((step) => {
+                const unlocked = score >= step.min
+                const active = activeMin === step.min
+                return (
+                  <div 
+                    key={step.min}
+                    className={`benefit-step ${unlocked ? 'unlocked' : ''} ${active ? 'active' : ''}`}
+                  >
+                    <p className={`benefit-step__title ${step.highlight ? 'benefit-step__title--highlight' : ''}`}>
+                      {step.title}
+                    </p>
+                    <p className="benefit-step__desc">{step.desc}</p>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
 
       </div>
 
       <style>{`
-        .sim-section {
+        .interactive-score-section {
           padding: 100px 40px;
           background: var(--bg);
           position: relative;
           z-index: 1;
         }
 
-        .sim-container {
-          max-width: 1200px;
+        .interactive-score-container {
+          max-width: 1440px;
           margin: 0 auto;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 60px;
-        }
-
-        .sim-header {
-          text-align: center;
-          max-width: 720px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .sim-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 12px;
-          border-radius: 100px;
-          font-size: var(--font-xs);
-          font-weight: 700;
-          letter-spacing: 0.05em;
-          text-transform: uppercase;
-          background: var(--accent-faint);
-          border: 1px solid var(--accent-muted);
-          color: var(--accent);
-        }
-
-        .sim-title {
-          font-family: var(--font-head);
-          font-weight: 500;
-          font-size: var(--font-h2);
-          line-height: 1.15;
-          letter-spacing: -0.04em;
-          background: var(--heading-mix);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-
-        .sim-subtitle {
-          font-size: clamp(14px, 1.4vw, 18px);
-          color: var(--muted);
-          line-height: 1.6;
-        }
-
-        /* Card container */
-        .sim-card {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 28px;
-          padding: 48px;
-          width: 100%;
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.02);
-        }
-
-        .sim-layout {
           display: grid;
-          grid-template-columns: 45% 55%;
-          gap: 48px;
-          align-items: start;
+          grid-template-columns: 5fr 7fr;
+          gap: 64px;
+          align-items: stretch;
         }
 
-        /* Sliders block */
-        .sim-sliders {
+        /* Left Panel */
+        .score-info-panel {
+          background: var(--accent2);
+          color: #ffffff;
+          border-radius: 40px;
+          padding: 64px;
+          position: relative;
+          overflow: hidden;
           display: flex;
-          flex-direction: column;
-          gap: 36px;
-        }
-
-        .sim-sidebar-title {
-          font-family: var(--font-head);
-          font-weight: 700;
-          font-size: 20px;
-          color: var(--text);
-          letter-spacing: -0.02em;
-        }
-
-        .sim-slider-group {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .sim-slider-labels {
-          display: flex;
-          justify-content: space-between;
           align-items: center;
         }
 
-        .sim-slider-label {
-          font-size: var(--font-sm);
-          color: var(--muted);
-          font-weight: 600;
-        }
-
-        .sim-slider-value {
-          font-family: var(--font-head);
-          font-size: var(--font-lg);
-          font-weight: 800;
-          color: var(--accent);
-        }
-
-        /* Styled Sliders */
-        .sim-range-input {
-          -webkit-appearance: none;
-          width: 100%;
-          height: 6px;
-          border-radius: 100px;
-          background: var(--surface2);
-          outline: none;
-          cursor: pointer;
-          transition: background 0.3s;
-        }
-
-        .sim-range-input::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          width: 22px;
-          height: 22px;
+        .score-info-glow {
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 250px;
+          height: 250px;
+          background: rgba(212, 129, 102, 0.15);
           border-radius: 50%;
-          background: var(--accent);
-          border: 3px solid var(--surface);
-          box-shadow: 0 4px 10px rgba(217, 119, 87, 0.4);
-          cursor: pointer;
-          transition: transform 0.1s ease;
+          filter: blur(100px);
+          pointer-events: none;
         }
 
-        .sim-range-input::-webkit-slider-thumb:hover {
-          transform: scale(1.15);
-        }
-
-        .sim-range-bounds {
-          display: flex;
-          justify-content: space-between;
-          font-size: var(--font-xs);
-          color: var(--muted);
-        }
-
-        .sim-hint {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-          font-size: 12.5px;
-          color: var(--muted);
-          line-height: 1.4;
-        }
-
-        /* Results dashboard */
-        .sim-results {
-          background: var(--surface2);
-          border: 1px solid var(--border);
-          border-radius: 24px;
-          padding: 36px;
+        .score-info-content {
+          position: relative;
+          z-index: 2;
           display: flex;
           flex-direction: column;
           gap: 28px;
         }
 
-        .sim-results-title {
+        .score-info-title {
           font-family: var(--font-head);
-          font-weight: 700;
-          font-size: 20px;
-          color: var(--text);
-          letter-spacing: -0.02em;
+          font-weight: 500;
+          font-size: var(--font-h2);
+          line-height: 1.2;
+          color: #ffffff;
         }
 
-        .sim-stats-grid {
-          display: grid;
-          grid-template-columns: 1.1fr 1fr;
-          gap: 20px;
-          width: 100%;
+        .score-info-desc {
+          font-family: var(--font-body);
+          font-size: var(--font-base);
+          color: rgba(255, 255, 255, 0.7);
+          line-height: 1.6;
         }
 
-        .sim-stat-box {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 18px;
-          padding: 24px;
+        .score-metrics-list {
           display: flex;
           flex-direction: column;
-          gap: 8px;
-          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.01);
+          gap: 32px;
+          margin-top: 16px;
         }
 
-        .sim-stat-box--highlight {
-          border-color: var(--accent-muted);
-          background: var(--accent-faint);
-          position: relative;
-          overflow: hidden;
-          justify-content: center;
-        }
-
-        .sim-stat-label {
-          font-size: 12px;
-          color: var(--muted);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          font-weight: 700;
-        }
-
-        .sim-score-wrapper {
+        .score-metric-item {
           display: flex;
-          align-items: baseline;
-          gap: 2px;
+          align-items: center;
+          gap: 20px;
         }
 
-        .sim-score-big {
-          font-family: var(--font-head);
-          font-size: 48px;
-          font-weight: 800;
-          color: var(--text);
-          line-height: 1;
-        }
-
-        .sim-score-max {
-          font-size: var(--font-base);
-          color: var(--muted);
-        }
-
-        .sim-score-progress-track {
-          width: 100%;
-          height: 6px;
-          background: var(--surface2);
-          border-radius: 10px;
-          overflow: hidden;
-          margin-top: 4px;
-        }
-
-        .sim-score-progress-bar {
-          height: 100%;
-          background: var(--accent);
-          border-radius: 10px;
-          transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .sim-score-tier {
-          font-size: 13px;
-          font-weight: 700;
+        .score-metric-icon-box {
+          width: 56px;
+          height: 56px;
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.10);
+          display: flex;
+          align-items: center;
+          justify-content: center;
           color: var(--accent);
-          letter-spacing: 0.02em;
+          flex-shrink: 0;
         }
 
-        .sim-substats-grid {
+        .score-metric-title {
+          font-family: var(--font-head);
+          font-weight: 700;
+          font-size: 18px;
+          color: #ffffff;
+        }
+
+        .score-metric-desc {
+          font-family: var(--font-body);
+          font-size: var(--font-sm);
+          color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Right Panel */
+        .climb-widget-panel {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 40px;
+          padding: 64px;
+          display: flex;
+          flex-direction: column;
+          gap: 40px;
+        }
+
+        .climb-widget-header {
+          text-align: center;
           display: flex;
           flex-direction: column;
           gap: 12px;
         }
 
-        .sim-stat-header {
-          display: flex;
-          align-items: center;
-          gap: 8px;
+        .climb-widget-title {
+          font-family: var(--font-head);
+          font-weight: 500;
+          font-size: 28px;
+          color: var(--text);
+          margin: 0;
         }
 
-        .sim-stat-icon {
+        .climb-widget-subtitle {
+          font-family: var(--font-body);
+          font-size: var(--font-sm);
+          color: var(--muted);
+          max-width: 440px;
+          margin: 0 auto;
+        }
+
+        .climb-widget-body {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 32px;
+          width: 100%;
+        }
+
+        .score-panel {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          width: 90px;
+          text-align: center;
+          align-self: stretch;
+        }
+
+        .score-panel__value {
+          font-family: var(--font-head);
+          font-weight: 900;
+          font-size: 44px;
+          color: var(--text);
+          line-height: 1;
+        }
+
+        .score-panel__label {
+          font-family: var(--font-body);
+          font-size: 11px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: var(--accent);
+          margin-top: 8px;
+        }
+
+        /* Vertical slider track center */
+        .climb-track-wrapper {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          flex-shrink: 0;
+        }
+
+        .climb-track-header {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: var(--accent);
+          font-family: var(--font-head);
+          font-size: var(--font-xs);
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          margin-bottom: 16px;
+        }
+
+        .upward-climb {
+          position: relative;
+          height: 320px;
+          width: 52px;
+        }
+
+        .upward-climb-rail {
+          position: absolute;
+          left: 50%;
+          top: 0;
+          bottom: 0;
+          width: 12px;
+          transform: translateX(-50%);
+          border-radius: 9999px;
+          background: var(--surface2);
+          overflow: hidden;
+        }
+
+        .upward-climb-fill {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: 0%;
+          border-radius: 9999px;
+          background: linear-gradient(to top, var(--accent2), var(--accent));
+          transition: height 0.35s ease-out;
+        }
+
+        .upward-slider {
+          position: absolute;
+          inset: 0;
+          margin: 0;
+          width: 100%;
+          height: 100%;
+          opacity: 0;
+          cursor: ns-resize;
+          z-index: 20;
+          -webkit-appearance: slider-vertical;
+          appearance: slider-vertical;
+          writing-mode: vertical-lr;
+          direction: rtl;
+          touch-action: manipulation;
+        }
+
+        .upward-thumb {
+          position: absolute;
+          left: 50%;
+          width: 28px;
+          height: 28px;
+          transform: translate(-50%, 50%);
+          border-radius: 50%;
+          background: #ffffff;
+          border: 3px solid var(--accent);
+          box-shadow: 0 4px 12px rgba(217, 119, 87, 0.3);
+          transition: bottom 0.35s ease-out;
+          z-index: 10;
+          pointer-events: none;
+        }
+
+        .upward-milestone {
+          position: absolute;
+          left: 50%;
+          width: 10px;
+          height: 10px;
+          transform: translate(-50%, 50%);
+          border-radius: 50%;
+          background: #ffffff;
+          border: 2px solid var(--border);
+          transition: all 0.3s ease-out;
+          z-index: 5;
+        }
+
+        .upward-milestone.unlocked {
+          background: var(--accent);
+          border-color: var(--accent);
+          box-shadow: 0 0 0 4px rgba(217, 119, 87, 0.15);
+        }
+
+        .climb-track-footer {
+          margin-top: 16px;
+          font-family: var(--font-body);
+          font-size: var(--font-xs);
+          font-weight: 700;
+          color: var(--muted);
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+        }
+
+        /* Right benefit step ladder */
+        .benefit-ladder {
+          display: flex;
+          flex-direction: column-reverse;
+          gap: 12px;
+          flex: 1;
+          min-width: 0;
+        }
+
+        .benefit-step {
+          background: #ffffff;
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          padding: 12px 18px;
+          opacity: 0.35;
+          transform: translateY(0);
+          transition: all 0.35s ease-out;
+        }
+
+        .benefit-step.unlocked {
+          opacity: 1;
+        }
+
+        .benefit-step.active {
+          border-color: var(--accent);
+          box-shadow: 0 10px 24px rgba(217, 119, 87, 0.1);
+          transform: translateY(-2px);
+        }
+
+        .benefit-step__title {
+          font-family: var(--font-body);
+          font-size: 10px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--muted);
+          margin-bottom: 2px;
+        }
+
+        .benefit-step__title--highlight {
           color: var(--accent);
         }
 
-        .sim-substat-label {
-          font-size: 11px;
-          color: var(--muted);
+        .benefit-step__desc {
+          font-family: var(--font-head);
           font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .sim-stat-value {
-          font-family: var(--font-head);
-          font-size: 18px;
-          font-weight: 800;
+          font-size: 13px;
           color: var(--text);
+          line-height: 1.3;
         }
 
-        .sim-cta-btn {
-          width: 100%;
-          padding: 18px;
-          border-radius: 100px;
-          background: var(--accent);
-          color: var(--btn-text);
-          border: none;
-          font-family: var(--font-head);
-          font-weight: 600;
-          font-size: 15px;
-          letter-spacing: 0.05em;
-          cursor: pointer;
-          box-shadow: 0 10px 30px rgba(217, 119, 87, 0.2);
-          transition: all 0.3s ease;
-          text-align: center;
-        }
-
-        .sim-cta-btn:hover {
-          background: var(--swatch--clay-interactive);
-          transform: translateY(-2px);
-          box-shadow: 0 15px 45px rgba(217, 119, 87, 0.35);
-        }
-
-        @media (max-width: 992px) {
-          .sim-layout {
+        @media (max-width: 1024px) {
+          .interactive-score-container {
             grid-template-columns: 1fr;
             gap: 40px;
           }
         }
 
         @media (max-width: 768px) {
-          .sim-section {
+          .interactive-score-section {
             padding: 60px 20px;
           }
-          .sim-card {
-            padding: 24px;
+          
+          .score-info-panel {
+            padding: 36px;
           }
-          .sim-stats-grid {
-            grid-template-columns: 1fr;
+
+          .climb-widget-panel {
+            padding: 36px 20px;
           }
-          .sim-results {
-            padding: 24px;
+
+          .climb-widget-body {
+            flex-direction: column;
+            gap: 40px;
+          }
+
+          .score-panel {
+            width: 100%;
+            height: auto;
+            flex-direction: row;
+            gap: 12px;
+            justify-content: center;
+          }
+
+          .score-panel__value {
+            font-size: 36px;
+          }
+
+          .score-panel__label {
+            margin-top: 0;
+          }
+
+          .benefit-ladder {
+            width: 100%;
           }
         }
       `}</style>

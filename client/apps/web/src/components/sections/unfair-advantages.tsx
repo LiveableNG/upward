@@ -1,33 +1,38 @@
 'use client'
 import React from 'react'
-import { Coins, UserCheck, Gift, Key, Calendar } from 'lucide-react'
+import { Key, ShieldCheck, Sparkles, Home, CreditCard, Gift } from 'lucide-react'
 
 export function UnfairAdvantages() {
   const advantages = [
     {
-      icon: <Coins size={24} />,
+      icon: <Key size={24} />,
       title: 'Low-Deposit Moves',
-      desc: 'Qualified high-score renters can move into select apartments with highly discounted security deposit upfront.',
+      desc: 'Qualified high-score renters can move into select apartments without paying a security deposit upfront.',
     },
     {
-      icon: <UserCheck size={24} />,
+      icon: <ShieldCheck size={24} />,
       title: 'Verified Reputation',
       desc: 'No more "introductions" needed or being judged by tribe or religion. Your Upward score speaks for your character.',
     },
     {
-      icon: <Gift size={24} />,
+      icon: <Sparkles size={24} />,
       title: 'Rent and Home Savings Rewards',
       desc: 'Earn points every month you save towards rent and your future home simultaneously.',
     },
     {
-      icon: <Key size={24} />,
+      icon: <Home size={24} />,
       title: 'Path to Ownership',
       desc: 'Convert verified rental history into single-digit interest mortgage equity when you\'re ready to buy your first home.',
     },
     {
-      icon: <Calendar size={24} />,
+      icon: <CreditCard size={24} />,
       title: 'Flexible Rent Financing',
       desc: 'Access the opportunity to pay your rent in predefined installments when you have a good Upward Score.',
+    },
+    {
+      icon: <Gift size={24} />,
+      title: 'Lifestyle Rewards',
+      desc: 'Earn points every month you pay on time. Redeem for furniture financing, home services, and shopping vouchers.',
     },
   ]
 
@@ -68,7 +73,7 @@ export function UnfairAdvantages() {
         }
 
         .advantages-container {
-          max-width: 1200px;
+          max-width: 1440px;
           margin: 0 auto;
           display: flex;
           flex-direction: column;
@@ -105,6 +110,7 @@ export function UnfairAdvantages() {
         }
 
         .advantages-subtitle {
+          font-family: var(--font-body);
           font-size: clamp(14px, 1.4vw, 18px);
           color: var(--muted);
           line-height: 1.6;
@@ -112,38 +118,20 @@ export function UnfairAdvantages() {
 
         .advantages-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 24px;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 32px;
           width: 100%;
         }
 
-        /* Adjusting for 5 items to look balanced on large screens */
-        @media (min-width: 1024px) {
-          .advantages-grid {
-            grid-template-columns: repeat(6, 1fr);
-          }
-          .advantages-card:nth-child(1),
-          .advantages-card:nth-child(2),
-          .advantages-card:nth-child(3) {
-            grid-column: span 2;
-          }
-          .advantages-card:nth-child(4) {
-            grid-column: 2 / span 2;
-          }
-          .advantages-card:nth-child(5) {
-            grid-column: 4 / span 2;
-          }
-        }
-
         .advantages-card {
-          background: var(--surface2);
+          background: var(--surface);
           border: 1px solid var(--border);
-          border-radius: 24px;
-          padding: 36px;
+          border-radius: 28px;
+          padding: 40px;
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          gap: 16px;
+          gap: 20px;
           transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
           box-shadow: 0 4px 16px rgba(0, 0, 0, 0.01);
         }
@@ -151,14 +139,14 @@ export function UnfairAdvantages() {
         .advantages-card:hover {
           transform: translateY(-5px);
           border-color: var(--accent);
-          background: var(--accent-faint);
+          background: var(--surface2);
           box-shadow: 0 16px 32px rgba(217, 119, 87, 0.08);
         }
 
         .advantages-card__icon-wrapper {
-          width: 48px;
-          height: 48px;
-          border-radius: 12px;
+          width: 52px;
+          height: 52px;
+          border-radius: 16px;
           background: var(--accent-faint);
           border: 1px solid var(--accent-muted);
           display: flex;
@@ -177,12 +165,13 @@ export function UnfairAdvantages() {
         .advantages-card__title {
           font-family: var(--font-head);
           font-weight: 700;
-          font-size: 18px;
+          font-size: var(--font-xl);
           color: var(--text);
           letter-spacing: -0.01em;
         }
 
         .advantages-card__desc {
+          font-family: var(--font-body);
           font-size: var(--font-sm);
           color: var(--muted);
           line-height: 1.6;
@@ -190,7 +179,8 @@ export function UnfairAdvantages() {
 
         @media (max-width: 1024px) {
           .advantages-grid {
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
           }
         }
 
@@ -198,8 +188,12 @@ export function UnfairAdvantages() {
           .advantages-section {
             padding: 60px 20px;
           }
+          .advantages-grid {
+            grid-template-columns: 1fr;
+            gap: 20px;
+          }
           .advantages-card {
-            padding: 28px;
+            padding: 32px;
           }
         }
       `}</style>

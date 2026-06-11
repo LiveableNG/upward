@@ -83,7 +83,3 @@ export function PartnersBar() {
     </section>
   )
 }
-
-// Side note: I noticed 'scrolled' wasn't defined in the original file but used in my logic.
-// I'll keep it simple for now or add a small scroll effect if I had state.
-// Actually let's just use hover-like behavior or keep it simple.
