@@ -1,9 +1,8 @@
 'use client'
-import { PressLogos } from './press-logos'
-import { ShieldCheck, Percent, Home, Award, ChevronDown } from 'lucide-react'
+import { ShieldCheck, Play, Award } from 'lucide-react'
 
 export function HeroSection({
-  onOpenSignup: _onOpenSignup,
+  onOpenSignup,
   onExplorePm: _onExplorePm,
   variant = 'A',
 }: {
@@ -11,440 +10,399 @@ export function HeroSection({
   onExplorePm?: () => void
   variant?: 'A' | 'B'
 }) {
-
-  const content = {
-    A: {
-      titleLine1: 'Finally, your rent',
-      titleLine2: 'pays off for you.',
-      sub: 'Join 5,000+ professionals building their Rent Passport™. We verify your payments and property care to unlock rent discounts, low-deposit moves, and ultimately home financing.',
-    },
-    B: {
-      titleLine1: "Don't Just Pay Rent.",
-      titleLine2: 'Build With It.',
-      sub: 'Turn every rent payment into proof of financial responsibility—unlock rewards, credit opportunities, and pathways to owning your home.',
-    },
-  }[variant]
-
-  const benefits = [
-    {
-      id: 'bias',
-      icon: <ShieldCheck />,
-      title: 'Zero-Bias Renting',
-      className: 'floating-icon-badge--top-left',
-      bg: 'rgba(16, 185, 129, 0.06)', // Emerald Green
-      borderColor: 'rgba(16, 185, 129, 0.15)',
-      color: '#10b981',
-    },
-    {
-      id: 'discounts',
-      icon: <Percent />,
-      title: 'Rent Discounts & Loans',
-      className: 'floating-icon-badge--bottom-left',
-      bg: 'rgba(245, 158, 11, 0.06)', // Amber/Orange
-      borderColor: 'rgba(245, 158, 11, 0.15)',
-      color: '#f59e0b',
-    },
-    {
-      id: 'ownership',
-      icon: <Home />,
-      title: 'Path to Ownership',
-      className: 'floating-icon-badge--top-right',
-      bg: 'rgba(59, 130, 246, 0.06)', // Royal Blue
-      borderColor: 'rgba(59, 130, 246, 0.15)',
-      color: '#3b82f6',
-    },
-    {
-      id: 'rewards',
-      icon: <Award />,
-      title: 'Upward Club Rewards',
-      className: 'floating-icon-badge--bottom-right',
-      bg: 'rgba(236, 72, 153, 0.06)', // Rose/Pink
-      borderColor: 'rgba(236, 72, 153, 0.15)',
-      color: '#ec4899',
-    },
-  ]
-
   return (
-    <section style={{ position: 'relative', zIndex: 1 }}>
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: '120px 40px 40px',
-          width: '100%',
-          position: 'relative',
-        }}
-        className="hero-container"
-      >
-        <div
-          style={{
-            animation: 'fadeUp 0.6s ease both',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            fontSize: 'var(--font-xs)',
-            letterSpacing: '0.25em',
-            textTransform: 'uppercase' as const,
-            color: 'var(--accent)',
-            marginBottom: '28px',
-            width: '100%',
-          }}
-        >
-          <span
-            style={{
-              display: 'inline-block',
-              width: '24px',
-              height: '1px',
-              background: 'var(--accent)',
-            }}
-            className="mobile-hide"
-          />
-          Rent Passport Program — Now Live
-        </div>
-
-        <h1
-          style={{
-            fontFamily: 'var(--font-head)',
-            fontWeight: 500,
-            fontSize: 'var(--font-h1)',
-            lineHeight: 1.1,
-            letterSpacing: '-0.05em',
-            marginBottom: '16px',
-            maxWidth: '950px',
-            textAlign: 'center',
-            animation: 'fadeUp 0.7s 0.1s ease both',
-          }}
-        >
-          <span
-            style={{
-              display: 'block',
-              background: 'var(--heading-mix)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            {content.titleLine1}
-          </span>
-          <span style={{ display: 'block' }}>{content.titleLine2}</span>
-        </h1>
-
-        <div
-          style={{
-            animation: 'fadeUp 0.7s 0.2s ease both',
-            marginBottom: '40px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            width: '100%',
-          }}
-        >
-          <p
-            style={{
-              fontSize: 'clamp(14px, 1.5vw, 20px)',
-              color: 'var(--muted)',
-              maxWidth: '650px',
-              lineHeight: 'clamp(20px, 2.5vw, 35px)',
-              marginBottom: '28px',
-              textAlign: 'center',
-              fontWeight: 400,
-            }}
-            className="hero-p"
-          >
-            {content.sub}
+    <section id="hero" className="hero-revamp">
+      <div className="hero-revamp__container">
+        <div className="hero-revamp__content">
+          <div className="hero-revamp__badge">
+            <span className="hero-revamp__badge-dot animate-pulse"></span>
+            Nigeria's First Housing Reputation Score
+          </div>
+          <h1 className="hero-revamp__title">
+            Finally, your rent <br /> pays off for <span className="hero-revamp__title-italic">you.</span>
+          </h1>
+          <p className="hero-revamp__desc">
+            Join 5,000+ professionals building their Rent Passport™. We verify your payments and property care to unlock rent discounts, low-deposit moves, and ultimately home financing.
           </p>
-
-          <div className="hero-cta-container">
-            <button
+          
+          <div className="hero-revamp__actions">
+            <button 
+              onClick={() => onOpenSignup()}
+              className="hero-revamp__btn-primary"
+            >
+              Start Building Your Score
+            </button>
+            <button 
               onClick={() => {
-                const el = document.getElementById('showcase-section')
+                const el = document.getElementById('interactive-score') || document.getElementById('growth-simulator')
                 if (el) {
                   const navHeight = 80
                   const top = el.getBoundingClientRect().top + window.pageYOffset - navHeight
                   window.scrollTo({ top, behavior: 'smooth' })
                 }
               }}
-              style={{
-                background: 'var(--accent)',
-                color: 'var(--btn-text)',
-                fontFamily: 'var(--font-head)',
-                fontWeight: 600,
-                fontSize: 'var(--font-sm)',
-                letterSpacing: '0.05em',
-                padding: '17px 34px',
-                borderRadius: '100px',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                boxShadow: '0 10px 40px rgba(217, 119, 87, 0.2)',
-              }}
-              className="desktop-btn"
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-3px)'
-                e.currentTarget.style.boxShadow = '0 15px 45px rgba(217, 119, 87, 0.35)'
-                e.currentTarget.style.background = 'var(--swatch--clay-interactive)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '0 10px 40px rgba(217, 119, 87, 0.2)'
-                e.currentTarget.style.background = 'var(--accent)'
-              }}
+              className="hero-revamp__btn-secondary"
             >
-              See the benefits
-              <ChevronDown
-                size={18}
-                style={{
-                  animation: 'arrow-beam 2s infinite ease-in-out',
-                }}
-              />
+              <div className="hero-revamp__play-icon">
+                <Play size={16} fill="currentColor" />
+              </div>
+              See how it works
             </button>
+          </div>
+
+          <div className="hero-revamp__stats">
+            <div className="hero-revamp__stat">
+              <span className="hero-revamp__stat-number">15.4k</span>
+              <span className="hero-revamp__stat-label">Active Renters</span>
+            </div>
+            <div className="hero-revamp__stat-divider" />
+            <div className="hero-revamp__stat">
+              <span className="hero-revamp__stat-number">₦2.4B+</span>
+              <span className="hero-revamp__stat-label">Rent Verified</span>
+            </div>
+            <div className="hero-revamp__stat-divider" />
+            <div className="hero-revamp__stat">
+              <span className="hero-revamp__stat-number">890</span>
+              <span className="hero-revamp__stat-label">Avg. Rep Score</span>
+            </div>
           </div>
         </div>
 
-        {/* Benefits Floating Icons Container */}
-        <div className="hero-benefits-container">
-          {benefits.map((benefit) => (
-            <div
-              key={benefit.id}
-              className={`floating-icon-badge ${benefit.className}`}
-              style={{
-                backgroundColor: benefit.bg,
-                borderColor: benefit.borderColor,
-                color: benefit.color,
-              }}
-            >
-              <div className="floating-icon-badge__icon-wrapper">
-                {benefit.icon}
-              </div>
-              <span className="floating-icon-badge__label">{benefit.title}</span>
-            </div>
-          ))}
-        </div>
+        <div className="hero-revamp__visual">
+          <div className="hero-revamp__img-wrapper">
+            <img 
+              src="https://storage.googleapis.com/uxpilot-auth.appspot.com/gen_b08d7d8cfa_010c6202f5ab90bc.png" 
+              alt="portrait of a successful young Nigerian professional woman sitting in a high-end minimalist Lagos apartment" 
+              className="hero-revamp__img"
+            />
+          </div>
 
-        <div
-          style={{
-            display: 'flex',
-            gap: '12px',
-            flexWrap: 'wrap',
-            marginTop: '20px',
-            justifyContent: 'center',
-          }}
-          className="audience-tags"
-        >
-          {['Salary earners', 'Freelancers', 'Creatives', 'Business Owners'].map((tag) => (
-            <span
-              key={tag}
-              style={{
-                fontSize: 'var(--font-xs)',
-                fontWeight: 600,
-                color: 'var(--text)',
-                background: 'var(--accent-faint)',
-                border: '1px solid var(--accent-muted)',
-                padding: '8px 16px',
-                borderRadius: '100px',
-                letterSpacing: '0.02em',
-              }}
-              className="audience-tag"
-            >
-              For {tag}
-            </span>
-          ))}
-        </div>
+          {/* Floating Badge 1 */}
+          <div className="hero-revamp__badge-float hero-revamp__badge-float--left animate-float-slow">
+            <ShieldCheck size={18} style={{ color: '#10b981' }} />
+            <span>Identity Verified</span>
+          </div>
 
-        <div style={{ marginTop: '40px', width: '100%' }}>
-          <PressLogos />
+          {/* Floating Badge 2 */}
+          <div className="hero-revamp__badge-float hero-revamp__badge-float--right animate-float-fast">
+            <Award size={18} style={{ color: 'var(--accent)' }} />
+            <span>Score: 842 (Top 5%)</span>
+          </div>
         </div>
+      </div>
 
-        <style>{`
-          @keyframes beam {
-            0% { left: -150%; }
-            30% { left: 150%; }
-            100% { left: 150%; }
+      <style>{`
+        .hero-revamp {
+          position: relative;
+          z-index: 1;
+          background: var(--bg);
+          padding: 140px 40px 100px;
+          overflow: hidden;
+        }
+
+        .hero-revamp__container {
+          max-width: 1440px;
+          margin: 0 auto;
+          display: grid;
+          grid-template-columns: 55% 45%;
+          gap: 60px;
+          align-items: center;
+        }
+
+        .hero-revamp__content {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 36px;
+        }
+
+        .hero-revamp__badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 16px;
+          background: var(--accent-faint);
+          border: 1px solid var(--accent-muted);
+          border-radius: 100px;
+          color: var(--accent);
+          font-family: var(--font-head);
+          font-size: var(--font-xs);
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+        }
+
+        .hero-revamp__badge-dot {
+          width: 8px;
+          height: 8px;
+          background: var(--accent);
+          border-radius: 50%;
+        }
+
+        .hero-revamp__title {
+          font-family: var(--font-head);
+          font-weight: 500;
+          font-size: var(--font-h1);
+          line-height: 1.1;
+          letter-spacing: -0.04em;
+          color: var(--text);
+        }
+
+        .hero-revamp__title-italic {
+          color: var(--accent);
+          font-style: italic;
+        }
+
+        .hero-revamp__desc {
+          font-family: var(--font-body);
+          font-size: clamp(15px, 1.4vw, 19px);
+          color: var(--muted);
+          line-height: 1.6;
+          max-width: 600px;
+        }
+
+        .hero-revamp__actions {
+          display: flex;
+          align-items: center;
+          gap: 24px;
+        }
+
+        .hero-revamp__btn-primary {
+          background: var(--accent);
+          color: #ffffff;
+          font-family: var(--font-head);
+          font-weight: 600;
+          font-size: var(--font-base);
+          padding: 18px 36px;
+          border-radius: 16px;
+          border: none;
+          cursor: pointer;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 10px 30px rgba(217, 119, 87, 0.25);
+        }
+
+        .hero-revamp__btn-primary:hover {
+          transform: translateY(-2px);
+          background: var(--swatch--clay-interactive);
+          box-shadow: 0 15px 35px rgba(217, 119, 87, 0.35);
+        }
+
+        .hero-revamp__btn-secondary {
+          background: none;
+          border: none;
+          color: var(--text);
+          font-family: var(--font-head);
+          font-weight: 600;
+          font-size: var(--font-base);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+          transition: color 0.3s;
+        }
+
+        .hero-revamp__btn-secondary:hover {
+          color: var(--accent);
+        }
+
+        .hero-revamp__play-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background: var(--surface2);
+          border: 1px solid var(--border);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--accent);
+          transition: all 0.3s;
+        }
+
+        .hero-revamp__btn-secondary:hover .hero-revamp__play-icon {
+          background: var(--accent);
+          color: #ffffff;
+          border-color: var(--accent);
+        }
+
+        .hero-revamp__stats {
+          display: flex;
+          align-items: center;
+          gap: 32px;
+          width: 100%;
+          padding-top: 24px;
+          border-top: 1px solid var(--border);
+        }
+
+        .hero-revamp__stat {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .hero-revamp__stat-number {
+          font-family: var(--font-head);
+          font-weight: 800;
+          font-size: 24px;
+          color: var(--text);
+        }
+
+        .hero-revamp__stat-label {
+          font-family: var(--font-body);
+          font-size: var(--font-xs);
+          font-weight: 700;
+          color: var(--muted);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+
+        .hero-revamp__stat-divider {
+          width: 1px;
+          height: 40px;
+          background: var(--border);
+        }
+
+        .hero-revamp__visual {
+          position: relative;
+          width: 100%;
+        }
+
+        .hero-revamp__img-wrapper {
+          position: relative;
+          width: 100%;
+          height: 580px;
+          border-radius: 36px;
+          overflow: hidden;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+          border: 1px solid var(--border);
+        }
+
+        .hero-revamp__img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .hero-revamp__badge-float {
+          position: absolute;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 100px;
+          padding: 8px 16px;
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          z-index: 10;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          white-space: nowrap;
+          font-family: var(--font-head);
+          font-weight: 700;
+          font-size: var(--font-xs);
+          color: var(--text);
+          pointer-events: none;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .hero-revamp__badge-float:hover {
+          transform: translateY(-5px) scale(1.03) !important;
+          box-shadow: 0 15px 45px rgba(0, 0, 0, 0.25);
+        }
+
+        .hero-revamp__badge-float--left {
+          left: -20px;
+          top: 80px;
+        }
+
+        .hero-revamp__badge-float--right {
+          right: 20px;
+          bottom: 120px;
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+
+        .animate-float-slow {
+          animation: float 6s ease-in-out infinite;
+        }
+
+        .animate-float-fast {
+          animation: float 5s ease-in-out infinite 1.5s;
+        }
+
+        @media (max-width: 1024px) {
+          .hero-revamp__container {
+            grid-template-columns: 1fr;
+            gap: 48px;
           }
-          @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+
+          .hero-revamp__img-wrapper {
+            height: 480px;
           }
-          @keyframes float-gentle {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
+
+          .hero-revamp__badge-float--left {
+            left: 12px;
+            top: 40px;
           }
-          @keyframes fadeInSimple {
-            from { opacity: 0; }
-            to { opacity: 1; }
+
+          .hero-revamp__badge-float--right {
+            right: 12px;
+            bottom: 40px;
           }
-          @keyframes arrow-beam {
-            0%, 100% { transform: translateY(0); opacity: 0.7; filter: drop-shadow(0 0 2px rgba(255,255,255,0.4)); }
-            50% { transform: translateY(4px); opacity: 1; filter: drop-shadow(0 0 8px rgba(255,255,255,1)); }
+        }
+
+        @media (max-width: 768px) {
+          .hero-revamp {
+            padding: 120px 20px 60px;
           }
-          .hero-cta-container {
-            display: flex;
+
+          .hero-revamp__content {
+            align-items: center;
+            text-align: center;
+          }
+
+          .hero-revamp__actions {
+            flex-direction: column;
+            width: 100%;
             gap: 16px;
-            align-items: center;
           }
-          
-          /* Benefits Floating Icon Badge Styles */
-          .hero-benefits-container {
-            animation: fadeInSimple 0.8s 0.3s ease both;
+
+          .hero-revamp__btn-primary {
+            width: 100%;
           }
-          .floating-icon-badge {
-            position: absolute;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 18px 8px 12px;
-            border-radius: 100px;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--border);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            z-index: 10;
-            pointer-events: auto;
-            white-space: nowrap;
-          }
-          .floating-icon-badge:hover {
-            transform: translateY(-5px) scale(1.03) !important;
-            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.25);
-            background-color: rgba(255, 255, 255, 0.08) !important;
-            border-color: currentColor !important;
-          }
-          .floating-icon-badge svg {
-            width: 18px;
-            height: 18px;
-            transition: transform 0.3s ease;
-          }
-          .floating-icon-badge:hover svg {
-            transform: scale(1.1);
-          }
-          .floating-icon-badge__icon-wrapper {
-            display: flex;
-            align-items: center;
+
+          .hero-revamp__stats {
             justify-content: center;
           }
-          .floating-icon-badge__label {
-            font-family: var(--font-head);
-            font-size: var(--font-xs);
-            font-weight: 700;
-            color: var(--text);
-            letter-spacing: 0.02em;
+
+          .hero-revamp__img-wrapper {
+            height: 380px;
           }
 
-          @media (min-width: 769px) {
-            .hero-benefits-container {
-              position: absolute;
-              inset: 0;
-              pointer-events: none;
-              width: 100%;
-              height: 100%;
-            }
-            .floating-icon-badge--top-left {
-              top: 25%;
-              left: 5%;
-              animation: float-gentle 6s ease-in-out infinite;
-            }
-            .floating-icon-badge--bottom-left {
-              top: 55%;
-              left: 3%;
-              animation: float-gentle 7s ease-in-out infinite 1s;
-            }
-            .floating-icon-badge--top-right {
-              top: 27%;
-              right: 5%;
-              animation: float-gentle 6.5s ease-in-out infinite 0.5s;
-            }
-            .floating-icon-badge--bottom-right {
-              top: 57%;
-              right: 3%;
-              animation: float-gentle 7.5s ease-in-out infinite 1.5s;
-            }
-          }
-
-          @media (max-width: 768px) {
-            .hero-benefits-container {
-              position: absolute;
-              inset: 0;
-              pointer-events: none;
-              width: 100%;
-              height: 100%;
-            }
-            .floating-icon-badge {
-              padding: 6px 12px 6px 8px;
-              gap: 6px;
-              height: 32px;
-            }
-            .floating-icon-badge svg {
-              width: 14px;
-              height: 14px;
-            }
-            .floating-icon-badge__label {
-              font-size: 10px;
-            }
-            .floating-icon-badge--top-left {
-              top: 14%;
-              left: 8px;
-              animation: float-gentle 6s ease-in-out infinite;
-            }
-            .floating-icon-badge--bottom-left {
-              top: 66%;
-              left: 6px;
-              animation: float-gentle 7s ease-in-out infinite 1s;
-            }
-            .floating-icon-badge--top-right {
-              top: 23%;
-              right: 8px;
-              animation: float-gentle 6.5s ease-in-out infinite 0.5s;
-            }
-            .floating-icon-badge--bottom-right {
-              top: 74%;
-              right: 6px;
-              animation: float-gentle 7.5s ease-in-out infinite 1.5s;
-            }
-            
-            .hero-container {
-              padding: 100px 20px 60px !important;
-              text-align: center;
-              align-items: center;
-            }
-            .hero-cta-container {
-              display: flex;
-              flex-direction: column;
-              gap: 12px;
-              align-items: stretch;
-              width: 100%;
-              margin-top: 32px;
-              max-width: 320px;
-            }
-            .desktop-btn {
-              display: flex !important;
-              width: 100% !important;
-              justify-content: center;
-              padding: 16px 24px !important;
-            }
-            .hero-p {
-              margin-left: auto;
-              margin-right: auto;
-              font-size: var(--font-base) !important;
-            }
-            .audience-tags {
-              display: none !important;
-            }
+          .hero-revamp__badge-float {
+            padding: 6px 12px;
+            gap: 6px;
+            font-size: 11px;
           }
           
-          @media (min-width: 769px) {
-            .mobile-hide {
-              display: initial;
-            }
+          .hero-revamp__badge-float svg {
+            width: 14px;
+            height: 14px;
           }
-        `}</style>
-      </div>
+
+          .hero-revamp__badge-float--left {
+            left: 10px;
+            top: 30px;
+          }
+
+          .hero-revamp__badge-float--right {
+            right: 10px;
+            bottom: 30px;
+          }
+        }
+      `}</style>
     </section>
   )
 }

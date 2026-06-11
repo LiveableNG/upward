@@ -18,7 +18,7 @@ export function CtaSection({
         <div className="cta-content">
           <h2 className="cta-title">Ready to make your rent work for you?</h2>
           <p className="cta-subtext">
-            Join 5,000+ Nigerian professionals building their path to home ownership with every rental payment. Stop letting your rent go to waste.
+            Join 15,000+ Nigerian professionals building their path to home ownership with every rental payment. Stop letting your rent go to waste.
           </p>
 
           <div className="cta-actions">
@@ -99,10 +99,11 @@ export function CtaSection({
         }
 
         .cta-subtext {
+          font-family: var(--font-body);
           font-size: clamp(15px, 1.6vw, 19px);
           color: rgba(255, 255, 255, 0.9);
           line-height: 1.6;
-          max-w: 640px;
+          max-width: 640px;
         }
 
         .cta-actions {

@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { AlertCircle, TrendingDown, Home, ChevronDown } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Home, ChevronDown } from 'lucide-react'
 
 export function DilemmaSection() {
   const handleScroll = () => {
@@ -13,7 +13,7 @@ export function DilemmaSection() {
   }
 
   return (
-    <section className="dilemma-section">
+    <section id="problem" className="dilemma-section">
       <div className="dilemma-container">
         {/* Section Header */}
         <div className="dilemma-header">
@@ -25,7 +25,7 @@ export function DilemmaSection() {
             Paid millions in rent? What do you have to show for it?
           </h2>
           <p className="dilemma-subtitle">
-            Most professionals spend over 40% of their income on rent with zero return. It's time to change the equation.
+            Most Nigerians spend over 40% of their income on rent with zero return. It's time to change the equation.
           </p>
         </div>
 
@@ -33,8 +33,8 @@ export function DilemmaSection() {
         <div className="dilemma-grid">
           {/* Card 1: Dead End */}
           <div className="dilemma-card">
-            <div className="dilemma-card__icon-wrapper">
-              <TrendingDown size={24} />
+            <div className="dilemma-card__icon-wrapper dilemma-card__icon-wrapper--red">
+              <AlertTriangle size={24} />
             </div>
             <h3 className="dilemma-card__title">Current Rental Model is a Dead End</h3>
             <p className="dilemma-card__desc">
@@ -44,7 +44,7 @@ export function DilemmaSection() {
 
           {/* Card 2: Homeownership Struggle */}
           <div className="dilemma-card">
-            <div className="dilemma-card__icon-wrapper">
+            <div className="dilemma-card__icon-wrapper dilemma-card__icon-wrapper--orange">
               <Home size={24} />
             </div>
             <h3 className="dilemma-card__title">Homeownership Struggle</h3>
@@ -114,6 +114,7 @@ export function DilemmaSection() {
         }
 
         .dilemma-subtitle {
+          font-family: var(--font-body);
           font-size: clamp(14px, 1.4vw, 18px);
           color: var(--muted);
           line-height: 1.6;
@@ -128,7 +129,7 @@ export function DilemmaSection() {
         }
 
         .dilemma-card {
-          background: var(--surface2);
+          background: var(--surface);
           border: 1px solid var(--border);
           border-radius: 28px;
           padding: 48px;
@@ -137,13 +138,13 @@ export function DilemmaSection() {
           align-items: flex-start;
           gap: 20px;
           transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01);
         }
 
         .dilemma-card:hover {
           transform: translateY(-6px);
           border-color: var(--accent-muted);
-          background: var(--surface);
+          background: var(--surface2);
           box-shadow: 0 16px 36px rgba(217, 119, 87, 0.08);
         }
 
@@ -151,13 +152,22 @@ export function DilemmaSection() {
           width: 52px;
           height: 52px;
           border-radius: 16px;
-          background: var(--accent-faint);
-          border: 1px solid var(--accent-muted);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: var(--accent);
           transition: transform 0.3s ease;
+        }
+
+        .dilemma-card__icon-wrapper--red {
+          background: rgba(239, 68, 68, 0.08);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          color: #ef4444;
+        }
+
+        .dilemma-card__icon-wrapper--orange {
+          background: rgba(249, 115, 22, 0.08);
+          border: 1px solid rgba(249, 115, 22, 0.2);
+          color: #f97316;
         }
 
         .dilemma-card:hover .dilemma-card__icon-wrapper {
@@ -173,6 +183,7 @@ export function DilemmaSection() {
         }
 
         .dilemma-card__desc {
+          font-family: var(--font-body);
           font-size: var(--font-base);
           color: var(--muted);
           line-height: 1.7;
@@ -187,9 +198,10 @@ export function DilemmaSection() {
         }
 
         .dilemma-action-text {
+          font-family: var(--font-body);
           font-size: var(--font-sm);
           color: var(--muted);
-          font-weight: 400;
+          font-weight: 600;
           letter-spacing: 0.05em;
           text-transform: uppercase;
         }
@@ -199,7 +211,7 @@ export function DilemmaSection() {
           height: 48px;
           border-radius: 50%;
           background: var(--accent);
-          color: var(--btn-text);
+          color: #ffffff;
           border: none;
           cursor: pointer;
           display: flex;
