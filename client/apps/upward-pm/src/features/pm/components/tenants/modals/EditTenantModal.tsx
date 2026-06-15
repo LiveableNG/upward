@@ -19,6 +19,9 @@ const tenantSchema = z.object({
   phone: z.string().optional().refine((val) => !val || isValidPhoneNumber(val), {
     message: 'Invalid international phone number'
   }),
+  otherPhone: z.string().optional().refine((val) => !val || isValidPhoneNumber(val), {
+    message: 'Invalid international phone number'
+  }),
   formerAddress: z.string().optional(),
   nextOfKinName: z.string().optional(),
   nextOfKinEmail: z.string().optional(),
@@ -83,6 +86,7 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
       commercialName: '',
       email: '',
       phone: '',
+      otherPhone: '',
       formerAddress: '',
       nextOfKinName: '',
       nextOfKinEmail: '',
@@ -105,6 +109,7 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
         commercialName: tenant.commercialName || '',
         email: tenant.email?.endsWith('@upward.com') ? '' : (tenant.email || ''),
         phone: tenant.phone || '',
+        otherPhone: tenant.otherPhone || '',
         formerAddress: tenant.formerAddress || '',
         nextOfKinName: tenant.nextOfKinName || '',
         nextOfKinEmail: tenant.nextOfKinEmail || '',
@@ -194,6 +199,19 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
                       {...field}
                       label="Phone Number"
                       error={errors.phone?.message}
+                    />
+                  )}
+                />
+              </div>
+              <div style={{ marginTop: 16 }}>
+                <Controller
+                  name="otherPhone"
+                  control={control}
+                  render={({ field }) => (
+                    <PhoneInput
+                      {...field}
+                      label="Alternative Phone Number"
+                      error={errors.otherPhone?.message}
                     />
                   )}
                 />

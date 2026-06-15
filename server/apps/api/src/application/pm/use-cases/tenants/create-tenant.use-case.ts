@@ -11,6 +11,7 @@ export interface CreateTenantDto {
   lastName?: string;
   email?: string;
   phone?: string;
+  otherPhone?: string;
   units?: string[]; // Optional unit UUIDs to assign immediately
 }
 
@@ -30,18 +31,49 @@ export class CreateTenantUseCase {
     if (data.phone) {
       let cleaned = data.phone.trim().replace(/\s+/g, '');
       
-      if (cleaned.startsWith('0') && cleaned.length === 11) {
-        cleaned = '+234' + cleaned.substring(1);
-      } 
-      else if (!cleaned.startsWith('+') && cleaned.length === 10) {
-        cleaned = '+234' + cleaned;
+      if (!cleaned.startsWith('+')) {
+        if (cleaned.startsWith('0') && cleaned.length === 11) {
+          cleaned = '+234' + cleaned.substring(1);
+        } else if (cleaned.length === 10) {
+          cleaned = '+234' + cleaned;
+        }
       }
 
-      if (!/^\+234\d{10}$/.test(cleaned)) {
-        throw new BadRequestException('Phone number must be in format +2348000000000 or 08000000000');
+      if (cleaned.startsWith('+234')) {
+        if (!/^\+234\d{10}$/.test(cleaned)) {
+          throw new BadRequestException('Nigerian phone number must be in format +2348000000000 or 08000000000');
+        }
+      } else {
+        if (!/^\+\d{7,15}$/.test(cleaned)) {
+          throw new BadRequestException('International phone number must start with + followed by 7 to 15 digits');
+        }
       }
       
       data.phone = cleaned;
+    }
+
+    if (data.otherPhone) {
+      let cleaned = data.otherPhone.trim().replace(/\s+/g, '');
+      
+      if (!cleaned.startsWith('+')) {
+        if (cleaned.startsWith('0') && cleaned.length === 11) {
+          cleaned = '+234' + cleaned.substring(1);
+        } else if (cleaned.length === 10) {
+          cleaned = '+234' + cleaned;
+        }
+      }
+
+      if (cleaned.startsWith('+234')) {
+        if (!/^\+234\d{10}$/.test(cleaned)) {
+          throw new BadRequestException('Nigerian alternative phone number must be in format +2348000000000 or 08000000000');
+        }
+      } else {
+        if (!/^\+\d{7,15}$/.test(cleaned)) {
+          throw new BadRequestException('International alternative phone number must start with + followed by 7 to 15 digits');
+        }
+      }
+      
+      data.otherPhone = cleaned;
     }
 
     let tenant: TenantEntity;

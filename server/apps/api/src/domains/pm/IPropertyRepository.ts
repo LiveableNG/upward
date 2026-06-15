@@ -64,6 +64,9 @@ export interface TenantEntity {
   emailHash?: string | null;
   phoneEncrypted?: string | null;
   phoneHash?: string | null;
+  otherPhone?: string | null;
+  otherPhoneEncrypted?: string | null;
+  otherPhoneHash?: string | null;
   inviteStatus: string;
   inviteSentAt: Date | null;
   formerAddress?: string | null;
