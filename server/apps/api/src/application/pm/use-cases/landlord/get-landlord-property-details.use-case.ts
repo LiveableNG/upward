@@ -62,7 +62,9 @@ export class GetLandlordPropertyDetailsUseCase {
         unitType: u.unitType,
         status: u.tenantId ? 'OCCUPIED' : 'VACANT',
         tenant: u.tenant ? {
-          name: `${this.encryption.decrypt(u.tenant.firstNameEncrypted)} ${this.encryption.decrypt(u.tenant.lastNameEncrypted)}`,
+          name: (u.tenant.commercialNameEncrypted ? this.encryption.decrypt(u.tenant.commercialNameEncrypted) : null) || 
+                `${this.encryption.decrypt(u.tenant.firstNameEncrypted) || ''} ${this.encryption.decrypt(u.tenant.lastNameEncrypted) || ''}`.trim() || 
+                'Tenant',
           email: this.encryption.decrypt(u.tenant.emailEncrypted)
         } : null,
         revenue: totalPaid,

@@ -8,6 +8,7 @@ import { useToast } from '@/components/common/Toast'
 import { PmPaymentRequest } from '../../../services/paymentService'
 import { useDocuments } from '../../../hooks/useDocuments'
 import { useAuth } from '@/features/auth/AuthContext'
+import { formatTenantName } from '@/lib/utils'
 
 interface CreatePaymentRequestModalProps {
   isOpen: boolean;
@@ -313,7 +314,7 @@ export function CreatePaymentRequestModal({
             </div>
             <div>
               <h2 className="modal__title">{isEditing ? 'Edit Payment Request' : 'Request Payment'}</h2>
-              <p className="modal__desc">Unit {unit.unitName} • {unit.tenant ? `${unit.tenant.firstName} ${unit.tenant.lastName}` : 'No Tenant'}</p>
+              <p className="modal__desc">Unit {unit.unitName} • {unit.tenant ? formatTenantName(unit.tenant) : 'No Tenant'}</p>
               {!unit.isSynced && (
                 <p style={{ fontSize: 11, color: 'var(--error)', marginTop: 4, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
                   <span>⚠️</span> Unit must be synced to Upward Pay for this request to succeed.
