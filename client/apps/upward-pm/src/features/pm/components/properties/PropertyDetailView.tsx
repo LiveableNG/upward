@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { ArrowLeft, Search, Eye, LayoutGrid, Wallet, FileText, ClipboardList, Package, ShieldCheck, Edit3 } from 'lucide-react'
 import { Property, Unit } from '../../services/propertyService'
-import { cn } from '@/lib/utils'
+import { cn, formatTenantName } from '@/lib/utils'
 
 interface PropertyDetailViewProps {
   property: Property;
@@ -25,7 +25,8 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
   const filteredUnits = units.filter(u => {
     const matchesSearch = u.unitName.toLowerCase().includes(unitSearch.toLowerCase()) || 
                          u.tenant?.firstName?.toLowerCase().includes(unitSearch.toLowerCase()) ||
-                         u.tenant?.lastName?.toLowerCase().includes(unitSearch.toLowerCase())
+                         u.tenant?.lastName?.toLowerCase().includes(unitSearch.toLowerCase()) ||
+                         u.tenant?.commercialName?.toLowerCase().includes(unitSearch.toLowerCase())
     const matchesFilter = unitFilter === 'All' || (unitFilter === 'Occupied' && u.status === 'OCCUPIED') || (unitFilter === 'Vacant' && u.status === 'VACANT')
     return matchesSearch && matchesFilter
   })
@@ -201,7 +202,7 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
                   </td>
                   <td style={{ padding: '20px 16px' }}>
                     {unit.tenant ? (
-                      <div style={{ fontSize: 14, color: '#334155' }}>{unit.tenant.firstName} {unit.tenant.lastName}</div>
+                      <div style={{ fontSize: 14, color: '#334155' }}>{formatTenantName(unit.tenant)}</div>
                     ) : (
                       <span className="badge badge--vacant" style={{ fontSize: 10, background: '#f1f5f9', color: '#94a3b8' }}>Vacant</span>
                     )}

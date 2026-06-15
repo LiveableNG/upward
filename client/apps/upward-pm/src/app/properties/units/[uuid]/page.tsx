@@ -36,7 +36,7 @@ import { DocumentEditorView } from '@/features/pm/components/documents/DocumentE
 import { SendToVaultModal } from '@/features/pm/components/documents/modals/SendToVaultModal'
 import { useToast } from '@/components/common/Toast'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
-import { cn, formatCurrency } from '@/lib/utils'
+import { cn, formatCurrency, formatTenantName } from '@/lib/utils'
 import { Splash } from '@/components/common/Splash'
 
 function UnitDetailContent() {
@@ -292,7 +292,7 @@ function UnitDetailContent() {
           initialRecipient={editingRecipient || (unit?.tenant ? {
             type: 'existing',
             uuid: unit.tenant.uuid,
-            name: `${unit.tenant.firstName} ${unit.tenant.lastName}`,
+            name: formatTenantName(unit.tenant),
             email: unit.tenant.email,
             deliveryMode: 'pdf'
           } : undefined)}
@@ -601,10 +601,10 @@ function UnitDetailContent() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 24, marginBottom: 24, borderBottom: '1px solid var(--border)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                         <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--dark)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 600 }}>
-                          {unit.tenant.firstName?.[0]?.toUpperCase()}
+                          {(unit.tenant.commercialName || unit.tenant.firstName || 'T')[0]?.toUpperCase()}
                         </div>
                         <div style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>
-                          {unit.tenant.firstName} {unit.tenant.lastName}
+                          {formatTenantName(unit.tenant)}
                         </div>
                       </div>
                       <button className="btn btn--secondary btn--sm" onClick={() => router.push(`/tenants/${unit.tenant?.uuid}`)} style={{ borderRadius: 100, fontSize: 12 }}>
@@ -761,11 +761,11 @@ function UnitDetailContent() {
                       <tr key={row.uuid} style={{ borderTop: '1px solid var(--border)' }}>
                         <td style={{ padding: '20px 24px', fontSize: 14, fontWeight: 500, color: 'var(--dark)' }}>
                           {row.tenant 
-                            ? `${row.tenant.firstName} ${row.tenant.lastName}`
+                            ? formatTenantName(row.tenant)
                             : (row.notes && !['Bulk Import', 'Manual Entry', 'Imported initial payment'].some(note => row.notes.includes(note)) && !row.notes.includes('Rent Portion'))
                               ? row.notes
                               : unit?.tenant
-                                ? `${unit.tenant.firstName} ${unit.tenant.lastName}`
+                                ? formatTenantName(unit.tenant)
                                 : 'Past Tenant'
                           }
                         </td>
@@ -1037,7 +1037,7 @@ function UnitDetailContent() {
         onClose={() => setIsUnassignConfirmOpen(false)}
         onConfirm={handleUnassign}
         title="Remove Tenant"
-        message={`Are you sure you want to remove ${unit?.tenant?.firstName} from this unit? They will no longer be linked to this residence.`}
+        message={`Are you sure you want to remove ${formatTenantName(unit?.tenant)} from this unit? They will no longer be linked to this residence.`}
         confirmText="Remove Tenant"
         type="danger"
         isPending={unassignTenant.isPending}
@@ -1048,7 +1048,7 @@ function UnitDetailContent() {
         onClose={() => setIsVaultModalOpen(false)}
         unitUuid={uuid as string}
         tenantUuid={unit?.tenant?.uuid}
-        tenantName={unit?.tenant ? `${unit.tenant.firstName} ${unit.tenant.lastName}` : undefined}
+        tenantName={unit?.tenant ? formatTenantName(unit.tenant) : undefined}
         onProceedToEditor={(template) => {
           setEditingTemplate(template)
           setPaymentContext(null)
@@ -1085,7 +1085,7 @@ function UnitDetailContent() {
                   className="hover-bg-faint"
                 >
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{tenant.firstName} {tenant.lastName}</div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{formatTenantName(tenant)}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tenant.email}</div>
                   </div>
                   <UserPlus size={16} color="var(--forest)" />
