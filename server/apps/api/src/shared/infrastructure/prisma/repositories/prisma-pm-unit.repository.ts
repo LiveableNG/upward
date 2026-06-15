@@ -62,6 +62,7 @@ export class PrismaPmUnitRepository implements IUnitRepository {
         id: u.tenant.id,
         uuid: u.tenant.uuid,
         pmId: u.tenant.pmId,
+        commercialName: u.tenant.commercialNameEncrypted ? this.encryption.decrypt(u.tenant.commercialNameEncrypted) : null,
         firstName: u.tenant.firstNameEncrypted ? this.encryption.decrypt(u.tenant.firstNameEncrypted) : null,
         lastName: u.tenant.lastNameEncrypted ? this.encryption.decrypt(u.tenant.lastNameEncrypted) : null,
         email: u.tenant.emailEncrypted ? this.encryption.decrypt(u.tenant.emailEncrypted) : null,
@@ -194,6 +195,7 @@ export class PrismaPmUnitRepository implements IUnitRepository {
     return payments.map(p => ({
       ...p,
       tenant: p.tenant ? {
+        commercialName: p.tenant.commercialNameEncrypted ? this.encryption.decrypt(p.tenant.commercialNameEncrypted) : '',
         firstName: p.tenant.firstNameEncrypted ? this.encryption.decrypt(p.tenant.firstNameEncrypted) : '',
         lastName: p.tenant.lastNameEncrypted ? this.encryption.decrypt(p.tenant.lastNameEncrypted) : '',
       } : undefined
@@ -229,6 +231,7 @@ export class PrismaPmUnitRepository implements IUnitRepository {
     return {
       ...payment,
       tenant: payment.tenant ? {
+        commercialName: payment.tenant.commercialNameEncrypted ? this.encryption.decrypt(payment.tenant.commercialNameEncrypted) : '',
         firstName: payment.tenant.firstNameEncrypted ? this.encryption.decrypt(payment.tenant.firstNameEncrypted) : '',
         lastName: payment.tenant.lastNameEncrypted ? this.encryption.decrypt(payment.tenant.lastNameEncrypted) : '',
       } : undefined
