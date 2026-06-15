@@ -103,7 +103,7 @@ export interface RentPaymentEntity {
   status: string;
   notes: string | null;
   tenantId?: number | null;
-  tenant?: { firstName: string; lastName: string };
+  tenant?: { firstName: string; lastName: string; commercialName?: string | null };
 }
 
 export interface IUnitRepository {
