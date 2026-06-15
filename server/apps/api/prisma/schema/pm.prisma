@@ -162,6 +162,9 @@ model upward_pm_tenant {
   /// @encrypted
   phoneEncrypted     String?
   phoneHash          String?
+  /// @encrypted
+  otherPhoneEncrypted String?
+  otherPhoneHash      String?
   formerAddress      String?
   nextOfKinName      String?
   nextOfKinEmail     String?

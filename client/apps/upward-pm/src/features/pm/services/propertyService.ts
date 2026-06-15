@@ -25,6 +25,7 @@ export interface Tenant {
   lastName?: string;
   email?: string;
   phone?: string;
+  otherPhone?: string | null;
   inviteStatus?: string;
   inviteSentAt?: string;
 }

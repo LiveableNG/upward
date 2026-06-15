@@ -20,6 +20,7 @@ export class PrismaPmTenantRepository implements ITenantRepository {
       lastName: t.lastNameEncrypted ? this.encryption.decrypt(t.lastNameEncrypted) : null,
       email: t.emailEncrypted ? this.encryption.decrypt(t.emailEncrypted) : null,
       phone: t.phoneEncrypted ? this.encryption.decrypt(t.phoneEncrypted) : null,
+      otherPhone: t.otherPhoneEncrypted ? this.encryption.decrypt(t.otherPhoneEncrypted) : null,
       formerAddress: t.formerAddress,
       nextOfKinName: t.nextOfKinName,
       nextOfKinEmail: t.nextOfKinEmail,
@@ -168,6 +169,8 @@ export class PrismaPmTenantRepository implements ITenantRepository {
     const phoneEncrypted = data.phone ? this.encryption.encrypt(data.phone) : null;
     const emailHash = data.email ? this.encryption.hash(data.email) : null;
     const phoneHash = data.phone ? this.encryption.hash(data.phone) : null;
+    const otherPhoneEncrypted = data.otherPhone ? this.encryption.encrypt(data.otherPhone) : null;
+    const otherPhoneHash = data.otherPhone ? this.encryption.hash(data.otherPhone) : null;
     const commercialNameEncrypted = data.commercialName ? this.encryption.encrypt(data.commercialName) : null;
 
     const tenant = await this.prisma.upward_pm_tenant.create({
@@ -181,6 +184,8 @@ export class PrismaPmTenantRepository implements ITenantRepository {
         emailHash,
         phoneEncrypted,
         phoneHash,
+        otherPhoneEncrypted,
+        otherPhoneHash,
         commercialNameEncrypted,
         commercialNameSearch: data.commercialName?.toLowerCase(),
         formerAddress: data.formerAddress,
@@ -224,6 +229,11 @@ export class PrismaPmTenantRepository implements ITenantRepository {
       updateData.phoneEncrypted = data.phone ? this.encryption.encrypt(data.phone) : null;
       updateData.phoneHash = data.phone ? this.encryption.hash(data.phone) : null;
       delete updateData.phone;
+    }
+    if (data.otherPhone !== undefined) {
+      updateData.otherPhoneEncrypted = data.otherPhone ? this.encryption.encrypt(data.otherPhone) : null;
+      updateData.otherPhoneHash = data.otherPhone ? this.encryption.hash(data.otherPhone) : null;
+      delete updateData.otherPhone;
     }
     if (data.commercialName !== undefined) {
       updateData.commercialNameEncrypted = data.commercialName ? this.encryption.encrypt(data.commercialName) : null;

@@ -205,6 +205,11 @@ export const TenantDetailView: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Phone size={14} color="var(--forest)" /> {tenant.phone || 'N/A'}
               </div>
+              {tenant.otherPhone && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+                  <Phone size={12} color="var(--text-muted)" /> {tenant.otherPhone} (Alt)
+                </div>
+              )}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {tenant.email?.endsWith('@upward.com') ? (
                   <>
@@ -307,6 +312,27 @@ export const TenantDetailView: React.FC = () => {
 
           {activeDetailTab === 'profile' && (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
+              {/* Contact Information */}
+              <div>
+                <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)', marginBottom: 24 }}>Contact Details</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Phone Number</label>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)' }}>{tenant.phone || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Alternative Phone Number</label>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)' }}>{tenant.otherPhone || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email Address</label>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)' }}>
+                      {tenant.email?.endsWith('@upward.com') ? 'N/A' : (tenant.email || 'N/A')}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Address Section */}
               <div>
                 <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)', marginBottom: 24 }}>Address</h3>

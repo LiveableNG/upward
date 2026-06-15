@@ -22,6 +22,9 @@ const tenantSchema = z.object({
   phone: z.string().refine((val) => !val || isValidPhoneNumber(val), {
     message: 'Invalid international phone number (e.g. +234...)'
   }),
+  otherPhone: z.string().optional().refine((val) => !val || isValidPhoneNumber(val), {
+    message: 'Invalid international phone number (e.g. +234...)'
+  }),
   // Assignment fields
   unitUuid: z.string().optional(),
   rentAmount: z.string().optional(),
@@ -142,6 +145,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
       commercialName: '',
       email: initialData?.email || '',
       phone: initialData?.phone || '',
+      otherPhone: '',
       unitUuid: '',
       rentAmount: initialData?.unitDetails?.rentAmount?.toString() || '',
       rentType: 'Annually',
@@ -225,7 +229,8 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
       lastName: tenantType === 'individual' ? (tenantData.lastName || '') : '',
       commercialName: tenantType === 'commercial' ? (tenantData.commercialName || '') : '',
       email,
-      phone: tenantData.phone
+      phone: tenantData.phone,
+      otherPhone: tenantData.otherPhone || undefined
     }
 
     if (showLeaseFields && assignMode === 'create') {
@@ -525,6 +530,24 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                   )}
                 />
               </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
+              <div>
+                <Controller
+                  name="otherPhone"
+                  control={control}
+                  render={({ field }) => (
+                    <PhoneInput
+                      {...field}
+                      label="Alternative Phone Number"
+                      placeholder="e.g. +234 800 000 0000"
+                      error={errors.otherPhone?.message}
+                    />
+                  )}
+                />
+              </div>
+              <div />
             </div>
           </div>
 

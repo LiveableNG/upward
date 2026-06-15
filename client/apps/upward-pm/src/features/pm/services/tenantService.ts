@@ -6,6 +6,7 @@ export interface CreateTenantDto {
   lastName?: string;
   email?: string;
   phone?: string;
+  otherPhone?: string;
 }
 
 export interface Tenant {
@@ -16,6 +17,7 @@ export interface Tenant {
   lastName?: string;
   email?: string;
   phone?: string;
+  otherPhone?: string | null;
   inviteStatus: string;
   inviteSentAt: string | null;
   formerAddress?: string;

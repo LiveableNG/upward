@@ -7,6 +7,20 @@ import { BulkInviteTenantsUseCase } from './tenants/bulk-invite-tenants.use-case
 import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
 import { SyncUnitToUpwardUseCase } from './units/sync-unit.use-case';
 
+function cleanAndValidatePhone(phoneStr: string, identifier: string): string {
+  let cleaned = phoneStr.trim().replace(/\s+/g, '');
+  if (cleaned.startsWith('0') && cleaned.length === 11) {
+    cleaned = '+234' + cleaned.substring(1);
+  } else if (!cleaned.startsWith('+') && cleaned.length === 10) {
+    cleaned = '+234' + cleaned;
+  }
+
+  if (!/^\+\d{7,15}$/.test(cleaned)) {
+    throw new Error(`Invalid phone format for tenant ${identifier}. Must be in international format (e.g. +234...)`);
+  }
+  return cleaned;
+}
+
 @Injectable()
 export class BulkCreateUnitsUseCase {
   constructor(
@@ -33,17 +47,15 @@ export class BulkCreateUnitsUseCase {
 
     for (const u of dto.units) {
       if (u.tenantPhone) {
-        let cleaned = u.tenantPhone.trim().replace(/\s+/g, '');
-        if (cleaned.startsWith('0') && cleaned.length === 11) {
-          cleaned = '+234' + cleaned.substring(1);
-        } else if (!cleaned.startsWith('+') && cleaned.length === 10) {
-          cleaned = '+234' + cleaned;
+        const identifier = u.tenantEmail || u.tenantFirstName || u.tenantCommercialName || 'unknown';
+        if (u.tenantPhone.includes(',')) {
+          const parts = u.tenantPhone.split(',');
+          const p1 = cleanAndValidatePhone(parts[0]!, identifier);
+          const p2 = cleanAndValidatePhone(parts[1]!, identifier);
+          u.tenantPhone = `${p1},${p2}`;
+        } else {
+          u.tenantPhone = cleanAndValidatePhone(u.tenantPhone, identifier);
         }
-
-        if (!/^\+\d{7,15}$/.test(cleaned)) {
-          throw new Error(`Invalid phone format for tenant ${u.tenantEmail || u.tenantFirstName || u.tenantCommercialName || 'unknown'}. Must be in international format (e.g. +234...)`);
-        }
-        u.tenantPhone = cleaned;
       }
     }
 
@@ -69,6 +81,14 @@ export class BulkCreateUnitsUseCase {
           initialStatus = tenant.inviteStatus;
         }
       } else if (hasTenantIdentifier) {
+        let phoneVal = u.tenantPhone?.trim() || undefined;
+        let otherPhoneVal = undefined;
+        if (phoneVal && phoneVal.includes(',')) {
+          const parts = phoneVal.split(',');
+          phoneVal = parts[0]?.trim();
+          otherPhoneVal = parts[1]?.trim();
+        }
+
         if (email) {
           const emailHash = this.encryption.hash(email);
           let tenant = await this.tenantRepository.findByEmailHash(pmId, emailHash);
@@ -86,7 +106,8 @@ export class BulkCreateUnitsUseCase {
               firstName: firstName || '',
               lastName: lastName || '',
               email: email,
-              phone: u.tenantPhone?.trim() || '',
+              phone: phoneVal || '',
+              otherPhone: otherPhoneVal || undefined,
               inviteStatus: initialStatus,
               inviteSentAt: null,
             });
@@ -104,7 +125,8 @@ export class BulkCreateUnitsUseCase {
             commercialName: commercialName || undefined,
             firstName: firstName || undefined,
             lastName: lastName || undefined,
-            phone: u.tenantPhone?.trim() || undefined,
+            phone: phoneVal || undefined,
+            otherPhone: otherPhoneVal || undefined,
             inviteStatus: 'PENDING',
             inviteSentAt: null,
           });

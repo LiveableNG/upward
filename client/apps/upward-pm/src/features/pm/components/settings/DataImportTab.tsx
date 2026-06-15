@@ -81,8 +81,17 @@ const UNIT_COLUMNS: ColumnDef[] = [
 ]
 
 const formatPhoneNumberByCountry = (phone: string, country: string): string => {
-  let cleaned = (phone || '').toString().trim().replace(/\s+/g, '')
-  if (!cleaned) return ''
+  const phoneStr = (phone || '').toString().trim()
+  if (!phoneStr) return ''
+
+  if (phoneStr.includes(',')) {
+    return phoneStr.split(',')
+      .map(part => formatPhoneNumberByCountry(part, country))
+      .filter(Boolean)
+      .join(',')
+  }
+
+  let cleaned = phoneStr.replace(/\s+/g, '')
 
   if (cleaned.startsWith('+')) {
     return cleaned
@@ -217,8 +226,12 @@ export const DataImportTab: React.FC = () => {
       errorMsg = 'Required'
     } else if (config?.type === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
       errorMsg = 'Invalid email'
-    } else if (config?.type === 'tel' && value && !isValidPhoneNumber(value)) {
-      errorMsg = 'Invalid phone'
+    } else if (config?.type === 'tel' && value) {
+      const parts = value.toString().split(',')
+      const allValid = parts.every((part: string) => !part.trim() || isValidPhoneNumber(part.trim()))
+      if (!allValid) {
+        errorMsg = 'Invalid phone'
+      }
     } else if (config?.type === 'number' && value !== '' && isNaN(parseFloat(value))) {
       errorMsg = 'Must be a number'
     }
