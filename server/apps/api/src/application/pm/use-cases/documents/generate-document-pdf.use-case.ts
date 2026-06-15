@@ -48,28 +48,141 @@ export class GenerateDocumentPdfUseCase {
       return formatDate(end);
     };
 
+    const getTenantName = (t: any) => {
+      if (!t) return '';
+      return t.commercialName || `${t.firstName || ''} ${t.lastName || ''}`.trim() || 'Tenant';
+    };
+
+    const now = new Date();
+    const currentMonth = now.toLocaleDateString('en-GB', { month: 'long' });
+    const currentYear = now.getFullYear().toString();
+    const nextMonthDate = new Date();
+    nextMonthDate.setMonth(now.getMonth() + 1);
+    const nextMonth = nextMonthDate.toLocaleDateString('en-GB', { month: 'long' });
+    const prevMonthDate = new Date();
+    prevMonthDate.setMonth(now.getMonth() - 1);
+    const previousMonth = prevMonthDate.toLocaleDateString('en-GB', { month: 'long' });
+
+    const tenantAddress = tenant?.formerAddress || '__________';
+    const unitNumber = unit?.unitName || '__________';
+    const propertyType = unit?.property?.propertyType || unit?.unitType || 'Residential';
+    const rentType = unit?.rentType || 'Monthly';
+    const rentAmountStr = unit ? `${unit.currency || '₦'}${unit.rentAmount.toLocaleString()}` : '__________';
+    const serviceChargeStr = '__________';
+    const totalAmountStr = rentAmountStr;
+    const rentDuration = unit?.rentType === 'YEARLY' ? '12 Months' : unit?.rentType === 'MONTHLY' ? '1 Month' : '__________';
+
+    const companyName = pm?.businessName || '__________';
+    const companyAddress = pm?.country || '__________';
+    const companyPhone = pm?.phone || '__________';
+    const companyEmail = pm?.email || '__________';
+    const managerPhone = pm?.phone || '__________';
+    const managerEmail = pm?.email || '__________';
+    const managerName = pm ? `${pm.firstName} ${pm.lastName}`.trim() : 'The Property Manager';
+
     const placeholders: Record<string, string> = {
-      '[Recipient Name]': recipientName || (tenant ? `${tenant.firstName} ${tenant.lastName}` : '__________'),
-      '[Tenant Name]': tenant ? `${tenant.firstName} ${tenant.lastName}` : (recipientName || '__________'),
-      '[TenantFirstName]': tenant?.firstName || recipientName?.split(' ')[0] || '__________',
-      '[TenantLastName]': tenant?.lastName || recipientName?.split(' ').slice(1).join(' ') || '__________',
+      '[Recipient Name]': recipientName || (tenant ? getTenantName(tenant) : '__________'),
+      '[TenantName]': tenant ? getTenantName(tenant) : (recipientName || '__________'),
+      '[Tenant Name]': tenant ? getTenantName(tenant) : (recipientName || '__________'),
+      '[TenantFirstName]': tenant?.commercialName ? tenant.commercialName : (tenant?.firstName || recipientName?.split(' ')[0] || '__________'),
+      '[Tenant FirstName]': tenant?.commercialName ? tenant.commercialName : (tenant?.firstName || recipientName?.split(' ')[0] || '__________'),
+      '[TenantLastName]': tenant?.commercialName ? '' : (tenant?.lastName || recipientName?.split(' ').slice(1).join(' ') || '__________'),
+      '[Tenant LastName]': tenant?.commercialName ? '' : (tenant?.lastName || recipientName?.split(' ').slice(1).join(' ') || '__________'),
       '[TenantPhone]': tenant?.phone || '__________',
+      '[Tenant Phone]': tenant?.phone || '__________',
       '[TenantEmail]': tenant?.email || '__________',
+      '[Tenant Email]': tenant?.email || '__________',
+      '[TenantAddress]': tenantAddress,
+      '[Tenant Address]': tenantAddress,
+
       '[UnitName]': unit ? unit.unitName : '__________',
       '[Unit Name]': unit ? unit.unitName : '__________',
-      '[RentAmount]': unit ? `${unit.currency || '₦'}${unit.rentAmount.toLocaleString()}` : '__________',
-      '[Rent Amount]': unit ? `${unit.currency || '₦'}${unit.rentAmount.toLocaleString()}` : '__________',
+      '[UnitNumber]': unitNumber,
+      '[Unit Number]': unitNumber,
       '[PropertyName]': unit?.property?.name || '__________',
       '[Property Name]': unit?.property?.name || '__________',
       '[PropertyAddress]': unit?.property?.address || '__________',
       '[Property Address]': unit?.property?.address || '__________',
-      '[LandlordName]': unit?.property?.landlordName || '__________',
-      '[LandlordEmail]': unit?.property?.landlordEmail || '__________',
+      '[PropertyType]': propertyType,
+      '[Property Type]': propertyType,
+      '[Bedrooms]': 'N/A',
+      '[Bathrooms]': 'N/A',
+
+      '[LeaseStartDate]': formatDate(unit?.rentStartDate),
+      '[Lease Start Date]': formatDate(unit?.rentStartDate),
+      '[LeaseEndDate]': calculateEndDate(unit),
+      '[Lease End Date]': calculateEndDate(unit),
+      '[LeaseDuration]': rentDuration,
+      '[Lease Duration]': rentDuration,
       '[RentStartDate]': formatDate(unit?.rentStartDate),
+      '[Rent Start Date]': formatDate(unit?.rentStartDate),
       '[RentEndDate]': calculateEndDate(unit),
+      '[Rent End Date]': calculateEndDate(unit),
+      '[RentDuration]': rentDuration,
+      '[Rent Duration]': rentDuration,
+      '[RentAmount]': rentAmountStr,
+      '[Rent Amount]': rentAmountStr,
+      '[RentType]': rentType,
+      '[Rent Type]': rentType,
+      '[ServiceCharge]': serviceChargeStr,
+      '[Service Charge]': serviceChargeStr,
+      '[TotalAmount]': totalAmountStr,
+      '[Total Amount]': totalAmountStr,
+      '[PaymentDueDate]': formatDate(unit?.rentDueDate),
+      '[Payment Due Date]': formatDate(unit?.rentDueDate),
+
+      '[CompanyName]': companyName,
+      '[Company Name]': companyName,
+      '[CompanyAddress]': companyAddress,
+      '[Company Address]': companyAddress,
+      '[CompanyPhone]': companyPhone,
+      '[Company Phone]': companyPhone,
+      '[CompanyEmail]': companyEmail,
+      '[Company Email]': companyEmail,
+      '[ManagerName]': managerName,
+      '[Manager Name]': managerName,
+      '[ManagerPhone]': managerPhone,
+      '[Manager Phone]': managerPhone,
+      '[ManagerEmail]': managerEmail,
+      '[Manager Email]': managerEmail,
+
       '[Date]': formatDate(new Date()),
       '[CurrentDate]': formatDate(new Date()),
-      '[ManagerName]': pm ? `${pm.firstName} ${pm.lastName}` : 'The Property Manager',
+      '[Current Date]': formatDate(new Date()),
+      '[CurrentMonth]': currentMonth,
+      '[Current Month]': currentMonth,
+      '[CurrentYear]': currentYear,
+      '[Current Year]': currentYear,
+      '[NextMonth]': nextMonth,
+      '[Next Month]': nextMonth,
+      '[PreviousMonth]': previousMonth,
+      '[Previous Month]': previousMonth,
+
+      '[OutstandingBalance]': 'N/A',
+      '[Outstanding Balance]': 'N/A',
+      '[LastPaymentDate]': 'N/A',
+      '[Last Payment Date]': 'N/A',
+      '[LastPaymentAmount]': 'N/A',
+      '[Last Payment Amount]': 'N/A',
+
+      '[DocumentDate]': formatDate(new Date()),
+      '[Document Date]': formatDate(new Date()),
+      '[DocumentNumber]': '__________',
+      '[Document Number]': '__________',
+      '[DocumentType]': 'PDF',
+      '[Document Type]': 'PDF',
+
+      '[LandlordName]': unit?.property?.landlordName || '__________',
+      '[LandlordEmail]': unit?.property?.landlordEmail || '__________',
+
+      '[PaymentURL]': '__________',
+      '[Payment URL]': '__________',
+      '[BankDetails]': '__________',
+      '[Bank Details]': '__________',
+      '[PaymentInfo]': '__________',
+      '[Payment Info]': '__________',
+      '[PaymentLink]': '__________', 
+      '[Payment Link]': '__________',
     };
 
     Object.entries(placeholders).forEach(([tag, value]) => {

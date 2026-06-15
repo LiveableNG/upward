@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { isBefore, addDays, startOfDay } from 'date-fns'
 import { useToast } from '@/components/common/Toast'
-import { cn } from '@/lib/utils'
+import { cn, formatTenantName } from '@/lib/utils'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 
 import { 
@@ -350,7 +350,7 @@ export function PropertiesView() {
           initialRecipient={tenant ? {
             type: 'existing',
             uuid: tenant.uuid,
-            name: `${tenant.firstName} ${tenant.lastName}`,
+            name: formatTenantName(tenant),
             email: tenant.email,
             deliveryMode: 'email'
           } : undefined}

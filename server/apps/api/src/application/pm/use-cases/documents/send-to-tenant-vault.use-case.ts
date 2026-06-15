@@ -151,8 +151,8 @@ export class SendToTenantVaultUseCase {
       if (tenant) {
         tenantId = tenant.id;
         tenantEmail = tenant.email || null;
-        tenantFirstName = tenant.firstName || null;
-        recipientName = `${tenant.firstName} ${tenant.lastName}`.trim();
+        tenantFirstName = tenant.commercialName || tenant.firstName || null;
+        recipientName = (tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() || 'Tenant');
         recipientEmail = tenant.email || '';
       }
     }

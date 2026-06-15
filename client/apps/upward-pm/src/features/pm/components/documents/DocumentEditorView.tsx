@@ -13,7 +13,7 @@ import {
   Loader2
 } from 'lucide-react'
 import { RichTextEditor } from '@/components/common/RichTextEditor'
-import { useTenants } from '../../hooks/useTenants'
+import { useTenants, useTenantActions } from '../../hooks/useTenants'
 import { useDocuments, useVaultActions } from '../../hooks/useDocuments'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -90,7 +90,9 @@ export function DocumentEditorView({
   const [isDownloading, setIsDownloading] = useState(false)
   const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false)
   const [includeLetterhead, setIncludeLetterhead] = useState(true)
+  const [tempEmail, setTempEmail] = useState('')
   const { user } = useAuth()
+  const { updateTenant } = useTenantActions()
   const { data: letterheads = [] } = useQuery<any[]>({
     queryKey: ['letterheads'],
     queryFn: () => api.fetchLetterheads()
@@ -100,6 +102,208 @@ export function DocumentEditorView({
   const [isPreviewingPdf, setIsPreviewingPdf] = useState(false)
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null)
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
+
+  const { data: unitDetails } = useQuery({
+    queryKey: ['pm-unit-detail', unitUuid],
+    queryFn: () => api.getUnit(unitUuid as string),
+    enabled: !!unitUuid
+  })
+
+  const [previewMode, setPreviewMode] = useState(false)
+
+  const getRenderedContent = () => {
+    let rendered = content
+    if (!rendered) return ''
+
+    // Resolve Date formatting helper
+    const formatDate = (dateVal: any) => {
+      if (!dateVal) return '__________'
+      return new Date(dateVal).toLocaleDateString('en-GB', { 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      })
+    }
+
+    const calculateEndDate = (start: any) => {
+      if (!start) return '__________'
+      const end = new Date(start)
+      end.setFullYear(end.getFullYear() + 1)
+      end.setDate(end.getDate() - 1)
+      return formatDate(end)
+    }
+
+    // Current date values
+    const now = new Date()
+    const currentMonth = now.toLocaleDateString('en-GB', { month: 'long' })
+    const currentYear = now.getFullYear().toString()
+    const nextMonthDate = new Date()
+    nextMonthDate.setMonth(now.getMonth() + 1)
+    const nextMonth = nextMonthDate.toLocaleDateString('en-GB', { month: 'long' })
+    const prevMonthDate = new Date()
+    prevMonthDate.setMonth(now.getMonth() - 1)
+    const previousMonth = prevMonthDate.toLocaleDateString('en-GB', { month: 'long' })
+
+    const dateValues: Record<string, string> = {
+      '[Date]': formatDate(now),
+      '[CurrentDate]': formatDate(now),
+      '[Current Date]': formatDate(now),
+      '[CurrentMonth]': currentMonth,
+      '[Current Month]': currentMonth,
+      '[CurrentYear]': currentYear,
+      '[Current Year]': currentYear,
+      '[NextMonth]': nextMonth,
+      '[Next Month]': nextMonth,
+      '[PreviousMonth]': previousMonth,
+      '[Previous Month]': previousMonth,
+      '[DocumentDate]': formatDate(now),
+      '[Document Date]': formatDate(now),
+      '[DocumentNumber]': 'DOC-PREVIEW',
+      '[Document Number]': 'DOC-PREVIEW',
+      '[DocumentType]': deliveryMode.toUpperCase(),
+      '[Document Type]': deliveryMode.toUpperCase(),
+    }
+
+    // Property Manager / Company Values
+    const pmValues: Record<string, string> = {
+      '[CompanyName]': user?.businessName || '__________',
+      '[Company Name]': user?.businessName || '__________',
+      '[CompanyAddress]': user?.country || '__________',
+      '[Company Address]': user?.country || '__________',
+      '[CompanyPhone]': user?.phone || '__________',
+      '[Company Phone]': user?.phone || '__________',
+      '[CompanyEmail]': user?.email || '__________',
+      '[Company Email]': user?.email || '__________',
+      '[ManagerName]': user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'The Property Manager',
+      '[Manager Name]': user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'The Property Manager',
+      '[ManagerPhone]': user?.phone || '__________',
+      '[Manager Phone]': user?.phone || '__________',
+      '[ManagerEmail]': user?.email || '__________',
+      '[Manager Email]': user?.email || '__________',
+    }
+
+    // Recipient & Tenant Values
+    let recipientName = newRecipient.name
+    let recipientEmail = newRecipient.email
+    let tenantPhone = '__________'
+    let tenantAddress = '__________'
+    let tenantFirstName = '__________'
+    let tenantLastName = '__________'
+
+    if (recipientType === 'existing' && selectedTenant) {
+      recipientName = selectedTenant.commercialName || `${selectedTenant.firstName || ''} ${selectedTenant.lastName || ''}`.trim() || 'Tenant'
+      recipientEmail = selectedTenant.email || ''
+      tenantPhone = selectedTenant.phone || '__________'
+      tenantAddress = selectedTenant.formerAddress || '__________'
+      tenantFirstName = selectedTenant.commercialName ? selectedTenant.commercialName : (selectedTenant.firstName || '__________')
+      tenantLastName = selectedTenant.commercialName ? '' : (selectedTenant.lastName || '__________')
+    } else if (newRecipient.name) {
+      tenantFirstName = newRecipient.name.split(' ')[0] || '__________'
+      tenantLastName = newRecipient.name.split(' ').slice(1).join(' ') || '__________'
+    }
+
+    const tenantValues: Record<string, string> = {
+      '[Recipient Name]': recipientName || '__________',
+      '[TenantName]': recipientName || '__________',
+      '[Tenant Name]': recipientName || '__________',
+      '[TenantFirstName]': tenantFirstName,
+      '[Tenant FirstName]': tenantFirstName,
+      '[TenantLastName]': tenantLastName,
+      '[Tenant LastName]': tenantLastName,
+      '[TenantEmail]': recipientEmail || '__________',
+      '[Tenant Email]': recipientEmail || '__________',
+      '[TenantPhone]': tenantPhone,
+      '[Tenant Phone]': tenantPhone,
+      '[TenantAddress]': tenantAddress,
+      '[Tenant Address]': tenantAddress,
+    }
+
+    // Unit & Property Values
+    let resolvedUnit: any = unitDetails || (selectedTenant?.units && selectedTenant.units.find((u: any) => u.uuid === unitUuid)) || selectedTenant?.units?.[0]
+    
+    let unitName = resolvedUnit?.unitName || '__________'
+    let propertyName = resolvedUnit?.property?.name || '__________'
+    let propertyAddress = resolvedUnit?.property?.address || '__________'
+    let landlordName = (resolvedUnit?.property as any)?.landlordName || '__________'
+    let landlordEmail = (resolvedUnit?.property as any)?.landlordEmail || '__________'
+    let rentAmountVal = resolvedUnit?.rentAmount
+    let rentAmountStr = rentAmountVal ? `${resolvedUnit.currency || '₦'}${rentAmountVal.toLocaleString()}` : '__________'
+    let rentTypeVal = resolvedUnit?.rentType || 'Monthly'
+    let rentStartDateVal = resolvedUnit?.rentStartDate
+    let rentDueDateVal = resolvedUnit?.rentDueDate
+    let rentDuration = rentTypeVal === 'YEARLY' ? '12 Months' : rentTypeVal === 'MONTHLY' ? '1 Month' : '__________'
+
+    const unitValues: Record<string, string> = {
+      '[UnitName]': unitName,
+      '[Unit Name]': unitName,
+      '[UnitNumber]': unitName,
+      '[Unit Number]': unitName,
+      '[PropertyName]': propertyName,
+      '[Property Name]': propertyName,
+      '[PropertyAddress]': propertyAddress,
+      '[Property Address]': propertyAddress,
+      '[PropertyType]': resolvedUnit?.unitType || 'Residential',
+      '[Property Type]': resolvedUnit?.unitType || 'Residential',
+      '[Bedrooms]': 'N/A',
+      '[Bathrooms]': 'N/A',
+      '[RentAmount]': rentAmountStr,
+      '[Rent Amount]': rentAmountStr,
+      '[RentType]': rentTypeVal,
+      '[Rent Type]': rentTypeVal,
+      '[RentStartDate]': formatDate(rentStartDateVal),
+      '[Rent Start Date]': formatDate(rentStartDateVal),
+      '[RentEndDate]': calculateEndDate(rentStartDateVal),
+      '[Rent End Date]': calculateEndDate(rentStartDateVal),
+      '[LeaseStartDate]': formatDate(rentStartDateVal),
+      '[Lease Start Date]': formatDate(rentStartDateVal),
+      '[LeaseEndDate]': calculateEndDate(rentStartDateVal),
+      '[Lease End Date]': calculateEndDate(rentStartDateVal),
+      '[LeaseDuration]': rentDuration,
+      '[Lease Duration]': rentDuration,
+      '[RentDuration]': rentDuration,
+      '[Rent Duration]': rentDuration,
+      '[ServiceCharge]': 'N/A',
+      '[Service Charge]': 'N/A',
+      '[TotalAmount]': rentAmountStr,
+      '[Total Amount]': rentAmountStr,
+      '[PaymentDueDate]': formatDate(rentDueDateVal),
+      '[Payment Due Date]': formatDate(rentDueDateVal),
+      '[OutstandingBalance]': 'N/A',
+      '[Outstanding Balance]': 'N/A',
+      '[LastPaymentDate]': 'N/A',
+      '[Last Payment Date]': 'N/A',
+      '[LastPaymentAmount]': 'N/A',
+      '[Last Payment Amount]': 'N/A',
+      '[LandlordName]': landlordName,
+      '[LandlordEmail]': landlordEmail,
+    }
+
+    // Payment link/URL replacements
+    const paymentValues: Record<string, string> = {
+      '[PaymentURL]': paymentContext ? 'https://upward-dev.vercel.app/pay/secure-link-preview' : '__________',
+      '[Payment URL]': paymentContext ? 'https://upward-dev.vercel.app/pay/secure-link-preview' : '__________',
+      '[PaymentLink]': paymentContext ? '<a href="#" style="color: var(--forest); font-weight: 700; text-decoration: underline;">Pay via Secure Link</a>' : '__________',
+      '[Payment Link]': paymentContext ? '<a href="#" style="color: var(--forest); font-weight: 700; text-decoration: underline;">Pay via Secure Link</a>' : '__________',
+      '[BankDetails]': paymentContext ? 'Virtual Account: 9988776655 (Wema Bank)' : '__________',
+      '[Bank Details]': paymentContext ? 'Virtual Account: 9988776655 (Wema Bank)' : '__________',
+      '[PaymentInfo]': paymentContext ? 'Virtual Account: 9988776655 (Wema Bank) or secure link.' : '__________',
+      '[Payment Info]': paymentContext ? 'Virtual Account: 9988776655 (Wema Bank) or secure link.' : '__________',
+    }
+
+    const replacements = {
+      ...dateValues,
+      ...pmValues,
+      ...tenantValues,
+      ...unitValues,
+      ...paymentValues,
+    }
+
+    Object.entries(replacements).forEach(([placeholder, value]) => {
+      rendered = rendered.split(placeholder).join(value)
+    })
+
+    return rendered
+  }
 
   useEffect(() => {
     return () => {
@@ -111,12 +315,20 @@ export function DocumentEditorView({
 
   const selectedTenant = tenants.find(t => t.uuid === selectedTenantUuid)
 
+  useEffect(() => {
+    if (selectedTenant) {
+      setTempEmail(selectedTenant.email?.endsWith('@upward.com') ? '' : (selectedTenant.email || ''))
+    } else {
+      setTempEmail('')
+    }
+  }, [selectedTenant])
+
   const handleSaveAsPdf = async () => {
     if (!content) return error('No content to download')
     setIsDownloading(true)
     try {
       const recipientName = recipientType === 'existing' 
-        ? (selectedTenant ? `${selectedTenant.firstName} ${selectedTenant.lastName}` : undefined)
+        ? (selectedTenant ? (selectedTenant.commercialName || `${selectedTenant.firstName || ''} ${selectedTenant.lastName || ''}`.trim() || 'Tenant') : undefined)
         : newRecipient.name;
 
       const blob = await generatePdf.mutateAsync({ 
@@ -146,7 +358,7 @@ export function DocumentEditorView({
     setIsPreviewLoading(true)
     try {
       const recipientName = recipientType === 'existing' 
-        ? (selectedTenant ? `${selectedTenant.firstName} ${selectedTenant.lastName}` : undefined)
+        ? (selectedTenant ? (selectedTenant.commercialName || `${selectedTenant.firstName || ''} ${selectedTenant.lastName || ''}`.trim() || 'Tenant') : undefined)
         : newRecipient.name;
 
       const blob = await generatePdf.mutateAsync({ 
@@ -175,11 +387,36 @@ export function DocumentEditorView({
     if (!subject) return error('Please enter a subject')
     if (!content) return error('Please enter document content')
 
-    const recipient = recipientType === 'existing' 
-      ? { name: `${selectedTenant?.firstName} ${selectedTenant?.lastName}`, email: selectedTenant?.email }
-      : newRecipient
+    let recipientName = newRecipient.name
+    let recipientEmail = newRecipient.email
 
-    if (!recipient.name || !recipient.email) return error('Please specify a recipient')
+    if (recipientType === 'existing') {
+      if (!selectedTenant) return error('Please select a recipient')
+      
+      recipientName = selectedTenant.commercialName || `${selectedTenant.firstName || ''} ${selectedTenant.lastName || ''}`.trim() || 'Tenant'
+      recipientEmail = selectedTenant.email || ''
+
+      // If the selected tenant has a guest email, they must provide a real email
+      if (selectedTenant.email?.endsWith('@upward.com')) {
+        if (!tempEmail) {
+          return error('This tenant has a temporary system email. Please enter a valid email address first so they can receive this document.')
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(tempEmail)) {
+          return error('Please enter a valid email address.')
+        }
+        
+        setIsSending(true)
+        try {
+          await updateTenant.mutateAsync({ uuid: selectedTenant.uuid, data: { email: tempEmail } })
+          recipientEmail = tempEmail
+        } catch (err: any) {
+          setIsSending(false)
+          return error(err.message || 'Failed to update tenant email address')
+        }
+      }
+    }
+
+    if (!recipientName || !recipientEmail) return error('Please specify a recipient')
 
     setIsSending(true)
     try {
@@ -203,19 +440,19 @@ export function DocumentEditorView({
           paymentRequestUuid = resp.uuid;
         }
 
-        // 2. Send Document (linked to payment if context exists)
-        await sendDocument.mutateAsync({
-          uuid: documentUuid,
-          tenantUuid: recipientType === 'existing' ? selectedTenantUuid : undefined,
-          unitUuid,
-          subject,
-          content,
-          documentType: deliveryMode.toUpperCase(),
-          recipientName: recipient.name,
-          recipientEmail: recipient.email,
-          paymentRequestUuid, // New field
-          includeLetterhead: hasLetterhead && deliveryMode === 'pdf' ? includeLetterhead : false
-        })
+          // 2. Send Document (linked to payment if context exists)
+          await sendDocument.mutateAsync({
+            uuid: documentUuid,
+            tenantUuid: recipientType === 'existing' ? selectedTenantUuid : undefined,
+            unitUuid,
+            subject,
+            content,
+            documentType: deliveryMode.toUpperCase(),
+            recipientName,
+            recipientEmail,
+            paymentRequestUuid, // New field
+            includeLetterhead: hasLetterhead && deliveryMode === 'pdf' ? includeLetterhead : false
+          })
         
         success(paymentContext ? 'Payment request and document sent successfully' : (documentUuid ? 'Document updated successfully' : 'Document sent and recorded successfully'))
       }
@@ -428,7 +665,7 @@ export function DocumentEditorView({
                     }}
                   >
                     <span style={{ fontSize: 14, color: selectedTenant ? 'var(--dark)' : 'var(--text-muted)', fontWeight: selectedTenant ? 600 : 400 }}>
-                      {selectedTenant ? `${selectedTenant.firstName} ${selectedTenant.lastName}` : 'Select a recipient...'}
+                      {selectedTenant ? (selectedTenant.commercialName || `${selectedTenant.firstName || ''} ${selectedTenant.lastName || ''}`.trim() || 'Tenant') : 'Select a recipient...'}
                     </span>
                     <Users size={18} style={{ color: 'var(--text-muted)' }} />
                   </div>
@@ -449,6 +686,45 @@ export function DocumentEditorView({
                       style={{ borderRadius: 12 }}
                       value={newRecipient.email}
                       onChange={(e) => setNewRecipient({ ...newRecipient, email: e.target.value })}
+                    />
+                  </div>
+                )}
+
+                {recipientType === 'existing' && selectedTenant && selectedTenant.email?.endsWith('@upward.com') && (
+                  <div style={{
+                    marginTop: 12,
+                    padding: 16,
+                    background: 'var(--error-faint, #fef2f2)',
+                    borderRadius: 12,
+                    border: '1.5px dashed var(--error, #ef4444)',
+                    fontSize: 13,
+                    color: 'var(--error, #ef4444)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8
+                  }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 600 }}>
+                      <AlertCircle size={16} />
+                      <span>Temporary Email Detected</span>
+                    </div>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 11, lineHeight: 1.4 }}>
+                      This tenant has a temporary system email. Please provide a real email to update their profile and deliver this document successfully.
+                    </p>
+                    <input 
+                      type="email"
+                      placeholder="Real Email Address (e.g. name@example.com)"
+                      className="form-input"
+                      style={{ 
+                        borderRadius: 8, 
+                        height: 38, 
+                        fontSize: 12, 
+                        borderColor: 'var(--error, #ef4444)',
+                        background: 'white',
+                        padding: '0 10px',
+                        outline: 'none'
+                      }}
+                      value={tempEmail}
+                      onChange={(e) => setTempEmail(e.target.value)}
                     />
                   </div>
                 )}
@@ -497,13 +773,126 @@ export function DocumentEditorView({
           </div>
         </div>
 
-        {/* Right Panel: Rich Text Editor */}
-        <div style={{ height: '800px', boxShadow: 'var(--shadow-lg)', borderRadius: 24, background: 'white' }}>
-          <RichTextEditor
-            value={content}
-            onChange={(newContent) => setContent(newContent)}
-            height="100%"
-          />
+        {/* Right Panel: Rich Text Editor or Live Preview */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '800px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ 
+              display: 'inline-flex', 
+              background: 'var(--ivory-dim)', 
+              padding: 4, 
+              borderRadius: 12,
+              border: '1px solid var(--border)' 
+            }}>
+              <button
+                onClick={() => setPreviewMode(false)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  border: 'none',
+                  background: !previewMode ? 'white' : 'transparent',
+                  color: !previewMode ? 'var(--dark)' : 'var(--text-muted)',
+                  boxShadow: !previewMode ? 'var(--shadow-sm)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Edit Template
+              </button>
+              <button
+                onClick={() => setPreviewMode(true)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  border: 'none',
+                  background: previewMode ? 'white' : 'transparent',
+                  color: previewMode ? 'var(--dark)' : 'var(--text-muted)',
+                  boxShadow: previewMode ? 'var(--shadow-sm)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Live Preview
+              </button>
+            </div>
+            {previewMode && (
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--success)' }}></span>
+                Showing rendered placeholders
+              </span>
+            )}
+          </div>
+
+          {previewMode ? (
+            <div style={{ 
+              flex: 1, 
+              boxShadow: 'var(--shadow-lg)', 
+              borderRadius: 24, 
+              background: 'white',
+              overflowY: 'auto',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              <div style={{
+                flex: 1,
+                padding: '40px',
+                background: 'var(--ivory)',
+                minHeight: '100%',
+                display: 'flex',
+                justifyContent: 'center'
+              }}>
+                <div style={{
+                  width: '100%',
+                  maxWidth: '800px',
+                  minHeight: '297mm',
+                  background: 'white',
+                  boxShadow: 'var(--shadow-md)',
+                  borderRadius: 8,
+                  padding: '20mm',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  fontFamily: 'var(--font-main)',
+                  color: 'var(--text)',
+                  fontSize: '15px',
+                  lineHeight: 1.6
+                }}>
+                  {/* Header Letterhead */}
+                  {includeLetterhead && user?.letterheadHeaderUrl && (
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
+                      <img src={user.letterheadHeaderUrl} style={{ maxWidth: '100%', maxHeight: '30mm', objectFit: 'contain' }} alt="Letterhead Header" />
+                    </div>
+                  )}
+                  
+                  {/* Document Body */}
+                  <div 
+                    className="preview-body-content"
+                    style={{ flex: 1, color: '#1e293b' }}
+                    dangerouslySetInnerHTML={{ __html: getRenderedContent() }} 
+                  />
+                  
+                  {/* Footer Letterhead */}
+                  {includeLetterhead && user?.letterheadFooterUrl && (
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                      <img src={user.letterheadFooterUrl} style={{ maxWidth: '100%', maxHeight: '20mm', objectFit: 'contain' }} alt="Letterhead Footer" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ flex: 1, boxShadow: 'var(--shadow-lg)', borderRadius: 24, background: 'white', overflow: 'hidden' }}>
+              <RichTextEditor
+                value={content}
+                onChange={(newContent) => setContent(newContent)}
+                height="100%"
+              />
+            </div>
+          )}
         </div>
       </div>
 

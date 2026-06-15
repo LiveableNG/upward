@@ -106,18 +106,77 @@ export function RichTextEditor({
             editor.ui.registry.addMenuButton('placeholders', {
               text: 'Placeholders',
               fetch: (callback: any) => {
-                const items = [
-                  { type: 'menuitem', text: 'Tenant First Name', onAction: () => editor.insertContent('[TenantFirstName]') },
-                  { type: 'menuitem', text: 'Tenant Last Name', onAction: () => editor.insertContent('[TenantLastName]') },
-                  { type: 'menuitem', text: 'Tenant Phone', onAction: () => editor.insertContent('[TenantPhone]') },
-                  { type: 'menuitem', text: 'Unit Name', onAction: () => editor.insertContent('[UnitName]') },
-                  { type: 'menuitem', text: 'Rent Amount', onAction: () => editor.insertContent('[RentAmount]') },
-                  { type: 'menuitem', text: 'Property Name', onAction: () => editor.insertContent('[PropertyName]') },
-                  { type: 'menuitem', text: 'Rent Start Date', onAction: () => editor.insertContent('[RentStartDate]') },
-                  { type: 'menuitem', text: 'Rent End Date', onAction: () => editor.insertContent('[RentEndDate]') },
-                  { type: 'menuitem', text: 'Manager Name', onAction: () => editor.insertContent('[ManagerName]') },
-                  { type: 'menuitem', text: 'Today\'s Date', onAction: () => editor.insertContent('[Date]') }
-                ];
+                const placeholdersMap = {
+                  'Tenant Information': {
+                    'TenantName': 'Full name of the tenant',
+                    'TenantFirstName': 'First name of the tenant',
+                    'TenantLastName': 'Last name of the tenant',
+                    'TenantEmail': 'Email address of the tenant',
+                    'TenantPhone': 'Phone number of the tenant',
+                    'TenantAddress': 'Current address of the tenant',
+                  },
+                  'Property Information': {
+                    'UnitName': 'Name of the unit',
+                    'UnitNumber': 'Unit number',
+                    'PropertyName': 'Name of the property',
+                    'PropertyAddress': 'Full address of the property',
+                    'PropertyType': 'Type of property (e.g., Apartment, House)',
+                    'Bedrooms': 'Number of bedrooms',
+                    'Bathrooms': 'Number of bathrooms',
+                  },
+                  'Rent Information': {
+                    'RentStartDate': 'Start date of the rent',
+                    'RentEndDate': 'End date of the rent',
+                    'RentType': 'Type of rent (e.g., Monthly, Quarterly, Yearly)',
+                    'RentDuration': 'Duration of the rent',
+                    'RentAmount': 'Monthly rent amount',
+                    'ServiceCharge': 'Monthly service charge',
+                  },
+                  'Company Information': {
+                    'CompanyName': 'Name of the property management company',
+                    'CompanyAddress': 'Address of the company',
+                    'CompanyPhone': 'Phone number of the company',
+                    'CompanyEmail': 'Email address of the company',
+                    'ManagerName': 'Name of the property manager',
+                    'ManagerPhone': 'Phone number of the property manager',
+                    'ManagerEmail': 'Email address of the property manager',
+                  },
+                  'Date Information': {
+                    'CurrentDate': 'Current date',
+                    'CurrentMonth': 'Current month name',
+                    'CurrentYear': 'Current year',
+                    'NextMonth': 'Next month name',
+                    'PreviousMonth': 'Previous month name',
+                  },
+                  'Financial Information': {
+                    'OutstandingBalance': 'Outstanding balance owed by tenant',
+                    'LastPaymentDate': 'Date of last payment',
+                    'LastPaymentAmount': 'Amount of last payment',
+                  },
+                  'Payment Info': {
+                    'PaymentURL': 'Payment link URL',
+                    'BankDetails': 'Virtual bank account details',
+                    'PaymentInfo': 'All payment instructions',
+                  }
+                };
+
+                const items: any[] = [];
+                Object.entries(placeholdersMap).forEach(([category, categoryPlaceholders]) => {
+                  const categoryItems = Object.entries(categoryPlaceholders).map(([placeholder, description]) => ({
+                    type: 'menuitem',
+                    text: `${placeholder} — ${description}`,
+                    onAction: () => {
+                      editor.insertContent(`[${placeholder}]`);
+                    }
+                  }));
+
+                  items.push({
+                    type: 'nestedmenuitem',
+                    text: category,
+                    getSubmenuItems: () => categoryItems,
+                  });
+                });
+
                 callback(items as any);
               }
             });

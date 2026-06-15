@@ -73,12 +73,15 @@ export class UnifiedReminderService {
 
   private async sendPmPaymentReminder(pr: any) {
     const tenantEmail = pr.tenant?.emailEncrypted ? this.encryption.decrypt(pr.tenant.emailEncrypted) : null;
-    const tenantName = pr.tenant?.firstNameEncrypted ? this.encryption.decrypt(pr.tenant.firstNameEncrypted) : 'Tenant';
+    const decryptedCommercialName = pr.tenant?.commercialNameEncrypted ? this.encryption.decrypt(pr.tenant.commercialNameEncrypted) : '';
+    const decryptedTenantFirstName = pr.tenant?.firstNameEncrypted ? this.encryption.decrypt(pr.tenant.firstNameEncrypted) : '';
+    const decryptedTenantLastName = pr.tenant?.lastNameEncrypted ? this.encryption.decrypt(pr.tenant.lastNameEncrypted) : '';
+    const tenantName = decryptedCommercialName || `${decryptedTenantFirstName} ${decryptedTenantLastName}`.trim() || 'Tenant';
     
     const decryptedBusinessName = pr.pm?.businessName ? this.encryption.decrypt(pr.pm.businessName) : '';
-    const decryptedFirstName = pr.pm?.firstName ? this.encryption.decrypt(pr.pm.firstName) : '';
-    const decryptedLastName = pr.pm?.lastName ? this.encryption.decrypt(pr.pm.lastName) : '';
-    const pmName = decryptedBusinessName || `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Property Manager';
+    const decryptedPmFirstName = pr.pm?.firstName ? this.encryption.decrypt(pr.pm.firstName) : '';
+    const decryptedPmLastName = pr.pm?.lastName ? this.encryption.decrypt(pr.pm.lastName) : '';
+    const pmName = decryptedBusinessName || `${decryptedPmFirstName} ${decryptedPmLastName}`.trim() || 'Property Manager';
     
     if (!tenantEmail) return;
 
@@ -207,8 +210,11 @@ export class UnifiedReminderService {
         const overdueDigestItems: any[] = [];
 
         for (const unit of units) {
+          const decryptedCommercialName = unit.tenant?.commercialNameEncrypted ? this.encryption.decrypt(unit.tenant.commercialNameEncrypted) : '';
+          const decryptedFirstName = unit.tenant?.firstNameEncrypted ? this.encryption.decrypt(unit.tenant.firstNameEncrypted) : '';
+          const decryptedLastName = unit.tenant?.lastNameEncrypted ? this.encryption.decrypt(unit.tenant.lastNameEncrypted) : '';
           const tenantName = unit.tenant 
-            ? `${unit.tenant.firstNameEncrypted ? this.encryption.decrypt(unit.tenant.firstNameEncrypted) : ''} ${unit.tenant.lastNameEncrypted ? this.encryption.decrypt(unit.tenant.lastNameEncrypted) : ''}`.trim()
+            ? (decryptedCommercialName || `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Tenant')
             : 'Tenant';
 
           const dueDate = new Date(unit.rentDueDate!);

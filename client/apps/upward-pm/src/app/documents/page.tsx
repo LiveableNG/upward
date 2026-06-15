@@ -36,7 +36,7 @@ function DocumentManagementContent() {
       setInitialRecipient({
         type: 'existing',
         uuid: tenantUuid,
-        name: tenant ? `${tenant.firstName} ${tenant.lastName}` : 'Tenant',
+        name: tenant ? (tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() || 'Tenant') : 'Tenant',
         email: tenant?.email || '',
         deliveryMode: 'pdf'
       })
