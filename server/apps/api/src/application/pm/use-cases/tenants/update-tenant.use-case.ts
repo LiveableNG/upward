@@ -3,6 +3,7 @@ import { PM_TENANT_REPOSITORY, ITenantRepository, TenantEntity } from '../../../
 import { InviteTenantUseCase } from './invite-tenant.use-case';
 
 export interface UpdateTenantDto {
+  commercialName?: string;
   firstName?: string;
   lastName?: string;
   email?: string;

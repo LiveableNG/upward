@@ -12,6 +12,7 @@ import { isValidPhoneNumber } from 'libphonenumber-js'
 import { cn } from '@/lib/utils'
 
 const tenantSchema = z.object({
+  tenantType: z.enum(['individual', 'commercial']),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   commercialName: z.string().optional(),
@@ -28,20 +29,27 @@ const tenantSchema = z.object({
   rentStartDate: z.string().optional(),
   rentEndDate: z.string().optional(),
 }).superRefine((data, ctx) => {
-  // If no commercialName is set, we need firstName and lastName
-  if (!data.commercialName || data.commercialName.trim() === '') {
+  if (data.tenantType === 'commercial') {
+    if (!data.commercialName || data.commercialName.trim().length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['commercialName'],
+        message: 'Commercial/Business name is required'
+      });
+    }
+  } else {
     if (!data.firstName || data.firstName.trim().length < 2) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['firstName'],
-        message: 'First name is required (or provide Commercial Name)'
+        message: 'First name is required'
       });
     }
     if (!data.lastName || data.lastName.trim().length < 2) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['lastName'],
-        message: 'Last name is required (or provide Commercial Name)'
+        message: 'Last name is required'
       });
     }
   }
@@ -128,6 +136,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
     mode: 'all',
     resolver: zodResolver(tenantSchema),
     defaultValues: {
+      tenantType: 'individual',
       firstName: initialData?.firstName || '',
       lastName: initialData?.lastName || '',
       commercialName: '',
@@ -148,6 +157,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
   const selectedUnitUuid = watch('unitUuid')
   const rentStartDate = watch('rentStartDate')
   const rentType = watch('rentType')
+  const tenantType = watch('tenantType')
 
   // Auto-fill unit based on address if possible (only for existing mode)
   useEffect(() => {
@@ -198,22 +208,22 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
   if (!isOpen) return null
 
   const onSubmit = async (data: TenantFormData) => {
-    const { unitUuid, rentAmount, rentType, rentStartDate, rentEndDate, ...tenantData } = data
+    const { tenantType, unitUuid, rentAmount, rentType, rentStartDate, rentEndDate, ...tenantData } = data
 
     let email = tenantData.email || ''
     if (!email || email.trim() === '') {
       const cleanFirst = (tenantData.firstName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
       const cleanLast = (tenantData.lastName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
       const cleanComm = (tenantData.commercialName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-      const namePart = cleanFirst && cleanLast ? `${cleanFirst}-${cleanLast}` : cleanComm || 'tenant'
+      const namePart = tenantType === 'individual' && cleanFirst && cleanLast ? `${cleanFirst}-${cleanLast}` : cleanComm || 'tenant'
       const randomStr = Math.random().toString(36).substring(2, 8)
       email = `guest-${namePart}-${randomStr}@upward.com`
     }
 
     const tenantPayload = {
-      firstName: tenantData.firstName || '',
-      lastName: tenantData.lastName || '',
-      commercialName: tenantData.commercialName || undefined,
+      firstName: tenantType === 'individual' ? (tenantData.firstName || '') : '',
+      lastName: tenantType === 'individual' ? (tenantData.lastName || '') : '',
+      commercialName: tenantType === 'commercial' ? (tenantData.commercialName || '') : '',
       email,
       phone: tenantData.phone
     }
@@ -404,9 +414,56 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
             {isJoinRequest ? 'Tenant Profile (pre-filled from request)' : 'Tenant Details'}
           </div>
           <div className="form-section">
+            {/* Tenant Type Selector */}
             {!isJoinRequest && (
+              <div className="form-group" style={{ marginBottom: 20 }}>
+                <label className="form-label">Tenant Type</label>
+                <div style={{ display: 'flex', gap: 12, background: 'var(--ivory-dim)', padding: 4, borderRadius: 12, border: '1px solid var(--border)' }}>
+                  <button
+                    type="button"
+                    onClick={() => setValue('tenantType', 'individual')}
+                    style={{
+                      flex: 1,
+                      padding: '8px 16px',
+                      borderRadius: 10,
+                      border: 'none',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      background: tenantType === 'individual' ? 'white' : 'transparent',
+                      color: tenantType === 'individual' ? 'var(--dark)' : 'var(--text-muted)',
+                      boxShadow: tenantType === 'individual' ? 'var(--shadow-sm)' : 'none',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Individual Tenant
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setValue('tenantType', 'commercial')}
+                    style={{
+                      flex: 1,
+                      padding: '8px 16px',
+                      borderRadius: 10,
+                      border: 'none',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      background: tenantType === 'commercial' ? 'white' : 'transparent',
+                      color: tenantType === 'commercial' ? 'var(--dark)' : 'var(--text-muted)',
+                      boxShadow: tenantType === 'commercial' ? 'var(--shadow-sm)' : 'none',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Commercial Tenant
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {tenantType === 'commercial' ? (
               <div className="form-group" style={{ marginBottom: 16 }}>
-                <label className="form-label">Commercial / Business Name (Optional fallback)</label>
+                <label className="form-label">Commercial / Business Name</label>
                 <input
                   type="text"
                   className={cn("form-input", errors.commercialName && "form-input--error")}
@@ -415,32 +472,32 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                 />
                 {errors.commercialName && <span className="form-error-text">{errors.commercialName.message}</span>}
               </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="form-group">
+                  <label className="form-label">First Name</label>
+                  <input
+                    type="text"
+                    className={cn("form-input", errors.firstName && "form-input--error")}
+                    placeholder="e.g. John"
+                    readOnly={isJoinRequest && !!initialData?.firstName}
+                    {...register('firstName')}
+                  />
+                  {errors.firstName && <span className="form-error-text">{errors.firstName.message}</span>}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Last Name</label>
+                  <input
+                    type="text"
+                    className={cn("form-input", errors.lastName && "form-input--error")}
+                    placeholder="e.g. Doe"
+                    readOnly={isJoinRequest && !!initialData?.lastName}
+                    {...register('lastName')}
+                  />
+                  {errors.lastName && <span className="form-error-text">{errors.lastName.message}</span>}
+                </div>
+              </div>
             )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div className="form-group">
-                <label className="form-label">First Name</label>
-                <input
-                  type="text"
-                  className={cn("form-input", errors.firstName && "form-input--error")}
-                  placeholder="e.g. John"
-                  readOnly={isJoinRequest && !!initialData?.firstName}
-                  {...register('firstName')}
-                />
-                {errors.firstName && <span className="form-error-text">{errors.firstName.message}</span>}
-              </div>
-              <div className="form-group">
-                <label className="form-label">Last Name</label>
-                <input
-                  type="text"
-                  className={cn("form-input", errors.lastName && "form-input--error")}
-                  placeholder="e.g. Doe"
-                  readOnly={isJoinRequest && !!initialData?.lastName}
-                  {...register('lastName')}
-                />
-                {errors.lastName && <span className="form-error-text">{errors.lastName.message}</span>}
-              </div>
-            </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
               <div className="form-group">

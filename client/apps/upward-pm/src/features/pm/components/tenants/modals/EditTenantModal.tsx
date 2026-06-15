@@ -9,6 +9,7 @@ import { PhoneInput } from '@/components/common/PhoneInput'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 
 const tenantSchema = z.object({
+  tenantType: z.enum(['individual', 'commercial']),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   commercialName: z.string().optional(),
@@ -29,20 +30,27 @@ const tenantSchema = z.object({
   emergencyContactEmail: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
 }).superRefine((data, ctx) => {
-  // If no commercialName is set, we need firstName and lastName
-  if (!data.commercialName || data.commercialName.trim() === '') {
+  if (data.tenantType === 'commercial') {
+    if (!data.commercialName || data.commercialName.trim().length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['commercialName'],
+        message: 'Commercial/Business name is required'
+      });
+    }
+  } else {
     if (!data.firstName || data.firstName.trim().length < 2) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['firstName'],
-        message: 'First name is required (or provide Commercial Name)'
+        message: 'First name is required'
       });
     }
     if (!data.lastName || data.lastName.trim().length < 2) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['lastName'],
-        message: 'Last name is required (or provide Commercial Name)'
+        message: 'Last name is required'
       });
     }
   }
@@ -69,6 +77,7 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
     mode: 'all',
     resolver: zodResolver(tenantSchema),
     defaultValues: {
+      tenantType: 'individual',
       firstName: '',
       lastName: '',
       commercialName: '',
@@ -90,6 +99,7 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
   useEffect(() => {
     if (tenant && isOpen) {
       reset({
+        tenantType: tenant.commercialName ? 'commercial' : 'individual',
         firstName: tenant.firstName || '',
         lastName: tenant.lastName || '',
         commercialName: tenant.commercialName || '',
@@ -112,8 +122,14 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
   if (!isOpen) return null
 
   const onSubmit = (data: TenantFormData) => {
-    const updatedData = { ...data }
-    if (!data.email || data.email.trim() === '') {
+    const { tenantType, ...updatedData } = data
+    if (tenantType === 'commercial') {
+      updatedData.firstName = ''
+      updatedData.lastName = ''
+    } else {
+      updatedData.commercialName = ''
+    }
+    if (!updatedData.email || updatedData.email.trim() === '') {
       updatedData.email = tenant.email
     }
     
@@ -143,20 +159,28 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
             {/* Section: Personal Info */}
             <div style={{ marginBottom: 32 }}>
               <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 16 }}>Personal Information</h3>
-              <div className="form-group" style={{ marginBottom: 16 }}>
-                <label className="form-label">Commercial / Business Name (Optional fallback)</label>
-                <input type="text" className="form-input" {...register('commercialName')} />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <div className="form-group">
-                  <label className="form-label">First Name</label>
-                  <input type="text" className="form-input" {...register('firstName')} />
+              {tenant.commercialName ? (
+                <div className="form-group" style={{ marginBottom: 16 }}>
+                  <label className="form-label">Commercial / Business Name</label>
+                  <input type="text" className="form-input" {...register('commercialName')} />
+                  {errors.commercialName && <span className="form-error-text" style={{ color: 'var(--error)', fontSize: 12, marginTop: 4, display: 'block' }}>{errors.commercialName.message}</span>}
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Last Name</label>
-                  <input type="text" className="form-input" {...register('lastName')} />
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                    <div className="form-group">
+                      <label className="form-label">First Name</label>
+                      <input type="text" className="form-input" {...register('firstName')} />
+                      {errors.firstName && <span className="form-error-text" style={{ color: 'var(--error)', fontSize: 12, marginTop: 4, display: 'block' }}>{errors.firstName.message}</span>}
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Last Name</label>
+                      <input type="text" className="form-input" {...register('lastName')} />
+                      {errors.lastName && <span className="form-error-text" style={{ color: 'var(--error)', fontSize: 12, marginTop: 4, display: 'block' }}>{errors.lastName.message}</span>}
+                    </div>
+                  </div>
+                </>
+              )}
               <div className="form-group" style={{ marginTop: 16 }}>
                 <label className="form-label">Email Address</label>
                 <input type="email" className="form-input" {...register('email')} />
