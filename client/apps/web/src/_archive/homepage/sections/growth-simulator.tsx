@@ -38,16 +38,16 @@ export function GrowthSimulator() {
   return (
     <section id="interactive-score" className="interactive-score-section">
       <div className="interactive-score-container">
-        
         {/* Left side: Info */}
         <div className="score-info-panel">
           <div className="score-info-glow" />
           <div className="score-info-content">
             <h2 className="score-info-title">Your Digital Housing Asset</h2>
             <p className="score-info-desc">
-              Every rent payment is an investment in your future credibility. Our proprietary algorithm calculates two critical metrics for lenders.
+              Every rent payment is an investment in your future credibility. Our proprietary
+              algorithm calculates two critical metrics for lenders.
             </p>
-            
+
             <div className="score-metrics-list">
               <div className="score-metric-item">
                 <div className="score-metric-icon-box">
@@ -75,7 +75,9 @@ export function GrowthSimulator() {
         <div className="climb-widget-panel">
           <div className="climb-widget-header">
             <h3 className="climb-widget-title">Climb Your Upward Score</h3>
-            <p className="climb-widget-subtitle">Drag upward. Each step unlocks a new benefit — all the way to home ownership.</p>
+            <p className="climb-widget-subtitle">
+              Drag upward. Each step unlocks a new benefit — all the way to home ownership.
+            </p>
           </div>
 
           <div className="climb-widget-body">
@@ -97,20 +99,20 @@ export function GrowthSimulator() {
                   <div className="upward-climb-fill" style={{ height: `${pct}%` }} />
                 </div>
                 {milestones.map((m) => (
-                  <div 
+                  <div
                     key={m.value}
                     className={`upward-milestone ${score >= m.value ? 'unlocked' : ''}`}
                     style={{ bottom: m.bottom }}
                   />
                 ))}
                 <div className="upward-thumb" style={{ bottom: `${pct}%` }} />
-                <input 
-                  type="range" 
-                  min={SCORE_MIN} 
-                  max={SCORE_MAX} 
-                  value={score} 
+                <input
+                  type="range"
+                  min={SCORE_MIN}
+                  max={SCORE_MAX}
+                  value={score}
                   onChange={(e) => setScore(Number(e.target.value))}
-                  className="upward-slider" 
+                  className="upward-slider"
                   aria-label="Upward score slider"
                 />
               </div>
@@ -124,11 +126,13 @@ export function GrowthSimulator() {
                 const unlocked = score >= step.min
                 const active = activeMin === step.min
                 return (
-                  <div 
+                  <div
                     key={step.min}
                     className={`benefit-step ${unlocked ? 'unlocked' : ''} ${active ? 'active' : ''}`}
                   >
-                    <p className={`benefit-step__title ${step.highlight ? 'benefit-step__title--highlight' : ''}`}>
+                    <p
+                      className={`benefit-step__title ${step.highlight ? 'benefit-step__title--highlight' : ''}`}
+                    >
                       {step.title}
                     </p>
                     <p className="benefit-step__desc">{step.desc}</p>
@@ -138,7 +142,6 @@ export function GrowthSimulator() {
             </div>
           </div>
         </div>
-
       </div>
 
       <style>{`

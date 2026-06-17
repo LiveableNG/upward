@@ -40,30 +40,34 @@ export function FaqSection() {
   const faqs = [
     {
       question: 'What is Upward Pay and how does it work?',
-      answer: "Upward is a platform that turns your rent payments — money you're already spending — into verified rental history. Every time you pay rent through Upward, you build a verified Rent Passport™, earn an Upward Rent Score, and unlock access to savings tools, rewards, and home financing.",
+      answer:
+        "Upward is a platform that turns your rent payments — money you're already spending — into verified rental history. Every time you pay rent through Upward, you build a verified Rent Passport™, earn an Upward Rent Score, and unlock access to savings tools, rewards, and home financing.",
     },
     {
       question: 'Do I need to pay a signup fee?',
-      answer: 'No. Creating your account and starting to build your Upward Rent Score is completely free.',
+      answer:
+        'No. Creating your account and starting to build your Upward Rent Score is completely free.',
     },
     {
       question: 'Does my landlord need to be registered on Upward?',
-      answer: "No. You can start building your Rent Passport today regardless of whether your landlord is on the platform. Your payments are verified through Upward and recorded permanently on your credentials.",
+      answer:
+        'No. You can start building your Rent Passport today regardless of whether your landlord is on the platform. Your payments are verified through Upward and recorded permanently on your credentials.',
     },
     {
       question: 'Is my rent data kept private and secure?',
-      answer: 'Yes, completely. Your rental data is secure, encrypted, and private. You choose if and when to share it, such as when applying for a new rental or accessing mortgage financing.',
+      answer:
+        'Yes, completely. Your rental data is secure, encrypted, and private. You choose if and when to share it, such as when applying for a new rental or accessing mortgage financing.',
     },
     {
       question: 'How does paying rent help me move closer to owning a home?',
-      answer: "Every rent payment you make through Upward builds a verified Rent Passport™. Lenders and mortgage providers recognize this track record, unlocking single-digit interest mortgage equity options when you're ready to buy your first home.",
+      answer:
+        "Every rent payment you make through Upward builds a verified Rent Passport™. Lenders and mortgage providers recognize this track record, unlocking single-digit interest mortgage equity options when you're ready to buy your first home.",
     },
   ]
 
   return (
     <section id="faq" className="faq-section">
       <div className="faq-container">
-        
         {/* Header */}
         <div className="faq-header">
           <div className="faq-badge">
@@ -82,7 +86,6 @@ export function FaqSection() {
             <FAQItem key={idx} question={faq.question} answer={faq.answer} />
           ))}
         </div>
-
       </div>
 
       <style>{`

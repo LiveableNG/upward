@@ -5,35 +5,38 @@ import { Quote } from 'lucide-react'
 export function VoicesSection() {
   const testimonials = [
     {
-      quote: "I've lived in Ikeja for 5 years, paying rent on time every single month. It felt like shouting into a void. Now, my Upward score is helping me finalize my first mortgage application.",
-      author: "Adesuwa T.",
-      role: "Lagos Resident",
-      avatar: "/attachments/testimonials/user1.png",
+      quote:
+        "I've lived in Ikeja for 5 years, paying rent on time every single month. It felt like shouting into a void. Now, my Upward score is helping me finalize my first mortgage application.",
+      author: 'Adesuwa T.',
+      role: 'Lagos Resident',
+      avatar: '/attachments/testimonials/user1.png',
     },
     {
-      quote: "As a freelancer, landlords used to be skeptical of my income. My Rent Passport™ proved my reliability better than any bank statement ever could. It's a game changer.",
-      author: "Emeka J.",
-      role: "Creative Director",
-      avatar: "/attachments/testimonials/user2.png",
+      quote:
+        "As a freelancer, landlords used to be skeptical of my income. My Rent Passport™ proved my reliability better than any bank statement ever could. It's a game changer.",
+      author: 'Emeka J.',
+      role: 'Creative Director',
+      avatar: '/attachments/testimonials/user2.png',
     },
     {
-      quote: "The reward program is actually useful. I got a 10% discount on my annual renewal just by maintaining a high Property Care Score. Why doesn't everyone use this?",
-      author: "Bisi O.",
-      role: "Abuja Resident",
-      avatar: "/attachments/testimonials/user3.png",
+      quote:
+        "The reward program is actually useful. I got a 10% discount on my annual renewal just by maintaining a high Property Care Score. Why doesn't everyone use this?",
+      author: 'Bisi O.',
+      role: 'Abuja Resident',
+      avatar: '/attachments/testimonials/user3.png',
     },
   ]
 
   return (
     <section id="testimonials" className="voices">
       <div className="voices__container">
-        
         {/* Section Header */}
         <div className="voices__header">
           <span className="voices__label">Success Stories</span>
           <h2 className="voices__title">Voices of the Community</h2>
           <p className="voices__subtitle">
-            See how Upward Pay is helping tenants across Nigeria turn their rent into reputational power.
+            See how Upward Pay is helping tenants across Nigeria turn their rent into reputational
+            power.
           </p>
         </div>
 
@@ -44,9 +47,9 @@ export function VoicesSection() {
               <div className="voices__quote-icon-wrapper">
                 <Quote size={20} className="voices__quote-icon" />
               </div>
-              
+
               <p className="voices__quote-text">"{t.quote}"</p>
-              
+
               <div className="voices__author">
                 <img
                   src={t.avatar}
@@ -61,7 +64,6 @@ export function VoicesSection() {
             </div>
           ))}
         </div>
-
       </div>
 
       <style>{`

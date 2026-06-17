@@ -20,7 +20,6 @@ function isTokenExpired(token: string): boolean {
   }
 }
 
-
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://upward-pay.vercel.app'
 const PM_URL = process.env.NEXT_PUBLIC_PM_URL || 'https://upward-pm.vercel.app'
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://upward-api.vercel.app/api/v1'
@@ -29,7 +28,7 @@ export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
 
   if (pathname === '/pm') {
-    return NextResponse.redirect(new URL(`/?view=pm`, request.url))
+    return NextResponse.redirect(new URL('/pm-login', request.url))
   }
 
   // Intercept waitlist invites at gateway level to avoid client loading states
@@ -65,12 +64,14 @@ export async function middleware(request: NextRequest) {
 
   const isPmExpired = pmTokenCookie ? isTokenExpired(pmTokenCookie.value) : true
   const isLandlordExpired = landlordTokenCookie ? isTokenExpired(landlordTokenCookie.value) : true
-  const hasActivePmToken = (!!pmTokenCookie && !isPmExpired) || (!!landlordTokenCookie && !isLandlordExpired)
+  const hasActivePmToken =
+    (!!pmTokenCookie && !isPmExpired) || (!!landlordTokenCookie && !isLandlordExpired)
 
   // 3. Determine routing destination (Pay vs PM App)
   const redirectParam = request.nextUrl.searchParams.get('redirect') || ''
 
-  const isPmRedirectParam = redirectParam.startsWith('/portal') ||
+  const isPmRedirectParam =
+    redirectParam.startsWith('/portal') ||
     redirectParam.startsWith('/properties') ||
     redirectParam.startsWith('/landlords') ||
     redirectParam.startsWith('/tenants') ||
@@ -79,7 +80,8 @@ export async function middleware(request: NextRequest) {
     redirectParam.startsWith('/documents') ||
     redirectParam.startsWith('/pm')
 
-  const isPmPath = pathname.startsWith('/portal') ||
+  const isPmPath =
+    pathname.startsWith('/portal') ||
     pathname.startsWith('/properties') ||
     pathname.startsWith('/landlords') ||
     pathname.startsWith('/tenants') ||
@@ -90,7 +92,8 @@ export async function middleware(request: NextRequest) {
     pathname === '/pm-login' ||
     pathname === '/pm-signup'
 
-  const isSharedRoute = pathname === '/login' ||
+  const isSharedRoute =
+    pathname === '/login' ||
     pathname === '/signup' ||
     pathname === '/forgot-password' ||
     pathname === '/reset-password' ||
@@ -123,10 +126,12 @@ export async function middleware(request: NextRequest) {
   }
 
   const targetBase = routeToPm ? PM_URL : APP_URL
-  const tokenCookie = routeToPm ? (pmTokenCookie || landlordTokenCookie) : payTokenCookie
+  const tokenCookie = routeToPm ? pmTokenCookie || landlordTokenCookie : payTokenCookie
   const hasToken = !!tokenCookie
   const isExpired = routeToPm
-    ? (tokenCookie ? isTokenExpired(tokenCookie.value) : true)
+    ? tokenCookie
+      ? isTokenExpired(tokenCookie.value)
+      : true
     : isPayExpired
 
   // 4. Asset Proxy Logic (for upward-pay assets)
@@ -179,7 +184,12 @@ export async function middleware(request: NextRequest) {
     })
   }
 
-  const isAuthPage = pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname === '/pm-login' || pathname === '/pm-signup'
+  const isAuthPage =
+    pathname === '/' ||
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/pm-login' ||
+    pathname === '/pm-signup'
 
   if (isAuthPage) {
     const currentRedirect = request.nextUrl.searchParams.get('redirect')
@@ -199,7 +209,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // 8. Protected Routes Logic
-  const isProtectedRoute = pathname.startsWith('/dashboard') ||
+  const isProtectedRoute =
+    pathname.startsWith('/dashboard') ||
     pathname.startsWith('/properties') ||
     pathname.startsWith('/landlords') ||
     pathname.startsWith('/tenants') ||
@@ -211,11 +222,14 @@ export async function middleware(request: NextRequest) {
   const hasPmRefresh = !!pmRefreshCookie || !!landlordRefreshCookie
   const hasValidSession = routeToPm
     ? (hasToken && !isExpired) || hasPmRefresh
-    : (hasToken && !isExpired)
+    : hasToken && !isExpired
 
   if (isProtectedRoute && !hasValidSession && !pathname.startsWith('/api/v1')) {
-
-    const loginPath = routeToPm ? (pathname.startsWith('/portal') ? '/portal/login' : '/pm-login') : '/login'
+    const loginPath = routeToPm
+      ? pathname.startsWith('/portal')
+        ? '/portal/login'
+        : '/pm-login'
+      : '/login'
     // Prevent redirect loop: if we're already on the login page, don't redirect again
     if (pathname === loginPath || pathname === '/login' || pathname === '/pm-login') {
       return NextResponse.next()
@@ -247,7 +261,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // 10. Proxy/Rewrite Logic for App Routes
-  const shouldProxy = isProtectedRoute ||
+  const shouldProxy =
+    isProtectedRoute ||
     pathname.startsWith('/welcome') ||
     pathname.startsWith('/pay') ||
     pathname.startsWith('/profile') ||
@@ -280,6 +295,11 @@ export async function middleware(request: NextRequest) {
         headers: requestHeaders,
       },
     })
+  }
+
+  // Static marketing homepage (see public/landing.html; legacy React UI in src/_archive/homepage/)
+  if (pathname === '/') {
+    return NextResponse.rewrite(new URL('/landing.html', request.url))
   }
 
   return NextResponse.next()
@@ -316,7 +336,6 @@ export const config = {
     '/settings/:path*',
     '/kyc/:path*',
     '/transactions/:path*',
-    '/.well-known/:path*'
+    '/.well-known/:path*',
   ],
 }
-

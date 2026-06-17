@@ -75,7 +75,7 @@ export function Footer({
               ['/?view=why', 'Why Upward?'],
               ['/?view=home#how', 'How it Works'],
               ['/login', 'Renter Portal'],
-              ['/?view=pm', 'Landlord Portal'],
+              ['/pm-login', 'Landlord Portal'],
               ['/?view=why#faq', 'FAQ'],
             ].map(([href, label]) => (
               <li key={label}>
@@ -153,8 +153,7 @@ export function Footer({
               <li key={label}>
                 <Link
                   href={href as string}
-                  onClick={() => {
-                  }}
+                  onClick={() => {}}
                   target={href !== '#' ? '_blank' : undefined}
                   style={{
                     fontSize: '13px',
@@ -271,8 +270,7 @@ export function Footer({
               <Link
                 key={social.name}
                 href={social.href}
-                onClick={() => {
-                }}
+                onClick={() => {}}
                 target={social.href !== '#' ? '_blank' : undefined}
                 rel={social.href !== '#' ? 'noopener noreferrer' : undefined}
                 style={{

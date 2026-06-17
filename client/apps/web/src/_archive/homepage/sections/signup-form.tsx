@@ -279,7 +279,7 @@ export function SignupForm({
       const result = await res.json()
 
       setDone(true)
-      showToast(result.message || "Welcome to Upward!")
+      showToast(result.message || 'Welcome to Upward!')
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Submission failed. Please try again.'
       showToast(message, true)
@@ -555,9 +555,9 @@ export function SignupForm({
                 margin: '0 auto 24px',
               }}
             >
-              Welcome to the community! We'll send your access details to the email you
-            provided. Be on the lookout — your journey begins now.
-          </p>
+              Welcome to the community! We'll send your access details to the email you provided. Be
+              on the lookout — your journey begins now.
+            </p>
             <button
               style={{
                 background: 'var(--accent)',
