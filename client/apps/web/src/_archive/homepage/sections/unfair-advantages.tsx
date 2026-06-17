@@ -22,7 +22,7 @@ export function UnfairAdvantages() {
     {
       icon: <Home size={24} />,
       title: 'Path to Ownership',
-      desc: 'Convert verified rental history into single-digit interest mortgage equity when you\'re ready to buy your first home.',
+      desc: "Convert verified rental history into single-digit interest mortgage equity when you're ready to buy your first home.",
     },
     {
       icon: <CreditCard size={24} />,
@@ -39,13 +39,13 @@ export function UnfairAdvantages() {
   return (
     <section className="advantages-section">
       <div className="advantages-container">
-        
         {/* Section Header */}
         <div className="advantages-header">
           <span className="advantages-label">Member Benefits</span>
           <h2 className="advantages-title">Unfair Advantages for Excellent Renters</h2>
           <p className="advantages-subtitle">
-            Unlock exclusive rewards, financial flexibility, and a smoother path to your own home simply by paying your rent on time.
+            Unlock exclusive rewards, financial flexibility, and a smoother path to your own home
+            simply by paying your rent on time.
           </p>
         </div>
 
@@ -53,15 +53,12 @@ export function UnfairAdvantages() {
         <div className="advantages-grid">
           {advantages.map((adv, idx) => (
             <div key={idx} className="advantages-card">
-              <div className="advantages-card__icon-wrapper">
-                {adv.icon}
-              </div>
+              <div className="advantages-card__icon-wrapper">{adv.icon}</div>
               <h3 className="advantages-card__title">{adv.title}</h3>
               <p className="advantages-card__desc">{adv.desc}</p>
             </div>
           ))}
         </div>
-
       </div>
 
       <style>{`

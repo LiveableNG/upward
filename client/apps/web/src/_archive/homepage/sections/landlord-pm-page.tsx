@@ -1,7 +1,16 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { ArrowRight, CheckCircle2, ShieldCheck, Building2, BookOpen, UserCheck, X, CreditCard, TrendingUp, Users } from 'lucide-react'
+import {
+  ArrowRight,
+  CheckCircle2,
+  ShieldCheck,
+  Building2,
+  X,
+  CreditCard,
+  TrendingUp,
+  Users,
+} from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -58,7 +67,7 @@ type ContactFormData = z.infer<typeof contactSchema>
 
 export function LandlordPmPage({
   onBack,
-  onOpenSignup,
+  onOpenSignup: _onOpenSignup,
 }: {
   onBack: () => void
   onOpenSignup: () => void
@@ -66,7 +75,7 @@ export function LandlordPmPage({
   const [mounted, setMounted] = useState(false)
   const [showSplash, setShowSplash] = useState(false)
   const [splashFade, setSplashFade] = useState(false)
-  
+
   // Contact Form Modal state
   const [isContactModalOpen, setIsContactModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -94,7 +103,7 @@ export function LandlordPmPage({
     // Wait 2.2 seconds for full effect, then redirect
     setTimeout(() => {
       window.location.href = path
-      
+
       // Fade out splash gracefully
       setSplashFade(true)
       setTimeout(() => {
@@ -151,10 +160,7 @@ export function LandlordPmPage({
       <div className="pm-page-container__glow" />
 
       {/* Back button */}
-      <button
-        onClick={onBack}
-        className="pm-page-back-btn"
-      >
+      <button onClick={onBack} className="pm-page-back-btn">
         <svg
           width="18"
           height="18"
@@ -173,7 +179,6 @@ export function LandlordPmPage({
 
       {/* Hero layout */}
       <div className="pm-page-grid">
-        
         {/* Left: Copy & Features */}
         <div className="pm-page-info">
           <div className="pm-page-badge">
@@ -183,8 +188,9 @@ export function LandlordPmPage({
 
           <h1 className="pm-page-title">Automate Rent splits & ledgers.</h1>
           <p className="pm-page-subtitle">
-            Professional, automated occupancy ledgers and rent reconciliation dashboard. 
-            Onboard tenants, manage payment requests, and track property performance in one premium dashboard designed for modern property managers.
+            Professional, automated occupancy ledgers and rent reconciliation dashboard. Onboard
+            tenants, manage payment requests, and track property performance in one premium
+            dashboard designed for modern property managers.
           </p>
 
           {/* Pillars List */}
@@ -195,7 +201,10 @@ export function LandlordPmPage({
               </div>
               <div className="pm-pillar__text">
                 <h3>Portfolio & Asset Management</h3>
-                <p>Bulk import properties, add multi-unit buildings, assign landlords, and manage rent rates in one dashboard.</p>
+                <p>
+                  Bulk import properties, add multi-unit buildings, assign landlords, and manage
+                  rent rates in one dashboard.
+                </p>
               </div>
             </div>
 
@@ -205,7 +214,10 @@ export function LandlordPmPage({
               </div>
               <div className="pm-pillar__text">
                 <h3>Invoicing & Collection Automation</h3>
-                <p>Share secure digital payment requests, copy pay links, send automated email/SMS reminders, and log offline payments.</p>
+                <p>
+                  Share secure digital payment requests, copy pay links, send automated email/SMS
+                  reminders, and log offline payments.
+                </p>
               </div>
             </div>
 
@@ -215,7 +227,10 @@ export function LandlordPmPage({
               </div>
               <div className="pm-pillar__text">
                 <h3>Automated Payouts & Settlement</h3>
-                <p>Disburse collected rent automatically to configured bank accounts and track payouts with detailed settlement history.</p>
+                <p>
+                  Disburse collected rent automatically to configured bank accounts and track
+                  payouts with detailed settlement history.
+                </p>
               </div>
             </div>
 
@@ -225,7 +240,10 @@ export function LandlordPmPage({
               </div>
               <div className="pm-pillar__text">
                 <h3>Custom Domain & Branding</h3>
-                <p>Setup custom email sending domains, verify domains, upload letterheads, and configure digital signature templates.</p>
+                <p>
+                  Setup custom email sending domains, verify domains, upload letterheads, and
+                  configure digital signature templates.
+                </p>
               </div>
             </div>
 
@@ -235,7 +253,10 @@ export function LandlordPmPage({
               </div>
               <div className="pm-pillar__text">
                 <h3>Team Workspaces & Roles</h3>
-                <p>Invite team members and configure granular access controls to assign properties and collaborate.</p>
+                <p>
+                  Invite team members and configure granular access controls to assign properties
+                  and collaborate.
+                </p>
               </div>
             </div>
           </div>
@@ -290,7 +311,6 @@ export function LandlordPmPage({
             />
           </div>
         </div>
-
       </div>
 
       {/* Redirection banner back to Tenant */}
@@ -306,113 +326,118 @@ export function LandlordPmPage({
 
       {/* ================= FORM MODAL COLLECTING INQUIRIES ================= */}
       {/* Render modal via React Portal to avoid parent transform/overflow clipping */}
-      {isContactModalOpen && mounted && createPortal(
-        <div className="contact-modal-overlay">
-          <div className="contact-modal">
-            <button 
-              type="button"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setIsContactModalOpen(false)
-                setIsSuccess(false)
-                reset()
-              }} 
-              className="contact-modal__close"
-            >
-              <X size={20} />
-            </button>
+      {isContactModalOpen &&
+        mounted &&
+        createPortal(
+          <div className="contact-modal-overlay">
+            <div className="contact-modal">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setIsContactModalOpen(false)
+                  setIsSuccess(false)
+                  reset()
+                }}
+                className="contact-modal__close"
+              >
+                <X size={20} />
+              </button>
 
-            {!isSuccess ? (
-              <form onSubmit={handleSubmit(handleContactSubmit)} className="contact-form">
-                <h3 className="contact-form__title">Have a Question?</h3>
-                <p className="contact-form__subtitle">
-                  Ask us anything about the Upward PM suite, and our team will get back to you shortly.
-                </p>
+              {!isSuccess ? (
+                <form onSubmit={handleSubmit(handleContactSubmit)} className="contact-form">
+                  <h3 className="contact-form__title">Have a Question?</h3>
+                  <p className="contact-form__subtitle">
+                    Ask us anything about the Upward PM suite, and our team will get back to you
+                    shortly.
+                  </p>
 
-                <div className="contact-form__group">
-                  <label htmlFor="contact-name">Full Name *</label>
-                  <input
-                    id="contact-name"
-                    type="text"
-                    {...register('name')}
-                    placeholder="Enter your name"
-                  />
-                  {errors.name && <span className="contact-form__error">{errors.name.message}</span>}
+                  <div className="contact-form__group">
+                    <label htmlFor="contact-name">Full Name *</label>
+                    <input
+                      id="contact-name"
+                      type="text"
+                      {...register('name')}
+                      placeholder="Enter your name"
+                    />
+                    {errors.name && (
+                      <span className="contact-form__error">{errors.name.message}</span>
+                    )}
+                  </div>
+
+                  <div className="contact-form__group">
+                    <label htmlFor="contact-email">Email Address *</label>
+                    <input
+                      id="contact-email"
+                      type="email"
+                      {...register('email')}
+                      placeholder="e.g. name@company.com"
+                    />
+                    {errors.email && (
+                      <span className="contact-form__error">{errors.email.message}</span>
+                    )}
+                  </div>
+
+                  <div className="contact-form__group">
+                    <label htmlFor="contact-message">Your Message / Question *</label>
+                    <textarea
+                      id="contact-message"
+                      rows={4}
+                      {...register('message')}
+                      placeholder="Ask your question here..."
+                    />
+                    {errors.message && (
+                      <span className="contact-form__error">{errors.message.message}</span>
+                    )}
+                  </div>
+
+                  <button type="submit" disabled={isSubmitting} className="contact-form__submit">
+                    {isSubmitting ? (
+                      <div className="spinner" />
+                    ) : (
+                      <>
+                        <span>Submit Question</span>
+                        <ArrowRight size={16} />
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                <div className="contact-success">
+                  <div className="contact-success__icon-wrapper">
+                    <CheckCircle2 size={48} className="contact-success__icon" />
+                  </div>
+                  <h3 className="contact-success__title">Question Sent Successfully!</h3>
+                  <p className="contact-success__desc">
+                    Thank you for reaching out. A representative from our property management team
+                    will contact you at <strong>{submittedEmail}</strong> shortly.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setIsContactModalOpen(false)
+                      setIsSuccess(false)
+                    }}
+                    className="contact-success__btn"
+                  >
+                    Done
+                  </button>
                 </div>
-
-                <div className="contact-form__group">
-                  <label htmlFor="contact-email">Email Address *</label>
-                  <input
-                    id="contact-email"
-                    type="email"
-                    {...register('email')}
-                    placeholder="e.g. name@company.com"
-                  />
-                  {errors.email && <span className="contact-form__error">{errors.email.message}</span>}
-                </div>
-
-                <div className="contact-form__group">
-                  <label htmlFor="contact-message">Your Message / Question *</label>
-                  <textarea
-                    id="contact-message"
-                    rows={4}
-                    {...register('message')}
-                    placeholder="Ask your question here..."
-                  />
-                  {errors.message && <span className="contact-form__error">{errors.message.message}</span>}
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="contact-form__submit"
-                >
-                  {isSubmitting ? (
-                    <div className="spinner" />
-                  ) : (
-                    <>
-                      <span>Submit Question</span>
-                      <ArrowRight size={16} />
-                    </>
-                  )}
-                </button>
-              </form>
-            ) : (
-              <div className="contact-success">
-                <div className="contact-success__icon-wrapper">
-                  <CheckCircle2 size={48} className="contact-success__icon" />
-                </div>
-                <h3 className="contact-success__title">Question Sent Successfully!</h3>
-                <p className="contact-success__desc">
-                  Thank you for reaching out. A representative from our property management team 
-                  will contact you at <strong>{submittedEmail}</strong> shortly.
-                </p>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setIsContactModalOpen(false)
-                    setIsSuccess(false)
-                  }}
-                  className="contact-success__btn"
-                >
-                  Done
-                </button>
-              </div>
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
 
       {/* ================= FULL-SCREEN REDIRECT SPLASH OVERLAY ================= */}
       {showSplash && (
         <div className={`showcase-splash ${splashFade ? 'showcase-splash--fadeout' : ''}`}>
           <div className="showcase-splash__glow" />
           <div className="showcase-splash__glow showcase-splash__glow--green" />
-          
+
           <div className="showcase-splash__box">
             <div className="showcase-splash__logo-container">
               <div className="showcase-splash__pulse showcase-splash__pulse--1" />
@@ -424,7 +449,7 @@ export function LandlordPmPage({
 
             <h3 className="showcase-splash__title">UPWARD PM</h3>
             <p className="showcase-splash__subtitle">Entering Property Manager Portal</p>
-            
+
             <div className="showcase-splash__loader-bar">
               <div className="showcase-splash__loader-progress" />
             </div>

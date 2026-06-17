@@ -64,7 +64,7 @@ export function PressLogos() {
       >
         As seen on
       </p>
-      
+
       <div
         className="marquee-container"
         style={{

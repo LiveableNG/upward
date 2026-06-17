@@ -3,11 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Home, CreditCard, Key, ShieldCheck, ArrowRight } from 'lucide-react'
 
-export function BenefitsGrid({
-  onOpenSignup,
-}: {
-  onOpenSignup?: (email?: string) => void
-}) {
+export function BenefitsGrid({ onOpenSignup }: { onOpenSignup?: (email?: string) => void }) {
   const [activeIndex, setActiveIndex] = useState(0)
   const [progress, setProgress] = useState(0)
   const [isHovered, setIsHovered] = useState(false)
@@ -93,14 +89,14 @@ export function BenefitsGrid({
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="benefits-showcase__container">
-        
         {/* LEFT COLUMN: Stepper Tabs */}
         <div className="benefits-showcase__left">
           <div className="benefits-showcase__header">
             <span className="section-label">Features & Perks</span>
             <h2 className="benefits-showcase__title">Why Upward Pay?</h2>
             <p className="benefits-showcase__subtitle">
-              A rental passport that works for you. Turn your biggest monthly expense into your greatest financial asset.
+              A rental passport that works for you. Turn your biggest monthly expense into your
+              greatest financial asset.
             </p>
           </div>
 
@@ -116,9 +112,7 @@ export function BenefitsGrid({
                   {/* Step Left: Icon Badge */}
                   <div className="benefit-step__badge-wrapper">
                     <div className="benefit-step__badge">
-                      {isActive ? (
-                        <div className="benefit-step__badge-active-bg" />
-                      ) : null}
+                      {isActive ? <div className="benefit-step__badge-active-bg" /> : null}
                       <span className="benefit-step__icon">{benefit.icon}</span>
                     </div>
                   </div>
@@ -127,7 +121,7 @@ export function BenefitsGrid({
                   <div className="benefit-step__text">
                     <h3 className="benefit-step__title">{benefit.title}</h3>
                     <p className="benefit-step__short">{benefit.short}</p>
-                    
+
                     {/* Animated Progress Line */}
                     <div className="benefit-step__progress-track">
                       <div
@@ -146,7 +140,7 @@ export function BenefitsGrid({
           <div className="preview-card-wrapper">
             <div className="preview-card">
               <div className="preview-card__glow" />
-              
+
               <div className="preview-card__text-content">
                 <p
                   className="preview-card__desc"
@@ -155,11 +149,8 @@ export function BenefitsGrid({
                 >
                   {activeBenefit?.desc}
                 </p>
-                
-                <button
-                  onClick={() => onOpenSignup?.()}
-                  className="preview-card__cta"
-                >
+
+                <button onClick={() => onOpenSignup?.()} className="preview-card__cta">
                   <span>Get Started Now</span>
                   <ArrowRight size={16} />
                 </button>
@@ -178,7 +169,15 @@ export function BenefitsGrid({
                       <span>upward.pay/dashboard</span>
                     </div>
                   </div>
-                  <div className="device-frame__body" style={{ aspectRatio: '16/10', width: '100%', position: 'relative', overflow: 'hidden' }}>
+                  <div
+                    className="device-frame__body"
+                    style={{
+                      aspectRatio: '16/10',
+                      width: '100%',
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}
+                  >
                     {benefits.map((b, i) => (
                       <img
                         key={b.id}
@@ -194,7 +193,8 @@ export function BenefitsGrid({
                           objectFit: 'cover',
                           opacity: i === activeIndex ? 1 : 0,
                           transform: i === activeIndex ? 'scale(1)' : 'scale(0.96)',
-                          transition: 'opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                          transition:
+                            'opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                           pointerEvents: i === activeIndex ? 'auto' : 'none',
                           zIndex: i === activeIndex ? 2 : 1,
                         }}
@@ -206,7 +206,6 @@ export function BenefitsGrid({
             </div>
           </div>
         </div>
-
       </div>
 
       <style>{`
