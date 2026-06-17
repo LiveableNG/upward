@@ -9,10 +9,10 @@ export function ShowcaseSection() {
         <div className="showcase-revamp__visual">
           <div className="showcase-revamp__glow" />
           <div className="showcase-revamp__img-wrapper">
-            <img 
-              className="showcase-revamp__img" 
-              src="https://storage.googleapis.com/uxpilot-auth.appspot.com/gen_730e6a5800_1ec8a961edf752ba.png" 
-              alt="modern professional Nigerian woman in a sleek Lagos apartment balcony" 
+            <img
+              className="showcase-revamp__img"
+              src="https://storage.googleapis.com/uxpilot-auth.appspot.com/gen_730e6a5800_1ec8a961edf752ba.png"
+              alt="modern professional Nigerian woman in a sleek Lagos apartment balcony"
             />
           </div>
         </div>
@@ -23,7 +23,8 @@ export function ShowcaseSection() {
               Your Rent is <span className="showcase-revamp__title-highlight">Your Resume</span>
             </h2>
             <p className="showcase-revamp__desc">
-              Upward Pay helps you record every payment, establish a verified Rent Passport™, and unlock exclusive financial advantages as you rent.
+              Upward Pay helps you record every payment, establish a verified Rent Passport™, and
+              unlock exclusive financial advantages as you rent.
             </p>
           </div>
 
@@ -34,7 +35,9 @@ export function ShowcaseSection() {
               </div>
               <div className="showcase-revamp__item-text">
                 <h4 className="showcase-revamp__item-title">Rent Next Home with Ease</h4>
-                <p className="showcase-revamp__item-desc">Get prioritized by trusted owners using verified application credentials.</p>
+                <p className="showcase-revamp__item-desc">
+                  Get prioritized by trusted owners using verified application credentials.
+                </p>
               </div>
             </div>
 
@@ -44,7 +47,9 @@ export function ShowcaseSection() {
               </div>
               <div className="showcase-revamp__item-text">
                 <h4 className="showcase-revamp__item-title">Exclusive Financial Benefits</h4>
-                <p className="showcase-revamp__item-desc">Unlock rent discounts, flexible payment plans, and affordable financing.</p>
+                <p className="showcase-revamp__item-desc">
+                  Unlock rent discounts, flexible payment plans, and affordable financing.
+                </p>
               </div>
             </div>
           </div>

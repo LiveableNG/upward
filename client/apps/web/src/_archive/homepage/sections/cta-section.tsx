@@ -2,15 +2,10 @@
 import React from 'react'
 import { Lock } from 'lucide-react'
 
-export function CtaSection({
-  onOpenSignup,
-}: {
-  onOpenSignup: () => void
-}) {
+export function CtaSection({ onOpenSignup }: { onOpenSignup: () => void }) {
   return (
     <section className="cta-section">
       <div className="cta-container">
-        
         {/* Decorative outlines */}
         <div className="cta-decor cta-decor--top-left" />
         <div className="cta-decor cta-decor--bottom-right" />
@@ -18,7 +13,8 @@ export function CtaSection({
         <div className="cta-content">
           <h2 className="cta-title">Ready to make your rent work for you?</h2>
           <p className="cta-subtext">
-            Join 15,000+ Nigerian professionals building their path to home ownership with every rental payment. Stop letting your rent go to waste.
+            Join 15,000+ Nigerian professionals building their path to home ownership with every
+            rental payment. Stop letting your rent go to waste.
           </p>
 
           <div className="cta-actions">
@@ -31,7 +27,6 @@ export function CtaSection({
             </div>
           </div>
         </div>
-
       </div>
 
       <style>{`
