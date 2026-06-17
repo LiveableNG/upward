@@ -4,7 +4,7 @@ import { ShieldCheck, Play, Award } from 'lucide-react'
 export function HeroSection({
   onOpenSignup,
   onExplorePm: _onExplorePm,
-  variant = 'A',
+  variant: _variant = 'A',
 }: {
   onOpenSignup: (email?: string) => void
   onExplorePm?: () => void
@@ -19,22 +19,24 @@ export function HeroSection({
             Nigeria's First Housing Reputation Score
           </div>
           <h1 className="hero-revamp__title">
-            Finally, your rent <br /> pays off for <span className="hero-revamp__title-italic">you.</span>
+            Finally, your rent <br /> pays off for{' '}
+            <span className="hero-revamp__title-italic">you.</span>
           </h1>
           <p className="hero-revamp__desc">
-            Join 5,000+ professionals building their Rent Passport™. We verify your payments and property care to unlock rent discounts, low-deposit moves, and ultimately home financing.
+            Join 5,000+ professionals building their Rent Passport™. We verify your payments and
+            property care to unlock rent discounts, low-deposit moves, and ultimately home
+            financing.
           </p>
-          
+
           <div className="hero-revamp__actions">
-            <button 
-              onClick={() => onOpenSignup()}
-              className="hero-revamp__btn-primary"
-            >
+            <button onClick={() => onOpenSignup()} className="hero-revamp__btn-primary">
               Start Building Your Score
             </button>
-            <button 
+            <button
               onClick={() => {
-                const el = document.getElementById('interactive-score') || document.getElementById('growth-simulator')
+                const el =
+                  document.getElementById('interactive-score') ||
+                  document.getElementById('growth-simulator')
                 if (el) {
                   const navHeight = 80
                   const top = el.getBoundingClientRect().top + window.pageYOffset - navHeight
@@ -70,9 +72,9 @@ export function HeroSection({
 
         <div className="hero-revamp__visual">
           <div className="hero-revamp__img-wrapper">
-            <img 
-              src="https://storage.googleapis.com/uxpilot-auth.appspot.com/gen_b08d7d8cfa_010c6202f5ab90bc.png" 
-              alt="portrait of a successful young Nigerian professional woman sitting in a high-end minimalist Lagos apartment" 
+            <img
+              src="https://storage.googleapis.com/uxpilot-auth.appspot.com/gen_b08d7d8cfa_010c6202f5ab90bc.png"
+              alt="portrait of a successful young Nigerian professional woman sitting in a high-end minimalist Lagos apartment"
               className="hero-revamp__img"
             />
           </div>

@@ -25,7 +25,8 @@ export function DilemmaSection() {
             Paid millions in rent? What do you have to show for it?
           </h2>
           <p className="dilemma-subtitle">
-            Most Nigerians spend over 40% of their income on rent with zero return. It's time to change the equation.
+            Most Nigerians spend over 40% of their income on rent with zero return. It's time to
+            change the equation.
           </p>
         </div>
 
@@ -38,7 +39,8 @@ export function DilemmaSection() {
             </div>
             <h3 className="dilemma-card__title">Current Rental Model is a Dead End</h3>
             <p className="dilemma-card__desc">
-              Typical rental payments leave no paper trail that banks or lenders recognize. You're effectively building your landlord's future while yours stays out of sight.
+              Typical rental payments leave no paper trail that banks or lenders recognize. You're
+              effectively building your landlord's future while yours stays out of sight.
             </p>
           </div>
 
@@ -49,7 +51,8 @@ export function DilemmaSection() {
             </div>
             <h3 className="dilemma-card__title">Homeownership Struggle</h3>
             <p className="dilemma-card__desc">
-              Without a verified rental history or a specialized housing score, homeownership in Nigeria feels like an impossible dream for most professionals.
+              Without a verified rental history or a specialized housing score, homeownership in
+              Nigeria feels like an impossible dream for most professionals.
             </p>
           </div>
         </div>
@@ -57,7 +60,11 @@ export function DilemmaSection() {
         {/* Scroll Action Indicator */}
         <div className="dilemma-action">
           <span className="dilemma-action-text">See how we solve this below</span>
-          <button onClick={handleScroll} className="dilemma-action-btn" aria-label="Scroll to solution">
+          <button
+            onClick={handleScroll}
+            className="dilemma-action-btn"
+            aria-label="Scroll to solution"
+          >
             <ChevronDown size={24} />
           </button>
         </div>
