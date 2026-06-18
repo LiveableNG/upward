@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { DocumentManagementView } from '@/features/pm/components/documents/DocumentManagementView'
 import { DocumentEditorView } from '@/features/pm/components/documents/DocumentEditorView'
+import { CreateTemplateView } from '@/features/pm/components/documents/CreateTemplateView'
 import { useTenants } from '@/features/pm/hooks/useTenants'
 import { Splash } from '@/components/common/Splash'
 import { useQuery } from '@tanstack/react-query'
@@ -24,7 +25,7 @@ function DocumentManagementContent() {
     enabled: !!unitUuid
   })
 
-  const [view, setView] = useState<'list' | 'editor'>('list')
+  const [view, setView] = useState<'list' | 'editor' | 'create-template'>('list')
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
   const [initialRecipient, setInitialRecipient] = useState<any>(null)
 
@@ -35,7 +36,7 @@ function DocumentManagementContent() {
       setInitialRecipient({
         type: 'existing',
         uuid: tenantUuid,
-        name: tenant ? `${tenant.firstName} ${tenant.lastName}` : 'Tenant',
+        name: tenant ? (tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() || 'Tenant') : 'Tenant',
         email: tenant?.email || '',
         deliveryMode: 'pdf'
       })
@@ -48,6 +49,10 @@ function DocumentManagementContent() {
       setInitialRecipient(null)
     }
     setView('editor')
+  }
+
+  const handleCreateTemplate = () => {
+    setView('create-template')
   }
 
   const handleSelectTemplate = (template: any) => {
@@ -131,6 +136,11 @@ function DocumentManagementContent() {
           onNewDocument={handleNewDocument}
           onSelectTemplate={handleSelectTemplate}
           onResendDocument={handleResendDocument}
+          onCreateTemplate={handleCreateTemplate}
+        />
+      ) : view === 'create-template' ? (
+        <CreateTemplateView
+          onBack={() => setView('list')}
         />
       ) : (
         <DocumentEditorView 

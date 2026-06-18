@@ -12,7 +12,8 @@ import {
   CheckCircle2, 
   Loader2,
   ExternalLink,
-  Edit
+  Edit,
+  AlertCircle
 } from 'lucide-react'
 import { useTenant, useTenantActions } from '../../hooks/useTenants'
 import Link from 'next/link'
@@ -85,7 +86,7 @@ export const TenantDetailView: React.FC = () => {
           initialRecipient={{
             type: 'existing',
             uuid: tenant.uuid,
-            name: `${tenant.firstName} ${tenant.lastName}`,
+            name: tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() || 'Tenant',
             email: tenant.email,
             deliveryMode: 'email'
           }}
@@ -196,18 +197,54 @@ export const TenantDetailView: React.FC = () => {
               border: '6px solid white',
               boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
             }}>
-              {(tenant.firstName || 'T')[0].toUpperCase()}
+              {(tenant.commercialName || tenant.firstName || 'T')[0].toUpperCase()}
             </div>
-            <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)', marginBottom: 12 }}>{tenant.firstName} {tenant.lastName}</h1>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)', marginBottom: 12 }}>{tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim()}</h1>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', color: 'var(--text-secondary)', fontSize: 13, marginBottom: 32 }}>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', color: 'var(--text-secondary)', fontSize: 13, marginBottom: 32 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Phone size={14} color="var(--forest)" /> {tenant.phone || 'N/A'}
               </div>
+              {tenant.otherPhone && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+                  <Phone size={12} color="var(--text-muted)" /> {tenant.otherPhone} (Alt)
+                </div>
+              )}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Mail size={14} color="var(--forest)" /> {tenant.email || 'N/A'}
+                {tenant.email?.endsWith('@upward.com') ? (
+                  <>
+                    <AlertCircle size={14} color="var(--error)" /> 
+                    <span style={{ color: 'var(--error)', fontWeight: 600 }}>Not Configured</span>
+                  </>
+                ) : (
+                  <>
+                    <Mail size={14} color="var(--forest)" /> {tenant.email || 'N/A'}
+                  </>
+                )}
               </div>
             </div>
+
+            {tenant.email?.endsWith('@upward.com') && (
+              <div style={{
+                background: 'var(--error-faint)',
+                border: '1px solid var(--error-border)',
+                borderRadius: 12,
+                padding: '12px 16px',
+                fontSize: 12,
+                color: 'var(--error)',
+                textAlign: 'left',
+                marginBottom: 24,
+                display: 'flex',
+                gap: 10,
+                alignItems: 'flex-start'
+              }}>
+                <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <strong style={{ display: 'block', marginBottom: 2 }}>Email Missing</strong>
+                  This tenant has no registered email. Please click <strong>Edit Tenant</strong> to configure their real email.
+                </div>
+              </div>
+            )}
 
             <div style={{ padding: '16px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', marginBottom: 32 }}>
               <span>Tenant ID</span>
@@ -275,6 +312,27 @@ export const TenantDetailView: React.FC = () => {
 
           {activeDetailTab === 'profile' && (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
+              {/* Contact Information */}
+              <div>
+                <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)', marginBottom: 24 }}>Contact Details</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Phone Number</label>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)' }}>{tenant.phone || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Alternative Phone Number</label>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)' }}>{tenant.otherPhone || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email Address</label>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)' }}>
+                      {tenant.email?.endsWith('@upward.com') ? 'N/A' : (tenant.email || 'N/A')}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Address Section */}
               <div>
                 <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)', marginBottom: 24 }}>Address</h3>
@@ -463,7 +521,7 @@ export const TenantDetailView: React.FC = () => {
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}
         tenantUuid={tenant.uuid}
-        tenantName={`${tenant.firstName} ${tenant.lastName}`}
+        tenantName={tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim()}
       />
 
       <CreatePaymentRequestModal 

@@ -5,6 +5,7 @@ import { NotificationService } from './notification.service';
 import { EmailService } from '../email/email.service';
 import { EncryptionService } from './encryption.service';
 import { ProcessScheduledPmPaymentRequestsUseCase } from '../../../application/pm/use-cases/payments/process-scheduled-payment-requests.use-case';
+import { ProcessScheduledExternalPaymentRequestsUseCase } from '../../../application/use-cases/external/process-scheduled-payments.use-case';
 
 @Injectable()
 export class UnifiedReminderService {
@@ -16,6 +17,7 @@ export class UnifiedReminderService {
     private readonly emailService: EmailService,
     private readonly encryption: EncryptionService,
     private readonly processScheduledRequestsUseCase: ProcessScheduledPmPaymentRequestsUseCase,
+    private readonly processScheduledExternalRequestsUseCase: ProcessScheduledExternalPaymentRequestsUseCase,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -39,6 +41,7 @@ export class UnifiedReminderService {
   async processScheduledRequests() {
     this.logger.log('[ReminderService] Processing scheduled payment requests...');
     await this.processScheduledRequestsUseCase.execute();
+    await this.processScheduledExternalRequestsUseCase.execute();
   }
 
   private async processPmPaymentReminders() {
@@ -70,12 +73,15 @@ export class UnifiedReminderService {
 
   private async sendPmPaymentReminder(pr: any) {
     const tenantEmail = pr.tenant?.emailEncrypted ? this.encryption.decrypt(pr.tenant.emailEncrypted) : null;
-    const tenantName = pr.tenant?.firstNameEncrypted ? this.encryption.decrypt(pr.tenant.firstNameEncrypted) : 'Tenant';
+    const decryptedCommercialName = pr.tenant?.commercialNameEncrypted ? this.encryption.decrypt(pr.tenant.commercialNameEncrypted) : '';
+    const decryptedTenantFirstName = pr.tenant?.firstNameEncrypted ? this.encryption.decrypt(pr.tenant.firstNameEncrypted) : '';
+    const decryptedTenantLastName = pr.tenant?.lastNameEncrypted ? this.encryption.decrypt(pr.tenant.lastNameEncrypted) : '';
+    const tenantName = decryptedCommercialName || `${decryptedTenantFirstName} ${decryptedTenantLastName}`.trim() || 'Tenant';
     
     const decryptedBusinessName = pr.pm?.businessName ? this.encryption.decrypt(pr.pm.businessName) : '';
-    const decryptedFirstName = pr.pm?.firstName ? this.encryption.decrypt(pr.pm.firstName) : '';
-    const decryptedLastName = pr.pm?.lastName ? this.encryption.decrypt(pr.pm.lastName) : '';
-    const pmName = decryptedBusinessName || `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Property Manager';
+    const decryptedPmFirstName = pr.pm?.firstName ? this.encryption.decrypt(pr.pm.firstName) : '';
+    const decryptedPmLastName = pr.pm?.lastName ? this.encryption.decrypt(pr.pm.lastName) : '';
+    const pmName = decryptedBusinessName || `${decryptedPmFirstName} ${decryptedPmLastName}`.trim() || 'Property Manager';
     
     if (!tenantEmail) return;
 
@@ -204,8 +210,11 @@ export class UnifiedReminderService {
         const overdueDigestItems: any[] = [];
 
         for (const unit of units) {
+          const decryptedCommercialName = unit.tenant?.commercialNameEncrypted ? this.encryption.decrypt(unit.tenant.commercialNameEncrypted) : '';
+          const decryptedFirstName = unit.tenant?.firstNameEncrypted ? this.encryption.decrypt(unit.tenant.firstNameEncrypted) : '';
+          const decryptedLastName = unit.tenant?.lastNameEncrypted ? this.encryption.decrypt(unit.tenant.lastNameEncrypted) : '';
           const tenantName = unit.tenant 
-            ? `${unit.tenant.firstNameEncrypted ? this.encryption.decrypt(unit.tenant.firstNameEncrypted) : ''} ${unit.tenant.lastNameEncrypted ? this.encryption.decrypt(unit.tenant.lastNameEncrypted) : ''}`.trim()
+            ? (decryptedCommercialName || `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Tenant')
             : 'Tenant';
 
           const dueDate = new Date(unit.rentDueDate!);
@@ -226,7 +235,7 @@ export class UnifiedReminderService {
                 message: `Rent for ${tenantName} in Unit ${unit.unitName} is due ${label} (NGN ${unit.rentAmount.toLocaleString()}).`,
                 type: 'PAYMENT_DUE',
                 isPopup: false,
-                url: '/dashboard',
+                url: `/properties/units/${unit.uuid}`,
               }
             });
 
@@ -251,11 +260,11 @@ export class UnifiedReminderService {
               await this.prisma.upward_pm_notification.create({
                 data: {
                   pmId: pm.id,
-                  title: 'Rent Overdue ⚠️',
+                  title: 'Rent Overdue',
                   message: `Rent for ${tenantName} in Unit ${unit.unitName} is ${label} (NGN ${unit.rentAmount.toLocaleString()}).`,
                   type: 'PAYMENT_OVERDUE',
                   isPopup: daysOverdue === 7 || daysOverdue === 14, // Pop up modal for critical overdue milestones
-                  url: '/dashboard',
+                  url: `/properties/units/${unit.uuid}`,
                 }
               });
 

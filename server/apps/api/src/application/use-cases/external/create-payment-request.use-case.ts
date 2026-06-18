@@ -100,12 +100,13 @@ export class CreateExternalPaymentRequestUseCase {
       }
     }
 
+    const isScheduled = payload.scheduledAt && new Date(payload.scheduledAt) > new Date();
     let paymentRequest: any = null;
 
     if (payload.paymentRequestId) {
       paymentRequest = await this.paymentRequestRepository.findById(payload.paymentRequestId);
     } else {
-      const userPendingRequests = await this.paymentRequestRepository.findByUserIdAndStatus(property.userId, 'PENDING')
+      const userPendingRequests = await this.paymentRequestRepository.findByUserIdAndStatus(property.userId, isScheduled ? 'SCHEDULED' : 'PENDING')
       paymentRequest = userPendingRequests.find(pr =>
         pr.userPropertyId === property.id &&
         pr.amount === amount &&
@@ -124,6 +125,10 @@ export class CreateExternalPaymentRequestUseCase {
         minAmount: payload.minAmount !== undefined ? payload.minAmount : paymentRequest.minAmount,
         rentType: payload.rentType || paymentRequest.rentType,
         subaccountId: subaccountId,
+        status: isScheduled ? 'SCHEDULED' : paymentRequest.status,
+        scheduledAt: payload.scheduledAt ? new Date(payload.scheduledAt) : paymentRequest.scheduledAt,
+        isRecurring: payload.isRecurring !== undefined ? payload.isRecurring : paymentRequest.isRecurring,
+        recurrenceInterval: payload.recurrenceInterval !== undefined ? payload.recurrenceInterval : paymentRequest.recurrenceInterval,
       })
 
       // Re-sync line items: delete old, recreate
@@ -141,12 +146,15 @@ export class CreateExternalPaymentRequestUseCase {
         )
       }
       this.logger.log(`Updated existing payment request: ${paymentRequest.uuid}`)
-      this.eventBus.publish(new PaymentRequestUpdatedEvent(
-        paymentRequest.id,
-        paymentRequest.uuid,
-        paymentRequest.userId,
-        paymentRequest.amount
-      ))
+      
+      if (!isScheduled) {
+        this.eventBus.publish(new PaymentRequestUpdatedEvent(
+          paymentRequest.id,
+          paymentRequest.uuid,
+          paymentRequest.userId,
+          paymentRequest.amount
+        ))
+      }
     } else {
       paymentRequest = await this.paymentRequestRepository.create({
         userId: property.userId,
@@ -157,12 +165,15 @@ export class CreateExternalPaymentRequestUseCase {
         dueDate: new Date(payload.dueDate),
         rentStartDate: payload.rentStartDate ? new Date(payload.rentStartDate) : undefined,
         rentEndDate: payload.rentEndDate ? new Date(payload.rentEndDate) : undefined,
-        status: 'PENDING',
+        status: isScheduled ? 'SCHEDULED' : 'PENDING',
         reference: `EXT_${randomUUID()}_${Date.now()}`,
         subaccountId: subaccountId,
         allowPartial: payload.allowPartial ?? false,
         minAmount: payload.minAmount || undefined,
         rentType: payload.rentType,
+        scheduledAt: isScheduled ? new Date(payload.scheduledAt!) : undefined,
+        isRecurring: isScheduled ? (payload.isRecurring || false) : false,
+        recurrenceInterval: isScheduled && payload.isRecurring ? payload.recurrenceInterval : undefined,
       })
 
       // Create line item records
@@ -179,48 +190,53 @@ export class CreateExternalPaymentRequestUseCase {
         )
       }
 
-      if (user && user.passwordHash !== 'INVITED') {
-        await this.notificationRepository.createNotification({
-          userId: user.id!,
-          title: 'New Payment Request',
-          message: `You have a new payment request for ${paymentRequest.currency} ${paymentRequest.amount.toLocaleString()}. Description: ${paymentRequest.description || 'N/A'}`,
-          type: 'PAYMENT',
-          url: `/pay/${paymentRequest.uuid}`
-        })
+      if (!isScheduled) {
+        if (user && user.passwordHash !== 'INVITED') {
+          await this.notificationRepository.createNotification({
+            userId: user.id!,
+            title: 'New Payment Request',
+            message: `You have a new payment request for ${paymentRequest.currency} ${paymentRequest.amount.toLocaleString()}. Description: ${paymentRequest.description || 'N/A'}`,
+            type: 'PAYMENT',
+            url: `/pay/${paymentRequest.uuid}`
+          })
+        }
+        this.eventBus.publish(new PaymentRequestCreatedEvent(
+          paymentRequest.id,
+          paymentRequest.uuid,
+          paymentRequest.userId,
+          paymentRequest.amount
+        ))
       }
-      this.eventBus.publish(new PaymentRequestCreatedEvent(
-        paymentRequest.id,
-        paymentRequest.uuid,
-        paymentRequest.userId,
-        paymentRequest.amount
-      ))
     }
 
     let dvaDetails: any = null
-    try {
-      const dva = await this.resolveDedicatedAccount.execute({
-        userPropertyId: property.id,
-        tenantEmail: user.email!,
-        tenantName: `${user.firstName} ${user.lastName}`,
-        tenantPhone: user.phone ?? undefined,
-        subaccountCode: paymentRequest.subaccount?.subaccountCode
-      })
-      if (dva) {
-        dvaDetails = {
-          accountNumber: dva.accountNumber,
-          accountName: dva.accountName,
-          bankName: dva.bankName,
-          bankCode: dva.bankCode
+    if (!isScheduled) {
+      try {
+        const dva = await this.resolveDedicatedAccount.execute({
+          userPropertyId: property.id,
+          tenantEmail: user.email!,
+          tenantName: `${user.firstName} ${user.lastName}`,
+          tenantPhone: user.phone ?? undefined,
+          subaccountCode: paymentRequest.subaccount?.subaccountCode
+        })
+        if (dva) {
+          dvaDetails = {
+            accountNumber: dva.accountNumber,
+            accountName: dva.accountName,
+            bankName: dva.bankName,
+            bankCode: dva.bankCode
+          }
         }
+      } catch (e: any) {
+        this.logger.warn(`Failed to resolve DVA for property ${property.uuid}: ${e.message}`)
       }
-    } catch (e: any) {
-      this.logger.warn(`Failed to resolve DVA for property ${property.uuid}: ${e.message}`)
     }
 
     return {
       paymentUuid: paymentRequest.uuid,
-      paymentLink: `${urls[0]}/pay/${paymentRequest.uuid}`,
-      dva: dvaDetails
+      paymentLink: isScheduled ? null : `${urls[0]}/pay/${paymentRequest.uuid}`,
+      dva: dvaDetails,
+      status: paymentRequest.status
     }
   }
 }

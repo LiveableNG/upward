@@ -166,6 +166,9 @@ export interface PaymentRequest {
   isManual?: boolean
   lineItemRecords?: PaymentLineItem[]
   userPropertyUuid?: string
+  scheduledAt?: Date
+  isRecurring?: boolean
+  recurrenceInterval?: string
   createdAt: Date
   updatedAt: Date
 }

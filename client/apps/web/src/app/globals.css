@@ -6,6 +6,13 @@
   padding: 0;
 }
 
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 :root {
   /* --- Design Tokens (Swatches) --- */
   --swatch--gray-000: #ffffff;
@@ -25,6 +32,16 @@
   --swatch--clay-interactive: #c46648;
   --swatch--oat: #f5f5f0;
   --swatch--transparent: transparent;
+
+  /* --- Typography Scale Design Tokens --- */
+  --font-xs: 11px;
+  --font-sm: 13px;
+  --font-base: 15px;
+  --font-lg: 18px;
+  --font-xl: 24px;
+  --font-xxl: 28px;
+  --font-h1: clamp(28px, 5.2vw, 60px);
+  --font-h2: clamp(22px, 3.5vw, 40px);
 
   /* --- Default Theme: Light Mode (Updated) --- */
   --bg: #ffffff;

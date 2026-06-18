@@ -47,6 +47,8 @@ export function PressLogos() {
         borderTop: '1px solid rgba(255, 255, 255, 0.05)',
         animation: 'fadeUp 0.7s 0.6s ease both',
         maxWidth: '700px',
+        margin: '0 auto',
+        width: '100%',
       }}
     >
       <p
@@ -57,43 +59,54 @@ export function PressLogos() {
           color: 'var(--muted)',
           marginBottom: '20px',
           opacity: 0.6,
+          textAlign: 'center',
         }}
       >
         As seen on
       </p>
+
       <div
+        className="marquee-container"
         style={{
-          display: 'flex',
-          gap: '40px',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          transition: 'all 0.4s ease',
+          filter: 'grayscale(0.6)',
+          opacity: 0.7,
+          transition: 'all 0.5s ease',
         }}
-        className="press-logos-container"
+        onMouseEnter={(e) => {
+          e.currentTarget.style.filter = 'grayscale(0)'
+          e.currentTarget.style.opacity = '1'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.filter = 'grayscale(0.6)'
+          e.currentTarget.style.opacity = '0.7'
+        }}
       >
-        {press.map((logo, i) => (
-          <a
-            key={i}
-            href={logo.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="press-logo-item"
-            style={{
-              position: 'relative',
-              display: 'flex',
-              alignItems: 'center',
-              textDecoration: 'none',
-              transition: 'transform 0.2s ease',
-            }}
-          >
-            <img
-              src={logo.src}
-              alt={logo.alt}
-              style={{ height: '22px', width: 'auto', objectFit: 'contain', opacity: 0.8 }}
-            />
-            <span className="press-tooltip">{logo.alt}</span>
-          </a>
-        ))}
+        <div className="marquee-content ping-pong-scroll" style={{ gap: '60px' }}>
+          {[...press, ...press].map((logo, i) => (
+            <a
+              key={i}
+              href={logo.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="press-logo-item"
+              style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                textDecoration: 'none',
+                transition: 'transform 0.2s ease',
+              }}
+            >
+              <img
+                src={logo.src}
+                alt={logo.alt}
+                style={{ height: '32px', width: 'auto', objectFit: 'contain', opacity: 0.8 }}
+                className="press-logo-img"
+              />
+              <span className="press-tooltip">{logo.alt}</span>
+            </a>
+          ))}
+        </div>
       </div>
       <style>{`
         .press-logo-item:hover {
@@ -135,6 +148,11 @@ export function PressLogos() {
           border-width: 5px;
           border-style: solid;
           border-color: var(--border) transparent transparent transparent;
+        }
+        @media (max-width: 768px) {
+          .press-logo-img {
+            height: 24px !important;
+          }
         }
       `}</style>
     </div>

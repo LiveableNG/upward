@@ -77,7 +77,7 @@ If `isUnderpayment` is `true`, the transaction will remain in `PENDING_REFUND` (
 ### **Option 1: Accept the Payment**
 Accepts the underpayment as-is, updates the internal bookkeeping (marking the request as partially paid), and releases the funds for standard settlement.
 
-* **Endpoint**: `POST /payment-request/transaction/:transactionUuid/accept`
+* **Endpoint**: `POST /api/v1/payment-request/transaction/:transactionUuid/accept`
 * **Headers**:
   * `x-api-key`: `{{your_platform_api_key}}`
   * `Content-Type`: `application/json`
@@ -92,7 +92,7 @@ Accepts the underpayment as-is, updates the internal bookkeeping (marking the re
 ### **Option 2: Reject & Refund the Payment**
 Rejects the payment, and triggers an automated transfer refund back to the customer's saved bank account (minus the gateway processing fee).
 
-* **Endpoint**: `POST /payment-request/transaction/:transactionUuid/reject`
+* **Endpoint**: `POST /api/v1/payment-request/transaction/:transactionUuid/reject`
 * **Headers**:
   * `x-api-key`: `{{your_platform_api_key}}`
   * `Content-Type`: `application/json`

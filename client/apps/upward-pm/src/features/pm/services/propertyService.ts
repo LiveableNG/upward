@@ -20,10 +20,12 @@ export interface Property {
 export interface Tenant {
   id: number;
   uuid: string;
+  commercialName?: string;
   firstName?: string;
   lastName?: string;
   email?: string;
   phone?: string;
+  otherPhone?: string | null;
   inviteStatus?: string;
   inviteSentAt?: string;
 }

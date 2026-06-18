@@ -38,8 +38,8 @@ export function RecipientSelectModal({ isOpen, onClose, onSelect }: RecipientSel
     if (activeTab === 'TENANT') {
       list = tenants.map(t => ({
         uuid: t.uuid,
-        name: `${t.firstName} ${t.lastName}`,
-        email: t.email,
+        name: t.commercialName || `${t.firstName || ''} ${t.lastName || ''}`.trim() || 'Tenant',
+        email: t.email || 'N/A',
         phone: t.phone,
         propertyUuid: t.units?.[0]?.property?.uuid,
         propertyTitle: t.units?.[0]?.property?.name,

@@ -104,6 +104,9 @@ import { ConfirmExternalPaymentUseCase } from './use-cases/external/confirm-paym
 import { ResolveExternalPendingRefundUseCase } from './use-cases/external/resolve-external-refund.use-case'
 import { AddPropertyUseCase } from './use-cases/external/add-property.use-case'
 import { RenewPropertyUseCase } from './use-cases/external/renew-property.use-case'
+import { CancelExternalPaymentRequestUseCase } from './use-cases/external/cancel-payment-request.use-case'
+import { UpdateExternalPaymentRequestUseCase } from './use-cases/external/update-payment-request.use-case'
+import { ProcessScheduledExternalPaymentRequestsUseCase } from './use-cases/external/process-scheduled-payments.use-case'
 import { UpdatePmProfileUseCase } from './use-cases/pm/update-pm-profile.use-case'
 import { UpdatePmBankInfoUseCase } from './use-cases/pm/update-pm-bank-info.use-case'
 import { ChangePmPasswordUseCase } from './use-cases/pm/change-pm-password.use-case'
@@ -341,6 +344,9 @@ const UseCases = [
   ResolveExternalPendingRefundUseCase,
   AddPropertyUseCase,
   RenewPropertyUseCase,
+  CancelExternalPaymentRequestUseCase,
+  UpdateExternalPaymentRequestUseCase,
+  ProcessScheduledExternalPaymentRequestsUseCase,
   GetCredibilityRequestDetailsUseCase,
   FulfillCredibilityRequestUseCase,
   GetPendingPaymentsUseCase,
