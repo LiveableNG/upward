@@ -57,3 +57,17 @@ export const checkEmail = async (email: string) => {
     body: JSON.stringify({ email })
   })
 }
+
+export const forgotPassword = async (email: string) => {
+  return request<{ success: boolean; message: string }>('/pm/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email })
+  })
+}
+
+export const resetPassword = async (email: string, otp: string, newPass: string) => {
+  return request<{ success: boolean; message: string }>('/pm/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp, new: newPass })
+  })
+}

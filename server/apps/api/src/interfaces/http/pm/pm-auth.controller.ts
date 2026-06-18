@@ -191,4 +191,18 @@ export class PmAuthController {
   ) {
     return this.pmAuthService.claimAccount(uuid, body.password, body.firstName, body.lastName)
   }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() body: { email: string }) {
+    await this.pmAuthService.forgotPassword(body.email)
+    return { success: true, message: 'If the email exists, a reset code has been sent.' }
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() body: { email: string; otp: string; new: string }) {
+    await this.pmAuthService.resetPassword(body.email, body.otp, body.new)
+    return { success: true, message: 'Password reset successful' }
+  }
 }
