@@ -22,6 +22,8 @@ export interface PropertyManager {
   letterheadHeaderUrl?: string | null
   letterheadFooterUrl?: string | null
   isVerified?: boolean
+  resetPasswordOTP?: string | null
+  resetPasswordExpires?: Date | null
   createdAt: Date
   updatedAt: Date
 }

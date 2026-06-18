@@ -172,19 +172,21 @@ export const TenantList: React.FC = () => {
                   e.stopPropagation()
                   inviteTenant.mutate(tenant.uuid)
                 }}
-                disabled={inviteTenant.isPending}
+                disabled={inviteTenant.isPending || tenant.email?.endsWith('@upward.com')}
                 style={{ 
                   fontSize: 12, 
                   padding: '6px 16px',
-                  background: tenant.inviteSentAt ? 'var(--ivory-dark)' : 'var(--forest)',
-                  color: tenant.inviteSentAt ? 'var(--text-muted)' : 'white'
+                  background: tenant.email?.endsWith('@upward.com') ? 'var(--ivory-dark)' : tenant.inviteSentAt ? 'var(--ivory-dark)' : 'var(--forest)',
+                  color: tenant.email?.endsWith('@upward.com') || tenant.inviteSentAt ? 'var(--text-muted)' : 'white',
+                  cursor: tenant.email?.endsWith('@upward.com') ? 'not-allowed' : 'pointer',
+                  opacity: tenant.email?.endsWith('@upward.com') ? 0.6 : 1
                 }}
               >
                 {inviteTenant.isPending ? <Loader2 size={14} className="animate-spin" /> : (tenant.inviteSentAt ? 'Remind' : 'Invite')}
               </button>
             )}
             
-            {!isOnUpward && (
+            {!isOnUpward && !tenant.email?.endsWith('@upward.com') && (
               <div style={{ 
                 display: 'flex', 
                 alignItems: 'center', 

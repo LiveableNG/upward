@@ -357,6 +357,34 @@ export class EmailService {
     }
   }
 
+  async sendPmPasswordResetOTP(
+    email: string,
+    fullName: string,
+    otp: string,
+  ) {
+    const html = buildOtpEmailHtml({
+      theme: 'PM',
+      brandName: 'Upward PM',
+      brandSub: 'Property Management Platform',
+      title: 'Password Reset Request',
+      greeting: fullName,
+      message: 'We received a request to reset your password. Use the code below to proceed. This code expires in 15 minutes.',
+      otp,
+      expiryText: "If you didn't request this, you can safely ignore this email. Someone may have typed your email address by mistake.",
+      isPm: true,
+    })
+
+    const result = await this.sendEmailWithRetry({
+      email,
+      subject: `Your Upward PM Password Reset Code: ${otp}`,
+      html,
+      type: 'PM_PASSWORD_RESET',
+    })
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to send PM password reset OTP')
+    }
+  }
+
   async sendAuthOTP(
     email: string,
     otp: string,

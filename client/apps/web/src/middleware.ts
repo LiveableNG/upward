@@ -121,7 +121,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/documents') ||
     pathname.startsWith('/_upward_pm') ||
     pathname === '/pm-login' ||
-    pathname === '/pm-signup'
+    pathname === '/pm-signup' ||
+    pathname === '/pm-forgot-password'
 
   const isSharedRoute =
     pathname === '/login' ||
@@ -197,9 +198,14 @@ export async function middleware(request: NextRequest) {
     })
   }
 
-  // 6. Explicit /pm-login and /pm-signup rewrites
-  if (pathname === '/pm-login' || pathname === '/pm-signup') {
-    const targetPath = pathname === '/pm-login' ? '/login' : '/signup'
+  // 6. Explicit /pm-login, /pm-signup, and /pm-forgot-password rewrites
+  if (pathname === '/pm-login' || pathname === '/pm-signup' || pathname === '/pm-forgot-password') {
+    const targetPath = 
+      pathname === '/pm-login' 
+        ? '/login' 
+        : pathname === '/pm-signup' 
+          ? '/signup' 
+          : '/forgot-password'
     const url = new URL(targetPath + search, PM_URL)
 
     const requestHeaders = new Headers(request.headers)
@@ -220,7 +226,8 @@ export async function middleware(request: NextRequest) {
     pathname === '/login' ||
     pathname === '/signup' ||
     pathname === '/pm-login' ||
-    pathname === '/pm-signup'
+    pathname === '/pm-signup' ||
+    pathname === '/pm-forgot-password'
 
   if (isAuthPage) {
     const currentRedirect = request.nextUrl.searchParams.get('redirect')
@@ -349,6 +356,7 @@ export const config = {
     '/reset-password',
     '/pm-login',
     '/pm-signup',
+    '/pm-forgot-password',
     '/portal/:path*',
     '/properties/:path*',
     '/landlords/:path*',
