@@ -24,8 +24,39 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://upward-pay.vercel.ap
 const PM_URL = process.env.NEXT_PUBLIC_PM_URL || 'https://upward-pm.vercel.app'
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://upward-api.vercel.app/api/v1'
 
+function landingAnalyticsScript(): NextResponse {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID
+  if (!gaId) {
+    return new NextResponse('// Google Analytics disabled (NEXT_PUBLIC_GA_ID not set)', {
+      headers: { 'Content-Type': 'application/javascript; charset=utf-8' },
+    })
+  }
+
+  const body = `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+(function () {
+  var s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://www.googletagmanager.com/gtag/js?id=${gaId}';
+  document.head.appendChild(s);
+  gtag('js', new Date());
+  gtag('config', '${gaId}', { page_path: window.location.pathname });
+})();`
+
+  return new NextResponse(body, {
+    headers: {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'public, max-age=3600',
+    },
+  })
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
+
+  if (pathname === '/landing-analytics.js') {
+    return landingAnalyticsScript()
+  }
 
   if (pathname === '/pm') {
     return NextResponse.redirect(new URL('/pm-login', request.url))
@@ -308,6 +339,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/',
+    '/landing-analytics.js',
     '/pm',
     '/_upward_pay/:path*',
     '/_upward_pm/:path*',
