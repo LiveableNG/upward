@@ -68,6 +68,17 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
       return
     }
 
+    if (user.email?.endsWith('@upward.com')) {
+      if (!formData.email || formData.email.trim() === '' || formData.email.endsWith('@upward.com')) {
+        toastError('Please enter a valid email address to complete your profile.')
+        return
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        toastError('Please enter a valid email address.')
+        return
+      }
+    }
+
     if (formData.properties) {
       for (let i = 0; i < formData.properties.length; i++) {
         const prop = formData.properties[i]
@@ -224,13 +235,22 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
                   </div>
 
                   <div className="premium-field">
-                    <label className="premium-field__label">Email Address</label>
+                    <label className="premium-field__label">Email Address *</label>
                     <input
                       type="text"
-                      className="premium-field__input text-muted"
-                      value={user.email}
-                      disabled
+                      className={`premium-field__input ${validationErrors.email ? 'premium-field__input--error' : ''} ${!user.email?.endsWith('@upward.com') ? 'text-muted' : ''}`}
+                      value={formData.email?.endsWith('@upward.com') ? '' : (formData.email || '')}
+                      disabled={!user.email?.endsWith('@upward.com')}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setFormData({ ...formData, email: val })
+                        setValidationErrors(prev => ({ 
+                          ...prev, 
+                          email: !val ? 'Email is required' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) ? 'Invalid email address' : ''
+                        }))
+                      }}
                     />
+                    {validationErrors.email && <span className="premium-field__error-msg">{validationErrors.email}</span>}
                   </div>
 
                   <div className="premium-field">
@@ -287,7 +307,13 @@ export function PersonalDetailsView({ user, refreshUser, onBack }: PersonalDetai
 
                   <div className="premium-field--readonly">
                     <span className="premium-field__label--readonly">Email Address</span>
-                    <span className="premium-field__value--readonly text-muted">{user.email}</span>
+                    <span className="premium-field__value--readonly text-muted">
+                      {user.email?.endsWith('@upward.com') ? (
+                        <span className="text-red-500 italic">Not Set (Please Edit Profile to set email)</span>
+                      ) : (
+                        user.email
+                      )}
+                    </span>
                   </div>
 
                   <div className="premium-field--readonly">

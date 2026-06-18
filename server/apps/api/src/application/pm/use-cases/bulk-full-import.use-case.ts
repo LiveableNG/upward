@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, BadRequestException } from '@nestjs/common';
 import {
   IUnitRepository,
   PM_UNIT_REPOSITORY,
@@ -11,6 +11,20 @@ import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.rep
 import { BulkFullImportDto } from '../dtos/property.dto';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import { BulkInviteTenantsUseCase } from './tenants/bulk-invite-tenants.use-case';
+
+function cleanAndValidatePhone(phoneStr: string, identifier: string): string {
+  let cleaned = phoneStr.trim().replace(/\s+/g, '');
+  if (cleaned.startsWith('0') && cleaned.length === 11) {
+    cleaned = '+234' + cleaned.substring(1);
+  } else if (!cleaned.startsWith('+') && cleaned.length === 10) {
+    cleaned = '+234' + cleaned;
+  }
+
+  if (!/^\+\d{7,15}$/.test(cleaned)) {
+    throw new Error(`Invalid phone format for tenant ${identifier}. Must be in international format (e.g. +234...)`);
+  }
+  return cleaned;
+}
 
 @Injectable()
 export class BulkFullImportUseCase {
@@ -25,6 +39,24 @@ export class BulkFullImportUseCase {
 
   async execute(pmId: number, dto: BulkFullImportDto) {
     const { rows, inviteAfterImport } = dto;
+
+    for (const row of rows) {
+      if (row.tenantPhone) {
+        const identifier = row.tenantEmail || row.tenantFirstName || row.tenantCommercialName || 'unknown';
+        try {
+          if (row.tenantPhone.includes(',')) {
+            const parts = row.tenantPhone.split(',');
+            const p1 = cleanAndValidatePhone(parts[0]!, identifier);
+            const p2 = cleanAndValidatePhone(parts[1]!, identifier);
+            row.tenantPhone = `${p1},${p2}`;
+          } else {
+            row.tenantPhone = cleanAndValidatePhone(row.tenantPhone, identifier);
+          }
+        } catch (err: any) {
+          throw new BadRequestException(err.message);
+        }
+      }
+    }
 
     const propertyCache = new Map<string, { id: number; uuid: string }>();
     const createdTenantUuids: string[] = [];
@@ -72,30 +104,63 @@ export class BulkFullImportUseCase {
       let tenantUuid: string | null = null;
 
       const email = row.tenantEmail?.trim().toLowerCase();
-      if (email) {
-        const emailHash = this.encryption.hash(email);
-        let tenant = await this.tenantRepository.findByEmailHash(pmId, emailHash);
+      const commercialName = (row as any).tenantCommercialName?.trim();
+      const firstName = row.tenantFirstName?.trim();
+      const lastName = row.tenantLastName?.trim();
 
-        if (!tenant) {
-          const existingUser = await this.userRepository.findByEmail(email);
-          const initialStatus = existingUser ? 'ON_UPWARD' : 'PENDING';
+      // A tenant row is valid if it has email, commercialName, or at least a name
+      const hasTenantIdentifier = !!(email || commercialName || firstName || lastName);
 
-          tenant = await this.tenantRepository.create({
-            pmId,
-            firstName: row.tenantFirstName?.trim() || '',
-            lastName: row.tenantLastName?.trim() || '',
-            email,
-            phone: row.tenantPhone?.trim() || '',
-            inviteStatus: initialStatus,
-            inviteSentAt: null,
-          });
+      if (hasTenantIdentifier) {
+        let phoneVal = row.tenantPhone?.trim() || undefined;
+        let otherPhoneVal = undefined;
+        if (phoneVal && phoneVal.includes(',')) {
+          const parts = phoneVal.split(',');
+          phoneVal = parts[0]?.trim();
+          otherPhoneVal = parts[1]?.trim();
         }
 
-        tenantId = tenant.id;
-        tenantUuid = tenant.uuid;
+        if (email) {
+          const emailHash = this.encryption.hash(email);
+          let tenant = await this.tenantRepository.findByEmailHash(pmId, emailHash);
 
-        if (tenant.inviteStatus === 'PENDING') {
-          createdTenantUuids.push(tenant.uuid);
+          if (!tenant) {
+            const existingUser = await this.userRepository.findByEmail(email);
+            const initialStatus = existingUser ? 'ON_UPWARD' : 'PENDING';
+
+            tenant = await this.tenantRepository.create({
+              pmId,
+              commercialName: commercialName || undefined,
+              firstName: firstName || '',
+              lastName: lastName || '',
+              email,
+              phone: phoneVal || '',
+              otherPhone: otherPhoneVal || undefined,
+              inviteStatus: initialStatus,
+              inviteSentAt: null,
+            });
+          }
+
+          tenantId = tenant.id;
+          tenantUuid = tenant.uuid;
+
+          if (tenant.inviteStatus === 'PENDING') {
+            createdTenantUuids.push(tenant.uuid);
+          }
+        } else {
+          // No email — commercial/unnamed tenant (no invite sent)
+          const tenant = await this.tenantRepository.create({
+            pmId,
+            commercialName: commercialName || undefined,
+            firstName: firstName || undefined,
+            lastName: lastName || undefined,
+            phone: phoneVal || undefined,
+            otherPhone: otherPhoneVal || undefined,
+            inviteStatus: 'PENDING',
+            inviteSentAt: null,
+          });
+          tenantId = tenant.id;
+          tenantUuid = tenant.uuid;
         }
       }
 

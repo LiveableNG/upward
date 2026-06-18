@@ -31,7 +31,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setThemeState('light')
   }, [])
 
-  const setTheme = (newTheme: Theme) => {
+  const setTheme = (_newTheme: Theme) => {
     // Temporarily always set 'light' mode
     setThemeState('light')
   }
@@ -43,7 +43,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.classList.add('theme--light') // Always force light mode
   }, [theme])
 
-  return <ThemeContext.Provider value={{ theme: 'light', setTheme }}>{children}</ThemeContext.Provider>
+  return (
+    <ThemeContext.Provider value={{ theme: 'light', setTheme }}>{children}</ThemeContext.Provider>
+  )
 }
 
 export function useTheme() {

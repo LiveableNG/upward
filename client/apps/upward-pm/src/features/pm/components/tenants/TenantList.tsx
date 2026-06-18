@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
-import { Search, X, Home, Users, CheckCircle2, Loader2 } from 'lucide-react'
+import { Search, X, Home, Users, CheckCircle2, Loader2, AlertCircle } from 'lucide-react'
 import { useTenants, useTenantActions } from '../../hooks/useTenants'
 import { useProperties } from '../../hooks/useProperties'
 import { DataTable, Column } from '@/components/common/DataTable'
@@ -30,7 +30,7 @@ export const TenantList: React.FC = () => {
 
   const filteredTenants = useMemo(() => {
     return tenants.filter(t => {
-      const fullName = `${t.firstName} ${t.lastName}`.toLowerCase()
+      const fullName = (t.commercialName || `${t.firstName || ''} ${t.lastName || ''}`.trim()).toLowerCase()
       const email = (t.email || '').toLowerCase()
       const query = searchQuery.toLowerCase()
       
@@ -90,13 +90,19 @@ export const TenantList: React.FC = () => {
             fontWeight: 700,
             flexShrink: 0
           }}>
-            {((tenant.firstName || '')[0] || '').toUpperCase()}
+            {((tenant.commercialName || tenant.firstName || 'T')[0] || '').toUpperCase()}
           </div>
           <div>
             <div style={{ fontWeight: 700, color: 'var(--dark)', fontSize: 14, marginBottom: 2 }}>
-              {tenant.firstName} {tenant.lastName}
+              {tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim()}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tenant.email}</div>
+            {tenant.email?.endsWith('@upward.com') ? (
+              <div style={{ fontSize: 12, color: 'var(--error)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <AlertCircle size={12} /> Not Configured
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tenant.email}</div>
+            )}
           </div>
         </div>
       )

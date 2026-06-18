@@ -56,10 +56,10 @@ export const TenantAssignmentSection: React.FC<TenantAssignmentSectionProps> = (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div className="tenant-avatar-large" style={{ width: 40, height: 40, fontSize: 16 }}>
-                {currentTenant.firstName?.[0]}{currentTenant.lastName?.[0]}
+                {(currentTenant.commercialName || currentTenant.firstName || 'T')[0].toUpperCase()}
               </div>
               <div>
-                <h4 style={{ margin: 0 }}>{currentTenant.firstName} {currentTenant.lastName}</h4>
+                <h4 style={{ margin: 0 }}>{currentTenant.commercialName || `${currentTenant.firstName || ''} ${currentTenant.lastName || ''}`.trim()}</h4>
                 <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>{currentTenant.email}</p>
               </div>
             </div>
@@ -129,7 +129,7 @@ export const TenantAssignmentSection: React.FC<TenantAssignmentSectionProps> = (
               onClick={() => handleAssign(tenant.uuid)}
             >
               <div>
-                <span style={{ fontWeight: 600, fontSize: 14 }}>{tenant.firstName} {tenant.lastName}</span>
+                <span style={{ fontWeight: 600, fontSize: 14 }}>{tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim()}</span>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tenant.email}</div>
               </div>
               <LinkIcon size={14} color="var(--forest)" />
@@ -152,7 +152,7 @@ export const TenantAssignmentSection: React.FC<TenantAssignmentSectionProps> = (
         onClose={() => setIsUnassignConfirmOpen(false)}
         onConfirm={handleUnassign}
         title="Unassign Tenant"
-        message={`Are you sure you want to unassign ${currentTenant?.firstName} ${currentTenant?.lastName} from this unit?`}
+        message={`Are you sure you want to unassign ${currentTenant?.commercialName || `${currentTenant?.firstName || ''} ${currentTenant?.lastName || ''}`.trim()} from this unit?`}
         confirmText="Unassign"
         type="danger"
         isPending={unassignTenant.isPending}

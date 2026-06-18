@@ -4,7 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { Search, Plus, FileSpreadsheet, CreditCard as CreditCardIcon, Calendar, Loader2, RefreshCw } from 'lucide-react'
 import { format, isBefore, startOfDay } from 'date-fns'
-import { cn } from '@/lib/utils'
+import { cn, formatTenantName } from '@/lib/utils'
 import { Unit, Property } from '../../services/propertyService'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { useRouter } from 'next/navigation'
@@ -76,7 +76,7 @@ export function UnitsTable({
       header: 'TENANT',
       render: (unit) => unit.tenant ? (
         <div className="tenant-name-email">
-          <span className="tenant-name" style={{ fontSize: '13px' }}>{unit.tenant.firstName} {unit.tenant.lastName || ''}</span>
+          <span className="tenant-name" style={{ fontSize: '13px' }}>{formatTenantName(unit.tenant)}</span>
         </div>
       ) : (
         <span className="text-muted" style={{ fontSize: '13px' }}>-</span>

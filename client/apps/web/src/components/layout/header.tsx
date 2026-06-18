@@ -8,8 +8,8 @@ export function Header({
   onOpenSignup,
   trackInteraction,
 }: {
-  onSetView: (view: 'home' | 'why' | 'fairness') => void
-  currentView: 'home' | 'why' | 'fairness'
+  onSetView: (view: 'home' | 'why' | 'fairness' | 'pm') => void
+  currentView: 'home' | 'why' | 'fairness' | 'pm'
   onOpenSignup: () => void
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   trackInteraction?: (type: string, target: string, metadata?: any) => void
@@ -97,7 +97,7 @@ export function Header({
           <div
             style={{
               fontFamily: 'var(--font-head)',
-              fontWeight: 800,
+              fontWeight: 500,
               fontSize: '15px',
               background: 'var(--heading-mix)',
               WebkitBackgroundClip: 'text',
@@ -139,8 +139,8 @@ export function Header({
       <ul style={{ display: 'flex', gap: '32px', listStyle: 'none' }} className="mobile-hide">
         {(
           [
-            ['#why', 'Why Upward?'],
-            ['#faq', 'FAQ'],
+            ['#pm', 'PM'],
+            ['#landlord', 'Landlord'],
             ['#fairness', 'End Housing Bias'],
           ] as [string, string][]
         ).map(([href, label]) => {
@@ -154,20 +154,9 @@ export function Header({
                       'CLICK',
                       `NAV_LINK_${label.toUpperCase().replace(/\s+/g, '_')}`,
                     )
-                  if (label === 'Why Upward?' || label === 'FAQ') {
+                  if (label === 'PM' || label === 'Landlord') {
                     e.preventDefault()
-                    onSetView('why')
-                    if (label === 'FAQ') {
-                      setTimeout(() => {
-                        const el = document.getElementById('faq')
-                        if (el) {
-                          const navHeight = 80
-                          const top =
-                            el.getBoundingClientRect().top + window.pageYOffset - navHeight
-                          window.scrollTo({ top, behavior: 'smooth' })
-                        }
-                      }, 150)
-                    }
+                    onSetView('pm')
                   } else if (label === 'End Housing Bias') {
                     e.preventDefault()
                     onSetView('fairness')
@@ -176,9 +165,9 @@ export function Header({
                   }
                 }}
                 style={{
-                  fontSize: '12px',
+                  fontSize: 'var(--font-xs)',
                   color:
-                    (label === 'Why Upward?' || label === 'FAQ') && currentView === 'why'
+                    (label === 'PM' || label === 'Landlord') && currentView === 'pm'
                       ? 'var(--accent)'
                       : label === 'End Housing Bias' && currentView === 'fairness'
                         ? 'var(--accent)'
@@ -188,7 +177,7 @@ export function Header({
                   letterSpacing: '1px',
                   textTransform: 'uppercase',
                   fontWeight:
-                    ((label === 'Why Upward?' || label === 'FAQ') && currentView === 'why') ||
+                    ((label === 'PM' || label === 'Landlord') && currentView === 'pm') ||
                     (label === 'End Housing Bias' && currentView === 'fairness')
                       ? 700
                       : 400,
@@ -196,7 +185,7 @@ export function Header({
                 onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text)')}
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.color =
-                    (label === 'Why Upward?' || label === 'FAQ') && currentView === 'why'
+                    (label === 'PM' || label === 'Landlord') && currentView === 'pm'
                       ? 'var(--accent)'
                       : 'var(--muted)')
                 }
@@ -209,91 +198,40 @@ export function Header({
       </ul>
 
       <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-        {/* PM App Entry (Forest Green Filled Style) */}
+        {/* Get Started Button */}
         <button
           className="mobile-hide"
           onClick={() => {
-            if (trackInteraction) trackInteraction('CLICK', 'HEADER_PM_PORTAL')
-            window.location.href = '/portal/login'
+            if (trackInteraction) trackInteraction('CLICK', 'HEADER_GET_STARTED')
+            window.location.href = '/signup'
           }}
           style={{
-            fontSize: '9px',
+            fontSize: 'var(--font-xs)',
             letterSpacing: '0.2em',
             textTransform: 'uppercase',
-            color: '#ffffff',
-            background: '#166534',
+            color: 'var(--btn-text)',
+            background: 'var(--accent)',
             border: 'none',
             padding: '12px 24px',
             borderRadius: '100px',
             fontFamily: 'var(--font-head)',
-            fontWeight: 800,
-            position: 'relative',
-            overflow: 'hidden',
+            fontWeight: 600,
             cursor: 'pointer',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            boxShadow: '0 8px 25px rgba(22, 101, 52, 0.25)',
+            boxShadow: '0 8px 25px rgba(217, 119, 87, 0.2)',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)'
-            e.currentTarget.style.boxShadow = '0 12px 30px rgba(22, 101, 52, 0.4)'
-            e.currentTarget.style.background = '#14532d'
+            e.currentTarget.style.boxShadow = '0 12px 30px rgba(217, 119, 87, 0.35)'
+            e.currentTarget.style.background = 'var(--swatch--clay-interactive)'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)'
-            e.currentTarget.style.boxShadow = '0 8px 25px rgba(22, 101, 52, 0.25)'
-            e.currentTarget.style.background = '#166534'
+            e.currentTarget.style.boxShadow = '0 8px 25px rgba(217, 119, 87, 0.2)'
+            e.currentTarget.style.background = 'var(--accent)'
           }}
         >
-          Landlord Portal
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: '-150%',
-              width: '100%',
-              height: '100%',
-              background:
-                'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent)',
-              transform: 'skewX(-25deg)',
-              animation: 'beam 4s infinite ease-in-out',
-            }}
-          />
-        </button>
-
-        {/* Tenant App Entry (Clay Theme Outlined Style) */}
-        <button
-          className="mobile-hide"
-          onClick={() => {
-            if (trackInteraction) trackInteraction('CLICK', 'HEADER_TENANT_PORTAL')
-            window.location.href = '/login'
-          }}
-          style={{
-            fontSize: '9px',
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase',
-            color: 'var(--accent)',
-            background: 'var(--bg)',
-            border: '1.5px solid var(--accent)',
-            padding: '11px 22px',
-            borderRadius: '100px',
-            fontFamily: 'var(--font-head)',
-            fontWeight: 800,
-            cursor: 'pointer',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            boxShadow: '0 8px 25px rgba(217, 119, 87, 0.05)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)'
-            e.currentTarget.style.boxShadow = '0 12px 30px rgba(217, 119, 87, 0.15)'
-            e.currentTarget.style.background = 'var(--accent-faint)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)'
-            e.currentTarget.style.boxShadow = '0 8px 25px rgba(217, 119, 87, 0.05)'
-            e.currentTarget.style.background = 'var(--bg)'
-          }}
-        >
-          Renter Portal
+          Get Started
         </button>
 
         {/* Mobile Menu Toggle */}
@@ -393,7 +331,7 @@ export function Header({
               <div
                 style={{
                   fontFamily: 'var(--font-head)',
-                  fontWeight: 800,
+                  fontWeight: 500,
                   fontSize: '15px',
                   background: 'var(--heading-mix)',
                   WebkitBackgroundClip: 'text',
@@ -421,8 +359,8 @@ export function Header({
           </div>
           {(
             [
-              ['#why', 'Why Upward?'],
-              ['#faq', 'FAQ'],
+              ['#pm', 'PM'],
+              ['#landlord', 'Landlord'],
               ['#fairness', 'End Housing Bias'],
             ] as [string, string][]
           ).map(([href, label]) => (
@@ -435,19 +373,9 @@ export function Header({
                     'CLICK',
                     `MOBILE_NAV_LINK_${label.toUpperCase().replace(/\s+/g, '_')}`,
                   )
-                if (label === 'Why Upward?' || label === 'FAQ') {
+                if (label === 'PM' || label === 'Landlord') {
                   e.preventDefault()
-                  onSetView('why')
-                  if (label === 'FAQ') {
-                    setTimeout(() => {
-                      const el = document.getElementById('faq')
-                      if (el) {
-                        const navHeight = 70
-                        const top = el.getBoundingClientRect().top + window.pageYOffset - navHeight
-                        window.scrollTo({ top, behavior: 'smooth' })
-                      }
-                    }, 150)
-                  }
+                  onSetView('pm')
                 } else if (label === 'End Housing Bias') {
                   e.preventDefault()
                   onSetView('fairness')
@@ -464,7 +392,7 @@ export function Header({
                 fontFamily: 'var(--font-head)',
                 fontWeight: 700,
                 color:
-                  ((label === 'Why Upward?' || label === 'FAQ') && currentView === 'why') ||
+                  ((label === 'PM' || label === 'Landlord') && currentView === 'pm') ||
                   (label === 'End Housing Bias' && currentView === 'fairness')
                     ? 'var(--accent)'
                     : 'var(--text)',
@@ -489,7 +417,7 @@ export function Header({
                 border: 'none',
                 color: 'var(--btn-text)',
                 fontFamily: 'var(--font-head)',
-                fontWeight: 800,
+                fontWeight: 500,
                 fontSize: '15px',
                 textAlign: 'center',
                 textTransform: 'uppercase',

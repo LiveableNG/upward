@@ -12,6 +12,11 @@ export default function NotificationsPage() {
   const { notifications = [], unreadCount = 0 } = data || {}
   const { markRead, markAllRead } = usePmNotificationActions()
 
+  const cleanEmoji = (text: string): string => {
+    if (!text) return ''
+    return text.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, '').trim()
+  }
+
   const getRelativeTime = (dateStr: string) => {
     const d = new Date(dateStr)
     return d.toLocaleDateString('en-US', {
@@ -101,10 +106,10 @@ export default function NotificationsPage() {
                 
                 <div className="notifications-hub__item-details">
                   <div className="notifications-hub__item-meta">
-                    <h3 className="notifications-hub__item-title">{notif.title}</h3>
+                    <h3 className="notifications-hub__item-title">{cleanEmoji(notif.title)}</h3>
                     <span className="notifications-hub__item-time">{getRelativeTime(notif.createdAt)}</span>
                   </div>
-                  <p className="notifications-hub__item-msg">{notif.message}</p>
+                  <p className="notifications-hub__item-msg">{cleanEmoji(notif.message)}</p>
                 </div>
 
                 {!notif.isRead && (

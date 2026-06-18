@@ -13,19 +13,18 @@ import {
 } from 'lucide-react'
 import { useDocuments } from '../../hooks/useDocuments'
 import { format } from 'date-fns'
-import { CreateTemplateModal } from './CreateTemplateModal'
 import { DataTable, Column } from '@/components/common/DataTable'
 
 interface DocumentManagementViewProps {
   onNewDocument: () => void
   onSelectTemplate: (template: any) => void
   onResendDocument: (document: any) => void
+  onCreateTemplate: () => void
 }
 
-export function DocumentManagementView({ onNewDocument, onSelectTemplate, onResendDocument }: DocumentManagementViewProps) {
+export function DocumentManagementView({ onNewDocument, onSelectTemplate, onResendDocument, onCreateTemplate }: DocumentManagementViewProps) {
   const { documents, templates, isLoading, generatePdf } = useDocuments()
   const [searchQuery, setSearchQuery] = useState('')
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [viewMode, setViewMode] = useState<'dashboard' | 'all_templates'>('dashboard')
   const [previewDocument, setPreviewDocument] = useState<any>(null)
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
@@ -259,7 +258,7 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
             }}
           />
           <button
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={onCreateTemplate}
             className="btn btn--primary"
             style={{ borderRadius: 12, padding: '0 24px', height: 48, display: 'flex', alignItems: 'center', gap: 8 }}
           >
@@ -331,10 +330,7 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
         </div>
       </section>
 
-      <CreateTemplateModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-      />
+
 
       {previewDocument && (
         <div className="preview-overlay" onClick={() => setPreviewDocument(null)}>

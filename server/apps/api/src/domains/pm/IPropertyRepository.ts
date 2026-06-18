@@ -49,6 +49,7 @@ export interface TenantEntity {
   id: number;
   uuid: string;
   pmId: number;
+  commercialName?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   email?: string | null;
@@ -57,10 +58,15 @@ export interface TenantEntity {
   firstNameSearch?: string | null;
   lastNameEncrypted?: string | null;
   lastNameSearch?: string | null;
+  commercialNameEncrypted?: string | null;
+  commercialNameSearch?: string | null;
   emailEncrypted?: string | null;
   emailHash?: string | null;
   phoneEncrypted?: string | null;
   phoneHash?: string | null;
+  otherPhone?: string | null;
+  otherPhoneEncrypted?: string | null;
+  otherPhoneHash?: string | null;
   inviteStatus: string;
   inviteSentAt: Date | null;
   formerAddress?: string | null;
@@ -100,7 +106,7 @@ export interface RentPaymentEntity {
   status: string;
   notes: string | null;
   tenantId?: number | null;
-  tenant?: { firstName: string; lastName: string };
+  tenant?: { firstName: string; lastName: string; commercialName?: string | null };
 }
 
 export interface IUnitRepository {

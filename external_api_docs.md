@@ -169,16 +169,24 @@ This object allows you to pre-configure where the funds for this property should
 }
 ```
 
+### Response Example
+```json
 {
   "success": true,
   "message": "Created",
   "data": {
     "userId": "b7a71853-2d7a-4399-af09-115a6c1406ce",
     "companyId": "a1b2c3d4-...",
+    "managerId": "f1c2d3e4-...",
+    "userPropertyUuid": "5cab404a-...",
     "email": "john.doe@gmail.com",
     "inviteLink": "http://localhost:3000/invite/b7a71853-...",
     "properties": [
-      { "uuid": "5cab404a-...", "address": "Bourdillon Road", "managerUuid": "f1c2d3e4-..." }
+      {
+        "uuid": "5cab404a-...",
+        "address": "Bourdillon Road",
+        "managerId": "f1c2d3e4-..."
+      }
     ]
   }
 }
@@ -244,14 +252,39 @@ Generate a payment link for a tenant based on an existing property or by initiat
 | `currency` | `string` | No | Currency (e.g., "NGN"). Defaults to property currency. |
 | `description` | `string` | No | Narrative for the payment request. |
 | `lineItems` | `Array` | No | Breakdown of the amount (e.g., security, cleanup). |
-| `allowPartial` | `Boolean` | No | Whether to allow partial payments (Default: `false`) |
+| `allowPartial` | `Boolean` | No | Whether to allow partial payments (Default: `false`). |
 | `dueDate` | `string` | **Yes** | ISO-8601 date. |
-| `bankCode` | `string` | **Yes** | 3-digit bank code for direct settlement (split payments). |
-| `accountNumber` | `string` | **Yes** | 10-digit NUBAN account number for settlement. |
+| `bankCode` | `string` | No | 3-digit bank code for direct settlement. Falls back to property's subaccount details if omitted. |
+| `accountNumber` | `string` | No | 10-digit NUBAN account number. Falls back to property's subaccount details if omitted. |
 | `invite` | `Object` | Cond. | Full invite payload if performing a "Cold Start". |
+| `scheduledAt` | `string` | No | ISO-8601 date/time to schedule the activation of the request. |
+| `isRecurring` | `Boolean` | No | Whether the request should automatically recur (Default: `false`). |
+| `recurrenceInterval` | `string` | No | Frequency of recurrence (`'MONTHLY'`, `'QUARTERLY'`, or `'YEARLY'`). |
 
 > [!NOTE]
 > **Line Item Constraint**: If `lineItems` are provided, the sum of all item amounts **must exactly match** the total `amount` provided in the request. If `amount` is not provided, the sum must match the property's default rent amount.
+
+> [!NOTE]
+> **Scheduling**: If a valid future `scheduledAt` is provided, the payment request is created with the status `'SCHEDULED'`. Dedicated Virtual Accounts (DVA) and tenant notifications are deferred until the activation date.
+
+### Edit a Payment Request
+Edit details of an existing payment request prior to any payments being received.
+
+**Method**: `PATCH`  
+**Endpoint**: `/api/v1/payment-request/:uuid`
+
+#### Request Body
+Allows optional updates for any of the following fields: `amount`, `dueDate`, `description`, `allowPartial`, `minAmount`, `rentStartDate`, `rentEndDate`, `rentType`, `lineItems`, `scheduledAt`, `isRecurring`, `recurrenceInterval`.
+
+*Constraint*: Cannot edit if `amountPaid > 0` or if the request is `'PAID'`. If updating the total `amount` or `lineItems`, their sums must match.
+
+### Cancel a Payment Request
+Cancel a pending or scheduled payment request before payments are received.
+
+**Method**: `POST`  
+**Endpoint**: `/api/v1/payment-request/:uuid/cancel`
+
+*Constraint*: Only requests with `amountPaid == 0` can be cancelled. Returns success immediately if the request is already `'CANCELLED'`.
 
 ### Request Example (Existing Property)
 ```json
@@ -310,8 +343,37 @@ Use this if the tenant has not been invited to Upward yet. This will create the 
   "success": true,
   "data": {
     "paymentUuid": "d8e9f0a1-...",
-    "paymentLink": "http://localhost:3000/pay/d8e9f0a1-..."
+    "paymentLink": "http://localhost:3000/pay/d8e9f0a1-...",
+    "dva": {
+      "accountNumber": "9999920123",
+      "accountName": "Global Properties - Tenant Name",
+      "bankName": "OPay Digital Services Limited (OPay)",
+      "bankCode": "999992"
+    }
   }
+}
+```
+
+### Confirm a Payment
+If your frontend application or user checkout flow needs to trigger verification and record a payment transaction immediately, you can call the confirmation endpoint.
+
+**Method**: `POST`  
+**Endpoint**: `/api/v1/payment-request/:uuid/confirm`
+
+#### Request Body
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `reference` | `string` | **Yes** | The payment gateway transaction reference. |
+| `lineItemPayments` | `Array` | No | Breakdown of the amounts paid towards specific line items. |
+
+#### Response Example
+```json
+{
+  "success": true,
+  "transactionUuid": "tx-uuid-12345",
+  "status": "PAID",
+  "settlementStatus": "VERIFIED",
+  "isUnderpayment": false
 }
 ```
 
@@ -393,6 +455,29 @@ If you cannot fulfill the request (e.g., the user was never at that property), y
 ## 7. Webhook Notifications
 Upward sends asynchronous notifications to the `webhookUrl` provided during platform registration to keep your system in sync.
 
+### Event: `payment_request.activated`
+Triggered when a scheduled payment request becomes active (moves from `'SCHEDULED'` to `'PENDING'`) at its designated `scheduledAt` date.
+
+#### Payload Structure
+```json
+{
+  "event": "payment_request.activated",
+  "data": {
+    "paymentUuid": "d8e9f0a1-...",
+    "paymentLink": "https://upward.goodtenants.io/pay/d8e9f0a1-...",
+    "amount": 500000,
+    "currency": "NGN",
+    "status": "PENDING",
+    "dva": {
+      "accountNumber": "9999920123",
+      "accountName": "Global Properties - Tenant Name",
+      "bankName": "OPay Digital Services Limited (OPay)",
+      "bankCode": "999992"
+    }
+  }
+}
+```
+
 ### Event: `payment.updated`
 Triggered whenever a payment is made towards a request. Use the `status` field to determine if the request is now fully resolved (`PAID`) or remains `PARTIAL`.
 
@@ -445,7 +530,7 @@ Triggered when a tenant successfully signs up and activates their account via th
 
 ### Payment Requests
 *   **Sum Validation**: If you provide `lineItems`, their total sum **must match** the main `amount` field. This prevents reconciliation errors.
-*   **Settlement Routing**: `bankCode` and `accountNumber` are required for every payment request. This allows Upward to route funds to the specific landlord's account automatically.
+*   **Settlement Routing**: `bankCode` and `accountNumber` are optional. If provided, they override the property-level settlement account for this payment. If omitted, settlement routes to the property manager or company's primary settlement account.
 *   **Idempotency (Upsert)**: Sending a payment request with the same `userPropertyUuid`, `amount`, and `dueDate` as a pending one will **update** the existing request rather than creating a duplicate.
 
 ### Credibility Verification

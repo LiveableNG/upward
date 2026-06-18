@@ -127,8 +127,8 @@ export function FairHousingPage({ onBack }: { onBack: () => void }) {
           <h1
             style={{
               fontFamily: 'var(--font-head)',
-              fontWeight: 800,
-              fontSize: 'clamp(2.2rem, 5vw, 4rem)',
+              fontWeight: 500,
+              fontSize: 'clamp(2rem, 4.8vw, 3.5rem)',
               letterSpacing: '-0.04em',
               lineHeight: 1.1,
               marginBottom: '32px',
@@ -142,10 +142,10 @@ export function FairHousingPage({ onBack }: { onBack: () => void }) {
 
           <p
             style={{
-              fontSize: '20px',
-              lineHeight: 1.6,
+              fontSize: 'clamp(15px, 1.6vw, 20px)',
+              lineHeight: 'clamp(22px, 2.5vw, 32px)',
               color: 'var(--text)',
-              fontWeight: 500,
+              fontWeight: 400,
               marginBottom: '24px',
             }}
           >
@@ -156,9 +156,10 @@ export function FairHousingPage({ onBack }: { onBack: () => void }) {
           <p
             style={{
               color: 'var(--muted)',
-              fontSize: '17px',
-              lineHeight: 1.8,
+              fontSize: 'clamp(14px, 1.3vw, 17px)',
+              lineHeight: 'clamp(20px, 2vw, 28px)',
               marginBottom: '40px',
+              fontWeight: 400,
             }}
           >
             At Upward, we believe your verified history should be the only thing that matters. We're
@@ -288,11 +289,11 @@ export function FairHousingPage({ onBack }: { onBack: () => void }) {
             <div
               style={{
                 fontFamily: 'var(--font-head)',
-                fontWeight: 800,
+                fontWeight: 500,
                 fontSize: '18px',
                 color: 'var(--text)',
                 marginBottom: '12px',
-                letterSpacing: '-0.01em',
+                letterSpacing: '-0.02em',
               }}
             >
               {item.title}

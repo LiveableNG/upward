@@ -30,11 +30,11 @@ export function TellAFriend() {
         <div
           style={{
             fontFamily: 'var(--font-head)',
-            fontWeight: 800,
+            fontWeight: 500,
             fontSize: 'clamp(1.8rem, 4vw, 2.8rem)',
             letterSpacing: '-0.04em',
             marginBottom: '16px',
-            lineHeight: 1.1,
+            lineHeight: 1.15,
           }}
         >
           Tell a Friend. Build a Movement.
@@ -50,8 +50,7 @@ export function TellAFriend() {
             lineHeight: 1.7,
           }}
         >
-          Every person you refer helps build the movement. Share Upward and
-          help your community win.
+          Every person you refer helps build the movement. Share Upward and help your community win.
         </p>
 
         <div
@@ -226,9 +225,9 @@ export function TellAFriend() {
           <span
             style={{ display: 'block', paddingLeft: '24px', lineHeight: 1.6, fontStyle: 'italic' }}
           >
-            Tired of paying rent with nothing to show for it? Upward is changing that
-            — turning your rental history into a passport to home ownership. Join me
-            and start building your rental credibility: {webUrl}
+            Tired of paying rent with nothing to show for it? Upward is changing that — turning your
+            rental history into a passport to home ownership. Join me and start building your rental
+            credibility: {webUrl}
             #RentPassport #Upward
           </span>
         </div>

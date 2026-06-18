@@ -14,3 +14,9 @@ export function formatCurrency(amount: number, currency: string = 'NGN') {
     maximumFractionDigits: 0
   }).format(amount);
 }
+
+export function formatTenantName(tenant?: { commercialName?: string; firstName?: string; lastName?: string }): string {
+  if (!tenant) return 'Tenant';
+  return tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() || 'Tenant';
+}
+
