@@ -341,4 +341,43 @@ export class PmAuthService extends BaseAuthService {
 
     return { success: true }
   }
+
+  async forgotPassword(email: string): Promise<void> {
+    const pm = await this.pmRepository.findByEmail(email)
+
+    if (!pm) {
+      // Don't reveal account existence for security, but we stop here
+      return
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    const expires = new Date(Date.now() + 15 * 60 * 1000) // 15 mins
+
+    await this.pmRepository.update(pm.id!, {
+      resetPasswordOTP: otp,
+      resetPasswordExpires: expires,
+    })
+
+    const fullName = `${pm.firstName} ${pm.lastName}`
+    await this.emailService.sendPmPasswordResetOTP(pm.email, fullName, otp)
+  }
+
+  async resetPassword(email: string, otp: string, newPlain: string): Promise<void> {
+    const pm = await this.pmRepository.findByEmail(email)
+
+    if (!pm || !pm.resetPasswordOTP || !pm.resetPasswordExpires) {
+      throw new UnauthorizedException('Invalid or expired verification code')
+    }
+
+    if (pm.resetPasswordOTP !== otp || new Date() > pm.resetPasswordExpires) {
+      throw new UnauthorizedException('Invalid or expired verification code')
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPlain, 10)
+    await this.pmRepository.update(pm.id!, {
+      passwordHash: newPasswordHash,
+      resetPasswordOTP: null,
+      resetPasswordExpires: null,
+    })
+  }
 }

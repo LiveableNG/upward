@@ -36,6 +36,8 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
       letterheadHeaderUrl: model.letterheadHeaderUrl,
       letterheadFooterUrl: model.letterheadFooterUrl,
       isVerified: model.isVerified,
+      resetPasswordOTP: model.resetPasswordOTP,
+      resetPasswordExpires: model.resetPasswordExpires,
       createdAt: model.createdAt,
       updatedAt: model.updatedAt,
     }
@@ -98,6 +100,8 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
         accountNumber: pm.accountNumber ? this.encryption.encrypt(pm.accountNumber) : null,
         accountName: pm.accountName ? this.encryption.encrypt(pm.accountName) : null,
         isVerified: pm.isVerified ?? false,
+        resetPasswordOTP: pm.resetPasswordOTP,
+        resetPasswordExpires: pm.resetPasswordExpires,
       },
     })
     return this.toDomain(record)
@@ -150,6 +154,12 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
     }
     if (data.isVerified !== undefined) {
       updateData.isVerified = data.isVerified
+    }
+    if (data.resetPasswordOTP !== undefined) {
+      updateData.resetPasswordOTP = data.resetPasswordOTP
+    }
+    if (data.resetPasswordExpires !== undefined) {
+      updateData.resetPasswordExpires = data.resetPasswordExpires
     }
 
     const record = await (this.prisma as any).upward_property_manager.update({
