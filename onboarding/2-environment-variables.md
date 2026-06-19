@@ -13,9 +13,10 @@ These variables govern port binding, database connections, authentication, and e
 | :--- | :--- | :--- | :--- |
 | `PORT` | No | `4000` | Port NestJS will bind to locally. |
 | `NODE_ENV` | Yes | `development` | Core environment node: `development`, `test`, or `production`. |
-| `FRONTEND_URL` | Yes | `https://upward.goodtenants.io` | CORS whitelist origin & client redirection target. |
-| `PM_APP_URL` | Yes | `https://upward-pm.vercel.app` | URL of the Property Manager app. |
-| `PAY_APP_URL` | Yes | `https://upward-pay.vercel.app` | URL of the Tenant Payment app. |
+| `FRONTEND_URL` | Yes | `http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003` | Comma-separated CORS whitelist origins for local/staging/prod client apps. |
+| `PM_APP_URL` | Yes | `http://localhost:3002` (Local) / `https://upward-pm.vercel.app` (Prod) | URL of the Property Manager app. |
+| `PAY_APP_URL` | Yes | `http://localhost:3001` (Local) / `https://upward-pay.vercel.app` (Prod) | URL of the Tenant Payment app. |
+| `ADMIN_SITE_URL` | Yes | `http://localhost:3003` (Local) / `https://upward-admin.vercel.app` (Prod) | URL of the Admin Site app. |
 
 ### Database & Cache
 | Variable | Required | Default / Example | Description |
