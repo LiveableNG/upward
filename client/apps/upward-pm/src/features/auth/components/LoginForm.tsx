@@ -141,7 +141,7 @@ export const LoginForm = () => {
             <div className="form-group">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <label className="form-label" style={{ marginBottom: 0 }}>Password</label>
-                <Link href="/forgot-password" style={{ fontSize: 13, color: 'var(--forest)', fontWeight: 600 }}>
+                <Link href="/pm-forgot-password" style={{ fontSize: 13, color: 'var(--forest)', fontWeight: 600 }}>
                   Forgot?
                 </Link>
               </div>

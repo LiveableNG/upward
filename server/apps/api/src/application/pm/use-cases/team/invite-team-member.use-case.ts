@@ -5,7 +5,6 @@ import { InviteTeamMemberDto, TeamAccessLevel } from '../../dtos/team.dto';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../../domains/pm/property-manager.repository';
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 import { EmailService } from '../../../../shared/infrastructure/email/email.service';
-import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -24,7 +23,7 @@ export class InviteTeamMemberUseCase {
     const isNewAccount = !collaborator;
 
     if (isNewAccount) {
-      const passwordHash = await bcrypt.hash('INVITED', 10);
+      const passwordHash = 'PENDING_INVITE';
       const nameParts = (dto.name || '').split(' ');
       const firstName = nameParts[0] || 'Member';
       const lastName = nameParts.slice(1).join(' ') || 'Manager';
@@ -111,7 +110,7 @@ export class InviteTeamMemberUseCase {
       name: dto.name,
       inviterName: ownerName,
       isNewAccount,
-      claimLink: `${process.env.PM_APP_URL || 'https://upward-pm.vercel.app'}/invited/${collaborator!.uuid}`
+      claimLink: `${process.env.FRONTEND_URL || 'https://upward.goodtenants.io'}/invite/${collaborator!.uuid}`
     });
 
     return collaboration;
