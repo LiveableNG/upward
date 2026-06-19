@@ -1,10 +1,10 @@
 // Guarantee that all toLocaleString formatting uses commas as thousands separators (en-US format)
-const originalToLocaleString = Number.prototype.toLocaleString;
+const originalToLocaleString = Number.prototype.toLocaleString
 Number.prototype.toLocaleString = function (locales, options) {
-  return originalToLocaleString.call(this, locales || 'en-US', options);
-};
+  return originalToLocaleString.call(this, locales || 'en-US', options)
+}
 
-import { NestFactory } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { FastifyAdapter } from '@nestjs/platform-fastify'
 import { ValidationPipe } from '@nestjs/common'
@@ -47,8 +47,18 @@ async function bootstrap() {
   const baseOrigins = frontendUrl
     ? frontendUrl.split(',').map((url) => url.trim())
     : ['http://localhost:3000', 'http://localhost:5173']
-    
-  const origins = [...baseOrigins, 'http://localhost', 'https://localhost', 'capacitor://localhost']
+
+  const devOrigins = process.env['NODE_ENV'] !== 'production' ? ['http://localhost:5173'] : []
+
+  const origins = [
+    ...new Set([
+      ...baseOrigins,
+      ...devOrigins,
+      'http://localhost',
+      'https://localhost',
+      'capacitor://localhost',
+    ]),
+  ]
 
   app.enableCors({
     origin: origins,
