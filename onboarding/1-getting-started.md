@@ -97,7 +97,7 @@ To run a specific app, use `pnpm --filter [package-name] dev`:
 | **Web (Landing)** | `pnpm --filter @upward/web dev` | `http://localhost:3000` |
 | **Upward Pay (Tenant)** | `pnpm --filter upward-pay dev` | `http://localhost:3001` |
 | **Upward PM (Manager)** | `pnpm --filter upward-pm dev` | `http://localhost:3002` |
-| **Admin Site (Vite)** | `pnpm --filter @upward/admin-site dev` | `http://localhost:5173` |
+| **Admin Site (Vite)** | `pnpm --filter @upward/admin-site dev` | `http://localhost:3003` |
 
 ---
 
