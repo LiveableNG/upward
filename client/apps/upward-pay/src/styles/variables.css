@@ -43,6 +43,7 @@
   --btn-primary-shadow-hover: 0 6px 20px rgba(217, 119, 87, 0.5);
 
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-auth: var(--font-plus-jakarta, 'Plus Jakarta Sans'), var(--font);
 
   --space-1: 4px;
   --space-2: 8px;
@@ -85,6 +86,18 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
   --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.08);
   --shadow-clay: 0 8px 24px var(--clay-glow);
+
+  /* Dashboard shell (prototype skin — overridden on .dashboard-layout) */
+  --skin-primary: #c2501f;
+  --skin-primary-hover: #a8410f;
+  --skin-teal: #1c4a43;
+  --shell-border: #f0e9df;
+  --shell-tab-border: #efe7dc;
+  --shell-tint: #fbede5;
+  --shell-tab-inactive: #bcb3a7;
+  --shell-muted: #a9a096;
+  --shell-ink-muted: #7a7268;
+  --shell-page-bg: #faf9f5;
 }
 
 /* Explicit Dark Theme and System Dark (when not forced to light) */

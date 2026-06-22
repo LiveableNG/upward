@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import { AuthProvider } from '@/features/auth/AuthContext'
 import Providers from './Providers'
 import { SmartAppBanner } from '@/components/common/SmartAppBanner'
@@ -9,6 +9,12 @@ const inter = Inter({
   variable: '--font-inter',
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
+})
+
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: '--font-plus-jakarta',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
 })
 
 
@@ -35,31 +41,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable}`} suppressHydrationWarning>
-      <head>
-        <script
-          suppressHydrationWarning
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  // Default to light mode (dark mode support is temporarily disabled)
-                  document.documentElement.classList.add('theme--light');
-                  /*
-                  const theme = localStorage.getItem('upward-theme');
-                  const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
-                  if (theme === 'dark' || (theme === 'system' && supportDarkMode) || (!theme && supportDarkMode)) {
-                    document.documentElement.classList.add('theme--dark');
-                  } else {
-                    document.documentElement.classList.add('theme--light');
-                  }
-                  */
-                } catch (e) {}
-              })();
-            `,
-          }}
-        />
-      </head>
+    <html
+      lang="en"
+      className={`${inter.variable} ${plusJakarta.variable} theme--light`}
+      suppressHydrationWarning
+    >
       <body suppressHydrationWarning>
         <Providers>
           <AuthProvider>

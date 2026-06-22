@@ -30,8 +30,10 @@ export function BottomNav() {
               href={item.href}
               className={`bottom-nav__item ${isActive ? 'bottom-nav__item--active' : ''}`}
             >
-              <span className="bottom-nav__icon">
-                <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+              <span className="bottom-nav__icon-pill">
+                <span className="bottom-nav__icon">
+                  <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                </span>
               </span>
               <span className="bottom-nav__label">{item.label}</span>
             </Link>
