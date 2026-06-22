@@ -12,6 +12,7 @@ interface ActionCarouselProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rentReminders: any[]
   isIdentityVerified: boolean
+  skin?: 'default' | 'proto'
 }
 const buildPaymentMessage = (p: PendingPayment) => {
   const remaining = p.total_amount - (p.amountPaid || 0)
@@ -62,7 +63,13 @@ const buildPaymentMessage = (p: PendingPayment) => {
   }
 }
 
-export function ActionCarousel({ pendingPayments, showKYC, rentReminders, isIdentityVerified }: ActionCarouselProps) {
+export function ActionCarousel({
+  pendingPayments,
+  showKYC,
+  rentReminders,
+  isIdentityVerified,
+  skin = 'default',
+}: ActionCarouselProps) {
   const router = useRouter()
   const [index, setIndex] = useState(0)
 
@@ -141,7 +148,7 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders, isIden
         title: 'Complete Your Profile',
         desc: 'Add your property details and rent due date to build your credibility score.',
         actionLabel: 'Add Property',
-        action: () => router.push('/dashboard/me?view=personal&edit=true'),
+        action: () => router.push('/dashboard/setup'),
         icon: <MapPin size={20} color="var(--clay)" />,
         bg: 'var(--clay-faint)',
         beamClass: 'animate-beam-clay',
@@ -167,7 +174,7 @@ export function ActionCarousel({ pendingPayments, showKYC, rentReminders, isIden
   const prevSlide = () => setIndex((prev) => (prev - 1 + slides.length) % slides.length)
 
   return (
-    <div className="action-carousel">
+    <div className={`action-carousel${skin === 'proto' ? ' action-carousel--proto' : ''}`}>
       <div 
         className={`action-carousel__slide ${current.isCritical ? 'is-critical' : ''} ${current.type === 'pending' ? 'is-pending' : ''} ${current.beamClass || ''}`} 
         style={{ 

@@ -13,7 +13,6 @@ import {
   Loader2,
   AlertCircle,
   Sparkles,
-  ShieldCheck,
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { UpwardLogo } from '@/components/PoweredByUpward'
@@ -191,7 +190,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
             <ChevronLeft size={20} />
           </button>
         </div>
-        <a href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"} className="auth-shell__brand">
+        <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
           <UpwardLogo size={28} color="var(--clay)" />
         </a>
         <div className="auth-stage">
@@ -216,7 +215,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
         </button>
       </div>
 
-      <a href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"} className="auth-shell__brand">
+      <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
         <UpwardLogo size={28} color="var(--clay)" />
       </a>
 
@@ -250,11 +249,11 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
             </div>
 
             {!isCheckingEmail && loginEmail && loginEmail.includes('@') && !emailExists && (
-              <div className="field-hint field-hint--error">
+              <div className="auth-field-hint auth-field-hint--error">
                 <AlertCircle size={12} /> Account not found.{' '}
-                <button 
-                  type="button" 
-                  className="field-hint__link" 
+                <button
+                  type="button"
+                  className="auth-field-hint__link"
                   onClick={() => {
                     if (onRedirectToSignup) {
                       onRedirectToSignup(loginEmail)
@@ -269,18 +268,18 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
             )}
 
             {emailExists && isInvited && (
-              <div className="field-hint field-hint--invited">
+              <div className="auth-field-hint auth-field-hint--accent">
                 <AlertCircle size={12} /> Your manager already invited you —{' '}
-                <button type="button" className="field-hint__link" onClick={() => handleRequestOTP('INVITE')}>
+                <button type="button" className="auth-field-hint__link" onClick={() => handleRequestOTP('INVITE')}>
                   Verify to set your password
                 </button>
               </div>
             )}
 
             {emailExists && isWaitlist && (
-              <div className="field-hint field-hint--waitlist">
+              <div className="auth-field-hint auth-field-hint--accent">
                 <Sparkles size={12} /> You have priority access!{' '}
-                <button type="button" className="field-hint__link" onClick={() => handleRequestOTP('WAITLIST')}>
+                <button type="button" className="auth-field-hint__link" onClick={() => handleRequestOTP('WAITLIST')}>
                   Claim your account
                 </button>
               </div>
@@ -311,7 +310,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
 
           <button
             id="login-submit"
-            className="btn btn--primary btn--full btn--pay mt-6"
+            className="btn btn--primary btn--full btn--pay auth-form__mt-6"
             type="submit"
             disabled={
               loginLoading || 
@@ -325,7 +324,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
               isWaitlist
             }
           >
-            {loginLoading ? 'Signing in…' : 'Sign In'} <ArrowRight size={17} />
+            {loginLoading ? 'Logging in…' : 'Log In'} <ArrowRight size={17} />
           </button>
 
           <div className="auth-divider">
@@ -334,7 +333,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
 
           <button
             type="button"
-            className="btn btn--ghost btn--full verif-code-btn"
+            className="btn btn--ghost btn--full auth-btn-otp"
             onClick={() => handleRequestOTP()}
             disabled={
               loginLoading || 
@@ -352,7 +351,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
           {biometricAvailable && (
             <button
               type="button"
-              className="btn btn--outline btn--full mt-3 biometric-btn"
+              className="btn btn--outline btn--full auth-btn-biometric"
               onClick={handleBiometricLogin}
               disabled={
                 loginLoading || 
@@ -367,15 +366,15 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
                 <Loader2 size={18} className="animate-spin" />
               ) : (
                 <>
-                  <Fingerprint size={18} /> Sign in with Biometrics
+                  <Fingerprint size={18} /> Log in with Biometrics
                 </>
               )}
             </button>
           )}
           
-          <button 
-            type="button" 
-            className="auth-form__link mt-4"
+          <button
+            type="button"
+            className="auth-form__link"
             onClick={() => router.push('/forgot-password')}
             disabled={isCheckingEmail || !loginEmail || !emailExists || isInvited || isWaitlist}
           >
@@ -384,115 +383,6 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
         </form>
 
       </div>
-
-      <style jsx>{`
-        .mt-1 {
-          margin-top: 12px;
-        }
-        .mt-3 {
-          margin-top: 16px;
-        }
-        .mt-6 {
-          margin-top: 32px;
-        }
-        .auth-divider {
-          display: flex;
-          align-items: center;
-          margin: 20px 0;
-          color: var(--text-muted);
-          font-size: 11px;
-          font-weight: 700;
-        }
-        .auth-divider::before,
-        .auth-divider::after {
-          content: "";
-          flex: 1;
-          height: 1px;
-          background: var(--border);
-        }
-        .auth-divider span {
-          margin: 0 12px;
-        }
-        .verif-code-btn {
-          color: var(--clay);
-          font-weight: 600;
-          font-size: 13px;
-        }
-        .biometric-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          border-color: var(--clay);
-          color: var(--clay);
-        }
-        .biometric-btn:hover {
-          background: rgba(var(--clay-rgb), 0.05);
-        }
-        .input-spinner {
-          position: absolute;
-          right: 32px;
-          color: var(--text-muted);
-        }
-        .field-hint {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 11px;
-          margin-top: 4px;
-          flex-wrap: wrap;
-        }
-        .field-hint--error { color: var(--error); }
-        .field-hint--invited, .field-hint--waitlist {
-          color: var(--clay);
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .field-hint__link {
-          background: none;
-          border: none;
-          padding: 0;
-          font-size: 11px;
-          font-weight: 700;
-          color: var(--clay);
-          cursor: pointer;
-          text-decoration: underline;
-        }
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.6);
-          backdrop-filter: blur(4px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 100;
-          padding: 20px;
-        }
-        .modal-content {
-          background: var(--bg);
-          padding: 32px;
-          border-radius: 20px;
-          max-width: 400px;
-          width: 100%;
-          text-align: center;
-          box-shadow: var(--shadow-lg);
-        }
-        .modal-icon { margin-bottom: 20px; display: flex; justify-content: center; }
-        .modal-content h3 { font-weight: 800; font-size: 20px; margin-bottom: 12px; }
-        .modal-content p { color: var(--text-secondary); margin-bottom: 24px; line-height: 1.5; }
-        .animate-pop { animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        @keyframes pop {
-          0% { transform: scale(0.9); opacity: 0; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-      `}</style>
     </div>
   )
 }

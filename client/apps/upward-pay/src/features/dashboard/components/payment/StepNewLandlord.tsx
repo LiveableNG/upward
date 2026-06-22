@@ -1,52 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Check, Loader, AlertCircle, ArrowLeft, ChevronDown, Landmark } from 'lucide-react'
+import { Check, AlertCircle, ChevronDown, Landmark } from 'lucide-react'
 import { LandlordAvatar } from './LandlordAvatar'
 import { BankSelectionModal } from './BankSelectionModal'
+import { PayFlowPrimaryButton } from './PayPageShell'
 import { type Landlord } from './types'
 import { api } from '@/lib/api'
-
-const spinStyle = `
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-  .animate-spin {
-    animation: spin 1s linear infinite;
-  }
-`
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: 12,
-  fontWeight: 600,
-  color: 'var(--text-secondary)',
-  marginBottom: 8,
-}
-
-const inputWrapStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 10,
-  padding: '0 16px',
-  background: 'var(--surface)',
-  border: '1px solid var(--border-solid)',
-  borderRadius: 'var(--radius-md)',
-  transition: 'all 0.2s',
-}
-
-const inputStyle: React.CSSProperties = {
-  flex: 1,
-  background: 'none',
-  border: 'none',
-  padding: '14px 0',
-  fontSize: 15,
-  fontFamily: 'var(--font)',
-  color: 'var(--text)',
-  outline: 'none',
-  width: '100%',
-}
 
 export function StepNewLandlord({
   onContinue,
@@ -62,6 +22,9 @@ export function StepNewLandlord({
   onBack: () => void
   isVerifiedUser?: boolean
 }) {
+  void onBack
+  void isVerifiedUser
+
   const [banks, setBanks] = useState<{ code: string; name: string }[]>([])
   const [form, setForm] = useState({
     accountNumber: '',
@@ -99,7 +62,6 @@ export function StepNewLandlord({
   }, [])
 
   useEffect(() => {
-    // Reset state when input changes
     setResolved(false)
     setResolveError(null)
     set('accountName', '')
@@ -120,7 +82,7 @@ export function StepNewLandlord({
             console.error('Resolution error:', err)
           })
           .finally(() => setResolving(false))
-      }, 600) // 600ms debounce
+      }, 600)
 
       return () => clearTimeout(handler)
     }
@@ -129,38 +91,44 @@ export function StepNewLandlord({
   const selectedBank = banks.find((b) => b.code === form.bankCode)
   const canProceed = resolved
 
-  return (
-    <div style={{ padding: '0 20px 32px' }}>
-      <style dangerouslySetInnerHTML={{ __html: spinStyle }} />
+  const inputWrapClass = [
+    'pay-flow__input-wrap',
+    resolving ? 'pay-flow__input-wrap--loading' : '',
+    resolveError && !resolving ? 'pay-flow__input-wrap--error' : '',
+    resolved ? 'pay-flow__input-wrap--success' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
-      {/* Bank Selection Trigger */}
-      <div style={{ marginBottom: 24 }}>
-        <label style={labelStyle}>Bank</label>
+  return (
+    <div>
+      <p className="pay-flow__intro">
+        Enter the landlord&apos;s bank account. We&apos;ll confirm the account name before you pay.
+      </p>
+
+      <div className="pay-flow__field">
+        <label className="pay-flow__field-label">Bank</label>
         <div
+          role="button"
+          tabIndex={0}
+          className={`pay-flow__select-trigger ${isBankModalOpen ? 'pay-flow__select-trigger--open' : ''}`}
           onClick={() => !loadingBanks && setIsBankModalOpen(true)}
-          style={{
-            ...inputWrapStyle,
-            cursor: loadingBanks ? 'wait' : 'pointer',
-            padding: '12px 16px',
-            borderColor: isBankModalOpen ? 'var(--clay)' : 'var(--border-solid)',
-          }}
+          onKeyDown={(e) => e.key === 'Enter' && !loadingBanks && setIsBankModalOpen(true)}
         >
-          <div style={{ marginRight: 12, color: 'var(--clay)' }}>
+          <span className="pay-flow__select-trigger-icon">
             <Landmark size={20} />
-          </div>
-          <div style={{ flex: 1 }}>
-            {selectedBank ? (
-              <div style={{ fontSize: 15, fontWeight: 600 }}>{selectedBank.name}</div>
-            ) : (
-              <div style={{ fontSize: 15, color: 'var(--text-muted)' }}>
-                {loadingBanks ? 'Loading banks...' : 'Select bank'}
-              </div>
-            )}
-          </div>
+          </span>
+          {selectedBank ? (
+            <span className="pay-flow__select-value">{selectedBank.name}</span>
+          ) : (
+            <span className="pay-flow__select-placeholder">
+              {loadingBanks ? 'Loading banks...' : 'Select bank'}
+            </span>
+          )}
           <ChevronDown
             size={18}
             style={{
-              color: 'var(--text-muted)',
+              color: '#a9a096',
               transform: isBankModalOpen ? 'rotate(180deg)' : 'none',
               transition: 'transform 0.2s',
             }}
@@ -168,7 +136,6 @@ export function StepNewLandlord({
         </div>
       </div>
 
-      {/* Custom Bank Selection Modal */}
       {isBankModalOpen && (
         <BankSelectionModal
           banks={banks}
@@ -182,21 +149,9 @@ export function StepNewLandlord({
         />
       )}
 
-      {/* Account Number */}
-      <div style={{ marginBottom: 24 }}>
-        <label style={labelStyle}>Account number</label>
-        <div
-          style={{
-            ...inputWrapStyle,
-            borderColor: resolving
-              ? 'var(--warning)'
-              : resolveError
-                ? '#ef4444' // Error state
-                : resolved
-                  ? 'var(--success)'
-                  : 'var(--border-solid)',
-          }}
-        >
+      <div className="pay-flow__field">
+        <label className="pay-flow__field-label">Account number</label>
+        <div className={inputWrapClass}>
           <input
             type="text"
             inputMode="numeric"
@@ -205,102 +160,68 @@ export function StepNewLandlord({
             maxLength={10}
             value={form.accountNumber}
             onChange={(e) => set('accountNumber', e.target.value.replace(/\D/g, '').slice(0, 10))}
-            style={inputStyle}
           />
-
           {resolving && (
-            <div style={{ color: 'var(--warning)' }}>
-              <Loader className="animate-spin" size={20} />
-            </div>
+            <span className="pay-flow__cta-spinner" style={{ borderColor: '#f59e0b', borderTopColor: 'transparent' }} />
           )}
-
           {resolved && (
-            <div style={{ color: 'var(--success)' }}>
+            <span style={{ color: '#22c55e' }}>
               <Check size={18} />
-            </div>
+            </span>
           )}
-
           {resolveError && !resolving && (
-            <div style={{ color: '#ef4444' }}>
+            <span style={{ color: '#ef4444' }}>
               <AlertCircle size={18} />
-            </div>
+            </span>
           )}
         </div>
       </div>
 
-      {/* Resolve Error Alert */}
       {resolveError && !resolving && (
-        <div
-          style={{
-            marginBottom: 24,
-            padding: '12px 16px',
-            background: 'rgba(239,68,68,0.06)',
-            border: '1px solid rgba(239,68,68,0.15)',
-            borderRadius: 'var(--radius-md)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            color: '#ef4444',
-          }}
-        >
+        <div className="pay-flow__alert pay-flow__alert--error">
           <AlertCircle size={18} />
-          <div style={{ fontSize: 13, fontWeight: 600 }}>{resolveError}</div>
+          <span>{resolveError}</span>
         </div>
       )}
 
-      {/* Resolved Account */}
       {resolved && !resolving && (
-        <div
-          style={{
-            marginBottom: 24,
-            padding: '12px 16px',
-            background: 'rgba(34,197,94,0.06)',
-            border: '1px solid rgba(34,197,94,0.15)',
-            borderRadius: 'var(--radius-md)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}
-        >
+        <div className="pay-flow__resolved">
           <LandlordAvatar letter={form.accountName?.[0] || '?'} size={36} />
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>{form.accountName}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{selectedBank?.name}</div>
+            <div className="pay-flow__resolved-name">{form.accountName}</div>
+            <div className="pay-flow__resolved-bank">{selectedBank?.name}</div>
           </div>
-          <div style={{ marginLeft: 'auto', color: 'var(--success)' }}>
+          <span className="pay-flow__resolved-check">
             <Check size={16} />
-          </div>
+          </span>
         </div>
       )}
 
+      <div className="pay-flow__cta-wrap">
+        <PayFlowPrimaryButton
+          disabled={!canProceed}
+          onClick={() => {
+            if (!canProceed) return
 
-
-      {/* Continue */}
-      <button
-        disabled={!canProceed}
-        onClick={() => {
-          if (!canProceed) return
-
-          onContinue({
-            id: Date.now().toString(),
-            name: form.accountName,
-            accountName: form.accountName,
-            accountNumber: form.accountNumber,
-            bankName: selectedBank?.name || '',
-            bankCode: form.bankCode,
-            avatar: form.accountName?.[0] || '?',
-            amount: 0,
-            narration: '',
-            lastPaid: null,
-            lastAmount: 0,
-            isNewLocal: true,
-          } as any)
-        }}
-        className="btn btn--primary btn--full"
-        style={{ opacity: canProceed ? 1 : 0.4 }}
-      >
-        Review payment
-      </button>
+            onContinue({
+              id: Date.now().toString(),
+              name: form.accountName,
+              accountName: form.accountName,
+              accountNumber: form.accountNumber,
+              bankName: selectedBank?.name || '',
+              bankCode: form.bankCode,
+              avatar: form.accountName?.[0] || '?',
+              amount: 0,
+              narration: '',
+              lastPaid: null,
+              lastAmount: 0,
+              isNewLocal: true,
+            } as any)
+          }}
+        >
+          Review payment
+        </PayFlowPrimaryButton>
+      </div>
     </div>
   )
 }

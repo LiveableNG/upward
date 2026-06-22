@@ -4,10 +4,11 @@ import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/features/auth/AuthContext'
 import { api } from '@/lib/api'
-import { PageHeader } from '@/components/common/PageHeader'
 import { type UserProfile, type ContractData } from '../../types'
 
 import { ProfileMenuView } from './ProfileMenuView'
+import { ProfileMenuSkeleton } from './ProfileMenuSkeleton'
+import { ProfilePageShell } from './ProfilePageShell'
 import { PersonalDetailsView } from './PersonalDetailsView'
 import { BankingPayoutsView } from './BankingPayoutsView'
 
@@ -15,11 +16,7 @@ type ViewMode = 'menu' | 'personal' | 'banking'
 
 export function ProfileMenuContent() {
   return (
-    <Suspense fallback={
-      <div className="flex justify-center items-center h-[50vh]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-clay"></div>
-      </div>
-    }>
+    <Suspense fallback={<ProfileMenuSkeleton />}>
       <ProfileMenuContentInner />
     </Suspense>
   )
@@ -29,10 +26,11 @@ function ProfileMenuContentInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { logout, user, refreshUser } = useAuth()
-  
+
   const [view, setView] = useState<ViewMode>(
-    searchParams.get('view') === 'personal' ? 'personal' : 'menu'
+    searchParams.get('view') === 'personal' ? 'personal' : 'menu',
   )
+  const startInEditMode = searchParams.get('edit') === 'true'
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [contracts, setContracts] = useState<ContractData[]>([])
 
@@ -52,58 +50,36 @@ function ProfileMenuContentInner() {
     }
   }
 
-  if (!profile) return null
+  if (!profile) return <ProfileMenuSkeleton />
 
   if (view === 'personal') {
     return (
-      <PersonalDetailsView 
-        user={profile} 
-        refreshUser={refreshUser} 
-        onBack={() => setView('menu')} 
+      <PersonalDetailsView
+        user={profile}
+        refreshUser={refreshUser}
+        onBack={() => setView('menu')}
+        initialEditing={startInEditMode}
       />
     )
   }
 
   if (view === 'banking') {
-    return (
-      <BankingPayoutsView 
-        onBack={() => setView('menu')} 
-      />
-    )
+    return <BankingPayoutsView onBack={() => setView('menu')} />
   }
 
   return (
-    <div className="profile-menu-page dashboard--nav-offset">
-      <div className="profile-content-scroll">
-        <ProfileMenuView 
-          profile={profile}
-          contracts={contracts}
-          refreshUser={refreshUser}
-          logout={logout}
-          onNavigate={(v) => setView(v)}
-        />
-      </div>
-
-      <style jsx>{`
-        .profile-menu-page {
-          padding-bottom: 4rem;
-        }
-
-        .profile-content-scroll {
-          padding: 0 0 10rem;
-        }
-
-        @media (min-width: 1024px) {
-          .profile-menu-page {
-            max-width: 860px;
-            margin: 0 auto;
-            padding-top: 2rem;
-          }
-          .profile-content-scroll {
-            padding: 3rem 2rem 10rem;
-          }
-        }
-      `}</style>
-    </div>
+    <ProfilePageShell
+      title="Profile"
+      subtitle="Manage your account and settings"
+      onSettings={() => router.push('/dashboard/settings')}
+    >
+      <ProfileMenuView
+        profile={profile}
+        contracts={contracts}
+        refreshUser={refreshUser}
+        logout={logout}
+        onNavigate={(v) => setView(v)}
+      />
+    </ProfilePageShell>
   )
 }

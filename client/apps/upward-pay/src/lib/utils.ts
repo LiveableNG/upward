@@ -57,6 +57,32 @@ export function groupTransactionsByDate<T extends { paid_at?: string }>(
   return groups
 }
 
+export function groupTransactionsByMonth<T extends { paid_at?: string }>(
+  transactions: T[],
+): Record<string, T[]> {
+  const groups: Record<string, T[]> = {}
+
+  transactions.forEach((tx) => {
+    if (!tx.paid_at) return
+    const month = new Date(tx.paid_at).toLocaleDateString('en-NG', {
+      year: 'numeric',
+      month: 'long',
+    })
+    if (!groups[month]) {
+      groups[month] = []
+    }
+    groups[month].push(tx)
+  })
+
+  Object.values(groups).forEach((items) => {
+    items.sort(
+      (a, b) => new Date(b.paid_at!).getTime() - new Date(a.paid_at!).getTime(),
+    )
+  })
+
+  return groups
+}
+
 /**
  * Generates a unique ID with an optional prefix
  */

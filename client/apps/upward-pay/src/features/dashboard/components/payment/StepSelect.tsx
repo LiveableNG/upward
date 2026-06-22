@@ -1,7 +1,6 @@
 import React from 'react'
 import { Plus, ChevronRight } from 'lucide-react'
 import { type Landlord } from './types'
-import { LandlordCard } from './LandlordCard'
 
 export function StepSelect({
   pm,
@@ -16,62 +15,31 @@ export function StepSelect({
   onNew: () => void
   onSelectPending?: (p: any) => void
 }) {
+  void pm
+  void onSelect
+
   return (
-    <div style={{ padding: '0 0 32px' }}>
-      <div style={{ padding: '20px 20px 12px' }}>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-          Select a property or add a new payment destination.
-        </p>
-      </div>
+    <div>
+      <p className="pay-flow__intro">Select a property or add a new payment destination.</p>
+
       {pending.length > 0 && (
-        <div style={{ padding: '0 20px 20px' }}>
-          <p
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              color: 'var(--clay)',
-              marginBottom: 10,
-            }}
-          >
-            Pending Invoices
-          </p>
+        <div style={{ marginBottom: 20 }}>
+          <p className="pay-flow__section-label">Pending Invoices</p>
           {pending.map((p) => (
             <div
               key={p.uuid}
+              role="button"
+              tabIndex={0}
+              className="pay-flow__card pay-flow__card--pending"
               onClick={() => onSelectPending?.(p)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                padding: '16px',
-                background: 'var(--clay-faint)',
-                border: '1px solid var(--clay-low)',
-                borderRadius: 'var(--radius-lg)',
-                cursor: 'pointer',
-                marginBottom: 10,
-              }}
+              onKeyDown={(e) => e.key === 'Enter' && onSelectPending?.(p)}
             >
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 14,
-                  background: 'var(--clay)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff',
-                }}
-              >
+              <div className="pay-flow__card-icon pay-flow__card-icon--primary">
                 <ChevronRight size={20} />
               </div>
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-                  {p.company_name || p.description || null}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              <div className="pay-flow__card-body">
+                <div className="pay-flow__card-title">{p.company_name || p.description || 'Invoice'}</div>
+                <div className="pay-flow__card-meta">
                   {p.manager_name && <span>{p.manager_name} · </span>}
                   {new Intl.NumberFormat('en-NG', {
                     style: 'currency',
@@ -79,76 +47,28 @@ export function StepSelect({
                   }).format((p.total_amount || p.amount || 0) - (p.amountPaid || 0))}
                 </div>
               </div>
-              <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                { (p.due_date || p.dueDate) && (
-                  <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: 'var(--clay)',
-                      background: '#fff',
-                      padding: '2px 8px',
-                      borderRadius: 4,
-                    }}
-                  >
-                    DUE {new Date(p.due_date || p.dueDate).toLocaleDateString()}
-                  </div>
-                )}
-              </div>
+              {(p.due_date || p.dueDate) && (
+                <span className="pay-flow__due-badge">
+                  DUE {new Date(p.due_date || p.dueDate).toLocaleDateString()}
+                </span>
+              )}
             </div>
           ))}
         </div>
       )}
-      <div style={{ padding: '12px 20px 0' }}>
-        <button
-          onClick={onNew}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-            padding: '16px',
-            background: 'var(--surface)',
-            border: '1px dashed var(--border-solid)',
-            borderRadius: 'var(--radius-lg)',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            fontFamily: 'var(--font)',
-          }}
-          onMouseEnter={(e) => {
-            ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--clay)'
-            ;(e.currentTarget as HTMLElement).style.background = 'var(--clay-faint)'
-          }}
-          onMouseLeave={(e) => {
-            ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--border-solid)'
-            ;(e.currentTarget as HTMLElement).style.background = 'var(--surface)'
-          }}
-        >
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 14,
-              background: 'var(--clay-faint)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--clay)',
-            }}
-          >
-            <Plus size={20} />
-          </div>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Select a Property</div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              Pay for rent or other fees
-            </div>
-          </div>
-          <div style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>
-            <ChevronRight size={16} />
-          </div>
-        </button>
-      </div>
+
+      <button type="button" className="pay-flow__card pay-flow__card--dashed" onClick={onNew}>
+        <div className="pay-flow__card-icon pay-flow__card-icon--soft">
+          <Plus size={22} />
+        </div>
+        <div className="pay-flow__card-body">
+          <div className="pay-flow__card-title">Select a Property</div>
+          <div className="pay-flow__card-meta pay-flow__card-meta--muted">Pay for rent or other fees</div>
+        </div>
+        <span className="pay-flow__card-trailing">
+          <ChevronRight size={18} />
+        </span>
+      </button>
     </div>
   )
 }

@@ -4,9 +4,17 @@
 @import '../styles/components.css';
 @import '../styles/buttons.css';
 @import '../styles/dashboard.css';
+@import '../styles/dashboard-shell.css';
+@import '../styles/dashboard-home.css';
 @import '../styles/kyc-profile.css';
 @import '../styles/pay-page.css';
 @import '../styles/receipts-profile.css';
 @import '../styles/coming-soon.css';
 @import '../styles/savings.css';
 @import '../styles/smart-banner.css';
+@import '../styles/profile-setup-blocker.css';
+@import '../styles/pay-flow.css';
+@import '../styles/transactions-page.css';
+@import '../styles/profile-page.css';
+@import '../styles/sub-page.css';
+@import '../styles/documents-page.css';
