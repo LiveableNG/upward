@@ -1,9 +1,8 @@
 'use client'
 
-import React from 'react'
 import { useRouter } from 'next/navigation'
 import { Shield, FileText, ChevronRight, Gavel } from 'lucide-react'
-import { PageHeader } from '@/components/common/PageHeader'
+import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 
 export default function LegalHubPage() {
   const router = useRouter()
@@ -30,81 +29,37 @@ export default function LegalHubPage() {
   ]
 
   return (
-    <div className="legal-hub-page dashboard--nav-offset">
-      <PageHeader title="Legal & Privacy" showBack backPath="/dashboard/me" showSettings={false} />
-
-      <div className="dashboard__main-grid">
-        <div className="dashboard__col--left">
-          <div className="legal-list">
-            {legalItems.map((item, idx) => {
-              const Icon = item.icon
-              return (
-                <div key={idx} className="legal-item" onClick={() => router.push(item.path)}>
-                  <div className="legal-item__left">
-                    <div className="legal-item__icon-wrap">
-                      <Icon size={20} color="var(--clay)" />
-                    </div>
-                    <div>
-                      <span className="legal-item__title">{item.title}</span>
-                      <p className="legal-item__sub">{item.subtitle}</p>
-                    </div>
-                  </div>
-                  <ChevronRight size={18} color="var(--text-muted)" />
-                </div>
-              )
-            })}
-          </div>
-        </div>
+    <PayPageShell
+      title="Legal & Privacy"
+      showBack
+      onBack={() => router.push('/dashboard/me')}
+    >
+      <div className="profile-page__menu-card">
+        {legalItems.map((item) => {
+          const Icon = item.icon
+          return (
+            <button
+              key={item.path}
+              type="button"
+              className="profile-page__menu-item"
+              onClick={() => router.push(item.path)}
+            >
+              <span className="profile-page__menu-icon profile-page__menu-icon--muted">
+                <Icon size={16} />
+              </span>
+              <span className="profile-page__menu-text">
+                <span className="profile-page__menu-title">{item.title}</span>
+                <span className="profile-page__menu-desc">{item.subtitle}</span>
+              </span>
+              <span className="profile-page__menu-trail">
+                <ChevronRight size={16} />
+              </span>
+            </button>
+          )
+        })}
       </div>
 
-      <style jsx>{`
-        .legal-list {
-          background: var(--surface);
-          border-radius: 20px;
-          border: 1px solid var(--border);
-          overflow: hidden;
-          margin: 0 1rem;
-        }
-        .legal-item {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 1.25rem 1rem;
-          cursor: pointer;
-          transition: background 0.2s;
-          border-bottom: 1px solid var(--border);
-        }
-        .legal-item:last-child {
-          border-bottom: none;
-        }
-        .legal-item:active {
-          background: var(--surface2);
-        }
-        .legal-item__left {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-        .legal-item__icon-wrap {
-          width: 40px;
-          height: 40px;
-          border-radius: 12px;
-          background: var(--clay-faint);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .legal-item__title {
-          display: block;
-          font-size: 1rem;
-          font-weight: 600;
-          color: var(--text);
-        }
-        .legal-item__sub {
-          font-size: 0.85rem;
-          color: var(--text-muted);
-        }
-      `}</style>
-    </div>
+      <p className="sub-page__footer">Upward by GoodTenants · v0.1.0</p>
+    </PayPageShell>
   )
 }

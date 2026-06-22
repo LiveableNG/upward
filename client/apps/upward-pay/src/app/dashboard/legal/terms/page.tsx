@@ -1,16 +1,19 @@
 'use client'
 
 import React from 'react'
-import { PageHeader } from '@/components/common/PageHeader'
+import { useRouter } from 'next/navigation'
+import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 
 export default function TermsOfUsePage() {
-  return (
-    <div className="legal-content-page dashboard--nav-offset">
-      <PageHeader title="Terms of Use" showBack backPath="/dashboard/legal" showSettings={false} />
+  const router = useRouter()
 
-      <div className="dashboard__main-grid">
-        <div className="dashboard__col--left">
-          <div className="legal-document">
+  return (
+    <PayPageShell
+      title="Terms of Use"
+      showBack
+      onBack={() => router.push('/dashboard/legal')}
+    >
+      <div className="legal-document">
             <header className="legal-document__header">
               <p className="legal-document__update-date">Last updated: March 17, 2026</p>
             </header>
@@ -83,56 +86,7 @@ export default function TermsOfUsePage() {
                 Services after any change, you will be bound by the updated Terms.
               </p>
             </section>
-          </div>
-        </div>
       </div>
-
-      <style jsx>{`
-        .legal-document {
-          background: var(--surface);
-          border-radius: 24px;
-          border: 1px solid var(--border);
-          padding: 2.5rem 1.5rem;
-          margin: 0 1rem 3rem 1rem;
-        }
-        .legal-document__header {
-          margin-bottom: 2rem;
-          padding-bottom: 1.5rem;
-          border-bottom: 1px solid var(--border);
-        }
-        .legal-document__update-date {
-          font-size: 0.9rem;
-          color: var(--text-muted);
-          font-weight: 500;
-        }
-        .legal-document__content h2 {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: var(--text);
-          margin: 2.5rem 0 1.25rem 0;
-          letter-spacing: -0.01em;
-        }
-        .legal-document__content p {
-          font-size: 1.05rem;
-          line-height: 1.7;
-          color: var(--text-secondary);
-          margin-bottom: 1.5rem;
-        }
-        @media (max-width: 768px) {
-          .legal-document {
-            padding: 1.5rem 1rem;
-            border-radius: 20px;
-            margin: 0 0.75rem 2rem 0.75rem;
-          }
-          .legal-document__content h2 {
-            font-size: 1.25rem;
-            margin: 2rem 0 1rem 0;
-          }
-          .legal-document__content p {
-            font-size: 0.95rem;
-          }
-        }
-      `}</style>
-    </div>
+    </PayPageShell>
   )
 }

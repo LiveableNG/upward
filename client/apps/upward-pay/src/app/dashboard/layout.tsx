@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/features/auth/AuthContext'
 import FallbackSuspense from '@/components/FallbackSuspense'
@@ -9,12 +9,17 @@ import { BottomNav } from '@/features/dashboard/components/BottomNav'
 import { AnnouncementManager } from '@/features/dashboard/components/AnnouncementManager'
 import { RentReminderManager } from '@/features/dashboard/components/RentReminderManager'
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
+import { ProfileSetupBlocker } from '@/features/dashboard/components/ProfileSetupBlocker'
+import { isOnboardingComplete } from '@/features/dashboard/utils/profileCompletion'
+import { useScoreProfile } from '@/features/dashboard/services/scoreService'
 import { api } from '@/lib/api'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { isLoggedIn, loading } = useAuth()
+  const { isLoggedIn, loading, user } = useAuth()
+  const { data: scoreProfile } = useScoreProfile()
+  const [blockerDismissed, setBlockerDismissed] = useState(false)
 
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
 
@@ -42,19 +47,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return <FallbackSuspense message="Redirecting to login..." />
   }
 
+  const isDashboardHome = pathname === '/dashboard'
+  const isSetupRoute = pathname?.startsWith('/dashboard/setup')
+  const showProfileBlocker =
+    isDashboardHome &&
+    user &&
+    !isOnboardingComplete(user) &&
+    !blockerDismissed
+
   return (
-    <div className="dashboard-layout">
+    <div className={`dashboard-layout${showProfileBlocker ? ' dashboard-layout--blocker' : ''}`}>
+      {showProfileBlocker && user && (
+        <ProfileSetupBlocker
+          user={user}
+          score={scoreProfile?.data?.score}
+          profileCompletion={scoreProfile?.data?.profile?.profileCompletion}
+          onSkip={() => setBlockerDismissed(true)}
+        />
+      )}
       {/* Desktop Global Header */}
-      <div className="desktop-only">
-        <DashboardHeader />
-      </div>
+      {!showProfileBlocker && !isSetupRoute && (
+        <div className="desktop-only">
+          <DashboardHeader />
+        </div>
+      )}
 
       <AnnouncementManager />
       <RentReminderManager />
       <main className="dashboard-layout__content">
         <Suspense fallback={<FallbackSuspense message="Loading..." />}>{children}</Suspense>
       </main>
-      {!pathname?.startsWith('/dashboard/notifications') && !pathname?.startsWith('/dashboard/kyc') && <BottomNav />}
+      {!showProfileBlocker &&
+        !isSetupRoute &&
+        !pathname?.startsWith('/dashboard/notifications') &&
+        !pathname?.startsWith('/dashboard/kyc') && <BottomNav />}
     </div>
   )
 }

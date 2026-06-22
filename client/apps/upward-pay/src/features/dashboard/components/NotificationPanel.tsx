@@ -150,7 +150,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
         createdAt: new Date().toISOString(),
         isRead: false,
         isDynamic: true,
-        url: '/dashboard/me?view=personal',
+        url: '/dashboard/setup',
         icon: <UserCircle size={16} />
       })
     }

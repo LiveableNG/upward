@@ -16,7 +16,6 @@ export function OnboardingFields({ formData, setFormData, disabled = false }: On
     setFormData((prev: any) => ({ ...prev, [field]: value }))
   }
 
-
   return (
     <div className="onboarding-fields">
       <div className="auth-form__row">
@@ -30,6 +29,7 @@ export function OnboardingFields({ formData, setFormData, disabled = false }: On
               onChange={(e) => handleChange('firstName', e.target.value)}
               required
               disabled={disabled}
+              placeholder="First name"
             />
           </div>
         </div>
@@ -43,12 +43,13 @@ export function OnboardingFields({ formData, setFormData, disabled = false }: On
               onChange={(e) => handleChange('lastName', e.target.value)}
               required
               disabled={disabled}
+              placeholder="Last name"
             />
           </div>
         </div>
       </div>
 
-      <div className="auth-form__field mt-3">
+      <div className="auth-form__field auth-u-mt-4">
         <label>Email Address</label>
         <div className="input-with-icon">
           <Mail size={17} />
@@ -57,33 +58,10 @@ export function OnboardingFields({ formData, setFormData, disabled = false }: On
             value={formData.email}
             disabled
             className="disabled-input"
+            placeholder="your@email.com"
           />
         </div>
       </div>
-
-
-
-      <style jsx>{`
-        .auth-form__row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-        .mt-3 {
-          margin-top: 12px;
-        }
-        .disabled-input {
-          cursor: not-allowed;
-          opacity: 0.7;
-          background: var(--surface2) !important;
-        }
-        @media (max-width: 480px) {
-          .auth-form__row {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
     </div>
   )
 }
-

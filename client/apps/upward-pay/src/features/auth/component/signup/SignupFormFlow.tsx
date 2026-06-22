@@ -224,7 +224,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             <ChevronLeft size={20} />
           </button>
         </div>
-        <a href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"} className="auth-shell__brand">
+        <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
           <UpwardLogo size={28} color="var(--clay)" />
         </a>
         <div className="auth-stage">
@@ -249,7 +249,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
         </button>
       </div>
 
-      <a href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"} className="auth-shell__brand">
+      <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
         <UpwardLogo size={28} color="var(--clay)" />
       </a>
 
@@ -266,13 +266,18 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
 
           <div className="auth-form__field">
             <label htmlFor="signup-email">Email Address</label>
-            <div className="input-with-icon">
+            <div
+              className={
+                emailExists && !isInvited && !isWaitlist
+                  ? 'input-with-icon input-with-icon--error'
+                  : 'input-with-icon'
+              }
+            >
               <Mail size={17} />
               <input
                 id="signup-email"
                 type="email"
                 placeholder="sarah@email.com"
-                className={emailExists && !isInvited && !isWaitlist ? 'input--error' : ''}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
@@ -281,34 +286,34 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
               {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} />}
             </div>
             {emailExists && !isInvited && !isWaitlist && (
-              <div className="field-hint field-hint--error">
+              <div className="auth-field-hint auth-field-hint--error">
                 <AlertCircle size={12} /> This email is already registered.{' '}
-                <button type="button" className="field-hint__link" onClick={() => setShowExistsModal(true)}>
+                <button type="button" className="auth-field-hint__link" onClick={() => setShowExistsModal(true)}>
                   Log in instead?
                 </button>
               </div>
             )}
 
             {emailExists && isInvited && (
-              <div className="field-hint field-hint--invited">
+              <div className="auth-field-hint auth-field-hint--accent">
                 <AlertCircle size={12} /> Your manager already invited you —{' '}
-                <button type="button" className="field-hint__link" onClick={handleInviteProceed}>
+                <button type="button" className="auth-field-hint__link" onClick={handleInviteProceed}>
                   Verify to set your password
                 </button>
               </div>
             )}
 
             {emailExists && isWaitlist && (
-              <div className="field-hint field-hint--waitlist">
+              <div className="auth-field-hint auth-field-hint--accent">
                 <Sparkles size={12} /> You have priority access!{' '}
-                <button type="button" className="field-hint__link" onClick={handleWaitlistProceed}>
+                <button type="button" className="auth-field-hint__link" onClick={handleWaitlistProceed}>
                   Claim your account
                 </button>
               </div>
             )}
           </div>
 
-          <div className="auth-form__row mt-1">
+          <div className="auth-form__row">
             <div className="auth-form__field">
               <label htmlFor="signup-firstname">First Name</label>
               <div className="input-with-icon">
@@ -339,9 +344,9 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             </div>
           </div>
 
-          <div className="auth-form__field mt-1">
+          <div className="auth-form__field">
             <label htmlFor="signup-dob">
-              <Calendar size={14} style={{ display: 'inline', marginRight: 5, verticalAlign: 'middle', color: 'var(--text-muted)' }} />
+              <Calendar size={14} style={{ display: 'inline', marginRight: 5, verticalAlign: 'middle', color: 'var(--auth-muted)' }} />
               Date of Birth
             </label>
             <DatePicker
@@ -352,7 +357,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             />
           </div>
 
-          <div className="auth-form__field mt-1">
+          <div className="auth-form__field">
             <label htmlFor="signup-password">Create Password</label>
             <div className="input-with-icon">
               <Lock size={17} />
@@ -377,9 +382,17 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             )}
           </div>
 
-          <div className="auth-form__field mt-1">
+          <div className="auth-form__field">
             <label htmlFor="confirm-password">Confirm Password</label>
-            <div className="input-with-icon">
+            <div
+              className={`input-with-icon${
+                confirmPassword.length > 0
+                  ? confirmPassword === password
+                    ? ' input-with-icon--match'
+                    : ' input-with-icon--error'
+                  : ''
+              }`}
+            >
               <Lock size={17} />
               <input
                 id="confirm-password"
@@ -387,13 +400,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
                 placeholder="Re-enter your password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className={
-                  confirmPassword.length > 0
-                    ? confirmPassword === password
-                      ? 'input--match'
-                      : 'input--error'
-                    : ''
-                }
                 required
               />
               {confirmPassword.length > 0 && confirmPassword === password && (
@@ -401,7 +407,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
               )}
             </div>
             {confirmPassword.length > 0 && confirmPassword !== password && (
-              <div className="field-hint field-hint--error">
+              <div className="auth-field-hint auth-field-hint--error">
                 <AlertCircle size={12} /> Passwords don't match
               </div>
             )}
@@ -409,7 +415,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
 
           <button
             id="signup-submit"
-            className="btn btn--primary btn--full btn--pay mt-8"
+            className="btn btn--primary btn--full btn--pay auth-form__mt-8"
             type="submit"
             disabled={
               !email ||
@@ -438,22 +444,23 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
 
         {showExistsModal && (
           <div className="modal-overlay">
-            <div className="modal-content animate-pop">
-              <div className="modal-icon">
-                <AlertCircle size={40} color="var(--clay)" />
+            <div className="modal-content modal-content--auth animate-pop">
+              <div className="auth-stage__icon auth-stage__icon--center">
+                <AlertCircle size={32} />
               </div>
-              <h3>Account Found</h3>
+              <h3 className="modal-title">Account Found</h3>
               <p>
                 An account with <strong>{email}</strong> already exists. Would you like to log in instead?
               </p>
               <div className="modal-actions">
                 <button
-                  className="btn btn--primary btn--full"
+                  type="button"
+                  className="btn btn--primary btn--full btn--pay"
                   onClick={() => router.push(`/signup?mode=login&email=${encodeURIComponent(email)}`)}
                 >
                   Log in to my account
                 </button>
-                <button className="btn btn--ghost btn--full mt-4" onClick={() => setShowExistsModal(false)}>
+                <button type="button" className="auth-btn-ghost-link btn--full" onClick={() => setShowExistsModal(false)}>
                   Use a different email
                 </button>
               </div>
@@ -462,87 +469,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
         )}
 
       </div>
-
-      <style jsx>{`
-        .auth-form__row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-        .mt-1 { margin-top: 12px; }
-        .mt-4 { margin-top: 20px; }
-        .mt-8 { margin-top: 32px; }
-        .input-spinner {
-          position: absolute;
-          right: 32px;
-          color: var(--text-muted);
-        }
-        .field-hint {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 11px;
-          margin-top: 4px;
-          flex-wrap: wrap;
-        }
-        .field-hint--error { color: var(--error); }
-        .field-hint--invited, .field-hint--waitlist {
-          color: var(--clay);
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .field-hint__link {
-          background: none;
-          border: none;
-          padding: 0;
-          font-size: 11px;
-          font-weight: 700;
-          color: var(--clay);
-          cursor: pointer;
-          text-decoration: underline;
-        }
-        .input--error { border-color: var(--error) !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.1) !important; }
-        .input--match { border-color: #22c55e !important; box-shadow: 0 0 0 3px rgba(34,197,94,0.1) !important; }
-        .match-icon {
-          position: absolute;
-          right: 12px;
-          color: #22c55e;
-          pointer-events: none;
-        }
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.6);
-          backdrop-filter: blur(4px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 100;
-          padding: 20px;
-        }
-        .modal-content {
-          background: var(--bg);
-          padding: 32px;
-          border-radius: 20px;
-          max-width: 400px;
-          width: 100%;
-          text-align: center;
-          box-shadow: var(--shadow-lg);
-        }
-        .modal-icon { margin-bottom: 20px; display: flex; justify-content: center; }
-        .modal-content h3 { font-weight: 800; font-size: 20px; margin-bottom: 12px; }
-        .modal-content p { color: var(--text-secondary); margin-bottom: 24px; line-height: 1.5; }
-        .animate-pop { animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        @keyframes pop {
-          0% { transform: scale(0.9); opacity: 0; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        @media (max-width: 480px) {
-          .auth-form__row { grid-template-columns: 1fr; }
-        }
-      `}</style>
     </div>
   )
 }
