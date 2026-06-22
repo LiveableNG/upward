@@ -160,7 +160,7 @@ export function RequestRecordsScreen() {
                 <div className="req-empty-icon"><Building size={32} /></div>
                 <h3>No Properties Linked</h3>
                 <p>You need to add a property to your profile to request past tenancy records.</p>
-                <button className="btn btn--primary" onClick={() => router.push('/dashboard/me?view=personal&edit=true')}>
+                <button className="btn btn--primary" onClick={() => router.push('/dashboard/setup')}>
                   Add Your Property
                 </button>
               </div>

@@ -128,17 +128,8 @@ export default function InviteClient() {
           <p>Securing your data and loading your personalized invitation...</p>
         </div>
       </div>
-      <div className="auth-layout__form flex-center">
+      <div className="auth-layout__form auth-flow-loader">
         <Loader2 className="animate-spin" size={40} color="var(--clay)" />
-        <style jsx>{`
-          .flex-center {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex: 1;
-            min-height: 100vh;
-          }
-        `}</style>
       </div>
     </div>
   )
@@ -179,10 +170,10 @@ export default function InviteClient() {
 
                 <form className="auth-form" onSubmit={handleSubmit}>
                   {localError && <div className="auth-form__error">{localError}</div>}
-                  
+
                   <OnboardingFields formData={formData} setFormData={setFormData} />
 
-                  <div className="auth-form__field mt-1">
+                  <div className="auth-form__field">
                     <label>Set Password</label>
                     <div className="input-with-icon">
                       <Lock size={17} />
@@ -207,8 +198,7 @@ export default function InviteClient() {
                     )}
                   </div>
 
-
-                  <div className="auth-form__field mt-1">
+                  <div className="auth-form__field">
                     <label>Confirm Password</label>
                     <div className="input-with-icon">
                       <Lock size={17} />
@@ -231,23 +221,23 @@ export default function InviteClient() {
                       )}
                     </div>
                     {formData.confirmPassword.length > 0 && formData.confirmPassword !== formData.password && (
-                      <div className="field-hint field-hint--error">
-                        <AlertCircle size={12} /> Passwords don't match
+                      <div className="auth-field-hint auth-field-hint--error">
+                        <AlertCircle size={12} /> Passwords don&apos;t match
                       </div>
                     )}
                   </div>
 
-                  <div className="form-info-box mt-4">
+                  <div className="auth-form-info auth-u-mt-4">
                     <ShieldCheck size={18} color="var(--success)" strokeWidth={2.5} />
                     <p>Complete your profile to continue.</p>
                   </div>
 
-                  <button 
-                    className="btn btn--primary btn--full btn--pay mt-6" 
-                    type="submit" 
+                  <button
+                    className="btn btn--primary btn--full btn--pay auth-form__mt-6"
+                    type="submit"
                     disabled={
-                      isSubmitting || 
-                      !formData.password || 
+                      isSubmitting ||
+                      !formData.password ||
                       !(/.{8,}/.test(formData.password) && /[A-Z]/.test(formData.password) && /[0-9!@#$%^&*(),.?":{}|<> ]/.test(formData.password)) ||
                       formData.password !== formData.confirmPassword
                     }
@@ -259,54 +249,6 @@ export default function InviteClient() {
               </div>
             )}
           </div>
-
-          <style jsx>{`
-            .mt-4 { margin-top: 24px; }
-            .mt-6 { margin-top: 32px; }
-            .form-info-box {
-              background: var(--surface);
-              border: 1px solid var(--border-solid);
-              padding: 12px;
-              border-radius: var(--radius-md);
-              display: flex;
-              gap: 10px;
-              align-items: center;
-            }
-            .form-info-box p {
-              font-size: 13px;
-              color: var(--text-secondary);
-              line-height: 1.4;
-              margin: 0;
-            }
-            .animate-pop {
-              animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            }
-            @keyframes pop {
-              0% { transform: scale(0.95); opacity: 0; }
-              100% { transform: scale(1); opacity: 1; }
-            }
-            .auth-form__row {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 16px;
-            }
-            .input--error { border-color: var(--error) !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.1) !important; }
-            .input--match { border-color: #22c55e !important; box-shadow: 0 0 0 3px rgba(34,197,94,0.1) !important; }
-            .match-icon { position: absolute; right: 12px; color: #22c55e; pointer-events: none; }
-            .field-hint {
-              display: flex;
-              align-items: center;
-              gap: 4px;
-              font-size: 11px;
-              margin-top: 5px;
-            }
-            .field-hint--error { color: var(--error); }
-            @media (max-width: 480px) {
-              .auth-form__row {
-                grid-template-columns: 1fr;
-              }
-            }
-          `}</style>
         </div>
       </div>
     </div>

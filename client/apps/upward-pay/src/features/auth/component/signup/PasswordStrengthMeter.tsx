@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Check, X, ShieldCheck, ShieldAlert, Shield } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 
 interface PasswordStrengthMeterProps {
   password?: string
@@ -23,11 +23,10 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({ pa
     return { text: 'Strong', color: '#22c55e', fill: 100 }
   }
 
-  const { text, color, fill } = getStrength()
+  const { text, color } = getStrength()
 
   return (
     <div className="psm">
-      {/* Strength bar + label row */}
       <div className="psm__row">
         <div className="psm__segments">
           {[0, 1, 2].map(i => (
@@ -36,7 +35,6 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({ pa
               className="psm__seg"
               style={{
                 background: i < metCount ? color : 'var(--surface2)',
-                transition: 'background 0.35s ease',
                 boxShadow: i < metCount && metCount === 3 ? `0 0 6px ${color}66` : 'none',
               }}
             />
@@ -47,7 +45,6 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({ pa
         </span>
       </div>
 
-      {/* Compact requirements row */}
       <div className="psm__reqs">
         {requirements.map((req, idx) => {
           const met = req.regex.test(password)
@@ -59,60 +56,6 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({ pa
           )
         })}
       </div>
-
-      <style jsx>{`
-        .psm {
-          margin-top: 8px;
-          animation: psm-in 0.2s ease-out;
-        }
-        @keyframes psm-in {
-          from { opacity: 0; transform: translateY(-4px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .psm__row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin-bottom: 7px;
-        }
-        .psm__segments {
-          display: flex;
-          gap: 4px;
-          flex: 1;
-        }
-        .psm__seg {
-          flex: 1;
-          height: 3px;
-          border-radius: 99px;
-        }
-        .psm__label {
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          white-space: nowrap;
-          min-width: 40px;
-          text-align: right;
-        }
-        .psm__reqs {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px 12px;
-        }
-        .psm__req {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 10.5px;
-          color: var(--text-muted);
-          transition: color 0.25s;
-          line-height: 1;
-        }
-        .psm__req.met {
-          color: #22c55e;
-          font-weight: 600;
-        }
-      `}</style>
     </div>
   )
 }

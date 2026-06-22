@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Bell, Settings, Share2, LucideIcon } from 'lucide-react'
+import { Bell, Settings } from 'lucide-react'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 
@@ -84,8 +84,6 @@ export function DashboardHeader({
 
   const displayCount = hasSeenNotifs ? 0 : totalUnread
 
-  const isHome = pathname === '/dashboard'
-
   const handleNotifClick = () => {
     setHasSeenNotifs(true)
     if (user) {
@@ -103,19 +101,26 @@ export function DashboardHeader({
       <header className={`dashboard__header ${isDesktop ? 'dashboard__header--desktop' : 'dashboard__header--mobile'}`}>
         <div className="dashboard__header-inner">
           {/* Mobile User Block (Hidden on desktop) */}
-          <div className="dashboard__header-left">
+          <div className="dashboard__header-left dashboard__header-left--user">
             <div className="dashboard__avatar" onClick={() => router.push('/dashboard/me')}>
-              <UserAvatar src={profilePic} size={40} />
+              <UserAvatar src={profilePic} size={44} />
             </div>
             <div className="dashboard__greeting-block">
+              <span className="dashboard__greeting-eyebrow">Hey,</span>
               <div className="dashboard__greeting">
-                Hey, <span className="dashboard__greeting-name">{firstName}</span>
+                <span className="dashboard__greeting-name">{firstName}</span>
               </div>
               <div className="dashboard__email" onClick={() => router.push('/dashboard/me')}>
                 View Profile
               </div>
             </div>
           </div>
+
+          {isDesktop && (
+            <div className="dashboard__header-brand">
+              <UpwardLogo size={28} />
+            </div>
+          )}
 
           <nav className="dashboard__header-nav">
             {(() => {
@@ -136,6 +141,15 @@ export function DashboardHeader({
           </nav>
 
           <div className="dashboard__header-right">
+            {isDesktop && (
+              <div
+                className="dashboard__desktop-avatar"
+                onClick={() => router.push('/dashboard/me')}
+                title="Profile"
+              >
+                <UserAvatar src={profilePic} size={40} />
+              </div>
+            )}
             <button className="dashboard__icon-btn" onClick={() => router.push('/dashboard/settings')} title="Settings">
               <Settings size={18} />
             </button>

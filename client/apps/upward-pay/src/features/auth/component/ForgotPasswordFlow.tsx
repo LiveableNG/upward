@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Mail, ArrowLeft, ShieldCheck, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react'
+import { ChevronLeft, Mail, ArrowRight, Lock, Eye, EyeOff } from 'lucide-react'
 import { api } from '@/lib/api'
+import { UpwardLogo } from '@/components/PoweredByUpward'
 
 type Step = 'EMAIL' | 'OTP' | 'PASSWORD' | 'SUCCESS'
 
@@ -17,15 +18,26 @@ export default function ForgotPasswordFlow() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSendOTP = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleBack = () => {
+    if (step === 'EMAIL') {
+      router.push('/signup?mode=login')
+    } else if (step === 'OTP') {
+      setStep('EMAIL')
+    } else {
+      setStep('OTP')
+    }
+  }
+
+  const handleSendOTP = async (e?: React.FormEvent) => {
+    e?.preventDefault()
     setLoading(true)
     setError(null)
     try {
       await api.forgotPassword(email)
       setStep('OTP')
-    } catch (err: any) {
-      setError(err.message || 'Failed to send reset code')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to send reset code'
+      setError(message)
     } finally {
       setLoading(false)
     }
@@ -47,27 +59,31 @@ export default function ForgotPasswordFlow() {
     try {
       await api.resetPassword(email, otp, newPassword)
       setStep('SUCCESS')
-    } catch (err: any) {
-      setError(err.message || 'Failed to reset password')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to reset password'
+      setError(message)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="auth-page__content">
+    <div className="auth-shell auth-shell--login">
       {step !== 'SUCCESS' && (
-        <button className="signup-step__back" onClick={() => step === 'EMAIL' ? router.push('/login') : setStep(step === 'OTP' ? 'EMAIL' : 'OTP')}>
-          <ArrowLeft size={18} /> {step === 'EMAIL' ? 'Back to Login' : 'Back'}
-        </button>
+        <div className="auth-shell__top">
+          <button type="button" className="auth-shell__back" onClick={handleBack} aria-label="Go back">
+            <ChevronLeft size={20} />
+          </button>
+        </div>
       )}
 
       {step === 'EMAIL' && (
-        <div className="forgot-password-step">
+        <>
           <div className="auth-page__hero">
-            <h1 className="auth-page__title">Forgot Password?</h1>
+            <div className="auth-page__hero-icon" aria-hidden>🔑</div>
+            <h1 className="auth-page__title">Forgot password?</h1>
             <p className="auth-page__subtitle">
-              Enter your email address and we&apos;ll send you a 6-digit code to reset your password.
+              No worries. Enter the email linked to your account and we&apos;ll send a code to reset it.
             </p>
           </div>
 
@@ -76,36 +92,39 @@ export default function ForgotPasswordFlow() {
             <div className="auth-form__field">
               <label htmlFor="email">Email Address</label>
               <div className="input-with-icon">
-                <Mail size={18} />
+                <Mail size={17} />
                 <input
                   id="email"
                   type="email"
-                  placeholder="name@email.com"
+                  placeholder="sarah@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
             </div>
-            <button className="btn btn--primary btn--full btn--pay" type="submit" disabled={loading}>
-              {loading ? 'Sending code…' : 'Send Reset Code'}
+            <button className="btn btn--primary btn--full btn--pay auth-form__mt-6" type="submit" disabled={loading}>
+              {loading ? 'Sending code…' : 'Send reset code'} <ArrowRight size={17} />
             </button>
+            <p className="auth-page__footer-link">
+              Remembered it?{' '}
+              <button type="button" onClick={() => router.push('/signup?mode=login')}>
+                Log in
+              </button>
+            </p>
           </form>
-        </div>
+        </>
       )}
 
       {step === 'OTP' && (
-        <div className="forgot-password-step">
-          <div className="auth-page__hero text-center">
-            <div className="flex-center mb-4">
-              <div className="icon-circle icon-circle--success">
-                <ShieldCheck size={32} color="#22c55e" />
-              </div>
-            </div>
-            <h1 className="auth-page__title">Check your email</h1>
-            <p className="auth-page__subtitle">
-              We&apos;ve sent a 6-digit verification code to <strong>{email}</strong>. 
-              Be sure to check your <strong>spam/junk</strong> folder if you don&apos;t see it.
+        <>
+          <div className="auth-shell__brand">
+            <UpwardLogo size={28} color="var(--clay)" />
+          </div>
+          <div className="auth-stage__header">
+            <h1 className="auth-stage__title">Enter the code</h1>
+            <p className="auth-stage__subtitle">
+              We sent a 6-digit code to <strong>{email}</strong>. Check your spam folder if you don&apos;t see it.
             </p>
           </div>
 
@@ -118,33 +137,45 @@ export default function ForgotPasswordFlow() {
                 type="text"
                 maxLength={6}
                 placeholder="000000"
-                className="otp-input"
-                style={{ textAlign: 'center', fontSize: '24px', letterSpacing: '0.5em', fontWeight: 'bold' }}
+                style={{
+                  width: '100%',
+                  textAlign: 'center',
+                  fontSize: '23px',
+                  letterSpacing: '0.35em',
+                  fontWeight: 800,
+                  padding: '14px 16px',
+                  background: 'var(--auth-input-bg, #F6F7F9)',
+                  border: '1px solid var(--auth-input-border, #EAEBEE)',
+                  borderRadius: '12px',
+                  fontFamily: 'var(--font-auth)',
+                  color: 'var(--auth-text)',
+                }}
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                 required
               />
             </div>
             <button className="btn btn--primary btn--full btn--pay" type="submit">
-              Verify Code
+              Verify <ArrowRight size={17} />
             </button>
-            <p className="mt-6 text-center text-sm text-gray-400">
-              Didn&apos;t receive the code?{' '}
-              <button type="button" className="text-secondary font-semibold" onClick={handleSendOTP}>
-                Resend
+            <p className="auth-page__footer-link">
+              Didn&apos;t get it?{' '}
+              <button type="button" onClick={() => handleSendOTP()} disabled={loading}>
+                Resend code
               </button>
             </p>
           </form>
-        </div>
+        </>
       )}
 
       {step === 'PASSWORD' && (
-        <div className="forgot-password-step">
-          <div className="auth-page__hero">
-            <h1 className="auth-page__title">Set New Password</h1>
-            <p className="auth-page__subtitle">
-              Create a strong password to secure your account.
-            </p>
+        <>
+          <div className="auth-shell__brand">
+            <UpwardLogo size={28} color="var(--clay)" />
+          </div>
+          <div className="auth-stage__header">
+            <h1 className="auth-stage__title">Set new password</h1>
+            <p className="auth-stage__subtitle">Create a strong password to secure your account.</p>
           </div>
 
           <form className="auth-form" onSubmit={handleResetPassword}>
@@ -152,7 +183,7 @@ export default function ForgotPasswordFlow() {
             <div className="auth-form__field">
               <label htmlFor="new-password">New Password</label>
               <div className="input-with-icon">
-                <Lock size={18} />
+                <Lock size={17} />
                 <input
                   id="new-password"
                   type={showPassword ? 'text' : 'password'}
@@ -171,26 +202,26 @@ export default function ForgotPasswordFlow() {
                 </button>
               </div>
             </div>
-            <button className="btn btn--primary btn--full btn--pay" type="submit" disabled={loading}>
-              {loading ? 'Resetting…' : 'Reset Password'}
+            <button className="btn btn--primary btn--full btn--pay auth-form__mt-6" type="submit" disabled={loading}>
+              {loading ? 'Resetting…' : 'Reset password'} <ArrowRight size={17} />
             </button>
           </form>
-        </div>
+        </>
       )}
 
       {step === 'SUCCESS' && (
-        <div className="forgot-password-step text-center">
-          <div className="flex-center mb-6">
-            <div className="icon-circle icon-circle--success" style={{ width: '80px', height: '80px' }}>
-              <CheckCircle2 size={48} color="#22c55e" />
-            </div>
-          </div>
-          <h1 className="auth-page__title">Password Reset!</h1>
-          <p className="auth-page__subtitle mb-8">
-            Your password has been successfully updated. You can now sign in with your new password.
+        <div className="auth-page__hero">
+          <div className="auth-page__hero-icon" aria-hidden>✓</div>
+          <h1 className="auth-page__title">Password reset!</h1>
+          <p className="auth-page__subtitle">
+            Your password has been updated. You can now log in with your new password.
           </p>
-          <button className="btn btn--primary btn--full btn--pay" onClick={() => router.push('/login')}>
-            Back to Sign In
+          <button
+            className="btn btn--primary btn--full btn--pay auth-form__mt-8"
+            type="button"
+            onClick={() => router.push('/signup?mode=login')}
+          >
+            Back to log in <ArrowRight size={17} />
           </button>
         </div>
       )}

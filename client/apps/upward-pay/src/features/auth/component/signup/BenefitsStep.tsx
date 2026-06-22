@@ -6,16 +6,16 @@ import { UpwardLogo } from '@/components/PoweredByUpward'
 
 const BENEFITS = [
   {
+    icon: Gift,
+    color: '#C2501F',
+    title: 'Earn Rewards',
+    desc: 'Every on-time payment earns Upward points redeemable for rent discounts and exclusive perks.',
+  },
+  {
     icon: TrendingUp,
     color: '#22c55e',
     title: 'Build Your Credit',
     desc: 'Monthly rent payments are reported to credit bureaus — boosting your financial score effortlessly.',
-  },
-  {
-    icon: Gift,
-    color: '#d97757',
-    title: 'Earn Rewards',
-    desc: 'Every on-time payment earns Upward points redeemable for rent discounts and exclusive perks.',
   },
   {
     icon: Shield,
@@ -43,7 +43,7 @@ export function BenefitsStep({ onSignup, onLogin }: BenefitsStepProps) {
   useEffect(() => {
     timerRef.current = setInterval(() => {
       setActive((a) => (a + 1) % BENEFITS.length)
-    }, 3200)
+    }, 3800)
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
@@ -54,7 +54,7 @@ export function BenefitsStep({ onSignup, onLogin }: BenefitsStepProps) {
 
   return (
     <div className="auth-shell auth-shell--welcome">
-      <a href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"} className="auth-shell__logo">
+      <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__logo">
         <UpwardLogo size={36} color="var(--clay)" />
       </a>
 
@@ -74,6 +74,7 @@ export function BenefitsStep({ onSignup, onLogin }: BenefitsStepProps) {
           {BENEFITS.map((_, i) => (
             <button
               key={i}
+              type="button"
               className={`benefit-carousel__dot ${i === active ? 'is-active' : ''}`}
               onClick={() => {
                 setActive(i)
@@ -86,11 +87,11 @@ export function BenefitsStep({ onSignup, onLogin }: BenefitsStepProps) {
       </div>
 
       <div className="auth-shell__ctas">
-        <button className="auth-cta auth-cta--primary" onClick={onSignup}>
+        <button type="button" className="auth-cta auth-cta--primary" onClick={onSignup}>
           <UserPlus size={18} />
           Create Account
         </button>
-        <button className="auth-cta auth-cta--secondary" onClick={onLogin}>
+        <button type="button" className="auth-cta auth-cta--secondary" onClick={onLogin}>
           <LogIn size={18} />
           Log In
         </button>
@@ -98,11 +99,11 @@ export function BenefitsStep({ onSignup, onLogin }: BenefitsStepProps) {
 
       <p className="auth-terms">
         By proceeding you agree to our{' '}
-        <a href={`${process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"}/legal/terms`} target="_blank" rel="noopener noreferrer">
+        <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/terms`} target="_blank" rel="noopener noreferrer">
           Terms of Service
         </a>{' '}
         and{' '}
-        <a href={`${process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"}/legal/privacy`} target="_blank" rel="noopener noreferrer">
+        <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/privacy`} target="_blank" rel="noopener noreferrer">
           Privacy Policy
         </a>
       </p>
