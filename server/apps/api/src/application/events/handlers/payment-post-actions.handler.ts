@@ -90,7 +90,7 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
                    // 2. Send email to PM
                     const pmEmail = pm.email ? this.encryption.decrypt(pm.email) : null;
                     if (pmEmail) {
-                      const baseUrl = process.env.FRONTEND_URL || 'https://upward.goodtenants.io';
+                      const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim();
                       await this.emailService.sendEmailWithRetry({
                         userId: pm.uuid,
                         email: pmEmail,

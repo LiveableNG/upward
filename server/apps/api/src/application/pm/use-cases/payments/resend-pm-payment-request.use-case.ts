@@ -56,7 +56,7 @@ export class ResendPmPaymentRequestUseCase {
       throw new BadRequestException('Payment link is not available for this request');
     }
 
-    const baseUrl = process.env.FRONTEND_URL || 'https://upward.goodtenants.io';
+    const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim();
     const paymentLink = `${baseUrl}/pay/${coreRequestUuid}`;
 
     // Trigger Notification Event asynchronously
