@@ -8,11 +8,11 @@ Welcome to the **Upward** codebase! This guide will walk you through setting up 
 
 Before starting, ensure you have the following installed:
 
-*   **Node.js**: Version `20.x` or later (LTS recommended)
-*   **pnpm**: Version `10.x` or later (`npm install -g pnpm`)
-*   **Git**: Version `2.x` or later
-*   **PostgreSQL**: Version `15` or later
-*   **Redis**: Version `7` or later
+- **Node.js**: Version `20.x` or later (LTS recommended)
+- **pnpm**: Version `10.x` or later (`npm install -g pnpm`)
+- **Git**: Version `2.x` or later
+- **PostgreSQL**: Version `15` or later
+- **Redis**: Version `7` or later
 
 > **Windows Users**: Run all `pnpm` commands inside **cmd.exe** or **Git Bash**. Do NOT use PowerShell to avoid execution policy conflicts.
 
@@ -69,6 +69,7 @@ pnpm --filter @upward/api db:seed
 ```
 
 Or run directly inside the `server/apps/api` folder:
+
 ```bash
 # Generate the multi-schema client
 pnpm prisma:generate
@@ -84,20 +85,22 @@ pnpm db:seed
 You can start the applications in parallel using Turborepo or target a specific application using filters.
 
 ### Running all apps at once (Parallel Dev mode)
+
 ```bash
 pnpm dev
 ```
 
 ### Running individual applications
+
 To run a specific app, use `pnpm --filter [package-name] dev`:
 
-| Component / App | Command | URL / Entrypoint |
-| :--- | :--- | :--- |
-| **NestJS Backend** | `pnpm --filter @upward/api dev` | `http://localhost:4000/api/v1` |
-| **Web (Landing)** | `pnpm --filter @upward/web dev` | `http://localhost:3000` |
-| **Upward Pay (Tenant)** | `pnpm --filter upward-pay dev` | `http://localhost:3001` |
-| **Upward PM (Manager)** | `pnpm --filter upward-pm dev` | `http://localhost:3002` |
-| **Admin Site (Vite)** | `pnpm --filter @upward/admin-site dev` | `http://localhost:3003` |
+| Component / App         | Command                                | URL / Entrypoint               |
+| :---------------------- | :------------------------------------- | :----------------------------- |
+| **NestJS Backend**      | `pnpm --filter @upward/api dev`        | `http://localhost:4000/api/v1` |
+| **Web (Landing)**       | `pnpm --filter @upward/web dev`        | `http://localhost:3000`        |
+| **Upward Pay (Tenant)** | `pnpm --filter upward-pay dev`         | `http://localhost:3001`        |
+| **Upward PM (Manager)** | `pnpm --filter upward-pm dev`          | `http://localhost:3002`        |
+| **Admin Site (Vite)**   | `pnpm --filter @upward/admin-site dev` | `http://localhost:3003`        |
 
 ---
 
@@ -106,6 +109,7 @@ To run a specific app, use `pnpm --filter [package-name] dev`:
 The tenant payment application (`upward-pay`) is wrapped with **Capacitor** to run on mobile platforms.
 
 ### Android Setup Steps
+
 1.  **Prerequisites**: Ensure you have **Android Studio** and the **Android SDK** installed.
 2.  **Generate Static Output & Sync**:
     To sync Next.js build assets into the Android native platform folder, run:
@@ -123,5 +127,6 @@ The tenant payment application (`upward-pay`) is wrapped with **Capacitor** to r
 ---
 
 ## 8. Next Steps
-*   Read [2-environment-variables.md](./2-environment-variables.md) to populate your credentials.
-*   Review [3-architecture-guidelines.md](./3-architecture-guidelines.md) to understand clean architecture, Use Case execution patterns, and our premium styling system.
+
+- Read [2-environment-variables.md](./2-environment-variables.md) to populate your credentials.
+- Review [3-architecture-guidelines.md](./3-architecture-guidelines.md) to understand clean architecture, Use Case execution patterns, and our premium styling system.
