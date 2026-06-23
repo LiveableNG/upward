@@ -149,7 +149,7 @@ export class ProcessScheduledPmPaymentRequestsUseCase {
           const pmLastName = pm.lastName ? this.encryption.decrypt(pm.lastName) : '';
           const decryptedBusinessName = pm.businessName ? this.encryption.decrypt(pm.businessName) : '';
           const pmName = decryptedBusinessName || `${pmFirstName} ${pmLastName}`.trim() || 'Property Manager';
-          const baseUrl = process.env.FRONTEND_URL || 'https://upward.goodtenants.io';
+          const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim();
 
           const emailHtml = `
             <div style="background-color: #fafae6; padding: 32px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

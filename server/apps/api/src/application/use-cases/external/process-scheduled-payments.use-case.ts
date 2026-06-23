@@ -12,7 +12,7 @@ import { EVENT_BUS, EventBus } from '../../events/domain-event'
 import { PaymentRequestCreatedEvent } from '../../events/definition/payment-request-created.event'
 import { randomUUID } from 'crypto'
 
-const frontendUrl = process.env['FRONTEND_URL'] || 'https://upward.goodtenants.io'
+const frontendUrl = (process.env['FRONTEND_URL'] || 'https://upward.goodtenants.io').split(',')[0]!.trim()
 
 @Injectable()
 export class ProcessScheduledExternalPaymentRequestsUseCase {
