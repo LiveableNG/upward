@@ -62,8 +62,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/pm-login', request.url))
   }
 
+  let isPmInvite = false
+  let rewrittenPathname = pathname
   // Intercept waitlist invites at gateway level to avoid client loading states
-  if (pathname.startsWith('/invite/')) {
+  if (pathname.startsWith('/pm-invite/')) {
+    isPmInvite = true
+    rewrittenPathname = pathname.replace('/pm-invite/', '/invite/')
+  } else if (pathname.startsWith('/invite/')) {
     const segments = pathname.split('/')
     const uuid = segments[segments.length - 1]
     if (uuid && uuid !== 'invite') {
@@ -74,9 +79,15 @@ export async function middleware(request: NextRequest) {
           if (data?.isWaitlist) {
             return NextResponse.redirect(new URL(`/waitlist/${uuid}${search}`, request.url))
           }
+        } else {
+          // If not a tenant/waitlist invite, check if it is a PM team member invite
+          const pmRes = await fetch(`${API_URL}/pm/auth/invite-details/${uuid}`)
+          if (pmRes.ok) {
+            isPmInvite = true
+          }
         }
       } catch (err) {
-        console.error('Error checking waitlist in gateway middleware:', err)
+        console.error('Error checking invite in gateway middleware:', err)
       }
     }
   }
@@ -134,7 +145,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/invite')
 
   // Rule: Should this request route to the PM app instead of the Pay app?
-  let routeToPm = isPmPath
+  let routeToPm = isPmPath || isPmInvite
   if (!routeToPm && isSharedRoute) {
     if (isPmRedirectParam) {
       routeToPm = true
@@ -305,6 +316,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/pay') ||
     pathname.startsWith('/profile') ||
     pathname.startsWith('/invite') ||
+    pathname.startsWith('/pm-invite') ||
     pathname.startsWith('/waitlist') ||
     pathname.startsWith('/fill-record') ||
     pathname.startsWith('/complete-profile') ||
@@ -319,7 +331,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/.well-known')
 
   if (shouldProxy) {
-    const targetPath = pathname
+    const targetPath = rewrittenPathname
     const url = new URL(targetPath + search, targetBase)
 
     const requestHeaders = new Headers(request.headers)
@@ -371,6 +383,7 @@ export const config = {
     '/api/v1/:path*',
     '/welcome/:path*',
     '/invite/:path*',
+    '/pm-invite/:path*',
     '/fill-record/:path*',
     '/complete-profile/:path*',
     '/settings/:path*',
