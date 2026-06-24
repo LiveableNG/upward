@@ -9,7 +9,7 @@ interface WaitlistUser {
 }
 
 export const wrapInBaseTemplate = (content: string, subject: string, email: string = '') => {
-  const frontendUrl = process.env.FRONTEND_URL || 'https://upward.goodtenants.io'
+  const frontendUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()
   const result = `<!DOCTYPE html>
 <html>
 <head>
