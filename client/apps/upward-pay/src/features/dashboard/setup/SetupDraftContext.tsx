@@ -3,7 +3,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/features/auth/AuthContext'
-import { STATES } from '@/lib/location-data'
 import {
   type SetupDraft,
   type SetupMode,
@@ -11,6 +10,7 @@ import {
   loadSetupDraft,
   saveSetupDraft,
   clearSetupDraft,
+  draftFromProperty,
 } from './setupDraft'
 
 type SetupDraftContextValue = {
@@ -23,36 +23,13 @@ type SetupDraftContextValue = {
 
 const SetupDraftContext = createContext<SetupDraftContextValue | null>(null)
 
-function draftFromUserProperty(user: NonNullable<ReturnType<typeof useAuth>['user']>): SetupDraft {
-  const prop = user.properties?.[0]
-  const draft = createEmptyDraft('edit')
-
-  if (!prop) return draft
-
-  draft.formData = {
-    uuid: prop.uuid,
-    pmName: prop.managerName || '',
-    address: prop.location?.address || '',
-    area: prop.location?.area || '',
-    subarea: prop.location?.subarea || '',
-    state: prop.location?.state || STATES['NG']?.[24] || 'Lagos',
-    country: prop.location?.country || 'NG',
-    rentAmount: prop.rentAmount ? String(prop.rentAmount) : '',
-    rentStartDate: prop.rentStartDate ? prop.rentStartDate.split('T')[0] : '',
-    rentEndDate: prop.rentEndDate ? prop.rentEndDate.split('T')[0] : '',
-  }
-  draft.pmEmail = prop.managerEmail || ''
-  draft.phone = user.phone || ''
-  draft.pmFound = !!(prop.companyName || prop.managerName)
-
-  return draft
-}
-
 export function SetupDraftProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
   const searchParams = useSearchParams()
   const mode = (searchParams.get('mode') === 'edit' ? 'edit' : 'onboarding') as SetupMode
-  const hydratedFromUser = useRef(false)
+  const propertyUuid = searchParams.get('property')
+  const isNew = searchParams.get('new') === '1'
+  const hydratedKey = useRef<string | null>(null)
 
   const [draft, setDraftState] = useState<SetupDraft>(() => {
     const stored = loadSetupDraft()
@@ -61,13 +38,38 @@ export function SetupDraftProvider({ children }: { children: React.ReactNode }) 
   })
 
   useEffect(() => {
-    if (mode === 'edit' && user?.properties?.[0] && !hydratedFromUser.current) {
-      const fromUser = draftFromUserProperty(user)
-      hydratedFromUser.current = true
-      setDraftState(fromUser)
-      saveSetupDraft(fromUser)
+    const hydrationKey = `${mode}:${propertyUuid || ''}:${isNew ? 'new' : ''}`
+
+    if (hydratedKey.current === hydrationKey) {
+      setDraftState((prev) => {
+        if (prev.mode === mode) return prev
+        const next = { ...prev, mode }
+        saveSetupDraft(next)
+        return next
+      })
       return
     }
+
+    if (mode === 'edit' && isNew) {
+      const empty = createEmptyDraft('edit')
+      hydratedKey.current = hydrationKey
+      setDraftState(empty)
+      saveSetupDraft(empty)
+      return
+    }
+
+    if (mode === 'edit' && propertyUuid && user?.properties) {
+      const prop = user.properties.find((p) => p.uuid === propertyUuid)
+      if (prop) {
+        const fromUser = draftFromProperty(user, prop, 'edit')
+        hydratedKey.current = hydrationKey
+        setDraftState(fromUser)
+        saveSetupDraft(fromUser)
+        return
+      }
+    }
+
+    hydratedKey.current = hydrationKey
 
     setDraftState((prev) => {
       if (prev.mode === mode) return prev
@@ -75,7 +77,7 @@ export function SetupDraftProvider({ children }: { children: React.ReactNode }) 
       saveSetupDraft(next)
       return next
     })
-  }, [mode, user])
+  }, [mode, user, propertyUuid, isNew])
 
   const setDraft = useCallback((updater: React.SetStateAction<SetupDraft>) => {
     setDraftState((prev) => {
@@ -97,12 +99,12 @@ export function SetupDraftProvider({ children }: { children: React.ReactNode }) 
     const empty = createEmptyDraft(nextMode)
     saveSetupDraft(empty)
     setDraftState(empty)
-    hydratedFromUser.current = false
+    hydratedKey.current = null
   }, [])
 
   const clearDraftFn = useCallback(() => {
     clearSetupDraft()
-    hydratedFromUser.current = false
+    hydratedKey.current = null
     setDraftState(createEmptyDraft(mode))
   }, [mode])
 

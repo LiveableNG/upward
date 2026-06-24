@@ -27,8 +27,9 @@ function ProfileMenuContentInner() {
   const searchParams = useSearchParams()
   const { logout, user, refreshUser } = useAuth()
 
+  const initialView = searchParams.get('view')
   const [view, setView] = useState<ViewMode>(
-    searchParams.get('view') === 'personal' ? 'personal' : 'menu',
+    initialView === 'personal' ? 'personal' : initialView === 'banking' ? 'banking' : 'menu',
   )
   const startInEditMode = searchParams.get('edit') === 'true'
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -64,7 +65,12 @@ function ProfileMenuContentInner() {
   }
 
   if (view === 'banking') {
-    return <BankingPayoutsView onBack={() => setView('menu')} />
+    return (
+      <BankingPayoutsView
+        onBack={() => setView('menu')}
+        initialEditing={startInEditMode}
+      />
+    )
   }
 
   return (

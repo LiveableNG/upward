@@ -1,43 +1,101 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { AlertCircle, Building, CreditCard, User, Loader2, Pencil } from 'lucide-react'
+import { AlertCircle, Building2, CreditCard, Loader2, Pencil, User } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
-import { PageHeader } from '@/components/common/PageHeader'
+import { PayFlowPrimaryButton, PayPageShell } from '../payment/PayPageShell'
 import { formatCurrency } from '@/lib/utils'
 
 interface BankingPayoutsViewProps {
   onBack: () => void
+  initialEditing?: boolean
 }
 
-export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type BankDetails = {
+  bankCode: string
+  bankName: string
+  accountNumber: string
+  accountName: string
+}
+
+const emptyBankDetails = (): BankDetails => ({
+  bankCode: '',
+  bankName: '',
+  accountNumber: '',
+  accountName: '',
+})
+
+function maskAccountNumber(value?: string) {
+  if (!value) return ''
+  if (value.length <= 4) return value
+  return `•••• ${value.slice(-4)}`
+}
+
+function BankingPayoutsSkeleton({ onBack }: { onBack: () => void }) {
+  return (
+    <PayPageShell title="Banking & Payouts" showBack onBack={onBack}>
+      <section className="personal-card banking-page--skeleton">
+        <div className="personal-card__header">
+          <div className="personal-card__header-main">
+            <div className="banking-page__skeleton-circle" />
+            <div style={{ flex: 1 }}>
+              <div className="banking-page__skeleton-line banking-page__skeleton-line--title" />
+              <div className="banking-page__skeleton-line banking-page__skeleton-line--desc" />
+            </div>
+          </div>
+        </div>
+        <div className="banking-page__skeleton-banner" />
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="banking-page__skeleton-row">
+            <div className="banking-page__skeleton-line banking-page__skeleton-line--label" />
+            <div className="banking-page__skeleton-line banking-page__skeleton-line--value" />
+          </div>
+        ))}
+      </section>
+    </PayPageShell>
+  )
+}
+
+export function BankingPayoutsView({ onBack, initialEditing = false }: BankingPayoutsViewProps) {
   const { success, error: toastError } = useToast()
-  
-  const [isEditing, setIsEditing] = useState(false)
+
+  const [isEditing, setIsEditing] = useState(initialEditing)
   const [saving, setSaving] = useState(false)
   const [resolvingBank, setResolvingBank] = useState(false)
-  
-  const [bankDetails, setBankDetails] = useState<any>({
-    bankCode: '',
-    bankName: '',
-    accountNumber: '',
-    accountName: ''
-  })
+
+  const [bankDetails, setBankDetails] = useState<BankDetails>(emptyBankDetails())
+  const [savedBankDetails, setSavedBankDetails] = useState<BankDetails>(emptyBankDetails())
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [banks, setBanks] = useState<any[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pendingRefunds, setPendingRefunds] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  const hasPayoutAccount = !!(
+    bankDetails.bankName &&
+    bankDetails.accountNumber &&
+    bankDetails.accountName
+  )
+
+  useEffect(() => {
+    if (initialEditing) setIsEditing(true)
+  }, [initialEditing])
 
   useEffect(() => {
     async function loadData() {
       try {
         const [bdData, paymentsData] = await Promise.all([
           api.getBankDetails().catch(() => null),
-          api.getPendingPayments().catch(() => [])
+          api.getPendingPayments().catch(() => []),
         ])
-        
-        if (bdData) setBankDetails(bdData)
-        setPendingRefunds(paymentsData.filter((p: any) => p.type === 'refund_alert'))
+
+        if (bdData) {
+          setBankDetails(bdData)
+          setSavedBankDetails(bdData)
+        }
+        setPendingRefunds(paymentsData.filter((p: { type?: string }) => p.type === 'refund_alert'))
       } catch (err) {
         console.error('Failed to load banking data', err)
       } finally {
@@ -57,13 +115,29 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
     }
   }
 
+  const resolveAccountName = async (accountNumber: string, bankCode: string) => {
+    if (accountNumber.length !== 10 || !bankCode) return
+    setResolvingBank(true)
+    try {
+      const res = await api.resolveAccount(accountNumber, bankCode)
+      if (res.accountName) {
+        setBankDetails((prev) => ({ ...prev, accountName: res.accountName }))
+      }
+    } catch (err) {
+      console.error('Resolution failed', err)
+    } finally {
+      setResolvingBank(false)
+    }
+  }
+
   const handleSave = async () => {
     setSaving(true)
     try {
       await api.saveBankDetails(bankDetails)
+      setSavedBankDetails(bankDetails)
       setIsEditing(false)
       success('Bank details updated')
-    } catch (err) {
+    } catch {
       toastError('Failed to save bank details')
     } finally {
       setSaving(false)
@@ -75,552 +149,248 @@ export function BankingPayoutsView({ onBack }: BankingPayoutsViewProps) {
     setIsEditing(true)
   }
 
+  const handleCancel = () => {
+    setBankDetails(savedBankDetails)
+    setIsEditing(false)
+  }
+
+  const headerAction = isEditing ? (
+    <button
+      type="button"
+      className="pay-flow__header-action pay-flow__header-action--primary"
+      onClick={handleSave}
+      disabled={saving || !bankDetails.accountName}
+    >
+      {saving ? '...' : 'Save'}
+    </button>
+  ) : (
+    <button
+      type="button"
+      className="pay-flow__header-action pay-flow__header-action--icon"
+      onClick={handleEditClick}
+      aria-label="Edit bank details"
+    >
+      <Pencil size={16} />
+    </button>
+  )
+
   if (loading) {
-    return (
-      <div className="banking-view dashboard--nav-offset animate-pulse">
-        <PageHeader
-          title="Banking & Payouts"
-          showBack
-          backLabel="Profile"
-          onBack={onBack}
-        />
-        <div className="banking-content">
-          <div className="banking-sections">
-            <section className="premium-card">
-              <div className="premium-card__header premium-card__header--split">
-                <div style={{ flex: 1 }}>
-                  <div className="skeleton-text" style={{ width: 140, height: 20, marginBottom: 8 }} />
-                  <div className="skeleton-text" style={{ width: '80%', height: 14 }} />
-                </div>
-              </div>
-
-              {/* Notice Banner Skeleton */}
-              <div className="notice-banner-skeleton" style={{ background: 'var(--surface2)', height: 110, borderRadius: 16, marginBottom: 24 }} />
-
-              <div className="premium-details-list">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="premium-field--readonly" style={{ borderBottom: i === 3 ? 'none' : '1px solid var(--border)' }}>
-                    <div className="skeleton-text" style={{ width: 80, height: 12, marginBottom: 8 }} />
-                    <div className="skeleton-text" style={{ width: 180, height: 16 }} />
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-        </div>
-
-        <style jsx>{`
-          .skeleton-text {
-            background: var(--surface2);
-            border-radius: 4px;
-          }
-          .animate-pulse {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-          }
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
-          }
-          .banking-view {
-            max-width: 640px;
-            margin: 0 auto;
-            padding-top: 1rem;
-          }
-          @media (min-width: 1024px) {
-            .banking-view {
-              padding-top: 2rem;
-            }
-          }
-          .banking-content {
-            padding: 1rem 1rem 10rem;
-          }
-          @media (min-width: 768px) {
-            .banking-content {
-              padding: 2rem 1.5rem 10rem;
-            }
-          }
-          .banking-sections {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-          }
-          .premium-card {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
-          }
-          .premium-card__header {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            margin-bottom: 1.5rem;
-          }
-          .premium-card__header--split {
-            justify-content: space-between;
-          }
-          .premium-details-list {
-            display: flex;
-            flex-direction: column;
-          }
-          .premium-field--readonly {
-            display: flex;
-            flex-direction: column;
-            padding: 1rem 0.5rem;
-          }
-        `}</style>
-      </div>
-    )
+    return <BankingPayoutsSkeleton onBack={onBack} />
   }
 
   return (
-    <div className="banking-view dashboard--nav-offset">
-      <PageHeader
-        title="Banking & Payouts"
-        showBack
-        backLabel="Profile"
-        onBack={onBack}
-        rightElement={
-          isEditing ? (
-            <button 
-              className="btn btn--primary btn--sm btn--pill" 
-              onClick={handleSave}
-              disabled={saving || !bankDetails?.accountName}
-            >
-              {saving ? '...' : 'Save'}
+    <PayPageShell
+      title={isEditing ? 'Edit payout account' : 'Banking & Payouts'}
+      subtitle={isEditing ? undefined : 'Refunds and overpayments are sent here.'}
+      showBack
+      onBack={isEditing ? handleCancel : onBack}
+      rightElement={headerAction}
+    >
+      {pendingRefunds.length > 0 ? (
+        <section className="banking-refund-card">
+          <div className="banking-refund-card__head">
+            <div className="banking-refund-card__icon">
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <h2 className="banking-refund-card__title">Refund action required</h2>
+              <p className="banking-refund-card__desc">
+                {pendingRefunds.length} pending refund{pendingRefunds.length > 1 ? 's' : ''} need a
+                payout account.
+              </p>
+            </div>
+          </div>
+          <div className="banking-refund-list">
+            {pendingRefunds.map((refund, index) => (
+              <div key={refund.reference || index} className="banking-refund-item">
+                <div className="banking-refund-item__top">
+                  <span className="banking-refund-item__amount">
+                    {formatCurrency(refund.amount, refund.currency)}
+                  </span>
+                  {refund.reference ? (
+                    <span className="banking-refund-item__ref">{refund.reference}</span>
+                  ) : null}
+                </div>
+                {refund.property_address ? (
+                  <p className="banking-refund-item__address">{refund.property_address}</p>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          {!hasPayoutAccount && !isEditing ? (
+            <button type="button" className="pay-flow__cta banking-refund-card__cta" onClick={handleEditClick}>
+              Add payout account
             </button>
-          ) : (
-            <button 
-              className="dashboard__icon-btn" 
-              onClick={handleEditClick}
-            >
-              <Pencil size={18} />
+          ) : null}
+        </section>
+      ) : null}
+
+      <section className="personal-card">
+        <div className="personal-card__header">
+          <div className="personal-card__header-main">
+            <div className="personal-card__icon">
+              <Building2 size={20} />
+            </div>
+            <div>
+              <h2 className="personal-card__title">Payout account</h2>
+              <p className="personal-card__desc">
+                Where you receive refunds and overpayment payouts.
+              </p>
+            </div>
+          </div>
+          {!isEditing ? (
+            <button type="button" className="personal-card__edit-btn" onClick={handleEditClick}>
+              <Pencil size={14} />
+              {hasPayoutAccount ? 'Edit details' : 'Add account'}
             </button>
-          )
-        }
-      />
-
-      <div className="banking-content">
-        <div className="banking-sections">
-          
-          {pendingRefunds.length > 0 && (
-            <section className="premium-card premium-card--alert animate-slide-up">
-              <div className="premium-card__header">
-                <div className="premium-card__icon-wrap bg-red-100 text-red-600">
-                  <AlertCircle size={20} />
-                </div>
-                <div>
-                  <h3 className="premium-card__title text-red-600">Refund Action Required</h3>
-                  <p className="premium-card__desc text-red-500/80">You have {pendingRefunds.length} pending refund(s).</p>
-                </div>
-              </div>
-              <div className="refunds-list">
-                {pendingRefunds.map((r, i) => (
-                  <div key={i} className="refund-item">
-                    <div className="refund-item__header">
-                      <span className="refund-item__amount">{formatCurrency(r.amount, r.currency)}</span>
-                      <span className="refund-item__reference">{r.reference}</span>
-                    </div>
-                    <p className="refund-item__address">{r.property_address}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <section className="premium-card animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            <div className="premium-card__header premium-card__header--split">
-              <div>
-                <h3 className="premium-card__title">Payout Account</h3>
-                <p className="premium-card__desc">Where you receive refunds and overpayment payouts.</p>
-              </div>
-              {!isEditing && (
-                <button 
-                  className="btn btn--secondary btn--sm btn--pill desktop-only" 
-                  onClick={handleEditClick}
-                  title="Edit Bank Details"
-                >
-                  <Pencil size={14} className="mr-1" /> Edit Details
-                </button>
-              )}
-            </div>
-
-            <div className="notice-banner">
-              <div className="notice-banner__icon">
-                <AlertCircle size={20} />
-              </div>
-              <div className="notice-banner__content">
-                <h4 className="notice-banner__title">Why do we need this?</h4>
-                <p className="notice-banner__text">
-                  These details are strictly used for <strong>automated refunds</strong>. If you accidentally underpay 
-                  or violate a "Full Payment Only" requirement, the system will instantly send your money back to this account.
-                </p>
-              </div>
-            </div>
-
-            <div className={isEditing ? "premium-form" : "premium-details-list"}>
-              {isEditing ? (
-                <>
-                  <div className="premium-field">
-                    <label className="premium-field__label">Select Bank</label>
-                    <select
-                      className="premium-field__input premium-field__select"
-                      value={bankDetails.bankCode || ''}
-                      onChange={(e) => {
-                        const v = e.target.value
-                        const bank = banks.find(b => b.code === v)
-                        setBankDetails({ ...bankDetails, bankCode: v, bankName: bank?.name || '' })
-                      }}
-                    >
-                      <option value="">Select a bank</option>
-                      {banks.map(b => (
-                        <option key={b.code} value={b.code}>{b.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="premium-field">
-                    <label className="premium-field__label">Account Number</label>
-                    <input
-                      type="text"
-                      className="premium-field__input"
-                      placeholder="10 digits"
-                      value={bankDetails.accountNumber || ''}
-                      onChange={async (e) => {
-                        const v = e.target.value
-                        const newDetails = { ...bankDetails, accountNumber: v }
-                        setBankDetails(newDetails)
-                        
-                        if (v.length === 10 && bankDetails.bankCode) {
-                          setResolvingBank(true)
-                          try {
-                            const res = await api.resolveAccount(v, bankDetails.bankCode)
-                            if (res.accountName) {
-                              setBankDetails({ ...newDetails, accountName: res.accountName })
-                            }
-                          } catch (err) {
-                            console.error('Resolution failed', err)
-                          } finally {
-                            setResolvingBank(false)
-                          }
-                        }
-                      }}
-                    />
-                  </div>
-
-                  <div className="premium-field">
-                    <label className="premium-field__label">Account Name</label>
-                    <div className="premium-field__read-only-box">
-                      {resolvingBank ? (
-                        <span className="flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Resolving...</span>
-                      ) : (
-                        bankDetails.accountName || <span className="text-muted italic">Not Set</span>
-                      )}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="premium-details-list">
-                  <div className="premium-field--readonly">
-                    <span className="premium-field__label--readonly">Bank Name</span>
-                    <span className="premium-field__value--readonly">{bankDetails.bankName || <span className="text-muted italic">Not Set</span>}</span>
-                  </div>
-
-                  <div className="premium-field--readonly">
-                    <span className="premium-field__label--readonly">Account Number</span>
-                    <span className="premium-field__value--readonly">{bankDetails.accountNumber || <span className="text-muted italic">Not Set</span>}</span>
-                  </div>
-
-                  <div className="premium-field--readonly">
-                    <span className="premium-field__label--readonly">Account Name</span>
-                    <span className="premium-field__value--readonly">{bankDetails.accountName || <span className="text-muted italic">Not Set</span>}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {isEditing && (
-            <div className="floating-action-bar animate-slide-up">
-              <button className="btn btn--outline" onClick={() => setIsEditing(false)} disabled={saving}>
-                Cancel
-              </button>
-              <button className="btn btn--primary" onClick={handleSave} disabled={saving || !bankDetails?.accountName}>
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          )}
-
+          ) : null}
         </div>
-      </div>
 
-      <style jsx>{`
-        .banking-view {
-          max-width: 640px;
-          margin: 0 auto;
-          padding-top: 1rem;
-        }
+        <div className="banking-notice">
+          <AlertCircle size={18} className="banking-notice__icon" />
+          <div>
+            <p className="banking-notice__title">Why we need this</p>
+            <p className="banking-notice__text">
+              These details are used for automated refunds. If a payment cannot be applied, funds
+              are returned to this account.
+            </p>
+          </div>
+        </div>
 
-        @media (min-width: 1024px) {
-          .banking-view {
-            padding-top: 2rem;
-          }
-        }
+        {isEditing ? (
+          <div className="banking-form">
+            <div className="personal-field">
+              <label htmlFor="bankCode">Bank</label>
+              <select
+                id="bankCode"
+                value={bankDetails.bankCode || ''}
+                onChange={(e) => {
+                  const bankCode = e.target.value
+                  const bank = banks.find((b) => b.code === bankCode)
+                  const next = {
+                    ...bankDetails,
+                    bankCode,
+                    bankName: bank?.name || '',
+                    accountName: '',
+                  }
+                  setBankDetails(next)
+                  if (next.accountNumber.length === 10) {
+                    void resolveAccountName(next.accountNumber, bankCode)
+                  }
+                }}
+              >
+                <option value="">Select a bank</option>
+                {banks.map((bank) => (
+                  <option key={bank.code} value={bank.code}>
+                    {bank.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        .banking-content {
-          padding: 1rem 1rem 10rem;
-        }
+            <div className="personal-field">
+              <label htmlFor="accountNumber">Account number</label>
+              <input
+                id="accountNumber"
+                type="text"
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="10 digits"
+                value={bankDetails.accountNumber || ''}
+                onChange={(e) => {
+                  const accountNumber = e.target.value.replace(/\D/g, '').slice(0, 10)
+                  const next = { ...bankDetails, accountNumber, accountName: '' }
+                  setBankDetails(next)
+                  if (accountNumber.length === 10 && bankDetails.bankCode) {
+                    void resolveAccountName(accountNumber, bankDetails.bankCode)
+                  }
+                }}
+              />
+            </div>
 
-        @media (min-width: 768px) {
-          .banking-content {
-            padding: 2rem 1.5rem 10rem;
-          }
-        }
+            <div className="personal-field">
+              <label>Account name</label>
+              <div className="banking-resolved-name">
+                {resolvingBank ? (
+                  <span className="banking-resolved-name__loading">
+                    <Loader2 size={14} className="banking-resolved-name__spin" />
+                    Resolving account name…
+                  </span>
+                ) : bankDetails.accountName ? (
+                  bankDetails.accountName
+                ) : (
+                  <span className="personal-readonly-value--muted">Enter bank and account number</span>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : hasPayoutAccount ? (
+          <div className="banking-account-card">
+            <div className="banking-account-card__row">
+              <span className="banking-account-card__icon-wrap">
+                <Building2 size={16} />
+              </span>
+              <div>
+                <span className="banking-account-card__label">Bank</span>
+                <span className="banking-account-card__value">{bankDetails.bankName}</span>
+              </div>
+            </div>
+            <div className="banking-account-card__row">
+              <span className="banking-account-card__icon-wrap">
+                <CreditCard size={16} />
+              </span>
+              <div>
+                <span className="banking-account-card__label">Account number</span>
+                <span className="banking-account-card__value">
+                  {maskAccountNumber(bankDetails.accountNumber)}
+                </span>
+              </div>
+            </div>
+            <div className="banking-account-card__row">
+              <span className="banking-account-card__icon-wrap">
+                <User size={16} />
+              </span>
+              <div>
+                <span className="banking-account-card__label">Account name</span>
+                <span className="banking-account-card__value">{bankDetails.accountName}</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="banking-empty">
+            <div className="banking-empty__icon">
+              <CreditCard size={24} />
+            </div>
+            <h3 className="banking-empty__title">No payout account yet</h3>
+            <p className="banking-empty__text">
+              Add your bank details so refunds and overpayments can be sent back to you.
+            </p>
+            <button type="button" className="pay-flow__cta" onClick={handleEditClick}>
+              Add payout account
+            </button>
+          </div>
+        )}
+      </section>
 
-        .banking-sections {
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-        }
-
-        .premium-card {
-          background: var(--bg);
-          border: 1px solid var(--border);
-          border-radius: 20px;
-          padding: 1.5rem;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
-        }
-
-        .premium-card--alert {
-          border-color: rgba(239, 68, 68, 0.3);
-          background: rgba(239, 68, 68, 0.05);
-        }
-
-        .premium-card__header {
-          display: flex;
-          gap: 1rem;
-          align-items: center;
-          margin-bottom: 1.5rem;
-        }
-
-        .premium-card__header--split {
-          justify-content: space-between;
-        }
-
-        .premium-card__icon-wrap {
-          width: 44px;
-          height: 44px;
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .premium-card__title {
-          font-size: 1.1rem;
-          font-weight: 800;
-          color: var(--text);
-          margin: 0 0 4px;
-        }
-
-        .premium-card__desc {
-          font-size: 0.85rem;
-          color: var(--text-muted);
-          margin: 0;
-        }
-
-        /* Notice Banner */
-        .notice-banner {
-          display: flex;
-          gap: 1rem;
-          background: var(--clay-faint);
-          padding: 1.25rem;
-          border-radius: 16px;
-          border: 1px solid rgba(var(--clay-rgb), 0.1);
-          margin-bottom: 1.5rem;
-        }
-
-        .notice-banner__icon {
-          color: var(--clay);
-          flex-shrink: 0;
-        }
-
-        .notice-banner__title {
-          font-size: 0.875rem;
-          font-weight: 700;
-          color: var(--clay);
-          margin: 0 0 6px;
-        }
-
-        .notice-banner__text {
-          font-size: 0.8rem;
-          line-height: 1.5;
-          color: var(--text-secondary);
-          margin: 0;
-        }
-
-        /* Premium Form Fields & Lists */
-        .premium-form {
-          display: flex;
-          flex-direction: column;
-          gap: 1.25rem;
-        }
-
-        .premium-details-list {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .premium-field--readonly {
-          display: flex;
-          flex-direction: column;
-          padding: 1rem 0.5rem;
-          border-bottom: 1px solid var(--border);
-        }
-
-        .premium-field--readonly:last-child {
-          border-bottom: none;
-        }
-
-        .premium-field__label--readonly {
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: var(--text-muted);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin-bottom: 4px;
-        }
-
-        .premium-field__value--readonly {
-          font-size: 1rem;
-          font-weight: 600;
-          color: var(--text);
-        }
-
-        .premium-field {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .premium-field__label {
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: var(--text-muted);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin-left: 4px;
-        }
-
-        .premium-field__input {
-          width: 100%;
-          padding: 12px 14px;
-          background: var(--surface);
-          border: 1px solid var(--border-solid);
-          border-radius: 12px;
-          font-size: 0.95rem;
-          font-weight: 500;
-          color: var(--text);
-          transition: all 0.2s ease;
-        }
-
-        .premium-field__input:focus {
-          outline: none;
-          border-color: var(--clay);
-          background: var(--bg);
-          box-shadow: 0 0 0 4px var(--clay-glow);
-        }
-
-        .premium-field__select {
-          appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a8a8a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-          background-repeat: no-repeat;
-          background-position: right 16px center;
-          padding-right: 44px;
-        }
-
-        .premium-field__read-only-box {
-          width: 100%;
-          padding: 12px 14px;
-          background: var(--surface2);
-          border-radius: 12px;
-          font-size: 1rem;
-          font-weight: 600;
-          color: var(--text);
-        }
-
-        /* Desktop & Helpers */
-        .desktop-only {
-          display: none !important;
-        }
-        @media (min-width: 1024px) {
-          .desktop-only {
-            display: flex !important;
-          }
-        }
-
-        /* Refunds Mini List */
-        .refunds-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-          margin-top: 1rem;
-        }
-
-        .refund-item {
-          background: rgba(255, 255, 255, 0.6);
-          padding: 1rem;
-          border-radius: 14px;
-          border: 1px solid rgba(239, 68, 68, 0.1);
-        }
-
-        .refund-item__header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .refund-item__amount {
-          font-weight: 700;
-          color: #b91c1c;
-          white-space: nowrap;
-        }
-
-        .refund-item__reference {
-          font-size: 0.75rem;
-          color: #dc2626;
-          opacity: 0.7;
-          word-break: break-all;
-        }
-
-        .refund-item__address {
-          font-size: 0.75rem;
-          margin-top: 0.25rem;
-          color: rgba(220, 38, 38, 0.8);
-        }
-
-        /* Floating Action Bar */
-        .floating-action-bar {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1rem;
-          position: sticky;
-          bottom: 24px;
-          background: var(--bg);
-          padding: 1rem;
-          border-radius: 20px;
-          border: 1px solid var(--border);
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-          margin-top: 2rem;
-          z-index: 20;
-        }
-
-        .text-muted { color: var(--text-muted); }
-        .italic { font-style: italic; }
-      `}</style>
-    </div>
+      {isEditing ? (
+        <div className="personal-sticky-actions">
+          <button
+            type="button"
+            className="personal-sticky-actions__cancel"
+            onClick={handleCancel}
+            disabled={saving}
+          >
+            Cancel
+          </button>
+          <PayFlowPrimaryButton
+            onClick={handleSave}
+            disabled={saving || !bankDetails.accountName}
+            loading={saving}
+          >
+            Save changes
+          </PayFlowPrimaryButton>
+        </div>
+      ) : null}
+    </PayPageShell>
   )
 }
