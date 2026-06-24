@@ -63,9 +63,7 @@ export function StepConfirm({
         {landlord.address && (
           <div className="pay-flow__confirm-address">
             <MapPin size={14} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {landlord.address}
-            </span>
+            <span className="pay-flow__confirm-address-text">{landlord.address}</span>
           </div>
         )}
 
@@ -90,7 +88,7 @@ export function StepConfirm({
               <div className="pay-flow__balance-label">Total Rent</div>
               <div className="pay-flow__balance-value">{formatCurrency(propertyBalance.totalOwed)}</div>
             </div>
-            <div style={{ textAlign: 'right' }}>
+            <div className="pay-flow__text-right">
               <div className="pay-flow__balance-label pay-flow__balance-label--accent">Remaining</div>
               <div className="pay-flow__balance-value pay-flow__balance-value--accent">
                 {formatCurrency(propertyBalance.remainingBalance)}
@@ -121,10 +119,7 @@ export function StepConfirm({
           <div className="pay-flow__overpay-row">
             <span className="pay-flow__overpay-label">
               Future Credit (Overpayment)
-              <span
-                style={{ color: 'var(--skin-primary, #c2501f)', cursor: 'help' }}
-                title="This excess will be tracked and visible in your transactions for future use."
-              >
+              <span className="pay-flow__overpay-info" title="This excess will be tracked and visible in your transactions for future use.">
                 <Info size={14} />
               </span>
             </span>
@@ -134,7 +129,7 @@ export function StepConfirm({
       )}
 
       {lineItems && lineItems.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
+        <div className="pay-flow__summary-block">
           <InvoiceCard
             title="Payment Summary"
             notes={narration}

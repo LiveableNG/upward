@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle, ArrowRight, ShieldAlert } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { Modal } from '@/components/common/Modal'
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
 import { StatStrip } from '@/features/dashboard/components/StatStrip'
 import { DashboardHome } from '@/features/dashboard/components/DashboardHome'
@@ -28,7 +27,6 @@ export default function DashboardPage() {
   const { data: scoreProfile } = useScoreProfile()
 
   const [localDismissedBanner, setLocalDismissedBanner] = useState(false)
-  const [showWelcomeModal, setShowWelcomeModal] = useState(false)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -50,17 +48,6 @@ export default function DashboardPage() {
     }
   }, [error, router])
 
-  useEffect(() => {
-    const user = data?.user
-    const verificationOn = user?.verificationOn ?? true
-    if (verificationOn && typeof window !== 'undefined' && user && !user.isIdentityVerified) {
-      const shown = localStorage.getItem(`welcome_modal_shown_${user.uuid}`) === 'true'
-      if (!shown) {
-        setShowWelcomeModal(true)
-      }
-    }
-  }, [data])
-
   if (loading && !data) return <FallbackSuspense message="Loading dashboard…" />
 
   if (error || !data) {
@@ -80,13 +67,6 @@ export default function DashboardPage() {
   }
 
   const { user, pendingPayments: rawPending, completedPayments } = data
-
-  const handleCloseWelcomeModal = () => {
-    if (typeof window !== 'undefined' && user?.uuid) {
-      localStorage.setItem(`welcome_modal_shown_${user.uuid}`, 'true')
-    }
-    setShowWelcomeModal(false)
-  }
 
   const pendingPayments = [...(rawPending || [])].filter((p: any) => {
     if (!p.userPropertyUuid) return true
@@ -202,34 +182,6 @@ export default function DashboardPage() {
         showAppBanner={shouldShowAppBanner}
         onDismissAppBanner={handleDismissBanner}
       />
-
-      <Modal isOpen={showWelcomeModal} onClose={handleCloseWelcomeModal} size="md">
-        <div className="rent-reminder-popup__badge" style={{ background: 'var(--clay)', alignSelf: 'flex-start' }}>
-          WELCOME TO UPWARD
-        </div>
-        <div className="rent-reminder-popup__icon" style={{ background: 'var(--clay-faint)', color: 'var(--clay)', marginTop: '16px', marginBottom: '16px', alignSelf: 'flex-start' }}>
-          <ShieldAlert size={32} />
-        </div>
-        <div className="rent-reminder-popup__headline">
-          <h2 className="rent-reminder-popup__title" style={{ margin: 0, textAlign: 'left' }}>Welcome, {firstName}!</h2>
-        </div>
-        <p className="rent-reminder-popup__body" style={{ margin: '16px 0 24px', padding: 0, textAlign: 'left' }}>
-          Confirming your identity helps us verify your account, protect against fraud, and comply with financial regulations. It takes less than a minute, and <strong>we do not save your BVN number</strong>.
-        </p>
-        <button
-          className="rent-reminder-popup__cta"
-          style={{ background: 'var(--clay)', color: 'white', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-          onClick={() => {
-            handleCloseWelcomeModal()
-            router.push('/dashboard/verify-identity')
-          }}
-        >
-          Verify Identity Now <ArrowRight size={16} />
-        </button>
-        <button className="rent-reminder-popup__skip" onClick={handleCloseWelcomeModal} style={{ alignSelf: 'center', marginTop: '16px' }}>
-          Skip for now
-        </button>
-      </Modal>
     </div>
   )
 }

@@ -24,6 +24,96 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://upward-pay.vercel.ap
 const PM_URL = process.env.NEXT_PUBLIC_PM_URL || 'https://upward-pm.vercel.app'
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://upward-api.vercel.app/api/v1'
 
+const PM_ROUTE_PREFIXES = [
+  '/pm-login',
+  '/pm-signup',
+  '/pm-forgot-password',
+  '/portal',
+  '/properties',
+  '/landlords',
+  '/tenants',
+  '/payments',
+  '/requests',
+  '/documents',
+]
+
+const PAY_ROUTE_PREFIXES = [
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/reset-password',
+  '/dashboard',
+  '/pay',
+  '/profile',
+  '/waitlist',
+  '/welcome',
+  '/fill-record',
+  '/complete-profile',
+  '/settings',
+  '/kyc',
+  '/transactions',
+  '/invite',
+]
+
+function matchesRoutePrefix(path: string, prefixes: string[]): boolean {
+  return prefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))
+}
+
+const DEV_APP_COOKIE = 'upward-dev-app'
+
+/** In dev (no assetPrefix), route gateway /_next/* requests to pay or pm. */
+function resolveDevAssetTarget(
+  pathname: string,
+  referer: string | null,
+  devAppCookie: string | undefined,
+): string | null {
+  if (pathname.includes('upward-pay')) return APP_URL
+  if (pathname.includes('upward-pm')) return PM_URL
+
+  if (referer) {
+    try {
+      const refPath = new URL(referer).pathname
+      if (matchesRoutePrefix(refPath, PM_ROUTE_PREFIXES)) return PM_URL
+      if (matchesRoutePrefix(refPath, PAY_ROUTE_PREFIXES)) return APP_URL
+    } catch {
+      // ignore malformed referer
+    }
+  }
+
+  if (devAppCookie === 'pay') return APP_URL
+  if (devAppCookie === 'pm') return PM_URL
+
+  return null
+}
+
+function proxyAssetRewrite(
+  request: NextRequest,
+  pathname: string,
+  search: string,
+  targetBase: string,
+  protocol: string,
+  devApp?: 'pay' | 'pm',
+) {
+  const url = new URL(pathname + search, targetBase)
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-forwarded-host', request.headers.get('host') || '')
+  requestHeaders.set('host', url.host)
+  requestHeaders.set('x-proxy-source', 'upward-web-gateway')
+  requestHeaders.set('x-forwarded-proto', protocol)
+
+  const response = NextResponse.rewrite(url, {
+    request: {
+      headers: requestHeaders,
+    },
+  })
+
+  if (devApp && process.env.NODE_ENV !== 'production') {
+    response.cookies.set(DEV_APP_COOKIE, devApp, { path: '/', maxAge: 60 * 60 })
+  }
+
+  return response
+}
+
 function landingAnalyticsScript(): NextResponse {
   const gaId = process.env.NEXT_PUBLIC_GA_ID
   if (!gaId) {
@@ -53,6 +143,9 @@ function gtag(){dataLayer.push(arguments);}
 
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host')
+  const protocol =
+    request.headers.get('x-forwarded-proto') || (host?.includes('localhost') ? 'http' : 'https')
 
   if (pathname === '/landing-analytics.js') {
     return landingAnalyticsScript()
@@ -166,59 +259,38 @@ export async function middleware(request: NextRequest) {
       : true
     : isPayExpired
 
-  // 4. Asset Proxy Logic (for upward-pay assets)
+  // 4. Asset Proxy Logic (for upward-pay assets — production assetPrefix)
   if (pathname.startsWith('/_upward_pay')) {
     const assetPath = pathname.replace('/_upward_pay', '')
-    const url = new URL(assetPath + search, APP_URL)
-
-    const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('x-forwarded-host', request.headers.get('host') || '')
-    requestHeaders.set('host', url.host)
-
-    return NextResponse.rewrite(url, {
-      request: {
-        headers: requestHeaders,
-      },
-    })
+    return proxyAssetRewrite(request, assetPath, search, APP_URL, protocol)
   }
 
-  // 5. Asset Proxy Logic (for upward-pm assets)
+  // 5. Asset Proxy Logic (for upward-pm assets — production assetPrefix)
   if (pathname.startsWith('/_upward_pm')) {
     const assetPath = pathname.replace('/_upward_pm', '')
-    const url = new URL(assetPath + search, PM_URL)
+    return proxyAssetRewrite(request, assetPath, search, PM_URL, protocol)
+  }
 
-    const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('x-forwarded-host', request.headers.get('host') || '')
-    requestHeaders.set('host', url.host)
-
-    return NextResponse.rewrite(url, {
-      request: {
-        headers: requestHeaders,
-      },
-    })
+  // 5b. Dev: proxy unprefixed /_next/* from pay/pm when pages are served through the gateway
+  if (process.env.NODE_ENV !== 'production' && pathname.startsWith('/_next/')) {
+    const referer = request.headers.get('referer')
+    const devAppCookie = request.cookies.get(DEV_APP_COOKIE)?.value
+    const devTarget = resolveDevAssetTarget(pathname, referer, devAppCookie)
+    if (devTarget) {
+      return proxyAssetRewrite(request, pathname, search, devTarget, protocol)
+    }
   }
 
   // 6. Explicit /pm-login, /pm-signup, and /pm-forgot-password rewrites
   if (pathname === '/pm-login' || pathname === '/pm-signup' || pathname === '/pm-forgot-password') {
-    const targetPath = 
-      pathname === '/pm-login' 
-        ? '/login' 
-        : pathname === '/pm-signup' 
-          ? '/signup' 
+    const targetPath =
+      pathname === '/pm-login'
+        ? '/login'
+        : pathname === '/pm-signup'
+          ? '/signup'
           : '/forgot-password'
-    const url = new URL(targetPath + search, PM_URL)
 
-    const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('x-forwarded-host', request.headers.get('host') || '')
-    requestHeaders.set('host', url.host)
-    requestHeaders.set('x-proxy-source', 'upward-web-gateway')
-    requestHeaders.set('x-forwarded-proto', 'https')
-
-    return NextResponse.rewrite(url, {
-      request: {
-        headers: requestHeaders,
-      },
-    })
+    return proxyAssetRewrite(request, targetPath, search, PM_URL, protocol, 'pm')
   }
 
   const isAuthPage =
@@ -289,7 +361,7 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set('x-forwarded-host', request.headers.get('host') || '')
     requestHeaders.set('host', url.host)
     requestHeaders.set('x-proxy-source', 'upward-web-gateway')
-    requestHeaders.set('x-forwarded-proto', 'https')
+    requestHeaders.set('x-forwarded-proto', protocol)
 
     return NextResponse.rewrite(url, {
       request: {
@@ -319,20 +391,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/.well-known')
 
   if (shouldProxy) {
-    const targetPath = pathname
-    const url = new URL(targetPath + search, targetBase)
-
-    const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('x-forwarded-host', request.headers.get('host') || '')
-    requestHeaders.set('host', url.host)
-    requestHeaders.set('x-proxy-source', 'upward-web-gateway')
-    requestHeaders.set('x-forwarded-proto', 'https')
-
-    return NextResponse.rewrite(url, {
-      request: {
-        headers: requestHeaders,
-      },
-    })
+    const devApp: 'pay' | 'pm' = routeToPm ? 'pm' : 'pay'
+    return proxyAssetRewrite(request, pathname, search, targetBase, protocol, devApp)
   }
 
   // Static marketing homepage (see public/landing.html; legacy React UI in src/_archive/homepage/)
@@ -350,6 +410,7 @@ export const config = {
     '/pm',
     '/_upward_pay/:path*',
     '/_upward_pm/:path*',
+    '/_next/:path*',
     '/login',
     '/signup',
     '/forgot-password',
