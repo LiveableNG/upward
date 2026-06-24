@@ -33,6 +33,11 @@ interface KYCReportContentProps {
   publicSlug?: string
 }
 
+function formatMonthYear(value?: string | null) {
+  if (!value) return null
+  return new Date(value).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+}
+
 export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportContentProps) {
   const router = useRouter()
   const { isLoggedIn } = useAuth()
@@ -323,9 +328,9 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                             <span>{p.location?.state}, {p.location?.country}</span>
                             <span className="kyc-report__meta-dot" />
                             <span>
-                              {p.rentStartDate ? new Date(p.rentStartDate).getFullYear() : 'N/A'}
-                              {p.isPastTenancy || (p.rentEndDate && new Date(p.rentEndDate) < new Date()) 
-                                ? ` — ${p.rentEndDate ? new Date(p.rentEndDate).getFullYear() : 'Present'}` 
+                              {p.rentStartDate ? formatMonthYear(p.rentStartDate) : 'N/A'}
+                              {p.isPastTenancy || (p.rentEndDate && new Date(p.rentEndDate) < new Date())
+                                ? ` — ${p.rentEndDate ? formatMonthYear(p.rentEndDate) : 'Present'}`
                                 : ' — Present'}
                             </span>
                          </div>
