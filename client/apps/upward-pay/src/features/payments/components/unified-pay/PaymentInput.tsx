@@ -1,7 +1,7 @@
 'use client'
 
 import { Info, AlertCircle, Check, Lock } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 
 interface PaymentInputProps {
   canPayPartial: boolean
@@ -29,6 +29,7 @@ export function PaymentInput({
   isUnderpaying
 }: PaymentInputProps) {
   const amountNum = parseFloat(amountInput) || 0
+  const formattedAmount = formatCurrencyInput(parseCurrencyInput(amountInput) ?? amountNum)
 
   return (
     <div className="pay-input-section">
@@ -49,9 +50,10 @@ export function PaymentInput({
             {currency}
           </div>
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             className="pay-amount-field__input"
-            value={amountInput}
+            value={formattedAmount}
             onChange={e => onAmountChange(e.target.value)}
             placeholder="0.00"
             min={0}
