@@ -5,8 +5,13 @@ import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
+import { getMe } from '@/features/auth/services/authService'
 import { useToast } from '@/components/common/Toast'
-import { PHONE_REGEX } from '@/features/dashboard/utils/profileCompletion'
+import {
+  getIdentityVerificationPath,
+  needsIdentityVerification,
+  PHONE_REGEX,
+} from '@/features/dashboard/utils/profileCompletion'
 import { SETUP_PATHS } from '../setupPaths'
 import { submitPhone } from '../submitRental'
 import { SetupPageShell, SetupPrimaryButton } from './SetupPageShell'
@@ -33,7 +38,11 @@ export function PhoneSetupScreen() {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['score-profile'] })
       toast.success('Your phone number has been saved.', 'Saved')
-      router.push(SETUP_PATHS.dashboard)
+      const freshUser = await getMe()
+      const nextPath = needsIdentityVerification(freshUser)
+        ? getIdentityVerificationPath(SETUP_PATHS.dashboard)
+        : SETUP_PATHS.dashboard
+      router.push(nextPath)
     },
     onError: (err: Error) => {
       toast.error(err.message || 'Failed to save. Please try again.', 'Error')
