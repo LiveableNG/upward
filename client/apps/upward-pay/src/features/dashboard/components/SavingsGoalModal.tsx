@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
+import { formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 
 interface SavingsGoalModalProps {
   onDone: () => void
@@ -57,11 +58,13 @@ export function SavingsGoalModal({ onDone, onSkip, existingGoal }: SavingsGoalMo
   })
 
   const handleFinalSave = () => {
+    const parsedGoal = parseCurrencyInput(goal) ?? 0
+    const parsedAutoSaveAmount = parseCurrencyInput(autoSaveAmount) ?? 0
     saveGoal.mutate({
       name: existingGoal?.name || 'Rent Savings',
-      targetAmount: Number(goal),
+      targetAmount: parsedGoal,
       autoSaveEnabled: autoSave,
-      autoSaveAmount: autoSave ? Number(autoSaveAmount) : undefined,
+      autoSaveAmount: autoSave ? parsedAutoSaveAmount : undefined,
       reminderEnabled,
       reminderFrequency: reminderEnabled ? reminderFrequency : undefined,
       reminderDay: reminderEnabled ? Number(reminderDay) : undefined,
@@ -183,8 +186,8 @@ export function SavingsGoalModal({ onDone, onSkip, existingGoal }: SavingsGoalMo
                 {PRESETS.map((preset) => (
                   <button
                     key={preset}
-                    className={`savings-preset ${goal === String(preset) ? 'savings-preset--active' : ''}`}
-                    onClick={() => setGoal(String(preset))}
+                    className={`savings-preset ${(parseCurrencyInput(goal) ?? 0) === preset ? 'savings-preset--active' : ''}`}
+                    onClick={() => setGoal(formatCurrencyInput(preset))}
                   >
                     ₦{preset.toLocaleString()}
                   </button>
@@ -193,16 +196,17 @@ export function SavingsGoalModal({ onDone, onSkip, existingGoal }: SavingsGoalMo
               <div className="savings-input">
                 <span className="savings-input__symbol">₦</span>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   className="savings-input__field"
                   placeholder="Enter your goal amount"
                   value={goal}
-                  onChange={(e) => setGoal(e.target.value)}
+                  onChange={(e) => setGoal(formatCurrencyInput(parseCurrencyInput(e.target.value) ?? 0))}
                 />
               </div>
               <button
                 className="btn btn--primary btn--full"
-                disabled={!goal || Number(goal) < 1000}
+                disabled={(parseCurrencyInput(goal) ?? 0) < 1000}
                 onClick={() => setStep('auto')}
               >
                 Continue
@@ -212,7 +216,7 @@ export function SavingsGoalModal({ onDone, onSkip, existingGoal }: SavingsGoalMo
             <>
               <p className="modal-card__text">
                 Would you like Upward to automatically set aside savings toward your rent goal of{' '}
-                <strong>₦{Number(goal).toLocaleString()}</strong>?
+                <strong>₦{formatCurrencyInput(parseCurrencyInput(goal) ?? 0) || '0'}</strong>?
               </p>
               <div
                 className={`autosave-toggle ${autoSave ? 'autosave-toggle--on' : ''}`}
@@ -251,12 +255,15 @@ export function SavingsGoalModal({ onDone, onSkip, existingGoal }: SavingsGoalMo
                       ₦
                     </span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       className="savings-input__field"
                       style={{ paddingLeft: 30 }}
                       placeholder="e.g. 50,000"
                       value={autoSaveAmount}
-                      onChange={(e) => setAutoSaveAmount(e.target.value)}
+                      onChange={(e) =>
+                        setAutoSaveAmount(formatCurrencyInput(parseCurrencyInput(e.target.value) ?? 0))
+                      }
                     />
                   </div>
                   <p className="input-hint">How much should we automatically set aside for you?</p>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { LandlordAvatar } from './LandlordAvatar'
 import { PayFlowPrimaryButton } from './PayPageShell'
 import { type Landlord, type LineItem } from './types'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import { Plus, Trash2, Info } from 'lucide-react'
 
 const COMMON_LABELS = [
@@ -215,8 +215,9 @@ export function StepAmount({
       newItems[index].label = String(val)
     } else {
       if (newItems[index].label === 'Processing Fee' || newItems[index].label === 'Rent') return
-      let numVal = Number(val)
-      if (isNaN(numVal)) numVal = 0
+      const parsed =
+        typeof val === 'string' ? parseCurrencyInput(val) : Number.isFinite(Number(val)) ? Number(val) : null
+      let numVal = parsed ?? 0
 
       if ((newItems[index].label === 'Rent' || index === 0) && propertyBalance) {
         if (numVal > propertyBalance.remainingBalance) {
@@ -290,9 +291,10 @@ export function StepAmount({
                 <span className="pay-flow__line-item-divider" />
                 <span className="pay-flow__line-item-currency">₦</span>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   placeholder="0"
-                  value={item.amount || ''}
+                  value={formatCurrencyInput(Number(item.amount) || 0)}
                   onChange={e => updateLineItem(idx, e.target.value, 'amount')}
                   className="pay-flow__line-item-amount"
                   readOnly={item.label === 'Processing Fee' || item.label === 'Rent'}
