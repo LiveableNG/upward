@@ -116,17 +116,8 @@ export default function WaitlistClient() {
           <p>We're preparing your priority access. Just a moment while we load your details...</p>
         </div>
       </div>
-      <div className="auth-layout__form flex-center">
+      <div className="auth-layout__form auth-flow-loader">
         <Loader2 className="animate-spin" size={40} color="var(--clay)" />
-        <style jsx>{`
-          .flex-center {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex: 1;
-            min-height: 100vh;
-          }
-        `}</style>
       </div>
     </div>
   )
@@ -144,7 +135,7 @@ export default function WaitlistClient() {
             Thanks for your patience on our waitlist. You're now ready to start
             building your rental credibility with Upward.
           </p>
-          <div className="visual-badge">
+          <div className="auth-visual-badge">
             <Sparkles size={16} />
             <span>Founding Member Access</span>
           </div>
@@ -171,7 +162,7 @@ export default function WaitlistClient() {
                 
                 <OnboardingFields formData={formData} setFormData={setFormData} />
 
-                <div className="auth-form__field mt-4">
+                <div className="auth-form__field">
                   <label>Set Password</label>
                   <div className="input-with-icon">
                     <Lock size={17} />
@@ -197,7 +188,7 @@ export default function WaitlistClient() {
                 </div>
 
 
-                <div className="auth-form__field mt-4">
+                <div className="auth-form__field">
                   <label>Confirm Password</label>
                   <div className="input-with-icon">
                     <Lock size={17} />
@@ -220,20 +211,20 @@ export default function WaitlistClient() {
                     )}
                   </div>
                   {formData.confirmPassword.length > 0 && formData.confirmPassword !== formData.password && (
-                    <div className="field-hint field-hint--error">
-                      <AlertCircle size={12} /> Passwords don't match
+                    <div className="auth-field-hint auth-field-hint--error">
+                      <AlertCircle size={12} /> Passwords don&apos;t match
                     </div>
                   )}
                 </div>
 
-                <div className="form-info-box mt-6">
+                <div className="auth-form-info auth-u-mt-6">
                   <ShieldCheck size={18} color="var(--success)" strokeWidth={2.5} />
                   <p>Your data is protected and encrypted.</p>
                 </div>
 
-                <button 
-                  className="btn btn--primary btn--full btn--pay mt-8" 
-                  type="submit" 
+                <button
+                  className="btn btn--primary btn--full btn--pay auth-form__mt-8"
+                  type="submit"
                   disabled={
                     isSubmitting || 
                     !formData.password || 
@@ -247,53 +238,6 @@ export default function WaitlistClient() {
               </form>
             </div>
           </div>
-
-          <style jsx>{`
-            .mt-4 { margin-top: 16px; }
-            .mt-6 { margin-top: 24px; }
-            .mt-8 { margin-top: 32px; }
-            .form-info-box {
-              background: var(--surface);
-              border: 1px solid var(--border-solid);
-              padding: 12px;
-              border-radius: var(--radius-md);
-              display: flex;
-              gap: 10px;
-              align-items: center;
-            }
-            .form-info-box p {
-              font-size: 13px;
-              color: var(--text-secondary);
-              line-height: 1.4;
-              margin: 0;
-            }
-            .animate-pop {
-              animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            }
-            @keyframes pop {
-              0% { transform: scale(0.95); opacity: 0; }
-              100% { transform: scale(1); opacity: 1; }
-            }
-            .visual-badge {
-              display: inline-flex;
-              align-items: center;
-              gap: 8px;
-              background: rgba(255,255,255,0.1);
-              padding: 8px 16px;
-              border-radius: 100px;
-              font-size: 12px;
-              font-weight: 600;
-              color: white;
-              margin-top: 24px;
-              backdrop-filter: blur(4px);
-              border: 1px solid rgba(255,255,255,0.1);
-            }
-            .input--error { border-color: var(--error) !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.1) !important; }
-            .input--match { border-color: #22c55e !important; box-shadow: 0 0 0 3px rgba(34,197,94,0.1) !important; }
-            .match-icon { position: absolute; right: 12px; color: #22c55e; pointer-events: none; }
-            .field-hint { display: flex; align-items: center; gap: 4px; font-size: 11px; margin-top: 5px; }
-            .field-hint--error { color: var(--error); }
-          `}</style>
         </div>
       </div>
     </div>

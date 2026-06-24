@@ -150,7 +150,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
         createdAt: new Date().toISOString(),
         isRead: false,
         isDynamic: true,
-        url: '/dashboard/me?view=personal',
+        url: '/dashboard/setup',
         icon: <UserCircle size={16} />
       })
     }
@@ -312,7 +312,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
           z-index: 10001; /* Higher than sticky headers */
           display: flex;
           flex-direction: column;
-          box-shadow: -10px 0 30px rgba(0,0,0,0.2);
+          box-shadow: -16px 0 34px rgba(60, 40, 20, 0.18);
           animation: slideIn 0.3s ease-out;
           overflow: hidden; /* Ensure content doesn't bleed out of rounded corners */
         }
@@ -343,7 +343,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
         .notification-panel__header {
           padding: 24px 20px 0;
           border-bottom: 1px solid var(--border-solid);
-          background: var(--surface);
+          background: var(--shell-page-bg, #faf8f5);
         }
 
         .notification-panel__header-top {
@@ -360,9 +360,9 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
         }
 
         .notification-panel__close {
-          background: var(--surface2);
+          background: #fff;
           border: none;
-          color: var(--text-muted);
+          color: #7a7268;
           width: 32px;
           height: 32px;
           border-radius: 50%;
@@ -377,9 +377,9 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
           gap: 8px;
           margin-bottom: 16px;
           padding: 4px;
-          background: var(--bg);
+          background: #f0e9df;
           border-radius: 14px;
-          border: 1px solid var(--border-solid);
+          border: 1px solid #e9dfd3;
         }
         
         .notification-panel__tab {
@@ -387,8 +387,8 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
           border-radius: 10px;
           border: 1px solid transparent;
           background: transparent;
-          color: var(--text-muted);
-          font-size: 0.8rem;
+          color: #8a8178;
+          font-size: 12px;
           font-weight: 700;
           cursor: pointer;
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -398,16 +398,16 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
         }
 
         .notification-panel__tab:hover {
-          background: var(--surface);
-          border-color: var(--text-muted);
-          color: var(--text);
+          background: #fff;
+          border-color: #eadfd4;
+          color: #5c544b;
         }
 
         .notification-panel__tab.active {
-          background: var(--clay);
-          border-color: var(--clay);
+          background: var(--skin-primary, #c2501f);
+          border-color: var(--skin-primary, #c2501f);
           color: #fff;
-          box-shadow: 0 4px 12px var(--clay-glow);
+          box-shadow: 0 4px 10px rgba(194, 80, 31, 0.28);
           transform: translateY(-1px);
         }
 
@@ -436,7 +436,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
           overflow-y: auto;
           overflow-x: hidden;
           padding: 20px;
-          background: var(--bg);
+          background: var(--shell-page-bg, #faf8f5);
           position: relative;
           min-height: 0; /* Critical for flex scroll */
         }
@@ -455,8 +455,8 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
         }
 
         .notification-card {
-          background: var(--surface);
-          border: 1px solid var(--border-solid);
+          background: #fff;
+          border: 1px solid var(--shell-border, #f0e9df);
           border-radius: 16px;
           padding: 16px;
           margin-bottom: 12px;
@@ -466,12 +466,12 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
 
         .notification-card:hover {
           border-color: var(--clay);
-          transform: translateY(-2px);
+          transform: translateY(-1px);
         }
 
         .notification-card.unread {
-          background: var(--surface2);
-          border-color: rgba(217, 119, 87, 0.15);
+          background: #fbede5;
+          border-color: rgba(194, 80, 31, 0.22);
         }
 
         .notification-card__body {
@@ -487,13 +487,13 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: var(--clay-faint);
-          color: var(--clay);
+          background: #fbede5;
+          color: var(--skin-primary, #c2501f);
         }
 
-        .notification-card__icon-wrap.type-payment { color: var(--clay); background: var(--clay-faint); }
-        .notification-card__icon-wrap.type-support { color: var(--clay); background: var(--clay-faint); }
-        .notification-card__icon-wrap.type-rent_reminder { color: var(--clay); background: var(--clay-faint); }
+        .notification-card__icon-wrap.type-payment { color: var(--skin-primary, #c2501f); background: #fbede5; }
+        .notification-card__icon-wrap.type-support { color: var(--skin-primary, #c2501f); background: #fbede5; }
+        .notification-card__icon-wrap.type-rent_reminder { color: var(--skin-primary, #c2501f); background: #fbede5; }
 
         .notification-card__info {
           flex: 1;
@@ -507,7 +507,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
         }
 
         .notification-card__title {
-          font-size: 0.95rem;
+          font-size: 14px;
           font-weight: 700;
           color: var(--text);
         }
@@ -515,14 +515,14 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
         .unread-dot {
           width: 8px;
           height: 8px;
-          background: var(--error);
+          background: var(--skin-primary, #c2501f);
           border-radius: 50%;
-          box-shadow: 0 0 0 2px var(--surface);
+          box-shadow: 0 0 0 2px #fff;
         }
 
         .notification-card__msg {
-          font-size: 0.85rem;
-          color: var(--text-muted);
+          font-size: 12.5px;
+          color: #7a7268;
           line-height: 1.5;
           margin-bottom: 12px;
         }
@@ -556,8 +556,8 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
         }
 
         .notification-card__time {
-          font-size: 0.75rem;
-          color: var(--text-muted);
+          font-size: 11.5px;
+          color: #a9a096;
           font-weight: 500;
         }
 
@@ -565,9 +565,9 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
           display: flex;
           align-items: center;
           gap: 4px;
-          font-size: 0.85rem;
+          font-size: 12.5px;
           font-weight: 600;
-          color: var(--clay);
+          color: var(--skin-primary, #c2501f);
         }
 
         .notification-panel__loading {

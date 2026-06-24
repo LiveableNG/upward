@@ -1,0 +1,968 @@
+/* Dashboard home — prototype stack (mobile + desktop) */
+
+@media (max-width: 1023px) {
+  .dashboard--proto-home .mobile-header-sticky .dashboard__email {
+    display: none;
+  }
+}
+
+.dash-home {
+  padding: 0 var(--space-5) 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dash-home__main,
+.dash-home__aside,
+.dash-home__wide {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dash-home__main > *,
+.dash-home__aside > *,
+.dash-home__wide > * {
+  margin-top: 0;
+}
+
+/* Activity center — existing feature, prototype skin */
+.dash-home__activity-center {
+  margin-bottom: 0;
+  background: #fff;
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 16px;
+  padding: 14px 14px 12px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.dash-home__activity-center .activity-center__header {
+  margin-bottom: 10px;
+}
+
+.dash-home__activity-center .activity-center__title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text, #1a1714);
+  letter-spacing: normal;
+}
+
+.dash-home__activity-center .activity-center__see-all {
+  font-size: 12.5px;
+  color: #7a7268;
+  font-weight: 700;
+  background: #f7f2eb;
+  border: 1px solid #ece4d9;
+  border-radius: 99px;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dash-home__activity-center .activity-center__badge {
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--skin-primary, #c2501f);
+}
+
+.dash-home .action-carousel--proto .action-carousel__slide {
+  background: #fff !important;
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+  animation: none !important;
+  overflow: visible;
+}
+
+.dash-home .action-carousel--proto .action-carousel__slide.is-critical {
+  background: #fef2f2 !important;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.dash-home .action-carousel--proto .action-carousel__slide.is-pending:not(.is-critical) {
+  background: var(--shell-tint, #fbede5) !important;
+  border-color: rgba(194, 80, 31, 0.2);
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.dash-home .action-carousel--proto .action-carousel__slide.is-pending:not(.is-critical)::after {
+  display: none;
+}
+
+.dash-home .action-carousel--proto .action-carousel__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text, #1a1714) !important;
+}
+
+.dash-home .action-carousel--proto .action-carousel__desc {
+  font-size: 12.5px;
+  color: var(--shell-ink-muted, #7a7268) !important;
+  line-height: 1.4;
+}
+
+.dash-home .action-carousel--proto .action-carousel__slide.is-critical .action-carousel__title,
+.dash-home .action-carousel--proto .action-carousel__slide.is-critical .action-carousel__desc {
+  color: #991b1b !important;
+}
+
+.dash-home .action-carousel--proto .action-carousel__icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.65);
+  flex-shrink: 0;
+}
+
+.dash-home .action-carousel--proto .action-carousel__btn {
+  margin-top: 10px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 11px;
+  background: var(--skin-primary, #c2501f);
+  color: #fff;
+  border: none;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: none;
+}
+
+.dash-home .action-carousel--proto .action-carousel__slide.is-critical .action-carousel__btn {
+  background: #fff;
+  color: var(--error, #dc2626);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.dash-home .action-carousel--proto .action-carousel__nav {
+  margin-top: 10px;
+}
+
+.dash-home .action-carousel--proto .action-carousel__nav-btn {
+  border: 1px solid var(--shell-border, #f0e9df);
+  background: #fff;
+  border-radius: 50%;
+}
+
+.dash-home .action-carousel--proto .action-carousel__dot {
+  background: #e5dbcf;
+}
+
+.dash-home .action-carousel--proto .action-carousel__dot--active {
+  background: var(--skin-primary, #c2501f);
+}
+
+/* Performance metrics — existing hub stats, prototype card row */
+.dash-home__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.dash-home__metric {
+  background: #fff;
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 13px;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.dash-home__metric-icon--active {
+  color: var(--skin-primary, #c2501f);
+}
+
+.dash-home__metric-icon--muted {
+  color: var(--shell-muted, #a9a096);
+}
+
+.dash-home__metric-val {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text, #1a1714);
+  line-height: 1;
+}
+
+.dash-home__metric-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--shell-muted, #a9a096);
+}
+
+.dash-home__insights {
+  margin-top: 12px;
+  background: #fff;
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.dash-home__insight + .dash-home__insight {
+  margin-top: 14px;
+}
+
+.dash-home__insight-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text, #1a1714);
+}
+
+.dash-home__records-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #f4eee5;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--skin-primary, #c2501f);
+  cursor: pointer;
+}
+
+.dash-home__records-link span {
+  flex: 1;
+  text-align: left;
+}
+
+/* Legacy widgets — existing features, prototype card skin */
+.dash-home__legacy-card {
+  margin-top: 14px;
+}
+
+.dash-home__legacy-card .share-cred {
+  background: #fff;
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+  margin: 0;
+}
+
+.dash-home__legacy-card .share-cred__title {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.dash-home__legacy-card .share-cred__desc {
+  font-size: 12.5px;
+  color: var(--shell-ink-muted, #7a7268);
+  line-height: 1.5;
+}
+
+.dash-home__legacy-card .share-cred .btn--primary {
+  background: var(--skin-primary, #c2501f);
+  border-radius: 13px;
+  height: 46px;
+  font-weight: 700;
+}
+
+.dash-home__legacy-card--widget .upcoming-widget {
+  margin: 0;
+}
+
+/* Score hero */
+.dash-home__score {
+  background: var(--skin-primary, #c2501f);
+  border-radius: 20px;
+  padding: 22px;
+  color: #fff;
+  box-shadow: 0 18px 34px -16px rgba(194, 80, 31, 0.6);
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.dash-home__score:active {
+  transform: scale(0.995);
+}
+
+.dash-home__score-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dash-home__score-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.dash-home__score-value-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.dash-home__score-value {
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 0.9;
+}
+
+.dash-home__score-max {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.8;
+  margin-bottom: 4px;
+}
+
+.dash-home__score-sub {
+  font-size: 12.5px;
+  font-weight: 600;
+  opacity: 0.9;
+  margin-top: 6px;
+}
+
+.dash-home__score-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 11px;
+  background: rgba(255, 255, 255, 0.16);
+  padding: 4px 11px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.dash-home__score-ring {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dash-home__score-ring-inner {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  background: var(--skin-primary, #c2501f);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-home__score-band {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.85;
+  text-transform: uppercase;
+}
+
+.dash-home__score-rank {
+  font-size: 10px;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+/* Quick actions */
+.dash-home__actions {
+  display: flex;
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.dash-home__action {
+  flex: 1;
+  height: 46px;
+  border-radius: 13px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
+}
+
+.dash-home__action:active {
+  transform: scale(0.98);
+}
+
+.dash-home__action--primary {
+  background: var(--skin-primary, #c2501f);
+  color: #fff;
+  border: none;
+}
+
+.dash-home__action--primary:hover {
+  background: var(--skin-primary-hover, #a8410f);
+}
+
+.dash-home__action--secondary {
+  background: #fff;
+  color: #1a1714;
+  border: 1.5px solid #e5dbcf;
+}
+
+/* Rent due card */
+.dash-home__rent-due {
+  margin-top: 14px;
+  background: #fff;
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 16px;
+  padding: 17px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  transition: transform 0.15s ease;
+}
+
+.dash-home__rent-due:active {
+  transform: scale(0.995);
+}
+
+.dash-home__rent-due--overdue {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: #fffbfb;
+}
+
+.dash-home__rent-due-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--shell-muted, #a9a096);
+  font-weight: 700;
+}
+
+.dash-home__rent-due-amount {
+  font-size: 20px;
+  font-weight: 800;
+  margin-top: 6px;
+  color: var(--text, #1a1714);
+}
+
+.dash-home__rent-due-meta {
+  font-size: 13px;
+  color: var(--shell-ink-muted, #7a7268);
+  margin-top: 3px;
+}
+
+.dash-home__rent-due-badge {
+  text-align: center;
+  background: var(--shell-tint, #fbede5);
+  border-radius: 12px;
+  padding: 10px 12px;
+  flex-shrink: 0;
+}
+
+.dash-home__rent-due-badge--overdue {
+  background: #fef2f2;
+}
+
+.dash-home__rent-due-days {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--skin-primary, #c2501f);
+  line-height: 1;
+}
+
+.dash-home__rent-due-days--overdue {
+  color: var(--error, #dc2626);
+}
+
+.dash-home__rent-due-days-label {
+  font-size: 10px;
+  color: var(--skin-primary, #c2501f);
+  font-weight: 700;
+  margin-top: 3px;
+}
+
+.dash-home__rent-due-days-label--overdue {
+  color: var(--error, #dc2626);
+}
+
+/* Section headers */
+.dash-home__section-head {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 13px;
+}
+
+.dash-home__section-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text, #1a1714);
+  margin: 0;
+}
+
+.dash-home__section-link {
+  font-size: 13px;
+  color: var(--skin-primary, #c2501f);
+  font-weight: 700;
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Savings goals */
+.dash-home__savings-card {
+  background: #fff;
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.dash-home__savings-empty {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.dash-home__savings-empty p {
+  font-size: 13px;
+  color: var(--shell-ink-muted, #7a7268);
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.dash-home__savings-empty-btn {
+  height: 42px;
+  padding: 0 22px;
+  border-radius: 11px;
+  background: var(--skin-primary, #c2501f);
+  color: #fff;
+  border: none;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.dash-home__goal + .dash-home__goal {
+  margin-top: 16px;
+}
+
+.dash-home__goal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.dash-home__goal-name {
+  font-weight: 700;
+  font-size: 14.5px;
+}
+
+.dash-home__goal-amounts {
+  font-size: 12.5px;
+  color: var(--shell-ink-muted, #7a7268);
+  font-weight: 600;
+}
+
+.dash-home__goal-bar {
+  height: 9px;
+  border-radius: 99px;
+  background: #efe8df;
+  overflow: hidden;
+}
+
+.dash-home__goal-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--skin-primary, #c2501f);
+}
+
+.dash-home__goal-fill--teal {
+  background: var(--skin-teal, #1c4a43);
+}
+
+.dash-home__goal-pct {
+  font-size: 11.5px;
+  color: var(--shell-muted, #a9a096);
+  margin-top: 6px;
+  font-weight: 700;
+}
+
+/* Credibility nudge */
+.dash-home__nudge {
+  margin-top: 16px;
+  background: var(--skin-teal, #1c4a43);
+  border-radius: 16px;
+  padding: 17px 18px;
+  display: flex;
+  gap: 13px;
+  align-items: center;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  color: #fff;
+  transition: transform 0.15s ease;
+}
+
+.dash-home__nudge:active {
+  transform: scale(0.995);
+}
+
+.dash-home__nudge-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dash-home__nudge-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.dash-home__nudge-desc {
+  font-size: 12.5px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.dash-home__nudge-chevron {
+  margin-left: auto;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+/* Coming soon card — removed (Discover is prototype-only) */
+
+/* Recent activity */
+.dash-home__activity-card {
+  background: #fff;
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.dash-home__activity-empty {
+  border: 1px dashed #e2d9cc;
+  border-radius: 16px;
+  padding: 30px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: #fff;
+}
+
+.dash-home__activity-empty-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #f5f0e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  color: var(--shell-muted, #a9a096);
+}
+
+.dash-home__activity-empty-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  margin-top: 13px;
+}
+
+.dash-home__activity-empty-desc {
+  font-size: 13px;
+  color: var(--shell-muted, #a9a096);
+  margin-top: 5px;
+  line-height: 1.5;
+  max-width: 230px;
+}
+
+.dash-home__activity-empty-btn {
+  margin-top: 15px;
+  height: 42px;
+  padding: 0 22px;
+  border-radius: 11px;
+  background: var(--skin-primary, #c2501f);
+  color: #fff;
+  border: none;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.dash-home__activity-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+
+.dash-home__activity-item + .dash-home__activity-item {
+  border-top: 1px solid #f4eee5;
+}
+
+.dash-home__activity-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dash-home__activity-item-icon--debit {
+  background: var(--clay-faint, rgba(194, 80, 31, 0.12));
+  color: var(--skin-primary, #c2501f);
+}
+
+.dash-home__activity-item-icon--credit {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success, #16a34a);
+}
+
+.dash-home__activity-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-home__activity-item-title {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-home__activity-item-meta {
+  font-size: 12px;
+  color: var(--shell-muted, #a9a096);
+  margin-top: 2px;
+}
+
+.dash-home__activity-item-amount {
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-home__activity-item-amount--credit {
+  color: var(--success, #16a34a);
+}
+
+/* App install banner — existing desktop feature, prototype card skin */
+.dash-home__app-banner {
+  display: none;
+}
+
+.dash-home__app-banner-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: var(--shell-tint, #fbede5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--skin-primary, #c2501f);
+  margin-bottom: 12px;
+}
+
+.dash-home__app-banner-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text, #1a1714);
+  margin: 0 0 6px;
+}
+
+.dash-home__app-banner-desc {
+  font-size: 12.5px;
+  color: var(--shell-ink-muted, #7a7268);
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+
+.dash-home__app-banner-btns {
+  display: flex;
+  gap: 10px;
+}
+
+.dash-home__app-store-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 42px;
+  border-radius: 11px;
+  border: 1.5px solid #e5dbcf;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text, #1a1714);
+  cursor: pointer;
+}
+
+.dash-home__app-banner-dismiss {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--shell-border, #f0e9df);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--shell-muted, #a9a096);
+  cursor: pointer;
+}
+
+/* ── Desktop layout ── */
+@media (min-width: 1024px) {
+  .dashboard--proto-home.dashboard {
+    padding: 0 32px 32px;
+    max-width: 1240px;
+    margin: 0 auto;
+  }
+
+  .dash-home {
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    grid-template-areas:
+      'alert alert'
+      'main aside'
+      'wide wide';
+    gap: 20px;
+    align-items: start;
+  }
+
+  .dash-home__activity-center {
+    grid-area: alert;
+    margin-bottom: 0;
+  }
+
+  .dash-home__main {
+    grid-area: main;
+  }
+
+  .dash-home__aside {
+    grid-area: aside;
+  }
+
+  .dash-home__wide {
+    grid-area: wide;
+  }
+
+  .dash-home__score {
+    padding: 26px;
+  }
+
+  .dash-home__score-value {
+    font-size: 44px;
+  }
+
+  .dash-home__section-head {
+    margin-top: 0;
+  }
+
+  .dash-home__legacy-card {
+    margin-top: 0;
+  }
+
+  .dash-home__app-banner {
+    display: block;
+    position: relative;
+    background: #fff;
+    border: 1px solid var(--shell-border, #f0e9df);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+  }
+
+  .dash-home__activity-card {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+  }
+
+  .dash-home__activity-item {
+    flex-direction: column;
+    align-items: flex-start;
+    height: 100%;
+    border-top: none;
+    border-right: 1px solid #f4eee5;
+    padding: 18px;
+  }
+
+  .dash-home__activity-item:last-child {
+    border-right: none;
+  }
+
+  .dash-home__activity-item + .dash-home__activity-item {
+    border-top: none;
+  }
+
+  .dash-home__activity-item-amount {
+    margin-top: 8px;
+  }
+}

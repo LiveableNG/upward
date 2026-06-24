@@ -5,6 +5,7 @@
   "description": "Upward by GoodTenants — monorepo root",
   "scripts": {
     "dev": "turbo run dev",
+    "dev:check": "node scripts/verify-dev-ports.mjs",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",

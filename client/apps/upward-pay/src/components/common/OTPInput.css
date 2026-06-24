@@ -1,40 +1,48 @@
 .otp-container {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--space-6);
   position: relative;
   width: 100%;
   max-width: 440px;
   margin: 0 auto;
-  padding: var(--space-6);
+  padding: 0;
 }
 
 .otp-header {
-  text-align: center;
+  text-align: left;
 }
 
 .otp-header h2 {
-  font-size: var(--text-2xl);
+  font-size: 25px;
   font-weight: 800;
-  color: var(--text);
-  margin-bottom: var(--space-2);
+  color: var(--auth-text, var(--text));
+  letter-spacing: -0.02em;
+  margin-bottom: 7px;
+  font-family: var(--font-auth, var(--font));
 }
 
 .otp-header p {
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  line-height: 1.6;
+  color: var(--auth-muted, var(--text-secondary));
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+
+.otp-header strong {
+  color: var(--auth-text, var(--text));
+  font-weight: 700;
 }
 
 .otp-change-email {
   background: none;
   border: none;
-  color: var(--clay);
+  color: var(--auth-primary, var(--clay));
   font-size: var(--text-xs);
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   margin-top: var(--space-2);
   padding: var(--space-1);
+  font-family: var(--font-auth, var(--font));
 }
 
 .otp-change-email:hover {
@@ -44,28 +52,31 @@
 .otp-inputs {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: var(--space-4);
-  margin: var(--space-6) 0;
+  gap: 9px;
+  margin: 28px 0 0;
 }
 
 .otp-inputs input {
   width: 100%;
-  aspect-ratio: 1;
+  height: 58px;
+  aspect-ratio: auto;
   text-align: center;
-  font-size: var(--text-xl);
-  font-weight: 700;
-  border: 2px solid var(--border-solid);
-  background: var(--surface);
-  border-radius: var(--radius-md);
-  color: var(--text);
+  font-size: 23px;
+  font-weight: 800;
+  border: 1.5px solid var(--auth-input-border, #EAEBEE);
+  background: var(--auth-input-bg, #F6F7F9);
+  border-radius: 13px;
+  color: var(--auth-text, var(--text));
   transition: all 0.2s ease;
+  font-family: var(--font-auth, var(--font));
 }
 
 .otp-inputs input:focus {
   outline: none;
-  border-color: var(--clay);
-  background: var(--bg);
-  box-shadow: 0 0 0 4px var(--clay-glow);
+  border-color: var(--auth-primary, var(--clay));
+  background: var(--auth-tint, #FBEDE5);
+  color: var(--auth-primary, var(--clay));
+  box-shadow: none;
 }
 
 .otp-inputs--error input {
@@ -87,17 +98,18 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  margin-top: 22px;
 }
 
 .otp-timer {
-  color: var(--text-muted);
-  font-size: var(--text-xs);
+  color: var(--auth-muted, var(--text-muted));
+  font-size: 13.5px;
 }
 
 .otp-resend-btn {
   background: none;
   border: none;
-  color: var(--clay);
+  color: var(--auth-primary, var(--clay));
   font-weight: 700;
   font-size: var(--text-sm);
   cursor: pointer;
@@ -107,19 +119,20 @@
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
   transition: all 0.2s ease;
+  font-family: var(--font-auth, var(--font));
 }
 
 .otp-resend-btn:hover:not(:disabled) {
-  background: var(--clay-glow);
+  background: var(--auth-tint, #FBEDE5);
 }
 
 .otp-resend-btn:disabled {
-  color: var(--text-muted);
+  color: #A6A6A6;
   cursor: not-allowed;
 }
 
 .otp-limit-msg {
-  color: var(--text-muted);
+  color: var(--auth-muted, var(--text-muted));
   font-size: var(--text-xs);
   margin-top: var(--space-2);
 }
@@ -127,7 +140,7 @@
 .otp-loading-overlay {
   position: absolute;
   inset: -10px;
-  background: rgba(var(--bg-rgb), 0.7);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -138,7 +151,7 @@
 
 .animate-spin {
   animation: spin 1s linear infinite;
-  color: var(--clay);
+  color: var(--auth-primary, var(--clay));
 }
 
 @keyframes spin {
@@ -154,6 +167,11 @@
 
 @media (max-width: 480px) {
   .otp-inputs {
-    gap: var(--space-2);
+    gap: 7px;
+  }
+
+  .otp-inputs input {
+    height: 52px;
+    font-size: 20px;
   }
 }

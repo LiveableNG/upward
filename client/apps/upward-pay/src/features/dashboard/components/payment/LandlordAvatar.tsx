@@ -2,6 +2,7 @@ import React from 'react'
 import { User } from 'lucide-react'
 
 export function LandlordAvatar({
+  letter,
   size = 44,
   color,
   style,
@@ -11,24 +12,27 @@ export function LandlordAvatar({
   color?: string
   style?: React.CSSProperties
 }) {
+  const isPm = !!color
+  const className = ['pay-flow__avatar', size >= 48 ? 'pay-flow__avatar--lg' : '', isPm ? 'pay-flow__avatar--pm' : '']
+    .filter(Boolean)
+    .join(' ')
+
   return (
     <div
+      className={className}
       style={{
         width: size,
         height: size,
-        borderRadius: '12px',
-        background: color || 'rgba(217, 119, 87, 0.08)',
-        color: color ? '#fff' : 'var(--clay)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: size * 0.4,
-        flexShrink: 0,
-        border: `1px solid ${color ? 'transparent' : 'rgba(217, 119, 87, 0.15)'}`,
+        fontSize: size * 0.36,
+        ...(color ? { background: color, color: '#fff', borderColor: 'transparent' } : {}),
         ...style,
       }}
     >
-      <User size={size * 0.5} strokeWidth={2.5} />
+      {letter ? (
+        <span>{letter.toUpperCase()}</span>
+      ) : (
+        <User size={size * 0.45} strokeWidth={2.5} />
+      )}
     </div>
   )
 }

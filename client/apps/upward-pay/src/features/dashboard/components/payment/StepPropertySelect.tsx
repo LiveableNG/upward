@@ -1,124 +1,132 @@
 import React from 'react'
 import { Home, ChevronRight, AlertCircle, Plus } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 
 export function StepPropertySelect({
   properties,
+  pending = [],
   onSelect,
+  onAddProperty,
+  onSelectPending,
 }: {
   properties: any[]
+  pending?: any[]
   onSelect: (prop: any) => void
+  onAddProperty: () => void
+  onSelectPending?: (p: any) => void
 }) {
-  const router = useRouter()
-
   if (properties.length === 0) {
     return (
-      <div style={{ padding: '40px 24px', textAlign: 'center' }}>
-        <div style={{ 
-          width: 64, height: 64, borderRadius: '50%', background: 'var(--clay-faint)', 
-          display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
-          color: 'var(--clay)'
-        }}>
+      <div className="pay-flow__empty">
+        <div className="pay-flow__empty-icon">
           <Home size={32} />
         </div>
-        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>No Properties Linked</h3>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 24 }}>
-          To build your credit score, we need to know which property you're paying for. Please add your property info first.
+        <h3 className="pay-flow__empty-title">No Properties Linked</h3>
+        <p className="pay-flow__empty-text">
+          To build your credit score, we need to know which property you&apos;re paying for. Please add your property
+          info first.
         </p>
-        <button 
-          className="btn btn--primary btn--full btn--pill"
-          onClick={() => router.push('/dashboard/me')}
-        >
-          Add Property Info
+        <button type="button" className="pay-flow__cta" onClick={onAddProperty}>
+          Add Property
         </button>
       </div>
     )
   }
 
   return (
-    <div style={{ padding: '0 20px 32px' }}>
-      <div style={{ padding: '12px 0 20px' }}>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-          Select the property you are making a payment for to ensure your credit score is updated correctly.
-        </p>
-      </div>
+    <div>
+      {pending.length > 0 && (
+        <section className="pay-flow__section">
+          <p className="pay-flow__section-label">Pending Invoices</p>
+          {pending.map((p) => (
+            <div
+              key={p.uuid}
+              role="button"
+              tabIndex={0}
+              className="pay-flow__card pay-flow__card--pending"
+              onClick={() => onSelectPending?.(p)}
+              onKeyDown={(e) => e.key === 'Enter' && onSelectPending?.(p)}
+            >
+              <div className="pay-flow__card-icon pay-flow__card-icon--primary">
+                <ChevronRight size={20} />
+              </div>
+              <div className="pay-flow__card-body">
+                <div className="pay-flow__card-title">{p.company_name || p.description || 'Invoice'}</div>
+                <div className="pay-flow__card-meta">
+                  {p.manager_name && <span>{p.manager_name} · </span>}
+                  {new Intl.NumberFormat('en-NG', {
+                    style: 'currency',
+                    currency: p.currency || 'NGN',
+                  }).format((p.total_amount || p.amount || 0) - (p.amountPaid || 0))}
+                </div>
+              </div>
+              {(p.due_date || p.dueDate) && (
+                <span className="pay-flow__due-badge">
+                  DUE {new Date(p.due_date || p.dueDate).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+          ))}
+        </section>
+      )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <section className={`pay-flow__section${pending.length > 0 ? ' pay-flow__section--spaced' : ''}`}>
+        <p className="pay-flow__section-label">Your Properties</p>
+        <div className="pay-flow__property-list">
         {properties.map((prop) => {
           const loc = prop.location
           const fullAddr = [prop.address, loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
-          
+          const managerName =
+            prop.company?.name ||
+            prop.companyName ||
+            (prop.manager?.firstName ? `${prop.manager.firstName} ${prop.manager.lastName || ''}` : null) ||
+            prop.managerName ||
+            'Private Landlord'
+
           return (
             <button
               key={prop.uuid}
+              type="button"
+              className="pay-flow__card pay-flow__property-card"
               onClick={() => onSelect(prop)}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 16,
-                padding: '20px',
-                background: 'var(--bg)',
-                border: '1px solid var(--border-solid)',
-                borderRadius: '24px',
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--clay)'
-                e.currentTarget.style.transform = 'translateY(-2px)'
-                e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.05)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border-solid)'
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = 'none'
-              }}
             >
-              <div style={{
-                minWidth: 48, height: 48, borderRadius: 14, background: 'var(--surface)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--clay)'
-              }}>
-                <Home size={24} />
+              <div className="pay-flow__card-icon pay-flow__card-icon--home">
+                <Home size={22} />
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 2 }}>
-                  {prop.company?.name || 
-                   prop.companyName || 
-                   (prop.manager?.firstName ? `${prop.manager.firstName} ${prop.manager.lastName || ''}` : null) ||
-                   prop.managerName || 
-                   'Private Landlord'}
+              <div className="pay-flow__card-body">
+                <div className="pay-flow__card-title">
+                  {managerName}
                   {(prop.subaccount || prop.dedicatedAccount || prop.isVerified) && (
-                    <span style={{ 
-                      marginLeft: 8, padding: '2px 8px', background: 'var(--clay-faint)', 
-                      color: 'var(--clay)', borderRadius: 12, fontSize: 10, fontWeight: 800,
-                      textTransform: 'uppercase', letterSpacing: '0.05em', verticalAlign: 'middle',
-                      display: 'inline-flex', alignItems: 'center', gap: 4
-                    }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clay)' }} />
+                    <span className="pay-flow__badge">
+                      <span className="pay-flow__badge-dot" />
                       {prop.isVerified ? 'Verified' : 'Verified Recipient'}
                     </span>
                   )}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
-                  {fullAddr || 'Address not set'}
-                </div>
+                <div className="pay-flow__card-meta">{fullAddr || 'Address not set'}</div>
               </div>
-              <ChevronRight size={18} color="var(--text-muted)" />
+              <ChevronRight size={18} className="pay-flow__card-trailing" />
             </button>
           )
         })}
-      </div>
 
-      <div style={{ 
-        marginTop: 32, padding: 16, borderRadius: 20, background: 'var(--surface)', 
-        border: '1px solid var(--border-solid)', display: 'flex', gap: 12 
-      }}>
-        <AlertCircle size={18} color="var(--clay)" style={{ flexShrink: 0 }} />
-        <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-          On-time payments will help your credit score.
-        </p>
+        <button type="button" className="pay-flow__card pay-flow__card--dashed" onClick={onAddProperty}>
+          <div className="pay-flow__card-icon pay-flow__card-icon--soft">
+            <Plus size={22} />
+          </div>
+          <div className="pay-flow__card-body">
+            <div className="pay-flow__card-title">Add Property</div>
+            <div className="pay-flow__card-meta pay-flow__card-meta--muted">Pay rent for a new property</div>
+          </div>
+          <span className="pay-flow__card-trailing">
+            <ChevronRight size={18} />
+          </span>
+        </button>
+      </div>
+      </section>
+
+      <div className="pay-flow__tip">
+        <AlertCircle size={18} className="pay-flow__tip-icon" />
+        <p>On-time payments will help your credit score.</p>
       </div>
     </div>
   )

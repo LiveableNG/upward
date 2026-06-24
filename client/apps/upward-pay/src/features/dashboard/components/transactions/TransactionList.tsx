@@ -10,40 +10,67 @@ import {
   ArrowDownRight,
   Search,
   X,
-  Download,
 } from 'lucide-react'
 import { TransactionSkeleton } from './TransactionSkeleton'
+import { TransactionsPageShell } from './TransactionsPageShell'
 import { useDashboard } from '../../hooks/useDashboard'
-import { formatCurrency, groupTransactionsByDate, formatTime, formatDate } from '@/lib/utils'
+import {
+  formatCurrency,
+  groupTransactionsByMonth,
+  formatTime,
+  formatDate,
+} from '@/lib/utils'
 import { type CompletedPayment } from '../../types'
+
+function getTypeBadgeLabel(tx: CompletedPayment): string {
+  if (tx.transactionType === 'FUTURE_CREDIT') return 'Future Credit'
+  if (tx.isManual) return 'Manual'
+  return tx.type || 'debit'
+}
+
+function getTypeBadgeClass(tx: CompletedPayment, isCredit: boolean): string {
+  if (tx.transactionType === 'FUTURE_CREDIT') return 'tx-page__badge--future'
+  if (tx.isManual) return 'tx-page__badge--manual'
+  return isCredit ? 'tx-page__badge--credit' : 'tx-page__badge--debit'
+}
+
+function formatMonthLabel(monthKey: string): string {
+  return monthKey.toUpperCase()
+}
 
 export function TransactionList() {
   const router = useRouter()
   const { data, loading, error, reload } = useDashboard()
   const [filterDate, setFilterDate] = useState('')
   const [search, setSearch] = useState('')
+
+  const handleBack = () => router.push('/dashboard')
+
   const handleTxClick = (tx: CompletedPayment) => {
     router.push(`/dashboard/receipts?id=${tx.uuid}`)
   }
 
   if (loading) return <TransactionSkeleton />
-  if (error || !data)
+
+  if (error || !data) {
     return (
-      <div className="dashboard dashboard--error">
+      <TransactionsPageShell title="Transactions" onBack={handleBack}>
         <div className="pay-page__error">
           <div className="pay-page__error-icon">
             <AlertTriangle size={32} />
           </div>
           <h2>Something went wrong</h2>
           <p>{error}</p>
-          <button className="btn btn--secondary" onClick={reload}>
+          <button className="btn btn--secondary" type="button" onClick={reload}>
             Retry
           </button>
         </div>
-      </div>
+      </TransactionsPageShell>
     )
+  }
 
   const transactions = data.completedPayments
+  const hasFilters = Boolean(search || filterDate)
 
   const filteredTransactions = transactions.filter((tx) => {
     const matchesDate = filterDate ? tx.paid_at?.startsWith(filterDate) : true
@@ -58,273 +85,162 @@ export function TransactionList() {
     return matchesDate && matchesSearch
   })
 
-  const grouped = groupTransactionsByDate(filteredTransactions)
-  const dates = Object.keys(grouped).sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+  const grouped = groupTransactionsByMonth(filteredTransactions)
+  const months = Object.keys(grouped).sort((a, b) => {
+    const dateA = new Date(grouped[a][0]?.paid_at || 0).getTime()
+    const dateB = new Date(grouped[b][0]?.paid_at || 0).getTime()
+    return dateB - dateA
+  })
+
+  const debitPayments = transactions.filter((tx) => tx.type !== 'credit')
+  const totalPaid = debitPayments.reduce((sum, tx) => sum + tx.amount, 0)
+  const paymentCurrency = debitPayments[0]?.currency || transactions[0]?.currency || 'NGN'
+  const paymentCount = debitPayments.length
+
+  const dateFilter = (
+    <div className={`tx-page__filter ${filterDate ? 'tx-page__filter--active' : ''}`}>
+      <input
+        type="date"
+        className="tx-page__filter-input"
+        value={filterDate}
+        onChange={(e) => setFilterDate(e.target.value)}
+        aria-label="Filter by date"
+      />
+      <div className="tx-page__filter-btn" aria-hidden>
+        <Filter size={16} />
+      </div>
+    </div>
+  )
 
   return (
-    <div className="transactions-list-page dashboard--nav-offset">
-      {/* Unified Custom Header */}
-      <header className="profile-header animate-slide-up">
-        <div className="profile-header__title-wrap">
-          <h1 className="profile-header__title">Transactions</h1>
-          <p className="profile-header__subtitle">History of payments and credits</p>
-        </div>
-        <div className="profile-header__right">
-          <div className="dashboard__filter">
-            <input
-              type="date"
-              className="dashboard__filter-input"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-            />
-            <div className="dashboard__filter-icon">
-              <Filter size={18} />
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="transaction-search">
-        <div className="transaction-search__input-wrap">
-          <Search size={16} className="transaction-search__icon" />
+    <TransactionsPageShell title="Transactions" onBack={handleBack} rightElement={dateFilter}>
+      <div className="tx-page__search">
+        <div className="tx-page__search-wrap">
+          <Search size={16} className="tx-page__search-icon" />
           <input
             type="text"
-            className="transaction-search__field"
+            className="tx-page__search-field"
             placeholder="Search name, channel, reference..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          {search && (
-            <button className="transaction-search__clear" onClick={() => setSearch('')}>
+          {search ? (
+            <button
+              type="button"
+              className="tx-page__search-clear"
+              onClick={() => setSearch('')}
+              aria-label="Clear search"
+            >
               <X size={15} />
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 
+      {transactions.length > 0 && !hasFilters ? (
+        <div className="tx-page__stats">
+          <div className="tx-page__stat">
+            <div className="tx-page__stat-label">Total Paid</div>
+            <div className="tx-page__stat-value">{formatCurrency(totalPaid, paymentCurrency)}</div>
+          </div>
+          <div className="tx-page__stat">
+            <div className="tx-page__stat-label">Payments</div>
+            <div className="tx-page__stat-value">
+              {paymentCount} {paymentCount === 1 ? 'payment' : 'payments'}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {transactions.length === 0 ? (
-        <div className="dashboard__empty">
-          <span className="dashboard__empty-icon">
-            <Receipt size={32} />
-          </span>
-          <p>No transactions yet.</p>
+        <div className="dash-home__activity-empty">
+          <div className="dash-home__activity-empty-icon">
+            <Receipt size={24} />
+          </div>
+          <div className="dash-home__activity-empty-title">No transactions yet</div>
+          <div className="dash-home__activity-empty-desc">
+            Your payment history will appear here once you make your first payment.
+          </div>
+          <button
+            type="button"
+            className="dash-home__activity-empty-btn"
+            onClick={() => router.push('/dashboard/pay-rent')}
+          >
+            Pay Rent Now
+          </button>
+        </div>
+      ) : filteredTransactions.length === 0 ? (
+        <div className="tx-page__empty-filters">
+          <p>No transactions found{search ? ` for "${search}"` : ''}.</p>
+          <button
+            type="button"
+            className="tx-page__clear-btn"
+            onClick={() => {
+              setSearch('')
+              setFilterDate('')
+            }}
+          >
+            Clear filters
+          </button>
         </div>
       ) : (
-        <div className="dashboard__transactions-list">
-          {dates.map((date) => (
-            <div key={date} className="dashboard__transaction-group">
-              <h4 className="dashboard__transaction-group-date">{date}</h4>
-              <div className="dashboard__transaction-items">
-                {grouped[date].map((tx: CompletedPayment) => {
+        <>
+          {months.map((month) => (
+            <div key={month} className="tx-page__month-group">
+              <h2 className="tx-page__month-label">{formatMonthLabel(month)}</h2>
+              <div className="dash-home__activity-card">
+                {grouped[month].map((tx) => {
                   const isCredit = tx.type === 'credit'
                   return (
-                    <div key={tx.uuid} className="transaction-wrapper">
-                      <div
-                        className={`transaction-item ${isCredit ? 'transaction-item--credit' : 'transaction-item--debit'}`}
-                        onClick={() => handleTxClick(tx)}
+                    <button
+                      key={tx.uuid}
+                      type="button"
+                      className="dash-home__activity-item"
+                      onClick={() => handleTxClick(tx)}
+                    >
+                      <span
+                        className={`dash-home__activity-item-icon ${isCredit ? 'dash-home__activity-item-icon--credit' : 'dash-home__activity-item-icon--debit'}`}
                       >
-                        <div
-                          className={`transaction-item__icon-wrap ${isCredit ? 'transaction-item__icon-wrap--credit' : 'transaction-item__icon-wrap--debit'}`}
+                        {isCredit ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+                      </span>
+                      <span className="dash-home__activity-item-info">
+                        <div className="dash-home__activity-item-title">{tx.company_name}</div>
+                        {tx.property_address ? (
+                          <div className="tx-page__location">{tx.property_address}</div>
+                        ) : null}
+                        <div className="dash-home__activity-item-meta">
+                          {tx.channel || 'Paystack'} · {formatDate(tx.paid_at)} ·{' '}
+                          {formatTime(tx.paid_at)}
+                        </div>
+                        <div className="tx-page__row-badges">
+                          <span className={`tx-page__badge ${getTypeBadgeClass(tx, isCredit)}`}>
+                            {getTypeBadgeLabel(tx)}
+                          </span>
+                        </div>
+                      </span>
+                      <span className="tx-page__row-right">
+                        <span
+                          className={`tx-page__row-amount ${isCredit ? 'tx-page__row-amount--credit' : ''}`}
                         >
-                          {isCredit ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
-                        </div>
-
-                        <div className="transaction-item__info">
-                          <div className="transaction-item__name">{tx.company_name}</div>
-                          {tx.property_address && (
-                            <div className="transaction-item__location" style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                              {tx.property_address}
-                            </div>
-                          )}
-                          <div className="transaction-item__meta">
-                            <span className="transaction-item__channel">
-                              {tx.channel || 'Paystack'} · {formatDate(tx.paid_at)} · {formatTime(tx.paid_at)}
-                            </span>
-
-                            <span
-                              className={`transaction-item__type-badge ${isCredit ? 'transaction-item__type-badge--credit' : (tx.transactionType === 'FUTURE_CREDIT' ? 'transaction-item__type-badge--future' : (tx.isManual ? 'transaction-item__type-badge--manual' : 'transaction-item__type-badge--debit'))}`}
-                            >
-                              {tx.transactionType === 'FUTURE_CREDIT' ? 'Future Credit' : (tx.isManual ? 'Manual' : (tx.type || 'debit'))}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="transaction-item__right">
-                          <div className="transaction-item__amount-wrap">
-                            <span
-                              className={`transaction-item__amount ${isCredit ? 'transaction-item__amount--credit' : ''}`}
-                            >
-                              {isCredit ? '+' : '-'}
-                              {formatCurrency(tx.amount, tx.currency)}
-                            </span>
-                          </div>
-                          <div className="transaction-item__action-hint">
-                            View Receipt
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                          {isCredit ? '+' : '-'}
+                          {formatCurrency(tx.amount, tx.currency)}
+                        </span>
+                        {tx.status ? (
+                          <div className="tx-page__row-status">{tx.status.toLowerCase()}</div>
+                        ) : null}
+                      </span>
+                    </button>
                   )
                 })}
               </div>
             </div>
           ))}
-          {filteredTransactions.length === 0 && (
-            <div className="dashboard__empty">
-              <p>No transactions found{search ? ` for "${search}"` : ''}.</p>
-              {(search || filterDate) && (
-                <button
-                  className="btn btn--secondary btn--sm"
-                  style={{ marginTop: 8 }}
-                  onClick={() => {
-                    setSearch('')
-                    setFilterDate('')
-                  }}
-                >
-                  Clear filters
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+
+          {!hasFilters ? (
+            <p className="tx-page__footer">That&apos;s everything so far — keep it up.</p>
+          ) : null}
+        </>
       )}
-      <style jsx>{`
-        .profile-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 0.75rem 0.25rem 1rem;
-          border-bottom: none;
-        }
-
-        .profile-header__title-wrap {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
-
-        .profile-header__title {
-          font-size: 1.85rem;
-          font-weight: 800;
-          color: var(--text);
-          letter-spacing: -0.02em;
-          margin: 0;
-        }
-
-        .profile-header__subtitle {
-          font-size: 0.9rem;
-          color: var(--text-muted);
-          margin: 0;
-        }
-
-        .profile-header__right {
-          display: flex;
-          align-items: center;
-        }
-
-        .transaction-item__type-badge--future {
-          background: #fff8e1;
-          color: #ffa000;
-        }
-
-        .transaction-item__type-badge--manual {
-          background: var(--clay-faint);
-          color: var(--clay);
-        }
-
-        /* Desktop Optimization for Transaction Page */
-        @media (min-width: 1024px) {
-          .transactions-list-page {
-            max-width: 800px;
-            margin: 20px auto;
-            background: var(--bg);
-            border-radius: 24px;
-            border: 1px solid var(--border-solid);
-            box-shadow: var(--shadow-md);
-            padding: 32px 40px;
-            min-height: auto;
-          }
-
-          /* Show and style back button for desktop parity */
-          .dashboard__back {
-            /* Inherits from global dashboard.css */
-          }
-
-          .profile-header {
-            padding: 0;
-            margin-bottom: 24px;
-          }
-
-          .dashboard__title {
-            font-size: 24px;
-            font-weight: 800;
-          }
-
-          .transaction-search {
-            margin-bottom: 24px;
-          }
-
-          .transaction-search__input-wrap {
-            height: 48px;
-            border-radius: 12px;
-          }
-
-          .dashboard__transactions-list {
-            padding: 0;
-          }
-          
-          .dashboard__transaction-group-date {
-            font-size: 14px;
-            padding-left: 0;
-            margin-bottom: 16px;
-            margin-top: 32px;
-          }
-
-          .transaction-item {
-            padding: 20px 24px;
-            margin-bottom: 0;
-            border-radius: 16px;
-            background: var(--surface);
-            border: 1px solid var(--border-solid);
-            cursor: pointer;
-            transition: all 0.2s;
-          }
-
-          .transaction-item:hover {
-            border-color: var(--clay);
-            background: var(--surface2);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-sm);
-          }
-
-          .transaction-item:hover .transaction-item__action-hint {
-            opacity: 1;
-            color: var(--clay);
-          }
-
-          .transaction-item__amount-wrap {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-          }
-
-          .transaction-item__action-hint {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-muted);
-            opacity: 0.6;
-            transition: all 0.2s;
-            margin-top: 4px;
-            text-align: right;
-          }
-
-          @media (max-width: 1023px) {
-            .transaction-item__action-hint {
-              display: none;
-            }
-          }
-        }
-      `}</style>
-    </div>
+    </TransactionsPageShell>
   )
 }

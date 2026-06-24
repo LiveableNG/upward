@@ -103,7 +103,7 @@ export default function NotificationsPage() {
         createdAt: new Date().toISOString(),
         isRead: false,
         isDynamic: true,
-        url: '/dashboard/me?view=personal',
+        url: '/dashboard/setup',
         icon: <UserCircle size={18} />
       })
     }
@@ -147,7 +147,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="dashboard notifications-page">
+    <div className="dashboard notifications-page dashboard--nav-offset">
       <header className="page-header fixed-top-mobile">
         <div className="header-content">
           <div className="header-left">
@@ -223,9 +223,9 @@ export default function NotificationsPage() {
 
       <style jsx>{`
         .notifications-page {
-          min-height: 100vh;
-          background: var(--bg);
-          padding: 0; /* Remove default dashboard padding to make header flush */
+          min-height: calc(100vh - var(--header-height, 72px));
+          background: var(--shell-page-bg, #faf8f5);
+          padding: 0;
         }
 
         .page-header.fixed-top-mobile {
@@ -234,11 +234,11 @@ export default function NotificationsPage() {
           left: 0;
           right: 0;
           z-index: 1000;
-          background: var(--bg);
+          background: var(--shell-page-bg, #faf8f5);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
-          border-bottom: 1px solid var(--border-solid);
-          padding: 16px 20px 8px;
+          border-bottom: 1px solid var(--shell-border, #f0e9df);
+          padding: 12px 20px 8px;
         }
 
         .header-content {
@@ -249,45 +249,46 @@ export default function NotificationsPage() {
         .header-left {
           display: flex;
           align-items: center;
-          gap: 16px;
-          margin-bottom: 16px;
+          gap: 12px;
+          margin-bottom: 14px;
         }
 
         .back-btn {
-          width: 36px;
-          height: 36px;
+          width: 40px;
+          height: 40px;
           border-radius: 50%;
-          border: 1px solid var(--border-solid);
-          background: var(--surface);
+          border: 1px solid #ece4d9;
+          background: #fff;
           display: flex;
           align-items: center;
           justify-content: center;
+          color: #5c544b;
           cursor: pointer;
-          color: var(--text);
         }
 
         .header-title {
-          font-size: 1.25rem;
+          font-size: 1.45rem;
           font-weight: 800;
-          color: var(--text);
+          color: #1a1714;
+          letter-spacing: -0.01em;
         }
 
         .tab-switcher {
           display: flex;
-          gap: 8px;
-          margin-bottom: 12px;
+          gap: 6px;
+          margin-bottom: 8px;
           padding: 4px;
-          background: var(--surface2);
+          background: #f0e9df;
           border-radius: 12px;
         }
 
         .tab-btn {
           flex: 1;
-          padding: 8px;
+          padding: 9px 8px;
           border: none;
           background: transparent;
-          color: var(--text-muted);
-          font-size: 0.8rem;
+          color: #8a8178;
+          font-size: 12px;
           font-weight: 700;
           border-radius: 8px;
           cursor: pointer;
@@ -295,15 +296,15 @@ export default function NotificationsPage() {
         }
 
         .tab-btn.active {
-          background: var(--surface);
-          color: var(--clay);
-          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+          background: #fff;
+          color: var(--skin-primary, #c2501f);
+          box-shadow: 0 1px 2px rgba(60, 40, 20, 0.08);
         }
 
         .content-area {
-          max-width: 800px;
+          max-width: 720px;
           margin: 0 auto;
-          padding: 125px 20px 40px; /* Account for fixed header height */
+          padding: 122px 16px 28px;
         }
 
         .notification-group {
@@ -311,29 +312,30 @@ export default function NotificationsPage() {
         }
 
         .notification-group__title {
-          font-size: 0.75rem;
+          font-size: 11px;
           font-weight: 700;
           text-transform: uppercase;
-          color: var(--text-muted);
-          letter-spacing: 0.05em;
-          margin-bottom: 12px;
+          color: var(--shell-muted, #a9a096);
+          letter-spacing: 0.12em;
+          margin: 0 4px 10px;
         }
 
         .notification-card {
           display: flex;
-          gap: 16px;
+          gap: 14px;
           padding: 16px;
-          background: var(--surface);
-          border: 1px solid var(--border-solid);
+          background: #fff;
+          border: 1px solid var(--shell-border, #f0e9df);
           border-radius: 16px;
           margin-bottom: 12px;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: border-color 0.2s ease, background 0.2s ease;
+          box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
         }
 
         .notification-card.unread {
-          background: var(--clay-faint);
-          border-color: rgba(217, 119, 87, 0.1);
+          background: #fbede5;
+          border-color: rgba(194, 80, 31, 0.22);
         }
 
         .card-icon-wrap {
@@ -341,12 +343,12 @@ export default function NotificationsPage() {
           height: 40px;
           min-width: 40px;
           border-radius: 12px;
-          background: var(--bg);
-          border: 1px solid var(--border-solid);
+          background: #fff;
+          border: 1px solid #ece4d9;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: var(--clay);
+          color: var(--skin-primary, #c2501f);
         }
 
         .card-content {
@@ -361,21 +363,21 @@ export default function NotificationsPage() {
         }
 
         .card-title {
-          font-size: 0.95rem;
+          font-size: 14px;
           font-weight: 700;
-          color: var(--text);
+          color: #1a1714;
         }
 
         .unread-dot {
           width: 8px;
           height: 8px;
-          background: var(--error);
+          background: var(--skin-primary, #c2501f);
           border-radius: 50%;
         }
 
         .card-msg {
-          font-size: 0.85rem;
-          color: var(--text-muted);
+          font-size: 12.5px;
+          color: #7a7268;
           line-height: 1.5;
           margin-bottom: 12px;
         }
@@ -389,7 +391,7 @@ export default function NotificationsPage() {
         }
 
         .card-msg :global(strong) {
-          color: var(--text);
+          color: #1a1714;
           font-weight: 700;
         }
 
@@ -409,8 +411,8 @@ export default function NotificationsPage() {
         }
 
         .card-time {
-          font-size: 0.75rem;
-          color: var(--text-muted);
+          font-size: 11.5px;
+          color: #a9a096;
           font-weight: 500;
         }
 
@@ -418,9 +420,9 @@ export default function NotificationsPage() {
           display: flex;
           align-items: center;
           gap: 4px;
-          font-size: 0.8rem;
+          font-size: 12.5px;
           font-weight: 700;
-          color: var(--clay);
+          color: var(--skin-primary, #c2501f);
         }
       `}</style>
     </div>

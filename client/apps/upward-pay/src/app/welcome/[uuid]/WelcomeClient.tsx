@@ -117,17 +117,8 @@ export default function WelcomeClient() {
           <p>We're retrieving your waitlist details...</p>
         </div>
       </div>
-      <div className="auth-layout__form flex-center">
+      <div className="auth-layout__form auth-flow-loader">
         <Loader2 className="animate-spin" size={40} color="var(--clay)" />
-        <style jsx>{`
-          .flex-center {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex: 1;
-            min-height: 100vh;
-          }
-        `}</style>
       </div>
     </div>
   )
@@ -146,7 +137,7 @@ export default function WelcomeClient() {
             the future of rental credibility. Complete your account to get started.
           </p>
           
-          <div className="waitlist-badge">
+          <div className="auth-visual-badge auth-visual-badge--success">
             <Sparkles size={16} />
             <span>Priority Access Granted</span>
           </div>
@@ -201,7 +192,7 @@ export default function WelcomeClient() {
                   </div>
                 </div>
 
-                <div className="auth-form__field mt-1">
+                <div className="auth-form__field auth-u-mt-4">
                   <label>Email Address</label>
                   <div className="input-with-icon">
                     <Mail size={17} />
@@ -209,13 +200,13 @@ export default function WelcomeClient() {
                       type="email"
                       value={formData.email}
                       disabled
-                      className="input--disabled"
+                      className="disabled-input"
                       placeholder="your@email.com"
                     />
                   </div>
                 </div>
 
-                <div className="auth-form__field mt-1">
+                <div className="auth-form__field">
                   <label>Set Password</label>
                   <div className="input-with-icon">
                     <Lock size={17} />
@@ -230,7 +221,7 @@ export default function WelcomeClient() {
                   </div>
                 </div>
 
-                <div className="auth-form__field mt-1">
+                <div className="auth-form__field">
                   <label>Confirm Password</label>
                   <div className="input-with-icon">
                     <Lock size={17} />
@@ -251,73 +242,18 @@ export default function WelcomeClient() {
                   </div>
                 </div>
 
-                <div className="form-info-box mt-4">
+                <div className="auth-form-info auth-u-mt-4">
                   <ShieldCheck size={18} color="var(--success)" strokeWidth={2.5} />
                   <p>Your data is protected and encrypted.</p>
                 </div>
 
-                <button className="btn btn--primary btn--full btn--pay mt-6" type="submit" disabled={isSubmitting}>
+                <button className="btn btn--primary btn--full btn--pay auth-form__mt-6" type="submit" disabled={isSubmitting}>
                   {isSubmitting ? 'Creating Account…' : 'Get Started'}
                   {!isSubmitting && <ArrowRight size={17} />}
                 </button>
               </form>
             </div>
           </div>
-
-          <style jsx>{`
-            .mt-1 { margin-top: 12px; }
-            .mt-4 { margin-top: 24px; }
-            .mt-6 { margin-top: 32px; }
-            .input--disabled {
-              background: var(--bg-secondary);
-              color: var(--text-muted);
-              cursor: not-allowed;
-            }
-            .waitlist-badge {
-              display: inline-flex;
-              align-items: center;
-              gap: 8px;
-              background: rgba(34, 197, 94, 0.1);
-              color: #22c55e;
-              padding: 6px 12px;
-              border-radius: 100px;
-              font-size: 13px;
-              font-weight: 600;
-              margin-top: 24px;
-            }
-            .form-info-box {
-              background: var(--surface);
-              border: 1px solid var(--border-solid);
-              padding: 12px;
-              border-radius: var(--radius-md);
-              display: flex;
-              gap: 10px;
-              align-items: center;
-            }
-            .form-info-box p {
-              font-size: 13px;
-              color: var(--text-secondary);
-              line-height: 1.4;
-              margin: 0;
-            }
-            .animate-pop {
-              animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            }
-            @keyframes pop {
-              0% { transform: scale(0.95); opacity: 0; }
-              100% { transform: scale(1); opacity: 1; }
-            }
-            .auth-form__row {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 16px;
-            }
-            @media (max-width: 480px) {
-              .auth-form__row {
-                grid-template-columns: 1fr;
-              }
-            }
-          `}</style>
         </div>
       </div>
     </div>
