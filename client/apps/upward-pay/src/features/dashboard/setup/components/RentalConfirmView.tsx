@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useSetupDraft } from '../SetupDraftContext'
+import { clearSetupDraft } from '../setupDraft'
 import { SETUP_PATHS, useSetupMode } from '../setupPaths'
 import { SetupPageShell, SetupPrimaryButton } from './SetupPageShell'
 import { submitRentalRequest } from '../submitRental'
@@ -16,7 +17,7 @@ export function RentalConfirmView() {
   const { refreshUser } = useAuth()
   const toast = useToast()
   const queryClient = useQueryClient()
-  const { isEdit, withMode } = useSetupMode()
+  const { isEdit, withMode, returnTo } = useSetupMode()
 
   const addressLine = [draft.formData.address, draft.formData.area, draft.formData.state]
     .filter(Boolean)
@@ -32,7 +33,11 @@ export function RentalConfirmView() {
       await refreshUser()
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['score-profile'] })
-      if (isEdit) {
+      if (returnTo) {
+        clearSetupDraft()
+        toast.success('Property added. Select it below to continue.', 'Added')
+        router.push(returnTo)
+      } else if (isEdit) {
         toast.success('Your rental details have been updated.', 'Saved')
         router.push(SETUP_PATHS.profile)
       } else {
@@ -52,7 +57,13 @@ export function RentalConfirmView() {
       backHref={rentalFormPath}
       footer={
         <SetupPrimaryButton onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-          {saveMutation.isPending ? 'Saving…' : isEdit ? 'Save changes' : 'Save rental details'}
+          {saveMutation.isPending
+            ? 'Saving…'
+            : returnTo
+              ? 'Add property'
+              : isEdit
+                ? 'Save changes'
+                : 'Save rental details'}
         </SetupPrimaryButton>
       }
     >

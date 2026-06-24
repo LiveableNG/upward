@@ -141,6 +141,16 @@
   margin: 0 0 10px;
 }
 
+.pay-flow__section {
+  margin-bottom: 0;
+}
+
+.pay-flow__section--spaced {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #f0e9df;
+}
+
 .pay-flow__section-heading {
   font-size: 13px;
   font-weight: 700;

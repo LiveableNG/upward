@@ -27,7 +27,7 @@ export function RentalFormView() {
   const router = useRouter()
   const toast = useToast()
   const { draft, updateDraft } = useSetupDraft()
-  const { isEdit, withMode } = useSetupMode()
+  const { isEdit, withMode, returnTo } = useSetupMode()
   const [lookupDone, setLookupDone] = useState(() => shouldRestoreLookup(draft, isEdit))
   const [formStep, setFormStep] = useState<RentalFormStep>('manager')
 
@@ -119,6 +119,10 @@ export function RentalFormView() {
   const handleBack = () => {
     if (formStep === 'property') {
       setFormStep('manager')
+      return
+    }
+    if (returnTo) {
+      router.push(returnTo)
       return
     }
     router.push(isEdit ? SETUP_PATHS.profile : SETUP_PATHS.dashboard)

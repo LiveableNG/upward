@@ -10,7 +10,7 @@ import { AnnouncementManager } from '@/features/dashboard/components/Announcemen
 import { RentReminderManager } from '@/features/dashboard/components/RentReminderManager'
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
 import { ProfileSetupBlocker } from '@/features/dashboard/components/ProfileSetupBlocker'
-import { isOnboardingComplete } from '@/features/dashboard/utils/profileCompletion'
+import { isProfileSetupComplete } from '@/features/dashboard/utils/profileCompletion'
 import { useScoreProfile } from '@/features/dashboard/services/scoreService'
 import { api } from '@/lib/api'
 
@@ -52,7 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const showProfileBlocker =
     isDashboardHome &&
     user &&
-    !isOnboardingComplete(user) &&
+    !isProfileSetupComplete(user) &&
     !blockerDismissed
 
   return (

@@ -8,6 +8,7 @@ interface SetupPageShellProps {
   progress?: { step: number; total: number }
   backHref?: string
   onBack?: () => void
+  className?: string
   children: React.ReactNode
   footer?: React.ReactNode
 }
@@ -17,6 +18,7 @@ export function SetupPageShell({
   progress,
   backHref,
   onBack,
+  className,
   children,
   footer,
 }: SetupPageShellProps) {
@@ -37,7 +39,7 @@ export function SetupPageShell({
   const pct = progress ? Math.round((progress.step / progress.total) * 100) : null
 
   return (
-    <div className="setup-page">
+    <div className={['setup-page', className].filter(Boolean).join(' ')}>
       <header className="setup-page__header">
         <div className="setup-page__header-row">
           <button type="button" className="setup-page__back" onClick={handleBack} aria-label="Go back">
@@ -74,14 +76,16 @@ export function SetupPrimaryButton({
   onClick,
   disabled,
   type = 'button',
+  form,
 }: {
   children: React.ReactNode
   onClick?: () => void
   disabled?: boolean
   type?: 'button' | 'submit'
+  form?: string
 }) {
   return (
-    <button type={type} className="setup-page__cta" onClick={onClick} disabled={disabled}>
+    <button type={type} form={form} className="setup-page__cta" onClick={onClick} disabled={disabled}>
       {children}
     </button>
   )
