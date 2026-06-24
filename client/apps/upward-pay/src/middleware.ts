@@ -24,12 +24,9 @@ function isTokenExpired(token: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
   const tokenCookie = request.cookies.get('pay_access_token')
-  const refreshCookie = request.cookies.get('user_refresh')
+  const hasToken = !!tokenCookie
   const tokenValue = tokenCookie?.value
   const isExpired = tokenValue ? isTokenExpired(tokenValue) : true
-  const hasActiveAccess = !!tokenCookie && !isExpired
-  const hasRefreshSession = !!refreshCookie?.value
-  const hasValidSession = hasActiveAccess || hasRefreshSession
 
   const forwardedHost = request.headers.get('x-forwarded-host')
   const host = forwardedHost || request.headers.get('host')
@@ -62,7 +59,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/forgot-password') ||
     pathname.startsWith('/reset-password')
 
-  if (isAuthPage && hasValidSession) {
+  if (isAuthPage && hasToken && !isExpired) {
     const searchParams = request.nextUrl.searchParams
     const redirectPath = searchParams.get('redirect') || '/dashboard'
     return NextResponse.redirect(new URL(redirectPath, baseUrl))
@@ -74,7 +71,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/kyc') ||
     pathname.startsWith('/transactions')
 
-  if (isProtectedPage && !hasValidSession) {
+  if (isProtectedPage && (!hasToken || isExpired)) {
     const url = new URL('/login', baseUrl)
     url.searchParams.set('redirect', pathname)
     return NextResponse.redirect(url)
