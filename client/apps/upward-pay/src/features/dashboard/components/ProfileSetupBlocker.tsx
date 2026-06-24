@@ -12,10 +12,12 @@ import { useRouter } from 'next/navigation'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { type UserProfile } from '@/features/auth/types'
 import {
+  getIdentityVerificationPath,
   getStandalonePhonePath,
   getStandaloneRentalPath,
   hasPhone,
   hasRentalInfo,
+  needsIdentityVerification,
 } from '../utils/profileCompletion'
 
 interface ProfileSetupBlockerProps {
@@ -27,11 +29,12 @@ interface ProfileSetupBlockerProps {
 
 const SCORE_MAX = 900
 
-type SetupStepId = 'rental' | 'phone'
+type SetupStepId = 'rental' | 'phone' | 'identity'
 
 function getActiveStepId(user: UserProfile): SetupStepId {
   if (!hasRentalInfo(user)) return 'rental'
   if (!hasPhone(user)) return 'phone'
+  if (needsIdentityVerification(user)) return 'identity'
   return 'rental'
 }
 
@@ -41,6 +44,8 @@ export function ProfileSetupBlocker({ user, score = 0, profileCompletion = 0, on
 
   const rentalDone = hasRentalInfo(user)
   const phoneDone = hasPhone(user)
+  const identityDone = !!user.isIdentityVerified
+  const showIdentityStep = user.verificationOn ?? true
   const activeStepId = getActiveStepId(user)
 
   const displayScore = score > 0 ? score : 300
@@ -49,6 +54,7 @@ export function ProfileSetupBlocker({ user, score = 0, profileCompletion = 0, on
   const stepPaths: Record<SetupStepId, string> = {
     rental: getStandaloneRentalPath(),
     phone: getStandalonePhonePath(),
+    identity: getIdentityVerificationPath(),
   }
 
   const steps: Array<{
@@ -72,6 +78,17 @@ export function ProfileSetupBlocker({ user, score = 0, profileCompletion = 0, on
       isAction: !phoneDone,
       onPress: () => router.push(stepPaths.phone),
     },
+    ...(showIdentityStep
+      ? [
+          {
+            id: 'identity' as const,
+            label: 'Verify your identity',
+            done: identityDone,
+            isAction: needsIdentityVerification(user),
+            onPress: () => router.push(stepPaths.identity),
+          },
+        ]
+      : []),
   ]
 
   const quickActions = [

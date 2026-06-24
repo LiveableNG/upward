@@ -1,0 +1,689 @@
+/* Savings — prototype skin (setup / pay-flow pattern) */
+
+.savings-page__section {
+  margin-bottom: 22px;
+}
+
+.savings-page__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.savings-page__section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #5c544b;
+  margin: 0;
+}
+
+.savings-page__section-link {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--skin-primary, #c2501f);
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Wallet / fund hero */
+.savings-hero {
+  background: var(--skin-primary, #c2501f);
+  border-radius: 18px;
+  padding: 20px;
+  color: #fff;
+  box-shadow: 0 16px 30px -16px rgba(194, 80, 31, 0.55);
+  margin-bottom: 22px;
+}
+
+.savings-hero__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.savings-hero__label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.savings-hero__balance {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 10px 0 0;
+  line-height: 1.1;
+}
+
+.savings-hero__actions {
+  margin-top: 18px;
+}
+
+.savings-hero__cta {
+  height: 46px;
+  width: 100%;
+  border: none;
+  border-radius: 13px;
+  background: #fff;
+  color: #1a1714;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Goal cards (matches dash-home) */
+.savings-goal-card {
+  background: #fff;
+  border: 1px solid #f0e9df;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.savings-goal-card + .savings-goal-card {
+  margin-top: 12px;
+}
+
+.savings-goal-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.savings-goal-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.savings-goal-card__title-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.savings-goal-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fbede5;
+  color: var(--skin-primary, #c2501f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.savings-goal-card__icon--home {
+  background: #e7efec;
+  color: var(--skin-teal, #1c4a43);
+}
+
+.savings-goal-card__name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #1a1714;
+  margin: 0;
+}
+
+.savings-goal-card__meta {
+  font-size: 12px;
+  color: #a9a096;
+  margin-top: 2px;
+}
+
+.savings-goal-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.savings-goal-card__btn {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid #ece4d9;
+  background: #fff;
+  color: #5c544b;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.savings-goal-card__btn--primary {
+  background: var(--skin-primary, #c2501f);
+  border-color: transparent;
+  color: #fff;
+}
+
+.savings-goal-card__amounts {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.savings-goal-card__stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a9a096;
+  margin-bottom: 4px;
+}
+
+.savings-goal-card__stat-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1a1714;
+}
+
+.savings-goal-card__bar {
+  height: 9px;
+  border-radius: 99px;
+  background: #efe8df;
+  overflow: hidden;
+}
+
+.savings-goal-card__fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--skin-primary, #c2501f);
+}
+
+.savings-goal-card__fill--teal {
+  background: var(--skin-teal, #1c4a43);
+}
+
+.savings-goal-card__progress-text {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #7a7268;
+}
+
+.savings-goal-card__link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--skin-primary, #c2501f);
+  cursor: pointer;
+}
+
+.savings-goal-card__nudge {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 13px;
+  background: #fbede5;
+  border: 1px solid rgba(194, 80, 31, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #8a5a3a;
+  cursor: pointer;
+}
+
+/* Empty goal */
+.savings-empty {
+  text-align: center;
+  padding: 28px 16px;
+  background: #fff;
+  border: 1.5px dashed #d9cfc2;
+  border-radius: 16px;
+}
+
+.savings-empty__icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #fbede5;
+  color: var(--skin-primary, #c2501f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.savings-empty__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1714;
+  margin: 0 0 8px;
+}
+
+.savings-empty__text {
+  font-size: 13px;
+  color: #7a7268;
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+/* Transactions */
+.savings-tx-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.savings-tx {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 16px;
+  background: #fff;
+  border: 1px solid #f0e9df;
+  border-radius: 13px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.savings-tx__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.savings-tx__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.savings-tx__dot--credit {
+  background: #22c55e;
+}
+
+.savings-tx__dot--debit {
+  background: var(--skin-primary, #c2501f);
+}
+
+.savings-tx__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1714;
+}
+
+.savings-tx__meta {
+  font-size: 12px;
+  color: #a9a096;
+  margin-top: 2px;
+}
+
+.savings-tx__amount {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #1a1714;
+  flex-shrink: 0;
+}
+
+.savings-tx-empty {
+  text-align: center;
+  padding: 32px 16px;
+  color: #a9a096;
+  font-size: 13px;
+}
+
+/* Flow forms (set-goal / deposit) */
+.savings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.savings-form__field {
+  margin-bottom: 16px;
+}
+
+.savings-form__field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #5c544b;
+  margin-bottom: 7px;
+}
+
+.savings-form__hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #8a8178;
+}
+
+.savings-form__input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1.5px solid #ece4d9;
+  background: #fff;
+  color: #a9a096;
+}
+
+.savings-form__input-wrap input,
+.savings-form__input-wrap select {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  font-family: inherit;
+  color: #1a1714;
+  min-width: 0;
+}
+
+.savings-form__input-wrap:focus-within {
+  border-color: var(--skin-primary, #c2501f);
+}
+
+.savings-form__currency {
+  font-weight: 800;
+  color: var(--skin-primary, #c2501f);
+}
+
+.savings-form__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Step-by-step oat skin */
+.step-by-step--oat {
+  min-height: calc(100dvh - var(--header-height, 0px));
+  background: var(--shell-page-bg, #faf8f5);
+  padding: 0;
+}
+
+.step-by-step--oat .step-by-step__progress {
+  position: static;
+  height: auto;
+  background: transparent;
+  padding: 0 24px 12px;
+}
+
+.step-by-step--oat .step-by-step__progress-bar {
+  display: none;
+}
+
+.step-by-step--oat .step-by-step__dots {
+  margin: 0 0 8px;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.step-by-step--oat .step-by-step__dot {
+  width: 8px;
+  height: 8px;
+  background: #eae2d7;
+}
+
+.step-by-step--oat .step-by-step__dot.is-active {
+  background: var(--skin-primary, #c2501f);
+  transform: scale(1.2);
+  box-shadow: none;
+}
+
+.step-by-step--oat .step-by-step__dot.is-done {
+  background: #1c7a52;
+}
+
+.step-by-step--oat .step-by-step__content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.step-by-step--oat .step-by-step__back {
+  display: none;
+}
+
+.step-by-step--oat .step-by-step__header {
+  margin-bottom: 20px;
+}
+
+.step-by-step--oat .step-by-step__title {
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #1a1714;
+  margin-bottom: 8px;
+}
+
+.step-by-step--oat .step-by-step__subtitle {
+  font-size: 14.5px;
+  color: #7a7268;
+  line-height: 1.5;
+}
+
+.step-by-step--oat .step-by-step__body {
+  flex: 1;
+}
+
+.step-by-step--oat .step-by-step__actions {
+  margin-top: 0;
+  padding: 16px 24px calc(var(--safe-bottom, 0px) + 16px);
+  border-top: 1px solid #f0e9df;
+  background: var(--shell-page-bg, #faf8f5);
+}
+
+.step-by-step--oat .step-by-step__actions .pay-flow__cta {
+  width: 100%;
+}
+
+/* Success screen */
+.savings-success {
+  min-height: calc(100dvh - var(--header-height, 0px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  background: var(--shell-page-bg, #faf8f5);
+}
+
+.savings-success__badge {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #f2f8f5;
+  color: #1c7a52;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.savings-success__title {
+  font-size: 25px;
+  font-weight: 800;
+  color: #1a1714;
+  margin: 0 0 10px;
+}
+
+.savings-success__text {
+  font-size: 14.5px;
+  color: #7a7268;
+  line-height: 1.55;
+  max-width: 320px;
+  margin: 0 0 24px;
+}
+
+.savings-success__perks {
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 24px;
+}
+
+.savings-success__perk {
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid #f0e9df;
+  border-radius: 13px;
+  font-size: 13px;
+  color: #5c544b;
+  text-align: left;
+  margin-bottom: 8px;
+}
+
+.savings-success__actions {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.savings-success__actions .pay-flow__btn-secondary {
+  width: 100%;
+  height: 54px;
+  border-radius: 15px;
+}
+
+.savings-tx-empty__icon {
+  opacity: 0.35;
+  margin-bottom: 8px;
+}
+
+/* Deposit / payment method cards — oat tokens */
+.step-by-step--oat .deposit-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.step-by-step--oat .deposit-preset-btn {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1.5px solid #ece4d9;
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #5c544b;
+}
+
+.step-by-step--oat .deposit-preset-btn:hover {
+  border-color: var(--skin-primary, #c2501f);
+  background: #fbede5;
+  color: var(--skin-primary, #c2501f);
+}
+
+.step-by-step--oat .payment-method-card {
+  padding: 15px 16px;
+  border-radius: 13px;
+  border: 1.5px solid #f0e9df;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.step-by-step--oat .payment-method-card.is-selected {
+  border-color: rgba(194, 80, 31, 0.35);
+  background: #fbede5;
+}
+
+.step-by-step--oat .payment-method-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #f5f0e8;
+  color: var(--skin-primary, #c2501f);
+}
+
+.step-by-step--oat .payment-method-card__info h3 {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #1a1714;
+}
+
+.step-by-step--oat .payment-method-card__info p {
+  font-size: 12.5px;
+  color: #7a7268;
+}
+
+.step-by-step--oat .dva-card {
+  background: #fff;
+  border: 1px solid #f0e9df;
+  border-radius: 16px;
+  padding: 4px 0;
+}
+
+.step-by-step--oat .deposit-summary {
+  background: #fff;
+  border: 1px solid #f0e9df;
+  border-radius: 16px;
+}
+
+.step-by-step--oat .autosave-toggle {
+  background: #fff;
+  border: 1.5px solid #f0e9df;
+  border-radius: 13px;
+  margin-bottom: 12px;
+}
+
+.step-by-step--oat .autosave-toggle--on {
+  border-color: rgba(194, 80, 31, 0.35);
+  background: #fbede5;
+}
+
+.step-by-step--oat .signup-info-card {
+  background: #fbede5 !important;
+  border: 1px solid rgba(194, 80, 31, 0.2) !important;
+  border-radius: 13px;
+  padding: 14px 16px;
+}
+
+.step-by-step--oat .signup-info-card p {
+  font-size: 13px;
+  color: #8a5a3a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (min-width: 1024px) {
+  .step-by-step--oat {
+    justify-content: center;
+    padding: 16px 40px 40px;
+  }
+
+  .step-by-step--oat .pay-flow__shell,
+  .step-by-step--oat > .pay-flow__shell {
+    background: #fff;
+    border-radius: 20px;
+    border: 1px solid #f0e9df;
+    box-shadow: 0 8px 32px rgba(60, 40, 20, 0.08);
+    overflow: hidden;
+  }
+}

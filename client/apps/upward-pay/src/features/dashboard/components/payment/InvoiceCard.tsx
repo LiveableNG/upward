@@ -18,63 +18,26 @@ export default function InvoiceCard({
   totalAmount,
   isPriority,
 }: InvoiceCardProps) {
+  void totalAmount
+
   return (
-    <div
-      style={{
-        background: 'var(--surface)',
-        border: '1px solid var(--border-solid)',
-        borderRadius: 'var(--radius-lg)',
-        padding: '16px',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 16,
-        }}
-      >
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+    <div className="pay-flow__invoice-card">
+      <div className="pay-flow__invoice-card__head">
+        <div className="pay-flow__invoice-card__title">
           {invoiceNumber ? `Invoice #${invoiceNumber}` : title}
         </div>
-        {isPriority && (
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              padding: '2px 8px',
-              background: 'rgba(217,119,87,0.1)',
-              color: 'var(--clay)',
-              borderRadius: '100px',
-              letterSpacing: '0.05em',
-            }}
-          >
-            Priority
-          </span>
-        )}
+        {isPriority && <span className="pay-flow__invoice-card__priority">Priority</span>}
       </div>
 
       {lineItems.map((item, idx) => (
-        <div
-          key={idx}
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            marginBottom: 8,
-            fontSize: 14,
-          }}
-        >
-          <span style={{ color: 'var(--text-secondary)' }}>{item.label}</span>
-          <span style={{ fontWeight: 600 }}>{formatCurrency(item.amount)}</span>
+        <div key={idx} className="pay-flow__invoice-card__row">
+          <span className="pay-flow__invoice-card__row-label">{item.label}</span>
+          <span className="pay-flow__invoice-card__row-value">{formatCurrency(item.amount)}</span>
         </div>
       ))}
 
-
-
       {notes && (
-        <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text-muted)' }}>
+        <div className="pay-flow__invoice-card__notes">
           <strong>Note:</strong> {notes}
         </div>
       )}
