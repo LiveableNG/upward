@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { StepByStep } from '@/components/common/StepByStep'
 import { CreditCard, Landmark, ShieldCheck, Copy, Check, Loader2 } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import PaystackEmbeddedCheckout from './payment/PaystackEmbeddedCheckout'
@@ -62,10 +62,11 @@ export function DepositFlow() {
             <div className="savings-form__input-wrap savings-form__input-wrap--amount">
               <span className="savings-form__currency">₦</span>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 placeholder="e.g. 50,000"
-                value={amount || ''}
-                onChange={(e) => setAmount(Number(e.target.value))}
+                value={formatCurrencyInput(amount)}
+                onChange={(e) => setAmount(parseCurrencyInput(e.target.value) ?? 0)}
               />
             </div>
           </div>

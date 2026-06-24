@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { ChevronDown } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 
 interface AllocationBreakdownProps {
   showBreakdown: boolean
@@ -64,10 +64,13 @@ export function AllocationBreakdown({
                       <div className="pay-breakdown-item__amount-container">
                         <span className="pay-breakdown-item__currency-small">{currency}</span>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
                           className="pay-breakdown-item__amount-input"
-                          value={alloc.allocated || ''}
-                          onChange={(e) => onAllocationChange(alloc.id, parseFloat(e.target.value) || 0)}
+                          value={formatCurrencyInput(alloc.allocated)}
+                          onChange={(e) =>
+                            onAllocationChange(alloc.id, parseCurrencyInput(e.target.value) ?? 0)
+                          }
                           onFocus={(e) => e.target.select()}
                           max={alloc.remaining}
                           min={0}
