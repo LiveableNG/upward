@@ -34,10 +34,6 @@ export function StepPropertySelect({
 
   return (
     <div>
-      <p className="pay-flow__intro">
-        Select the property you are making a payment for to ensure your credit score is updated correctly.
-      </p>
-
       {pending.length > 0 && (
         <section className="pay-flow__section">
           <p className="pay-flow__section-label">Pending Invoices</p>

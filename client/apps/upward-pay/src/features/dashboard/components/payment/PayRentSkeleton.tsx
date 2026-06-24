@@ -5,28 +5,25 @@ import React from 'react'
 export function PayRentSkeleton() {
   return (
     <div className="pay-flow pay-flow--skeleton dashboard--nav-offset">
-      <div className="pay-flow__container">
+      <div className="pay-flow__shell">
         <header className="pay-flow__header">
-          <div className="pay-flow__header-row">
-            <div className="pay-flow__skel-block pay-flow__skel-circle" style={{ width: 40, height: 40 }} />
-            <div style={{ flex: 1, paddingTop: 8 }}>
-              <div className="pay-flow__skel-block" style={{ width: 120, height: 22, marginBottom: 8 }} />
-              <div className="pay-flow__skel-block" style={{ width: '80%', height: 14 }} />
-            </div>
+          <div className="pay-flow__header-row pay-flow__header-row--centered">
+            <div className="pay-flow__skel-block pay-flow__skel-circle pay-flow__skel-back" />
+            <div className="pay-flow__skel-block pay-flow__skel-title" />
+            <span className="pay-flow__back-spacer" aria-hidden />
           </div>
         </header>
 
-        <div className="pay-flow__skel-block" style={{ width: '100%', height: 14, marginBottom: 20 }} />
+        <div className="pay-flow__scroll">
+          <div className="pay-flow__inner">
+            <div className="pay-flow__skel-block pay-flow__skel-intro" />
+            <div className="pay-flow__skel-block pay-flow__skel-label" />
 
-        <div className="pay-flow__skel-block" style={{ width: 140, height: 12, marginBottom: 12 }} />
-
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="pay-flow__skel-block"
-            style={{ width: '100%', height: 72, marginBottom: 10, borderRadius: 13 }}
-          />
-        ))}
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="pay-flow__skel-block pay-flow__skel-card" />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )

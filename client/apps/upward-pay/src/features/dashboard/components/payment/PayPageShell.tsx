@@ -8,6 +8,7 @@ interface PayPageShellProps {
   showBack?: boolean
   onBack?: () => void
   rightElement?: React.ReactNode
+  footer?: React.ReactNode
   children: React.ReactNode
 }
 
@@ -17,15 +18,14 @@ export function PayPageShell({
   showBack = false,
   onBack,
   rightElement,
+  footer,
   children,
 }: PayPageShellProps) {
   return (
     <div className="pay-flow dashboard--nav-offset">
-      <div className="pay-flow__container">
+      <div className="pay-flow__shell">
         <header className="pay-flow__header">
-          <div
-            className={`pay-flow__header-row ${!subtitle ? 'pay-flow__header-row--centered' : ''}`}
-          >
+          <div className="pay-flow__header-row">
             {showBack ? (
               <button
                 type="button"
@@ -38,15 +38,19 @@ export function PayPageShell({
             ) : (
               <span className="pay-flow__back-spacer" aria-hidden />
             )}
-            <div className="pay-flow__header-text">
-              <h1 className="pay-flow__title">{title}</h1>
-              {subtitle ? <p className="pay-flow__subtitle">{subtitle}</p> : null}
-            </div>
+            <h1 className="pay-flow__title">{title}</h1>
             {rightElement ? <div className="pay-flow__header-right">{rightElement}</div> : null}
           </div>
         </header>
 
-        <div className="pay-flow__body">{children}</div>
+        <div className="pay-flow__scroll">
+          <div className="pay-flow__inner">
+            {subtitle ? <p className="pay-flow__intro">{subtitle}</p> : null}
+            {children}
+          </div>
+        </div>
+
+        {footer ? <footer className="pay-flow__footer">{footer}</footer> : null}
       </div>
     </div>
   )
