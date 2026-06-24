@@ -110,7 +110,7 @@ export class InviteTeamMemberUseCase {
       name: dto.name,
       inviterName: ownerName,
       isNewAccount,
-      claimLink: `${(process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()}/invite/${collaborator!.uuid}`
+      claimLink: `${(process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()}/pm-invite/${collaborator!.uuid}`
     });
 
     return collaboration;
