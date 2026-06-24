@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { getPublicRequestDetails, fulfillPublicRequest } from '../../dashboard/services/credibilityService'
 import { useToast } from '@/components/common/Toast'
+import { formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import '../styles/records.css'
 
 interface Record {
@@ -289,12 +290,15 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid }) => {
                           <div style={{ position: 'relative' }}>
                             <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 14 }}>₦</span>
                             <input 
-                              type="number" 
+                              type="text" 
+                              inputMode="numeric"
                               className="table-input" 
                               style={{ paddingLeft: 28 }}
                               placeholder="0.00"
-                              value={record.amount || ''}
-                              onChange={(e) => handleUpdateRecord(record.id, 'amount', parseFloat(e.target.value) || 0)}
+                              value={formatCurrencyInput(record.amount)}
+                              onChange={(e) =>
+                                handleUpdateRecord(record.id, 'amount', parseCurrencyInput(e.target.value) ?? 0)
+                              }
                             />
                           </div>
                         </td>

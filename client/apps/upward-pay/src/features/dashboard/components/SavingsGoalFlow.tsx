@@ -6,6 +6,7 @@ import { Calendar, Wallet, CheckCircle2, Zap, Bell, Check } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
+import { formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import {
   PayFlowPrimaryButton,
   PayPageShell,
@@ -255,11 +256,15 @@ export function SavingsGoalFlow() {
           <div className="savings-form__input-wrap">
             <Wallet size={18} />
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="e.g. 500,000"
-              value={formData.targetAmount || ''}
+              value={formatCurrencyInput(formData.targetAmount)}
               onChange={(e) =>
-                setFormData({ ...formData, targetAmount: Number(e.target.value) })
+                setFormData({
+                  ...formData,
+                  targetAmount: parseCurrencyInput(e.target.value) ?? 0,
+                })
               }
             />
           </div>
