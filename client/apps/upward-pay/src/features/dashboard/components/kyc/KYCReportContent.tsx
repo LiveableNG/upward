@@ -2,20 +2,15 @@
 
 import { useRouter } from 'next/navigation'
 import {
-  ArrowLeft,
   ShieldCheck,
   Share2,
-  Award,
   CheckCircle2,
-  MapPin,
   Home,
   TrendingUp,
   Star,
-  Lock,
   Clock,
   Zap,
   BadgeCheck,
-  Building2,
   Calendar,
   Shield,
   Mail,
@@ -29,11 +24,9 @@ import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Capacitor } from '@capacitor/core'
 import FallbackSuspense from '@/components/FallbackSuspense'
-import { PageHeader } from '@/components/common/PageHeader'
-
+import { PayFlowPrimaryButton, PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { useToast } from '@/components/common/Toast'
 import { useScoreProfile, usePublicScoreProfile } from '../../services/scoreService'
-import { api } from '@/lib/api'
 
 interface KYCReportContentProps {
   isPublic?: boolean
@@ -121,7 +114,16 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
 
   if (isLoading || !scoreProfile) {
-    return <FallbackSuspense />
+    if (isPublic) return <FallbackSuspense />
+    return (
+      <PayPageShell
+        title="Credibility Profile"
+        showBack
+        onBack={() => router.push('/dashboard')}
+      >
+        <FallbackSuspense />
+      </PayPageShell>
+    )
   }
 
   const { isScorable, score, rank, band, metrics, profile, cycles, properties = [] } = scoreProfile.data
@@ -141,12 +143,6 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
     return '#ef4444'
   }
 
-  const liveVerifications = [
-    { label: 'Identity Verified', date: 'Official' },
-    { label: 'Account Created', date: 'Member' },
-    { label: 'Phone Number', date: 'Verified' },
-  ]
-
   const liveMetrics = [
     { label: 'On-time Rate', value: `${Math.round(metrics.ptPercentage)}%`, sub: 'Payment reliability' },
     { label: 'Top Streak', value: `${metrics.longestStreak} mo`, sub: 'Consecutive on-time' },
@@ -154,50 +150,61 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
     { label: 'Discipline', value: `${Math.round(metrics.discipline)}%`, sub: 'Full payments' },
   ]
 
-  return (
-    <div className={`kyc-page ${!isPublic ? 'kyc-page--dashboard' : 'public-cv'}`}>
-      {!isPublic && (
-        <>
-          {/* Mobile Unified Header */}
-          <PageHeader
-            title="Credibility Profile"
-            showBack
-            backPath="/dashboard"
-            showSettings={false}
-            rightElement={
-              <button 
-                className="dashboard__icon-btn" 
-                onClick={handleShare} 
-                title={isVerified ? "Copy Link" : "Verification required to share profile"}
-                disabled={!isVerified}
-                style={{ opacity: isVerified ? 1 : 0.5, border: 'none', background: 'none', padding: 0 }}
-              >
-                <Share2 size={20} />
-              </button>
-            }
-          />
+  const shareHeaderButton = (
+    <button
+      type="button"
+      className="pay-flow__icon-btn"
+      onClick={handleShare}
+      title={isVerified ? 'Share portfolio' : 'Verification required to share profile'}
+      disabled={!isVerified}
+      aria-label="Share portfolio"
+      style={{ opacity: isVerified ? 1 : 0.45 }}
+    >
+      <Share2 size={18} />
+    </button>
+  )
 
-          {/* Desktop Header removed for cleaner UI */}
-        </>
-      )}
-
-      {isPublic && (
-        <div className="public-header">
-           <UpwardLogo size={100} color="var(--clay)" />
-           {isLoggedIn ? (
-              <button className="btn btn--secondary btn--sm px-6" onClick={() => router.push('/dashboard')}>
-                Back to Dashboard
-              </button>
-           ) : (
-              <button className="btn btn--primary btn--sm px-6" onClick={() => router.push('/signup')}>
-                Join Upward
-              </button>
-           )}
+  const shareModal = showShareMenu ? (
+    <div className="share-overlay" onClick={() => setShowShareMenu(false)}>
+      <div className="share-menu" onClick={(e) => e.stopPropagation()}>
+        <div className="share-menu__header">
+          <h4>Share Portfolio</h4>
+          <button type="button" className="share-menu__close" onClick={() => setShowShareMenu(false)}>
+            <X size={16} />
+          </button>
         </div>
-      )}
+        <div className="share-menu__options">
+          <button type="button" className="share-menu__option" onClick={() => handleShareSocial('whatsapp')}>
+            <div className="share-menu__icon whatsapp-color">
+              <MessageCircle size={20} />
+            </div>
+            <span className="share-menu__text">WhatsApp</span>
+          </button>
+          <button type="button" className="share-menu__option" onClick={() => handleShareSocial('email')}>
+            <div className="share-menu__icon email-color">
+              <Mail size={20} />
+            </div>
+            <span className="share-menu__text">Email</span>
+          </button>
+          <button type="button" className="share-menu__option" onClick={() => handleShareSocial('sms')}>
+            <div className="share-menu__icon sms-color">
+              <MessageSquare size={20} />
+            </div>
+            <span className="share-menu__text">SMS</span>
+          </button>
+          <button type="button" className="share-menu__option" onClick={() => handleShareSocial('copy')}>
+            <div className="share-menu__icon copy-color">
+              <Copy size={20} />
+            </div>
+            <span className="share-menu__text">Copy Link</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null
 
-      <div className="kyc-report-container">
-        <div className="kyc-report">
+  const reportCard = (
+    <div className="kyc-report">
           <div className="kyc-report__watermark">
             <UpwardLogo size={240} color="var(--clay)" />
           </div>
@@ -290,24 +297,24 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                     
                     return (
                       <div key={i} className="kyc-report__property-item">
-                         <div className="kyc-report__property-head" style={{ alignItems: 'flex-start' }}>
+                         <div className="kyc-report__property-head">
                             <span className="kyc-report__property-addr">{p.location?.address || 'Property Address'}, {p.location?.area || 'Area'}</span>
-                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 12 }}>
+                            <div className="kyc-report__property-badges">
                               {p.isVerified ? (
-                                 <span className="kyc-report__property-badge" style={{ background: 'var(--success)' }}>Verified Connection</span>
+                                 <span className="kyc-report__property-badge kyc-report__property-badge--verified">Verified Connection</span>
                               ) : (
-                                 <span className="kyc-report__property-badge" style={{ background: '#f59e0b', color: 'white' }}>Pending Connection</span>
+                                 <span className="kyc-report__property-badge kyc-report__property-badge--pending">Pending Connection</span>
                               )}
                               
                               {isPlatformLinked && (
-                                 <span className="kyc-report__property-badge" style={{ background: 'var(--clay)', color: 'white' }}>Platform Synced</span>
+                                 <span className="kyc-report__property-badge kyc-report__property-badge--platform">Platform Synced</span>
                               )}
                               
                               {!isPlatformLinked && p.isVerified && (
                                  isPmVerified ? (
-                                    <span className="kyc-report__property-badge" style={{ background: 'var(--clay)', color: 'white' }}>Verified PM</span>
+                                    <span className="kyc-report__property-badge kyc-report__property-badge--pm">Verified PM</span>
                                  ) : (
-                                    <span className="kyc-report__property-badge" style={{ background: '#928e89', color: 'white' }}>Unverified PM</span>
+                                    <span className="kyc-report__property-badge kyc-report__property-badge--muted">Unverified PM</span>
                                  )
                               )}
                             </div>
@@ -336,11 +343,8 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
               </p>
               <div className="kyc-report__metrics-grid">
                 {liveMetrics.map((m, i) => (
-                  <div key={i} className="kyc-report__metric">
-                    <div className="kyc-report__metric-icon-wrap" style={{ 
-                      background: isVerified ? 'var(--clay-faint)' : '#f0ede8',
-                      color: isVerified ? 'var(--clay)' : '#928e89'
-                    }}>
+                    <div key={i} className="kyc-report__metric">
+                    <div className={`kyc-report__metric-icon-wrap ${isVerified ? 'kyc-report__metric-icon-wrap--active' : 'kyc-report__metric-icon-wrap--muted'}`}>
                        {i === 0 && <Clock size={16} />}
                        {i === 1 && <Zap size={16} />}
                        {i === 2 && <Calendar size={16} />}
@@ -364,7 +368,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
               </p>
               <div className="kyc-report__timeline">
                 {cycles.filter((c: any) => !c.excluded).length === 0 ? (
-                  <p className="text-sm opacity-50 italic">No recent payment history observed on this profile.</p>
+                  <p className="kyc-report__timeline-empty">No recent payment history observed on this profile.</p>
                 ) : (
                   cycles.filter((c: any) => !c.excluded).slice(0, 5).map((t: any, i: number) => (
                     <div key={i} className="kyc-report__timeline-item">
@@ -417,660 +421,99 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             </p>
           </div>
         </div>
+  )
 
-        {!isPublic && !isApp && (
-            <div className="kyc-report-actions">
-              <button 
-                className="btn btn--primary btn--full kyc-report-actions__share" 
-                onClick={handleShare}
-                disabled={!isVerified}
-                title={isVerified ? "" : "You need at least one verified property to share your portfolio"}
-                style={{ 
-                  opacity: isVerified ? 1 : 0.6,
-                  cursor: isVerified ? 'pointer' : 'not-allowed',
-                  filter: isVerified ? 'none' : 'grayscale(0.5)'
-                }}
-              >
-                <Share2 size={18} />
-                {isVerified ? 'Copy Credibility Portfolio Link' : 'Verification Required to Share'}
-              </button>
-
-            </div>
-        )}
-
-        {isPublic && (
-            <div className="kyc-report-legal text-center mt-12 mb-8">
-              {!isLoggedIn ? (
-                <div className="public-benefits animate-slide-up">
-                  <h3 className="public-benefits__title">Why join Upward?</h3>
-                  <div className="public-benefits__grid">
-                    <div className="public-benefits__item">
-                      <div className="public-benefits__icon"><TrendingUp size={16} /></div>
-                      <p>Build your rent<br/>credibility score</p>
-                    </div>
-                    <div className="public-benefits__item">
-                      <div className="public-benefits__icon"><BadgeCheck size={16} /></div>
-                      <p>Verified tenant<br/>portfolio</p>
-                    </div>
-                    <div className="public-benefits__item">
-                      <div className="public-benefits__icon"><Zap size={16} /></div>
-                      <p>Unlock better<br/>leasing deals</p>
-                    </div>
-                  </div>
-                  <button 
-                    className="btn btn--primary btn--pill px-10 py-4 font-bold text-lg shadow-clay" 
-                    onClick={() => router.push('/signup')}
-                  >
-                     Create Your Own Portfolio
-                  </button>
-                </div>
-              ) : (
-                <div className="logged-in-footer">
-                  <p className="text-sm opacity-60 mb-4">Viewing verified profile: <strong>{profile.name}</strong></p>
-                  <button 
-                    className="btn btn--outline btn--pill px-8" 
-                    onClick={() => router.push('/dashboard')}
-                  >
-                     Return to My Dashboard
-                  </button>
-                </div>
-              )}
-            </div>
-        )}
-
-        {showShareMenu && (
-          <div className="share-overlay" onClick={() => setShowShareMenu(false)}>
-            <div className="share-menu" onClick={(e) => e.stopPropagation()}>
-              <div className="share-menu__header">
-                <h4>Share Portfolio</h4>
-                <button className="share-menu__close" onClick={() => setShowShareMenu(false)}>
-                  <X size={16} />
-                </button>
-              </div>
-              <div className="share-menu__options">
-                <button className="share-menu__option" onClick={() => handleShareSocial('whatsapp')}>
-                  <div className="share-menu__icon whatsapp-color">
-                    <MessageCircle size={20} />
-                  </div>
-                  <span className="share-menu__text">WhatsApp</span>
-                </button>
-                <button className="share-menu__option" onClick={() => handleShareSocial('email')}>
-                  <div className="share-menu__icon email-color">
-                    <Mail size={20} />
-                  </div>
-                  <span className="share-menu__text">Email</span>
-                </button>
-                <button className="share-menu__option" onClick={() => handleShareSocial('sms')}>
-                  <div className="share-menu__icon sms-color">
-                    <MessageSquare size={20} />
-                  </div>
-                  <span className="share-menu__text">SMS</span>
-                </button>
-                <button className="share-menu__option" onClick={() => handleShareSocial('copy')}>
-                  <div className="share-menu__icon copy-color">
-                    <Copy size={20} />
-                  </div>
-                  <span className="share-menu__text">Copy Link</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <style jsx>{`
-        .kyc-page--dashboard {
-            padding-top: 0;
-            padding-bottom: 2rem;
-        }
-        @media (min-width: 641px) {
-            .kyc-page--dashboard {
-                padding-top: 80px;
-            }
-        }
-        .public-cv {
-            background: var(--bg);
-            min-height: 100vh;
-            padding: 2rem 1rem;
-        }
-        .public-header {
-            max-width: 800px;
-            margin: 0 auto 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 1rem;
-        }
-        .kyc-report {
-           position: relative;
-           overflow: hidden;
-           background: var(--bg);
-           border-radius: 24px;
-           border: 1px solid var(--border-solid);
-           box-shadow: 0 12px 40px rgba(0,0,0,0.06);
-           transition: transform 0.3s ease;
-           width: 100%;
-        }
-        @media (min-width: 641px) {
-          .kyc-report {
-             border-radius: 36px;
-             box-shadow: 0 30px 60px -12px rgba(0,0,0,0.08);
-          }
-        }
-        .kyc-report__header {
-            border-bottom: 1px solid var(--border-solid);
-            padding: 24px 16px 20px;
-            text-align: center;
-            background: linear-gradient(180deg, var(--clay-faint) 0%, transparent 100%);
-        }
-        .kyc-report__body {
-            padding: 20px 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-        @media (min-width: 641px) {
-            .kyc-report__header {
-                padding: 40px 32px 28px;
-            }
-            .kyc-report__body {
-                padding: 32px;
-                gap: 28px;
-            }
-        }
-        .kyc-report__meta {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 6px;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-bottom: 12px;
-            padding: 0 12px;
-        }
-        .kyc-report__meta-dot {
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: var(--text-muted);
-            opacity: 0.5;
-            display: inline-block;
-            margin: 0 4px;
-        }
-        .kyc-report__watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            opacity: 0.03;
-            pointer-events: none;
-            animation: rotateFull 20s linear infinite;
-        }
-        @keyframes rotateFull {
-            from { transform: translate(-50%, -50%) rotate(0deg); }
-            to { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-
-        .kyc-report__score-box {
-            background: linear-gradient(135deg, rgba(217, 119, 87, 0.05) 0%, rgba(217, 119, 87, 0.02) 100%);
-            border: 1px solid rgba(217, 119, 87, 0.15);
-            border-radius: 20px;
-            padding: 1.25rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin: 1.5rem 0;
-            box-shadow: 0 8px 24px rgba(217, 119, 87, 0.04);
-        }
-        @media (min-width: 641px) {
-            .kyc-report__score-box {
-                padding: 1.75rem;
-                margin: 2rem 0;
-            }
-        }
-        .kyc-report__score-value-wrap {
-            display: flex;
-            align-items: baseline;
-            gap: 4px;
-            margin: 0.25rem 0;
-        }
-        .kyc-report__score-value {
-            font-size: 2.75rem;
-            font-weight: 900;
-            line-height: 1;
-            color: var(--text) !important;
-        }
-        @media (min-width: 641px) {
-            .kyc-report__score-value {
-                font-size: 3.5rem;
-            }
-        }
-        .kyc-report__score-max {
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            opacity: 0.6;
-        }
-        .kyc-report__score-gauge {
-            position: relative;
-            width: 85px;
-            height: 85px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: transparent !important;
-            flex-shrink: 0;
-        }
-        @media (min-width: 641px) {
-            .kyc-report__score-gauge {
-                width: 110px;
-                height: 110px;
-            }
-        }
-        .kyc-report__gauge-svg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            transform: rotate(-90deg);
-        }
-        .kyc-report__gauge-bg {
-            fill: none;
-            stroke: var(--border-solid);
-            stroke-width: 6;
-            opacity: 0.4;
-        }
-        .kyc-report__gauge-fill {
-            fill: none;
-            stroke: var(--clay);
-            stroke-width: 8;
-            stroke-linecap: round;
-            transition: stroke-dasharray 1s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .kyc-report__score-gauge-inner {
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: var(--text) !important;
-        }
-        @media (min-width: 641px) {
-            .kyc-report__score-gauge-inner {
-                font-size: 1.25rem;
-            }
-        }
-
-        .kyc-report__metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.2rem;
-        }
-        .kyc-report__metric {
-            background: var(--surface2);
-            padding: 1.25rem;
-            border-radius: 20px;
-            display: flex;
-            gap: 1rem;
-            border: 1px solid var(--border-solid);
-            transition: all 0.2s ease;
-        }
-        .kyc-report__metric:hover {
-            transform: translateY(-4px);
-            border-color: var(--clay);
-            background: var(--surface);
-        }
-        .kyc-report__metric-icon-wrap {
-            width: 40px;
-            height: 40px;
-            background: var(--clay-faint);
-            color: var(--clay);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .kyc-report__metric-label {
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            opacity: 0.5;
-        }
-        .kyc-report__metric-value {
-            font-size: 1.5rem;
-            font-weight: 800;
-            margin-top: 2px;
-        }
-        .kyc-report__metric-sub {
-            font-size: 0.65rem;
-            opacity: 0.6;
-        }
-
-        .kyc-report__status-tag {
-            background: rgba(255,255,255,0.03);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-        }
-
-        .kyc-report__avatar-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 50%;
-        }
-        .kyc-report__bio {
-            max-width: 460px;
-            margin: 1rem auto;
-            font-size: 0.85rem;
-            line-height: 1.6;
-            color: var(--text-muted);
-            text-align: center;
-        }
-        .kyc-report__properties-list {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .kyc-report__property-item {
-            background: var(--surface2);
-            padding: 1rem;
-            border-radius: 12px;
-            border: 1px solid var(--border-solid);
-            transition: background 0.2s ease;
-        }
-        .kyc-report__property-item:hover {
-            background: var(--surface);
-        }
-        .kyc-report__property-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-        }
-        .kyc-report__property-addr {
-            font-weight: 700;
-            font-size: 0.95rem;
-        }
-        .kyc-report__property-badge {
-            background: var(--success);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 0.65rem;
-            font-weight: 800;
-            text-transform: uppercase;
-        }
-        .kyc-report__property-meta {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        @media (max-width: 640px) {
-            .kyc-report__metrics-grid {
-                grid-template-columns: 1fr;
-            }
-            .kyc-report__score-box {
-                flex-direction: column;
-                gap: 2rem;
-                text-align: center;
-            }
-            .kyc-report__score-value-wrap {
-                justify-content: center;
-            }
-        }
-
-        .public-benefits {
-            background: var(--surface);
-            border: 1px solid var(--border-solid);
-            padding: 2.5rem 2rem;
-            border-radius: 32px;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .public-benefits__title {
-            font-size: 1.25rem;
-            font-weight: 800;
-            margin-bottom: 2rem;
-            color: var(--text);
-        }
-        .public-benefits__grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-            margin-bottom: 2.5rem;
-        }
-        .public-benefits__item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-        }
-        .public-benefits__item p {
-            font-size: 0.75rem;
-            font-weight: 700;
-            line-height: 1.3;
-            color: var(--text-secondary);
-        }
-        .public-benefits__icon {
-            width: 42px;
-            height: 42px;
-            background: var(--clay-faint);
-            color: var(--clay);
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .animate-slide-up {
-            animation: slideUp 0.5s ease-out;
-        }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .mobile-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 64px;
-            background: var(--bg);
-            display: flex;
-            align-items: center;
-            padding: 0 16px;
-            z-index: 1000;
-            border-bottom: 1px solid var(--border-solid);
-        }
-        .mobile-header__back {
-            background: none;
-            border: none;
-            color: var(--text);
-            padding: 8px;
-            margin-left: -8px;
-            display: flex;
-            align-items: center;
-        }
-        .mobile-header__title {
-            flex: 1;
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-left: 12px;
-            color: var(--text);
-        }
-        .mobile-header__actions {
-            display: flex;
-            gap: 12px;
-        }
-        .mobile-header__icon-btn {
-            background: none;
-            border: none;
-            color: var(--text);
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-        }
-        .mobile-header__icon-btn:active {
-            background: var(--surface2);
-        }
-
-        .kyc-report-actions {
-            max-width: 600px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .kyc-report-actions__share {
-            padding: 16px;
-            border-radius: 16px;
-            font-size: 1rem;
-            font-weight: 700;
-        }
-        @media (max-width: 640px) {
-            .kyc-report-container {
-                padding: 64px 12px 40px !important;
-            }
-            .kyc-report-actions {
-                display: none;
-            }
-            .kyc-report-actions__share {
-                order: 1;
-            }
-
-        }
-
-        .share-overlay {
-          position: fixed;
-          inset: 0;
-          z-index: 10000;
-          background: rgba(0, 0, 0, 0.4);
-          backdrop-filter: blur(8px) saturate(140%);
-          -webkit-backdrop-filter: blur(8px) saturate(140%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 16px;
-          animation: shareFadeIn 0.25s ease-out;
-        }
-
-        .share-menu {
-          background: var(--bg);
-          border: 1px solid var(--border-solid);
-          border-radius: 24px;
-          width: 100%;
-          max-width: 380px;
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-          animation: sharePop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-          overflow: hidden;
-        }
-
-        .share-menu__header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 20px 24px 16px;
-          border-bottom: 1px solid var(--border);
-        }
-
-        .share-menu__header h4 {
-          font-size: 1rem;
-          font-weight: 800;
-          color: var(--text);
-          margin: 0;
-        }
-
-        .share-menu__close {
-          background: var(--surface2);
-          border: none;
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          color: var(--text-secondary);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .share-menu__close:hover {
-          background: var(--border);
-          color: var(--text);
-        }
-
-        .share-menu__options {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
-          padding: 20px 24px 24px;
-        }
-
-        .share-menu__option {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          padding: 16px;
-          background: var(--surface);
-          border: 1px solid var(--border-solid);
-          border-radius: 16px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .share-menu__option:hover {
-          background: var(--surface2);
-          border-color: var(--clay);
-          transform: translateY(-2px);
-        }
-
-        .share-menu__icon {
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          background: var(--bg);
-          border: 1px solid var(--border-solid);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-        }
-
-        .share-menu__option:hover .share-menu__icon {
-          border-color: var(--clay);
-          box-shadow: 0 4px 12px var(--clay-glow);
-        }
-
-        .share-menu__text {
-          font-size: 0.8rem;
-          font-weight: 700;
-          color: var(--text-secondary);
-        }
-
-        .whatsapp-color { color: #25D366; }
-        .email-color { color: #3b82f6; }
-        .sms-color { color: #d97757; }
-        .copy-color { color: #0284c7; }
-
-        @keyframes shareFadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        @keyframes sharePop {
-          from { transform: scale(0.95) translateY(10px); opacity: 0; }
-          to { transform: scale(1) translateY(0); opacity: 1; }
-        }
-      `}</style>
+  const unverifiedNotice = !isVerified ? (
+    <div className="credibility-page__notice">
+      <ShieldCheck size={16} />
+      <span>
+        <strong>Profile not fully verified.</strong> Connect with an Upward partner landlord and complete payments to unlock sharing and your live score.
+      </span>
     </div>
+  ) : null
+
+  if (isPublic) {
+    return (
+      <div className="kyc-page public-cv">
+        <div className="public-header">
+          <UpwardLogo size={100} color="var(--clay)" />
+          {isLoggedIn ? (
+            <button type="button" className="btn btn--secondary btn--sm px-6" onClick={() => router.push('/dashboard')}>
+              Back to Dashboard
+            </button>
+          ) : (
+            <button type="button" className="btn btn--primary btn--sm px-6" onClick={() => router.push('/signup')}>
+              Join Upward
+            </button>
+          )}
+        </div>
+
+        <div className="kyc-report-container">
+          <div className="credibility-page">{reportCard}</div>
+
+          <div className="kyc-report-legal">
+            {!isLoggedIn ? (
+              <div className="public-benefits animate-slide-up">
+                <h3 className="public-benefits__title">Why join Upward?</h3>
+                <div className="public-benefits__grid">
+                  <div className="public-benefits__item">
+                    <div className="public-benefits__icon"><TrendingUp size={16} /></div>
+                    <p>Build your rent<br />credibility score</p>
+                  </div>
+                  <div className="public-benefits__item">
+                    <div className="public-benefits__icon"><BadgeCheck size={16} /></div>
+                    <p>Verified tenant<br />portfolio</p>
+                  </div>
+                  <div className="public-benefits__item">
+                    <div className="public-benefits__icon"><Zap size={16} /></div>
+                    <p>Unlock better<br />leasing deals</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn--primary btn--pill px-10 py-4 font-bold text-lg shadow-clay"
+                  onClick={() => router.push('/signup')}
+                >
+                  Create Your Own Portfolio
+                </button>
+              </div>
+            ) : (
+              <div className="logged-in-footer">
+                <p>Viewing verified profile: <strong>{profile.name}</strong></p>
+                <button type="button" className="btn btn--outline btn--pill px-8" onClick={() => router.push('/dashboard')}>
+                  Return to My Dashboard
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {shareModal}
+      </div>
+    )
+  }
+
+  return (
+    <PayPageShell
+      title="Credibility Profile"
+      subtitle="Your rent credibility score and verified tenancy portfolio."
+      showBack
+      onBack={() => router.push('/dashboard')}
+      rightElement={shareHeaderButton}
+      footer={
+        !isApp ? (
+          <PayFlowPrimaryButton onClick={handleShare} disabled={!isVerified}>
+            <Share2 size={18} />
+            {isVerified ? 'Share portfolio link' : 'Verify to share portfolio'}
+          </PayFlowPrimaryButton>
+        ) : undefined
+      }
+    >
+      <div className="credibility-page">
+        {unverifiedNotice}
+        {reportCard}
+      </div>
+      {shareModal}
+    </PayPageShell>
   )
 }

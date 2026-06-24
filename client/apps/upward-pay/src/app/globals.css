@@ -7,6 +7,7 @@
 @import '../styles/dashboard-shell.css';
 @import '../styles/dashboard-home.css';
 @import '../styles/kyc-profile.css';
+@import '../styles/credibility-page.css';
 @import '../styles/pay-page.css';
 @import '../styles/receipts-profile.css';
 @import '../styles/coming-soon.css';
@@ -18,4 +19,5 @@
 @import '../styles/transactions-page.css';
 @import '../styles/profile-page.css';
 @import '../styles/sub-page.css';
+@import '../styles/settings-page.css';
 @import '../styles/documents-page.css';

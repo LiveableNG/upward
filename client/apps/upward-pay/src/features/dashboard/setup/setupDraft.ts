@@ -1,3 +1,5 @@
+import { STATES } from '@/lib/location-data'
+
 export type SetupMode = 'onboarding' | 'edit'
 
 export type RentalFormData = {
@@ -77,4 +79,64 @@ export function patchSetupDraft(patch: Partial<SetupDraft>) {
 export function clearSetupDraft() {
   if (typeof window === 'undefined') return
   sessionStorage.removeItem(STORAGE_KEY)
+}
+
+export type DraftUserProperty = {
+  uuid?: string
+  address: string
+  rentStartDate?: string
+  rentEndDate: string
+  rentAmount?: number
+  managerName?: string
+  managerEmail?: string
+  companyName?: string
+  location?: {
+    area?: string
+    subarea?: string
+    address?: string
+    state?: string
+    country?: string
+  }
+}
+
+export type UserProfileSlice = {
+  phone?: string | null
+  properties?: DraftUserProperty[]
+}
+
+export function draftFromProperty(
+  user: UserProfileSlice,
+  prop: DraftUserProperty,
+  mode: SetupMode = 'edit',
+): SetupDraft {
+  const draft = createEmptyDraft(mode)
+
+  draft.formData = {
+    uuid: prop.uuid,
+    pmName: prop.managerName || '',
+    address: prop.location?.address || prop.address || '',
+    area: prop.location?.area || '',
+    subarea: prop.location?.subarea || '',
+    state: prop.location?.state || STATES['NG']?.[24] || 'Lagos',
+    country: prop.location?.country || 'NG',
+    rentAmount: prop.rentAmount ? String(prop.rentAmount) : '',
+    rentStartDate: prop.rentStartDate ? prop.rentStartDate.split('T')[0] : '',
+    rentEndDate: prop.rentEndDate ? prop.rentEndDate.split('T')[0] : '',
+  }
+  draft.pmEmail = prop.managerEmail || ''
+  draft.phone = user.phone || ''
+  draft.pmFound = !!(prop.companyName || prop.managerName)
+  if (prop.companyName) {
+    draft.pmDetails = {
+      name: prop.managerName || prop.companyName,
+      businessName: prop.companyName,
+    }
+  } else if (prop.managerName) {
+    draft.pmDetails = {
+      name: prop.managerName,
+      businessName: prop.managerName,
+    }
+  }
+
+  return draft
 }

@@ -29,6 +29,18 @@ export function setupAddPropertyPath(returnTo: string): string {
   return `${SETUP_PATHS.rental}?returnTo=${encodeURIComponent(returnTo)}`
 }
 
+export function setupAddPropertyEditPath(): string {
+  return `${SETUP_PATHS.rental}?mode=edit&new=1`
+}
+
+export function setupEditPropertyPath(propertyUuid: string): string {
+  return `${SETUP_PATHS.rental}?mode=edit&property=${encodeURIComponent(propertyUuid)}`
+}
+
+export function setupRentalListPath(): string {
+  return `${SETUP_PATHS.rental}?mode=edit`
+}
+
 export function setupPath(
   pathname: string,
   options?: { mode?: SetupMode },
