@@ -1,15 +1,16 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
 import { ArrowRight, CheckCircle2, Search, UserPlus, UserX } from 'lucide-react'
 import { api } from '@/lib/api'
 import { COUNTRIES, STATES } from '@/lib/location-data'
 import { useToast } from '@/components/common/Toast'
 import { useSetupDraft } from '../SetupDraftContext'
-import { SETUP_PATHS, useSetupMode } from '../setupPaths'
+import { SETUP_PATHS, setupRentalListPath, useSetupMode } from '../setupPaths'
 import { SetupPageShell, SetupPrimaryButton } from './SetupPageShell'
+import { PayFlowPrimaryButton, PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { type SetupDraft } from '../setupDraft'
 
 type RentalFormStep = 'manager' | 'property'
@@ -23,13 +24,33 @@ function shouldRestoreLookup(draft: SetupDraft, isEdit: boolean): boolean {
   return false
 }
 
+function initialFormStep(draft: SetupDraft, isEdit: boolean, isNew: boolean): RentalFormStep {
+  if (isEdit && draft.formData.uuid && !isNew) return 'property'
+  return 'manager'
+}
+
 export function RentalFormView() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const toast = useToast()
   const { draft, updateDraft } = useSetupDraft()
   const { isEdit, withMode, returnTo } = useSetupMode()
+  const isNew = searchParams.get('new') === '1'
+  const isEditingExisting = isEdit && !!draft.formData.uuid && !isNew
+
   const [lookupDone, setLookupDone] = useState(() => shouldRestoreLookup(draft, isEdit))
-  const [formStep, setFormStep] = useState<RentalFormStep>('manager')
+  const [formStep, setFormStep] = useState<RentalFormStep>(() =>
+    initialFormStep(draft, isEdit, isNew),
+  )
+
+  useEffect(() => {
+    if (isEdit && draft.formData.uuid && !isNew) {
+      setFormStep('property')
+      if (draft.pmEmail) {
+        setLookupDone(shouldRestoreLookup(draft, isEdit))
+      }
+    }
+  }, [isEdit, isNew, draft.formData.uuid, draft.pmEmail, draft.pmFound, draft.pmDetails])
 
   const verifyMutation = useMutation({
     mutationFn: async (identifier: string) => {
@@ -118,7 +139,15 @@ export function RentalFormView() {
 
   const handleBack = () => {
     if (formStep === 'property') {
+      if (isEditingExisting) {
+        router.push(setupRentalListPath())
+        return
+      }
       setFormStep('manager')
+      return
+    }
+    if (formStep === 'manager' && isEdit && !returnTo) {
+      router.push(setupRentalListPath())
       return
     }
     if (returnTo) {
@@ -144,22 +173,45 @@ export function RentalFormView() {
     })
   }
 
-  return (
-    <SetupPageShell
-      onBack={handleBack}
-      footer={
-        <SetupPrimaryButton onClick={isManagerStep ? handleManagerContinue : handlePropertyContinue}>
-          Continue
-          <ArrowRight size={18} aria-hidden />
-        </SetupPrimaryButton>
-      }
-    >
+  const pageTitle = isManagerStep
+    ? isEditingExisting
+      ? 'Manager details'
+      : isEdit
+        ? 'Add property'
+        : 'Who manages your home?'
+    : isEditingExisting
+      ? 'Property details'
+      : 'Where do you live?'
+
+  const pageSubtitle = isManagerStep
+    ? isEditingExisting
+      ? 'Change who manages this property, or go back to update the property itself.'
+      : "Search by email or phone. If they're not on Upward yet, we'll invite them for you."
+    : isEditingExisting
+      ? 'Update address, rent amount, and tenancy dates for this property.'
+      : 'We use this to verify your tenancy and track on-time payments.'
+
+  const footer = isEdit ? (
+    <PayFlowPrimaryButton onClick={isManagerStep ? handleManagerContinue : handlePropertyContinue}>
+      Continue
+    </PayFlowPrimaryButton>
+  ) : (
+    <SetupPrimaryButton onClick={isManagerStep ? handleManagerContinue : handlePropertyContinue}>
+      Continue
+      <ArrowRight size={18} aria-hidden />
+    </SetupPrimaryButton>
+  )
+
+  const content = (
+    <>
       {isManagerStep ? (
         <>
-          <h2 className="setup-page__title">Who manages your home?</h2>
-          <p className="setup-page__subtitle">
-            Search by email or phone. If they&apos;re not on Upward yet, we&apos;ll invite them for you.
-          </p>
+          {!isEdit ? (
+            <>
+              <h2 className="setup-page__title">{pageTitle}</h2>
+              <p className="setup-page__subtitle">{pageSubtitle}</p>
+            </>
+          ) : null}
 
           <div className="setup-page__fields">
             {showFindOnly && (
@@ -299,10 +351,23 @@ export function RentalFormView() {
         </>
       ) : (
         <>
-          <h2 className="setup-page__title">Where do you live?</h2>
-          <p className="setup-page__subtitle">
-            We use this to verify your tenancy and track on-time payments.
-          </p>
+          {!isEdit ? (
+            <>
+              <h2 className="setup-page__title">{pageTitle}</h2>
+              <p className="setup-page__subtitle">{pageSubtitle}</p>
+            </>
+          ) : null}
+
+          {isEditingExisting ? (
+            <button
+              type="button"
+              className="setup-page__change-contact"
+              style={{ marginBottom: 16 }}
+              onClick={() => setFormStep('manager')}
+            >
+              Change manager
+            </button>
+          ) : null}
 
           <div className="setup-page__fields">
             <div className="setup-page__field">
@@ -424,6 +489,26 @@ export function RentalFormView() {
           </div>
         </>
       )}
+    </>
+  )
+
+  if (isEdit) {
+    return (
+      <PayPageShell
+        title={pageTitle}
+        subtitle={pageSubtitle}
+        showBack
+        onBack={handleBack}
+        footer={footer}
+      >
+        {content}
+      </PayPageShell>
+    )
+  }
+
+  return (
+    <SetupPageShell onBack={handleBack} footer={footer}>
+      {content}
     </SetupPageShell>
   )
 }
