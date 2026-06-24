@@ -24,14 +24,14 @@ function BalancePanel({
 }) {
   return (
     <div className="pay-flow__balance">
-      <div className="pay-flow__balance-top">
+        <div className="pay-flow__balance-top">
         <div>
           <div className="pay-flow__balance-label">Total Rent</div>
           <div className="pay-flow__balance-value">
             {formatCurrency(propertyBalance.totalOwed, propertyBalance.currency)}
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
+        <div className="pay-flow__text-right">
           <div className="pay-flow__balance-label pay-flow__balance-label--accent">Remaining</div>
           <div className="pay-flow__balance-value pay-flow__balance-value--accent">
             {formatCurrency(propertyBalance.remainingBalance, propertyBalance.currency)}
@@ -265,11 +265,9 @@ export function StepAmount({
         <div className="pay-flow__amount-hero-value">{formatCurrency(Number(amount))}</div>
       </div>
 
-      <div style={{ marginBottom: 24 }}>
+      <div className="pay-flow__breakdown-block">
         <div className="pay-flow__breakdown-head">
-          <p className="pay-flow__section-heading" style={{ margin: 0 }}>
-            Breakdown Payment
-          </p>
+          <p className="pay-flow__section-heading">Breakdown Payment</p>
           <button type="button" className="pay-flow__icon-btn" onClick={addLineItem} aria-label="Add line item">
             <Plus size={18} />
           </button>
@@ -328,7 +326,7 @@ export function StepAmount({
 
       <div className="pay-flow__field">
         <label className="pay-flow__field-label">
-          Narration <span style={{ fontWeight: 400, color: '#a9a096' }}>(optional)</span>
+          Narration <span className="pay-flow__field-optional">(optional)</span>
         </label>
         <div className="pay-flow__input-wrap">
           <input

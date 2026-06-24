@@ -16,6 +16,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { api } from '@/lib/api'
+import { normalizeSavingsGoal, setGoalPath } from '@/features/dashboard/utils/savingsGoals'
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { AppleIcon, PlayStoreIcon } from '@/components/StoreIcons'
 import { type CompletedPayment, type PendingPayment } from '../types'
@@ -110,18 +111,6 @@ function getRentDue(pendingPayments: PendingPayment[], user: UserProfile) {
   return upcoming || null
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function normalizeGoal(goal: any, index: number) {
-  const name = goal.name || goal.title || (index === 0 ? 'Rent Fund' : 'Home Fund')
-  const target = goal.targetAmount ?? goal.target_amount ?? goal.goalAmount ?? 0
-  const current = goal.currentAmount ?? goal.current_amount ?? goal.balance ?? goal.saved ?? 0
-  const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0
-  const isHome =
-    String(goal.type || goal.category || name).toLowerCase().includes('home') ||
-    name.toLowerCase().includes('home')
-  return { id: goal.id || goal.uuid || String(index), name, target, current, pct, isHome }
-}
-
 export function DashboardHome({
   user,
   pendingPayments,
@@ -154,7 +143,7 @@ export function DashboardHome({
   const ringPct = Math.min(100, Math.max((credScore / maxScore) * 100, 4))
   const rentDue = getRentDue(pendingPayments, user)
   const recent = completedPayments.slice(0, 3)
-  const goals = Array.isArray(savingsGoals) ? savingsGoals.map(normalizeGoal).slice(0, 2) : []
+  const goals = Array.isArray(savingsGoals) ? savingsGoals.map(normalizeSavingsGoal).slice(0, 2) : []
 
   const showActivityCenter =
     pendingPayments.length > 0 ||
@@ -333,7 +322,7 @@ export function DashboardHome({
           {goals.length === 0 ? (
             <div className="dash-home__savings-empty">
               <p>Set a savings goal to start building toward rent or a home.</p>
-              <button type="button" className="dash-home__savings-empty-btn" onClick={() => router.push('/dashboard/savings/set-goal')}>
+              <button type="button" className="dash-home__savings-empty-btn" onClick={() => router.push(setGoalPath())}>
                 Set a goal
               </button>
             </div>

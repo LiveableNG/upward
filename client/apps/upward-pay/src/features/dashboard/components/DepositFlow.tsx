@@ -21,7 +21,6 @@ export function DepositFlow() {
   const [showCheckout, setShowCheckout] = useState(false)
   const [txRef, setTxRef] = useState<string | null>(null)
 
-  // Fetch wallet details to get DVA
   const { data: wallet, isLoading: loadingWallet } = useQuery({
     queryKey: ['wallet'],
     queryFn: async () => {
@@ -30,7 +29,6 @@ export function DepositFlow() {
     },
   })
 
-  // Mutation to initialize transaction
   const initTx = useMutation({
     mutationFn: async (data: { amount: number }) => {
       const res = await api.post('/wallet/fund', data)
@@ -55,14 +53,14 @@ export function DepositFlow() {
   const steps = [
     {
       title: 'How much do you want to deposit?',
-      subtitle: 'Funds will be added to your Upward Wallet.',
+      subtitle: 'Funds will be added to your Upward wallet.',
       isValid: amount >= 100,
       content: (
-        <div className="auth-form">
-          <div className="auth-form__field">
+        <div className="savings-form">
+          <div className="savings-form__field">
             <label>Amount (₦)</label>
-            <div className="input-with-icon">
-              <span style={{ fontWeight: 700, opacity: 0.5 }}>₦</span>
+            <div className="savings-form__input-wrap savings-form__input-wrap--amount">
+              <span className="savings-form__currency">₦</span>
               <input
                 type="number"
                 placeholder="e.g. 50,000"
@@ -73,7 +71,7 @@ export function DepositFlow() {
           </div>
           <div className="deposit-presets">
             {[5000, 10000, 20000, 50000].map((p) => (
-              <button key={p} className="deposit-preset-btn" onClick={() => setAmount(p)}>
+              <button key={p} type="button" className="deposit-preset-btn" onClick={() => setAmount(p)}>
                 +{formatCurrency(p, 'NGN')}
               </button>
             ))}
@@ -95,7 +93,7 @@ export function DepositFlow() {
               <Landmark size={24} />
             </div>
             <div className="payment-method-card__info">
-              <h3>Bank Transfer (DVA)</h3>
+              <h3>Bank transfer (DVA)</h3>
               <p>Transfer to your dedicated account. Reflects instantly.</p>
             </div>
           </div>
@@ -108,7 +106,7 @@ export function DepositFlow() {
               <CreditCard size={24} />
             </div>
             <div className="payment-method-card__info">
-              <h3>Debit Card</h3>
+              <h3>Debit card</h3>
               <p>Secure payment via Paystack checkout.</p>
             </div>
           </div>
@@ -116,7 +114,7 @@ export function DepositFlow() {
       ),
     },
     {
-      title: paymentMethod === 'bank_transfer' ? 'Transfer Funds' : 'Confirm Deposit',
+      title: paymentMethod === 'bank_transfer' ? 'Transfer funds' : 'Confirm deposit',
       subtitle:
         paymentMethod === 'bank_transfer'
           ? 'Transfer exactly the amount to the details below.'
@@ -126,19 +124,20 @@ export function DepositFlow() {
         paymentMethod === 'bank_transfer' ? (
           <div className="dva-display">
             {loadingWallet ? (
-              <div className="loading-state" style={{ padding: 40, textAlign: 'center' }}>
+              <div className="loading-state">
                 <Loader2 className="animate-spin" size={32} />
-                <p style={{ marginTop: 16 }}>Retrieving your secure account...</p>
+                <p>Retrieving your secure account...</p>
               </div>
             ) : wallet?.accountNumber ? (
               <div className="dva-card">
                 <div className="dva-card__row">
-                  <span className="dva-card__label">Bank Name</span>
+                  <span className="dva-card__label">Bank name</span>
                   <span className="dva-card__value">{wallet.bankName}</span>
                 </div>
                 <div className="dva-card__row">
-                  <span className="dva-card__label">Account Number</span>
+                  <span className="dva-card__label">Account number</span>
                   <button
+                    type="button"
                     className="dva-card__copy-btn"
                     onClick={() => copyToClipboard(wallet.accountNumber)}
                   >
@@ -147,35 +146,18 @@ export function DepositFlow() {
                   </button>
                 </div>
                 <div className="dva-card__row">
-                  <span className="dva-card__label">Account Name</span>
-                  <span className="dva-card__value">
-                    {wallet.accountName || null }
-                  </span>
+                  <span className="dva-card__label">Account name</span>
+                  <span className="dva-card__value">{wallet.accountName || null}</span>
                 </div>
               </div>
             ) : (
-              <div className="empty-state" style={{ textAlign: 'center', padding: 20 }}>
+              <div className="empty-state">
                 <p>Virtual account not found. Please try again or contact support.</p>
               </div>
             )}
-            <div
-              className="signup-info-card"
-              style={{
-                marginTop: 24,
-                background: 'var(--clay-faint)',
-                borderColor: 'rgba(217, 119, 87, 0.2)',
-              }}
-            >
-              <p
-                style={{
-                  color: 'var(--clay)',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
-                <ShieldCheck size={14} style={{ marginRight: 4 }} />
+            <div className="signup-info-card">
+              <p>
+                <ShieldCheck size={14} />
                 Instant confirmation. Your wallet will be credited as soon as we receive the alert.
               </p>
             </div>
@@ -183,16 +165,16 @@ export function DepositFlow() {
         ) : (
           <div className="deposit-summary">
             <div className="summary-item">
-              <span>Deposit Amount</span>
+              <span>Deposit amount</span>
               <strong>{formatCurrency(amount, 'NGN')}</strong>
             </div>
             <div className="summary-item">
-              <span>Processing Fee</span>
+              <span>Processing fee</span>
               <strong>{formatCurrency(amount * 0.015, 'NGN')}</strong>
             </div>
             <div className="summary-divider" />
             <div className="summary-item total">
-              <span>Total Payable</span>
+              <span>Total payable</span>
               <strong>{formatCurrency(amount * 1.015, 'NGN')}</strong>
             </div>
             <div className="paystack-badge">
@@ -219,6 +201,8 @@ export function DepositFlow() {
 
   return (
     <StepByStep
+      variant="oat"
+      navTitle="Add funds"
       steps={steps}
       onComplete={() => {
         if (paymentMethod === 'card') {
@@ -228,9 +212,7 @@ export function DepositFlow() {
         }
       }}
       onCancel={() => router.back()}
-      completeLabel={
-        paymentMethod === 'bank_transfer' ? 'I have made the transfer' : 'Pay with Card'
-      }
+      completeLabel={paymentMethod === 'bank_transfer' ? 'I have made the transfer' : 'Pay with card'}
       loading={initTx.isPending}
     />
   )
