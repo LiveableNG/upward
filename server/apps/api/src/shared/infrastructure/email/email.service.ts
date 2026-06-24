@@ -45,7 +45,9 @@ export class EmailService {
     private s3Service: S3Service,
   ) {
     this.frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'https://upward.goodtenants.io'
+      (this.configService.get<string>('FRONTEND_URL') || 'https://upward.goodtenants.io')
+        .split(',')[0]!
+        .trim()
     const mailgun = new Mailgun(FormData)
     const apiKey = this.configService.get<string>('MAILGUN_API_KEY')
     const domain = this.configService.get<string>('MAILGUN_DOMAIN')
