@@ -199,7 +199,7 @@ export function DashboardHome({
             <div>
               <div className="dash-home__score-eyebrow">Upward Score</div>
               <div className="dash-home__score-value-row">
-                <span className="dash-home__score-value">{isScorable ? credScore : '—'}</span>
+                <span className="dash-home__score-value">{credScore}</span>
                 <span className="dash-home__score-max">/ {maxScore}</span>
               </div>
               <div className="dash-home__score-sub">Rent Payment Score</div>
