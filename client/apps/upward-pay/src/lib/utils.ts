@@ -8,6 +8,23 @@ export function formatCurrency(amount: number | undefined | null, currency = 'NG
   }).format(val)
 }
 
+export function formatCurrencyInput(amount: number | undefined | null): string {
+  if (amount === null || amount === undefined) return ''
+  if (!Number.isFinite(amount)) return ''
+  if (amount <= 0) return ''
+  return new Intl.NumberFormat('en-NG', {
+    maximumFractionDigits: 0,
+  }).format(Math.trunc(amount))
+}
+
+export function parseCurrencyInput(value: string): number | null {
+  const digitsOnly = value.replace(/[^\d]/g, '')
+  if (!digitsOnly) return null
+  const n = Number(digitsOnly)
+  if (!Number.isFinite(n)) return null
+  return n
+}
+
 export function formatDate(date: string | number | Date | undefined | null): string {
   if (!date) return 'N/A'
   

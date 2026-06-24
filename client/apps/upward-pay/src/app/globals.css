@@ -11,6 +11,7 @@
 @import '../styles/pay-page.css';
 @import '../styles/receipts-profile.css';
 @import '../styles/coming-soon.css';
+@import '../styles/score-breakdown-page.css';
 @import '../styles/savings.css';
 @import '../styles/savings-page.css';
 @import '../styles/smart-banner.css';
@@ -21,3 +22,4 @@
 @import '../styles/sub-page.css';
 @import '../styles/settings-page.css';
 @import '../styles/documents-page.css';
+@import '../styles/request-records-page.css';
