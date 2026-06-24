@@ -30,10 +30,15 @@
 /* Activity center — existing feature, prototype skin */
 .dash-home__activity-center {
   margin-bottom: 0;
+  background: #fff;
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 16px;
+  padding: 14px 14px 12px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
 }
 
 .dash-home__activity-center .activity-center__header {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .dash-home__activity-center .activity-center__title {
@@ -44,14 +49,32 @@
 }
 
 .dash-home__activity-center .activity-center__see-all {
-  font-size: 13px;
-  color: var(--skin-primary, #c2501f);
+  font-size: 12.5px;
+  color: #7a7268;
   font-weight: 700;
-  background: none;
-  border: none;
+  background: #f7f2eb;
+  border: 1px solid #ece4d9;
+  border-radius: 99px;
   font-family: inherit;
   cursor: pointer;
-  padding: 0;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dash-home__activity-center .activity-center__badge {
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--skin-primary, #c2501f);
 }
 
 .dash-home .action-carousel--proto .action-carousel__slide {
@@ -265,27 +288,7 @@
 }
 
 .dash-home__legacy-card--widget .upcoming-widget {
-  background: #fff;
-  border: 1px solid var(--shell-border, #f0e9df);
-  border-radius: 16px;
-  padding: 16px 18px;
-  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
   margin: 0;
-}
-
-.dash-home__legacy-card--widget .upcoming-widget__title h3 {
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.dash-home__legacy-card--widget .upcoming-item h4 {
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.dash-home__legacy-card--widget .upcoming-item p {
-  font-size: 12px;
-  color: var(--shell-muted, #a9a096);
 }
 
 /* Score hero */

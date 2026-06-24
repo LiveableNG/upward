@@ -2,28 +2,18 @@
 'use client'
 
 import React, { useState } from 'react'
-import {
-  // Sun,
-  // Moon,
-  // Monitor,
-  Lock,
-  LogOut,
-  Eye,
-  EyeOff,
-  ChevronRight,
-  MessageSquare,
-} from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ChevronRight, Eye, EyeOff, Lock, LogOut, MessageSquare } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
-// import { useTheme } from '@/features/dashboard/components/ThemeProvider'
-import { PageHeader } from '@/components/common/PageHeader'
 import { BiometricSwitch } from '@/features/auth/component/BiometricSwitch'
 import { NotificationSwitch } from '@/features/notifications/components/NotificationSwitch'
+import { PayFlowPrimaryButton, PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
 
 export default function SettingsPage() {
-  const { user, logout, refreshUser } = useAuth()
-  // const { theme, setTheme } = useTheme()
+  const router = useRouter()
+  const { user, logout } = useAuth()
   const { success, error } = useToast()
 
   const [isChangingPassword, setIsChangingPassword] = useState(false)
@@ -37,7 +27,6 @@ export default function SettingsPage() {
 
   if (!user) return null
 
-
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault()
     if (passwords.new !== passwords.confirm) {
@@ -46,7 +35,6 @@ export default function SettingsPage() {
     }
     setSaving(true)
     try {
-      // In a real app, you'd have a specific endpoint for this
       await api.post('/user/auth/change-password', passwords)
       success('Password updated successfully')
       setIsChangingPassword(false)
@@ -84,421 +72,163 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="settings-page dashboard--nav-offset">
-      <PageHeader title="Settings" showBack backPath="/dashboard" showSettings={false} />
+    <PayPageShell
+      title="Settings"
+      subtitle="Security, notifications, and account preferences."
+      showBack
+      onBack={() => router.push('/dashboard/me')}
+    >
+      <section className="settings-page__section profile-page__section">
+        <h3 className="profile-page__section-label">Security &amp; notifications</h3>
+        <div className="settings-page__menu-card">
+          <NotificationSwitch />
+          <BiometricSwitch />
 
-      <div className="dashboard__main-grid">
-        <div className="dashboard__col--left">
-          {/* Theme Section - Temporarily Disabled */}
-          {/*
-          <section className="settings-section">
-            <h3 className="settings-section__title">Appearance</h3>
-            <div className="theme-selector">
-              <button
-                className={`theme-option ${theme === 'light' ? 'is-active' : ''}`}
-                onClick={() => setTheme('light')}
-              >
-                <div className="theme-option__icon">
-                  <Sun size={20} />
+          <button
+            type="button"
+            className="settings-page__row"
+            onClick={() => setIsChangingPassword((open) => !open)}
+          >
+            <span className="settings-page__row-left">
+              <span className="settings-page__row-icon">
+                <Lock size={18} />
+              </span>
+              <span className="settings-page__row-text">
+                <span className="settings-page__row-title">Change password</span>
+                <span className="settings-page__row-desc">Update your account password</span>
+              </span>
+            </span>
+            <ChevronRight
+              size={18}
+              className={`settings-page__row-chevron ${isChangingPassword ? 'settings-page__row-chevron--open' : ''}`}
+            />
+          </button>
+
+          {isChangingPassword ? (
+            <form className="settings-page__panel" onSubmit={handlePasswordChange}>
+              <div className="personal-field">
+                <label htmlFor="currentPassword">Current password</label>
+                <div className="settings-page__field-wrap">
+                  <input
+                    id="currentPassword"
+                    type={showPassword ? 'text' : 'password'}
+                    value={passwords.current}
+                    onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="settings-page__password-toggle"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
-                <span>Light</span>
-              </button>
-              <button
-                className={`theme-option ${theme === 'dark' ? 'is-active' : ''}`}
-                onClick={() => setTheme('dark')}
-              >
-                <div className="theme-option__icon">
-                  <Moon size={20} />
-                </div>
-                <span>Dark</span>
-              </button>
-              <button
-                className={`theme-option ${theme === 'system' ? 'is-active' : ''}`}
-                onClick={() => setTheme('system')}
-              >
-                <div className="theme-option__icon">
-                  <Monitor size={20} />
-                </div>
-                <span>System</span>
-              </button>
-            </div>
-          </section>
-          */}
+              </div>
 
-
-
-          {/* Security & Notifications Section */}
-          <section className="settings-section">
-            <h3 className="settings-section__title">Security & Notifications</h3>
-            <div className="settings-list">
-
-
-              <NotificationSwitch />
-              <BiometricSwitch />
-
-              <div
-                className="settings-item"
-                onClick={() => setIsChangingPassword(!isChangingPassword)}
-              >
-                <div className="settings-item__left">
-                  <div className="settings-item__icon-wrap">
-                    <Lock size={18} color="var(--clay)" />
-                  </div>
-                  <div>
-                    <span className="settings-item__title">Change Password</span>
-                    <p className="settings-item__sub">Update your account password</p>
-                  </div>
-                </div>
-                <ChevronRight
-                  size={18}
-                  color="var(--text-muted)"
-                  className={`settings-chevron ${isChangingPassword ? 'is-open' : ''}`}
+              <div className="personal-field">
+                <label htmlFor="newPassword">New password</label>
+                <input
+                  id="newPassword"
+                  type="password"
+                  value={passwords.new}
+                  onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+                  required
                 />
               </div>
 
-              {isChangingPassword && (
-                <form className="password-form animate-fade-in" onSubmit={handlePasswordChange}>
-                  <div className="auth-form__field">
-                    <label>Current Password</label>
-                    <div className="input-with-icon">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={passwords.current}
-                        onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
-                        required
-                      />
-                      <button
-                        type="button"
-                        className="input-toggle"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="auth-form__field">
-                    <label>New Password</label>
-                    <input
-                      type="password"
-                      value={passwords.new}
-                      onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="auth-form__field">
-                    <label>Confirm New Password</label>
-                    <input
-                      type="password"
-                      value={passwords.confirm}
-                      onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <button className="btn btn--primary btn--full" type="submit" disabled={saving}>
-                    {saving ? 'Updating...' : 'Update Password'}
-                  </button>
-                </form>
-              )}
-            </div>
-          </section>
-
-          {/* Feedback & Support Section */}
-          <section className="settings-section">
-            <h3 className="settings-section__title">Feedback & Support</h3>
-            <div className="settings-list">
-              <div
-                className="settings-item"
-                onClick={() => setIsFeedbackOpen(!isFeedbackOpen)}
-              >
-                <div className="settings-item__left">
-                  <div className="settings-item__icon-wrap">
-                    <MessageSquare size={18} color="var(--clay)" />
-                  </div>
-                  <div>
-                    <span className="settings-item__title">Share Feedback</span>
-                    <p className="settings-item__sub">Report a bug, suggest features or improvements</p>
-                  </div>
-                </div>
-                <ChevronRight
-                  size={18}
-                  color="var(--text-muted)"
-                  className={`settings-chevron ${isFeedbackOpen ? 'is-open' : ''}`}
+              <div className="personal-field">
+                <label htmlFor="confirmPassword">Confirm new password</label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  value={passwords.confirm}
+                  onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+                  required
                 />
               </div>
 
-              {isFeedbackOpen && (
-                <form className="password-form animate-fade-in" onSubmit={handleFeedbackSubmit}>
-                  <div className="auth-form__field">
-                    <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Feedback Type</label>
-                    <select
-                      value={feedback.type}
-                      onChange={(e) => setFeedback({ ...feedback, type: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        borderRadius: '10px',
-                        border: '1px solid var(--border)',
-                        backgroundColor: 'var(--bg)',
-                        color: 'var(--text)',
-                        fontSize: '14px',
-                        marginTop: '6px',
-                      }}
-                      required
-                    >
-                      <option value="SUGGESTION">Suggestion</option>
-                      <option value="BUG">Report a Bug</option>
-                      <option value="DIFFICULTY">Difficulty Using App</option>
-                      <option value="OTHER">Other</option>
-                    </select>
-                  </div>
-                  <div className="auth-form__field" style={{ marginTop: '14px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Your Message</label>
-                    <textarea
-                      value={feedback.message}
-                      onChange={(e) => setFeedback({ ...feedback, message: e.target.value })}
-                      placeholder="Tell us what you think or describe the issue..."
-                      rows={4}
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        borderRadius: '10px',
-                        border: '1px solid var(--border)',
-                        backgroundColor: 'var(--bg)',
-                        color: 'var(--text)',
-                        fontSize: '14px',
-                        fontFamily: 'inherit',
-                        resize: 'none',
-                        marginTop: '6px',
-                      }}
-                      required
-                    />
-                  </div>
-                  <button className="btn btn--primary btn--full" style={{ marginTop: '18px' }} type="submit" disabled={submittingFeedback}>
-                    {submittingFeedback ? 'Submitting...' : 'Submit Feedback'}
-                  </button>
-                </form>
-              )}
-            </div>
-          </section>
-
-          {/* Account Section */}
-          <section className="settings-section">
-            <div className="settings-list">
-              <div className="settings-item settings-item--logout" onClick={logout}>
-                <div className="settings-item__left">
-                  <div className="settings-item__icon-wrap settings-item__icon-wrap--logout">
-                    <LogOut size={18} color="#ef4444" />
-                  </div>
-                  <span className="settings-item__title">Sign Out</span>
-                </div>
-              </div>
-            </div>
-          </section>
+              <PayFlowPrimaryButton type="submit" loading={saving} disabled={saving}>
+                {saving ? 'Updating…' : 'Update password'}
+              </PayFlowPrimaryButton>
+            </form>
+          ) : null}
         </div>
-      </div>
+      </section>
 
-      <style jsx>{`
-        .settings-page {
-          padding-bottom: 80px;
-        }
-        .settings-section {
-          margin-bottom: 32px;
-          padding: 0 1rem;
-        }
-        .settings-section__title {
-          font-size: 13px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          color: var(--text-muted);
-          margin-bottom: 12px;
-          padding-left: 4px;
-        }
-        .theme-selector {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 12px;
-          background: var(--surface);
-          padding: 8px;
-          border-radius: 16px;
-          border: 1px solid var(--border);
-        }
-        .theme-option {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          padding: 12px 8px;
-          border-radius: 12px;
-          border: none;
-          background: transparent;
-          color: var(--text-muted);
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .theme-option.is-active {
-          background: var(--bg);
-          color: var(--clay);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-        .theme-option__icon {
-          width: 40px;
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: var(--surface2);
-          border-radius: 10px;
-          transition: all 0.2s;
-        }
-        .theme-option.is-active .theme-option__icon {
-          background: var(--clay-faint);
-          color: var(--clay);
-        }
-        .theme-option span {
-          font-size: 12px;
-          font-weight: 600;
-        }
+      <section className="settings-page__section profile-page__section">
+        <h3 className="profile-page__section-label">Feedback &amp; support</h3>
+        <div className="settings-page__menu-card">
+          <button
+            type="button"
+            className="settings-page__row"
+            onClick={() => setIsFeedbackOpen((open) => !open)}
+          >
+            <span className="settings-page__row-left">
+              <span className="settings-page__row-icon">
+                <MessageSquare size={18} />
+              </span>
+              <span className="settings-page__row-text">
+                <span className="settings-page__row-title">Share feedback</span>
+                <span className="settings-page__row-desc">
+                  Report a bug or suggest improvements
+                </span>
+              </span>
+            </span>
+            <ChevronRight
+              size={18}
+              className={`settings-page__row-chevron ${isFeedbackOpen ? 'settings-page__row-chevron--open' : ''}`}
+            />
+          </button>
 
-        .settings-list {
-          background: var(--surface);
-          border-radius: 20px;
-          border: 1px solid var(--border);
-          overflow: hidden;
-        }
-        .settings-item {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 16px;
-          cursor: pointer;
-          transition: background 0.2s;
-          border-bottom: 1px solid var(--border);
-        }
-        .settings-item:last-child {
-          border-bottom: none;
-        }
-        .settings-item:active {
-          background: var(--surface2);
-        }
-        .settings-item__left {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-        .settings-item__icon-wrap {
-          width: 40px;
-          height: 40px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: var(--surface2);
-        }
-        .settings-item__title {
-          display: block;
-          font-size: 15px;
-          font-weight: 600;
-          color: var(--text);
-        }
-        .settings-item__sub {
-          font-size: 12px;
-          color: var(--text-muted);
-        }
+          {isFeedbackOpen ? (
+            <form className="settings-page__panel" onSubmit={handleFeedbackSubmit}>
+              <div className="personal-field">
+                <label htmlFor="feedbackType">Feedback type</label>
+                <select
+                  id="feedbackType"
+                  value={feedback.type}
+                  onChange={(e) => setFeedback({ ...feedback, type: e.target.value })}
+                  required
+                >
+                  <option value="SUGGESTION">Suggestion</option>
+                  <option value="BUG">Report a bug</option>
+                  <option value="DIFFICULTY">Difficulty using app</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
 
+              <div className="personal-field">
+                <label htmlFor="feedbackMessage">Your message</label>
+                <textarea
+                  id="feedbackMessage"
+                  className="settings-page__textarea"
+                  value={feedback.message}
+                  onChange={(e) => setFeedback({ ...feedback, message: e.target.value })}
+                  placeholder="Tell us what you think or describe the issue…"
+                  required
+                />
+              </div>
 
+              <PayFlowPrimaryButton
+                type="submit"
+                loading={submittingFeedback}
+                disabled={submittingFeedback}
+              >
+                {submittingFeedback ? 'Submitting…' : 'Submit feedback'}
+              </PayFlowPrimaryButton>
+            </form>
+          ) : null}
+        </div>
+      </section>
 
-        .settings-chevron {
-          transition: transform 0.3s;
-        }
-        .settings-chevron.is-open {
-          transform: rotate(90deg);
-        }
-
-        .password-form {
-          padding: 20px;
-          background: var(--bg);
-          border-top: 1px solid var(--border);
-        }
-
-        .settings-item--logout {
-          transition: all 0.2s;
-        }
-        .settings-item--logout .settings-item__title {
-          color: var(--text);
-          transition: color 0.2s;
-        }
-        .settings-item__icon-wrap--logout {
-          background: var(--surface2);
-          transition: all 0.2s;
-        }
-        .settings-item__icon-wrap--logout :global(svg) {
-          color: var(--text-muted) !important;
-          transition: all 0.2s;
-        }
-
-        .settings-item--logout:hover {
-          background: rgba(239, 68, 68, 0.04);
-        }
-        .settings-item--logout:hover .settings-item__title {
-          color: var(--danger, #ef4444);
-        }
-        .settings-item--logout:hover .settings-item__icon-wrap--logout {
-          background: rgba(239, 68, 68, 0.1);
-        }
-        .settings-item--logout:hover .settings-item__icon-wrap--logout :global(svg) {
-          color: var(--danger, #ef4444) !important;
-        }
-
-        .animate-fade-in {
-          animation: fadeIn 0.3s ease-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-5px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Large Screen Desktop View Logic */
-        @media (min-width: 1024px) {
-          .settings-page {
-            max-width: 860px;
-            margin: 0 auto;
-            padding-top: 2rem;
-          }
-          
-          .dashboard__main-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .dashboard__col--left {
-            margin: 0 auto;
-            width: 100%;
-          }
-
-          .settings-section {
-            padding: 0;
-            margin-bottom: 40px;
-          }
-
-          .theme-selector {
-            box-shadow: var(--shadow-sm);
-            padding: 12px;
-            border-radius: 20px;
-          }
-
-          .theme-option {
-            padding: 16px;
-          }
-
-          .settings-list {
-            box-shadow: var(--shadow-sm);
-          }
-          
-          .settings-item {
-            padding: 20px;
-          }
-        }
-      `}</style>
-    </div>
+      <section className="settings-page__section profile-page__section">
+        <button type="button" className="settings-page__sign-out" onClick={logout}>
+          <LogOut size={18} />
+          Sign out
+        </button>
+      </section>
+    </PayPageShell>
   )
 }

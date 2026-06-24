@@ -154,7 +154,7 @@ export function DashboardHeader({
               <Settings size={18} />
             </button>
             <button
-              className="dashboard__icon-btn dashboard__icon-btn--notif"
+              className={`dashboard__icon-btn dashboard__icon-btn--notif ${displayCount > 0 ? 'has-unread' : ''}`}
               onClick={handleNotifClick}
               title="Notifications"
             >

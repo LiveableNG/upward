@@ -156,6 +156,13 @@
   font-size: 9px;
 }
 
+.dashboard__icon-btn--notif.has-unread {
+  border-color: rgba(194, 80, 31, 0.38);
+  background: var(--shell-tint, #fbede5);
+  color: var(--skin-primary, #c2501f);
+  box-shadow: 0 0 0 3px rgba(194, 80, 31, 0.08);
+}
+
 /* ── Bottom navigation ── */
 .bottom-nav {
   position: fixed;
