@@ -88,8 +88,8 @@
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  margin: 0 calc(-1 * var(--space-5, 20px));
-  padding: 0 var(--space-5, 20px) 2px;
+  margin: 0;
+  padding: 0 0 2px;
 }
 
 .dash-home__activity-center .activity-alerts--proto::-webkit-scrollbar {
