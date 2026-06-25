@@ -147,6 +147,7 @@ export function ProfileMenuView({
         >
           <UserAvatar
             src={profile.profilePic}
+            alt={displayName}
             size={56}
             className="profile-page__avatar"
             color="#c2501f"

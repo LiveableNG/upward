@@ -78,6 +78,10 @@ export default function PayRentPage() {
     }
   }
 
+  function propertyHasPayoutRoute(prop: any): boolean {
+    return !!(prop.isVerified || prop.subaccount || prop.dedicatedAccount)
+  }
+
   function handlePropertySelect(prop: any, pending: any[]) {
     const activeRequest = pending.find(
       p => p.userPropertyUuid === prop.uuid && (p.status === 'PENDING' || p.status === 'PARTIAL'),
@@ -92,18 +96,18 @@ export default function PayRentPage() {
     const fullAddr = [prop.address, loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
     setPropertyAddress(fullAddr)
     setpaymentType('Rent Payment')
+    setPayAmount(0)
 
     if (prop.isPastTenancy) {
       setRenewalPropertyUuid(prop.uuid)
       setShowRenewalModal(true)
     }
 
-    if (prop.isVerified || prop.subaccount || prop.dedicatedAccount) {
+    if (propertyHasPayoutRoute(prop)) {
       setSelectedLandlord(buildLandlordFromProperty(prop))
       setStep('confirm')
-    } else if (selectedLandlord) {
-      setStep('confirm')
     } else {
+      setSelectedLandlord(null)
       setStep('new')
     }
   }
@@ -142,14 +146,14 @@ export default function PayRentPage() {
   const stepTitle: Record<PayRentStep, string> = {
     select: 'Pay Rent',
     'property-select': 'Pay Rent',
-    new: 'New Recipient',
+    new: 'Payment details',
     confirm: payAmount > 0 ? 'Confirm Payment' : 'Enter Amount',
   }
 
   const stepSubtitle: Record<PayRentStep, string | undefined> = {
     select: 'Send payments to your landlord or property manager',
     'property-select': 'Select the property you are making a payment for to ensure your credit score is updated correctly.',
-    new: 'Enter recipient account details',
+    new: 'Enter the bank account this rent payment should be sent to.',
     confirm: payAmount > 0 ? 'Review and authorize payment details' : 'Set the amount and breakdown',
   }
 
@@ -193,7 +197,6 @@ export default function PayRentPage() {
 
       {step === 'new' && (
         <StepNewLandlord
-          isVerifiedUser={!!selectedPropertyUuid}
           onContinue={async (data) => {
             let finalLandlord = data as Landlord
             if (data.accountNumber && data.bankCode) {
@@ -210,6 +213,22 @@ export default function PayRentPage() {
             setStep('confirm')
           }}
           onBack={() => setStep('property-select')}
+          initialValue={
+            selectedPropertyUuid
+              ? (() => {
+                  const prop = userProperties.find((p) => p.uuid === selectedPropertyUuid)
+                  if (prop?.subaccount) {
+                    return {
+                      accountNumber: prop.subaccount.accountNumber || '',
+                      bankCode: prop.subaccount.bankCode || '',
+                      accountName: prop.subaccount.businessName || '',
+                      bankName: '',
+                    }
+                  }
+                  return undefined
+                })()
+              : undefined
+          }
         />
       )}
 
@@ -239,7 +258,12 @@ export default function PayRentPage() {
                 setPayAmount(0)
                 setRequestedAmount(0)
                 setTotalPaidAlready(0)
-                setStep('property-select')
+                if ((selectedLandlord as any)?.isNewLocal) {
+                  setStep('new')
+                } else {
+                  setSelectedLandlord(null)
+                  setStep('property-select')
+                }
               }}
             />
           ) : (

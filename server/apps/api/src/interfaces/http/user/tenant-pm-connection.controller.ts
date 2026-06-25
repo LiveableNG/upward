@@ -57,14 +57,28 @@ export class TenantPmConnectionController {
   @Post('add-unit-request')
   async addUnitRequest(
     @Req() req: AuthenticatedRequest,
-    @Body('pmEmail') pmEmail: string,
+    @Body('pmEmail') pmEmail: string | undefined,
     @Body('pmName') pmName: string | undefined,
     @Body('pmType') pmType: string | undefined,
     @Body('companyName') companyName: string | undefined,
     @Body('unitDetails') unitDetails: any,
+    @Body('paymentDetails') paymentDetails?: {
+      accountNumber: string;
+      bankCode: string;
+      accountName?: string;
+      bankName?: string;
+    },
   ) {
     const user = req.user;
-    const result = await this.submitUnitRequestUseCase.execute(user, pmEmail, pmName, pmType, companyName, unitDetails);
+    const result = await this.submitUnitRequestUseCase.execute(
+      user,
+      pmEmail,
+      pmName,
+      pmType,
+      companyName,
+      unitDetails,
+      paymentDetails,
+    );
     return { success: true, data: result };
   }
 }

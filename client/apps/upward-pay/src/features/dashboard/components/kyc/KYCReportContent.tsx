@@ -11,8 +11,6 @@ import {
   Clock,
   Zap,
   BadgeCheck,
-  Calendar,
-  Shield,
   Mail,
   MessageCircle,
   MessageSquare,
@@ -131,7 +129,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
     )
   }
 
-  const { isScorable, score, rank, band, metrics, profile, cycles, properties = [] } = scoreProfile.data
+  const { isScorable, score, maxScore, rank, band, metrics, profile, cycles, properties = [] } = scoreProfile.data
   const isFaded = !isScorable
   const paidPaymentsCount = cycles.filter((c: any) => c.status && (c.status.includes('PAID') || c.status.includes('PARTIAL'))).length
   const hasVerifiedPmProperty = properties.some((p: any) => p.isVerified && (p.isPmVerified || p.isPlatformLinked || p.pm?.isVerified || !!p.company?.platformId))
@@ -148,12 +146,10 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
     return '#ef4444'
   }
 
-  const liveMetrics = [
-    { label: 'On-time Rate', value: `${Math.round(metrics.ptPercentage)}%`, sub: 'Payment reliability' },
-    { label: 'Top Streak', value: `${metrics.longestStreak} mo`, sub: 'Consecutive on-time' },
-    { label: 'History', value: `${metrics.historyYears} yrs`, sub: 'Tenancy with us' },
-    { label: 'Discipline', value: `${Math.round(metrics.discipline)}%`, sub: 'Full payments' },
-  ]
+  const safeMaxScore = maxScore > 0 ? maxScore : 1
+  const scorePct = Math.min(100, Math.max(0, (score / safeMaxScore) * 100))
+  const gaugeCircumference = 2 * Math.PI * 45
+  const gaugeFilled = (scorePct / 100) * gaugeCircumference
 
   const shareHeaderButton = (
     <button
@@ -259,7 +255,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                 <span className="kyc-report__score-label">{isScorable ? 'Rent Credibility Score' : 'Score Building'}</span>
                 <div className="kyc-report__score-value-wrap">
                    <div className="kyc-report__score-value">{score}</div>
-                   <div className="kyc-report__score-max">/ 800</div>
+                   <div className="kyc-report__score-max">/ {maxScore ?? 0}</div>
                 </div>
                 <div className="kyc-report__score-tier">
                   <Star size={12} fill={getRankColor()} color={getRankColor()} />
@@ -267,19 +263,8 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                 </div>
               </div>
               <div className="kyc-report__score-gauge">
-                <svg viewBox="0 0 100 100" className="kyc-report__gauge-svg">
-                  <circle className="kyc-report__gauge-bg" cx="50" cy="50" r="45" />
-                  <circle 
-                    className="kyc-report__gauge-fill" 
-                    cx="50" cy="50" r="45" 
-                    style={{ 
-                      strokeDasharray: `${(score/800)*283} 283`,
-                      stroke: getRankColor()
-                    }}
-                  />
-                </svg>
                 <div className="kyc-report__score-gauge-inner" style={{ color: getRankColor() }}>
-                  {Math.round((score/800)*100)}%
+                  {Math.round(scorePct)}%
                 </div>
               </div>
             </div>
@@ -340,31 +325,6 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                 )}
               </div>
             </section>
-
-            <section className="kyc-report__section">
-              <p className="kyc-report__section-title">
-                <TrendingUp size={14} color={isVerified ? "var(--clay)" : "#928e89"} />
-                Rent Behaviour Metrics
-              </p>
-              <div className="kyc-report__metrics-grid">
-                {liveMetrics.map((m, i) => (
-                    <div key={i} className="kyc-report__metric">
-                    <div className={`kyc-report__metric-icon-wrap ${isVerified ? 'kyc-report__metric-icon-wrap--active' : 'kyc-report__metric-icon-wrap--muted'}`}>
-                       {i === 0 && <Clock size={16} />}
-                       {i === 1 && <Zap size={16} />}
-                       {i === 2 && <Calendar size={16} />}
-                       {i === 3 && <Shield size={16} />}
-                    </div>
-                    <div className="kyc-report__metric-content">
-                       <span className="kyc-report__metric-label">{m.label}</span>
-                       <div className="kyc-report__metric-value">{m.value}</div>
-                       <div className="kyc-report__metric-sub">{m.sub}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
 
             <section className="kyc-report__section">
               <p className="kyc-report__section-title">

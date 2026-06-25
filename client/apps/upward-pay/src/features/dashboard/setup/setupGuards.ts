@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSetupDraft } from './SetupDraftContext'
-import { isInviteComplete, isPropertyDraftComplete } from './rentalDraft'
+import { isPropertyDraftComplete, isPaymentDraftComplete } from './rentalDraft'
 import { SETUP_PATHS, useSetupMode } from './setupPaths'
 
 export function useRequireRentalDraft() {
@@ -12,7 +12,7 @@ export function useRequireRentalDraft() {
   const { withMode } = useSetupMode()
 
   useEffect(() => {
-    if (!isInviteComplete(draft) || !isPropertyDraftComplete(draft)) {
+    if (!isPropertyDraftComplete(draft) || !isPaymentDraftComplete(draft)) {
       router.replace(withMode(SETUP_PATHS.rental))
     }
   }, [draft, router, withMode])
