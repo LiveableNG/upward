@@ -323,6 +323,16 @@
   background: var(--shell-tint);
 }
 
+.profile-setup-blocker__quick-action--disabled {
+  opacity: 0.68;
+  cursor: not-allowed;
+}
+
+.profile-setup-blocker__quick-action--disabled:hover {
+  border-color: var(--shell-border);
+  background: var(--bg);
+}
+
 .profile-setup-blocker__quick-action-icon {
   color: var(--clay);
   display: flex;
@@ -333,6 +343,13 @@
 .profile-setup-blocker__quick-action-label {
   font-size: 12px;
   font-weight: 700;
+}
+
+.profile-setup-blocker__quick-action-soon {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--shell-muted, #a9a096);
 }
 
 .profile-setup-blocker__nudge {

@@ -25,11 +25,10 @@ import {
 interface ProfileSetupBlockerProps {
   user: UserProfile
   score?: number
+  maxScore?: number
   profileCompletion?: number
   onSkip: () => void
 }
-
-const SCORE_MAX = 900
 
 type SetupStepId = 'rental' | 'phone' | 'identity'
 
@@ -49,7 +48,13 @@ function getActiveStepId(user: UserProfile): SetupStepId {
   return 'rental'
 }
 
-export function ProfileSetupBlocker({ user, score = 0, profileCompletion = 0, onSkip }: ProfileSetupBlockerProps) {
+export function ProfileSetupBlocker({
+  user,
+  score,
+  maxScore,
+  profileCompletion = 0,
+  onSkip,
+}: ProfileSetupBlockerProps) {
   const router = useRouter()
   const firstName = user.firstName || 'there'
 
@@ -59,8 +64,10 @@ export function ProfileSetupBlocker({ user, score = 0, profileCompletion = 0, on
   const showIdentityStep = user.verificationOn ?? true
   const activeStepId = getActiveStepId(user)
 
-  const displayScore = score > 0 ? score : 300
-  const ringPct = Math.min(100, Math.max(profileCompletion || (displayScore / SCORE_MAX) * 100, 12))
+  const displayScore = score ?? 0
+  const displayMaxScore = maxScore ?? 0
+  const fallbackPct = displayMaxScore > 0 ? (displayScore / displayMaxScore) * 100 : 0
+  const ringPct = Math.min(100, Math.max(profileCompletion || fallbackPct, 12))
 
   const stepPaths: Record<SetupStepId, string> = {
     rental: getStandaloneRentalPath(),
@@ -104,7 +111,7 @@ export function ProfileSetupBlocker({ user, score = 0, profileCompletion = 0, on
 
   const quickActions = [
     { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent' },
-    { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/save-for-rent' },
+    { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/save-for-rent', disabled: true, comingSoon: true },
     { label: 'Save for Home', icon: Home, href: '/dashboard/save-for-home' },
   ]
 
@@ -155,7 +162,7 @@ export function ProfileSetupBlocker({ user, score = 0, profileCompletion = 0, on
               <div className="profile-setup-blocker__ring" aria-hidden="true">
                 <div className="profile-setup-blocker__ring-disc">
                   <span className="profile-setup-blocker__ring-score">{displayScore}</span>
-                  <span className="profile-setup-blocker__ring-max">/ {SCORE_MAX}</span>
+                  <span className="profile-setup-blocker__ring-max">/ {displayMaxScore}</span>
                 </div>
               </div>
 
@@ -218,13 +225,16 @@ export function ProfileSetupBlocker({ user, score = 0, profileCompletion = 0, on
                   <button
                     key={action.label}
                     type="button"
-                    className="profile-setup-blocker__quick-action"
-                    onClick={() => router.push(action.href)}
+                    className={`profile-setup-blocker__quick-action${action.disabled ? ' profile-setup-blocker__quick-action--disabled' : ''}`}
+                    onClick={() => !action.disabled && router.push(action.href)}
+                    disabled={action.disabled}
+                    aria-disabled={action.disabled ? 'true' : undefined}
                   >
                     <span className="profile-setup-blocker__quick-action-icon">
                       <Icon size={20} strokeWidth={2} />
                     </span>
                     <span className="profile-setup-blocker__quick-action-label">{action.label}</span>
+                    {action.comingSoon && <span className="profile-setup-blocker__quick-action-soon">Coming soon</span>}
                   </button>
                 )
               })}
