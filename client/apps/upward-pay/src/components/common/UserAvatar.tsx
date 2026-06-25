@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import { UpwardLogo } from '@/components/PoweredByUpward'
 
 interface UserAvatarProps {
   src?: string | null
@@ -9,6 +8,13 @@ interface UserAvatarProps {
   size?: number
   className?: string
   color?: string
+}
+
+function getInitials(name?: string): string {
+  if (!name?.trim()) return 'U'
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+  return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase()
 }
 
 export function UserAvatar({ src, alt, color, size = 40, className = '' }: UserAvatarProps) {
@@ -32,24 +38,31 @@ export function UserAvatar({ src, alt, color, size = 40, className = '' }: UserA
     )
   }
 
-  // Default brand avatar
+  const initials = getInitials(alt)
+  const fontSize = Math.max(11, Math.round(size * 0.36))
+
   return (
     <div
-      className={`user-avatar user-avatar--brand ${className}`}
+      className={`user-avatar user-avatar--initials ${className}`}
       style={{
         width: size,
         height: size,
         borderRadius: '50%',
-        backgroundColor: 'var(--surface2)',
+        backgroundColor: 'var(--shell-tint, #fbede5)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: 'white',
+        color: color || 'var(--clay)',
         flexShrink: 0,
-        border: '1px solid var(--border-solid)'
+        border: '1px solid var(--border-solid, #e5dbcf)',
+        fontSize,
+        fontWeight: 700,
+        letterSpacing: '-0.02em',
+        lineHeight: 1,
       }}
+      aria-label={alt || 'User avatar'}
     >
-      <UpwardLogo size={size * 0.55} color={color || 'var(--clay)'} />
+      {initials}
     </div>
   )
 }

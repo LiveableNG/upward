@@ -103,7 +103,7 @@ export function DashboardHeader({
           {/* Mobile User Block (Hidden on desktop) */}
           <div className="dashboard__header-left dashboard__header-left--user">
             <div className="dashboard__avatar" onClick={() => router.push('/dashboard/me')}>
-              <UserAvatar src={profilePic} size={44} />
+              <UserAvatar src={profilePic} alt={firstName} size={44} />
             </div>
             <div className="dashboard__greeting-block">
               <span className="dashboard__greeting-eyebrow">Hey,</span>
@@ -147,7 +147,7 @@ export function DashboardHeader({
                 onClick={() => router.push('/dashboard/me')}
                 title="Profile"
               >
-                <UserAvatar src={profilePic} size={40} />
+                <UserAvatar src={profilePic} alt={firstName} size={40} />
               </div>
             )}
             <button className="dashboard__icon-btn" onClick={() => router.push('/dashboard/settings')} title="Settings">

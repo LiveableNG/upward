@@ -75,7 +75,7 @@
   box-shadow: none;
 }
 
-.dashboard__avatar .user-avatar--brand {
+.dashboard__avatar .user-avatar--initials {
   background: var(--shell-tint) !important;
   color: var(--clay) !important;
   border: none !important;

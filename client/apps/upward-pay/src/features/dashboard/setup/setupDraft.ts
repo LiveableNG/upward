@@ -15,6 +15,13 @@ export type RentalFormData = {
   rentEndDate: string
 }
 
+export type PaymentDraftDetails = {
+  accountNumber: string
+  bankCode: string
+  accountName: string
+  bankName: string
+}
+
 export type SetupDraft = {
   mode: SetupMode
   pmEmail: string
@@ -23,8 +30,17 @@ export type SetupDraft = {
   companyName: string
   pmFound: boolean
   pmDetails: { id?: number; name?: string; businessName?: string } | null
+  landlordSkipped: boolean
+  paymentDetails: PaymentDraftDetails
   formData: RentalFormData
   phone: string
+}
+
+export const EMPTY_PAYMENT_DETAILS: PaymentDraftDetails = {
+  accountNumber: '',
+  bankCode: '',
+  accountName: '',
+  bankName: '',
 }
 
 const STORAGE_KEY = 'upward_setup_draft'
@@ -50,6 +66,8 @@ export function createEmptyDraft(mode: SetupMode = 'onboarding'): SetupDraft {
     companyName: '',
     pmFound: false,
     pmDetails: null,
+    landlordSkipped: false,
+    paymentDetails: { ...EMPTY_PAYMENT_DETAILS },
     formData: { ...EMPTY_RENTAL_FORM },
     phone: '',
   }
@@ -60,7 +78,16 @@ export function loadSetupDraft(): SetupDraft | null {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY)
     if (!raw) return null
-    return JSON.parse(raw) as SetupDraft
+    const parsed = JSON.parse(raw) as Partial<SetupDraft>
+    return {
+      ...createEmptyDraft(parsed.mode || 'onboarding'),
+      ...parsed,
+      paymentDetails: {
+        ...EMPTY_PAYMENT_DETAILS,
+        ...(parsed.paymentDetails || {}),
+      },
+      landlordSkipped: parsed.landlordSkipped ?? false,
+    }
   } catch {
     return null
   }
@@ -90,6 +117,11 @@ export type DraftUserProperty = {
   managerName?: string
   managerEmail?: string
   companyName?: string
+  subaccount?: {
+    accountNumber?: string
+    bankCode?: string
+    businessName?: string
+  }
   location?: {
     area?: string
     subarea?: string
@@ -125,6 +157,15 @@ export function draftFromProperty(
   }
   draft.pmEmail = prop.managerEmail || ''
   draft.phone = user.phone || ''
+  draft.landlordSkipped = !prop.managerEmail && !prop.managerName
+  if (prop.subaccount?.accountNumber && prop.subaccount?.bankCode) {
+    draft.paymentDetails = {
+      accountNumber: prop.subaccount.accountNumber,
+      bankCode: prop.subaccount.bankCode,
+      accountName: prop.subaccount.businessName || '',
+      bankName: '',
+    }
+  }
   draft.pmFound = !!(prop.companyName || prop.managerName)
   if (prop.companyName) {
     draft.pmDetails = {
