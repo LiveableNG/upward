@@ -16,9 +16,9 @@ export const SmartAppBanner = () => {
     const isDismissed = localStorage.getItem('upward-banner-dismissed')
     if (isDismissed) return
 
-    // 3. Only show on mobile browsers
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-    if (isMobile) {
+    // 3. Only show on Android mobile browsers for now
+    const isAndroid = /Android/i.test(navigator.userAgent)
+    if (isAndroid) {
       setIsVisible(true)
       document.body.classList.add('has-smart-banner')
     }
