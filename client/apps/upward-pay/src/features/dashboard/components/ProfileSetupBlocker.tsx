@@ -104,7 +104,7 @@ export function ProfileSetupBlocker({ user, score = 0, profileCompletion = 0, on
 
   const quickActions = [
     { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent' },
-    { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/savings' },
+    { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/save-for-rent' },
     { label: 'Save for Home', icon: Home, href: '/dashboard/save-for-home' },
   ]
 
