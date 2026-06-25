@@ -4,6 +4,7 @@ import { api } from '@/lib/api'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { COUNTRIES, STATES } from '@/lib/location-data'
 import { useToast } from '@/components/common/Toast'
+import { toDateInputValue, validateRentDates } from '@/features/dashboard/setup/rentalDates'
 import './AddPropertyModal.css'
 
 interface AddPropertyModalProps {
@@ -50,8 +51,8 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
           state: initialData.location?.state || STATES['NG']?.[24] || '',
           country: initialData.location?.country || 'NG',
           rentAmount: initialData.rentAmount ? initialData.rentAmount.toString() : '',
-          rentStartDate: initialData.rentStartDate ? new Date(initialData.rentStartDate).toISOString().split('T')[0] : '',
-          rentEndDate: initialData.rentEndDate ? new Date(initialData.rentEndDate).toISOString().split('T')[0] : ''
+          rentStartDate: toDateInputValue(initialData.rentStartDate),
+          rentEndDate: toDateInputValue(initialData.rentEndDate),
         })
         setStep('LOOKUP')
         setPmFound(false)
@@ -133,8 +134,8 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
         state: formData.state,
         country: formData.country,
         rentAmount: parseFloat(formData.rentAmount.replace(/,/g, '')),
-        rentStartDate: formData.rentStartDate,
-        rentEndDate: formData.rentEndDate
+        rentStartDate: toDateInputValue(formData.rentStartDate),
+        rentEndDate: toDateInputValue(formData.rentEndDate),
       }
       
       if (formData.uuid) unitDetails.uuid = formData.uuid;
@@ -244,7 +245,15 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
               )}
             </form>
           ) : (
-            <form onSubmit={e => { e.preventDefault(); submitMutation.mutate() }} className="add-property-modal__form">
+            <form onSubmit={e => {
+              e.preventDefault()
+              const dateError = validateRentDates(formData.rentStartDate, formData.rentEndDate)
+              if (dateError) {
+                toast.error(dateError, 'Invalid dates')
+                return
+              }
+              submitMutation.mutate()
+            }} className="add-property-modal__form">
               {pmFound && pmDetails ? (
                 <div className="add-property-modal__pm-status add-property-modal__pm-status--found">
                   <div className="add-property-modal__pm-icon">
@@ -408,7 +417,14 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
                       type="date" 
                       className="add-property-modal__input"
                       value={formData.rentStartDate}
-                      onChange={e => setFormData({ ...formData, rentStartDate: e.target.value })}
+                      onChange={e => {
+                        const rentStartDate = toDateInputValue(e.target.value)
+                        const next = { ...formData, rentStartDate }
+                        if (next.rentEndDate && !validateRentDates(rentStartDate, next.rentEndDate)) {
+                          next.rentEndDate = ''
+                        }
+                        setFormData(next)
+                      }}
                       required
                     />
                   </div>
@@ -420,8 +436,11 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
                     <input 
                       type="date" 
                       className="add-property-modal__input"
+                      min={formData.rentStartDate || undefined}
                       value={formData.rentEndDate}
-                      onChange={e => setFormData({ ...formData, rentEndDate: e.target.value })}
+                      onChange={e =>
+                        setFormData({ ...formData, rentEndDate: toDateInputValue(e.target.value) })
+                      }
                       required
                     />
                   </div>

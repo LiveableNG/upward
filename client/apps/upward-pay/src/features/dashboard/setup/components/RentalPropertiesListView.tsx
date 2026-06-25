@@ -19,7 +19,17 @@ function formatPropertyAddress(prop: Property): string {
 }
 
 function formatManagerLabel(prop: Property): string {
-  return prop.companyName || prop.managerName || 'Manager not set'
+  const nested = prop as Property & {
+    company?: { name?: string }
+    manager?: { firstName?: string; lastName?: string }
+  }
+  const company = prop.companyName || nested.company?.name
+  if (company) return company
+  if (prop.managerName) return prop.managerName
+  if (nested.manager?.firstName) {
+    return [nested.manager.firstName, nested.manager.lastName].filter(Boolean).join(' ')
+  }
+  return 'Manager not set'
 }
 
 interface RentalPropertiesListViewProps {

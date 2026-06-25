@@ -24,9 +24,15 @@ export function RentalConfirmView() {
     .filter(Boolean)
     .join(', ')
 
-  const managerLabel = draft.pmFound
-    ? draft.pmDetails?.businessName || draft.pmDetails?.name
-    : draft.formData.pmName || draft.pmEmail
+  const managerLabel = draft.landlordSkipped
+    ? 'Skipped for now'
+    : draft.pmFound
+      ? draft.pmDetails?.businessName || draft.pmDetails?.name
+      : draft.formData.pmName || draft.pmEmail
+
+  const paymentLabel = draft.paymentDetails.accountName
+    ? `${draft.paymentDetails.accountName} · ${draft.paymentDetails.accountNumber}`
+    : '—'
 
   const saveMutation = useMutation({
     mutationFn: () => submitRentalRequest(draft),
@@ -55,17 +61,9 @@ export function RentalConfirmView() {
 
   const confirmBody = (
     <>
-      {!isEdit ? (
-        <>
-          <h2 className="setup-page__title">Confirm your details</h2>
-          <p className="setup-page__subtitle">
-            Make sure everything looks right before we save your rental information.
-          </p>
-        </>
-      ) : null}
-
       <div className="setup-page__confirm-card">
         <ConfirmRow label="Address" value={addressLine} />
+        <ConfirmRow label="Payment account" value={paymentLabel} />
         <ConfirmRow label="Landlord / manager" value={managerLabel || '—'} />
         <ConfirmRow
           label="Annual rent"
@@ -84,7 +82,9 @@ export function RentalConfirmView() {
       <div className="setup-page__notice">
         <span aria-hidden="true">🔒</span>
         <div>
-          We&apos;ll send a quick verification request to your landlord. Your data stays private.
+          {draft.landlordSkipped
+            ? 'Your property and payment details are saved. You can add landlord details later.'
+            : "We'll send a quick verification request to your landlord. Your data stays private."}
         </div>
       </div>
     </>
@@ -127,7 +127,12 @@ export function RentalConfirmView() {
   }
 
   return (
-    <SetupPageShell backHref={rentalFormPath} footer={footer}>
+    <SetupPageShell
+      title="Confirm your details"
+      subtitle="Make sure everything looks right before we save your rental information."
+      backHref={rentalFormPath}
+      footer={footer}
+    >
       {confirmBody}
     </SetupPageShell>
   )
