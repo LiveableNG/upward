@@ -61,6 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <ProfileSetupBlocker
           user={user}
           score={scoreProfile?.data?.score}
+          maxScore={scoreProfile?.data?.maxScore}
           profileCompletion={scoreProfile?.data?.profile?.profileCompletion}
           onSkip={() => setBlockerDismissed(true)}
         />
