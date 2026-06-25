@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
+import { resolve } from 'path'
 import { APP_FILTER } from '@nestjs/core'
 import { ScheduleModule } from '@nestjs/schedule'
 import { EventEmitterModule } from '@nestjs/event-emitter'
@@ -20,7 +21,14 @@ import { ActivityTrackingModule } from './shared/infrastructure/activity-trackin
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [
+        resolve(__dirname, '../.env'),
+        resolve(process.cwd(), '.env'),
+        resolve(process.cwd(), 'server/apps/api/.env'),
+      ],
+    }),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
     PrismaModule,

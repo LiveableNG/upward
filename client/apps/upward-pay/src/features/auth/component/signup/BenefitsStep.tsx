@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { TrendingUp, Gift, Shield, CheckCircle2, UserPlus, LogIn } from 'lucide-react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
+import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
 
 const BENEFITS = [
   {
@@ -87,6 +88,10 @@ export function BenefitsStep({ onSignup, onLogin }: BenefitsStepProps) {
       </div>
 
       <div className="auth-shell__ctas">
+        <GoogleSignInButton />
+        <div className="auth-divider auth-divider--compact">
+          <span>OR</span>
+        </div>
         <button type="button" className="auth-cta auth-cta--primary" onClick={onSignup}>
           <UserPlus size={18} />
           Create Account
