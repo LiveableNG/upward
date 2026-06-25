@@ -154,11 +154,28 @@
   margin-bottom: 16px;
 }
 
-.setup-page__field label {
+.setup-page__field-label {
+  margin-bottom: 7px;
+}
+
+.setup-page__field-label label,
+.setup-page__field > label {
   display: block;
   font-size: 13px;
   font-weight: 700;
   color: #5c544b;
+  margin-bottom: 0;
+}
+
+.setup-page__field-desc {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: #7a7268;
+}
+
+.setup-page__field > label {
   margin-bottom: 7px;
 }
 

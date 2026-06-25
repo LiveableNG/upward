@@ -113,6 +113,17 @@ export class UserController {
     reply.status(HttpStatus.CREATED).send(rest)
   }
 
+  @Post('social')
+  @HttpCode(HttpStatus.OK)
+  async socialSignIn(
+    @Body() body: { provider: 'google'; idToken: string },
+    @Res({ passthrough: false }) reply: FastifyReply,
+  ) {
+    const { refreshToken, ...rest } = await this.userAuthService.socialSignIn(body.provider, body.idToken)
+    setUserAuthCookies(reply, rest.accessToken, refreshToken)
+    reply.status(HttpStatus.OK).send(rest)
+  }
+
   @Post('complete-profile')
   @HttpCode(HttpStatus.OK)
   async completeProfile(

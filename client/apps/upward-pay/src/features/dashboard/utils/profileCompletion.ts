@@ -22,6 +22,14 @@ export function hasPhone(user: UserProfile | null | undefined): boolean {
   return !!(user?.phone && PHONE_REGEX.test(user.phone))
 }
 
+export function hasDateOfBirth(user: UserProfile | null | undefined): boolean {
+  return !!user?.dateOfBirth
+}
+
+export function hasContactDetails(user: UserProfile | null | undefined): boolean {
+  return hasPhone(user) && hasDateOfBirth(user)
+}
+
 export function needsIdentityVerification(user: UserProfile | null | undefined): boolean {
   if (!user) return false
   const verificationOn = user.verificationOn ?? true
@@ -29,7 +37,7 @@ export function needsIdentityVerification(user: UserProfile | null | undefined):
 }
 
 export function isOnboardingComplete(user: UserProfile | null | undefined): boolean {
-  return hasRentalInfo(user) && hasPhone(user)
+  return hasRentalInfo(user) && hasContactDetails(user)
 }
 
 /** Rental + phone + identity (when required) — used for the dashboard setup blocker */
@@ -56,7 +64,7 @@ export function getIdentityVerificationPath(redirect = SETUP_PATHS.dashboard): s
 
 export function getSetupEntryPath(user: UserProfile | null | undefined): string {
   if (!hasRentalInfo(user)) return SETUP_PATHS.rental
-  if (!hasPhone(user)) return SETUP_PATHS.phone
+  if (!hasContactDetails(user)) return SETUP_PATHS.phone
   if (needsIdentityVerification(user)) return getIdentityVerificationPath()
   return SETUP_PATHS.rental
 }

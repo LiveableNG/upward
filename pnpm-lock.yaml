@@ -147,12 +147,15 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.72.1(react@19.2.4))
+      '@react-oauth/google':
+        specifier: ^0.13.5
+        version: 0.13.5(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@tanstack/react-query':
         specifier: ^5.96.2
         version: 5.96.2(react@19.2.4)
       '@tanstack/react-query-devtools':
-        specifier: ^5.96.2
-        version: 5.96.2(@tanstack/react-query@5.96.2(react@19.2.4))(react@19.2.4)
+        specifier: ^5.101.1
+        version: 5.101.1(@tanstack/react-query@5.96.2(react@19.2.4))(react@19.2.4)
       html2canvas:
         specifier: ^1.4.1
         version: 1.4.1
@@ -2539,6 +2542,12 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
+  '@react-oauth/google@0.13.5':
+    resolution: {integrity: sha512-xQWri2s/3nNekZJ4uuov2aAfQYu83bN3864KcFqw2pK1nNbFurQIjPFDXhWaKH3IjYJ2r/9yyIIpsn5lMqrheQ==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
   '@rolldown/pluginutils@1.0.0-beta.27':
     resolution: {integrity: sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA==}
 
@@ -3019,13 +3028,13 @@ packages:
   '@tanstack/query-core@5.96.2':
     resolution: {integrity: sha512-hzI6cTVh4KNRk8UtoIBS7Lv9g6BnJPXvBKsvYH1aGWvv0347jT3BnSvztOE+kD76XGvZnRC/t6qdW1CaIfwCeA==}
 
-  '@tanstack/query-devtools@5.96.2':
-    resolution: {integrity: sha512-vBTB1Qhbm3nHSbEUtQwks/EdcAtFfEapr1WyBW4w2ExYKuXVi3jIxUIHf5MlSltiHuL7zNyUuanqT/7sI2sb6g==}
+  '@tanstack/query-devtools@5.101.1':
+    resolution: {integrity: sha512-37RQ9U2PxlXQiv1era2t+uHgVhmiyvxqTMu30+KoVf0rufiucu6rpGRKFJk61Wh5OAZFKqCQd6lxTzFWfLZiuQ==}
 
-  '@tanstack/react-query-devtools@5.96.2':
-    resolution: {integrity: sha512-nTFKLGuTOFvmFRvcyZ3ArWC/DnMNPoBh6h/2yD6rsf7TCTJCQt+oUWOp2uKPTIuEPtF/vN9Kw5tl5mD1Kbposw==}
+  '@tanstack/react-query-devtools@5.101.1':
+    resolution: {integrity: sha512-OXFR9XKdEslraq3cpl3kCUeNvTIq/xGWEZiFZdn2bLB/q4WxSALMEDKYZ5yYjMQytsfnQxwQYqV4qtVEf0nuog==}
     peerDependencies:
-      '@tanstack/react-query': ^5.96.2
+      '@tanstack/react-query': ^5.101.1
       react: ^18 || ^19
 
   '@tanstack/react-query@5.96.2':
@@ -9923,6 +9932,11 @@ snapshots:
       - react-native-b4a
       - supports-color
 
+  '@react-oauth/google@0.13.5(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 
   '@rollup/rollup-android-arm-eabi@4.59.0':
@@ -10440,11 +10454,11 @@ snapshots:
 
   '@tanstack/query-core@5.96.2': {}
 
-  '@tanstack/query-devtools@5.96.2': {}
+  '@tanstack/query-devtools@5.101.1': {}
 
-  '@tanstack/react-query-devtools@5.96.2(@tanstack/react-query@5.96.2(react@19.2.4))(react@19.2.4)':
+  '@tanstack/react-query-devtools@5.101.1(@tanstack/react-query@5.96.2(react@19.2.4))(react@19.2.4)':
     dependencies:
-      '@tanstack/query-devtools': 5.96.2
+      '@tanstack/query-devtools': 5.101.1
       '@tanstack/react-query': 5.96.2(react@19.2.4)
       react: 19.2.4
 

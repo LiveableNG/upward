@@ -11,10 +11,8 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-  ShieldCheck,
   Loader2,
   Sparkles,
-  Calendar,
   CheckCircle2,
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
@@ -24,9 +22,8 @@ import { OTPInput } from '@/components/common/OTPInput'
 import { checkEmail, requestOTP, verifyOTP, loginWithOTP } from '@/features/auth/services/authService'
 import { setAccessToken } from '@/lib/auth-token'
 import { setCookie } from '@/lib/cookie-utils'
-import { ConnectPmStep } from './ConnectPmStep'
 import { PasswordStrengthMeter } from './PasswordStrengthMeter'
-import { DatePicker } from './DatePicker'
+import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
 
 interface SignupFormFlowProps {
   onBackToWelcome: () => void
@@ -41,7 +38,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [dateOfBirth, setDateOfBirth] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [localError, setLocalError] = useState('')
 
@@ -58,14 +54,14 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   const [isInvited, setIsInvited] = useState(false)
   const [isWaitlist, setIsWaitlist] = useState(false)
   const [showExistsModal, setShowExistsModal] = useState(false)
-  const [step, setStep] = useState<'form' | 'otp' | 'connect-pm'>('form')
+  const [step, setStep] = useState<'form' | 'otp'>('form')
   const [isRequestingOTP, setIsRequestingOTP] = useState(false)
   const [otpError, setOtpError] = useState<string | null>(null)
 
   const emailCheckTimeout = useRef<NodeJS.Timeout | null>(null)
 
   const { signup, loading: signupLoading, error: signupError } = useSignup('', () => {
-    setStep('connect-pm')
+    onSignupSuccess(email, password)
   })
 
   // Debounced email existence check
@@ -193,7 +189,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
         } else if (isInvited) {
           setOtpError('Invite verification failed. Please try again.')
         } else {
-          signup({ email, password, firstName, lastName, dateOfBirth })
+          signup({ email, password, firstName, lastName })
         }
       }
     } catch (err: any) {
@@ -203,17 +199,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
 
   const handleResendOTP = async () => {
     await requestOTP(email, effectiveContext)
-  }
-
-  if (step === 'connect-pm') {
-    return (
-      <div className="auth-shell auth-shell--signup">
-        <ConnectPmStep 
-          onComplete={() => onSignupSuccess(email, password)}
-          onSkip={() => onSignupSuccess(email, password)}
-        />
-      </div>
-    )
   }
 
   if (step === 'otp') {
@@ -256,7 +241,13 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
       <div className="auth-stage">
         <div className="auth-stage__header">
           <h1 className="auth-stage__title">Create your account</h1>
-          <p className="auth-stage__subtitle">Tell us about yourself to get started.</p>
+          <p className="auth-stage__subtitle">Name, email, and password — takes under a minute.</p>
+        </div>
+
+        <GoogleSignInButton />
+
+        <div className="auth-divider">
+          <span>OR</span>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
@@ -345,19 +336,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           </div>
 
           <div className="auth-form__field">
-            <label htmlFor="signup-dob">
-              <Calendar size={14} style={{ display: 'inline', marginRight: 5, verticalAlign: 'middle', color: 'var(--auth-muted)' }} />
-              Date of Birth
-            </label>
-            <DatePicker
-              id="signup-dob"
-              value={dateOfBirth}
-              onChange={setDateOfBirth}
-              required
-            />
-          </div>
-
-          <div className="auth-form__field">
             <label htmlFor="signup-password">Create Password</label>
             <div className="input-with-icon">
               <Lock size={17} />
@@ -425,7 +403,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
               emailExists ||
               !firstName ||
               !lastName ||
-              !dateOfBirth ||
               !password ||
               !(/.{8,}/.test(password) && /[A-Z]/.test(password) && /[0-9!@#$%^&*(),.?":{}|<> ]/.test(password)) ||
               !confirmPassword ||

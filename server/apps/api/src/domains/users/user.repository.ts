@@ -10,6 +10,8 @@ export interface User {
   phone?: string | null
   phoneHash?: string | null
   passwordHash: string
+  authProvider?: string
+  providerId?: string | null
   gender?: string | null
   dateOfBirth?: string | null
   isIdentityVerified?: boolean
@@ -31,6 +33,7 @@ export interface User {
 
 export interface UserRepository {
   findByEmail(email: string, tx?: any): Promise<User | null>
+  findByProviderId(providerId: string, tx?: any): Promise<User | null>
   findById(id: number, tx?: any): Promise<User | null>
   findByUuid(uuid: string, tx?: any): Promise<User | null>
   findBySlug(slug: string, tx?: any): Promise<User | null>
@@ -43,6 +46,7 @@ export const USER_REPOSITORY = Symbol('USER_REPOSITORY')
 
 export const PASS_PLACEHOLDERS = {
   INVITED: 'INVITED',
-  SHADOW: 'SHADOW_USER_PENDING_ONBOARDING'
+  SHADOW: 'SHADOW_USER_PENDING_ONBOARDING',
+  SOCIAL: 'SOCIAL_AUTH_NO_PASSWORD',
 }
 

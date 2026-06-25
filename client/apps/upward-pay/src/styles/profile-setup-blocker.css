@@ -154,6 +154,14 @@
   margin: 18px 0 14px;
 }
 
+.profile-setup-blocker__steps-prompt {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.88);
+}
+
 .profile-setup-blocker__steps {
   display: flex;
   flex-direction: column;
@@ -252,6 +260,41 @@
 
 .profile-setup-blocker__cta:active {
   transform: scale(0.99);
+}
+
+.profile-setup-blocker__still {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 4px;
+}
+
+.profile-setup-blocker__still-divider {
+  height: 1px;
+  background: var(--shell-border, #e0d6c8);
+  margin-bottom: 2px;
+}
+
+.profile-setup-blocker__still-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-setup-blocker__still-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text, #1a1714);
+  letter-spacing: -0.01em;
+}
+
+.profile-setup-blocker__still-desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-muted, #7a7268);
 }
 
 .profile-setup-blocker__quick-actions {
