@@ -2,6 +2,8 @@ model upward_user {
   id                   Int                              @id @default(autoincrement())
   uuid                 String                           @unique @default(uuid())
   passwordHash         String
+  authProvider         String                           @default("email")
+  providerId           String?                          @unique
   email                String
   firstName            String
   lastName             String
