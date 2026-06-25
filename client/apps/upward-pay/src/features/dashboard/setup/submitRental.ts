@@ -1,5 +1,6 @@
 import { api } from '@/lib/api'
 import { type SetupDraft } from './setupDraft'
+import { toDateInputValue } from './rentalDates'
 
 export async function submitRentalRequest(draft: SetupDraft) {
   const {
@@ -31,8 +32,8 @@ export async function submitRentalRequest(draft: SetupDraft) {
     state: formData.state,
     country: formData.country,
     rentAmount: parseFloat(formData.rentAmount.replace(/,/g, '')),
-    rentStartDate: formData.rentStartDate,
-    rentEndDate: formData.rentEndDate,
+    rentStartDate: toDateInputValue(formData.rentStartDate),
+    rentEndDate: toDateInputValue(formData.rentEndDate),
   }
 
   if (formData.uuid) unitDetails.uuid = formData.uuid
