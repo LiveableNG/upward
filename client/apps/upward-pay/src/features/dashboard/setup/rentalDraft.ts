@@ -1,5 +1,6 @@
 import { type SetupDraft } from './setupDraft'
 import { isPaymentAccountResolved } from '../components/payment/PaymentAccountForm'
+import { isRentDateRangeValid } from './rentalDates'
 
 export function isPaymentDraftComplete(draft: SetupDraft): boolean {
   return isPaymentAccountResolved(draft.paymentDetails)
@@ -20,7 +21,8 @@ export function isPropertyDraftComplete(draft: SetupDraft): boolean {
     formData.area.trim() &&
     formData.rentAmount &&
     formData.rentStartDate &&
-    formData.rentEndDate
+    formData.rentEndDate &&
+    isRentDateRangeValid(formData.rentStartDate, formData.rentEndDate)
   )
 }
 

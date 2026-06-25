@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
 import { ArrowRight, CheckCircle2, Search, UserPlus, UserX } from 'lucide-react'
@@ -16,6 +16,7 @@ import {
   PaymentAccountForm,
   isPaymentAccountResolved,
 } from '@/features/dashboard/components/payment/PaymentAccountForm'
+import { toDateInputValue, validateRentDates } from '../rentalDates'
 
 type RentalFormStep = 'property' | 'payment' | 'manager'
 
@@ -45,13 +46,16 @@ export function RentalFormView() {
   const [formStep, setFormStep] = useState<RentalFormStep>(() =>
     initialFormStep(draft, isEdit, isNew),
   )
+  const editHydratedUuid = useRef<string | null>(null)
 
   useEffect(() => {
-    if (isEdit && draft.formData.uuid && !isNew) {
-      setFormStep('property')
-      if (draft.pmEmail) {
-        setLookupDone(shouldRestoreLookup(draft, isEdit))
-      }
+    if (!isEdit || !draft.formData.uuid || isNew) return
+    if (editHydratedUuid.current === draft.formData.uuid) return
+
+    editHydratedUuid.current = draft.formData.uuid
+    setFormStep('property')
+    if (draft.pmEmail) {
+      setLookupDone(shouldRestoreLookup(draft, isEdit))
     }
   }, [isEdit, isNew, draft.formData.uuid, draft.pmEmail, draft.pmFound, draft.pmDetails])
 
@@ -102,6 +106,11 @@ export function RentalFormView() {
     }
     if (!formData.rentAmount || !formData.rentStartDate || !formData.rentEndDate) {
       toast.error('Please complete rent amount and tenancy dates.', 'Required')
+      return false
+    }
+    const dateError = validateRentDates(formData.rentStartDate, formData.rentEndDate)
+    if (dateError) {
+      toast.error(dateError, 'Invalid dates')
       return false
     }
     return true
@@ -289,17 +298,6 @@ export function RentalFormView() {
     <>
       {formStep === 'property' && (
         <div className="setup-page__fields">
-          {isEditingExisting ? (
-            <button
-              type="button"
-              className="setup-page__change-contact"
-              style={{ marginBottom: 16 }}
-              onClick={() => setFormStep('manager')}
-            >
-              Change manager
-            </button>
-          ) : null}
-
           <div className="setup-page__field">
             <label>Property address</label>
             <input
@@ -395,11 +393,17 @@ export function RentalFormView() {
                 className="setup-page__input"
                 type="date"
                 value={draft.formData.rentStartDate}
-                onChange={(e) =>
-                  updateDraft({
-                    formData: { ...draft.formData, rentStartDate: e.target.value },
-                  })
-                }
+                onChange={(e) => {
+                  const rentStartDate = toDateInputValue(e.target.value)
+                  const nextFormData = { ...draft.formData, rentStartDate }
+                  if (
+                    nextFormData.rentEndDate &&
+                    !validateRentDates(rentStartDate, nextFormData.rentEndDate)
+                  ) {
+                    nextFormData.rentEndDate = ''
+                  }
+                  updateDraft({ formData: nextFormData })
+                }}
               />
             </div>
             <div className="setup-page__field">
@@ -407,10 +411,14 @@ export function RentalFormView() {
               <input
                 className="setup-page__input"
                 type="date"
+                min={draft.formData.rentStartDate || undefined}
                 value={draft.formData.rentEndDate}
                 onChange={(e) =>
                   updateDraft({
-                    formData: { ...draft.formData, rentEndDate: e.target.value },
+                    formData: {
+                      ...draft.formData,
+                      rentEndDate: toDateInputValue(e.target.value),
+                    },
                   })
                 }
               />
