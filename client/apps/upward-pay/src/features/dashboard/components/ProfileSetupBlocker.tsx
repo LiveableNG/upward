@@ -15,6 +15,8 @@ import {
   getIdentityVerificationPath,
   getStandalonePhonePath,
   getStandaloneRentalPath,
+  hasContactDetails,
+  hasDateOfBirth,
   hasPhone,
   hasRentalInfo,
   needsIdentityVerification,
@@ -31,9 +33,18 @@ const SCORE_MAX = 900
 
 type SetupStepId = 'rental' | 'phone' | 'identity'
 
+function getPersonalDetailsStepLabel(user: UserProfile): string {
+  const needsPhone = !hasPhone(user)
+  const needsDob = !hasDateOfBirth(user)
+  if (needsPhone && needsDob) return 'Add your personal details'
+  if (needsPhone) return 'Add your phone number'
+  if (needsDob) return 'Add your date of birth'
+  return 'Add your personal details'
+}
+
 function getActiveStepId(user: UserProfile): SetupStepId {
   if (!hasRentalInfo(user)) return 'rental'
-  if (!hasPhone(user)) return 'phone'
+  if (!hasContactDetails(user)) return 'phone'
   if (needsIdentityVerification(user)) return 'identity'
   return 'rental'
 }
@@ -43,7 +54,7 @@ export function ProfileSetupBlocker({ user, score = 0, profileCompletion = 0, on
   const firstName = user.firstName || 'there'
 
   const rentalDone = hasRentalInfo(user)
-  const phoneDone = hasPhone(user)
+  const contactDone = hasContactDetails(user)
   const identityDone = !!user.isIdentityVerified
   const showIdentityStep = user.verificationOn ?? true
   const activeStepId = getActiveStepId(user)
@@ -73,9 +84,9 @@ export function ProfileSetupBlocker({ user, score = 0, profileCompletion = 0, on
     },
     {
       id: 'phone',
-      label: 'Add your phone number',
-      done: phoneDone,
-      isAction: !phoneDone,
+      label: getPersonalDetailsStepLabel(user),
+      done: contactDone,
+      isAction: !contactDone,
       onPress: () => router.push(stepPaths.phone),
     },
     ...(showIdentityStep
@@ -94,7 +105,7 @@ export function ProfileSetupBlocker({ user, score = 0, profileCompletion = 0, on
   const quickActions = [
     { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent' },
     { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/savings' },
-    { label: 'Save Home', icon: Home, href: '/dashboard/savings' },
+    { label: 'Save for Home', icon: Home, href: '/dashboard/save-for-home' },
   ]
 
   return (
@@ -157,6 +168,10 @@ export function ProfileSetupBlocker({ user, score = 0, profileCompletion = 0, on
 
             <div className="profile-setup-blocker__divider" aria-hidden="true" />
 
+            <p className="profile-setup-blocker__steps-prompt">
+              You can complete this in less than 60 seconds.
+            </p>
+
             <div className="profile-setup-blocker__steps">
               {steps.map((step, idx) => {
                 const isActive = step.id === activeStepId && !step.done
@@ -188,32 +203,33 @@ export function ProfileSetupBlocker({ user, score = 0, profileCompletion = 0, on
             </div>
           </div>
 
-          <button
-            type="button"
-            className="profile-setup-blocker__cta"
-            onClick={() => router.push(stepPaths[activeStepId])}
-          >
-            Complete Setup — 60 Seconds <span aria-hidden="true">→</span>
-          </button>
-
-          <div className="profile-setup-blocker__quick-actions">
-            {quickActions.map((action) => {
-              const Icon = action.icon
-              return (
-                <button
-                  key={action.label}
-                  type="button"
-                  className="profile-setup-blocker__quick-action"
-                  onClick={() => router.push(action.href)}
-                >
-                  <span className="profile-setup-blocker__quick-action-icon">
-                    <Icon size={20} strokeWidth={2} />
-                  </span>
-                  <span className="profile-setup-blocker__quick-action-label">{action.label}</span>
-                </button>
-              )
-            })}
-          </div>
+          <section className="profile-setup-blocker__still" aria-label="Quick actions while you set up">
+            <div className="profile-setup-blocker__still-divider" aria-hidden="true" />
+            <div className="profile-setup-blocker__still-head">
+              <h3 className="profile-setup-blocker__still-title">Quick actions</h3>
+              <p className="profile-setup-blocker__still-desc">
+                Pay rent, save, and explore — finish setup to unlock your full score.
+              </p>
+            </div>
+            <div className="profile-setup-blocker__quick-actions">
+              {quickActions.map((action) => {
+                const Icon = action.icon
+                return (
+                  <button
+                    key={action.label}
+                    type="button"
+                    className="profile-setup-blocker__quick-action"
+                    onClick={() => router.push(action.href)}
+                  >
+                    <span className="profile-setup-blocker__quick-action-icon">
+                      <Icon size={20} strokeWidth={2} />
+                    </span>
+                    <span className="profile-setup-blocker__quick-action-label">{action.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
 
           <div className="profile-setup-blocker__nudge">
             <span className="profile-setup-blocker__nudge-icon" aria-hidden="true">

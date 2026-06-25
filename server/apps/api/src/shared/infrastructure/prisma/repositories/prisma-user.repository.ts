@@ -24,6 +24,8 @@ export class PrismaUserRepository implements UserRepository {
       phone: model.phone ? this.encryption.decrypt(model.phone) : undefined,
       phoneHash: model.phoneHash,
       passwordHash: model.passwordHash,
+      authProvider: model.authProvider,
+      providerId: model.providerId,
       gender: model.gender,
       dateOfBirth: model.dateOfBirth,
       isIdentityVerified: model.isIdentityVerified,
@@ -120,6 +122,31 @@ export class PrismaUserRepository implements UserRepository {
           }
         }
       }
+    })
+    return record ? this.toDomain(record) : null
+  }
+
+  async findByProviderId(providerId: string, tx?: any): Promise<User | null> {
+    const prisma = tx || this.prisma
+    const record = await prisma.upward_user.findUnique({
+      where: { providerId },
+      include: {
+        properties: {
+          include: {
+            location: true,
+            company: true,
+            manager: true,
+            pm: true,
+            subaccount: true,
+            dedicatedAccount: true,
+          },
+        },
+        companyUsers: {
+          include: {
+            company: true,
+          },
+        },
+      },
     })
     return record ? this.toDomain(record) : null
   }
@@ -237,6 +264,8 @@ export class PrismaUserRepository implements UserRepository {
         phone: user.phone ? this.encryption.encrypt(user.phone) : null,
         phoneHash: user.phone ? this.encryption.hash(user.phone) : null,
         passwordHash: user.passwordHash,
+        authProvider: user.authProvider ?? 'email',
+        providerId: user.providerId ?? null,
         gender: user.gender,
         dateOfBirth: user.dateOfBirth,
         isIdentityVerified: user.isIdentityVerified,
@@ -258,7 +287,7 @@ export class PrismaUserRepository implements UserRepository {
     
     // Pick direct scalar fields
     const scalarFields = [
-      'passwordHash', 'gender', 'dateOfBirth', 'isIdentityVerified',
+      'passwordHash', 'authProvider', 'providerId', 'gender', 'dateOfBirth', 'isIdentityVerified',
       'isFromWaitlist', 'isFromInvite', 'profilePic', 'profileSlug', 
       'bio', 'resetPasswordOTP', 'resetPasswordExpires'
     ]

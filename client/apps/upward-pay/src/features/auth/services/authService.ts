@@ -28,6 +28,13 @@ export async function signup(data: {
   })
 }
 
+export async function socialSignIn(data: { provider: 'google'; idToken: string }) {
+  return request<AuthResponse>('/user/auth/social', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
 export async function login(data: { email: string; password: string }) {
   return request<AuthResponse>('/user/auth/login', { method: 'POST', body: JSON.stringify(data) })
 }
@@ -101,7 +108,14 @@ export async function resetPassword(data: { email: string; otp: string; new: str
 }
 
 export async function checkEmail(email: string) {
-  return request<{ exists: boolean; hasPassword?: boolean; isInvited?: boolean; uuid?: string; isWaitlist?: boolean; }>('/user/auth/check-email', {
+  return request<{
+    exists: boolean
+    hasPassword?: boolean
+    isInvited?: boolean
+    uuid?: string
+    isWaitlist?: boolean
+    authProvider?: string
+  }>('/user/auth/check-email', {
     method: 'POST',
     body: JSON.stringify({ email }),
   })

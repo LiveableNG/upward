@@ -277,8 +277,8 @@ export function DashboardHome({
           <button type="button" className="dash-home__action dash-home__action--secondary" onClick={() => router.push('/dashboard/savings')}>
             Save Rent
           </button>
-          <button type="button" className="dash-home__action dash-home__action--secondary" onClick={() => router.push('/dashboard/savings')}>
-            Save Home
+          <button type="button" className="dash-home__action dash-home__action--secondary" onClick={() => router.push('/dashboard/save-for-home')}>
+            Save for Home
           </button>
         </div>
 
