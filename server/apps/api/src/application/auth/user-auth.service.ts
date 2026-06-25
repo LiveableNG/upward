@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, Inject, ForbiddenException } from '@nestjs/common'
+import { Injectable, UnauthorizedException, ConflictException, Inject, ForbiddenException, BadRequestException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import { UserRepository, USER_REPOSITORY, User, PASS_PLACEHOLDERS } from '../../domains/users/user.repository'
@@ -195,6 +195,13 @@ export class UserAuthService extends BaseAuthService {
         message: 'Your account was invited by a property manager. Complete your profile to login.',
         code: 'INVITE_PENDING',
         userId: user.uuid
+      })
+    }
+
+    if (user.passwordHash === PASS_PLACEHOLDERS.SOCIAL || user.authProvider === 'google') {
+      throw new ForbiddenException({
+        message: 'This account uses Google sign-in. Please continue with Google.',
+        code: 'SOCIAL_AUTH_REQUIRED',
       })
     }
 
@@ -628,7 +635,8 @@ export class UserAuthService extends BaseAuthService {
     hasPassword?: boolean; 
     isInvited?: boolean; 
     isWaitlist?: boolean;
-    uuid?: string 
+    uuid?: string;
+    authProvider?: string;
   }> {
     const user = await this.userRepository.findByEmail(email)
     
@@ -651,10 +659,12 @@ export class UserAuthService extends BaseAuthService {
     const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
                      user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
                      !!(user.passwordHash && !user.passwordHash.startsWith('$2'));
+    const isSocial = user.passwordHash === PASS_PLACEHOLDERS.SOCIAL || user.authProvider === 'google'
     return {
       exists: true,
       isInvited: isShadow,
-      hasPassword: !!user.passwordHash && user.passwordHash !== '' && !isShadow,
+      hasPassword: !!user.passwordHash && user.passwordHash !== '' && !isShadow && !isSocial,
+      authProvider: user.authProvider ?? 'email',
     }
 
   }
@@ -762,6 +772,122 @@ export class UserAuthService extends BaseAuthService {
     }
 
     return local.substring(0, 2) + '***' + local.substring(local.length - 1) + '@' + domain
+  }
+
+  async socialSignIn(
+    provider: 'google',
+    idToken: string,
+  ): Promise<UserAuthResponse & { refreshToken: string }> {
+    if (provider !== 'google') {
+      throw new BadRequestException('Unsupported social provider')
+    }
+
+    const googleClientId = this.configService.get<string>('GOOGLE_CLIENT_ID')
+    if (!googleClientId) {
+      throw new BadRequestException('Google sign-in is not configured')
+    }
+
+    let payload: {
+      sub?: string
+      email?: string
+      email_verified?: string | boolean
+      given_name?: string
+      family_name?: string
+      name?: string
+      aud?: string
+      error?: string
+    }
+
+    try {
+      const response = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+      )
+      payload = await response.json()
+    } catch {
+      throw new UnauthorizedException('Invalid Google sign-in token')
+    }
+
+    if (payload.error || payload.aud !== googleClientId) {
+      throw new UnauthorizedException('Invalid Google sign-in token')
+    }
+
+    const providerId = payload.sub
+    const email = payload.email?.toLowerCase().trim()
+
+    if (!providerId || !email) {
+      throw new UnauthorizedException('Google account is missing required profile information')
+    }
+
+    if (payload.email_verified === false || payload.email_verified === 'false') {
+      throw new UnauthorizedException('Google email is not verified')
+    }
+
+    const nameParts = (payload.name || '').trim().split(/\s+/).filter(Boolean)
+    const firstName = payload.given_name || nameParts[0] || 'User'
+    const lastName = payload.family_name || nameParts.slice(1).join(' ') || ''
+
+    let user = await this.userRepository.findByProviderId(providerId)
+    if (!user) {
+      user = await this.userRepository.findByEmail(email)
+    }
+
+    if (user) {
+      const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
+        user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+        !!(user.passwordHash && !user.passwordHash.startsWith('$2') && user.passwordHash !== PASS_PLACEHOLDERS.SOCIAL)
+
+      if (isShadow) {
+        throw new ForbiddenException({
+          message: 'Your account was invited by a property manager. Complete your profile to login.',
+          code: 'INVITE_PENDING',
+          userId: user.uuid,
+        })
+      }
+
+      const updates: Partial<User> = {}
+      if (!user.providerId) updates.providerId = providerId
+      if (!user.firstName?.trim()) updates.firstName = firstName
+      if (!user.lastName?.trim()) updates.lastName = lastName
+      if (user.passwordHash === PASS_PLACEHOLDERS.SOCIAL) {
+        updates.authProvider = 'google'
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await this.userRepository.update(user.id!, updates)
+        user = await this.userRepository.findByUuid(user.uuid)
+      }
+    } else {
+      const waitlistEntry = await this.prisma.upward_waitlist.findFirst({
+        where: {
+          email,
+          role: { not: 'OWNER' },
+        },
+      })
+
+      const userData: Partial<User> = {
+        uuid: crypto.randomUUID(),
+        email,
+        passwordHash: PASS_PLACEHOLDERS.SOCIAL,
+        authProvider: 'google',
+        providerId,
+        firstName,
+        lastName,
+        isFromWaitlist: !!waitlistEntry,
+        isFromInvite: false,
+        profilePic: '',
+      }
+
+      await this.userRepository.save(userData as User)
+      user = await this.userRepository.findByEmail(email)
+      if (!user) throw new Error('Failed to create user after Google sign-in')
+      await this.syncTenantStatuses(email)
+    }
+
+    if (!user) {
+      throw new Error('Failed to resolve user after Google sign-in')
+    }
+
+    return this.generateFullAuthResponse(user)
   }
 
   async findByEmail(email: string) {

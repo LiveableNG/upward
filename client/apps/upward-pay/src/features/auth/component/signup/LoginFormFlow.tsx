@@ -21,8 +21,9 @@ import { BiometricsService } from '@/features/auth/services/biometricsService'
 import { useToast } from '@/components/common/Toast'
 import { requestOTP, loginWithOTP, checkEmail, verifyOTP } from '@/features/auth/services/authService'
 import { OTPInput } from '@/components/common/OTPInput'
-import { setAccessToken } from '@/lib/auth-token'
-import { setCookie } from '@/lib/cookie-utils'
+import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
+
+type LoginMethod = 'password' | 'code'
 
 interface LoginFormFlowProps {
   onBackToWelcome: () => void
@@ -30,29 +31,36 @@ interface LoginFormFlowProps {
   initialEmail?: string
 }
 
+function getLoginErrorMessage(error: unknown): string {
+  if (!error) return ''
+  if (error instanceof Error) {
+    if (error.message && error.message !== '[object Object]') return error.message
+    const data = (error as { data?: { message?: string | { message?: string } } }).data
+    const nested = data?.message
+    if (typeof nested === 'string') return nested
+    if (nested && typeof nested === 'object' && nested.message) return nested.message
+  }
+  return 'Invalid credentials'
+}
+
 export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmail = '' }: LoginFormFlowProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/dashboard'
-  const { 
-    login: doLogin, 
-    otpLogin, 
-    loading: loginLoading, 
-    error: loginError 
+  const {
+    login: doLogin,
+    otpLogin,
+    loading: loginLoading,
+    error: loginError,
   } = useLogin(redirect)
 
   const [loginEmail, setLoginEmail] = useState(initialEmail)
-
-  useEffect(() => {
-    if (initialEmail) {
-      setLoginEmail(initialEmail)
-    }
-  }, [initialEmail])
   const [loginPassword, setLoginPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>('password')
   const [biometricAvailable, setBiometricAvailable] = useState(false)
   const [biometricLoading, setBiometricLoading] = useState(false)
-  const [step, setStep] = useState<'login' | 'otp' | 'profile'>('login')
+  const [step, setStep] = useState<'login' | 'otp'>('login')
   const [isRequestingOTP, setIsRequestingOTP] = useState(false)
   const [effectiveContext, setEffectiveContext] = useState<'LOGIN' | 'WAITLIST' | 'INVITE'>('LOGIN')
   const [otpError, setOtpError] = useState<string | null>(null)
@@ -61,9 +69,20 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
   const [emailExists, setEmailExists] = useState(false)
   const [isInvited, setIsInvited] = useState(false)
   const [isWaitlist, setIsWaitlist] = useState(false)
+  const [authProvider, setAuthProvider] = useState('email')
   const emailCheckTimeout = useRef<NodeJS.Timeout | null>(null)
 
   const { error: toastError } = useToast()
+
+  const isGoogleOnly = authProvider === 'google' && emailExists
+  const isSpecialAccount = isInvited || isWaitlist
+  const isBusy = loginLoading || biometricLoading || isRequestingOTP || isCheckingEmail
+
+  useEffect(() => {
+    if (initialEmail) {
+      setLoginEmail(initialEmail)
+    }
+  }, [initialEmail])
 
   useEffect(() => {
     async function checkBiometrics() {
@@ -76,12 +95,12 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
     checkBiometrics()
   }, [])
 
-  // Debounced email existence check
   useEffect(() => {
     setEmailExists(false)
     setIsInvited(false)
     setIsWaitlist(false)
-    
+    setAuthProvider('email')
+
     if (loginEmail && loginEmail.includes('@') && loginEmail.length > 5) {
       setIsCheckingEmail(true)
       if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
@@ -91,6 +110,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
           setEmailExists(res.exists)
           setIsInvited(res.isInvited ?? false)
           setIsWaitlist(res.isWaitlist ?? false)
+          setAuthProvider(res.authProvider ?? 'email')
         } catch (err) {
           console.error('Email check failed', err)
         } finally {
@@ -100,15 +120,11 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
     } else {
       setIsCheckingEmail(false)
     }
+
     return () => {
       if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
     }
   }, [loginEmail])
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    doLogin(loginEmail, loginPassword)
-  }
 
   const handleBiometricLogin = async () => {
     setBiometricLoading(true)
@@ -122,8 +138,9 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
           toastError('No stored credentials found. Please log in manually once.')
         }
       }
-    } catch (err: any) {
-      toastError(err.message || 'Biometric authentication failed')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Biometric authentication failed'
+      toastError(message)
     } finally {
       setBiometricLoading(false)
     }
@@ -138,15 +155,27 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
     setIsRequestingOTP(true)
     const context = customContext || 'LOGIN'
     setEffectiveContext(context)
-    
+
     try {
       await requestOTP(loginEmail, context)
       setStep('otp')
-    } catch (err: any) {
-      toastError(err.message || 'Failed to send verification code')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to send verification code'
+      toastError(message)
     } finally {
       setIsRequestingOTP(false)
     }
+  }
+
+  const handleContinue = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (loginMethod === 'password') {
+      doLogin(loginEmail, loginPassword)
+      return
+    }
+
+    await handleRequestOTP()
   }
 
   const handleVerifyOTP = async (otp: string) => {
@@ -176,11 +205,36 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
             router.push(path)
           }
         }
-      } catch (err: any) {
-        setOtpError(err.message || 'Verification failed')
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Verification failed'
+        setOtpError(message)
       }
     }
   }
+
+  const goToSignup = () => {
+    if (onRedirectToSignup) {
+      onRedirectToSignup(loginEmail)
+    } else {
+      router.push(`/signup?mode=signup&email=${encodeURIComponent(loginEmail)}`)
+    }
+  }
+
+  const canContinuePassword =
+    !!loginEmail &&
+    !!loginPassword &&
+    emailExists &&
+    !isSpecialAccount &&
+    !isGoogleOnly
+
+  const canContinueCode =
+    !!loginEmail &&
+    emailExists &&
+    !isSpecialAccount
+
+  const canContinue = loginMethod === 'password' ? canContinuePassword : canContinueCode
+
+  const loginErrorMessage = getLoginErrorMessage(loginError)
 
   if (step === 'otp') {
     return (
@@ -197,10 +251,10 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
           <OTPInput
             email={loginEmail}
             onVerify={handleVerifyOTP}
-            onResend={() => handleRequestOTP()}
+            onResend={() => handleRequestOTP(effectiveContext === 'LOGIN' ? undefined : effectiveContext)}
             onChangeEmail={() => setStep('login')}
             isLoading={loginLoading}
-            error={otpError || loginError?.message}
+            error={otpError || loginErrorMessage}
           />
         </div>
       </div>
@@ -222,16 +276,20 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
       <div className="auth-stage">
         <div className="auth-stage__header">
           <h1 className="auth-stage__title">Welcome back</h1>
-          <p className="auth-stage__subtitle">Enter your credentials to access your account.</p>
+          <p className="auth-stage__subtitle">Sign in with Google, password, or a verification code.</p>
         </div>
-        
-        <form className="auth-form" onSubmit={handleSubmit}>
-          {loginError && (
-            <div className="auth-form__error">
-              Invalid credentials
-            </div>
+
+        <GoogleSignInButton />
+
+        <div className="auth-divider">
+          <span>OR</span>
+        </div>
+
+        <form className="auth-form" onSubmit={handleContinue}>
+          {loginError && loginMethod === 'password' && (
+            <div className="auth-form__error">{loginErrorMessage}</div>
           )}
-          
+
           <div className="auth-form__field">
             <label htmlFor="login-email">Email Address</label>
             <div className="input-with-icon">
@@ -251,17 +309,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
             {!isCheckingEmail && loginEmail && loginEmail.includes('@') && !emailExists && (
               <div className="auth-field-hint auth-field-hint--error">
                 <AlertCircle size={12} /> Account not found.{' '}
-                <button
-                  type="button"
-                  className="auth-field-hint__link"
-                  onClick={() => {
-                    if (onRedirectToSignup) {
-                      onRedirectToSignup(loginEmail)
-                    } else {
-                      router.push(`/signup?mode=signup&email=${encodeURIComponent(loginEmail)}`)
-                    }
-                  }}
-                >
+                <button type="button" className="auth-field-hint__link" onClick={goToSignup}>
                   Sign up instead?
                 </button>
               </div>
@@ -286,102 +334,118 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
             )}
           </div>
 
-          <div className="auth-form__field mt-1">
-            <label htmlFor="login-password">Password</label>
-            <div className="input-with-icon">
-              <Lock size={17} />
-              <input
-                id="login-password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Your password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </div>
+          {!isSpecialAccount && (
+            <>
+              <div className="auth-method-toggle" role="radiogroup" aria-label="Sign-in method">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={loginMethod === 'password'}
+                  className={`auth-method-toggle__option${loginMethod === 'password' ? ' is-active' : ''}`}
+                  onClick={() => setLoginMethod('password')}
+                >
+                  Password
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={loginMethod === 'code'}
+                  className={`auth-method-toggle__option${loginMethod === 'code' ? ' is-active' : ''}`}
+                  onClick={() => setLoginMethod('code')}
+                >
+                  Verification code
+                </button>
+              </div>
 
-          <button
-            id="login-submit"
-            className="btn btn--primary btn--full btn--pay auth-form__mt-6"
-            type="submit"
-            disabled={
-              loginLoading || 
-              biometricLoading || 
-              isRequestingOTP || 
-              isCheckingEmail ||
-              !loginEmail || 
-              !loginPassword || 
-              !emailExists || 
-              isInvited || 
-              isWaitlist
-            }
-          >
-            {loginLoading ? 'Logging in…' : 'Log In'} <ArrowRight size={17} />
-          </button>
-
-          <div className="auth-divider">
-            <span>OR</span>
-          </div>
-
-          <button
-            type="button"
-            className="btn btn--ghost btn--full auth-btn-otp"
-            onClick={() => handleRequestOTP()}
-            disabled={
-              loginLoading || 
-              isRequestingOTP || 
-              isCheckingEmail ||
-              !loginEmail || 
-              !emailExists || 
-              isInvited || 
-              isWaitlist
-            }
-          >
-            {isRequestingOTP ? <Loader2 size={18} className="animate-spin" /> : 'Log in with verification code'}
-          </button>
-
-          {biometricAvailable && (
-            <button
-              type="button"
-              className="btn btn--outline btn--full auth-btn-biometric"
-              onClick={handleBiometricLogin}
-              disabled={
-                loginLoading || 
-                biometricLoading || 
-                isCheckingEmail ||
-                !emailExists || 
-                isInvited || 
-                isWaitlist
-              }
-            >
-              {biometricLoading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <>
-                  <Fingerprint size={18} /> Log in with Biometrics
-                </>
+              {isGoogleOnly && loginMethod === 'password' && (
+                <div className="auth-field-hint auth-field-hint--accent">
+                  <AlertCircle size={12} /> This account uses Google sign-in. Use the button above.
+                </div>
               )}
-            </button>
+
+              {loginMethod === 'password' ? (
+                <div className="auth-form__field auth-form__field--password">
+                  <div className="auth-form__label-row">
+                    <label htmlFor="login-password">Password</label>
+                    <button
+                      type="button"
+                      className="auth-form__link auth-form__link--quiet"
+                      onClick={() => router.push('/forgot-password')}
+                      disabled={isBusy || !loginEmail || !emailExists}
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <div className="input-with-icon">
+                    <Lock size={17} />
+                    <input
+                      id="login-password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Your password"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="auth-form-note">
+                  We&apos;ll email you a 6-digit code to sign in — no password needed.
+                </p>
+              )}
+
+              <button
+                id="login-submit"
+                className="btn btn--primary btn--full btn--pay auth-form__mt-6"
+                type="submit"
+                disabled={isBusy || !canContinue}
+              >
+                {loginLoading || isRequestingOTP ? (
+                  <>
+                    <Loader2 size={17} className="animate-spin" />
+                    {loginMethod === 'code' ? 'Sending code…' : 'Logging in…'}
+                  </>
+                ) : (
+                  <>
+                    {loginMethod === 'code' ? 'Send verification code' : 'Continue'}
+                    <ArrowRight size={17} />
+                  </>
+                )}
+              </button>
+
+              {loginMethod === 'password' && biometricAvailable && (
+                <button
+                  type="button"
+                  className="auth-form__link auth-form__link--biometric"
+                  onClick={handleBiometricLogin}
+                  disabled={isBusy || !emailExists || isSpecialAccount}
+                >
+                  {biometricLoading ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <>
+                      <Fingerprint size={16} /> Use biometrics
+                    </>
+                  )}
+                </button>
+              )}
+            </>
           )}
-          
-          <button
-            type="button"
-            className="auth-form__link"
-            onClick={() => router.push('/forgot-password')}
-            disabled={isCheckingEmail || !loginEmail || !emailExists || isInvited || isWaitlist}
-          >
-            Forgot your password?
-          </button>
         </form>
 
+        <p className="auth-signup-footer">
+          Don&apos;t have an account?{' '}
+          <button type="button" className="auth-signup-footer__link" onClick={goToSignup}>
+            Sign up
+          </button>
+        </p>
       </div>
     </div>
   )

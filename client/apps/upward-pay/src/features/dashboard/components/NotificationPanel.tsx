@@ -6,6 +6,12 @@ import { Bell, Calendar, Megaphone, Info, X, Zap, Clock, Landmark, ArrowRight, U
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
+import { NotificationTabBar } from '@/features/notifications/components/NotificationTabBar'
+import {
+  filterNotificationsByTab,
+  getTabUnreadCounts,
+  type NotificationTab,
+} from '@/features/notifications/utils/notificationTabs'
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   SYSTEM: <Info size={16} />,
@@ -19,18 +25,16 @@ interface NotificationPanelProps {
   onClose: () => void
 }
 
-type TabType = 'Transactions' | 'Services' | 'Activities'
-
 export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const queryTab = searchParams.get('tab')
   const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState<TabType>('Transactions')
+  const [activeTab, setActiveTab] = useState<NotificationTab>('Transactions')
 
   useEffect(() => {
     if (queryTab === 'Activities' || queryTab === 'Services' || queryTab === 'Transactions') {
-      setActiveTab(queryTab as TabType)
+      setActiveTab(queryTab as NotificationTab)
     }
   }, [queryTab])
 
@@ -72,7 +76,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
   })
 
   const markAllReadMutation = useMutation({
-    mutationFn: (category: TabType) => api.post('/user/notifications/mark-category-read', { category }),
+    mutationFn: (category: NotificationTab) => api.post('/user/notifications/mark-category-read', { category }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-counts'] })
@@ -158,25 +162,12 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
     return [...raw, ...dynamicActivities]
   }, [notifData, pendingPayments, userProfile])
 
-  const tabCounts = useMemo(() => {
-    const counts: Record<TabType, number> = { Transactions: 0, Services: 0, Activities: 0 }
-    notifications.forEach((n) => {
-      if (!n.isRead) {
-        if (n.type === 'PAYMENT') counts.Transactions++
-        else if (n.type === 'SUPPORT' || n.type === 'SYSTEM') counts.Services++
-        else if (n.type === 'RENT_REMINDER') counts.Activities++
-      }
-    })
-    return counts
-  }, [notifications])
+  const tabCounts = useMemo(() => getTabUnreadCounts(notifications), [notifications])
 
   const filteredNotifications = useMemo(() => {
-    return notifications.filter(n => {
-      if (activeTab === 'Transactions') return n.type === 'PAYMENT'
-      if (activeTab === 'Services') return n.type === 'SUPPORT' || n.type === 'SYSTEM'
-      if (activeTab === 'Activities') return n.type === 'RENT_REMINDER'
-      return true
-    }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    return filterNotificationsByTab(notifications, activeTab).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
   }, [notifications, activeTab])
 
   const groupedNotifications = useMemo(() => {
@@ -220,21 +211,14 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
             </button>
           </div>
           
-          <nav className="notification-panel__tabs">
-            {(['Transactions', 'Services', 'Activities'] as TabType[]).map(tab => (
-              <button 
-                key={tab}
-                className={`notification-panel__tab ${activeTab === tab ? 'active' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setActiveTab(tab)
-                }}
-              >
-                {tab}
-                {tabCounts[tab] > 0 && <span className="tab-badge">{tabCounts[tab]}</span>}
-              </button>
-            ))}
-          </nav>
+          <div className="notification-panel__tabs">
+            <NotificationTabBar
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              unreadCounts={tabCounts}
+              variant="panel"
+            />
+          </div>
         </header>
 
         <div className="notification-panel__content">
@@ -373,62 +357,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
         }
 
         .notification-panel__tabs {
-          display: flex;
-          gap: 8px;
           margin-bottom: 16px;
-          padding: 4px;
-          background: #f0e9df;
-          border-radius: 14px;
-          border: 1px solid #e9dfd3;
-        }
-        
-        .notification-panel__tab {
-          padding: 8px 12px;
-          border-radius: 10px;
-          border: 1px solid transparent;
-          background: transparent;
-          color: #8a8178;
-          font-size: 12px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          flex: 1;
-          text-align: center;
-          white-space: nowrap;
-        }
-
-        .notification-panel__tab:hover {
-          background: #fff;
-          border-color: #eadfd4;
-          color: #5c544b;
-        }
-
-        .notification-panel__tab.active {
-          background: var(--skin-primary, #c2501f);
-          border-color: var(--skin-primary, #c2501f);
-          color: #fff;
-          box-shadow: 0 4px 10px rgba(194, 80, 31, 0.28);
-          transform: translateY(-1px);
-        }
-
-        .tab-badge {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 18px;
-          height: 18px;
-          padding: 0 5px;
-          background: var(--error);
-          color: #fff;
-          border-radius: 9px;
-          font-size: 0.65rem;
-          margin-left: 6px;
-          vertical-align: middle;
-        }
-
-        .notification-panel__tab.active .tab-badge {
-          background: #fff;
-          color: var(--error);
         }
 
         .notification-panel__content {

@@ -12,6 +12,7 @@ import { SignupFormFlow } from '@/features/auth/component/signup/SignupFormFlow'
 import WaitlistClient from '@/app/waitlist/[uuid]/WaitlistClient'
 import InviteClient from '@/app/invite/[uuid]/InviteClient'
 import WelcomeClient from '@/app/welcome/[uuid]/WelcomeClient'
+import { GoogleAuthProvider } from '@/features/auth/components/GoogleAuthProvider'
 
 type Mode = 'welcome' | 'signup' | 'login' | 'biometrics' | 'waitlist' | 'invite' | 'priority'
 
@@ -162,9 +163,11 @@ export default function SignupPage() {
       </div>
 
       <div className="auth-layout__form">
-        <Suspense fallback={<FallbackSuspense message="Loading…" />}>
-          <SignupPageContent />
-        </Suspense>
+        <GoogleAuthProvider>
+          <Suspense fallback={<FallbackSuspense message="Loading…" />}>
+            <SignupPageContent />
+          </Suspense>
+        </GoogleAuthProvider>
       </div>
     </div>
   )

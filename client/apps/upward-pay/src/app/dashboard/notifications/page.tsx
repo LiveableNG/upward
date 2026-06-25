@@ -7,6 +7,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import FallbackSuspense from '@/components/FallbackSuspense'
 import { formatCurrency } from '@/lib/utils'
+import { NotificationTabBar } from '@/features/notifications/components/NotificationTabBar'
+import {
+  filterNotificationsByTab,
+  getTabUnreadCounts,
+  type NotificationTab,
+} from '@/features/notifications/utils/notificationTabs'
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   SYSTEM: <Info size={18} />,
@@ -15,7 +21,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   RENT_REMINDER: <Clock size={18} />,
 }
 
-type TabType = 'Transactions' | 'Services' | 'Activities'
+type TabType = NotificationTab
 
 export default function NotificationsPage() {
   const router = useRouter()
@@ -111,13 +117,12 @@ export default function NotificationsPage() {
     return [...raw, ...dynamicActivities]
   }, [notifData, pendingPayments, userProfile])
 
+  const tabCounts = useMemo(() => getTabUnreadCounts(notifications), [notifications])
+
   const filteredNotifications = useMemo(() => {
-    return notifications.filter(n => {
-      if (activeTab === 'Transactions') return n.type === 'PAYMENT'
-      if (activeTab === 'Services') return n.type === 'SUPPORT' || n.type === 'SYSTEM'
-      if (activeTab === 'Activities') return n.type === 'RENT_REMINDER'
-      return true
-    }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    return filterNotificationsByTab(notifications, activeTab).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
   }, [notifications, activeTab])
 
   const groupedNotifications = useMemo(() => {
@@ -157,17 +162,12 @@ export default function NotificationsPage() {
             <h1 className="header-title">Notifications</h1>
           </div>
           
-          <nav className="tab-switcher">
-            {(['Transactions', 'Services', 'Activities'] as TabType[]).map(tab => (
-              <button 
-                key={tab}
-                className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
+          <NotificationTabBar
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            unreadCounts={tabCounts}
+            variant="page"
+          />
         </div>
       </header>
 
@@ -271,34 +271,6 @@ export default function NotificationsPage() {
           font-weight: 800;
           color: #1a1714;
           letter-spacing: -0.01em;
-        }
-
-        .tab-switcher {
-          display: flex;
-          gap: 6px;
-          margin-bottom: 8px;
-          padding: 4px;
-          background: #f0e9df;
-          border-radius: 12px;
-        }
-
-        .tab-btn {
-          flex: 1;
-          padding: 9px 8px;
-          border: none;
-          background: transparent;
-          color: #8a8178;
-          font-size: 12px;
-          font-weight: 700;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .tab-btn.active {
-          background: #fff;
-          color: var(--skin-primary, #c2501f);
-          box-shadow: 0 1px 2px rgba(60, 40, 20, 0.08);
         }
 
         .content-area {

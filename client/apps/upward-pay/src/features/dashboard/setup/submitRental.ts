@@ -45,6 +45,10 @@ export async function submitRentalRequest(draft: SetupDraft) {
   await api.post('/user/pm-connection/add-unit-request', payload)
 }
 
+export async function submitContactDetails(phone: string, dateOfBirth: string) {
+  await api.updateProfile({ phone, dateOfBirth })
+}
+
 export async function submitPhone(phone: string) {
   await api.updateProfile({ phone })
 }
