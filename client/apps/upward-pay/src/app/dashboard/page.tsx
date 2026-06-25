@@ -107,7 +107,7 @@ export default function DashboardPage() {
   const onTime = Math.round(scoreData?.metrics?.ptPercentage || 0)
   const streak = scoreData?.metrics?.longestStreak || 0
   const profileCompletion = scoreData?.profile?.profileCompletion || 0
-  const maxScore = scoreData?.maxScore || 900
+  const maxScore = scoreData?.maxScore || 0
 
   const propertyReminders = (user.properties || [])
     .filter((prop) => !!prop.rentEndDate)
