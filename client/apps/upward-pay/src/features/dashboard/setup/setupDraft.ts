@@ -1,4 +1,5 @@
 import { STATES } from '@/lib/location-data'
+import { toDateInputValue } from './rentalDates'
 
 export type SetupMode = 'onboarding' | 'edit'
 
@@ -79,9 +80,18 @@ export function loadSetupDraft(): SetupDraft | null {
     const raw = sessionStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<SetupDraft>
+    const formData = parsed.formData
+      ? {
+          ...EMPTY_RENTAL_FORM,
+          ...parsed.formData,
+          rentStartDate: toDateInputValue(parsed.formData.rentStartDate),
+          rentEndDate: toDateInputValue(parsed.formData.rentEndDate),
+        }
+      : { ...EMPTY_RENTAL_FORM }
     return {
       ...createEmptyDraft(parsed.mode || 'onboarding'),
       ...parsed,
+      formData,
       paymentDetails: {
         ...EMPTY_PAYMENT_DETAILS,
         ...(parsed.paymentDetails || {}),
@@ -110,17 +120,36 @@ export function clearSetupDraft() {
 
 export type DraftUserProperty = {
   uuid?: string
-  address: string
+  address?: string
   rentStartDate?: string
   rentEndDate: string
   rentAmount?: number
+  isManaged?: boolean
+  isPlatformLinked?: boolean
   managerName?: string
   managerEmail?: string
   companyName?: string
+  manager?: {
+    firstName?: string
+    lastName?: string
+    email?: string
+    phone?: string
+  }
+  company?: {
+    name?: string
+    email?: string
+    phone?: string
+  }
   subaccount?: {
     accountNumber?: string
     bankCode?: string
     businessName?: string
+  }
+  dedicatedAccount?: {
+    accountNumber?: string
+    bankCode?: string
+    accountName?: string
+    bankName?: string
   }
   location?: {
     area?: string
@@ -128,6 +157,45 @@ export type DraftUserProperty = {
     address?: string
     state?: string
     country?: string
+  }
+}
+
+function managerNameFromProperty(prop: DraftUserProperty): string {
+  if (prop.managerName?.trim()) return prop.managerName.trim()
+  if (prop.manager?.firstName) {
+    return [prop.manager.firstName, prop.manager.lastName].filter(Boolean).join(' ')
+  }
+  return ''
+}
+
+function managerEmailFromProperty(prop: DraftUserProperty): string {
+  return (
+    prop.managerEmail?.trim() ||
+    prop.manager?.email?.trim() ||
+    prop.company?.email?.trim() ||
+    ''
+  )
+}
+
+function companyNameFromProperty(prop: DraftUserProperty): string {
+  return prop.companyName?.trim() || prop.company?.name?.trim() || ''
+}
+
+function paymentDetailsFromProperty(prop: DraftUserProperty): PaymentDraftDetails {
+  const accountNumber =
+    prop.subaccount?.accountNumber || prop.dedicatedAccount?.accountNumber || ''
+  const bankCode = prop.subaccount?.bankCode || prop.dedicatedAccount?.bankCode || ''
+
+  if (!accountNumber || !bankCode) {
+    return { ...EMPTY_PAYMENT_DETAILS }
+  }
+
+  return {
+    accountNumber,
+    bankCode,
+    accountName:
+      prop.subaccount?.businessName || prop.dedicatedAccount?.accountName || '',
+    bankName: prop.dedicatedAccount?.bankName || '',
   }
 }
 
@@ -142,40 +210,42 @@ export function draftFromProperty(
   mode: SetupMode = 'edit',
 ): SetupDraft {
   const draft = createEmptyDraft(mode)
+  const managerName = managerNameFromProperty(prop)
+  const managerEmail = managerEmailFromProperty(prop)
+  const companyName = companyNameFromProperty(prop)
 
   draft.formData = {
     uuid: prop.uuid,
-    pmName: prop.managerName || '',
+    pmName: managerName,
     address: prop.location?.address || prop.address || '',
     area: prop.location?.area || '',
     subarea: prop.location?.subarea || '',
     state: prop.location?.state || STATES['NG']?.[24] || 'Lagos',
     country: prop.location?.country || 'NG',
-    rentAmount: prop.rentAmount ? String(prop.rentAmount) : '',
-    rentStartDate: prop.rentStartDate ? prop.rentStartDate.split('T')[0] : '',
-    rentEndDate: prop.rentEndDate ? prop.rentEndDate.split('T')[0] : '',
+    rentAmount: prop.rentAmount ? prop.rentAmount.toLocaleString() : '',
+    rentStartDate: toDateInputValue(prop.rentStartDate),
+    rentEndDate: toDateInputValue(prop.rentEndDate),
   }
-  draft.pmEmail = prop.managerEmail || ''
+  draft.pmEmail = managerEmail
   draft.phone = user.phone || ''
-  draft.landlordSkipped = !prop.managerEmail && !prop.managerName
-  if (prop.subaccount?.accountNumber && prop.subaccount?.bankCode) {
-    draft.paymentDetails = {
-      accountNumber: prop.subaccount.accountNumber,
-      bankCode: prop.subaccount.bankCode,
-      accountName: prop.subaccount.businessName || '',
-      bankName: '',
-    }
-  }
-  draft.pmFound = !!(prop.companyName || prop.managerName)
-  if (prop.companyName) {
+  draft.landlordSkipped = !managerEmail && !managerName && !companyName
+  draft.paymentDetails = paymentDetailsFromProperty(prop)
+  draft.companyName = companyName
+  draft.pmFound = !!(prop.isManaged || prop.isPlatformLinked)
+  if (draft.pmFound) {
     draft.pmDetails = {
-      name: prop.managerName || prop.companyName,
-      businessName: prop.companyName,
+      name: managerName || companyName,
+      businessName: companyName || managerName,
     }
-  } else if (prop.managerName) {
+  } else if (companyName) {
     draft.pmDetails = {
-      name: prop.managerName,
-      businessName: prop.managerName,
+      name: managerName || companyName,
+      businessName: companyName,
+    }
+  } else if (managerName) {
+    draft.pmDetails = {
+      name: managerName,
+      businessName: managerName,
     }
   }
 
