@@ -23,7 +23,7 @@ import { requestOTP, loginWithOTP, checkEmail, verifyOTP } from '@/features/auth
 import { OTPInput } from '@/components/common/OTPInput'
 import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
 
-type LoginMethod = 'password' | 'code'
+type LoginMethod = 'password' | 'code' | null
 
 interface LoginFormFlowProps {
   onBackToWelcome: () => void
@@ -57,7 +57,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
   const [loginEmail, setLoginEmail] = useState(initialEmail)
   const [loginPassword, setLoginPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [loginMethod, setLoginMethod] = useState<LoginMethod>('password')
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>(null)
   const [biometricAvailable, setBiometricAvailable] = useState(false)
   const [biometricLoading, setBiometricLoading] = useState(false)
   const [step, setStep] = useState<'login' | 'otp'>('login')
@@ -175,6 +175,8 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
       return
     }
 
+    if (loginMethod !== 'code') return
+
     await handleRequestOTP()
   }
 
@@ -232,7 +234,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
     emailExists &&
     !isSpecialAccount
 
-  const canContinue = loginMethod === 'password' ? canContinuePassword : canContinueCode
+  const canContinue = loginMethod === 'password' ? canContinuePassword : loginMethod === 'code' ? canContinueCode : false
 
   const loginErrorMessage = getLoginErrorMessage(loginError)
 
@@ -395,9 +397,13 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
                     </button>
                   </div>
                 </div>
-              ) : (
+              ) : loginMethod === 'code' ? (
                 <p className="auth-form-note">
                   We&apos;ll email you a 6-digit code to sign in — no password needed.
+                </p>
+              ) : (
+                <p className="auth-form-note">
+                  Choose a sign-in method to continue.
                 </p>
               )}
 
