@@ -1,7 +1,6 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -15,8 +14,6 @@ import {
   X,
   Zap,
 } from 'lucide-react'
-import { api } from '@/lib/api'
-import { normalizeSavingsGoal, setGoalPath } from '@/features/dashboard/utils/savingsGoals'
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { AppleIcon, PlayStoreIcon } from '@/components/StoreIcons'
 import { type CompletedPayment, type PendingPayment } from '../types'
@@ -134,16 +131,9 @@ export function DashboardHome({
 }: DashboardHomeProps) {
   const router = useRouter()
 
-  const { data: savingsGoals } = useQuery({
-    queryKey: ['savings-goals'],
-    queryFn: () => api.getSavingsGoals(),
-    staleTime: 5 * 60 * 1000,
-  })
-
   const ringPct = Math.min(100, Math.max((credScore / maxScore) * 100, 4))
   const rentDue = getRentDue(pendingPayments, user)
   const recent = completedPayments.slice(0, 3)
-  const goals = Array.isArray(savingsGoals) ? savingsGoals.map(normalizeSavingsGoal).slice(0, 2) : []
 
   const showActivityCenter =
     pendingPayments.length > 0 ||
@@ -274,8 +264,9 @@ export function DashboardHome({
           <button type="button" className="dash-home__action dash-home__action--primary" onClick={() => router.push('/dashboard/pay-rent')}>
             Pay Rent
           </button>
-          <button type="button" className="dash-home__action dash-home__action--secondary" onClick={() => router.push('/dashboard/savings')}>
-            Save Rent
+          <button type="button" className="dash-home__action dash-home__action--secondary dash-home__action--disabled" disabled aria-disabled="true">
+            <span>Save Rent</span>
+            <span className="dash-home__action-soon">Coming soon</span>
           </button>
           <button type="button" className="dash-home__action dash-home__action--secondary" onClick={() => router.push('/dashboard/save-for-home')}>
             Save for Home
@@ -312,41 +303,6 @@ export function DashboardHome({
       </div>
 
       <div className="dash-home__aside">
-        <div className="dash-home__section-head">
-          <h2 className="dash-home__section-title">Savings Goals</h2>
-          <button type="button" className="dash-home__section-link" onClick={() => router.push('/dashboard/savings/deposit')}>
-            Add funds →
-          </button>
-        </div>
-        <div className="dash-home__savings-card">
-          {goals.length === 0 ? (
-            <div className="dash-home__savings-empty">
-              <p>Set a savings goal to start building toward rent or a home.</p>
-              <button type="button" className="dash-home__savings-empty-btn" onClick={() => router.push(setGoalPath())}>
-                Set a goal
-              </button>
-            </div>
-          ) : (
-            goals.map((goal) => (
-              <div key={goal.id} className="dash-home__goal">
-                <div className="dash-home__goal-head">
-                  <span className="dash-home__goal-name">{goal.name}</span>
-                  <span className="dash-home__goal-amounts">
-                    {formatCurrency(goal.current, 'NGN')} / {formatCurrency(goal.target, 'NGN')}
-                  </span>
-                </div>
-                <div className="dash-home__goal-bar">
-                  <div
-                    className={`dash-home__goal-fill ${goal.isHome ? 'dash-home__goal-fill--teal' : ''}`}
-                    style={{ width: `${goal.pct}%` }}
-                  />
-                </div>
-                <div className="dash-home__goal-pct">{goal.pct}% funded</div>
-              </div>
-            ))
-          )}
-        </div>
-
         <button type="button" className="dash-home__nudge" onClick={() => router.push('/dashboard/kyc')}>
           <span className="dash-home__nudge-icon">
             <TrendingUp size={18} />
