@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 
 interface SetupPageShellProps {
   title?: string
+  subtitle?: string
   progress?: { step: number; total: number }
   backHref?: string
   onBack?: () => void
@@ -15,6 +16,7 @@ interface SetupPageShellProps {
 
 export function SetupPageShell({
   title,
+  subtitle,
   progress,
   backHref,
   onBack,
@@ -63,7 +65,10 @@ export function SetupPageShell({
       </header>
 
       <div className="setup-page__scroll">
-        <div className="setup-page__inner">{children}</div>
+        <div className="setup-page__inner">
+          {subtitle ? <p className="setup-page__header-subtitle">{subtitle}</p> : null}
+          {children}
+        </div>
       </div>
 
       {footer && <footer className="setup-page__footer">{footer}</footer>}
