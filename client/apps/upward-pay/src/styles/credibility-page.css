@@ -26,24 +26,7 @@
 
 /* ── Public page shell ── */
 .kyc-page.public-cv {
-  background: var(--bg);
-  min-height: 100vh;
-  padding: 1.5rem 1rem 3rem;
-}
-
-.public-header {
-  max-width: 640px;
-  margin: 0 auto 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 0.25rem;
-}
-
-/* ── Report card ── */
-.kyc-report-container {
-  max-width: 640px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .credibility-page .kyc-report,

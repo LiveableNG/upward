@@ -28,6 +28,7 @@ import { useToast } from '@/components/common/Toast'
 import { useScoreProfile, usePublicScoreProfile } from '../../services/scoreService'
 import { ShareScorePreviewModal } from '../share/ShareScorePreviewModal'
 import { getScoreRankColor } from '../share/shareScoreImage'
+import { PublicProfileShell } from './PublicProfileShell'
 
 interface KYCReportContentProps {
   isPublic?: boolean
@@ -126,7 +127,13 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
 
   if (isLoading || !scoreProfile) {
-    if (isPublic) return <FallbackSuspense />
+    if (isPublic) {
+      return (
+        <PublicProfileShell showSignup={!isLoggedIn} onJoin={() => router.push('/signup')}>
+          <FallbackSuspense />
+        </PublicProfileShell>
+      )
+    }
     return (
       <PayPageShell
         title="Credibility Profile"
@@ -147,7 +154,8 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   const initials = profile.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)
 
   const getRankColor = () => {
-    if (!isScorable || !isVerified) return '#928e89'
+    if (!isScorable) return isPublic ? '#c2501f' : '#928e89'
+    if (!isVerified && !isPublic) return '#928e89'
     if (rank === 'A') return '#d97757'
     if (rank === 'B') return '#22c55e'
     if (rank === 'C') return '#3b82f6'
@@ -294,7 +302,15 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                 <p className="kyc-report__bio">{profile.bio}</p>
             )}
 
-            <div className={`kyc-report__score-box ${isFaded ? 'opacity-50' : ''}`}>
+            <div
+              className={[
+                'kyc-report__score-box',
+                isFaded && !isPublic && 'opacity-50',
+                isFaded && isPublic && 'kyc-report__score-box--building',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
               <div className="kyc-report__score-left">
                 <span className="kyc-report__score-label">{isScorable ? 'Rent Credibility Score' : 'Score Building'}</span>
                 <div className="kyc-report__score-value-wrap">
@@ -318,7 +334,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             {/* Real Properties Listing */}
             <section className="kyc-report__section">
               <p className="kyc-report__section-title">
-                <Home size={14} color={isVerified ? "var(--clay)" : "#928e89"} />
+                <Home size={14} color={isVerified || isPublic ? 'var(--clay)' : '#928e89'} />
                 Tenancy History
               </p>
               <div className="kyc-report__properties-list">
@@ -372,7 +388,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
             <section className="kyc-report__section">
               <p className="kyc-report__section-title">
-                <Clock size={14} color={isVerified ? "var(--clay)" : "#928e89"} />
+                <Clock size={14} color={isVerified || isPublic ? 'var(--clay)' : '#928e89'} />
                 Recent Observations
               </p>
               <div className="kyc-report__timeline">
@@ -443,63 +459,37 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
   if (isPublic) {
     return (
-      <div className="kyc-page public-cv">
-        <div className="public-header">
-          <UpwardLogo size={100} color="var(--clay)" />
-          {isLoggedIn ? (
-            <button type="button" className="btn btn--secondary btn--sm px-6" onClick={() => router.push('/dashboard')}>
-              Back to Dashboard
-            </button>
-          ) : (
-            <button type="button" className="btn btn--primary btn--sm px-6" onClick={() => router.push('/signup')}>
-              Join Upward
-            </button>
-          )}
-        </div>
+      <PublicProfileShell showSignup={!isLoggedIn} onJoin={() => router.push('/signup')}>
+        {reportCard}
 
-        <div className="kyc-report-container">
-          <div className="credibility-page">{reportCard}</div>
-
-          <div className="kyc-report-legal">
-            {!isLoggedIn ? (
-              <div className="public-benefits animate-slide-up">
-                <h3 className="public-benefits__title">Why join Upward?</h3>
-                <div className="public-benefits__grid">
-                  <div className="public-benefits__item">
-                    <div className="public-benefits__icon"><TrendingUp size={16} /></div>
-                    <p>Build your rent<br />credibility score</p>
-                  </div>
-                  <div className="public-benefits__item">
-                    <div className="public-benefits__icon"><BadgeCheck size={16} /></div>
-                    <p>Verified tenant<br />portfolio</p>
-                  </div>
-                  <div className="public-benefits__item">
-                    <div className="public-benefits__icon"><Zap size={16} /></div>
-                    <p>Unlock better<br />leasing deals</p>
-                  </div>
+        {!isLoggedIn ? (
+          <section className="public-profile-page__benefits" aria-label="Why join Upward">
+            <h3 className="public-profile-page__benefits-title">Why join Upward?</h3>
+            <div className="public-profile-page__benefits-grid">
+              <div className="public-profile-page__benefit">
+                <div className="public-profile-page__benefit-icon">
+                  <TrendingUp size={16} />
                 </div>
-                <button
-                  type="button"
-                  className="btn btn--primary btn--pill px-10 py-4 font-bold text-lg shadow-clay"
-                  onClick={() => router.push('/signup')}
-                >
-                  Create Your Own Portfolio
-                </button>
+                <p>Build your rent credibility score</p>
               </div>
-            ) : (
-              <div className="logged-in-footer">
-                <p>Viewing verified profile: <strong>{profile.name}</strong></p>
-                <button type="button" className="btn btn--outline btn--pill px-8" onClick={() => router.push('/dashboard')}>
-                  Return to My Dashboard
-                </button>
+              <div className="public-profile-page__benefit">
+                <div className="public-profile-page__benefit-icon">
+                  <BadgeCheck size={16} />
+                </div>
+                <p>Verified tenant portfolio</p>
               </div>
-            )}
-          </div>
-        </div>
+              <div className="public-profile-page__benefit">
+                <div className="public-profile-page__benefit-icon">
+                  <Zap size={16} />
+                </div>
+                <p>Unlock better leasing deals</p>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {shareModal}
-        {shareImageModal}
-      </div>
+      </PublicProfileShell>
     )
   }
 
