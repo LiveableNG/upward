@@ -1,0 +1,237 @@
+/* Public credibility profile — standalone shareable page (no auth shell) */
+
+.public-profile-page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  font-family: var(--font-auth);
+  color: #1a1714;
+  width: 100%;
+}
+
+.public-profile-page__header {
+  flex: none;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(var(--safe-top, 0px) + 10px) 22px 14px;
+  border-bottom: 1px solid #ece4d9;
+  background: #ffffff;
+}
+
+.public-profile-page__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.public-profile-page__brand-text {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #1a1714;
+  line-height: 1.2;
+}
+
+.public-profile-page__header-link {
+  flex-shrink: 0;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #ece4d9;
+  background: #fff;
+  color: #5c544b;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.public-profile-page__header-link:hover {
+  border-color: var(--skin-primary, #c2501f);
+  color: var(--skin-primary, #c2501f);
+}
+
+/* Scroll region — block layout so content height drives page scroll (pay-flow pattern) */
+.public-profile-page__scroll {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.public-profile-page__content {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 22px calc(var(--safe-bottom, 0px) + 16px);
+}
+
+.public-profile-page:has(.public-profile-page__footer) .public-profile-page__content {
+  padding-bottom: 8px;
+}
+
+.public-profile-page__content > * {
+  flex-shrink: 0;
+}
+
+.public-profile-page__footer {
+  flex: none;
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  padding: 12px 22px calc(var(--safe-bottom, 0px) + 16px);
+  border-top: 1px solid #ece4d9;
+  background: #ffffff;
+}
+
+.public-profile-page__cta {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 54px;
+  border: none;
+  border-radius: 15px;
+  background: var(--skin-primary, #c2501f);
+  color: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.public-profile-page__cta:hover {
+  background: var(--skin-primary-hover, #a8410f);
+}
+
+.public-profile-page__trust {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: #7a7268;
+  line-height: 1.4;
+}
+
+.public-profile-page__benefits {
+  background: #fff;
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 16px;
+  padding: 18px 16px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.public-profile-page__benefits-title {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #5c544b;
+  text-align: center;
+}
+
+.public-profile-page__benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.public-profile-page__benefit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.public-profile-page__benefit-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--shell-tint, #fbede5);
+  color: var(--skin-primary, #c2501f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.public-profile-page__benefit p {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #5c544b;
+}
+
+/* Brighter public report card — reset global dashboard/kyc-profile card padding */
+.public-profile-page .kyc-report {
+  padding: 0;
+  margin: 0;
+  max-width: none;
+  overflow: visible;
+  border-color: #ece4d9;
+  border-radius: 16px;
+  box-shadow: 0 8px 28px rgba(60, 40, 20, 0.08);
+}
+
+.public-profile-page .kyc-report__header {
+  background: linear-gradient(180deg, #fff4ec 0%, #ffffff 72%);
+}
+
+.public-profile-page .kyc-report__meta,
+.public-profile-page .kyc-report__bio,
+.public-profile-page .kyc-report__property-meta,
+.public-profile-page .kyc-report__timeline-sub {
+  color: #5c544b;
+}
+
+.public-profile-page .kyc-report__section-title {
+  color: #5c544b;
+}
+
+.public-profile-page .kyc-report__score-label,
+.public-profile-page .kyc-report__score-max,
+.public-profile-page .kyc-report__ref {
+  color: #7a7268;
+}
+
+.public-profile-page .kyc-report__score-box--building {
+  background: linear-gradient(135deg, #ffffff 0%, #fff8f3 100%);
+  border-color: rgba(194, 80, 31, 0.24);
+  box-shadow: 0 4px 14px rgba(194, 80, 31, 0.1);
+}
+
+.public-profile-page .kyc-report__footer {
+  background: #ffffff;
+}
+
+.public-profile-page .kyc-report__body {
+  background: #ffffff;
+}
+
+@media (max-width: 640px) {
+  .public-profile-page__benefits-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .public-profile-page__benefit {
+    flex-direction: row;
+    text-align: left;
+  }
+
+  .public-profile-page__benefit p br {
+    display: none;
+  }
+}
