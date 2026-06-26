@@ -2201,7 +2201,6 @@
   background: var(--bg);
   border: 1px solid var(--border-solid);
   border-radius: 20px;
-  padding: 32px;
   position: relative;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
