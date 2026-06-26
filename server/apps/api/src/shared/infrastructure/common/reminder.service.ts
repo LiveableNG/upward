@@ -88,7 +88,7 @@ export class UnifiedReminderService {
     const amount = `${pr.currency} ${pr.amount.toLocaleString()}`;
     const unitName = pr.unit.unitName;
     const propertyName = pr.unit.property.name;
-    const baseUrl = process.env.FRONTEND_URL || 'https://upward.goodtenants.io';
+    const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim();
     const paymentUrl = `${baseUrl}/pay/${pr.paymentRequest?.uuid || pr.uuid}`;
 
     // 1. Send Email
@@ -173,7 +173,7 @@ export class UnifiedReminderService {
 
   async processPmDailyCrons() {
     this.logger.log('[ReminderService] Processing daily Property Manager rent digests...');
-    const baseUrl = process.env.FRONTEND_URL || 'https://upward.goodtenants.io';
+    const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim();
     const now = new Date();
     
     // Normalizing today to start of day local time
