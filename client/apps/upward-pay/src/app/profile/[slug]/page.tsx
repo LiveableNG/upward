@@ -12,12 +12,6 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
   const { slug } = await params
 
   return (
-    <main className="public-profile-view">
-      {/* 
-        This is the public-facing view of a tenant's credibility portfolio.
-        Anyone with the link can view this. No authentication required.
-      */}
-      <KYCReportContent isPublic={true} publicSlug={slug} />
-    </main>
+    <KYCReportContent isPublic publicSlug={slug} />
   )
 }
