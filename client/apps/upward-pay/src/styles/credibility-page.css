@@ -789,6 +789,10 @@
   color: #0284c7;
 }
 
+.image-color {
+  color: #c2501f;
+}
+
 @keyframes shareFadeIn {
   from {
     opacity: 0;
