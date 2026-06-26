@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Copy,
   X,
+  ImageIcon,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
@@ -25,6 +26,8 @@ import FallbackSuspense from '@/components/FallbackSuspense'
 import { PayFlowPrimaryButton, PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { useToast } from '@/components/common/Toast'
 import { useScoreProfile, usePublicScoreProfile } from '../../services/scoreService'
+import { ShareScorePreviewModal } from '../share/ShareScorePreviewModal'
+import { getScoreRankColor } from '../share/shareScoreImage'
 
 interface KYCReportContentProps {
   isPublic?: boolean
@@ -54,9 +57,15 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   const { data: scoreProfile, isLoading } = isPublic ? publicProfile : privateProfile
   
   const [showShareMenu, setShowShareMenu] = useState(false)
+  const [showImagePreview, setShowImagePreview] = useState(false)
 
   const handleShare = () => {
     setShowShareMenu(true)
+  }
+
+  const handleShareImage = () => {
+    setShowShareMenu(false)
+    setShowImagePreview(true)
   }
 
   const handleShareSocial = async (platform: 'whatsapp' | 'email' | 'sms' | 'copy') => {
@@ -156,14 +165,39 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
       type="button"
       className="pay-flow__icon-btn"
       onClick={handleShare}
-      title={isVerified ? 'Share portfolio' : 'Verification required to share profile'}
-      disabled={!isVerified}
+      title="Share portfolio"
       aria-label="Share portfolio"
-      style={{ opacity: isVerified ? 1 : 0.45 }}
     >
       <Share2 size={18} />
     </button>
   )
+
+  const shareImageModal = !isPublic ? (
+    <ShareScorePreviewModal
+      open={showImagePreview}
+      onClose={() => setShowImagePreview(false)}
+      cardProps={{
+        profileUuid: profile.uuid,
+        name: profile.name,
+        profilePic: profile.profilePic,
+        initials,
+        score,
+        maxScore,
+        rank,
+        band,
+        isScorable,
+        onTimePct: metrics.ptPercentage,
+        longestStreak: metrics.longestStreak,
+        profileRef: `UPW-${profile.profileSlug || 'CORE'}`,
+        rankColor: getScoreRankColor(rank, isScorable, isVerified),
+      }}
+      onShared={(mode) => {
+        if (mode === 'shared') success('Image ready — pick WhatsApp, Instagram, or another app.')
+        else success('Image saved to your device.')
+      }}
+      onError={(message) => toastError(message)}
+    />
+  ) : null
 
   const shareModal = showShareMenu ? (
     <div className="share-overlay" onClick={() => setShowShareMenu(false)}>
@@ -175,6 +209,16 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
           </button>
         </div>
         <div className="share-menu__options">
+          <button
+            type="button"
+            className="share-menu__option share-menu__option--featured"
+            onClick={handleShareImage}
+          >
+            <div className="share-menu__icon image-color">
+              <ImageIcon size={20} />
+            </div>
+            <span className="share-menu__text">Share as image (Story / WhatsApp)</span>
+          </button>
           <button type="button" className="share-menu__option" onClick={() => handleShareSocial('whatsapp')}>
             <div className="share-menu__icon whatsapp-color">
               <MessageCircle size={20} />
@@ -392,7 +436,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
     <div className="credibility-page__notice">
       <ShieldCheck size={16} />
       <span>
-        <strong>Profile not fully verified.</strong> Connect with an Upward partner landlord and complete payments to unlock sharing and your live score.
+        <strong>Profile not fully verified.</strong> Connect with an Upward partner landlord and complete payments to unlock your live score.
       </span>
     </div>
   ) : null
@@ -454,6 +498,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
         </div>
 
         {shareModal}
+        {shareImageModal}
       </div>
     )
   }
@@ -467,9 +512,9 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
       rightElement={shareHeaderButton}
       footer={
         !isApp ? (
-          <PayFlowPrimaryButton onClick={handleShare} disabled={!isVerified}>
+          <PayFlowPrimaryButton onClick={handleShare}>
             <Share2 size={18} />
-            {isVerified ? 'Share portfolio link' : 'Verify to share portfolio'}
+            Share portfolio
           </PayFlowPrimaryButton>
         ) : undefined
       }
@@ -479,6 +524,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
         {reportCard}
       </div>
       {shareModal}
+      {shareImageModal}
     </PayPageShell>
   )
 }

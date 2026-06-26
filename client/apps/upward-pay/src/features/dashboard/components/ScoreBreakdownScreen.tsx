@@ -12,6 +12,7 @@ import {
   Target,
   Plus,
   Clock,
+  Share2,
 } from 'lucide-react'
 import { useScoreProfile } from '../services/scoreService'
 import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
@@ -86,7 +87,17 @@ export function ScoreBreakdownScreen() {
           </div>
 
           <div className="score-page__hero-copy">
-            <h2>How your score works</h2>
+            <div className="score-page__hero-copy-head">
+              <h2>How your score works</h2>
+              <button
+                type="button"
+                className="score-page__share-btn"
+                onClick={() => router.push('/dashboard/kyc')}
+              >
+                <Share2 size={14} />
+                <span>Share Score</span>
+              </button>
+            </div>
             {!isVerified ? (
               <div className="score-page__notice">
                 <ShieldCheck size={16} />
