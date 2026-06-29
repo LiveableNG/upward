@@ -21,6 +21,8 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
 import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
 import { ResolveDedicatedAccountUseCase } from '../../use-cases/payments/payment.use-cases'
 import { randomUUID } from 'crypto'
+import { EVENT_BUS, EventBus } from '../../events/domain-event'
+import { TenantSyncedEvent } from '../../events/definition/tenant-synced.event'
 
 import {
   InviteRequestDto as InviteRequest,
@@ -50,6 +52,7 @@ export class SingleInviteUseCase {
     @Inject(PAYMENT_GATEWAY) private readonly paymentGateway: IPaymentGateway,
     private readonly notificationService: NotificationService,
     private readonly resolveDedicatedAccount: ResolveDedicatedAccountUseCase,
+    @Inject(EVENT_BUS) private readonly eventBus: EventBus,
   ) { }
 
   async execute(payload: InviteRequest, platformId?: number): Promise<any> {
@@ -64,6 +67,22 @@ export class SingleInviteUseCase {
       identifier: result.user.uuid,
       expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000), // 72 hours
     })
+
+    // Publish TenantSyncedEvent for background subaccount and DVA provisioning
+    const propertiesForSync = result.properties.map((p: any) => ({
+      propertyId: p.id,
+      bankCode: p.bankCode,
+      accountNumber: p.accountNumber,
+      businessName: p.businessName
+    }))
+
+    this.eventBus.publish(new TenantSyncedEvent(
+      result.user.id,
+      result.user.email,
+      `${result.user.firstName || ''} ${result.user.lastName || ''}`.trim() || result.user.email.split('@')[0],
+      result.user.phone ?? undefined,
+      propertiesForSync
+    ))
 
     return {
       userId: result.user.uuid,
@@ -216,23 +235,12 @@ export class SingleInviteUseCase {
         p.companyId === company.id! && p.locationId === location!.id!
       )
 
-      let subaccountId = null
       const bankCode = propData.paymentAccount?.bank_code || propData.bankCode
       const accountNumber = propData.paymentAccount?.account_number || propData.accountNumber
-
-      if (bankCode && accountNumber) {
-        const subaccount = await this.paymentGateway.findOrCreateSubaccount({
-          businessName: propData.paymentAccount?.account_name ||
-            (propData.manager?.firstName
-              ? `${propData.manager.firstName} ${propData.manager.lastName || ''}`
-              : (company.name || 'Property Owner')),
-          bankCode: bankCode,
-          accountNumber: accountNumber
-        })
-        if (subaccount) {
-          subaccountId = subaccount.id
-        }
-      }
+      const businessName = propData.paymentAccount?.account_name ||
+        (propData.manager?.firstName
+          ? `${propData.manager.firstName} ${propData.manager.lastName || ''}`
+          : (company.name || 'Property Owner'))
 
       if (property) {
         property = await this.propertyRepository.update(property.id!, {
@@ -240,7 +248,7 @@ export class SingleInviteUseCase {
           managerId: manager?.id || property.managerId, // Use existing if not provided
           rentEndDate: new Date(rentData.rentEndDate),
           rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : property.rentStartDate,
-          subaccountId: subaccountId || property.subaccountId,
+          subaccountId: property.subaccountId,
           amountRemaining: rentData.rentAmount,
           isVerified: true
         })
@@ -255,7 +263,7 @@ export class SingleInviteUseCase {
           rentEndDate: new Date(rentData.rentEndDate),
           rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : undefined,
           currency: (rentData as any).currency || 'NGN',
-          subaccountId: subaccountId || undefined,
+          subaccountId: undefined,
           amountRemaining: rentData.rentAmount,
           isVerified: true,
           createdAt: new Date(),
@@ -312,20 +320,6 @@ export class SingleInviteUseCase {
         })
       }
 
-      // 3d. Pre-provision Dedicated Virtual Account (DVA)
-      if (property.id) {
-        try {
-          await this.resolveDedicatedAccount.execute({
-            userPropertyId: property.id,
-            tenantEmail: user.email!,
-            tenantName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email!.split('@')[0],
-            tenantPhone: user.phone ?? undefined,
-          });
-        } catch (e: any) {
-          this.logger.warn(`Failed to pre-provision DVA for property ${property.uuid}: ${e.message}`);
-        }
-      }
-
       const finalManager = (manager || property.manager) as any
 
       createdProperties.push({
@@ -333,7 +327,10 @@ export class SingleInviteUseCase {
         company,
         manager: finalManager,
         address: locData.address || locData.area,
-        managerUuid: finalManager?.uuid || (property.manager as any)?.uuid
+        managerUuid: finalManager?.uuid || (property.manager as any)?.uuid,
+        bankCode,
+        accountNumber,
+        businessName
       })
     }
 
