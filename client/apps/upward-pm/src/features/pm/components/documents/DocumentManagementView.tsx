@@ -9,7 +9,8 @@ import {
   Download,
   ChevronRight,
   Filter,
-  Mail
+  Mail,
+  Edit
 } from 'lucide-react'
 import { useDocuments } from '../../hooks/useDocuments'
 import { format } from 'date-fns'
@@ -20,9 +21,10 @@ interface DocumentManagementViewProps {
   onSelectTemplate: (template: any) => void
   onResendDocument: (document: any) => void
   onCreateTemplate: () => void
+  onEditTemplate?: (template: any) => void
 }
 
-export function DocumentManagementView({ onNewDocument, onSelectTemplate, onResendDocument, onCreateTemplate }: DocumentManagementViewProps) {
+export function DocumentManagementView({ onNewDocument, onSelectTemplate, onResendDocument, onCreateTemplate, onEditTemplate }: DocumentManagementViewProps) {
   const { documents, templates, isLoading, generatePdf } = useDocuments()
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'dashboard' | 'all_templates'>('dashboard')
@@ -209,7 +211,9 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
                     key={t.uuid}
                     title={t.name}
                     type={t.type}
+                    isSystem={t.uuid?.startsWith('system-') || t.isSystem}
                     onClick={() => onSelectTemplate(t)}
+                    onEdit={() => onEditTemplate?.(t)}
                   />
                 ))}
               </div>
@@ -285,7 +289,9 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
               key={t.uuid}
               title={t.name}
               type={t.type}
+              isSystem={t.uuid?.startsWith('system-') || t.isSystem}
               onClick={() => onSelectTemplate(t)}
+              onEdit={() => onEditTemplate?.(t)}
             />
           ))}
         </div>
@@ -471,7 +477,19 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
   )
 }
 
-function TemplateCard({ title, type, onClick }: { title: string; type: string; onClick: () => void }) {
+function TemplateCard({ 
+  title, 
+  type, 
+  isSystem = false, 
+  onClick, 
+  onEdit 
+}: { 
+  title: string; 
+  type: string; 
+  isSystem?: boolean; 
+  onClick: () => void; 
+  onEdit?: () => void; 
+}) {
   return (
     <div
       onClick={onClick}
@@ -485,7 +503,8 @@ function TemplateCard({ title, type, onClick }: { title: string; type: string; o
         flexDirection: 'column',
         gap: 16,
         background: 'white',
-        transition: 'all 0.2s ease'
+        transition: 'all 0.2s ease',
+        position: 'relative'
       }}
     >
       <div style={{
@@ -505,7 +524,41 @@ function TemplateCard({ title, type, onClick }: { title: string; type: string; o
         <div style={{ height: 4, width: '70%', background: '#e2e8f0', borderRadius: 2 }} />
         <div style={{ height: 4, width: '85%', background: '#e2e8f0', borderRadius: 2 }} />
       </div>
-      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>{title}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 8 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={title}>{title}</div>
+        {!isSystem && onEdit && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+            style={{
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              padding: '6px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s ease',
+            }}
+            className="hover-lift"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--clay)';
+              e.currentTarget.style.borderColor = 'var(--clay)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-muted)';
+              e.currentTarget.style.borderColor = 'var(--border)';
+            }}
+            title="Edit Template"
+          >
+            <Edit size={14} />
+          </button>
+        )}
+      </div>
     </div>
   )
 }

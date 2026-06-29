@@ -9,6 +9,7 @@ import { useToast } from '@/components/common/Toast'
 interface CreateTemplateViewProps {
   onBack: () => void
   onCreated?: () => void
+  template?: any
 }
 
 const TEMPLATE_TYPES = [
@@ -19,14 +20,14 @@ const TEMPLATE_TYPES = [
   { value: 'CUSTOM', label: 'Custom Template' },
 ]
 
-export function CreateTemplateView({ onBack, onCreated }: CreateTemplateViewProps) {
+export function CreateTemplateView({ onBack, onCreated, template }: CreateTemplateViewProps) {
   const { success, error } = useToast()
   const { saveTemplate } = useDocuments()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [name, setName] = useState('')
-  const [type, setType] = useState('RENT_REVIEW')
-  const [content, setContent] = useState('')
+  const [name, setName] = useState(template?.name || '')
+  const [type, setType] = useState(template?.type || 'RENT_REVIEW')
+  const [content, setContent] = useState(template?.content || '')
   const [isSaving, setIsSaving] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
 
@@ -36,12 +37,17 @@ export function CreateTemplateView({ onBack, onCreated }: CreateTemplateViewProp
 
     setIsSaving(true)
     try {
-      await saveTemplate.mutateAsync({ name, type, content })
-      success('Template created successfully')
+      await saveTemplate.mutateAsync({
+        uuid: template?.uuid,
+        name,
+        type,
+        content
+      })
+      success(template ? 'Template updated successfully' : 'Template created successfully')
       onCreated?.()
       onBack()
     } catch (err) {
-      error('Failed to create template')
+      error(template ? 'Failed to update template' : 'Failed to create template')
     } finally {
       setIsSaving(false)
     }
@@ -88,10 +94,10 @@ export function CreateTemplateView({ onBack, onCreated }: CreateTemplateViewProp
             </div>
             <div>
               <h1 className="create-template-view__title">
-                {name.trim() ? name : 'New Template'}
+                {name.trim() ? name : (template ? 'Edit Template' : 'New Template')}
               </h1>
               <p className="create-template-view__subtitle">
-                {selectedType?.label} · Draft
+                {selectedType?.label} · {template ? 'Saved' : 'Draft'}
               </p>
             </div>
           </div>
@@ -126,7 +132,7 @@ export function CreateTemplateView({ onBack, onCreated }: CreateTemplateViewProp
             disabled={isSaving}
             className="btn btn--primary create-template-view__save-btn"
           >
-            {isSaving ? 'Saving...' : 'Save Template'}
+            {isSaving ? 'Saving...' : (template ? 'Save Changes' : 'Save Template')}
           </button>
         </div>
       </header>
