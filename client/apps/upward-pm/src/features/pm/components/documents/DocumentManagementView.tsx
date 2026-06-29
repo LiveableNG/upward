@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Filter,
   Mail,
-  Edit
+  Edit,
+  MessageCircle
 } from 'lucide-react'
 import { useDocuments } from '../../hooks/useDocuments'
 import { format } from 'date-fns'
@@ -31,6 +32,7 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
   const [previewDocument, setPreviewDocument] = useState<any>(null)
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState<string | null>(null)
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState<string | null>(null)
 
   const filteredHistory = documents.filter((doc: any) =>
     doc.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -58,6 +60,50 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
       console.error('Failed to download PDF:', err)
     } finally {
       setIsDownloading(null)
+      setActiveMenu(null)
+    }
+  }
+
+  const handleSendViaWhatsApp = async (doc: any) => {
+    setIsSendingWhatsApp(doc.uuid)
+    try {
+      const blob = await generatePdf.mutateAsync({
+        content: doc.content,
+        tenantUuid: doc.tenant?.uuid,
+        recipientName: doc.recipientName,
+        includeLetterhead: doc.includeLetterhead,
+      })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${doc.subject || 'document'}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      const formatPhoneNumber = (phone: string) => {
+        let cleaned = phone.trim()
+        if (cleaned.startsWith('+')) {
+          cleaned = '+' + cleaned.slice(1).replace(/\D/g, '')
+        } else {
+          cleaned = cleaned.replace(/\D/g, '')
+        }
+        return cleaned
+      }
+
+      const message = `Dear ${doc.recipientName}, please see attached the document: ${doc.subject}.\n\nYou can also find this in your tenant portal or document vault.`
+      const encodedMessage = encodeURIComponent(message)
+      const formattedPhone = doc.tenant?.phone ? formatPhoneNumber(doc.tenant.phone) : ''
+
+      if (formattedPhone) {
+        const whatsappUrl = `https://wa.me/${formattedPhone.replace('+', '')}?text=${encodedMessage}`
+        window.open(whatsappUrl, '_blank')
+      }
+    } catch (err) {
+      console.error('Failed to send via WhatsApp:', err)
+    } finally {
+      setIsSendingWhatsApp(null)
       setActiveMenu(null)
     }
   }
@@ -168,6 +214,16 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
                 >
                   <Download size={16} /> {isDownloading === doc.uuid ? 'Downloading...' : 'Download PDF'}
                 </button>
+                {doc.tenant?.phone && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleSendViaWhatsApp(doc); }}
+                    className="dropdown-item"
+                    disabled={isSendingWhatsApp === doc.uuid}
+                    style={{ color: 'var(--forest)' }}
+                  >
+                    <MessageCircle size={16} /> {isSendingWhatsApp === doc.uuid ? 'Preparing...' : 'Send via WhatsApp'}
+                  </button>
+                )}
                 <div style={{ height: 1, background: 'var(--border)' }} />
                 <button
                   onClick={(e) => { e.stopPropagation(); onResendDocument(doc); setActiveMenu(null); }}

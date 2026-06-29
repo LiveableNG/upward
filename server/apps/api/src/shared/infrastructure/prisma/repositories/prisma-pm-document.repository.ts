@@ -6,10 +6,14 @@ import {
   DocumentTemplateEntity, 
   SentDocumentEntity 
 } from '../../../../domains/pm/IPropertyRepository';
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 
 @Injectable()
 export class PrismaPmDocumentRepository implements IPmDocumentRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+  ) {}
 
   async findTemplatesByPmId(pmId: number): Promise<DocumentTemplateEntity[]> {
     const templates = await this.prisma.upward_pm_document_template.findMany({
@@ -108,6 +112,7 @@ export class PrismaPmDocumentRepository implements IPmDocumentRepository {
         firstName: d.tenant.firstNameSearch, // Approximation for simple entity
         lastName: d.tenant.lastNameSearch,
         email: d.tenant.emailHash,
+        phone: d.tenant.phoneEncrypted ? this.encryption.decrypt(d.tenant.phoneEncrypted) : null,
       } : undefined,
       unit: d.unit ? {
         uuid: d.unit.uuid,
