@@ -245,6 +245,7 @@ import { ResolveTicketUseCase } from './use-cases/support/resolve-ticket.use-cas
 import { RegisterDeviceTokenUseCase, UnregisterDeviceTokenUseCase, SendPushToUserUseCase } from './use-cases/push/push.use-cases'
 import { PushNotificationService } from '../shared/infrastructure/common/push-notification.service'
 import { PmPaymentNotificationHandler } from './events/handlers/pm-payment-notification.handler'
+import { TenantSyncHandler } from './events/handlers/tenant-sync.handler'
 import { PrismaDeviceTokenRepository } from '../shared/infrastructure/prisma/repositories/prisma-device-token.repository'
 import { NotificationService } from '../shared/infrastructure/common/notification.service'
 
@@ -479,6 +480,7 @@ const UseCases = [
     WebhookService,
     BulkInviteService,
     PmPaymentNotificationHandler,
+    TenantSyncHandler,
     PaymentPostActionsHandler,
 
     EncryptionService,
