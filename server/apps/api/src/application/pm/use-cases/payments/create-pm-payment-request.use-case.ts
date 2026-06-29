@@ -56,7 +56,40 @@ export class CreatePmPaymentRequestUseCase {
       throw new BadRequestException('Unit must be synced to Upward Pay before requesting payments');
     }
 
-    const pm = await this.pmRepo.findById(pmId);
+    const prisma = (this.unitRepo as any).prisma;
+    const property = await prisma.upward_pm_property.findUnique({
+        where: { id: unit.propertyId },
+        include: { collaborators: true }
+    });
+    if (!property) throw new NotFoundException('Property not found');
+
+    // Check collaborator access
+    let hasAccess = property.pmId === pmId;
+    if (!hasAccess) {
+      const isCollab = property.collaborators.some((c: any) => c.collaboratorPmId === pmId);
+      if (isCollab) {
+        hasAccess = true;
+      } else {
+        const teamCollab = await prisma.upward_pm_team_collaboration.findFirst({
+          where: {
+            collaboratorPmId: pmId,
+            ownerPmId: property.pmId,
+            status: 'ACCEPTED',
+            accessLevel: 'ALL'
+          }
+        });
+        if (teamCollab) {
+          hasAccess = true;
+        }
+      }
+    }
+
+    if (!hasAccess) {
+      throw new NotFoundException('Unit not found');
+    }
+
+    const ownerPmId = property.pmId;
+    const pm = await this.pmRepo.findById(ownerPmId);
     if (!pm) throw new NotFoundException('Property Manager not found');
 
     if (!pm.bankCode || !pm.accountNumber) {
@@ -109,7 +142,7 @@ export class CreatePmPaymentRequestUseCase {
     }
 
     const pmPR = await this.pmPaymentRepo.create({
-      pmId,
+      pmId: ownerPmId,
       unitId: unit.id,
       tenantId: unit.tenantId,
       paymentRequestId: corePRId,
@@ -133,11 +166,6 @@ export class CreatePmPaymentRequestUseCase {
     });
 
     // Log Activity
-    const property = await (this.unitRepo as any).prisma.upward_pm_property.findUnique({
-        where: { id: unit.propertyId },
-        select: { pmId: true, name: true }
-    });
-
     if (property) {
         const descriptionText = isScheduled
           ? `Scheduled invoice of ${data.amount} ${unit.currency || 'NGN'} for ${unit.unitName} (${property.name}) for ${new Date(data.scheduledAt!).toLocaleString()}`

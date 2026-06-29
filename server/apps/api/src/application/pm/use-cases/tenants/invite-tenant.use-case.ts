@@ -9,6 +9,7 @@ import { USER_REPOSITORY, UserRepository, PASS_PLACEHOLDERS } from '../../../../
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../../domains/pm/property-manager.repository';
 import { EmailService } from '../../../../shared/infrastructure/email/email.service';
 import { SingleInviteUseCase, InviteRequest } from '../../../use-cases/external/single-invite.use-case';
+import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 
 @Injectable()
 export class InviteTenantUseCase {
@@ -23,11 +24,49 @@ export class InviteTenantUseCase {
     private readonly pmRepo: PropertyManagerRepository,
     private readonly emailService: EmailService,
     private readonly singleInviteUseCase: SingleInviteUseCase,
+    private readonly prisma: PrismaService,
   ) { }
 
   async execute(pmId: number, tenantUuid: string): Promise<void> {
     const tenant = await this.tenantRepo.findByUuid(tenantUuid);
-    if (!tenant || tenant.pmId !== pmId) {
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found');
+    }
+
+    // Check collaborator access
+    let hasAccess = tenant.pmId === pmId;
+    if (!hasAccess) {
+      // Check if team collaborator with ALL access
+      const teamCollab = await this.prisma.upward_pm_team_collaboration.findFirst({
+        where: {
+          collaboratorPmId: pmId,
+          ownerPmId: tenant.pmId,
+          status: 'ACCEPTED',
+          accessLevel: 'ALL'
+        }
+      });
+      if (teamCollab) {
+        hasAccess = true;
+      }
+
+      // Check if custom property collaborator
+      if (!hasAccess) {
+        const tenantPropertyIds = tenant.units?.map(u => u.propertyId) || [];
+        if (tenantPropertyIds.length > 0) {
+          const propCollab = await this.prisma.upward_pm_property_collaboration.findFirst({
+            where: {
+              collaboratorPmId: pmId,
+              propertyId: { in: tenantPropertyIds }
+            }
+          });
+          if (propCollab) {
+            hasAccess = true;
+          }
+        }
+      }
+    }
+
+    if (!hasAccess) {
       throw new NotFoundException('Tenant not found');
     }
 
@@ -39,7 +78,7 @@ export class InviteTenantUseCase {
       return;
     }
 
-    const pm = await this.pmRepo.findById(pmId);
+    const pm = await this.pmRepo.findById(tenant.pmId);
     if (!pm) throw new NotFoundException('Property Manager not found');
 
     const existingUser = await this.userRepo.findByEmail(tenant.email);

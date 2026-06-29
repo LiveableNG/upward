@@ -76,13 +76,24 @@ export class CreateTenantUseCase {
       data.otherPhone = cleaned;
     }
 
+    let ownerPmId = pmId;
+    if (data.units && data.units.length > 0) {
+      const firstUnit = await this.prisma.upward_pm_unit.findFirst({
+        where: { uuid: data.units[0] },
+        include: { property: true }
+      });
+      if (firstUnit?.property?.pmId) {
+        ownerPmId = firstUnit.property.pmId;
+      }
+    }
+
     let tenant: TenantEntity;
-    let existingUser: Awaited<ReturnType<typeof this.userRepo.findByEmail>> | null = null;
+    let existingUser: Awaited<ReturnType<UserRepository['findByEmail']>> | null = null;
 
     // If email is provided, check for duplicate by email hash
     if (data.email) {
       const emailHash = this.encryption.hash(data.email);
-      const existingTenant = await this.tenantRepo.findByEmailHash(pmId, emailHash);
+      const existingTenant = await this.tenantRepo.findByEmailHash(ownerPmId, emailHash);
       existingUser = await this.userRepo.findByEmail(data.email);
       const initialStatus = existingUser ? 'ON_UPWARD' : 'PENDING';
 
@@ -91,7 +102,7 @@ export class CreateTenantUseCase {
       } else {
         const { units, ...tenantData } = data;
         tenant = await this.tenantRepo.create({
-          pmId,
+          pmId: ownerPmId,
           ...tenantData,
           inviteStatus: initialStatus,
           inviteSentAt: null,
@@ -101,7 +112,7 @@ export class CreateTenantUseCase {
       // No email — create a guest tenant (commercial or unnamed)
       const { units, ...tenantData } = data;
       tenant = await this.tenantRepo.create({
-        pmId,
+        pmId: ownerPmId,
         ...tenantData,
         inviteStatus: 'PENDING',
         inviteSentAt: null,
@@ -117,7 +128,7 @@ export class CreateTenantUseCase {
       try {
         const logs = await this.prisma.upward_pm_activity_log.findMany({
           where: {
-            ownerPmId: pmId,
+            ownerPmId: ownerPmId,
             action: 'TENANT_JOIN_REQUEST',
           },
         });
@@ -148,7 +159,7 @@ export class CreateTenantUseCase {
                 const pendingProp = await this.prisma.upward_user_property.findFirst({
                   where: {
                     userId: existingUser.id!,
-                    pmId: pmId,
+                    pmId: ownerPmId,
                     verificationStatus: 'PENDING',
                   },
                   orderBy: { createdAt: 'desc' }

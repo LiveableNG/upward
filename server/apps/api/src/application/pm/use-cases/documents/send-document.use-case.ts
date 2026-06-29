@@ -51,19 +51,16 @@ export class SendDocumentUseCase {
     private readonly generatePdfUseCase: GenerateDocumentPdfUseCase,
   ) {}
 
-  async execute(pmId: number, data: SendDocumentDto) {
+  async execute(actorPmId: number, data: SendDocumentDto) {
     let tenantId: number | null = null;
     let unitId: number | null = null;
     let content = data.content;
 
-    // 1. Fetch Context Data
-    const pm = await this.pmRepo.findById(pmId);
     let tenant: TenantEntity | null = null;
     let unit: UnitEntity | null = null;
 
     const isEdit = !!data.uuid;
     const sentUuid = data.uuid || crypto.randomUUID();
-    let s3Key = `pm-docs/sent/pm_${pmId}/${sentUuid}.html`;
 
     if (isEdit) {
       const existing = await this.prisma.upward_pm_sent_document.findUnique({
@@ -72,7 +69,6 @@ export class SendDocumentUseCase {
       if (!existing) {
         throw new Error('Document not found');
       }
-      s3Key = existing.content; // Reuse S3 key
       tenantId = existing.tenantId;
       unitId = existing.unitId;
       if (unitId) {
@@ -100,6 +96,27 @@ export class SendDocumentUseCase {
     if (data.unitUuid && !unit && !isEdit) {
       unit = await this.unitRepo.findByUuid(data.unitUuid);
       if (unit) unitId = unit.id;
+    }
+
+    // Resolve ownerPmId from unit or tenant first to support team collaboration settings
+    let pmId = actorPmId;
+    if (unit?.property?.pmId) {
+      pmId = unit.property.pmId;
+    } else if (tenant?.pmId) {
+      pmId = tenant.pmId;
+    }
+
+    // 1. Fetch Context Data
+    const pm = await this.pmRepo.findById(pmId);
+
+    let s3Key = `pm-docs/sent/pm_${pmId}/${sentUuid}.html`;
+    if (isEdit) {
+      const existing = await this.prisma.upward_pm_sent_document.findUnique({
+        where: { uuid: data.uuid }
+      });
+      if (existing) {
+        s3Key = existing.content; // Reuse S3 key
+      }
     }
 
     const formatDate = (date: Date | null | undefined) => {
