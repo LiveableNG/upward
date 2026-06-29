@@ -1,7 +1,7 @@
 
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { X, Shield, Building2, Check } from 'lucide-react'
 import { useUpdateMemberPermissions } from '@/features/pm/hooks/useTeam'
 import { useProperties } from '@/features/pm/hooks/useProperties'
@@ -14,8 +14,13 @@ interface UpdatePermissionsModalProps {
 
 export function UpdatePermissionsModal({ collaboration, onClose }: UpdatePermissionsModalProps) {
   const { mutate: updatePermissions, isPending } = useUpdateMemberPermissions()
-  const { data: properties = [] } = useProperties()
+  const { data: properties = [], refetch, isLoading: loadingProperties } = useProperties()
+  const [propertySearch, setPropertySearch] = useState('')
   
+  useEffect(() => {
+    refetch()
+  }, [refetch])
+
   const [formData, setFormData] = useState({
     accessLevel: collaboration.accessLevel as 'ALL' | 'CUSTOM',
     propertyUuids: (collaboration.properties || []).map((p: any) => p.uuid) as string[]
@@ -39,6 +44,10 @@ export function UpdatePermissionsModal({ collaboration, onClose }: UpdatePermiss
             : [...prev.propertyUuids, uuid]
     }))
   }
+
+  const filteredProperties = properties.filter((p: any) =>
+    p.name.toLowerCase().includes(propertySearch.toLowerCase())
+  )
 
   return (
     <div className="modal-overlay" style={{ 
@@ -123,40 +132,66 @@ export function UpdatePermissionsModal({ collaboration, onClose }: UpdatePermiss
             {formData.accessLevel === 'CUSTOM' && (
                 <div className="form-group">
                     <label className="form-label">Select Properties ({formData.propertyUuids.length})</label>
+                    <input
+                        type="text"
+                        placeholder="Search properties..."
+                        value={propertySearch}
+                        onChange={e => setPropertySearch(e.target.value)}
+                        style={{
+                            width: '100%',
+                            height: 38,
+                            borderRadius: 8,
+                            border: '1px solid var(--border)',
+                            padding: '8px 12px',
+                            fontSize: 13,
+                            marginTop: 8,
+                            marginBottom: 8,
+                            background: 'var(--bg)'
+                        }}
+                    />
                     <div style={{ 
                         maxHeight: 250, 
                         overflow: 'auto', 
                         border: '1px solid var(--border)', 
                         borderRadius: 16,
                         padding: 8,
-                        marginTop: 8,
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 4,
                         background: 'var(--bg)'
                     }}>
-                        {properties.map((p: any) => (
-                            <div 
-                                key={p.uuid}
-                                onClick={() => toggleProperty(p.uuid)}
-                                style={{ 
-                                    padding: '12px 14px', 
-                                    borderRadius: 12, 
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    background: formData.propertyUuids.includes(p.uuid) ? 'white' : 'transparent',
-                                    border: formData.propertyUuids.includes(p.uuid) ? '1px solid var(--border)' : '1px solid transparent',
-                                    fontSize: 13,
-                                    fontWeight: 600,
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                {p.name}
-                                {formData.propertyUuids.includes(p.uuid) && <Check size={16} color="var(--forest)" />}
+                        {loadingProperties ? (
+                            <div style={{ padding: '12px 14px', color: 'var(--text-muted)', fontSize: 13 }}>
+                                Loading properties...
                             </div>
-                        ))}
+                        ) : filteredProperties.length === 0 ? (
+                            <div style={{ padding: '12px 14px', color: 'var(--text-muted)', fontSize: 13 }}>
+                                No properties found
+                            </div>
+                        ) : (
+                            filteredProperties.map((p: any) => (
+                                <div 
+                                    key={p.uuid}
+                                    onClick={() => toggleProperty(p.uuid)}
+                                    style={{ 
+                                        padding: '12px 14px', 
+                                        borderRadius: 12, 
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        background: formData.propertyUuids.includes(p.uuid) ? 'white' : 'transparent',
+                                        border: formData.propertyUuids.includes(p.uuid) ? '1px solid var(--border)' : '1px solid transparent',
+                                        fontSize: 13,
+                                        fontWeight: 600,
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {p.name}
+                                    {formData.propertyUuids.includes(p.uuid) && <Check size={16} color="var(--forest)" />}
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             )}
