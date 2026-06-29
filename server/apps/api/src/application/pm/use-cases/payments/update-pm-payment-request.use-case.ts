@@ -7,6 +7,7 @@ import { PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository as ICorePaymentRe
 import { CreateExternalPaymentRequestUseCase } from '../../../use-cases/external/create-payment-request.use-case';
 import { ExternalPaymentRequestPayloadDto } from '../../../use-cases/external/external-api.dto';
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../../domains/pm/property-manager.repository';
+import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 
 export interface UpdatePmPaymentRequestDto {
   amount?: number;
@@ -34,18 +35,57 @@ export class UpdatePmPaymentRequestUseCase {
     @Inject(PAYMENT_REQUEST_REPOSITORY)
     private readonly corePaymentRepo: ICorePaymentRequestRepository,
     private readonly createExternalPaymentRequestUseCase: CreateExternalPaymentRequestUseCase,
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(pmId: number, uuid: string, data: UpdatePmPaymentRequestDto): Promise<any> {
     const pmPR = await this.pmPaymentRepo.findByUuid(uuid);
     if (!pmPR) throw new NotFoundException('Payment request not found');
-    if (pmPR.pmId !== pmId) throw new UnauthorizedException('Unauthorized to update this request');
+
+    // Check collaborator access
+    let hasAccess = pmPR.pmId === pmId;
+    if (!hasAccess) {
+      // Check if team collaborator with ALL access
+      const teamCollab = await this.prisma.upward_pm_team_collaboration.findFirst({
+        where: {
+          collaboratorPmId: pmId,
+          ownerPmId: pmPR.pmId,
+          status: 'ACCEPTED',
+          accessLevel: 'ALL'
+        }
+      });
+      if (teamCollab) {
+        hasAccess = true;
+      }
+      
+      // Check if custom property collaborator with access to unit's property
+      if (!hasAccess && pmPR.unitId) {
+        const unitRecord = await this.prisma.upward_pm_unit.findUnique({
+          where: { id: pmPR.unitId },
+          select: { propertyId: true }
+        });
+        if (unitRecord) {
+          const propCollab = await this.prisma.upward_pm_property_collaboration.findFirst({
+            where: {
+              collaboratorPmId: pmId,
+              propertyId: unitRecord.propertyId
+            }
+          });
+          if (propCollab) {
+            hasAccess = true;
+          }
+        }
+      }
+    }
+
+    if (!hasAccess) throw new UnauthorizedException('Unauthorized to update this request');
     if (pmPR.status === 'PAID') throw new BadRequestException('Cannot update a fully paid request');
 
     const unit = await this.unitRepo.findByUuid(pmPR.unit?.uuid || '');
     if (!unit) throw new NotFoundException('Unit not found');
 
-    const pm = await this.pmRepo.findById(pmId);
+    const ownerPmId = pmPR.pmId;
+    const pm = await this.pmRepo.findById(ownerPmId);
     if (!pm) throw new NotFoundException('Property Manager not found');
     
     const allowPartial = data.allowPartial ?? pmPR.allowPartial;
