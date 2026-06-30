@@ -72,21 +72,25 @@ export class SyncPmPaymentStatusUseCase {
         if (isRentFullyPaid) {
           const unit = await txClient.upward_pm_unit.findUnique({ where: { id: pmPr.unitId } })
           if (unit && unit.rentDueDate) {
-            const newDueDate = pmPr.rentEndDate ? new Date(pmPr.rentEndDate) : new Date(unit.rentDueDate)
+            const baseDate = pmPr.rentEndDate ? new Date(pmPr.rentEndDate) : new Date(unit.rentDueDate)
+            const newDueDate = new Date(baseDate)
+            const newStartDate = new Date(baseDate)
             
-            if (!pmPr.rentEndDate) {
-              if (pmPr.rentType === 'MONTHLY') {
-                newDueDate.setMonth(newDueDate.getMonth() + 1)
-              } else {
-                newDueDate.setFullYear(newDueDate.getFullYear() + 1)
-              }
+            const rentInterval = pmPr.rentType || unit.rentType
+            if (rentInterval === 'MONTHLY' || rentInterval === 'Monthly') {
+              newDueDate.setMonth(newDueDate.getMonth() + 1)
+            } else {
+              newDueDate.setFullYear(newDueDate.getFullYear() + 1)
             }
 
             await txClient.upward_pm_unit.update({
               where: { id: unit.id },
-              data: { rentDueDate: newDueDate }
+              data: { 
+                rentDueDate: newDueDate,
+                rentStartDate: newStartDate
+              }
             })
-            this.logger.log(`Rent fully paid for unit ${unit.id}. Advanced PM due date to ${newDueDate.toISOString()}`)
+            this.logger.log(`Rent fully paid for unit ${unit.id}. Advanced PM due date from ${baseDate.toISOString()} to ${newDueDate.toISOString()}`)
           }
         }
       }
