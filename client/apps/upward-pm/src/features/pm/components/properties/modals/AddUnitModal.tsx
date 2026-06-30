@@ -334,8 +334,8 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                       value={formData.rentType}
                       onChange={e => setFormData({ ...formData, rentType: e.target.value })}
                     >
-                      <option value="Monthly">Monthly</option>
                       <option value="Annually">Annually</option>
+                      <option value="Monthly">Monthly</option>
                     </select>
                   </div>
                 </div>

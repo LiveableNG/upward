@@ -93,6 +93,7 @@ export class UserAuthService extends BaseAuthService {
       country?: string;
       rentDueDate?: string;
       rentAmount?: number;
+      rentType?: string;
       companyName?: string;
       companyPhone?: string;
       companyEmail?: string;
@@ -338,6 +339,7 @@ export class UserAuthService extends BaseAuthService {
     rentDueDate?: string;
     rentStartDate?: string;
     rentAmount?: number;
+    rentType?: string;
     companyName?: string;
     managerName?: string;
     companyEmail?: string;
@@ -543,6 +545,7 @@ export class UserAuthService extends BaseAuthService {
         rentAmount: prop.rentAmount || (prop as any).rentAmount || 0,
         rentEndDate: prop.rentDueDate ? new Date(prop.rentDueDate) : (prop as any).rentEndDate ? new Date((prop as any).rentEndDate) : null,
         isPastTenancy: prop.isPastTenancy ?? (prop as any).isPastTenancy ?? false,
+        rentType: prop.rentType || (prop as any).rentType || 'Annually',
       }
 
       // Only update rentStartDate if provided (avoid overwriting existing value with null)

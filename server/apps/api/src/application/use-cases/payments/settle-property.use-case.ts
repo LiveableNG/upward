@@ -50,14 +50,16 @@ export class SettlePropertyBalanceUseCase {
       const overpayment = totalRentPaidForProp - totalOwedForProp
 
       if (prop.rentEndDate) {
-        const newDate = rentEndDate ? new Date(rentEndDate) : new Date(prop.rentEndDate)
+        const baseDate = rentEndDate ? new Date(rentEndDate) : new Date(prop.rentEndDate)
+        const newDate = new Date(baseDate)
         
-        if (!rentEndDate) {
-          if (prop.rentType === 'Monthly' || rentType === 'MONTHLY') {
-            newDate.setMonth(newDate.getMonth() + 1)
-          } else {
-            newDate.setFullYear(newDate.getFullYear() + 1)
-          }
+        updateData.rentStartDate = new Date(baseDate)
+
+        const rentInterval = rentType || prop.rentType
+        if (rentInterval === 'Monthly' || rentInterval === 'MONTHLY') {
+          newDate.setMonth(newDate.getMonth() + 1)
+        } else {
+          newDate.setFullYear(newDate.getFullYear() + 1)
         }
         updateData.rentEndDate = newDate
         updateData.isPastTenancy = false
@@ -66,7 +68,7 @@ export class SettlePropertyBalanceUseCase {
         updateData.amountPaid = overpayment
         updateData.amountRemaining = Math.max(0, nextYearRent - overpayment)
 
-        this.logger.log(`Property ${prop.uuid} fully settled. Core rent due date moved to ${newDate.toISOString()}`)
+        this.logger.log(`Property ${prop.uuid} fully settled. Core rent due date moved from ${baseDate.toISOString()} to ${newDate.toISOString()}`)
       }
     }
 

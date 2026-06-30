@@ -17,6 +17,7 @@ type UnitDetails = {
   rentAmount: number;
   rentStartDate: string;
   rentEndDate: string;
+  rentType?: string;
 };
 
 type PaymentDetails = {
@@ -137,6 +138,7 @@ export class SubmitUnitRequestUseCase {
       rentAmount: unitDetails.rentAmount,
       rentStartDate: new Date(unitDetails.rentStartDate),
       rentEndDate: new Date(unitDetails.rentEndDate),
+      rentType: unitDetails.rentType || 'Annually',
     };
 
     if (pm) {

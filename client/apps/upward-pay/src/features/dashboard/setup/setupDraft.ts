@@ -14,6 +14,7 @@ export type RentalFormData = {
   rentAmount: string
   rentStartDate: string
   rentEndDate: string
+  rentType: string
 }
 
 export type PaymentDraftDetails = {
@@ -56,6 +57,7 @@ export const EMPTY_RENTAL_FORM: RentalFormData = {
   rentAmount: '',
   rentStartDate: '',
   rentEndDate: '',
+  rentType: 'Annually',
 }
 
 export function createEmptyDraft(mode: SetupMode = 'onboarding'): SetupDraft {
@@ -124,6 +126,7 @@ export type DraftUserProperty = {
   rentStartDate?: string
   rentEndDate: string
   rentAmount?: number
+  rentType?: string
   isManaged?: boolean
   isPlatformLinked?: boolean
   managerName?: string
@@ -225,6 +228,7 @@ export function draftFromProperty(
     rentAmount: prop.rentAmount ? prop.rentAmount.toLocaleString() : '',
     rentStartDate: toDateInputValue(prop.rentStartDate),
     rentEndDate: toDateInputValue(prop.rentEndDate),
+    rentType: prop.rentType || 'Annually',
   }
   draft.pmEmail = managerEmail
   draft.phone = user.phone || ''

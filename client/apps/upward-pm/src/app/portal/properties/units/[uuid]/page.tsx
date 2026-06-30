@@ -73,7 +73,7 @@ function UnitDetailContent() {
   const [formData, setFormData] = useState<any>({
     unitName: '',
     rentAmount: 0,
-    rentType: 'Monthly',
+    rentType: 'Annually',
     status: 'VACANT',
     rentStartDate: '',
     rentDueDate: '',
@@ -88,7 +88,7 @@ function UnitDetailContent() {
       setFormData({
         unitName: unit.unitName || '',
         rentAmount: unit.rentAmount || 0,
-        rentType: unit.rentType || 'Monthly',
+        rentType: unit.rentType || 'Annually',
         status: unit.status || 'VACANT',
         rentStartDate: unit.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : '',
         rentDueDate: unit.rentDueDate ? new Date(unit.rentDueDate).toISOString().split('T')[0] : '',

@@ -31,12 +31,14 @@ export class CompleteUserProfileUseCase {
     rentEndDate?: string
     rentAmount?: number
     address?: string
+    rentType?: string
     properties?: Array<{
       uuid?: string;
       address: string;
       rentEndDate: string;
       rentStartDate?: string;
       rentAmount?: number;
+      rentType?: string;
       isPastTenancy?: boolean;
       companyName?: string;
       companyPhone?: string;
@@ -100,6 +102,8 @@ export class CompleteUserProfileUseCase {
       properties.push({
         address: dto.address || '',
         rentEndDate: dto.rentEndDate || '',
+        rentAmount: dto.rentAmount,
+        rentType: dto.rentType,
       })
     }
 
@@ -144,6 +148,7 @@ export class CompleteUserProfileUseCase {
     rentEndDate: string;
     rentStartDate?: string;
     rentAmount?: number;
+    rentType?: string;
     isPastTenancy?: boolean;
     companyName?: string;
     managerName?: string;
@@ -267,6 +272,7 @@ export class CompleteUserProfileUseCase {
         rentAmount: prop.rentAmount || 0,
         rentEndDate: prop.rentEndDate ? new Date(prop.rentEndDate) : null,
         isPastTenancy: !!prop.isPastTenancy,
+        rentType: prop.rentType || 'Annually',
       }
 
       if (prop.rentStartDate) {
