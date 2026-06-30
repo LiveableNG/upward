@@ -347,14 +347,6 @@ export function StepAmount({
           </div>
         </div>
 
-        {!rates.benefitsPaid && (
-          <div className="pay-flow__benefits-nudge">
-            <span className="pay-flow__benefits-nudge-badge">Optional</span>
-            <span className="pay-flow__benefits-nudge-text">
-              Includes {formatCurrency(rates.benefitsFee)} Upward Benefits — skip it on the next step if you prefer.
-            </span>
-          </div>
-        )}
       </div>
 
       <div className="pay-flow__field">
