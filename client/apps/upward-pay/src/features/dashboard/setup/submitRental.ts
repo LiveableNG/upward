@@ -25,6 +25,7 @@ export async function submitRentalRequest(draft: SetupDraft) {
     rentAmount: number
     rentStartDate: string
     rentEndDate: string
+    rentType: string
   } = {
     address: formData.address,
     area: formData.area,
@@ -34,6 +35,7 @@ export async function submitRentalRequest(draft: SetupDraft) {
     rentAmount: parseFloat(formData.rentAmount.replace(/,/g, '')),
     rentStartDate: toDateInputValue(formData.rentStartDate),
     rentEndDate: toDateInputValue(formData.rentEndDate),
+    rentType: formData.rentType || 'Annually',
   }
 
   if (formData.uuid) unitDetails.uuid = formData.uuid

@@ -365,24 +365,45 @@ export function RentalFormView() {
             </select>
           </div>
 
-          <div className="setup-page__field">
-            <label>Yearly rent amount</label>
-            <div className="setup-page__input-row">
-              <span>₦</span>
-              <input
-                type="text"
-                placeholder="1,200,000"
-                value={draft.formData.rentAmount}
+          <div className="setup-page__field-row">
+            <div className="setup-page__field">
+              <label>Rent cycle</label>
+              <select
+                className="setup-page__input"
+                value={draft.formData.rentType || 'Annually'}
                 onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '')
                   updateDraft({
                     formData: {
                       ...draft.formData,
-                      rentAmount: val ? parseInt(val, 10).toLocaleString() : '',
+                      rentType: e.target.value,
                     },
                   })
                 }}
-              />
+              >
+                <option value="Monthly">Monthly</option>
+                <option value="Annually">Annually</option>
+              </select>
+            </div>
+
+            <div className="setup-page__field">
+              <label>{(draft.formData.rentType || 'Annually') === 'Monthly' ? 'Monthly' : 'Yearly'} rent amount</label>
+              <div className="setup-page__input-row">
+                <span>₦</span>
+                <input
+                  type="text"
+                  placeholder="1,200,000"
+                  value={draft.formData.rentAmount}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '')
+                    updateDraft({
+                      formData: {
+                        ...draft.formData,
+                        rentAmount: val ? parseInt(val, 10).toLocaleString() : '',
+                      },
+                    })
+                  }}
+                />
+              </div>
             </div>
           </div>
 

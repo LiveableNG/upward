@@ -18,7 +18,7 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
     defaultValues: {
       unitName: unit.unitName || '',
       unitType: unit.unitType || '',
-      rentType: unit.rentType || 'Monthly',
+      rentType: unit.rentType || 'Annually',
       currency: unit.currency || 'NGN',
       rentAmount: unit.rentAmount || 0,
       managementFee: unit.managementFee || 0,
@@ -35,7 +35,7 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
       reset({
         unitName: unit.unitName || '',
         unitType: unit.unitType || '',
-        rentType: unit.rentType || 'Monthly',
+        rentType: unit.rentType || 'Annually',
         currency: unit.currency || 'NGN',
         rentAmount: unit.rentAmount || 0,
         managementFee: unit.managementFee || 0,
@@ -121,8 +121,8 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
             <div className="form-group">
               <label className="form-label">Rent Type</label>
               <select {...register('rentType')} className="form-input">
-                <option value="Monthly">Monthly</option>
                 <option value="Annually">Annually</option>
+                <option value="Monthly">Monthly</option>
               </select>
             </div>
             <div className="form-group">
