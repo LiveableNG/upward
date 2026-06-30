@@ -18,6 +18,10 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchShowDuration: 0,
       launchAutoHide: true,
+    },
+    GoogleSignIn: {
+      serverClientId: '451444317670-13vd5p8irblb8ptt3fkcljec1q8ekj5i.apps.googleusercontent.com',
+      forceCodeForRefreshToken: true,
     }
   }
 };
