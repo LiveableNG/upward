@@ -139,6 +139,7 @@ export class UserController {
       rentEndDate: body.rentEndDate,
       rentAmount: body.rentAmount,
       address: body.address,
+      rentType: body.rentType,
       gender: body.gender,
       dateOfBirth: body.dateOfBirth,
       profilePic: body.profilePic,

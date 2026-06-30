@@ -24,7 +24,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
   const [pmFound, setPmFound] = useState(false)
   const [pmDetails, setPmDetails] = useState<{ id?: number, name?: string, businessName?: string } | null>(null)
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = React.useState({
     uuid: undefined as string | undefined,
     pmName: '',
     address: '',
@@ -34,7 +34,8 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
     country: 'NG',
     rentAmount: '',
     rentStartDate: '',
-    rentEndDate: ''
+    rentEndDate: '',
+    rentType: 'Annually',
   })
 
   // Initialize from props when modal opens
@@ -53,6 +54,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
           rentAmount: initialData.rentAmount ? initialData.rentAmount.toString() : '',
           rentStartDate: toDateInputValue(initialData.rentStartDate),
           rentEndDate: toDateInputValue(initialData.rentEndDate),
+          rentType: initialData.rentType || 'Annually',
         })
         setStep('LOOKUP')
         setPmFound(false)
@@ -76,7 +78,8 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
           country: 'NG',
           rentAmount: '',
           rentStartDate: '',
-          rentEndDate: ''
+          rentEndDate: '',
+          rentType: 'Annually',
         })
         setStep('LOOKUP')
         setPmFound(false)
@@ -127,6 +130,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
         rentAmount: number;
         rentStartDate: string;
         rentEndDate: string;
+        rentType: string;
       } = {
         address: formData.address,
         area: formData.area,
@@ -136,6 +140,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
         rentAmount: parseFloat(formData.rentAmount.replace(/,/g, '')),
         rentStartDate: toDateInputValue(formData.rentStartDate),
         rentEndDate: toDateInputValue(formData.rentEndDate),
+        rentType: formData.rentType || 'Annually',
       }
       
       if (formData.uuid) unitDetails.uuid = formData.uuid;
@@ -377,7 +382,21 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
 
               <div className="add-property-modal__field-group">
                 <div className="add-property-modal__input-container">
-                  <label className="add-property-modal__label">Rent Amount</label>
+                  <label className="add-property-modal__label">Rent Cycle</label>
+                  <div className="add-property-modal__input-wrapper">
+                    <Building2 size={16} className="add-property-modal__input-icon" />
+                    <select 
+                      className="add-property-modal__input add-property-modal__select"
+                      value={formData.rentType || 'Annually'}
+                      onChange={e => setFormData({ ...formData, rentType: e.target.value })}
+                    >
+                      <option value="Monthly">Monthly</option>
+                      <option value="Annually">Annually</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="add-property-modal__input-container">
+                  <label className="add-property-modal__label">{formData.rentType === 'Monthly' ? 'Monthly Rent' : 'Rent Amount'}</label>
                   <div className="add-property-modal__input-wrapper">
                     <CreditCard size={16} className="add-property-modal__input-icon" />
                     <input 
@@ -393,18 +412,19 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
                     />
                   </div>
                 </div>
-                <div className="add-property-modal__input-container">
-                  <label className="add-property-modal__label">Country</label>
-                  <div className="add-property-modal__input-wrapper">
-                    <Globe size={16} className="add-property-modal__input-icon" />
-                    <select 
-                      className="add-property-modal__input add-property-modal__select"
-                      value={formData.country}
-                      onChange={e => setFormData({ ...formData, country: e.target.value, state: STATES[e.target.value]?.[0] || '' })}
-                    >
-                      {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
-                    </select>
-                  </div>
+              </div>
+
+              <div className="add-property-modal__input-container">
+                <label className="add-property-modal__label">Country</label>
+                <div className="add-property-modal__input-wrapper">
+                  <Globe size={16} className="add-property-modal__input-icon" />
+                  <select 
+                    className="add-property-modal__input add-property-modal__select"
+                    value={formData.country}
+                    onChange={e => setFormData({ ...formData, country: e.target.value, state: STATES[e.target.value]?.[0] || '' })}
+                  >
+                    {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                  </select>
                 </div>
               </div>
 

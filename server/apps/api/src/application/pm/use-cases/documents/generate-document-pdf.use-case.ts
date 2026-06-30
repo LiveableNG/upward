@@ -6,6 +6,7 @@ import {
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../../domains/pm/property-manager.repository';
 import { PM_LETTERHEAD_REPOSITORY, IPmLetterheadRepository } from '../../../../domains/pm/pm-letterhead.repository';
 import { S3Service } from '../../../../shared/infrastructure/common/s3/s3.service';
+import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 
 @Injectable()
 export class GenerateDocumentPdfUseCase {
@@ -14,6 +15,7 @@ export class GenerateDocumentPdfUseCase {
     @Inject(PM_UNIT_REPOSITORY) private readonly unitRepo: IUnitRepository,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepo: PropertyManagerRepository,
     @Inject(PM_LETTERHEAD_REPOSITORY) private readonly letterheadRepo: IPmLetterheadRepository,
+    private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
   ) {}
 
@@ -41,6 +43,38 @@ export class GenerateDocumentPdfUseCase {
     }
 
     const pm = await this.pmRepo.findById(pmId);
+
+    let paymentURL = '__________';
+    let bankDetails = '__________';
+    let paymentInfo = '__________';
+
+    if (unit && unit.userPropertyUuid) {
+      try {
+        const userProperty = await this.prisma.upward_user_property.findFirst({
+          where: { uuid: unit.userPropertyUuid }
+        });
+        if (userProperty) {
+          const dva = await this.prisma.upward_dedicated_virtual_account.findFirst({
+            where: { userPropertyId: userProperty.id }
+          });
+          if (dva) {
+            bankDetails = `
+              <div style="padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin: 16px 0;">
+                <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">Bank Name</div>
+                <div style="font-weight: 700; color: #1e293b; margin-bottom: 12px;">${dva.bankName}</div>
+                <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">Account Name</div>
+                <div style="font-weight: 700; color: #1e293b; margin-bottom: 12px;">${dva.accountName}</div>
+                <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">Account Number</div>
+                <div style="font-weight: 700; color: #166534; font-size: 18px; letter-spacing: 1px;">${dva.accountNumber}</div>
+              </div>
+            `;
+            paymentInfo = bankDetails;
+          }
+        }
+      } catch (err) {
+        console.error('Failed to resolve virtual account for PDF generation:', err);
+      }
+    }
 
     const formatDate = (date: Date | null | undefined) => {
       if (!date) return '__________';
@@ -184,14 +218,14 @@ export class GenerateDocumentPdfUseCase {
       '[LandlordName]': unit?.property?.landlordName || '__________',
       '[LandlordEmail]': unit?.property?.landlordEmail || '__________',
 
-      '[PaymentURL]': '__________',
-      '[Payment URL]': '__________',
-      '[BankDetails]': '__________',
-      '[Bank Details]': '__________',
-      '[PaymentInfo]': '__________',
-      '[Payment Info]': '__________',
-      '[PaymentLink]': '__________', 
-      '[Payment Link]': '__________',
+      '[PaymentURL]': paymentURL,
+      '[Payment URL]': paymentURL,
+      '[BankDetails]': bankDetails,
+      '[Bank Details]': bankDetails,
+      '[PaymentInfo]': paymentInfo,
+      '[Payment Info]': paymentInfo,
+      '[PaymentLink]': paymentInfo, 
+      '[Payment Link]': paymentInfo,
     };
 
     Object.entries(placeholders).forEach(([tag, value]) => {
