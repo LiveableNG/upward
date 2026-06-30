@@ -24,6 +24,7 @@ export interface SentDocument {
     firstName: string;
     lastName: string;
     email: string;
+    phone?: string;
   };
   unit?: {
     unitName: string;

@@ -27,6 +27,7 @@ function DocumentManagementContent() {
 
   const [view, setView] = useState<'list' | 'editor' | 'create-template'>('list')
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
+  const [templateToEdit, setTemplateToEdit] = useState<any>(null)
   const [initialRecipient, setInitialRecipient] = useState<any>(null)
 
   // Resolve recipient from query parameters
@@ -52,6 +53,12 @@ function DocumentManagementContent() {
   }
 
   const handleCreateTemplate = () => {
+    setTemplateToEdit(null)
+    setView('create-template')
+  }
+
+  const handleEditTemplate = (template: any) => {
+    setTemplateToEdit(template)
     setView('create-template')
   }
 
@@ -86,6 +93,9 @@ function DocumentManagementContent() {
       if (!unitUuid || !tenantUuid) {
         setInitialRecipient(null)
       }
+    } else if (view === 'create-template') {
+      setView('list')
+      setTemplateToEdit(null)
     } else if (unitUuid) {
       router.push(`/properties/units/${unitUuid}`)
     }
@@ -97,6 +107,7 @@ function DocumentManagementContent() {
     } else {
       setView('list')
       setEditingTemplate(null)
+      setTemplateToEdit(null)
       setInitialRecipient(null)
     }
   }
@@ -137,10 +148,12 @@ function DocumentManagementContent() {
           onSelectTemplate={handleSelectTemplate}
           onResendDocument={handleResendDocument}
           onCreateTemplate={handleCreateTemplate}
+          onEditTemplate={handleEditTemplate}
         />
       ) : view === 'create-template' ? (
         <CreateTemplateView
-          onBack={() => setView('list')}
+          template={templateToEdit}
+          onBack={handleBack}
         />
       ) : (
         <DocumentEditorView 

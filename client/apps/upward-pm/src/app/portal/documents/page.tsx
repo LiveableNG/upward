@@ -12,6 +12,7 @@ export default function LandlordDocumentManagementPage() {
   const router = useRouter()
   const [view, setView] = useState<'list' | 'editor' | 'create-template'>('list')
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
+  const [templateToEdit, setTemplateToEdit] = useState<any>(null)
   const [initialRecipient, setInitialRecipient] = useState<any>(null)
 
   const handleNewDocument = () => {
@@ -42,12 +43,19 @@ export default function LandlordDocumentManagementPage() {
   }
 
   const handleCreateTemplate = () => {
+    setTemplateToEdit(null)
+    setView('create-template')
+  }
+
+  const handleEditTemplate = (template: any) => {
+    setTemplateToEdit(template)
     setView('create-template')
   }
 
   const handleBack = () => {
     setView('list')
     setEditingTemplate(null)
+    setTemplateToEdit(null)
     setInitialRecipient(null)
   }
 
@@ -80,10 +88,12 @@ export default function LandlordDocumentManagementPage() {
             onSelectTemplate={handleSelectTemplate}
             onResendDocument={handleResendDocument}
             onCreateTemplate={handleCreateTemplate}
+            onEditTemplate={handleEditTemplate}
           />
         ) : view === 'create-template' ? (
           <CreateTemplateView
-            onBack={() => setView('list')}
+            template={templateToEdit}
+            onBack={handleBack}
           />
         ) : (
           <DocumentEditorView 

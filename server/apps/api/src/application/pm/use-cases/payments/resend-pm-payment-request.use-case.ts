@@ -7,6 +7,7 @@ import {
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../../domains/pm/property-manager.repository';
 import { EVENT_BUS, EventBus } from '../../../events/domain-event';
 import { PmPaymentNotificationEvent } from '../../../events/definition/pm-payment-notification.event';
+import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 
 @Injectable()
 export class ResendPmPaymentRequestUseCase {
@@ -21,11 +22,52 @@ export class ResendPmPaymentRequestUseCase {
     private readonly unitRepo: IUnitRepository,
     @Inject(EVENT_BUS)
     private readonly eventBus: EventBus,
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(pmId: number, uuid: string, overrideEmail?: string): Promise<any> {
     const pmPR = await this.pmPaymentRepo.findByUuid(uuid);
-    if (!pmPR || pmPR.pmId !== pmId) {
+    if (!pmPR) {
+      throw new NotFoundException('Payment request not found');
+    }
+
+    // Check collaborator access
+    let hasAccess = pmPR.pmId === pmId;
+    if (!hasAccess) {
+      // Check if team collaborator with ALL access
+      const teamCollab = await this.prisma.upward_pm_team_collaboration.findFirst({
+        where: {
+          collaboratorPmId: pmId,
+          ownerPmId: pmPR.pmId,
+          status: 'ACCEPTED',
+          accessLevel: 'ALL'
+        }
+      });
+      if (teamCollab) {
+        hasAccess = true;
+      }
+      
+      // Check if custom property collaborator with access to unit's property
+      if (!hasAccess && pmPR.unitId) {
+        const unit = await this.prisma.upward_pm_unit.findUnique({
+          where: { id: pmPR.unitId },
+          select: { propertyId: true }
+        });
+        if (unit) {
+          const propCollab = await this.prisma.upward_pm_property_collaboration.findFirst({
+            where: {
+              collaboratorPmId: pmId,
+              propertyId: unit.propertyId
+            }
+          });
+          if (propCollab) {
+            hasAccess = true;
+          }
+        }
+      }
+    }
+
+    if (!hasAccess) {
       throw new NotFoundException('Payment request not found');
     }
 
@@ -33,7 +75,8 @@ export class ResendPmPaymentRequestUseCase {
       throw new BadRequestException('Cannot resend an invoice that is already paid');
     }
 
-    const pm = await this.pmRepo.findById(pmId);
+    const ownerPmId = pmPR.pmId;
+    const pm = await this.pmRepo.findById(ownerPmId);
     if (!pm) throw new NotFoundException('Property Manager not found');
 
     const unit = await this.unitRepo.findByUuid(pmPR.unit?.uuid || '');

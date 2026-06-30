@@ -9,7 +9,9 @@ import {
   Download,
   ChevronRight,
   Filter,
-  Mail
+  Mail,
+  Edit,
+  MessageCircle
 } from 'lucide-react'
 import { useDocuments } from '../../hooks/useDocuments'
 import { format } from 'date-fns'
@@ -20,15 +22,17 @@ interface DocumentManagementViewProps {
   onSelectTemplate: (template: any) => void
   onResendDocument: (document: any) => void
   onCreateTemplate: () => void
+  onEditTemplate?: (template: any) => void
 }
 
-export function DocumentManagementView({ onNewDocument, onSelectTemplate, onResendDocument, onCreateTemplate }: DocumentManagementViewProps) {
+export function DocumentManagementView({ onNewDocument, onSelectTemplate, onResendDocument, onCreateTemplate, onEditTemplate }: DocumentManagementViewProps) {
   const { documents, templates, isLoading, generatePdf } = useDocuments()
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'dashboard' | 'all_templates'>('dashboard')
   const [previewDocument, setPreviewDocument] = useState<any>(null)
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState<string | null>(null)
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState<string | null>(null)
 
   const filteredHistory = documents.filter((doc: any) =>
     doc.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -56,6 +60,50 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
       console.error('Failed to download PDF:', err)
     } finally {
       setIsDownloading(null)
+      setActiveMenu(null)
+    }
+  }
+
+  const handleSendViaWhatsApp = async (doc: any) => {
+    setIsSendingWhatsApp(doc.uuid)
+    try {
+      const blob = await generatePdf.mutateAsync({
+        content: doc.content,
+        tenantUuid: doc.tenant?.uuid,
+        recipientName: doc.recipientName,
+        includeLetterhead: doc.includeLetterhead,
+      })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${doc.subject || 'document'}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      const formatPhoneNumber = (phone: string) => {
+        let cleaned = phone.trim()
+        if (cleaned.startsWith('+')) {
+          cleaned = '+' + cleaned.slice(1).replace(/\D/g, '')
+        } else {
+          cleaned = cleaned.replace(/\D/g, '')
+        }
+        return cleaned
+      }
+
+      const message = `Dear ${doc.recipientName}, please see attached the document: ${doc.subject}.\n\nYou can also find this in your tenant portal or document vault.`
+      const encodedMessage = encodeURIComponent(message)
+      const formattedPhone = doc.tenant?.phone ? formatPhoneNumber(doc.tenant.phone) : ''
+
+      if (formattedPhone) {
+        const whatsappUrl = `https://wa.me/${formattedPhone.replace('+', '')}?text=${encodedMessage}`
+        window.open(whatsappUrl, '_blank')
+      }
+    } catch (err) {
+      console.error('Failed to send via WhatsApp:', err)
+    } finally {
+      setIsSendingWhatsApp(null)
       setActiveMenu(null)
     }
   }
@@ -166,6 +214,16 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
                 >
                   <Download size={16} /> {isDownloading === doc.uuid ? 'Downloading...' : 'Download PDF'}
                 </button>
+                {doc.tenant?.phone && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleSendViaWhatsApp(doc); }}
+                    className="dropdown-item"
+                    disabled={isSendingWhatsApp === doc.uuid}
+                    style={{ color: 'var(--forest)' }}
+                  >
+                    <MessageCircle size={16} /> {isSendingWhatsApp === doc.uuid ? 'Preparing...' : 'Send via WhatsApp'}
+                  </button>
+                )}
                 <div style={{ height: 1, background: 'var(--border)' }} />
                 <button
                   onClick={(e) => { e.stopPropagation(); onResendDocument(doc); setActiveMenu(null); }}
@@ -209,7 +267,9 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
                     key={t.uuid}
                     title={t.name}
                     type={t.type}
+                    isSystem={t.uuid?.startsWith('system-') || t.isSystem}
                     onClick={() => onSelectTemplate(t)}
+                    onEdit={() => onEditTemplate?.(t)}
                   />
                 ))}
               </div>
@@ -285,7 +345,9 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
               key={t.uuid}
               title={t.name}
               type={t.type}
+              isSystem={t.uuid?.startsWith('system-') || t.isSystem}
               onClick={() => onSelectTemplate(t)}
+              onEdit={() => onEditTemplate?.(t)}
             />
           ))}
         </div>
@@ -471,7 +533,19 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
   )
 }
 
-function TemplateCard({ title, type, onClick }: { title: string; type: string; onClick: () => void }) {
+function TemplateCard({ 
+  title, 
+  type, 
+  isSystem = false, 
+  onClick, 
+  onEdit 
+}: { 
+  title: string; 
+  type: string; 
+  isSystem?: boolean; 
+  onClick: () => void; 
+  onEdit?: () => void; 
+}) {
   return (
     <div
       onClick={onClick}
@@ -485,7 +559,8 @@ function TemplateCard({ title, type, onClick }: { title: string; type: string; o
         flexDirection: 'column',
         gap: 16,
         background: 'white',
-        transition: 'all 0.2s ease'
+        transition: 'all 0.2s ease',
+        position: 'relative'
       }}
     >
       <div style={{
@@ -505,7 +580,41 @@ function TemplateCard({ title, type, onClick }: { title: string; type: string; o
         <div style={{ height: 4, width: '70%', background: '#e2e8f0', borderRadius: 2 }} />
         <div style={{ height: 4, width: '85%', background: '#e2e8f0', borderRadius: 2 }} />
       </div>
-      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>{title}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 8 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={title}>{title}</div>
+        {!isSystem && onEdit && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+            style={{
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              padding: '6px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s ease',
+            }}
+            className="hover-lift"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--clay)';
+              e.currentTarget.style.borderColor = 'var(--clay)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-muted)';
+              e.currentTarget.style.borderColor = 'var(--border)';
+            }}
+            title="Edit Template"
+          >
+            <Edit size={14} />
+          </button>
+        )}
+      </div>
     </div>
   )
 }
