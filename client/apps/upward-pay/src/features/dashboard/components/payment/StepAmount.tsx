@@ -5,6 +5,12 @@ import { type Landlord, type LineItem } from './types'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import { Plus, Trash2, Info } from 'lucide-react'
 
+function syncFeeLineItems(prevItems: LineItem[]): LineItem[] {
+  return prevItems.filter(
+    i => i.label !== 'Processing Fee' && i.label !== 'Transaction Fee' && i.label !== 'Upward Benefits'
+  )
+}
+
 const COMMON_LABELS = [
   'Rent',
   'Service Charge',
@@ -17,40 +23,32 @@ const COMMON_LABELS = [
   'Caution Deposit',
 ]
 
-function BalancePanel({
+function BalanceStrip({
   propertyBalance,
 }: {
   propertyBalance: NonNullable<StepAmountProps['propertyBalance']>
 }) {
   return (
-    <div className="pay-flow__balance">
-        <div className="pay-flow__balance-top">
-        <div>
-          <div className="pay-flow__balance-label">Total Rent</div>
-          <div className="pay-flow__balance-value">
-            {formatCurrency(propertyBalance.totalOwed, propertyBalance.currency)}
-          </div>
-        </div>
-        <div className="pay-flow__text-right">
-          <div className="pay-flow__balance-label pay-flow__balance-label--accent">Remaining</div>
-          <div className="pay-flow__balance-value pay-flow__balance-value--accent">
-            {formatCurrency(propertyBalance.remainingBalance, propertyBalance.currency)}
-          </div>
-        </div>
+    <div className="pay-flow__balance-strip">
+      <div className="pay-flow__balance-chip">
+        <span className="pay-flow__balance-chip-label">Remaining</span>
+        <span className="pay-flow__balance-chip-value pay-flow__balance-chip-value--accent">
+          {formatCurrency(propertyBalance.remainingBalance, propertyBalance.currency)}
+        </span>
       </div>
-      <div className="pay-flow__balance-grid">
-        <div>
-          <div className="pay-flow__balance-grid-label">Amount Paid</div>
-          <div className="pay-flow__balance-grid-value">
-            {formatCurrency(propertyBalance.amountPaid, propertyBalance.currency)}
-          </div>
-        </div>
-        <div className="pay-flow__balance-grid-right">
-          <div className="pay-flow__balance-grid-label">Next Due Date</div>
-          <div className="pay-flow__balance-grid-value">
-            {propertyBalance.dueDate ? new Date(propertyBalance.dueDate).toLocaleDateString() : 'N/A'}
-          </div>
-        </div>
+      <div className="pay-flow__balance-strip-divider" />
+      <div className="pay-flow__balance-chip">
+        <span className="pay-flow__balance-chip-label">Due</span>
+        <span className="pay-flow__balance-chip-value">
+          {propertyBalance.dueDate ? new Date(propertyBalance.dueDate).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' }) : 'N/A'}
+        </span>
+      </div>
+      <div className="pay-flow__balance-strip-divider" />
+      <div className="pay-flow__balance-chip">
+        <span className="pay-flow__balance-chip-label">Paid</span>
+        <span className="pay-flow__balance-chip-value">
+          {formatCurrency(propertyBalance.amountPaid, propertyBalance.currency)}
+        </span>
       </div>
     </div>
   )
@@ -66,15 +64,24 @@ type StepAmountProps = {
   initialLineItems?: LineItem[]
   propertyBalance?: {
     totalOwed: number
+    rentAmount?: number
     amountPaid: number
     remainingBalance: number
     currency: string
     hasActiveRequest: boolean
     dueDate?: string
     processingFee?: number
+    processingRates?: {
+      transactionFee: number
+      benefitsFee: number
+      rentValue: number
+      benefitsPaid: boolean
+      benefitsPaidForRequest: boolean
+    }
   } | null
   requestedAmount?: number
   totalPaidAlready?: number
+  processing?: boolean
   onContinue: (
     amount: number,
     narration: string,
@@ -97,6 +104,7 @@ export function StepAmount({
   propertyBalance = null,
   requestedAmount = 0,
   totalPaidAlready = 0,
+  processing = false,
   onContinue,
   onBack,
 }: StepAmountProps) {
@@ -104,6 +112,14 @@ export function StepAmount({
   void initialPaymentType
   void initialPropertyAddress
   void onBack
+
+  const rates = propertyBalance?.processingRates || {
+    transactionFee: 1000,
+    benefitsFee: 1000,
+    rentValue: 0,
+    benefitsPaid: false,
+    benefitsPaidForRequest: false,
+  }
 
   const remainingBalance = Math.max(0, requestedAmount - totalPaidAlready)
   const [amount, setAmount] = useState(
@@ -137,20 +153,7 @@ export function StepAmount({
             },
           ]
 
-    const nonFeeTotal = items.reduce(
-      (sum, i) => (i.label === 'Processing Fee' ? sum : sum + (Number(i.amount) || 0)),
-      0,
-    )
-    const feeAmount = nonFeeTotal > 0 ? (propertyBalance?.processingFee ?? 2000) : 0
-
-    const feeItem = items.find(i => i.label === 'Processing Fee')
-    if (!feeItem) {
-      items.unshift({ label: 'Processing Fee', amount: feeAmount })
-    } else {
-      feeItem.amount = feeAmount
-    }
-
-    return items
+    return syncFeeLineItems(items)
   })
 
   useEffect(() => {
@@ -172,27 +175,6 @@ export function StepAmount({
   const [showOverpaymentDialog, setShowOverpaymentDialog] = useState(false)
 
   useEffect(() => {
-    const nonFeeTotal = lineItems.reduce(
-      (sum, i) => (i.label === 'Processing Fee' ? sum : sum + (Number(i.amount) || 0)),
-      0,
-    )
-    const newFee = nonFeeTotal > 0 ? (propertyBalance?.processingFee ?? 2000) : 0
-
-    setLineItems(prev => {
-      const currentFee = prev.find(i => i.label === 'Processing Fee')?.amount
-      if (currentFee === newFee) return prev
-      return prev.map(item => (item.label === 'Processing Fee' ? { ...item, amount: newFee } : item))
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    lineItems
-      .filter(i => i.label !== 'Processing Fee')
-      .map(i => i.amount)
-      .join(','),
-    propertyBalance?.processingFee,
-  ])
-
-  useEffect(() => {
     const total = lineItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
     setAmount(String(total))
   }, [lineItems])
@@ -202,24 +184,43 @@ export function StepAmount({
   }
 
   const removeLineItem = (index: number) => {
-    if (lineItems[index]?.label === 'Processing Fee') return
+    const label = lineItems[index]?.label
+    if (
+      label === 'Processing Fee' ||
+      label === 'Transaction Fee' ||
+      label === 'Upward Benefits'
+    )
+      return
     setLineItems(lineItems.filter((_, i) => i !== index))
   }
 
   const updateLineItem = (index: number, val: string | number, field: 'label' | 'amount') => {
     const newItems = [...lineItems]
+    const label = newItems[index]?.label
 
     if (field === 'label') {
       if (index === 0) return
-      if (newItems[index].label === 'Processing Fee' || newItems[index].label === 'Rent') return
+      if (
+        label === 'Processing Fee' ||
+        label === 'Transaction Fee' ||
+        label === 'Upward Benefits' ||
+        label === 'Rent'
+      )
+        return
       newItems[index].label = String(val)
     } else {
-      if (newItems[index].label === 'Processing Fee' || newItems[index].label === 'Rent') return
+      if (
+        label === 'Processing Fee' ||
+        label === 'Transaction Fee' ||
+        label === 'Upward Benefits' ||
+        label === 'Rent'
+      )
+        return
       const parsed =
         typeof val === 'string' ? parseCurrencyInput(val) : Number.isFinite(Number(val)) ? Number(val) : null
       let numVal = parsed ?? 0
 
-      if ((newItems[index].label === 'Rent' || index === 0) && propertyBalance) {
+      if (label === 'Rent' && propertyBalance) {
         if (numVal > propertyBalance.remainingBalance) {
           numVal = propertyBalance.remainingBalance
         }
@@ -231,6 +232,10 @@ export function StepAmount({
   }
 
   const canProceed = Number(amount) >= 1000
+
+  const checkoutTotal = rates.benefitsPaid
+    ? Number(amount) + rates.transactionFee
+    : Number(amount) + rates.transactionFee + rates.benefitsFee
 
   const handleContinue = () => {
     onContinue(
@@ -244,7 +249,7 @@ export function StepAmount({
   }
 
   return (
-    <div>
+    <div className="pay-flow__step-amount">
       <div className="pay-flow__recipient">
         <LandlordAvatar
           letter={landlord.avatar}
@@ -259,18 +264,13 @@ export function StepAmount({
         </div>
       </div>
 
-      {propertyBalance && <BalancePanel propertyBalance={propertyBalance} />}
-
-      <div className="pay-flow__amount-hero">
-        <div className="pay-flow__amount-hero-label">Total to Pay</div>
-        <div className="pay-flow__amount-hero-value">{formatCurrency(Number(amount))}</div>
-      </div>
+      {propertyBalance && <BalanceStrip propertyBalance={propertyBalance} />}
 
       <div className="pay-flow__breakdown-block">
         <div className="pay-flow__breakdown-head">
-          <p className="pay-flow__section-heading">Breakdown Payment</p>
+          <p className="pay-flow__section-heading">Breakdown</p>
           <button type="button" className="pay-flow__icon-btn" onClick={addLineItem} aria-label="Add line item">
-            <Plus size={18} />
+            <Plus size={16} />
           </button>
         </div>
 
@@ -286,7 +286,13 @@ export function StepAmount({
                   value={item.label}
                   onChange={e => updateLineItem(idx, e.target.value, 'label')}
                   className="pay-flow__line-item-label"
-                  readOnly={idx === 0 || item.label === 'Processing Fee' || item.label === 'Rent'}
+                  readOnly={
+                    idx === 0 ||
+                    item.label === 'Processing Fee' ||
+                    item.label === 'Transaction Fee' ||
+                    item.label === 'Upward Benefits' ||
+                    item.label === 'Rent'
+                  }
                 />
                 <span className="pay-flow__line-item-divider" />
                 <span className="pay-flow__line-item-currency">₦</span>
@@ -297,19 +303,26 @@ export function StepAmount({
                   value={formatCurrencyInput(Number(item.amount) || 0)}
                   onChange={e => updateLineItem(idx, e.target.value, 'amount')}
                   className="pay-flow__line-item-amount"
-                  readOnly={item.label === 'Processing Fee' || item.label === 'Rent'}
+                  readOnly={
+                    item.label === 'Processing Fee' ||
+                    item.label === 'Transaction Fee' ||
+                    item.label === 'Upward Benefits' ||
+                    item.label === 'Rent'
+                  }
                 />
               </div>
-              {item.label !== 'Processing Fee' && (
-                <button
-                  type="button"
-                  className="pay-flow__icon-btn pay-flow__icon-btn--danger"
-                  onClick={() => removeLineItem(idx)}
-                  aria-label="Remove line item"
-                >
-                  <Trash2 size={16} />
-                </button>
-              )}
+              {item.label !== 'Processing Fee' &&
+                item.label !== 'Transaction Fee' &&
+                item.label !== 'Upward Benefits' && (
+                  <button
+                    type="button"
+                    className="pay-flow__icon-btn pay-flow__icon-btn--danger"
+                    onClick={() => removeLineItem(idx)}
+                    aria-label="Remove line item"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
             </div>
           ))}
         </div>
@@ -321,9 +334,19 @@ export function StepAmount({
         </datalist>
 
         <div className="pay-flow__total-box">
-          <span className="pay-flow__total-label">Total to Pay</span>
-          <span className="pay-flow__total-value">{formatCurrency(Number(amount))}</span>
+          <div>
+            <div className="pay-flow__total-label">Subtotal</div>
+            <div className="pay-flow__total-fees-hint">
+              +{formatCurrency(rates.transactionFee)} transaction fee
+              {!rates.benefitsPaid && <span className="pay-flow__total-fees-optional"> + optional</span>}
+            </div>
+          </div>
+          <div className="pay-flow__total-right">
+            <div className="pay-flow__total-value">{formatCurrency(Number(amount))}</div>
+            <div className="pay-flow__total-checkout">≈ {formatCurrency(checkoutTotal)} at checkout</div>
+          </div>
         </div>
+
       </div>
 
       <div className="pay-flow__field">
@@ -342,7 +365,8 @@ export function StepAmount({
 
       <div className="pay-flow__cta-wrap">
         <PayFlowPrimaryButton
-          disabled={!canProceed}
+          disabled={!canProceed || processing}
+          loading={processing}
           onClick={() => {
             if (requestedAmount > 0 && Number(amount) > remainingBalance) {
               setShowOverpaymentDialog(true)
@@ -353,11 +377,10 @@ export function StepAmount({
         >
           Confirm Transaction
         </PayFlowPrimaryButton>
+        <p className="pay-flow__footnote">
+          <Info size={12} /> Min. ₦1,000
+        </p>
       </div>
-
-      <p className="pay-flow__footnote">
-        <Info size={12} /> Minimum payment amount is ₦1,000
-      </p>
 
       {showOverpaymentDialog && (
         <div className="pay-flow__modal-overlay">
@@ -372,10 +395,12 @@ export function StepAmount({
               you wish to proceed?
             </p>
             <div className="pay-flow__modal-actions">
-              <button type="button" className="pay-flow__btn-secondary" onClick={() => setShowOverpaymentDialog(false)}>
+              <button type="button" className="pay-flow__btn-secondary" onClick={() => setShowOverpaymentDialog(false)} disabled={processing}>
                 No, Edit
               </button>
               <PayFlowPrimaryButton
+                disabled={processing}
+                loading={processing}
                 onClick={() => {
                   setShowOverpaymentDialog(false)
                   handleContinue()

@@ -45,13 +45,15 @@ export class PushNotificationService {
         if (cachedToken === token.value) return
         cachedToken = token.value
 
+        console.log('[Push] Device Token Generated:', token.value) // <--- ADDED LOG FOR YOU
+
         const platform = Capacitor.getPlatform()
         try {
           await api.post('/user/notifications/device-token', {
             token: token.value,
             platform,
           })
-          console.log('[Push] Token registered successfully on', platform)
+          console.log('[Push] Token successfully sent to backend')
         } catch (err) {
           console.error('[Push] Backend token registration failed', err)
         }
@@ -120,12 +122,17 @@ export function usePushNotifications(isLoggedIn: boolean) {
       if (!isLoggedIn || !Capacitor.isNativePlatform()) return
       
       const status = await PushNotificationService.getPermissionStatus()
+
       if (status === 'granted') {
         await PushNotificationService.registerDevice()
+      } else if (status === 'prompt') {
+        const granted = await PushNotificationService.requestPermission()
+        if (granted) {
+          await PushNotificationService.registerDevice()
+        }
       }
     }
     
     setup()
   }, [isLoggedIn])
 }
-

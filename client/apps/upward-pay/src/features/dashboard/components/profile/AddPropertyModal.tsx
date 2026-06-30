@@ -116,9 +116,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      if (initialData?.isVerified) {
-        throw new Error('This property is verified and cannot be edited from here.')
-      }
+      // Allowed to submit changes for verified properties (backend handles locking lease terms)
 
       const unitDetails: {
         uuid?: string;
@@ -389,6 +387,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
                       className="add-property-modal__input add-property-modal__select"
                       value={formData.rentType || 'Annually'}
                       onChange={e => setFormData({ ...formData, rentType: e.target.value })}
+                      disabled={!!initialData?.isVerified}
                     >
                       <option value="Monthly">Monthly</option>
                       <option value="Annually">Annually</option>
@@ -409,6 +408,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
                         setFormData({ ...formData, rentAmount: val ? parseInt(val, 10).toLocaleString() : '' })
                       }}
                       required
+                      disabled={!!initialData?.isVerified}
                     />
                   </div>
                 </div>
@@ -446,6 +446,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
                         setFormData(next)
                       }}
                       required
+                      disabled={!!initialData?.isVerified}
                     />
                   </div>
                 </div>
@@ -462,6 +463,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
                         setFormData({ ...formData, rentEndDate: toDateInputValue(e.target.value) })
                       }
                       required
+                      disabled={!!initialData?.isVerified}
                     />
                   </div>
                 </div>

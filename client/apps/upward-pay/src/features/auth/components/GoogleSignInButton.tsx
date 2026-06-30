@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
 import { useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
+import { GoogleSignIn } from '@capawesome/capacitor-google-sign-in'
 import { socialSignIn } from '@/features/auth/services/authService'
 import { isGoogleAuthEnabled } from '@/features/auth/utils/googleAuth'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -15,6 +17,19 @@ import { useToast } from '@/components/common/Toast'
 interface GoogleSignInButtonProps {
   onSuccess?: () => void
   disabled?: boolean
+}
+
+let isGoogleSignInInitialized = false
+
+async function ensureGoogleSignInInitialized(clientId: string) {
+  if (isGoogleSignInInitialized) return
+  try {
+    await GoogleSignIn.initialize({ clientId })
+    isGoogleSignInInitialized = true
+  } catch (err) {
+    console.error('Google Sign-In initialization failed or was already initialized:', err)
+    isGoogleSignInInitialized = true
+  }
 }
 
 function GoogleIcon() {
@@ -47,16 +62,21 @@ export function GoogleSignInButton({ onSuccess, disabled }: GoogleSignInButtonPr
   const toast = useToast()
   const [loading, setLoading] = useState(false)
 
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
-  if (!isGoogleAuthEnabled() || !clientId) return null
+  const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform()
+  const clientId = isNative
+    ? (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID_MOBILE || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
+    : (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID_WEB || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
+  const isGoogleEnabled = isGoogleAuthEnabled()
 
-  const handleSuccess = async (response: CredentialResponse) => {
-    const idToken = response.credential
-    if (!idToken) {
-      toast.error('Google sign-in failed. Please try again.', 'Sign in failed')
-      return
+  useEffect(() => {
+    if (isNative && clientId) {
+      ensureGoogleSignInInitialized(clientId)
     }
+  }, [isNative, clientId])
 
+  if (!isGoogleEnabled || (!isNative && !clientId)) return null
+
+  const handleSuccess = async (idToken: string) => {
     setLoading(true)
     try {
       const result = await socialSignIn({ provider: 'google', idToken })
@@ -80,10 +100,42 @@ export function GoogleSignInButton({ onSuccess, disabled }: GoogleSignInButtonPr
     }
   }
 
+  const handleNativeSignIn = async () => {
+    if (loading || disabled) return
+    setLoading(true)
+    try {
+      if (clientId) {
+        await ensureGoogleSignInInitialized(clientId)
+      }
+      const result = await GoogleSignIn.signIn()
+      if (result.idToken) {
+        await handleSuccess(result.idToken)
+      } else {
+        toast.error('Google sign-in failed. No ID Token returned.', 'Sign in failed')
+      }
+    } catch (err: any) {
+      // Handle user cancellation gracefully
+      if (err.message && (err.message.includes('cancel') || err.message.includes('12501'))) {
+        toast.error('Google sign-in was cancelled.', 'Sign in cancelled')
+      } else {
+        const message = err instanceof Error ? err.message : 'Google sign-in failed'
+        toast.error(message, 'Sign in failed')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const isDisabled = loading || disabled
 
   return (
-    <div className={`auth-google-btn${isDisabled ? ' auth-google-btn--disabled' : ''}`}>
+    <div
+      className={`auth-google-btn${isDisabled ? ' auth-google-btn--disabled' : ''}`}
+      onClick={isNative ? handleNativeSignIn : undefined}
+      style={isNative ? { cursor: 'pointer' } : undefined}
+      role={isNative ? 'button' : undefined}
+      tabIndex={isNative ? 0 : undefined}
+    >
       <div className="auth-google-btn__face" aria-hidden="true">
         {loading ? (
           <>
@@ -98,10 +150,16 @@ export function GoogleSignInButton({ onSuccess, disabled }: GoogleSignInButtonPr
         )}
       </div>
 
-      {!isDisabled && (
+      {!isNative && !isDisabled && (
         <div className="auth-google-btn__native" aria-label="Continue with Google">
           <GoogleLogin
-            onSuccess={handleSuccess}
+            onSuccess={(response) => {
+              if (response.credential) {
+                handleSuccess(response.credential)
+              } else {
+                toast.error('Google sign-in failed. Please try again.', 'Sign in failed')
+              }
+            }}
             onError={() => toast.error('Google sign-in was cancelled or failed.', 'Sign in failed')}
             theme="outline"
             size="large"
@@ -114,3 +172,4 @@ export function GoogleSignInButton({ onSuccess, disabled }: GoogleSignInButtonPr
     </div>
   )
 }
+

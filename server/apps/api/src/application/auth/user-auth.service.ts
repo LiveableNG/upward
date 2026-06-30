@@ -785,10 +785,12 @@ export class UserAuthService extends BaseAuthService {
       throw new BadRequestException('Unsupported social provider')
     }
 
-    const googleClientId = this.configService.get<string>('GOOGLE_CLIENT_ID')
-    if (!googleClientId) {
+    const googleClientIdConfig = this.configService.get<string>('GOOGLE_CLIENT_ID')
+    if (!googleClientIdConfig) {
       throw new BadRequestException('Google sign-in is not configured')
     }
+
+    const allowedClientIds = googleClientIdConfig.split(',').map(id => id.trim())
 
     let payload: {
       sub?: string
@@ -810,7 +812,7 @@ export class UserAuthService extends BaseAuthService {
       throw new UnauthorizedException('Invalid Google sign-in token')
     }
 
-    if (payload.error || payload.aud !== googleClientId) {
+    if (payload.error || !payload.aud || !allowedClientIds.includes(payload.aud)) {
       throw new UnauthorizedException('Invalid Google sign-in token')
     }
 
@@ -821,13 +823,20 @@ export class UserAuthService extends BaseAuthService {
       throw new UnauthorizedException('Google account is missing required profile information')
     }
 
+
+
     if (payload.email_verified === false || payload.email_verified === 'false') {
       throw new UnauthorizedException('Google email is not verified')
     }
 
     const nameParts = (payload.name || '').trim().split(/\s+/).filter(Boolean)
-    const firstName = payload.given_name || nameParts[0] || 'User'
-    const lastName = payload.family_name || nameParts.slice(1).join(' ') || ''
+    const rawFirstName = payload.given_name || nameParts[0] || 'User'
+    const rawLastName = payload.family_name || nameParts.slice(1).join(' ') || ''
+
+    // Sanitise names to prevent email strings from being stored
+    const isEmail = (val: string) => val.includes('@')
+    const firstName = isEmail(rawFirstName) ? 'User' : rawFirstName
+    const lastName = isEmail(rawLastName) ? '' : rawLastName
 
     let user = await this.userRepository.findByProviderId(providerId)
     if (!user) {
@@ -849,8 +858,23 @@ export class UserAuthService extends BaseAuthService {
 
       const updates: Partial<User> = {}
       if (!user.providerId) updates.providerId = providerId
-      if (!user.firstName?.trim()) updates.firstName = firstName
-      if (!user.lastName?.trim()) updates.lastName = lastName
+
+      // Only update first name if current is empty or looks like an email,
+      // and the Google name is valid (non-empty & not an email)
+      const currentFirstEmptyOrEmail = !user.firstName?.trim() || isEmail(user.firstName)
+      const newFirstValid = firstName.trim() !== '' && !isEmail(firstName)
+      if (currentFirstEmptyOrEmail && newFirstValid) {
+        updates.firstName = firstName
+      }
+
+      // Only update last name if current is empty or looks like an email,
+      // and the Google name is valid (non-empty & not an email)
+      const currentLastEmptyOrEmail = !user.lastName?.trim() || isEmail(user.lastName)
+      const newLastValid = lastName.trim() !== '' && !isEmail(lastName)
+      if (currentLastEmptyOrEmail && newLastValid) {
+        updates.lastName = lastName
+      }
+
       if (user.passwordHash === PASS_PLACEHOLDERS.SOCIAL) {
         updates.authProvider = 'google'
       }
