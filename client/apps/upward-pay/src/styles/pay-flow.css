@@ -1414,6 +1414,42 @@
   margin-top: 2px;
 }
 
+.pay-flow__total-fees-optional {
+  color: #c2501f;
+  font-weight: 600;
+}
+
+.pay-flow__benefits-nudge {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: #fff9f6;
+  border: 1px dashed rgba(194, 80, 31, 0.25);
+  border-radius: 10px;
+}
+
+.pay-flow__benefits-nudge-badge {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--skin-primary, #c2501f);
+  background: #fbede5;
+  padding: 2px 7px;
+  border-radius: 100px;
+  margin-top: 1px;
+}
+
+.pay-flow__benefits-nudge-text {
+  font-size: 11.5px;
+  color: #7a7268;
+  line-height: 1.45;
+  font-weight: 500;
+}
+
 /* CTA wrap — tighter, always in reach */
 .pay-flow__cta-wrap {
   position: sticky;
