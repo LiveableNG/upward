@@ -6,14 +6,29 @@ import {
   DocumentTemplateEntity, 
   SentDocumentEntity 
 } from '../../../../domains/pm/IPropertyRepository';
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 
 @Injectable()
 export class PrismaPmDocumentRepository implements IPmDocumentRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+  ) {}
 
   async findTemplatesByPmId(pmId: number): Promise<DocumentTemplateEntity[]> {
+    const teamCollabs = await (this.prisma as any).upward_pm_team_collaboration.findMany({
+      where: { collaboratorPmId: pmId, status: 'ACCEPTED' },
+      select: { ownerPmId: true }
+    });
+    const ownerPmIds = teamCollabs.map((tc: any) => tc.ownerPmId);
+
     const templates = await this.prisma.upward_pm_document_template.findMany({
-      where: { pmId },
+      where: {
+        OR: [
+          { pmId },
+          { pmId: { in: ownerPmIds } }
+        ]
+      },
       orderBy: { updatedAt: 'desc' },
     });
     return templates.map(t => this.mapTemplate(t));
@@ -50,8 +65,25 @@ export class PrismaPmDocumentRepository implements IPmDocumentRepository {
   }
 
   async findSentDocumentsByPmId(pmId: number): Promise<SentDocumentEntity[]> {
+    const teamCollabs = await (this.prisma as any).upward_pm_team_collaboration.findMany({
+      where: { collaboratorPmId: pmId, status: 'ACCEPTED', accessLevel: 'ALL' }
+    });
+    const ownerPmIds = teamCollabs.map((tc: any) => tc.ownerPmId);
+    
+    const propCollabs = await (this.prisma as any).upward_pm_property_collaboration.findMany({
+      where: { collaboratorPmId: pmId }
+    });
+    const collabPropertyIds = propCollabs.map((pc: any) => pc.propertyId);
+
     const documents = await this.prisma.upward_pm_sent_document.findMany({
-      where: { pmId, isVaultDocument: false },
+      where: {
+        isVaultDocument: false,
+        OR: [
+          { pmId },
+          { pmId: { in: ownerPmIds } },
+          { unit: { propertyId: { in: collabPropertyIds } } }
+        ]
+      },
       include: { tenant: true, unit: { include: { property: true } } },
       orderBy: { createdAt: 'desc' },
     });
@@ -108,6 +140,7 @@ export class PrismaPmDocumentRepository implements IPmDocumentRepository {
         firstName: d.tenant.firstNameSearch, // Approximation for simple entity
         lastName: d.tenant.lastNameSearch,
         email: d.tenant.emailHash,
+        phone: d.tenant.phoneEncrypted ? this.encryption.decrypt(d.tenant.phoneEncrypted) : null,
       } : undefined,
       unit: d.unit ? {
         uuid: d.unit.uuid,

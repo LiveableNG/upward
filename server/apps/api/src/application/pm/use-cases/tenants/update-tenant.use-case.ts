@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PM_TENANT_REPOSITORY, ITenantRepository, TenantEntity } from '../../../../domains/pm/IPropertyRepository';
 import { InviteTenantUseCase } from './invite-tenant.use-case';
+import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 
 export interface UpdateTenantDto {
   commercialName?: string;
@@ -27,11 +28,49 @@ export class UpdateTenantUseCase {
     @Inject(PM_TENANT_REPOSITORY)
     private readonly tenantRepo: ITenantRepository,
     private readonly inviteTenantUseCase: InviteTenantUseCase,
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(pmId: number, uuid: string, data: UpdateTenantDto): Promise<TenantEntity> {
     const tenant = await this.tenantRepo.findByUuid(uuid);
-    if (!tenant || tenant.pmId !== pmId) {
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found');
+    }
+
+    // Check collaborator access
+    let hasAccess = tenant.pmId === pmId;
+    if (!hasAccess) {
+      // Check if team collaborator with ALL access
+      const teamCollab = await this.prisma.upward_pm_team_collaboration.findFirst({
+        where: {
+          collaboratorPmId: pmId,
+          ownerPmId: tenant.pmId,
+          status: 'ACCEPTED',
+          accessLevel: 'ALL'
+        }
+      });
+      if (teamCollab) {
+        hasAccess = true;
+      }
+
+      // Check if custom property collaborator
+      if (!hasAccess) {
+        const tenantPropertyIds = tenant.units?.map(u => u.propertyId) || [];
+        if (tenantPropertyIds.length > 0) {
+          const propCollab = await this.prisma.upward_pm_property_collaboration.findFirst({
+            where: {
+              collaboratorPmId: pmId,
+              propertyId: { in: tenantPropertyIds }
+            }
+          });
+          if (propCollab) {
+            hasAccess = true;
+          }
+        }
+      }
+    }
+
+    if (!hasAccess) {
       throw new NotFoundException('Tenant not found');
     }
 
