@@ -168,7 +168,13 @@ export class SubmitUnitRequestUseCase {
       });
 
       if (existing && existing.isVerified) {
-        throw new Error('This property has been verified by your manager and cannot be edited. Please contact your property manager for any updates.');
+        // If property is verified, keep existing lease details and relationships
+        propertyBaseData.rentAmount = existing.rentAmount;
+        propertyBaseData.rentStartDate = existing.rentStartDate;
+        propertyBaseData.rentEndDate = existing.rentEndDate;
+        propertyBaseData.rentType = existing.rentType;
+        delete propertyBaseData.pm;
+        delete propertyBaseData.subaccount;
       }
 
       await (this.prisma as any).upward_user_property.update({
