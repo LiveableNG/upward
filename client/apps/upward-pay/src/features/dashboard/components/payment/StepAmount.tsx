@@ -23,40 +23,32 @@ const COMMON_LABELS = [
   'Caution Deposit',
 ]
 
-function BalancePanel({
+function BalanceStrip({
   propertyBalance,
 }: {
   propertyBalance: NonNullable<StepAmountProps['propertyBalance']>
 }) {
   return (
-    <div className="pay-flow__balance">
-        <div className="pay-flow__balance-top">
-        <div>
-          <div className="pay-flow__balance-label">Total Rent</div>
-          <div className="pay-flow__balance-value">
-            {formatCurrency(propertyBalance.totalOwed, propertyBalance.currency)}
-          </div>
-        </div>
-        <div className="pay-flow__text-right">
-          <div className="pay-flow__balance-label pay-flow__balance-label--accent">Remaining</div>
-          <div className="pay-flow__balance-value pay-flow__balance-value--accent">
-            {formatCurrency(propertyBalance.remainingBalance, propertyBalance.currency)}
-          </div>
-        </div>
+    <div className="pay-flow__balance-strip">
+      <div className="pay-flow__balance-chip">
+        <span className="pay-flow__balance-chip-label">Remaining</span>
+        <span className="pay-flow__balance-chip-value pay-flow__balance-chip-value--accent">
+          {formatCurrency(propertyBalance.remainingBalance, propertyBalance.currency)}
+        </span>
       </div>
-      <div className="pay-flow__balance-grid">
-        <div>
-          <div className="pay-flow__balance-grid-label">Amount Paid</div>
-          <div className="pay-flow__balance-grid-value">
-            {formatCurrency(propertyBalance.amountPaid, propertyBalance.currency)}
-          </div>
-        </div>
-        <div className="pay-flow__balance-grid-right">
-          <div className="pay-flow__balance-grid-label">Next Due Date</div>
-          <div className="pay-flow__balance-grid-value">
-            {propertyBalance.dueDate ? new Date(propertyBalance.dueDate).toLocaleDateString() : 'N/A'}
-          </div>
-        </div>
+      <div className="pay-flow__balance-strip-divider" />
+      <div className="pay-flow__balance-chip">
+        <span className="pay-flow__balance-chip-label">Due</span>
+        <span className="pay-flow__balance-chip-value">
+          {propertyBalance.dueDate ? new Date(propertyBalance.dueDate).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' }) : 'N/A'}
+        </span>
+      </div>
+      <div className="pay-flow__balance-strip-divider" />
+      <div className="pay-flow__balance-chip">
+        <span className="pay-flow__balance-chip-label">Paid</span>
+        <span className="pay-flow__balance-chip-value">
+          {formatCurrency(propertyBalance.amountPaid, propertyBalance.currency)}
+        </span>
       </div>
     </div>
   )
@@ -239,6 +231,10 @@ export function StepAmount({
 
   const canProceed = Number(amount) >= 1000
 
+  const checkoutTotal = rates.benefitsPaid
+    ? Number(amount) + rates.transactionFee
+    : Number(amount) + rates.transactionFee + rates.benefitsFee
+
   const handleContinue = () => {
     onContinue(
       Number(amount),
@@ -251,7 +247,7 @@ export function StepAmount({
   }
 
   return (
-    <div>
+    <div className="pay-flow__step-amount">
       <div className="pay-flow__recipient">
         <LandlordAvatar
           letter={landlord.avatar}
@@ -266,18 +262,13 @@ export function StepAmount({
         </div>
       </div>
 
-      {propertyBalance && <BalancePanel propertyBalance={propertyBalance} />}
-
-      <div className="pay-flow__amount-hero">
-        <div className="pay-flow__amount-hero-label">Total to Pay</div>
-        <div className="pay-flow__amount-hero-value">{formatCurrency(Number(amount))}</div>
-      </div>
+      {propertyBalance && <BalanceStrip propertyBalance={propertyBalance} />}
 
       <div className="pay-flow__breakdown-block">
         <div className="pay-flow__breakdown-head">
-          <p className="pay-flow__section-heading">Breakdown Payment</p>
+          <p className="pay-flow__section-heading">Breakdown</p>
           <button type="button" className="pay-flow__icon-btn" onClick={addLineItem} aria-label="Add line item">
-            <Plus size={18} />
+            <Plus size={16} />
           </button>
         </div>
 
@@ -327,7 +318,7 @@ export function StepAmount({
                     onClick={() => removeLineItem(idx)}
                     aria-label="Remove line item"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={15} />
                   </button>
                 )}
             </div>
@@ -341,55 +332,17 @@ export function StepAmount({
         </datalist>
 
         <div className="pay-flow__total-box">
-          <span className="pay-flow__total-label">Subtotal</span>
-          <span className="pay-flow__total-value">{formatCurrency(Number(amount))}</span>
+          <div>
+            <div className="pay-flow__total-label">Subtotal</div>
+            <div className="pay-flow__total-fees-hint">
+              +{formatCurrency(rates.benefitsPaid ? rates.transactionFee : rates.transactionFee + rates.benefitsFee)} fees
+            </div>
+          </div>
+          <div className="pay-flow__total-right">
+            <div className="pay-flow__total-value">{formatCurrency(Number(amount))}</div>
+            <div className="pay-flow__total-checkout">≈ {formatCurrency(checkoutTotal)} at checkout</div>
+          </div>
         </div>
-
-        {rates.benefitsPaid ? (
-          <div className="pay-flow__fees-preview">
-            <div className="pay-flow__fees-preview-row">
-              <span className="pay-flow__fees-preview-label">Estimated Transaction Fee</span>
-              <span className="pay-flow__fees-preview-value">
-                {formatCurrency(rates.transactionFee, propertyBalance?.currency || 'NGN')}
-              </span>
-            </div>
-            <div className="pay-flow__fees-preview-divider" />
-            <div className="pay-flow__fees-preview-row pay-flow__fees-preview-row--total">
-              <span className="pay-flow__fees-preview-label">Estimated Checkout Total</span>
-              <span className="pay-flow__fees-preview-value">
-                {formatCurrency(Number(amount) + rates.transactionFee, propertyBalance?.currency || 'NGN')}
-              </span>
-            </div>
-            <p className="pay-flow__fees-preview-note">
-              Processing fees will be calculated on the next checkout step.
-            </p>
-          </div>
-        ) : (
-          <div className="pay-flow__fees-preview">
-            <div className="pay-flow__fees-preview-row">
-              <span className="pay-flow__fees-preview-label">Est. Transaction Fee</span>
-              <span className="pay-flow__fees-preview-value">
-                {formatCurrency(rates.transactionFee, propertyBalance?.currency || 'NGN')}
-              </span>
-            </div>
-            <div className="pay-flow__fees-preview-row">
-              <span className="pay-flow__fees-preview-label">Est. Upward Benefits (Optional)</span>
-              <span className="pay-flow__fees-preview-value">
-                {formatCurrency(rates.benefitsFee, propertyBalance?.currency || 'NGN')}
-              </span>
-            </div>
-            <div className="pay-flow__fees-preview-divider" />
-            <div className="pay-flow__fees-preview-row pay-flow__fees-preview-row--total">
-              <span className="pay-flow__fees-preview-label">Estimated Checkout Total</span>
-              <span className="pay-flow__fees-preview-value">
-                {formatCurrency(Number(amount) + rates.transactionFee + rates.benefitsFee, propertyBalance?.currency || 'NGN')}
-              </span>
-            </div>
-            <p className="pay-flow__fees-preview-note">
-              Processing fees and optional benefits are configurable on the next checkout step.
-            </p>
-          </div>
-        )}
       </div>
 
       <div className="pay-flow__field">
@@ -419,11 +372,10 @@ export function StepAmount({
         >
           Confirm Transaction
         </PayFlowPrimaryButton>
+        <p className="pay-flow__footnote">
+          <Info size={12} /> Min. ₦1,000
+        </p>
       </div>
-
-      <p className="pay-flow__footnote">
-        <Info size={12} /> Minimum payment amount is ₦1,000
-      </p>
 
       {showOverpaymentDialog && (
         <div className="pay-flow__modal-overlay">
