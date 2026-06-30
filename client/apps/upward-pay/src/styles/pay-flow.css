@@ -694,6 +694,71 @@
   color: var(--skin-primary, #c2501f);
 }
 
+/* Fees Preview Card */
+.pay-flow__fees-preview {
+  margin-top: 16px;
+  padding: 16px 20px;
+  background: var(--surface, #fff);
+  border: 1px solid #ece4d9;
+  border-radius: 14px;
+}
+
+.pay-flow__fees-preview-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.pay-flow__fees-preview-row:last-of-type {
+  margin-bottom: 0;
+}
+
+.pay-flow__fees-preview-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #7a7268;
+}
+
+.pay-flow__fees-preview-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1714;
+}
+
+.pay-flow__fees-preview-divider {
+  height: 1px;
+  background: #ece4d9;
+  margin: 12px 0;
+}
+
+.pay-flow__fees-preview-row--total {
+  margin-bottom: 8px;
+}
+
+.pay-flow__fees-preview-row--total .pay-flow__fees-preview-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1714;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.pay-flow__fees-preview-row--total .pay-flow__fees-preview-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--skin-primary, #c2501f);
+}
+
+.pay-flow__fees-preview-note {
+  font-size: 11px;
+  color: #a9a096;
+  margin: 8px 0 0;
+  text-align: center;
+  font-weight: 500;
+}
+
+
 /* Confirm step */
 .pay-flow__confirm-header {
   display: flex;

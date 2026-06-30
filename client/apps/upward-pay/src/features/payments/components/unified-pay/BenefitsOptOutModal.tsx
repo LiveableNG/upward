@@ -1,6 +1,6 @@
 'use client'
 
-import { HelpCircle, AlertTriangle, MessageSquare } from 'lucide-react'
+import { HelpCircle, AlertTriangle, MessageSquare, Check } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
 interface BenefitsOptOutModalProps {
@@ -41,6 +41,27 @@ export function BenefitsOptOutModal({
           You may miss out on exclusive tenant benefits worth up to{' '}
           <strong className="highlight">{formatCurrency(coverageValue, currency)}</strong> throughout your tenancy.
         </p>
+
+        <ul className="optout-dialog__list">
+          <li className="optout-dialog__list-item">
+            <span className="optout-dialog__icon-wrap">
+              <Check size={12} />
+            </span>
+            <span>Rental Credibility & Score Boost</span>
+          </li>
+          <li className="optout-dialog__list-item">
+            <span className="optout-dialog__icon-wrap">
+              <Check size={12} />
+            </span>
+            <span>Flexible installment rent financing</span>
+          </li>
+          <li className="optout-dialog__list-item">
+            <span className="optout-dialog__icon-wrap">
+              <Check size={12} />
+            </span>
+            <span>Verified Tenancy History records</span>
+          </li>
+        </ul>
 
         <div className="optout-dialog__help-card">
           <HelpCircle size={16} className="help-icon" />
@@ -126,6 +147,35 @@ export function BenefitsOptOutModal({
         .optout-dialog__desc .highlight {
           color: var(--clay);
           font-weight: 800;
+        }
+        .optout-dialog__list {
+          list-style: none;
+          padding: 0;
+          margin: 0 0 24px 0;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          text-align: left;
+          width: 100%;
+        }
+        .optout-dialog__list-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-secondary);
+        }
+        .optout-dialog__icon-wrap {
+          flex-shrink: 0;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: rgba(217, 119, 87, 0.1);
+          color: var(--clay);
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
         .optout-dialog__help-card {
           display: flex;

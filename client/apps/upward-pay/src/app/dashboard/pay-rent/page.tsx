@@ -278,14 +278,8 @@ export default function PayRentPage() {
               onConfirm={async () => {
                 setProcessing(true)
                 try {
-                  const feeItems = lineItems.filter(i => {
-                    const label = i.label || i.name
-                    return label === 'Processing Fee' || label === 'Transaction Fee' || label === 'Upward Benefits'
-                  })
-                  const feeAmount = feeItems.reduce((sum, item) => sum + Number(item.amount || 0), 0)
-
                   const res = await api.createManualPaymentRequest({
-                    amount: payAmount - feeAmount,
+                    amount: payAmount,
                     landlordUuid: selectedLandlord.uuid,
                     landlordDetails: (selectedLandlord as any).isNewLocal
                       ? {
@@ -301,18 +295,11 @@ export default function PayRentPage() {
                       propertyAddress,
                       userPropertyUuid: selectedPropertyUuid || undefined,
                       paymentType,
-                      lineItems:
-                        lineItems.length > 0
-                          ? lineItems.filter(i => {
-                              const label = i.label || i.name
-                              return label !== 'Processing Fee' && label !== 'Transaction Fee' && label !== 'Upward Benefits'
-                            })
-                          : undefined,
+                      lineItems: lineItems.length > 0 ? lineItems : undefined,
                     },
                   })
                   if (res.uuid) {
-                    const exclude = !lineItems.some(i => (i.label || i.name) === 'Upward Benefits')
-                    router.push(`/pay/${res.uuid}${exclude ? '?excludeBenefits=true' : ''}`)
+                    router.push(`/pay/${res.uuid}`)
                   }
                 } catch (e) {
                   console.error('Failed to create manual payment request:', e)
