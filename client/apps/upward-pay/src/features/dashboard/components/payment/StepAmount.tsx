@@ -4,7 +4,6 @@ import { PayFlowPrimaryButton } from './PayPageShell'
 import { type Landlord, type LineItem } from './types'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import { Plus, Trash2, Info } from 'lucide-react'
-import { BenefitsSelector } from '@/features/payments/components/unified-pay/BenefitsSelector'
 import { BenefitsOptOutModal } from '@/features/payments/components/unified-pay/BenefitsOptOutModal'
 
 function syncFeeLineItems(
@@ -20,13 +19,13 @@ function syncFeeLineItems(
 
   if (hasRentOrOtherItems) {
     const txFee = rates.transactionFee
-    const benFee = (!rates.benefitsPaid && isOptedIn) ? rates.benefitsFee : 0
+    const benFee = !rates.benefitsPaid ? (isOptedIn ? rates.benefitsFee : 0) : 0
 
     // Insert 'Transaction Fee' at the beginning
     filtered.unshift({ label: 'Transaction Fee', amount: txFee })
 
-    // Insert 'Upward Benefits' right after if opted in and not paid yet
-    if (benFee > 0) {
+    // Always insert 'Upward Benefits' row if not paid yet, setting amount to 0 if opted out
+    if (!rates.benefitsPaid) {
       filtered.splice(1, 0, { label: 'Upward Benefits', amount: benFee })
     }
   }
@@ -344,7 +343,14 @@ export function StepAmount({
 
         <div className="pay-flow__breakdown-list">
           {lineItems.map((item, idx) => (
-            <div key={idx} className="pay-flow__line-item">
+            <div
+              key={idx}
+              className={`pay-flow__line-item ${
+                item.label === 'Upward Benefits' && !isBenefitsOptedIn
+                  ? 'pay-flow__line-item--disabled'
+                  : ''
+              }`}
+            >
               <div
                 className={`pay-flow__line-item-row ${idx === 0 ? 'pay-flow__line-item-row--primary' : ''}`}
               >
@@ -391,6 +397,22 @@ export function StepAmount({
                     <Trash2 size={16} />
                   </button>
                 )}
+              {item.label === 'Upward Benefits' && (
+                <label className="pay-flow__switch" style={{ marginLeft: '8px', flexShrink: 0 }} aria-label="Toggle Upward Benefits">
+                  <input
+                    type="checkbox"
+                    checked={isBenefitsOptedIn}
+                    onChange={(e) => {
+                      if (!e.target.checked) {
+                        setShowOptOutModal(true)
+                      } else {
+                        setIsBenefitsOptedIn(true)
+                      }
+                    }}
+                  />
+                  <span className="pay-flow__slider" />
+                </label>
+              )}
 
             </div>
           ))}
@@ -407,24 +429,6 @@ export function StepAmount({
           <span className="pay-flow__total-value">{formatCurrency(Number(amount))}</span>
         </div>
       </div>
-
-      {rates.benefitsFee > 0 && !rates.benefitsPaid && (
-        <div style={{ marginTop: '24px' }}>
-          <BenefitsSelector
-            benefitsFee={rates.benefitsFee}
-            currency={propertyBalance?.currency || 'NGN'}
-            isOptedIn={isBenefitsOptedIn}
-            rentValue={rates.rentValue || propertyBalance?.rentAmount || 0}
-            onToggle={(checked) => {
-              if (!checked) {
-                setShowOptOutModal(true)
-              } else {
-                setIsBenefitsOptedIn(true)
-              }
-            }}
-          />
-        </div>
-      )}
 
       <div className="pay-flow__field">
         <label className="pay-flow__field-label">
