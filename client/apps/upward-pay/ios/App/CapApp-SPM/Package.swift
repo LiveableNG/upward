@@ -17,6 +17,7 @@ let package = Package(
         .package(name: "CapacitorPreferences", path: "..\..\..\..\..\..\node_modules\.pnpm\@capacitor+preferences@8.0.1_@capacitor+core@8.2.0\node_modules\@capacitor\preferences"),
         .package(name: "CapacitorPushNotifications", path: "..\..\..\..\..\..\node_modules\.pnpm\@capacitor+push-notifications@8.0.0_@capacitor+core@8.2.0\node_modules\@capacitor\push-notifications"),
         .package(name: "CapacitorShare", path: "..\..\..\..\..\..\node_modules\.pnpm\@capacitor+share@8.0.1_@capacitor+core@8.2.0\node_modules\@capacitor\share"),
+        .package(name: "CapawesomeCapacitorGoogleSignIn", path: "..\..\..\..\..\..\node_modules\.pnpm\@capawesome+capacitor-googl_5e9676c1e709a23edfa2b44b9734a2b2\node_modules\@capawesome\capacitor-google-sign-in"),
         .package(name: "CapgoCapacitorNativeBiometric", path: "..\..\..\..\..\..\node_modules\.pnpm\@capgo+capacitor-native-bio_722a74d6395b01f2bc3725bf418b7ffc\node_modules\@capgo\capacitor-native-biometric")
     ],
     targets: [
@@ -30,6 +31,7 @@ let package = Package(
                 .product(name: "CapacitorPreferences", package: "CapacitorPreferences"),
                 .product(name: "CapacitorPushNotifications", package: "CapacitorPushNotifications"),
                 .product(name: "CapacitorShare", package: "CapacitorShare"),
+                .product(name: "CapawesomeCapacitorGoogleSignIn", package: "CapawesomeCapacitorGoogleSignIn"),
                 .product(name: "CapgoCapacitorNativeBiometric", package: "CapgoCapacitorNativeBiometric")
             ]
         )

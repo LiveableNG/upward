@@ -43,13 +43,11 @@ async function runRefresh(): Promise<string | null> {
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = path.startsWith('http') ? path : `${API_BASE}${path}`
   
-  const makeRequest = async (token: string | null) => {
+  const makeRequest = async (token: string | null): Promise<T> => {
     const headers: Record<string, string> = {
       ...((options.headers as Record<string, string>) || {}),
     }
 
-    // Only add Authorization header if we have a token AND we are on native platform
-    // On web, we rely on secure HTTP-only cookies via the same-domain proxy
     if (token && Capacitor.isNativePlatform()) {
       headers['Authorization'] = `Bearer ${token}`
     }
@@ -63,7 +61,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     }
 
     const isUpload = options.body instanceof FormData
-    const timeoutDuration = isUpload ? 120000 : 15000 // 2 minutes for uploads, 15 seconds otherwise
+    const timeoutDuration = isUpload ? 120000 : 15000
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), timeoutDuration)
 
@@ -78,7 +76,6 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     clearTimeout(timeoutId)
     
     if (res.status === 401 && !path.includes('/user/auth/refresh') && !path.includes('/user/auth/login')) {
-      // Token might be expired. Try to refresh.
       if (!isRefreshing) {
         isRefreshing = true
         refreshPromise = runRefresh()
@@ -86,23 +83,36 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       
       const newToken = await refreshPromise
       if (newToken) {
-        // Retry the original request with the new token
         return makeRequest(newToken)
       } else {
-        // Refresh failed, let the 401 propagate
         throw new Error('Session expired')
       }
     }
 
+    // Handle empty or non-JSON responses safely
+    const text = await res.text()
+    const contentType = res.headers.get('content-type')
+    const isJson = contentType && contentType.includes('application/json')
+
+    let data: any
+    if (isJson && text) {
+      try {
+        data = JSON.parse(text)
+      } catch (e) {
+        data = text
+      }
+    } else {
+      data = text ? { message: text } : {}
+    }
+
     if (!res.ok) {
-      const errorData = await res.json().catch(() => ({ message: 'An error occurred' }))
-      const error: any = new Error(errorData.message || 'Request failed')
-      error.code = errorData.code
-      error.data = errorData
+      const error: any = new Error(data.message || 'Request failed')
+      error.code = data.code
+      error.data = data
       throw error
     }
 
-    return res.json() as Promise<T>
+    return data as T
   }
 
   return makeRequest(getAccessToken())
@@ -125,7 +135,7 @@ export async function requestBlob(path: string, options: RequestInit = {}): Prom
     }
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 120000) // 2 minutes for binary downloads
+    const timeoutId = setTimeout(() => controller.abort(), 120000)
 
     const res = await fetch(url, {
       credentials: 'include',
