@@ -23,7 +23,7 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
   const [selectedUnitUuid, setSelectedUnitUuid] = useState<string | null>(null)
   const [rentDetails, setRentDetails] = useState({
     rentAmount: '',
-    rentType: 'Monthly',
+    rentType: 'Annually',
     rentStartDate: '',
     rentDueDate: '',
     rentAmountPaid: '0'
@@ -36,7 +36,7 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
     if (selectedUnit) {
       setRentDetails({
         rentAmount: selectedUnit.rentAmount?.toString() || '',
-        rentType: selectedUnit.rentType || 'Monthly',
+        rentType: selectedUnit.rentType || 'Annually',
         rentStartDate: selectedUnit.rentStartDate ? new Date(selectedUnit.rentStartDate).toISOString().split('T')[0] : '',
         rentDueDate: selectedUnit.rentDueDate ? new Date(selectedUnit.rentDueDate).toISOString().split('T')[0] : '',
         rentAmountPaid: '0'
@@ -178,8 +178,8 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
                   value={rentDetails.rentType}
                   onChange={(e) => setRentDetails({...rentDetails, rentType: e.target.value})}
                 >
-                  <option value="Monthly">Monthly</option>
                   <option value="Annually">Annually</option>
+                  <option value="Monthly">Monthly</option>
                 </select>
               </div>
             </div>

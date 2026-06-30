@@ -37,7 +37,7 @@ export const ManagedAddUnitModal: React.FC<ManagedAddUnitModalProps> = ({
     rentAmount: '', 
     rentStartDate: '', 
     rentDueDate: '',
-    rentType: 'Monthly', 
+    rentType: 'Annually', 
     managementFee: '', 
     notes: '', 
     tenantUuid: '',
@@ -75,7 +75,7 @@ export const ManagedAddUnitModal: React.FC<ManagedAddUnitModalProps> = ({
         setUnitForm({ 
           unitName: '', tenantFirstName: '', tenantLastName: '', tenantEmail: '',
           tenantPhone: '', rentAmount: '', rentStartDate: '', rentDueDate: '',
-          rentType: 'Monthly', managementFee: '', notes: '', tenantUuid: '',
+          rentType: 'Annually', managementFee: '', notes: '', tenantUuid: '',
           unitType: '', rentAmountPaid: '0'
         })
       },
