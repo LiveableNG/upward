@@ -1428,7 +1428,9 @@ export class GetPropertyBalanceUseCase {
       ? Math.max(0, totalOwed - amountPaid)
       : (prop.amountRemaining ?? Math.max(0, totalOwed - amountPaid))
 
-    const processingFee = await this.paymentConfig.getDynamicProcessingFee(prop.userId, prop.id)
+    const rates = await this.paymentConfig.getDynamicProcessingRates(prop.userId, prop.id)
+    const activeBenefitsFee = rates.benefitsPaid ? 0 : rates.benefitsFee
+    const processingFee = rates.transactionFee + activeBenefitsFee
 
     return {
       propertyUuid: prop.uuid,
@@ -1441,6 +1443,13 @@ export class GetPropertyBalanceUseCase {
       dueDate: prop.rentEndDate,
       hasActiveRequest: propRequests.length > 0,
       processingFee,
+      processingRates: {
+        transactionFee: rates.transactionFee,
+        benefitsFee: rates.benefitsFee,
+        rentValue: rates.rentValue,
+        benefitsPaid: rates.benefitsPaid || false,
+        benefitsPaidForRequest: rates.benefitsPaidForRequest || false,
+      },
     }
   }
 }
