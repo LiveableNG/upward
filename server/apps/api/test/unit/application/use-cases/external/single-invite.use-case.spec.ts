@@ -150,6 +150,7 @@ describe('SingleInviteUseCase', () => {
   let tokenRepository: jest.Mocked<VerificationTokenRepository>
   let paymentGateway: jest.Mocked<IPaymentGateway>
   let resolveDedicatedAccount: any
+  let eventBus: any
 
   beforeEach(() => {
     prisma = {} as any
@@ -220,6 +221,10 @@ describe('SingleInviteUseCase', () => {
       execute: jest.fn().mockResolvedValue({}),
     }
 
+    eventBus = {
+      publish: jest.fn(),
+    }
+
     useCase = new SingleInviteUseCase(
       prisma,
       encryption,
@@ -233,6 +238,7 @@ describe('SingleInviteUseCase', () => {
       paymentGateway,
       notificationService,
       resolveDedicatedAccount,
+      eventBus,
     )
   })
 

@@ -25,13 +25,22 @@ export class GenerateDocumentPdfUseCase {
     recipientName?: string;
     includeLetterhead?: boolean;
   }): Promise<Buffer> {
-    const { content: rawContent, pmId, tenantUuid, unitUuid, recipientName, includeLetterhead } = params;
+    const { content: rawContent, pmId: actorPmId, tenantUuid, unitUuid, recipientName, includeLetterhead } = params;
     let content = rawContent;
 
     // 1. Fetch Context for Replacement
-    const pm = await this.pmRepo.findById(pmId);
     const tenant = tenantUuid ? await this.tenantRepo.findByUuid(tenantUuid) : null;
     const unit = unitUuid ? await this.unitRepo.findByUuid(unitUuid) : (tenant?.units?.[0] || null);
+
+    // Resolve ownerPmId from unit or tenant first to support team collaboration settings
+    let pmId = actorPmId;
+    if (unit?.property?.pmId) {
+      pmId = unit.property.pmId;
+    } else if (tenant?.pmId) {
+      pmId = tenant.pmId;
+    }
+
+    const pm = await this.pmRepo.findById(pmId);
 
     const formatDate = (date: Date | null | undefined) => {
       if (!date) return '__________';
