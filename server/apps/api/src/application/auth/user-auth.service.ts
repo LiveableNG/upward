@@ -785,10 +785,12 @@ export class UserAuthService extends BaseAuthService {
       throw new BadRequestException('Unsupported social provider')
     }
 
-    const googleClientId = this.configService.get<string>('GOOGLE_CLIENT_ID')
-    if (!googleClientId) {
+    const googleClientIdConfig = this.configService.get<string>('GOOGLE_CLIENT_ID')
+    if (!googleClientIdConfig) {
       throw new BadRequestException('Google sign-in is not configured')
     }
+
+    const allowedClientIds = googleClientIdConfig.split(',').map(id => id.trim())
 
     let payload: {
       sub?: string
@@ -810,7 +812,7 @@ export class UserAuthService extends BaseAuthService {
       throw new UnauthorizedException('Invalid Google sign-in token')
     }
 
-    if (payload.error || payload.aud !== googleClientId) {
+    if (payload.error || !payload.aud || !allowedClientIds.includes(payload.aud)) {
       throw new UnauthorizedException('Invalid Google sign-in token')
     }
 
