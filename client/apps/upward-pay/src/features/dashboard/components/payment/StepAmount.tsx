@@ -4,33 +4,11 @@ import { PayFlowPrimaryButton } from './PayPageShell'
 import { type Landlord, type LineItem } from './types'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import { Plus, Trash2, Info } from 'lucide-react'
-import { BenefitsOptOutModal } from '@/features/payments/components/unified-pay/BenefitsOptOutModal'
 
-function syncFeeLineItems(
-  prevItems: LineItem[],
-  isOptedIn: boolean,
-  rates: { transactionFee: number; benefitsFee: number; benefitsPaid: boolean },
-  hasRentOrOtherItems: boolean,
-): LineItem[] {
-  // Filter out any old 'Processing Fee', 'Transaction Fee', 'Upward Benefits' items
-  let filtered = prevItems.filter(
+function syncFeeLineItems(prevItems: LineItem[]): LineItem[] {
+  return prevItems.filter(
     i => i.label !== 'Processing Fee' && i.label !== 'Transaction Fee' && i.label !== 'Upward Benefits'
   )
-
-  if (hasRentOrOtherItems) {
-    const txFee = rates.transactionFee
-    const benFee = !rates.benefitsPaid ? (isOptedIn ? rates.benefitsFee : 0) : 0
-
-    // Insert 'Transaction Fee' at the beginning
-    filtered.unshift({ label: 'Transaction Fee', amount: txFee })
-
-    // Always insert 'Upward Benefits' row if not paid yet, setting amount to 0 if opted out
-    if (!rates.benefitsPaid) {
-      filtered.splice(1, 0, { label: 'Upward Benefits', amount: benFee })
-    }
-  }
-
-  return filtered
 }
 
 const COMMON_LABELS = [
@@ -141,9 +119,6 @@ export function StepAmount({
   void initialPropertyAddress
   void onBack
 
-  const [isBenefitsOptedIn, setIsBenefitsOptedIn] = useState(true)
-  const [showOptOutModal, setShowOptOutModal] = useState(false)
-
   const rates = propertyBalance?.processingRates || {
     transactionFee: 1000,
     benefitsFee: 1000,
@@ -184,15 +159,7 @@ export function StepAmount({
             },
           ]
 
-    const nonFeeTotal = items.reduce(
-      (sum, i) =>
-        i.label === 'Processing Fee' || i.label === 'Transaction Fee' || i.label === 'Upward Benefits'
-          ? sum
-          : sum + (Number(i.amount) || 0),
-      0,
-    )
-
-    return syncFeeLineItems(items, true, rates, nonFeeTotal > 0)
+    return syncFeeLineItems(items)
   })
 
   useEffect(() => {
@@ -212,33 +179,6 @@ export function StepAmount({
   }, [propertyBalance])
 
   const [showOverpaymentDialog, setShowOverpaymentDialog] = useState(false)
-
-  const nonFeeTotal = lineItems.reduce(
-    (sum, i) =>
-      i.label === 'Processing Fee' || i.label === 'Transaction Fee' || i.label === 'Upward Benefits'
-        ? sum
-        : sum + (Number(i.amount) || 0),
-    0,
-  )
-
-  useEffect(() => {
-    setLineItems(prev => {
-      const synced = syncFeeLineItems(prev, isBenefitsOptedIn, rates, nonFeeTotal > 0)
-      
-      const prevKeys = prev.map(i => `${i.label}:${i.amount}`).join(',')
-      const syncedKeys = synced.map(i => `${i.label}:${i.amount}`).join(',')
-      if (prevKeys === syncedKeys) return prev
-      
-      return synced
-    })
-  }, [
-    lineItems
-      .filter(i => i.label !== 'Processing Fee' && i.label !== 'Transaction Fee' && i.label !== 'Upward Benefits')
-      .map(i => i.amount)
-      .join(','),
-    isBenefitsOptedIn,
-    propertyBalance?.processingRates,
-  ])
 
   useEffect(() => {
     const total = lineItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
@@ -343,14 +283,7 @@ export function StepAmount({
 
         <div className="pay-flow__breakdown-list">
           {lineItems.map((item, idx) => (
-            <div
-              key={idx}
-              className={`pay-flow__line-item ${
-                item.label === 'Upward Benefits' && !isBenefitsOptedIn
-                  ? 'pay-flow__line-item--disabled'
-                  : ''
-              }`}
-            >
+            <div key={idx} className="pay-flow__line-item">
               <div
                 className={`pay-flow__line-item-row ${idx === 0 ? 'pay-flow__line-item-row--primary' : ''}`}
               >
@@ -397,23 +330,6 @@ export function StepAmount({
                     <Trash2 size={16} />
                   </button>
                 )}
-              {item.label === 'Upward Benefits' && (
-                <label className="pay-flow__switch" style={{ marginLeft: '8px', flexShrink: 0 }} aria-label="Toggle Upward Benefits">
-                  <input
-                    type="checkbox"
-                    checked={isBenefitsOptedIn}
-                    onChange={(e) => {
-                      if (!e.target.checked) {
-                        setShowOptOutModal(true)
-                      } else {
-                        setIsBenefitsOptedIn(true)
-                      }
-                    }}
-                  />
-                  <span className="pay-flow__slider" />
-                </label>
-              )}
-
             </div>
           ))}
         </div>
@@ -425,9 +341,55 @@ export function StepAmount({
         </datalist>
 
         <div className="pay-flow__total-box">
-          <span className="pay-flow__total-label">Total to Pay</span>
+          <span className="pay-flow__total-label">Subtotal</span>
           <span className="pay-flow__total-value">{formatCurrency(Number(amount))}</span>
         </div>
+
+        {rates.benefitsPaid ? (
+          <div className="pay-flow__fees-preview">
+            <div className="pay-flow__fees-preview-row">
+              <span className="pay-flow__fees-preview-label">Estimated Transaction Fee</span>
+              <span className="pay-flow__fees-preview-value">
+                {formatCurrency(rates.transactionFee, propertyBalance?.currency || 'NGN')}
+              </span>
+            </div>
+            <div className="pay-flow__fees-preview-divider" />
+            <div className="pay-flow__fees-preview-row pay-flow__fees-preview-row--total">
+              <span className="pay-flow__fees-preview-label">Estimated Checkout Total</span>
+              <span className="pay-flow__fees-preview-value">
+                {formatCurrency(Number(amount) + rates.transactionFee, propertyBalance?.currency || 'NGN')}
+              </span>
+            </div>
+            <p className="pay-flow__fees-preview-note">
+              Processing fees will be calculated on the next checkout step.
+            </p>
+          </div>
+        ) : (
+          <div className="pay-flow__fees-preview">
+            <div className="pay-flow__fees-preview-row">
+              <span className="pay-flow__fees-preview-label">Est. Transaction Fee</span>
+              <span className="pay-flow__fees-preview-value">
+                {formatCurrency(rates.transactionFee, propertyBalance?.currency || 'NGN')}
+              </span>
+            </div>
+            <div className="pay-flow__fees-preview-row">
+              <span className="pay-flow__fees-preview-label">Est. Upward Benefits (Optional)</span>
+              <span className="pay-flow__fees-preview-value">
+                {formatCurrency(rates.benefitsFee, propertyBalance?.currency || 'NGN')}
+              </span>
+            </div>
+            <div className="pay-flow__fees-preview-divider" />
+            <div className="pay-flow__fees-preview-row pay-flow__fees-preview-row--total">
+              <span className="pay-flow__fees-preview-label">Estimated Checkout Total</span>
+              <span className="pay-flow__fees-preview-value">
+                {formatCurrency(Number(amount) + rates.transactionFee + rates.benefitsFee, propertyBalance?.currency || 'NGN')}
+              </span>
+            </div>
+            <p className="pay-flow__fees-preview-note">
+              Processing fees and optional benefits are configurable on the next checkout step.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="pay-flow__field">
@@ -491,17 +453,6 @@ export function StepAmount({
           </div>
         </div>
       )}
-
-      <BenefitsOptOutModal
-        isOpen={showOptOutModal}
-        rentValue={rates.rentValue || propertyBalance?.rentAmount || 0}
-        currency={propertyBalance?.currency || 'NGN'}
-        onClose={() => setShowOptOutModal(false)}
-        onConfirmOptOut={() => {
-          setIsBenefitsOptedIn(false)
-          setShowOptOutModal(false)
-        }}
-      />
     </div>
   )
 }
