@@ -366,7 +366,7 @@ export class SendDocumentUseCase {
       let pdfBuffer;
       try {
         pdfBuffer = await this.generatePdfUseCase.execute({
-          content: data.content,
+          content: content,
           pmId,
           tenantUuid: data.tenantUuid,
           unitUuid: data.unitUuid,
