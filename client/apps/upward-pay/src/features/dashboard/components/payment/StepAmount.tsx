@@ -81,6 +81,7 @@ type StepAmountProps = {
   } | null
   requestedAmount?: number
   totalPaidAlready?: number
+  processing?: boolean
   onContinue: (
     amount: number,
     narration: string,
@@ -103,6 +104,7 @@ export function StepAmount({
   propertyBalance = null,
   requestedAmount = 0,
   totalPaidAlready = 0,
+  processing = false,
   onContinue,
   onBack,
 }: StepAmountProps) {
@@ -335,7 +337,8 @@ export function StepAmount({
           <div>
             <div className="pay-flow__total-label">Subtotal</div>
             <div className="pay-flow__total-fees-hint">
-              +{formatCurrency(rates.benefitsPaid ? rates.transactionFee : rates.transactionFee + rates.benefitsFee)} fees
+              +{formatCurrency(rates.transactionFee)} transaction fee
+              {!rates.benefitsPaid && <span className="pay-flow__total-fees-optional"> + optional</span>}
             </div>
           </div>
           <div className="pay-flow__total-right">
@@ -343,6 +346,15 @@ export function StepAmount({
             <div className="pay-flow__total-checkout">≈ {formatCurrency(checkoutTotal)} at checkout</div>
           </div>
         </div>
+
+        {!rates.benefitsPaid && (
+          <div className="pay-flow__benefits-nudge">
+            <span className="pay-flow__benefits-nudge-badge">Optional</span>
+            <span className="pay-flow__benefits-nudge-text">
+              Includes {formatCurrency(rates.benefitsFee)} Upward Benefits — skip it on the next step if you prefer.
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="pay-flow__field">
@@ -361,7 +373,8 @@ export function StepAmount({
 
       <div className="pay-flow__cta-wrap">
         <PayFlowPrimaryButton
-          disabled={!canProceed}
+          disabled={!canProceed || processing}
+          loading={processing}
           onClick={() => {
             if (requestedAmount > 0 && Number(amount) > remainingBalance) {
               setShowOverpaymentDialog(true)
@@ -390,10 +403,12 @@ export function StepAmount({
               you wish to proceed?
             </p>
             <div className="pay-flow__modal-actions">
-              <button type="button" className="pay-flow__btn-secondary" onClick={() => setShowOverpaymentDialog(false)}>
+              <button type="button" className="pay-flow__btn-secondary" onClick={() => setShowOverpaymentDialog(false)} disabled={processing}>
                 No, Edit
               </button>
               <PayFlowPrimaryButton
+                disabled={processing}
+                loading={processing}
                 onClick={() => {
                   setShowOverpaymentDialog(false)
                   handleContinue()

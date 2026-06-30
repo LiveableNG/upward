@@ -7,7 +7,6 @@ import { api } from '@/lib/api'
 import { type Landlord, type PayRentStep } from '@/features/dashboard/components/payment/types'
 import { StepNewLandlord } from '@/features/dashboard/components/payment/StepNewLandlord'
 import { StepAmount } from '@/features/dashboard/components/payment/StepAmount'
-import { StepConfirm } from '@/features/dashboard/components/payment/StepConfirm'
 import { StepPropertySelect } from '@/features/dashboard/components/payment/StepPropertySelect'
 import { PayRentSkeleton } from '@/features/dashboard/components/payment/PayRentSkeleton'
 import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
@@ -147,14 +146,14 @@ export default function PayRentPage() {
     select: 'Pay Rent',
     'property-select': 'Pay Rent',
     new: 'Payment details',
-    confirm: payAmount > 0 ? 'Confirm Payment' : 'Enter Amount',
+    confirm: 'Enter Amount',
   }
 
   const stepSubtitle: Record<PayRentStep, string | undefined> = {
     select: 'Send payments to your landlord or property manager',
     'property-select': 'Select the property you are making a payment for to ensure your credit score is updated correctly.',
     new: 'Enter the bank account this rent payment should be sent to.',
-    confirm: payAmount > 0 ? 'Review and authorize payment details' : 'Set the amount and breakdown',
+    confirm: 'Set the amount and breakdown',
   }
 
   function handleBack() {
@@ -233,87 +232,62 @@ export default function PayRentPage() {
       )}
 
       {step === 'confirm' && selectedLandlord && (
-        <>
-          {payAmount === 0 ? (
-            <StepAmount
-              landlord={selectedLandlord}
-              initialPropertyAddress={propertyAddress}
-              initialPropertyUuid={selectedPropertyUuid}
-              propertyBalance={propertyBalance}
-              initialPaymentType={paymentType}
-              initialLineItems={lineItems}
-              initialNarration={narration}
-              requestedAmount={requestedAmount}
-              totalPaidAlready={totalPaidAlready}
-              userProperties={userProperties}
-              onContinue={(amt, nar, addr, name, items, propertyUuid) => {
-                setPayAmount(amt)
-                setNarration(nar)
-                setPropertyAddress(addr)
-                setpaymentType(name)
-                setSelectedPropertyUuid(propertyUuid || null)
-                if (items) setLineItems(items)
-              }}
-              onBack={() => {
-                setPayAmount(0)
-                setRequestedAmount(0)
-                setTotalPaidAlready(0)
-                if ((selectedLandlord as any)?.isNewLocal) {
-                  setStep('new')
-                } else {
-                  setSelectedLandlord(null)
-                  setStep('property-select')
-                }
-              }}
-            />
-          ) : (
-            <StepConfirm
-              landlord={selectedLandlord}
-              amount={payAmount}
-              narration={narration}
-              paymentType={paymentType}
-              propertyAddress={propertyAddress}
-              requestedAmount={requestedAmount}
-              totalPaidAlready={totalPaidAlready}
-              onConfirm={async () => {
-                setProcessing(true)
-                try {
-                  const res = await api.createManualPaymentRequest({
-                    amount: payAmount,
-                    landlordUuid: selectedLandlord.uuid,
-                    landlordDetails: (selectedLandlord as any).isNewLocal
-                      ? {
-                          accountNumber: selectedLandlord.accountNumber,
-                          bankCode: selectedLandlord.bankCode,
-                          name: selectedLandlord.name,
-                        }
-                      : undefined,
-                    propertyUuid: selectedPropertyUuid || undefined,
-                    metadata: {
-                      narration: narration || `Manual Payment for ${propertyAddress}`,
-                      description: narration || `Manual Payment for ${propertyAddress}`,
-                      propertyAddress,
-                      userPropertyUuid: selectedPropertyUuid || undefined,
-                      paymentType,
-                      lineItems: lineItems.length > 0 ? lineItems : undefined,
-                    },
-                  })
-                  if (res.uuid) {
-                    router.push(`/pay/${res.uuid}`)
-                  }
-                } catch (e) {
-                  console.error('Failed to create manual payment request:', e)
-                  setProcessing(false)
-                }
-              }}
-              processing={processing}
-              onEditAmount={() => setPayAmount(0)}
-              onBack={handleBack}
-              lineItems={lineItems}
-              propertyBalance={propertyBalance}
-            />
-          )}
-        </>
+        <StepAmount
+          landlord={selectedLandlord}
+          initialPropertyAddress={propertyAddress}
+          initialPropertyUuid={selectedPropertyUuid}
+          propertyBalance={propertyBalance}
+          initialPaymentType={paymentType}
+          initialLineItems={lineItems}
+          initialNarration={narration}
+          requestedAmount={requestedAmount}
+          totalPaidAlready={totalPaidAlready}
+          userProperties={userProperties}
+          processing={processing}
+          onContinue={async (amt, nar, addr, name, items, propertyUuid) => {
+            setProcessing(true)
+            try {
+              const targetPropertyUuid = propertyUuid || selectedPropertyUuid || undefined
+              const res = await api.createManualPaymentRequest({
+                amount: amt,
+                landlordUuid: selectedLandlord.uuid,
+                landlordDetails: (selectedLandlord as any).isNewLocal
+                  ? {
+                      accountNumber: selectedLandlord.accountNumber,
+                      bankCode: selectedLandlord.bankCode,
+                      name: selectedLandlord.name,
+                    }
+                  : undefined,
+                propertyUuid: targetPropertyUuid,
+                metadata: {
+                  narration: nar || `Manual Payment for ${addr}`,
+                  description: nar || `Manual Payment for ${addr}`,
+                  propertyAddress: addr,
+                  userPropertyUuid: targetPropertyUuid,
+                  paymentType: name,
+                  lineItems: items && items.length > 0 ? items : undefined,
+                },
+              })
+              if (res.uuid) {
+                router.push(`/pay/${res.uuid}`)
+              }
+            } catch (e) {
+              console.error('Failed to create manual payment request:', e)
+              setProcessing(false)
+            }
+          }}
+          onBack={() => {
+            setPayAmount(0)
+            setRequestedAmount(0)
+            setTotalPaidAlready(0)
+            if ((selectedLandlord as any)?.isNewLocal) {
+              setStep('new')
+            } else {
+              setSelectedLandlord(null)
+              setStep('property-select')
+            }
+          }}
+        />
       )}
 
       {renewalPropertyUuid && (
