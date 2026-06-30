@@ -62,13 +62,11 @@ export function GoogleSignInButton({ onSuccess, disabled }: GoogleSignInButtonPr
   const toast = useToast()
   const [loading, setLoading] = useState(false)
 
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
-  const isGoogleEnabled = isGoogleAuthEnabled()
-
-  // On native mobile platforms, we bypass the need for a web Client ID in the code,
-  // since the native SDK relies on native credentials config (google-services.json / GoogleService-Info.plist).
-  // But we still require isGoogleAuthEnabled check if desired, or can let it pass if native.
   const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform()
+  const clientId = isNative
+    ? (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID_MOBILE || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
+    : (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID_WEB || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
+  const isGoogleEnabled = isGoogleAuthEnabled()
 
   useEffect(() => {
     if (isNative && clientId) {
