@@ -278,8 +278,11 @@ export default function PayRentPage() {
               onConfirm={async () => {
                 setProcessing(true)
                 try {
-                  const feeItem = lineItems.find(i => (i.label || i.name) === 'Processing Fee')
-                  const feeAmount = feeItem ? Number(feeItem.amount || 0) : 0
+                  const feeItems = lineItems.filter(i => {
+                    const label = i.label || i.name
+                    return label === 'Processing Fee' || label === 'Transaction Fee' || label === 'Upward Benefits'
+                  })
+                  const feeAmount = feeItems.reduce((sum, item) => sum + Number(item.amount || 0), 0)
 
                   const res = await api.createManualPaymentRequest({
                     amount: payAmount - feeAmount,
@@ -300,12 +303,16 @@ export default function PayRentPage() {
                       paymentType,
                       lineItems:
                         lineItems.length > 0
-                          ? lineItems.filter(i => (i.label || i.name) !== 'Processing Fee')
+                          ? lineItems.filter(i => {
+                              const label = i.label || i.name
+                              return label !== 'Processing Fee' && label !== 'Transaction Fee' && label !== 'Upward Benefits'
+                            })
                           : undefined,
                     },
                   })
                   if (res.uuid) {
-                    router.push(`/pay/${res.uuid}`)
+                    const exclude = !lineItems.some(i => (i.label || i.name) === 'Upward Benefits')
+                    router.push(`/pay/${res.uuid}${exclude ? '?excludeBenefits=true' : ''}`)
                   }
                 } catch (e) {
                   console.error('Failed to create manual payment request:', e)

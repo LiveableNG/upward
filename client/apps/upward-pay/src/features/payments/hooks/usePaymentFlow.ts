@@ -118,7 +118,18 @@ export function usePaymentFlow(uuid: string) {
   const [autoPrompted, setAutoPrompted] = useState(false)
   const [isPendingRefund, setIsPendingRefund] = useState(false)
 
-  const [isBenefitsOptedIn, setIsBenefitsOptedIn] = useState(true)
+  const [isBenefitsOptedIn, setIsBenefitsOptedIn] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search)
+      if (searchParams.has('excludeBenefits')) {
+        return searchParams.get('excludeBenefits') !== 'true'
+      }
+      if (searchParams.has('benefits')) {
+        return searchParams.get('benefits') === 'true'
+      }
+    }
+    return true
+  })
 
   const rates = paymentData?.payment?.processingRates || { transactionFee: 2000, benefitsFee: 0, rentValue: 0, benefitsPaid: false, benefitsPaidForRequest: false }
   const activeBenefitsFee = (isBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0

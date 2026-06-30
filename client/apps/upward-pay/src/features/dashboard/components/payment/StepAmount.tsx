@@ -4,6 +4,35 @@ import { PayFlowPrimaryButton } from './PayPageShell'
 import { type Landlord, type LineItem } from './types'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import { Plus, Trash2, Info } from 'lucide-react'
+import { BenefitsSelector } from '@/features/payments/components/unified-pay/BenefitsSelector'
+import { BenefitsOptOutModal } from '@/features/payments/components/unified-pay/BenefitsOptOutModal'
+
+function syncFeeLineItems(
+  prevItems: LineItem[],
+  isOptedIn: boolean,
+  rates: { transactionFee: number; benefitsFee: number; benefitsPaid: boolean },
+  hasRentOrOtherItems: boolean,
+): LineItem[] {
+  // Filter out any old 'Processing Fee', 'Transaction Fee', 'Upward Benefits' items
+  let filtered = prevItems.filter(
+    i => i.label !== 'Processing Fee' && i.label !== 'Transaction Fee' && i.label !== 'Upward Benefits'
+  )
+
+  if (hasRentOrOtherItems) {
+    const txFee = rates.transactionFee
+    const benFee = (!rates.benefitsPaid && isOptedIn) ? rates.benefitsFee : 0
+
+    // Insert 'Transaction Fee' at the beginning
+    filtered.unshift({ label: 'Transaction Fee', amount: txFee })
+
+    // Insert 'Upward Benefits' right after if opted in and not paid yet
+    if (benFee > 0) {
+      filtered.splice(1, 0, { label: 'Upward Benefits', amount: benFee })
+    }
+  }
+
+  return filtered
+}
 
 const COMMON_LABELS = [
   'Rent',
@@ -66,12 +95,20 @@ type StepAmountProps = {
   initialLineItems?: LineItem[]
   propertyBalance?: {
     totalOwed: number
+    rentAmount?: number
     amountPaid: number
     remainingBalance: number
     currency: string
     hasActiveRequest: boolean
     dueDate?: string
     processingFee?: number
+    processingRates?: {
+      transactionFee: number
+      benefitsFee: number
+      rentValue: number
+      benefitsPaid: boolean
+      benefitsPaidForRequest: boolean
+    }
   } | null
   requestedAmount?: number
   totalPaidAlready?: number
@@ -104,6 +141,17 @@ export function StepAmount({
   void initialPaymentType
   void initialPropertyAddress
   void onBack
+
+  const [isBenefitsOptedIn, setIsBenefitsOptedIn] = useState(true)
+  const [showOptOutModal, setShowOptOutModal] = useState(false)
+
+  const rates = propertyBalance?.processingRates || {
+    transactionFee: 1000,
+    benefitsFee: 1000,
+    rentValue: 0,
+    benefitsPaid: false,
+    benefitsPaidForRequest: false,
+  }
 
   const remainingBalance = Math.max(0, requestedAmount - totalPaidAlready)
   const [amount, setAmount] = useState(
@@ -138,19 +186,14 @@ export function StepAmount({
           ]
 
     const nonFeeTotal = items.reduce(
-      (sum, i) => (i.label === 'Processing Fee' ? sum : sum + (Number(i.amount) || 0)),
+      (sum, i) =>
+        i.label === 'Processing Fee' || i.label === 'Transaction Fee' || i.label === 'Upward Benefits'
+          ? sum
+          : sum + (Number(i.amount) || 0),
       0,
     )
-    const feeAmount = nonFeeTotal > 0 ? (propertyBalance?.processingFee ?? 2000) : 0
 
-    const feeItem = items.find(i => i.label === 'Processing Fee')
-    if (!feeItem) {
-      items.unshift({ label: 'Processing Fee', amount: feeAmount })
-    } else {
-      feeItem.amount = feeAmount
-    }
-
-    return items
+    return syncFeeLineItems(items, true, rates, nonFeeTotal > 0)
   })
 
   useEffect(() => {
@@ -171,25 +214,31 @@ export function StepAmount({
 
   const [showOverpaymentDialog, setShowOverpaymentDialog] = useState(false)
 
-  useEffect(() => {
-    const nonFeeTotal = lineItems.reduce(
-      (sum, i) => (i.label === 'Processing Fee' ? sum : sum + (Number(i.amount) || 0)),
-      0,
-    )
-    const newFee = nonFeeTotal > 0 ? (propertyBalance?.processingFee ?? 2000) : 0
+  const nonFeeTotal = lineItems.reduce(
+    (sum, i) =>
+      i.label === 'Processing Fee' || i.label === 'Transaction Fee' || i.label === 'Upward Benefits'
+        ? sum
+        : sum + (Number(i.amount) || 0),
+    0,
+  )
 
+  useEffect(() => {
     setLineItems(prev => {
-      const currentFee = prev.find(i => i.label === 'Processing Fee')?.amount
-      if (currentFee === newFee) return prev
-      return prev.map(item => (item.label === 'Processing Fee' ? { ...item, amount: newFee } : item))
+      const synced = syncFeeLineItems(prev, isBenefitsOptedIn, rates, nonFeeTotal > 0)
+      
+      const prevKeys = prev.map(i => `${i.label}:${i.amount}`).join(',')
+      const syncedKeys = synced.map(i => `${i.label}:${i.amount}`).join(',')
+      if (prevKeys === syncedKeys) return prev
+      
+      return synced
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     lineItems
-      .filter(i => i.label !== 'Processing Fee')
+      .filter(i => i.label !== 'Processing Fee' && i.label !== 'Transaction Fee' && i.label !== 'Upward Benefits')
       .map(i => i.amount)
       .join(','),
-    propertyBalance?.processingFee,
+    isBenefitsOptedIn,
+    propertyBalance?.processingRates,
   ])
 
   useEffect(() => {
@@ -202,24 +251,43 @@ export function StepAmount({
   }
 
   const removeLineItem = (index: number) => {
-    if (lineItems[index]?.label === 'Processing Fee') return
+    const label = lineItems[index]?.label
+    if (
+      label === 'Processing Fee' ||
+      label === 'Transaction Fee' ||
+      label === 'Upward Benefits'
+    )
+      return
     setLineItems(lineItems.filter((_, i) => i !== index))
   }
 
   const updateLineItem = (index: number, val: string | number, field: 'label' | 'amount') => {
     const newItems = [...lineItems]
+    const label = newItems[index]?.label
 
     if (field === 'label') {
       if (index === 0) return
-      if (newItems[index].label === 'Processing Fee' || newItems[index].label === 'Rent') return
+      if (
+        label === 'Processing Fee' ||
+        label === 'Transaction Fee' ||
+        label === 'Upward Benefits' ||
+        label === 'Rent'
+      )
+        return
       newItems[index].label = String(val)
     } else {
-      if (newItems[index].label === 'Processing Fee' || newItems[index].label === 'Rent') return
+      if (
+        label === 'Processing Fee' ||
+        label === 'Transaction Fee' ||
+        label === 'Upward Benefits' ||
+        label === 'Rent'
+      )
+        return
       const parsed =
         typeof val === 'string' ? parseCurrencyInput(val) : Number.isFinite(Number(val)) ? Number(val) : null
       let numVal = parsed ?? 0
 
-      if ((newItems[index].label === 'Rent' || index === 0) && propertyBalance) {
+      if (label === 'Rent' && propertyBalance) {
         if (numVal > propertyBalance.remainingBalance) {
           numVal = propertyBalance.remainingBalance
         }
@@ -286,7 +354,13 @@ export function StepAmount({
                   value={item.label}
                   onChange={e => updateLineItem(idx, e.target.value, 'label')}
                   className="pay-flow__line-item-label"
-                  readOnly={idx === 0 || item.label === 'Processing Fee' || item.label === 'Rent'}
+                  readOnly={
+                    idx === 0 ||
+                    item.label === 'Processing Fee' ||
+                    item.label === 'Transaction Fee' ||
+                    item.label === 'Upward Benefits' ||
+                    item.label === 'Rent'
+                  }
                 />
                 <span className="pay-flow__line-item-divider" />
                 <span className="pay-flow__line-item-currency">₦</span>
@@ -297,19 +371,27 @@ export function StepAmount({
                   value={formatCurrencyInput(Number(item.amount) || 0)}
                   onChange={e => updateLineItem(idx, e.target.value, 'amount')}
                   className="pay-flow__line-item-amount"
-                  readOnly={item.label === 'Processing Fee' || item.label === 'Rent'}
+                  readOnly={
+                    item.label === 'Processing Fee' ||
+                    item.label === 'Transaction Fee' ||
+                    item.label === 'Upward Benefits' ||
+                    item.label === 'Rent'
+                  }
                 />
               </div>
-              {item.label !== 'Processing Fee' && (
-                <button
-                  type="button"
-                  className="pay-flow__icon-btn pay-flow__icon-btn--danger"
-                  onClick={() => removeLineItem(idx)}
-                  aria-label="Remove line item"
-                >
-                  <Trash2 size={16} />
-                </button>
-              )}
+              {item.label !== 'Processing Fee' &&
+                item.label !== 'Transaction Fee' &&
+                item.label !== 'Upward Benefits' && (
+                  <button
+                    type="button"
+                    className="pay-flow__icon-btn pay-flow__icon-btn--danger"
+                    onClick={() => removeLineItem(idx)}
+                    aria-label="Remove line item"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+
             </div>
           ))}
         </div>
@@ -325,6 +407,24 @@ export function StepAmount({
           <span className="pay-flow__total-value">{formatCurrency(Number(amount))}</span>
         </div>
       </div>
+
+      {rates.benefitsFee > 0 && !rates.benefitsPaid && (
+        <div style={{ marginTop: '24px' }}>
+          <BenefitsSelector
+            benefitsFee={rates.benefitsFee}
+            currency={propertyBalance?.currency || 'NGN'}
+            isOptedIn={isBenefitsOptedIn}
+            rentValue={rates.rentValue || propertyBalance?.rentAmount || 0}
+            onToggle={(checked) => {
+              if (!checked) {
+                setShowOptOutModal(true)
+              } else {
+                setIsBenefitsOptedIn(true)
+              }
+            }}
+          />
+        </div>
+      )}
 
       <div className="pay-flow__field">
         <label className="pay-flow__field-label">
@@ -387,6 +487,17 @@ export function StepAmount({
           </div>
         </div>
       )}
+
+      <BenefitsOptOutModal
+        isOpen={showOptOutModal}
+        rentValue={rates.rentValue || propertyBalance?.rentAmount || 0}
+        currency={propertyBalance?.currency || 'NGN'}
+        onClose={() => setShowOptOutModal(false)}
+        onConfirmOptOut={() => {
+          setIsBenefitsOptedIn(false)
+          setShowOptOutModal(false)
+        }}
+      />
     </div>
   )
 }
