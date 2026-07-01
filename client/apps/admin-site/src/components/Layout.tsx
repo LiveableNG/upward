@@ -1,4 +1,6 @@
 import React from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { ChevronRight, Home } from 'lucide-react'
 import Header from './Header'
 import Sidebar from './Sidebar'
 
@@ -7,6 +9,66 @@ interface LayoutProps {
   adminEmail: string
   adminRole: string
   onLogout: () => void
+}
+
+const pathMetadata: Record<string, { name: string; category?: string }> = {
+  '/dashboard': { name: 'Dashboard' },
+  '/emails': { name: 'Email Composer', category: 'Communications' },
+  '/email-logs': { name: 'Email Logs', category: 'Communications' },
+  '/campaigns': { name: 'Campaigns', category: 'Overview' },
+  '/announcements': { name: 'Announcements', category: 'Communications' },
+  '/support': { name: 'Support Tickets', category: 'Operations & Support' },
+  '/verifications': { name: 'Verifications', category: 'Operations & Support' },
+  '/stories': { name: 'Fairness Stories', category: 'Operations & Support' },
+  '/demo-bank': { name: 'Demo Bank Simulator', category: 'Developer & Security' },
+  '/app-activity': { name: 'App Activity Logs', category: 'Developer & Security' },
+  '/feedback': { name: 'User Feedback', category: 'Developer & Security' },
+  '/dev-emails': { name: 'Dev Email Sandbox', category: 'Developer & Security' },
+  '/webhooks': { name: 'Webhook Logs', category: 'Developer & Security' },
+  '/logs': { name: 'System Logs', category: 'Developer & Security' },
+  '/settings': { name: 'Settings', category: 'Administration' },
+}
+
+const Breadcrumbs: React.FC = () => {
+  const location = useLocation()
+  const path = location.pathname
+
+  if (path === '/login') return null
+
+  const info = pathMetadata[path] || {
+    name: path
+      .split('/')
+      .filter(Boolean)
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+      .join(' '),
+  }
+
+  return (
+    <div className="breadcrumbs-wrapper">
+      <nav className="breadcrumbs" aria-label="breadcrumb">
+        <Link to="/dashboard">
+          <Home size={14} />
+          <span>Home</span>
+        </Link>
+        <span className="breadcrumbs-separator">
+          <ChevronRight size={14} />
+        </span>
+        {info.category && (
+          <>
+            <span className="breadcrumbs-category">{info.category}</span>
+            <span className="breadcrumbs-separator">
+              <ChevronRight size={14} />
+            </span>
+          </>
+        )}
+        {path !== '/dashboard' && path !== '/' ? (
+          <span className="breadcrumbs-current">{info.name}</span>
+        ) : (
+          <span className="breadcrumbs-current">Overview</span>
+        )}
+      </nav>
+    </div>
+  )
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, adminEmail, adminRole, onLogout }) => {
@@ -55,6 +117,7 @@ const Layout: React.FC<LayoutProps> = ({ children, adminEmail, adminRole, onLogo
             width: '100%',
           }}
         >
+          <Breadcrumbs />
           {children}
         </main>
       </div>
