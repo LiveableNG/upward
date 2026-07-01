@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
+import { Link } from 'react-router-dom'
 
 interface Verification {
   id: number
@@ -171,7 +172,11 @@ const Verifications: React.FC<VerificationsProps> = ({ token }) => {
                     items.map(item => (
                         <tr key={item.id} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '16px 24px' }}>
-                                <div style={{ fontWeight: 700, fontSize: '14px' }}>{item.pm.businessName || 'No Business Name'}</div>
+                                <div style={{ fontWeight: 700, fontSize: '14px' }}>
+                                    <Link to={`/pms/${item.pm.uuid}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+                                        {item.pm.businessName || 'No Business Name'}
+                                    </Link>
+                                </div>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Email: {item.pm.email}</div>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Phone: {item.pm.phone || 'N/A'}</div>
                                 {item.pm.country && (

@@ -55,6 +55,8 @@ model upward_auth_session {
   refreshTokenHash String      @unique
   userAgent        String?
   ipAddress        String?
+  country          String?
+  city             String?
   deviceId         String?
   isRevoked        Boolean     @default(false)
   expiresAt        DateTime

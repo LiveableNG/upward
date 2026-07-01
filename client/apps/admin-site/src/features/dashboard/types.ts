@@ -1,0 +1,156 @@
+export interface WaitlistRecord {
+  id: string
+  uuid: string
+  email: string
+  firstName: string
+  lastName: string
+  phone: string
+  createdAt: string
+  converted: boolean
+  totalPaid: number
+}
+
+export interface SignedUpRecord {
+  id: string
+  uuid: string
+  email: string
+  firstName: string
+  lastName: string
+  phone: string
+  createdAt: string
+  isWaitlist: boolean
+  totalPaid: number
+  hasPaid: boolean
+}
+
+export interface InvitedRecord {
+  id: string
+  uuid: string
+  email: string
+  firstName: string
+  lastName: string
+  phone: string
+  createdAt: string
+  status: 'INVITED_PENDING' | 'INVITED_SIGNED_UP' | 'GUEST_PAID' | 'SIGNED_UP_PAID'
+  totalPaid: number
+  pmName: string
+  pmUuid: string | null
+}
+
+export interface PmRecord {
+  id: string
+  uuid: string
+  email: string
+  firstName: string
+  lastName: string
+  businessName: string
+  phone: string
+  isVerified: boolean
+  propertiesCount: number
+  unitsCount: number
+  totalGenerated: number
+  createdAt: string
+}
+
+export interface FeeOverride {
+  id: number
+  targetType: string
+  targetId: string
+  fee: number
+  createdAt: string
+  targetName?: string
+}
+
+export interface MetricsSummary {
+  waitlist: {
+    total: number
+    converted: number
+    totalPaid: number
+  }
+  signedUp: {
+    total: number
+    paying: number
+    totalPaid: number
+  }
+  invited: {
+    pending: number
+    onboarded: number
+    guestPaid: number
+    onboardedPaid: number
+    guestTotalPaid: number
+    onboardedTotalPaid: number
+    total: number
+  }
+  sources: {
+    pmCount: number
+    platformCount: number
+  }
+  revenue: {
+    totalUpwardFees: number
+    totalBenefitsFees: number
+    totalRentProcessed: number
+  }
+  activeUsers?: {
+    activeCount: number
+    totalUsers: number
+    inactiveCount: number
+    activeRate: number
+  }
+}
+
+export interface ActiveUsersMetric {
+  activeCount: number
+  totalUsers: number
+  inactiveCount: number
+  activeRate: number
+}
+
+export interface LoginSession {
+  id: string
+  userId: number
+  userUuid: string
+  userName: string
+  userEmail: string
+  userRole: string
+  userAgent: string | null
+  ipAddress: string | null
+  deviceId: string | null
+  isRevoked: boolean
+  createdAt: string
+  expiresAt: string
+  country: string
+  city: string
+}
+
+/**
+ * Flat helper derived from MetricsSummary for convenience in display components.
+ * Call flattenMetrics(metrics) to produce this shape.
+ */
+export interface FlatMetrics {
+  waitlistCount: number
+  signedUpCount: number
+  pmCount: number
+  invitedCount: number
+  totalRentProcessed: number
+  feeRevenue: number
+  benefitsRevenue: number
+  activeCount: number
+  inactiveCount: number
+  activeRate: number
+}
+
+export function flattenMetrics(m: MetricsSummary): FlatMetrics {
+  return {
+    waitlistCount: m.waitlist.total,
+    signedUpCount: m.signedUp.total,
+    pmCount: m.sources.pmCount,
+    invitedCount: m.invited.total,
+    totalRentProcessed: m.revenue.totalRentProcessed,
+    feeRevenue: m.revenue.totalUpwardFees,
+    benefitsRevenue: m.revenue.totalBenefitsFees,
+    activeCount: m.activeUsers?.activeCount ?? 0,
+    inactiveCount: m.activeUsers?.inactiveCount ?? 0,
+    activeRate: m.activeUsers?.activeRate ?? 0,
+  }
+}
+

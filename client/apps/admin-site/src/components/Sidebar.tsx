@@ -12,8 +12,9 @@ import {
   LifeBuoy,
   Webhook,
   Smartphone,
-  MessageSquare,
   Landmark,
+  MessageSquare,
+  SlidersHorizontal,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -22,39 +23,85 @@ interface SidebarProps {
   onClose: () => void
 }
 
+interface NavItem {
+  name: string
+  path: string
+  icon: React.ComponentType<any>
+}
+
+interface NavSection {
+  title: string
+  items: NavItem[]
+}
+
 const isProd = import.meta.env.VITE_APP_ENV === 'production' || import.meta.env.MODE === 'production'
 const showSandboxTools = import.meta.env.VITE_SHOW_SANDBOX_TOOLS === 'true' || !isProd
 
 const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }) => {
   const [isHovered, setIsHovered] = useState(false)
-
-  const navItems = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Emailing', path: '/emails', icon: Mail },
-    { name: 'Campaigns', path: '/campaigns', icon: CalendarClock },
-    { name: 'Announcements', path: '/announcements', icon: Megaphone },
-    { name: 'Help Center & Support', path: '/support', icon: LifeBuoy },
-    { name: 'Verifications', path: '/verifications', icon: ShieldCheck },
-    { name: 'Email Logs', path: '/email-logs', icon: History },
-    { name: 'Fairness Stories', path: '/stories', icon: ShieldCheck },
-  ]
-
-  if (showSandboxTools) {
-    navItems.push({ name: 'Demo Bank Simulator', path: '/demo-bank', icon: Landmark })
-  }
-
-  if (isSuperadmin) {
-    navItems.push({ name: 'App Activity Logs', path: '/app-activity', icon: Smartphone })
-    navItems.push({ name: 'User Feedback', path: '/feedback', icon: MessageSquare })
-    if (showSandboxTools) {
-      navItems.push({ name: 'Dev Email Sandbox', path: '/dev-emails', icon: Mail })
-    }
-    navItems.push({ name: 'Webhook Logs', path: '/webhooks', icon: Webhook })
-    navItems.push({ name: 'System Logs', path: '/logs', icon  : FileText })
-    navItems.push({ name: 'Settings', path: '/settings', icon: Settings })
-  }
-
   const isExpanded = isHovered || isMobileOpen
+
+  // Construct Grouped Sections
+  const sections: NavSection[] = []
+
+  // 1. Overview
+  sections.push({
+    title: 'Overview',
+    items: [
+      { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+      { name: 'Campaigns', path: '/campaigns', icon: CalendarClock },
+      { name: 'Fee Overrides', path: '/overrides', icon: SlidersHorizontal },
+    ],
+  })
+
+  // 2. Operations & Support
+  sections.push({
+    title: 'Ops & Support',
+    items: [
+      { name: 'Support Tickets', path: '/support', icon: LifeBuoy },
+      { name: 'Verifications', path: '/verifications', icon: ShieldCheck },
+      { name: 'Fairness Stories', path: '/stories', icon: ShieldCheck },
+    ],
+  })
+
+  // 3. Communications
+  sections.push({
+    title: 'Communications',
+    items: [
+      { name: 'Emailing', path: '/emails', icon: Mail },
+      { name: 'Announcements', path: '/announcements', icon: Megaphone },
+      { name: 'Email Logs', path: '/email-logs', icon: History },
+    ],
+  })
+
+  // 4. Developer & Security
+  const devItems: NavItem[] = []
+  if (showSandboxTools) {
+    devItems.push({ name: 'Demo Bank Simulator', path: '/demo-bank', icon: Landmark })
+  }
+  if (isSuperadmin) {
+    devItems.push({ name: 'App Activity Logs', path: '/app-activity', icon: Smartphone })
+    devItems.push({ name: 'User Feedback', path: '/feedback', icon: MessageSquare })
+    if (showSandboxTools) {
+      devItems.push({ name: 'Dev Email Sandbox', path: '/dev-emails', icon: Mail })
+    }
+    devItems.push({ name: 'Webhook Logs', path: '/webhooks', icon: Webhook })
+    devItems.push({ name: 'System Logs', path: '/logs', icon: FileText })
+  }
+  if (devItems.length > 0) {
+    sections.push({
+      title: 'Dev & Security',
+      items: devItems,
+    })
+  }
+
+  // 5. Administration
+  if (isSuperadmin) {
+    sections.push({
+      title: 'Administration',
+      items: [{ name: 'Settings', path: '/settings', icon: Settings }],
+    })
+  }
 
   return (
     <aside
@@ -63,63 +110,123 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
       style={{
         width: isExpanded ? 'var(--sidebar-width)' : 'var(--sidebar-collapsed-width)',
         height: 'calc(100vh - var(--header-height))',
-        backgroundColor: 'var(--white)',
-        borderRight: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'var(--transition)',
-        position: 'fixed',
         top: 'var(--header-height)',
-        left: 0,
-        zIndex: 1001,
-        overflowY: 'auto',
-        overflowX: 'hidden',
         transform: isMobileOpen
           ? 'translateX(0)'
           : window.innerWidth <= 768
             ? 'translateX(-100%)'
             : 'translateX(0)',
       }}
-      className="sidebar-responsive"
+      className="sidebar sidebar-responsive"
     >
-      <nav
-        style={{
-          flex: 1,
-          padding: '24px 12px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-        }}
-      >
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            onClick={() => {
-              if (window.innerWidth <= 768) onClose()
-            }}
-            className={({ isActive }) => (isActive ? 'nav-active' : 'nav-inactive')}
-            style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: isExpanded ? 'flex-start' : 'center',
-              gap: isExpanded ? '12px' : '0',
-              padding: '12px',
-              borderRadius: '12px',
-              color: isActive ? 'var(--accent)' : 'var(--text-muted)',
-              backgroundColor: isActive ? 'var(--accent-faint)' : 'transparent',
-              transition: 'var(--transition)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-            })}
-          >
-            <item.icon size={22} style={{ flexShrink: 0 }} />
-            {isExpanded && <span style={{ fontWeight: 600, fontSize: '14px' }}>{item.name}</span>}
-          </NavLink>
+      <nav className="sidebar__nav">
+        {sections.map((section, idx) => (
+          <div key={section.title} className="sidebar__section">
+            {/* Show section header only when expanded, otherwise show a separator line (except for the first item) */}
+            {isExpanded ? (
+              <div className="sidebar__section-title">{section.title}</div>
+            ) : (
+              idx > 0 && <hr className="sidebar__divider" />
+            )}
+
+            {section.items.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={() => {
+                  if (window.innerWidth <= 768) onClose()
+                }}
+                className={({ isActive }) =>
+                  isActive
+                    ? `sidebar__link sidebar__link--active ${!isExpanded ? 'sidebar__link--collapsed' : ''}`
+                    : `sidebar__link ${!isExpanded ? 'sidebar__link--collapsed' : ''}`
+                }
+              >
+                <item.icon size={20} style={{ flexShrink: 0 }} />
+                {isExpanded && <span className="sidebar__link-text">{item.name}</span>}
+              </NavLink>
+            ))}
+          </div>
         ))}
       </nav>
 
       <style>{`
+        .sidebar {
+          background-color: var(--white);
+          border-right: 1px solid var(--border);
+          display: flex;
+          flex-direction: column;
+          transition: var(--transition);
+          position: fixed;
+          left: 0;
+          z-index: 1001;
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
+
+        .sidebar__nav {
+          flex: 1;
+          padding: 20px 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .sidebar__section {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .sidebar__section-title {
+          font-size: 10px;
+          font-weight: 700;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          padding: 0 12px;
+          margin-bottom: 6px;
+          opacity: 0.8;
+        }
+
+        .sidebar__divider {
+          border: none;
+          border-top: 1px solid var(--border);
+          margin: 6px 8px;
+        }
+
+        .sidebar__link {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 12px;
+          border-radius: 10px;
+          color: var(--text-secondary);
+          font-weight: 500;
+          font-size: 14px;
+          transition: var(--transition);
+          white-space: nowrap;
+          overflow: hidden;
+          text-decoration: none;
+        }
+
+        .sidebar__link:hover {
+          color: var(--text);
+          background-color: var(--surface-hover);
+        }
+
+        .sidebar__link--active {
+          color: var(--accent) !important;
+          background-color: var(--accent-faint) !important;
+          font-weight: 600;
+        }
+
+        .sidebar__link--collapsed {
+          justify-content: center;
+          gap: 0;
+          padding: 10px 0;
+        }
+
         @media (min-width: 769px) {
           .sidebar-responsive {
             position: sticky !important;

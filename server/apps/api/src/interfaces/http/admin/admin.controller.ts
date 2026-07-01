@@ -39,6 +39,7 @@ import { MarkAttendanceUseCase } from '../../../application/use-cases/sessions/m
 import { ChangeUserSessionUseCase } from '../../../application/use-cases/sessions/change-user-session.use-case'
 
 import { GetWaitlistAnalyticsUseCase } from '../../../application/use-cases/analytics/get-waitlist-analytics.use-case'
+import { GetPerformanceMetricsUseCase } from '../../../application/use-cases/analytics/get-performance-metrics.use-case'
 import { GetDropOffAnalysisUseCase } from '../../../application/use-cases/analytics/get-drop-off-analysis.use-case'
 import { GetAbStatsUseCase } from '../../../application/use-cases/analytics/get-ab-stats.use-case'
 
@@ -55,6 +56,12 @@ import { EmailBatchRetryManager } from '../../../application/use-cases/email/ema
 import { GetErrorLogsUseCase } from '../../../application/use-cases/system/get-error-logs.use-case'
 import { ResolveErrorUseCase } from '../../../application/use-cases/system/resolve-error.use-case'
 import { ClearErrorLogsUseCase } from '../../../application/use-cases/system/clear-error-logs.use-case'
+
+import { GetAdminUserDetailUseCase } from '../../../application/use-cases/admin/get-admin-user-detail.use-case'
+import { GetAdminPmDetailUseCase } from '../../../application/use-cases/admin/get-admin-pm-detail.use-case'
+import { UpdateAdminUserUseCase } from '../../../application/use-cases/admin/update-admin-user.use-case'
+import { UpdateAdminPmUseCase } from '../../../application/use-cases/admin/update-admin-pm.use-case'
+import { SendAdminNotificationUseCase } from '../../../application/use-cases/admin/send-admin-notification.use-case'
 
 @Controller('admin')
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
@@ -78,6 +85,7 @@ export class AdminController {
     private readonly markAttendanceUseCase: MarkAttendanceUseCase,
     private readonly changeUserSessionUseCase: ChangeUserSessionUseCase,
     private readonly getWaitlistAnalyticsUseCase: GetWaitlistAnalyticsUseCase,
+    private readonly getPerformanceMetricsUseCase: GetPerformanceMetricsUseCase,
     private readonly getDropOffAnalysisUseCase: GetDropOffAnalysisUseCase,
     private readonly getAbStatsUseCase: GetAbStatsUseCase,
     private readonly sendBulkEmailUseCase: SendBulkEmailUseCase,
@@ -93,6 +101,11 @@ export class AdminController {
     private readonly resolveErrorUseCase: ResolveErrorUseCase,
     private readonly clearErrorLogsUseCase: ClearErrorLogsUseCase,
     private readonly searchUsersUseCase: SearchUsersUseCase,
+    private readonly getAdminUserDetailUseCase: GetAdminUserDetailUseCase,
+    private readonly getAdminPmDetailUseCase: GetAdminPmDetailUseCase,
+    private readonly updateAdminUserUseCase: UpdateAdminUserUseCase,
+    private readonly updateAdminPmUseCase: UpdateAdminPmUseCase,
+    private readonly sendAdminNotificationUseCase: SendAdminNotificationUseCase,
   ) {}
 
   @Get('users/search')
@@ -124,8 +137,45 @@ export class AdminController {
   }
 
   @Patch('users/:id')
-  async updateUser(@Param('id') id: string, @Body() data: Partial<CreateWaitlistEntryDto>) {
-    return { data: await this.updateWaitlistUserUseCase.execute(id, data) }
+  async updateUser(@Param('id') id: string, @Body() data: any) {
+    return { data: await this.updateAdminUserUseCase.execute(id, data) }
+  }
+
+  @Get('users/:uuid')
+  async getUserDetail(@Param('uuid') uuid: string) {
+    return { data: await this.getAdminUserDetailUseCase.execute(uuid) }
+  }
+
+  @Get('pms/:uuid')
+  async getPmDetail(@Param('uuid') uuid: string) {
+    return { data: await this.getAdminPmDetailUseCase.execute(uuid) }
+  }
+
+  @Patch('pms/:uuid')
+  async updatePmDetail(@Param('uuid') uuid: string, @Body() data: any) {
+    return { data: await this.updateAdminPmUseCase.execute(uuid, data) }
+  }
+
+  @Post('users/:uuid/notify')
+  async notifyTenant(@Param('uuid') uuid: string, @Body() body: { title: string; message: string }) {
+    return {
+      data: await this.sendAdminNotificationUseCase.execute(uuid, {
+        title: body.title,
+        message: body.message,
+        userType: 'TENANT',
+      }),
+    }
+  }
+
+  @Post('pms/:uuid/notify')
+  async notifyPm(@Param('uuid') uuid: string, @Body() body: { title: string; message: string }) {
+    return {
+      data: await this.sendAdminNotificationUseCase.execute(uuid, {
+        title: body.title,
+        message: body.message,
+        userType: 'PM',
+      }),
+    }
   }
 
   @Delete('users/:id')
@@ -159,6 +209,19 @@ export class AdminController {
         createdTo,
       }),
     }
+  }
+
+  @Get('performance-metrics')
+  async getPerformanceMetrics(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.getPerformanceMetricsUseCase.execute({
+      startDate,
+      endDate,
+      search,
+    })
   }
 
   @Get('drop-off')

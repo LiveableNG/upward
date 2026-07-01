@@ -94,6 +94,7 @@ export class UserController {
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
   async signup(
+    @Req() req: any,
     @Body() body: {
       email: string;
       password: string;
@@ -108,7 +109,11 @@ export class UserController {
     },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
-    const { refreshToken, ...rest } = await this.userAuthService.signup(body)
+    const ipAddress = req.headers['x-forwarded-for']
+      ? req.headers['x-forwarded-for'].split(',')[0].trim()
+      : req.ip
+    const userAgent = req.headers['user-agent']
+    const { refreshToken, ...rest } = await this.userAuthService.signup(body, ipAddress, userAgent)
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.CREATED).send(rest)
   }
@@ -116,9 +121,14 @@ export class UserController {
   @Post('social')
   @HttpCode(HttpStatus.OK)
   async socialSignIn(
+    @Req() req: any,
     @Body() body: { provider: 'google'; idToken: string },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
+    const ipAddress = req.headers['x-forwarded-for']
+      ? req.headers['x-forwarded-for'].split(',')[0].trim()
+      : req.ip
+    const userAgent = req.headers['user-agent']
     const { refreshToken, ...rest } = await this.userAuthService.socialSignIn(body.provider, body.idToken)
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(rest)
@@ -127,10 +137,15 @@ export class UserController {
   @Post('complete-profile')
   @HttpCode(HttpStatus.OK)
   async completeProfile(
+    @Req() req: any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Body() body: any,
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
+    const ipAddress = req.headers['x-forwarded-for']
+      ? req.headers['x-forwarded-for'].split(',')[0].trim()
+      : req.ip
+    const userAgent = req.headers['user-agent']
     const { refreshToken, ...rest } = await this.completeUserProfile.execute({
       email: body.email,
       passwordPlain: body.password,
@@ -151,17 +166,22 @@ export class UserController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
+    @Req() req: any,
     @Body() body: { email: string; password: string },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
-    const { refreshToken, ...rest } = await this.userAuthService.login(body.email, body.password)
+    const ipAddress = req.headers['x-forwarded-for']
+      ? req.headers['x-forwarded-for'].split(',')[0].trim()
+      : req.ip
+    const userAgent = req.headers['user-agent']
+    const { refreshToken, ...rest } = await this.userAuthService.login(body.email, body.password, ipAddress, userAgent)
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(rest)
   }
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(@Req() req: FastifyRequest, @Res({ passthrough: false }) reply: FastifyReply) {
+  async refresh(@Req() req: any, @Res({ passthrough: false }) reply: FastifyReply) {
     const token = req.cookies?.[REFRESH_COOKIE_NAME]
     if (!token) {
       clearUserAuthCookies(reply)
@@ -169,7 +189,11 @@ export class UserController {
     }
 
     try {
-      const { refreshToken, ...rest } = await this.userAuthService.refreshAccessToken(token)
+      const ipAddress = req.headers['x-forwarded-for']
+        ? req.headers['x-forwarded-for'].split(',')[0].trim()
+        : req.ip
+      const userAgent = req.headers['user-agent']
+      const { refreshToken, ...rest } = await this.userAuthService.refreshAccessToken(token, ipAddress, userAgent)
       setUserAuthCookies(reply, rest.accessToken, refreshToken)
       reply.status(HttpStatus.OK).send(rest)
     } catch (err) {
@@ -281,6 +305,7 @@ export class UserController {
   @Post('otp-login')
   @HttpCode(HttpStatus.OK)
   async otpLogin(
+    @Req() req: any,
     @Body() body: { email: string; otp: string },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
@@ -292,7 +317,11 @@ export class UserController {
     const user = await this.userAuthService.findByEmail(body.email)
     if (!user) throw new UnauthorizedException('User not found')
 
-    const { refreshToken, ...rest } = await this.userAuthService.generateFullAuthResponse(user)
+    const ipAddress = req.headers['x-forwarded-for']
+      ? req.headers['x-forwarded-for'].split(',')[0].trim()
+      : req.ip
+    const userAgent = req.headers['user-agent']
+    const { refreshToken, ...rest } = await this.userAuthService.generateFullAuthResponse(user, ipAddress, userAgent)
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(rest)
   }
