@@ -1,20 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Users,
   Search,
   Download,
-  Calendar,
-  Filter,
   RefreshCcw,
   Activity,
-  Globe,
   MapPin,
   Laptop,
-  CheckCircle2,
-  HelpCircle,
-  Clock,
-  ArrowRight,
   TrendingUp,
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
