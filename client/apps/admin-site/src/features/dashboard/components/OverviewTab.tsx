@@ -229,8 +229,12 @@ const AreaChart: React.FC<AreaChartProps> = ({ data, color, height = 120 }) => {
 // ───────────────────────────────────────────────────────────────
 // Main Component
 // ───────────────────────────────────────────────────────────────
+import type { DateFilter } from './FilterToolbar'
+
 interface OverviewTabProps {
   metrics: FlatMetrics | null
+  dateFilter: DateFilter
+  onDateFilterChange: (v: DateFilter) => void
 }
 
 // Fake trend data seeded from metrics totals to give realistic sparklines
@@ -245,7 +249,7 @@ function seedSpark(total: number, len = 7): number[] {
   return arr
 }
 
-const OverviewTab: React.FC<OverviewTabProps> = ({ metrics }) => {
+const OverviewTab: React.FC<OverviewTabProps> = ({ metrics, dateFilter, onDateFilterChange }) => {
 
   const waitlistSpark = useMemo(() => seedSpark(metrics?.waitlistCount ?? 50), [metrics?.waitlistCount])
   const pmSpark = useMemo(() => seedSpark(metrics?.pmCount ?? 20), [metrics?.pmCount])
@@ -323,9 +327,38 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ metrics }) => {
 
       {/* ── Platform Health Grid ── */}
       <section>
-        <div style={{ marginBottom: '16px' }}>
-          <h3 style={{ margin: 0, fontWeight: 800, fontSize: '17px' }}>Platform Health</h3>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Live snapshot of all key business metrics</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <h3 style={{ margin: 0, fontWeight: 800, fontSize: '17px' }}>Platform Health</h3>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Live snapshot of all key business metrics</span>
+          </div>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {[
+              { value: 'all', label: 'All Time' },
+              { value: 'today', label: 'Today' },
+              { value: 'week', label: '7 Days' },
+              { value: 'month', label: '30 Days' },
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => onDateFilterChange(opt.value as DateFilter)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: '1px solid',
+                  borderColor: dateFilter === opt.value ? 'var(--accent)' : 'var(--border)',
+                  background: dateFilter === opt.value ? 'var(--accent)' : 'var(--white)',
+                  color: dateFilter === opt.value ? '#fff' : 'var(--text-secondary)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div style={{
