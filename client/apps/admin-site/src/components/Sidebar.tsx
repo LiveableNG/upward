@@ -14,6 +14,7 @@ import {
   Smartphone,
   MessageSquare,
   Landmark,
+  BarChart3,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -48,6 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     title: 'Overview',
     items: [
       { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+      { name: 'Performance Metrics', path: '/metrics', icon: BarChart3 },
       { name: 'Campaigns', path: '/campaigns', icon: CalendarClock },
     ],
   })

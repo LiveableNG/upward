@@ -18,6 +18,9 @@ import SupportTickets from './pages/SupportTickets'
 import Verifications from './pages/Verifications'
 import Webhooks from './pages/Webhooks'
 import DemoBank from './pages/DemoBank'
+import PerformanceMetrics from './pages/PerformanceMetrics'
+import UserDetail from './pages/UserDetail'
+import PmDetail from './pages/PmDetail'
 import Layout from './components/Layout'
 
 import ChangePassword from './components/ChangePassword'
@@ -46,6 +49,9 @@ function AppRoutes() {
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard token={auth.token} adminRole={auth.user.role} />} />
+          <Route path="/metrics" element={<PerformanceMetrics token={auth.token} />} />
+          <Route path="/users/:uuid" element={<UserDetail token={auth.token} />} />
+          <Route path="/pms/:uuid" element={<PmDetail token={auth.token} />} />
           <Route path="/emails" element={<EmailComposer token={auth.token} />} />
           <Route path="/email-logs" element={<EmailLogs token={auth.token} />} />
           <Route path="/sessions" element={<Navigate to="/" replace />} />

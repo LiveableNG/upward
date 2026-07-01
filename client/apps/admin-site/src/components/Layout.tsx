@@ -13,6 +13,7 @@ interface LayoutProps {
 
 const pathMetadata: Record<string, { name: string; category?: string }> = {
   '/dashboard': { name: 'Dashboard' },
+  '/metrics': { name: 'Performance Metrics', category: 'Overview' },
   '/emails': { name: 'Email Composer', category: 'Communications' },
   '/email-logs': { name: 'Email Logs', category: 'Communications' },
   '/campaigns': { name: 'Campaigns', category: 'Overview' },
@@ -35,12 +36,21 @@ const Breadcrumbs: React.FC = () => {
 
   if (path === '/login') return null
 
-  const info = pathMetadata[path] || {
-    name: path
-      .split('/')
-      .filter(Boolean)
-      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-      .join(' '),
+  let info = pathMetadata[path]
+  if (!info) {
+    if (path.startsWith('/users/')) {
+      info = { name: 'User Profile Details', category: 'Overview' }
+    } else if (path.startsWith('/pms/')) {
+      info = { name: 'Property Manager Details', category: 'Overview' }
+    } else {
+      info = {
+        name: path
+          .split('/')
+          .filter(Boolean)
+          .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+          .join(' '),
+      }
+    }
   }
 
   return (

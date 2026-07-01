@@ -1008,7 +1008,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                       {allUsers.map((user) => (
                         <tr
                           key={user.id}
-                          onClick={() => handleOpenUserModal(user)}
+                          onClick={() => navigate(`/users/${user.uuid}`)}
                           style={{
                             borderBottom: '1px solid var(--border)',
                             verticalAlign: 'top',
@@ -1253,7 +1253,13 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                     pmList.map((pm) => (
                       <tr
                         key={pm.id}
-                        onClick={() => handleOpenPmModal(pm)}
+                        onClick={() => {
+                          if (pm.type === 'PM') {
+                            navigate(`/pms/${pm.id}`)
+                          } else {
+                            handleOpenPmModal(pm)
+                          }
+                        }}
                         style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
                         className="table-row-hover"
                       >
