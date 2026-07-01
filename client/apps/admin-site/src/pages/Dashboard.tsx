@@ -407,17 +407,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   }
 
   // --- Modal Openers ---
-  const handleOpenUserModal = (user: User) => {
-    setSelectedUser(user)
-    setEditFirstName(user.firstName || '')
-    setEditLastName(user.lastName || '')
-    setEditEmail(user.email || '')
-    setEditPhone(user.phone || '')
-
-    const matchedOverride = overrides.find(o => o.targetType === 'USER' && o.targetId === user.uuid)
-    setUserFee(matchedOverride ? String(matchedOverride.fee) : '2000')
-  }
-
   const handleOpenPmModal = (pm: FeeTarget) => {
     setSelectedPm(pm)
     const matchedOverride = overrides.find(o => o.targetType === pm.type && o.targetId === pm.id)
