@@ -78,9 +78,18 @@ export class GetAdminUserDetailUseCase {
 
       const resolvedProperties = decryptedUser.properties.map((p: any) => {
         const loc = locations.find((l: any) => l.id === p.locationId)
+        const company = p.company
+          ? {
+              ...p.company,
+              name: p.company.name ? this.encryption.decrypt(p.company.name) : '',
+              email: p.company.email ? this.encryption.decrypt(p.company.email) : null,
+              phone: p.company.phone ? this.encryption.decrypt(p.company.phone) : null,
+            }
+          : null
         return {
           ...p,
           location: loc || null,
+          company,
         }
       })
 
@@ -160,11 +169,13 @@ export class GetAdminUserDetailUseCase {
       updatedAt: t.updatedAt,
       inviteStatus: t.inviteStatus,
       inviteSentAt: t.inviteSentAt,
-      pm: {
-        id: t.pm.id,
-        businessName: t.pm.businessName,
-        email: t.pm.email,
-      },
+      pm: t.pm
+        ? {
+            id: t.pm.id,
+            businessName: t.pm.businessName ? this.encryption.decrypt(t.pm.businessName) : '',
+            email: t.pm.email ? this.encryption.decrypt(t.pm.email) : '',
+          }
+        : null,
       units: t.units,
       properties: t.units.map((u: any) => u.property),
       transactions: [],
