@@ -52,6 +52,7 @@ import { PublicTrackingController } from './public/public-tracking.controller'
 import { AppActivityLogController } from './admin/app-activity-log.controller'
 import { FeedbackAdminController } from './admin/feedback-admin.controller'
 import { DevEmailAdminController } from './admin/dev-email-admin.controller'
+import { AdminLoginSessionsController } from './admin/admin-login-sessions.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module],
@@ -105,6 +106,7 @@ import { DevEmailAdminController } from './admin/dev-email-admin.controller'
     AppActivityLogController,
     FeedbackAdminController,
     DevEmailAdminController,
+    AdminLoginSessionsController,
   ],
 })
 export class HttpModule {}

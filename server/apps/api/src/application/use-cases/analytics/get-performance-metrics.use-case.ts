@@ -31,7 +31,7 @@ export class GetPerformanceMetricsUseCase {
     }
 
     // 2. Query Base Datasets
-    const [allUsers, allWaitlistEntries, pmTenants, allPms, successTransactions] = await Promise.all([
+    const [allUsers, allWaitlistEntries, pmTenants, allPms, successTransactions, activeUserGroups] = await Promise.all([
       this.prisma.upward_user.findMany({
         include: {
           transactions: {
@@ -76,6 +76,19 @@ export class GetPerformanceMetricsUseCase {
           amount: true,
           landlordId: true,
           lineItems: true,
+        },
+      }),
+      this.prisma.upward_app_activity_log.groupBy({
+        by: ['userId'],
+        where: {
+          action: 'LOGIN',
+          userId: { not: null },
+          createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+        },
+        having: {
+          userId: {
+            _count: { gt: 1 },
+          },
         },
       }),
     ])
@@ -388,6 +401,12 @@ export class GetPerformanceMetricsUseCase {
           totalUpwardFees,
           totalBenefitsFees,
           totalRentProcessed,
+        },
+        activeUsers: {
+          activeCount: activeUserGroups.length,
+          totalUsers: allUsers.length,
+          inactiveCount: allUsers.length - activeUserGroups.length,
+          activeRate: allUsers.length > 0 ? Math.round((activeUserGroups.length / allUsers.length) * 100) : 0,
         },
       },
       directories: {

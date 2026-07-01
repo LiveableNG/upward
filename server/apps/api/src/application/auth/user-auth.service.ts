@@ -26,7 +26,11 @@ export class UserAuthService extends BaseAuthService {
     super(jwtService, configService)
   }
 
-  async generateFullAuthResponse(user: User): Promise<UserAuthResponse & { refreshToken: string }> {
+  async generateFullAuthResponse(
+    user: User,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<UserAuthResponse & { refreshToken: string }> {
     const payload = {
       sub: user.uuid,
       email: user.email,
@@ -55,6 +59,15 @@ export class UserAuthService extends BaseAuthService {
       })
     }
 
+    // Resolve location
+    let country: string | null = null
+    let city: string | null = null
+    if (ipAddress) {
+      const geo = await lookupIp(ipAddress)
+      country = geo.country
+      city = geo.city
+    }
+
     // Create New Session
     const sid = crypto.randomUUID()
     const refreshToken = this.generateRefreshToken({ sub: user.uuid, sid })
@@ -64,6 +77,10 @@ export class UserAuthService extends BaseAuthService {
         userId: user.id!,
         refreshTokenHash: this.hashToken(refreshToken),
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        ipAddress: ipAddress || null,
+        userAgent: userAgent || null,
+        country,
+        city,
       }
     })
 
@@ -79,33 +96,37 @@ export class UserAuthService extends BaseAuthService {
     }
   }
 
-  async signup(dto: {
-    email: string
-    password: string
-    firstName: string
-    lastName: string
-    phone?: string
-    properties?: Array<{
-      uuid?: string;
-      address: string;
-      subarea?: string;
-      state?: string;
-      country?: string;
-      rentDueDate?: string;
-      rentAmount?: number;
-      rentType?: string;
-      companyName?: string;
-      companyPhone?: string;
-      companyEmail?: string;
-      managerName?: string;
-      managerPhone?: string;
-      managerEmail?: string;
-      isPastTenancy?: boolean;
-    }>
-    isFromWaitlist?: boolean
-    isFromInvite?: boolean
-    dateOfBirth?: string
-  }): Promise<UserAuthResponse & { refreshToken: string }> {
+  async signup(
+    dto: {
+      email: string
+      password: string
+      firstName: string
+      lastName: string
+      phone?: string
+      properties?: Array<{
+        uuid?: string;
+        address: string;
+        subarea?: string;
+        state?: string;
+        country?: string;
+        rentDueDate?: string;
+        rentAmount?: number;
+        rentType?: string;
+        companyName?: string;
+        companyPhone?: string;
+        companyEmail?: string;
+        managerName?: string;
+        managerPhone?: string;
+        managerEmail?: string;
+        isPastTenancy?: boolean;
+      }>
+      isFromWaitlist?: boolean
+      isFromInvite?: boolean
+      dateOfBirth?: string
+    },
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<UserAuthResponse & { refreshToken: string }> {
     if (dto.phone && !/^\+234\d{10}$/.test(dto.phone)) {
       throw new Error('Phone number must be in format +2348000000000');
     }
@@ -135,7 +156,7 @@ export class UserAuthService extends BaseAuthService {
           await this.syncProperties(user.id!, dto.properties)
         }
         await this.syncTenantStatuses(dto.email)
-        return this.generateFullAuthResponse(user)
+        return this.generateFullAuthResponse(user, ipAddress, userAgent)
       }
       throw new ConflictException('User with this email already exists')
     }
@@ -174,12 +195,14 @@ export class UserAuthService extends BaseAuthService {
 
     await this.syncTenantStatuses(dto.email)
 
-    return this.generateFullAuthResponse(user)
+    return this.generateFullAuthResponse(user, ipAddress, userAgent)
   }
 
   async login(
     email: string,
     password: string,
+    ipAddress?: string,
+    userAgent?: string,
   ): Promise<UserAuthResponse & { refreshToken: string }> {
     const user = await this.userRepository.findByEmail(email)
 
@@ -216,11 +239,13 @@ export class UserAuthService extends BaseAuthService {
       email: user.email,
     }
 
-    return this.generateFullAuthResponse(user)
+    return this.generateFullAuthResponse(user, ipAddress, userAgent)
   }
 
   async refreshAccessToken(
     refreshToken: string,
+    ipAddress?: string,
+    userAgent?: string,
   ): Promise<UserAuthResponse & { refreshToken: string }> {
     const decoded = await this.verifyRefreshToken(refreshToken)
     const sid = decoded.sid
@@ -253,6 +278,15 @@ export class UserAuthService extends BaseAuthService {
       throw new UnauthorizedException('User not found')
     }
 
+    // Resolve location
+    let country: string | null = null
+    let city: string | null = null
+    if (ipAddress) {
+      const geo = await lookupIp(ipAddress)
+      country = geo.country
+      city = geo.city
+    }
+
     // Rotate the token
     const newAccessToken = this.generateAccessToken({ sub: user.uuid, email: user.email })
     const newRefreshToken = this.generateRefreshToken({ sub: user.uuid, sid })
@@ -262,6 +296,10 @@ export class UserAuthService extends BaseAuthService {
       data: {
         refreshTokenHash: this.hashToken(newRefreshToken),
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        ipAddress: ipAddress || session.ipAddress,
+        userAgent: userAgent || session.userAgent,
+        country: country || session.country,
+        city: city || session.city,
       }
     })
 
@@ -970,4 +1008,30 @@ export class UserAuthService extends BaseAuthService {
 
     }
   }
+}
+
+async function lookupIp(ip: string): Promise<{ country: string | null; city: string | null }> {
+  if (
+    !ip ||
+    ip === '127.0.0.1' ||
+    ip === '::1' ||
+    ip === 'localhost' ||
+    ip.startsWith('192.168.') ||
+    ip.startsWith('10.') ||
+    ip.startsWith('172.16.')
+  ) {
+    return { country: 'Localhost', city: 'System' }
+  }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,city`)
+      const res = (await response.json()) as any
+      if (res && res.status === 'success') {
+        return { country: res.country || null, city: res.city || null }
+      }
+    } catch (err: any) {
+      // ignore
+    }
+  }
+  return { country: null, city: null }
 }
