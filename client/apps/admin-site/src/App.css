@@ -8,7 +8,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  background-color: var(--surface);
+  background-color: var(--bg);
 }
 
 .page-container {
@@ -342,3 +342,57 @@
 .slide-up {
   animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ─── Breadcrumbs ────────────────────────────────────────────────────── */
+.breadcrumbs-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 32px 0 32px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .breadcrumbs-wrapper {
+    padding: 16px 16px 0 16px;
+  }
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+  flex-wrap: wrap;
+}
+
+.breadcrumbs a {
+  color: var(--text-muted);
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+  color: var(--accent);
+}
+
+.breadcrumbs-current {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.breadcrumbs-category {
+  color: var(--text-secondary);
+}
+
+.breadcrumbs-separator {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  opacity: 0.5;
+}
+
