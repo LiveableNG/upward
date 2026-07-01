@@ -14,8 +14,8 @@ interface FilterToolbarProps {
   search: string
   onSearchChange: (v: string) => void
 
-  dateFilter: DateFilter
-  onDateFilterChange: (v: DateFilter) => void
+  dateFilter?: DateFilter
+  onDateFilterChange?: (v: DateFilter) => void
 
   statusFilter?: StatusFilter
   onStatusFilterChange?: (v: StatusFilter) => void
@@ -122,29 +122,31 @@ const FilterToolbar: React.FC<FilterToolbarProps> = ({
         </div>
 
         {/* Date Filter Chips */}
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
-          <Filter size={13} style={{ color: 'var(--text-muted)' }} />
-          {DATE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => onDateFilterChange(opt.value)}
-              style={{
-                padding: '5px 12px',
-                borderRadius: '20px',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                border: '1px solid',
-                borderColor: dateFilter === opt.value ? 'var(--accent)' : 'var(--border)',
-                background: dateFilter === opt.value ? 'var(--accent)' : 'var(--white)',
-                color: dateFilter === opt.value ? '#fff' : 'var(--text-secondary)',
-                transition: 'var(--transition)',
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
+        {dateFilter && onDateFilterChange && (
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+            <Filter size={13} style={{ color: 'var(--text-muted)' }} />
+            {DATE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => onDateFilterChange(opt.value)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: '1px solid',
+                  borderColor: dateFilter === opt.value ? 'var(--accent)' : 'var(--border)',
+                  background: dateFilter === opt.value ? 'var(--accent)' : 'var(--white)',
+                  color: dateFilter === opt.value ? '#fff' : 'var(--text-secondary)',
+                  transition: 'var(--transition)',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Status Filter */}
         {showStatusFilter && onStatusFilterChange && (

@@ -6,7 +6,6 @@ import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 
 // Feature Components
-import MetricsCards from '../features/dashboard/components/MetricsCards'
 import FilterToolbar, { type DateFilter } from '../features/dashboard/components/FilterToolbar'
 import { WaitlistTable } from '../features/dashboard/components/WaitlistTable'
 import { SignedUpTable } from '../features/dashboard/components/SignedUpTable'
@@ -163,12 +162,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   useEffect(() => {
     setCurrentPage(1)
   }, [activeTab, itemsPerPage])
-
-  // ── Tab navigation helper ──────────────────────────────────────
-  const handleTabChange = (tab: string) => {
-    if (tab === 'signed-up') setActiveTab('signedUp')
-    else setActiveTab(tab as ActiveTab)
-  }
 
   // ── Bulk Waitlist delete handlers ──────────────────────────────
   const handleBatchDelete = async (ids: string[]) => {
@@ -369,8 +362,22 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             <SlidersHorizontal size={16} /> Overrides Config
           </Link>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-            <button onClick={fetchDashboardData} className="btn btn-secondary" style={{ height: '40px', width: '40px', justifyContent: 'center' }}>
-              <RefreshCcw size={16} />
+            <button
+              onClick={fetchDashboardData}
+              className="btn btn-secondary"
+              style={{
+                height: '40px',
+                width: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--white)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+              }}
+            >
+              <RefreshCcw size={16} style={{ color: 'var(--text-secondary)' }} />
             </button>
             {elapsed && (
               <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
@@ -381,22 +388,11 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         </div>
       </div>
 
-      {/* ── Metrics Summary Cards ── */}
-      {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-          {Array.from({ length: 6 }).map((_, i) => <MetricCardSkeleton key={i} />)}
-        </div>
-      ) : (
-        <MetricsCards metrics={flatMetrics} onTabChange={handleTabChange} />
-      )}
-
       {/* ── Filter Toolbar (only for directory tabs) ── */}
       {showDirectoryControls && (
         <FilterToolbar
           search={search}
           onSearchChange={setSearch}
-          dateFilter={dateRange}
-          onDateFilterChange={setDateRange}
           onExport={handleExportExcel}
           onRefresh={fetchDashboardData}
           resultCount={currentDirectoryList.length}
@@ -438,13 +434,21 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             </div>
           </div>
         ) : (
-          <OverviewTab metrics={flatMetrics} />
+          <OverviewTab
+            metrics={flatMetrics}
+            dateFilter={dateRange}
+            onDateFilterChange={setDateRange}
+          />
         )
       )}
 
       {/* ── Revenue Tab ── */}
       {activeTab === 'revenue' && (
-        <RevenueAudit metrics={flatMetrics} />
+        <RevenueAudit
+          metrics={flatMetrics}
+          dateFilter={dateRange}
+          onDateFilterChange={setDateRange}
+        />
       )}
 
       {/* ── Sessions Tab ── */}

@@ -11,20 +11,13 @@ import {
 import * as XLSX from 'xlsx'
 import { showToast } from '@upward/client-core'
 import type { FlatMetrics } from '../types'
+import type { DateFilter } from './FilterToolbar'
 
 interface RevenueAuditProps {
   metrics: FlatMetrics | null
+  dateFilter: DateFilter
+  onDateFilterChange: (v: DateFilter) => void
 }
-
-type TimeRange = 'today' | 'yesterday' | '7d' | '30d' | 'ytd'
-
-const TIME_RANGES: { value: TimeRange; label: string }[] = [
-  { value: 'today', label: 'Today' },
-  { value: 'yesterday', label: 'Yesterday' },
-  { value: '7d', label: '7 Days' },
-  { value: '30d', label: '30 Days' },
-  { value: 'ytd', label: 'This Year' },
-]
 
 // ── SVG Area Chart ────────────────────────────────────────────
 interface AreaChartProps {
@@ -55,10 +48,7 @@ const AreaChart: React.FC<AreaChartProps> = ({ data, color, height = 140 }) => {
         </linearGradient>
       </defs>
       <path d={areaD} fill={`url(#${gradId})`} />
-      <path d={pathD} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      {points.map((p) => (
-        <circle key={p.label} cx={p.x} cy={p.y} r="4" fill={color} />
-      ))}
+      <path d={pathD} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -70,13 +60,10 @@ interface RevKpiProps {
   sub?: string
   change?: number
   color: string
-  faint: string
   icon: React.ReactNode
 }
-const RevKpi: React.FC<RevKpiProps> = ({ label, value, sub, change, color, faint, icon }) => (
-  <div style={{
-    background: faint,
-    borderRadius: '12px',
+const RevKpi: React.FC<RevKpiProps> = ({ label, value, sub, change, color, icon }) => (
+  <div className="card" style={{
     padding: '18px',
     display: 'flex',
     flexDirection: 'column',
@@ -107,13 +94,12 @@ function seedData(base: number, points = 30): { label: string; value: number }[]
 }
 
 // ── Main Component ───────────────────────────────────────────
-const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics }) => {
-  const [timeRange, setTimeRange] = useState<TimeRange>('30d')
+const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics, dateFilter, onDateFilterChange }) => {
   const [subView, setSubView] = useState<'overview' | 'performance'>('overview')
 
   const chartData = useMemo(
     () => seedData(metrics?.totalRentProcessed ?? 500000, 30),
-    [metrics?.totalRentProcessed, timeRange],
+    [metrics?.totalRentProcessed, dateFilter],
   )
 
   const feeRevenue = metrics?.feeRevenue ?? 0
@@ -155,13 +141,6 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics }) => {
       { KPI: 'Active Property Managers', Value: metrics.pmCount.toLocaleString(), Classification: 'Lead Base' },
     ]
 
-    // Sheet 3: Rent Volume Chart Trend
-    const chartTrendData = chartData.map((d) => ({
-      'Timeline Node': d.label,
-      'Rent Processed Volume (₦)': d.value,
-      'Projected Processing Fee (₦)': Math.round(d.value * 0.015), // 1.5% fee estimate
-    }))
-
     const workbook = XLSX.utils.book_new()
 
     const wsSummary = XLSX.utils.json_to_sheet(summaryData)
@@ -169,9 +148,6 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics }) => {
 
     const wsPerformance = XLSX.utils.json_to_sheet(performanceData)
     XLSX.utils.book_append_sheet(workbook, wsPerformance, 'Retention & Growth KPIs')
-
-    const wsTrend = XLSX.utils.json_to_sheet(chartTrendData)
-    XLSX.utils.book_append_sheet(workbook, wsTrend, 'Rent Trend Projections')
 
     // Auto-fit widths
     const fitCols = (ws: any, data: any[]) => {
@@ -188,7 +164,6 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics }) => {
 
     fitCols(wsSummary, summaryData)
     fitCols(wsPerformance, performanceData)
-    fitCols(wsTrend, chartTrendData)
 
     XLSX.writeFile(workbook, `Upward_Revenue_Performance_Audit_${new Date().toISOString().split('T')[0]}.xlsx`)
     showToast('Detailed financial and performance spreadsheet downloaded!')
@@ -227,16 +202,21 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics }) => {
           </span>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          {TIME_RANGES.map((r) => (
+          {[
+            { value: 'all', label: 'All Time' },
+            { value: 'today', label: 'Today' },
+            { value: 'week', label: '7 Days' },
+            { value: 'month', label: '30 Days' },
+          ].map((r) => (
             <button
               key={r.value}
-              onClick={() => setTimeRange(r.value)}
+              onClick={() => onDateFilterChange(r.value as DateFilter)}
               style={{
                 padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                 border: '1px solid',
-                borderColor: timeRange === r.value ? 'var(--success)' : 'var(--border)',
-                background: timeRange === r.value ? 'var(--success)' : 'var(--white)',
-                color: timeRange === r.value ? '#fff' : 'var(--text-secondary)',
+                borderColor: dateFilter === r.value ? 'var(--success)' : 'var(--border)',
+                background: dateFilter === r.value ? 'var(--success)' : 'var(--white)',
+                color: dateFilter === r.value ? '#fff' : 'var(--text-secondary)',
                 transition: 'var(--transition)',
               }}
             >
@@ -258,12 +238,12 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics }) => {
         <>
           {/* ── KPI Cards ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '14px' }}>
-            <RevKpi label="Gross Rent Processed" value={`₦${totalRent.toLocaleString()}`} sub="total rent payments collected" change={+18} color="var(--success)" faint="var(--success-faint)" icon={<Home size={14} />} />
-            <RevKpi label="Net Platform Revenue" value={`₦${netRevenue.toLocaleString()}`} sub="fee + benefits combined" change={+11} color="var(--accent)" faint="var(--accent-faint)" icon={<TrendingUp size={14} />} />
-            <RevKpi label="Processing Fee Revenue" value={`₦${feeRevenue.toLocaleString()}`} sub="transaction processing fees" change={+6} color="#6366f1" faint="rgba(99,102,241,0.07)" icon={<CreditCard size={14} />} />
-            <RevKpi label="Benefits Revenue" value={`₦${benefitsRevenue.toLocaleString()}`} sub="protection benefits fees" change={+9} color="#06b6d4" faint="rgba(6,182,212,0.07)" icon={<ShieldCheck size={14} />} />
-            <RevKpi label="Average Rent" value={`₦${avgRent.toLocaleString()}`} sub="per active tenant" color="#8b5cf6" faint="rgba(139,92,246,0.07)" icon={<BarChart2 size={14} />} />
-            <RevKpi label="Avg Processing Fee" value={`₦${avgFee.toLocaleString()}`} sub="per property manager" color="var(--warning)" faint="var(--warning-faint)" icon={<ArrowUpRight size={14} />} />
+            <RevKpi label="Gross Rent Processed" value={`₦${totalRent.toLocaleString()}`} sub="total rent payments collected" change={+18} color="var(--success)" icon={<Home size={14} />} />
+            <RevKpi label="Net Platform Revenue" value={`₦${netRevenue.toLocaleString()}`} sub="fee + benefits combined" change={+11} color="var(--accent)" icon={<TrendingUp size={14} />} />
+            <RevKpi label="Processing Fee Revenue" value={`₦${feeRevenue.toLocaleString()}`} sub="transaction processing fees" change={+6} color="#6366f1" icon={<CreditCard size={14} />} />
+            <RevKpi label="Benefits Revenue" value={`₦${benefitsRevenue.toLocaleString()}`} sub="protection benefits fees" change={+9} color="#06b6d4" icon={<ShieldCheck size={14} />} />
+            <RevKpi label="Average Rent" value={`₦${avgRent.toLocaleString()}`} sub="per active tenant" color="#8b5cf6" icon={<BarChart2 size={14} />} />
+            <RevKpi label="Avg Processing Fee" value={`₦${avgFee.toLocaleString()}`} sub="per property manager" color="var(--warning)" icon={<ArrowUpRight size={14} />} />
           </div>
 
           {/* ── Revenue Chart ── */}
@@ -272,7 +252,7 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics }) => {
               <div>
                 <span className="section-label">Rent Volume Trend</span>
                 <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
-                  Rolling {timeRange === '7d' ? '7-day' : timeRange === '30d' ? '30-day' : timeRange === 'ytd' ? 'annual' : 'daily'} rent payment volume
+                  Rolling {dateFilter === 'week' ? '7-day' : dateFilter === 'month' ? '30-day' : dateFilter === 'today' ? 'daily' : 'historical'} rent payment volume
                 </p>
               </div>
               <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--success)' }}>₦{totalRent.toLocaleString()}</span>
@@ -351,7 +331,6 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics }) => {
                 sub="annualised ÷ 12 estimate"
                 change={+8}
                 color="var(--accent)"
-                faint="var(--accent-faint)"
                 icon={<TrendingUp size={14} />}
               />
               <RevKpi
@@ -360,7 +339,6 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics }) => {
                 sub="successful vs attempted"
                 change={+2}
                 color="var(--success)"
-                faint="var(--success-faint)"
                 icon={<ShieldCheck size={14} />}
               />
               <RevKpi
@@ -368,7 +346,6 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics }) => {
                 value={`${revenueEfficiency}%`}
                 sub="net revenue / gross rent"
                 color="#6366f1"
-                faint="rgba(99,102,241,0.07)"
                 icon={<BarChart2 size={14} />}
               />
               <RevKpi
@@ -376,7 +353,6 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics }) => {
                 value={`₦${revenuePerTransaction.toLocaleString()}`}
                 sub="net platform revenue per tenant"
                 color="#06b6d4"
-                faint="rgba(6,182,212,0.07)"
                 icon={<CreditCard size={14} />}
               />
               <RevKpi
@@ -384,7 +360,6 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics }) => {
                 value={`₦${avgTransactionSize.toLocaleString()}`}
                 sub="average rent per tenant"
                 color="#8b5cf6"
-                faint="rgba(139,92,246,0.07)"
                 icon={<Home size={14} />}
               />
               <RevKpi
@@ -393,7 +368,6 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics }) => {
                 sub="per property manager"
                 change={+6}
                 color="var(--warning)"
-                faint="var(--warning-faint)"
                 icon={<ArrowUpRight size={14} />}
               />
             </div>
