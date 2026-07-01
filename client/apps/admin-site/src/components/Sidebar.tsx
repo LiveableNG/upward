@@ -14,6 +14,7 @@ import {
   Smartphone,
   Landmark,
   MessageSquare,
+  SlidersHorizontal,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -49,6 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     items: [
       { name: 'Dashboard', path: '/', icon: LayoutDashboard },
       { name: 'Campaigns', path: '/campaigns', icon: CalendarClock },
+      { name: 'Fee Overrides', path: '/overrides', icon: SlidersHorizontal },
     ],
   })
 

@@ -90,4 +90,67 @@ export interface MetricsSummary {
     totalBenefitsFees: number
     totalRentProcessed: number
   }
+  activeUsers?: {
+    activeCount: number
+    totalUsers: number
+    inactiveCount: number
+    activeRate: number
+  }
 }
+
+export interface ActiveUsersMetric {
+  activeCount: number
+  totalUsers: number
+  inactiveCount: number
+  activeRate: number
+}
+
+export interface LoginSession {
+  id: string
+  userId: number
+  userUuid: string
+  userName: string
+  userEmail: string
+  userRole: string
+  userAgent: string | null
+  ipAddress: string | null
+  deviceId: string | null
+  isRevoked: boolean
+  createdAt: string
+  expiresAt: string
+  country: string
+  city: string
+}
+
+/**
+ * Flat helper derived from MetricsSummary for convenience in display components.
+ * Call flattenMetrics(metrics) to produce this shape.
+ */
+export interface FlatMetrics {
+  waitlistCount: number
+  signedUpCount: number
+  pmCount: number
+  invitedCount: number
+  totalRentProcessed: number
+  feeRevenue: number
+  benefitsRevenue: number
+  activeCount: number
+  inactiveCount: number
+  activeRate: number
+}
+
+export function flattenMetrics(m: MetricsSummary): FlatMetrics {
+  return {
+    waitlistCount: m.waitlist.total,
+    signedUpCount: m.signedUp.total,
+    pmCount: m.sources.pmCount,
+    invitedCount: m.invited.total,
+    totalRentProcessed: m.revenue.totalRentProcessed,
+    feeRevenue: m.revenue.totalUpwardFees,
+    benefitsRevenue: m.revenue.totalBenefitsFees,
+    activeCount: m.activeUsers?.activeCount ?? 0,
+    inactiveCount: m.activeUsers?.inactiveCount ?? 0,
+    activeRate: m.activeUsers?.activeRate ?? 0,
+  }
+}
+

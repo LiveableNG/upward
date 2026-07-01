@@ -1,121 +1,191 @@
 import React from 'react'
-import { Search, Trash2, Download } from 'lucide-react'
+import {
+  Search,
+  Download,
+  Filter,
+  X,
+  RefreshCw,
+} from 'lucide-react'
+
+export type DateFilter = 'all' | 'today' | 'week' | 'month'
+export type StatusFilter = 'all' | 'verified' | 'unverified' | 'paid' | 'unpaid' | 'pending' | 'converted'
 
 interface FilterToolbarProps {
-  activeTab: 'waitlist' | 'signedUp' | 'invited' | 'pms' | 'revenue'
   search: string
-  setSearch: (s: string) => void
-  dateRange: 'all' | 'today' | '7days' | '30days' | 'custom'
-  setDateRange: (r: 'all' | 'today' | '7days' | '30days' | 'custom') => void
-  startDate: string
-  setStartDate: (s: string) => void
-  endDate: string
-  setEndDate: (e: string) => void
-  selectedWaitlistIds: Set<string>
-  triggerBulkDelete: () => void
-  handleExportExcel: () => void
+  onSearchChange: (v: string) => void
+
+  dateFilter: DateFilter
+  onDateFilterChange: (v: DateFilter) => void
+
+  statusFilter?: StatusFilter
+  onStatusFilterChange?: (v: StatusFilter) => void
+  showStatusFilter?: boolean
+
+  onExport?: () => void
+  onRefresh?: () => void
+
+  /** count of currently displayed records */
+  resultCount?: number
+
+  /** current tab label */
+  tabLabel?: string
+
+  isSticky?: boolean
 }
 
-export const FilterToolbar: React.FC<FilterToolbarProps> = ({
-  activeTab,
+const DATE_OPTIONS: { value: DateFilter; label: string }[] = [
+  { value: 'all', label: 'All Time' },
+  { value: 'today', label: 'Today' },
+  { value: 'week', label: 'This Week' },
+  { value: 'month', label: 'This Month' },
+]
+
+const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: 'all', label: 'All Status' },
+  { value: 'verified', label: 'Verified' },
+  { value: 'unverified', label: 'Unverified' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'unpaid', label: 'Unpaid' },
+  { value: 'converted', label: 'Converted' },
+  { value: 'pending', label: 'Pending' },
+]
+
+const FilterToolbar: React.FC<FilterToolbarProps> = ({
   search,
-  setSearch,
-  dateRange,
-  setDateRange,
-  startDate,
-  setStartDate,
-  endDate,
-  setEndDate,
-  selectedWaitlistIds,
-  triggerBulkDelete,
-  handleExportExcel,
+  onSearchChange,
+  dateFilter,
+  onDateFilterChange,
+  statusFilter = 'all',
+  onStatusFilterChange,
+  showStatusFilter = false,
+  onExport,
+  onRefresh,
+  resultCount,
+  tabLabel,
+  isSticky = true,
 }) => {
   return (
-    <div className="card" style={{ marginBottom: '24px', padding: '20px' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
-        
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', flex: 1 }}>
-          
-          {/* Search Input */}
-          <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '180px' }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input
-              type="text"
-              placeholder={`Search inside ${activeTab} directory...`}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input"
-              style={{ paddingLeft: '38px', height: '40px' }}
-            />
-          </div>
+    <div
+      style={{
+        background: 'rgba(248, 250, 252, 0.95)',
+        backdropFilter: 'blur(12px)',
+        padding: '12px 0',
+        position: isSticky ? 'sticky' : 'relative',
+        top: isSticky ? 0 : undefined,
+        zIndex: isSticky ? 10 : undefined,
+        marginBottom: '4px',
+      }}
+    >
+      {/* Row 1: Search + Action Buttons */}
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
 
-          {/* Date Preset Selector */}
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }} className="date-chips">
-            {(
-              [
-                { key: 'all', label: 'All' },
-                { key: 'today', label: 'Today' },
-                { key: '7days', label: '7 Days' },
-                { key: '30days', label: '30 Days' },
-                { key: 'custom', label: 'Custom' },
-              ] as const
-            ).map(({ key, label }) => (
-              <button
-                key={key}
-                className={`date-chip${dateRange === key ? ' active' : ''}`}
-                onClick={() => setDateRange(key)}
-                style={{ height: '34px' }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* Custom Dates Inputs */}
-          {dateRange === 'custom' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="input"
-                style={{ height: '36px', width: '130px', padding: '0 8px' }}
-              />
-              <span style={{ color: 'var(--text-muted)' }}>to</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="input"
-                style={{ height: '36px', width: '130px', padding: '0 8px' }}
-              />
-            </div>
-          )}
-
-        </div>
-
-        {/* Action Tools */}
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {activeTab === 'waitlist' && selectedWaitlistIds.size > 0 && (
+        {/* Search */}
+        <div style={{ position: 'relative', flex: '1 1 240px', minWidth: '200px' }}>
+          <Search
+            size={15}
+            style={{
+              position: 'absolute',
+              left: '13px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--text-muted)',
+              pointerEvents: 'none',
+            }}
+          />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder={`Search${tabLabel ? ` ${tabLabel}` : ''}...`}
+            className="input"
+            style={{ paddingLeft: '38px', paddingRight: search ? '36px' : '14px', height: '38px', fontSize: '13px' }}
+          />
+          {search && (
             <button
-              onClick={triggerBulkDelete}
-              className="btn btn-secondary"
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--danger)', height: '40px' }}
+              onClick={() => onSearchChange('')}
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-muted)',
+                display: 'flex',
+                padding: '2px',
+              }}
             >
-              <Trash2 size={16} /> Delete Selected ({selectedWaitlistIds.size})
+              <X size={14} />
             </button>
           )}
-          
-          <button
-            onClick={handleExportExcel}
-            className="btn btn-primary"
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '40px' }}
-          >
-            <Download size={16} /> Export Active Table
-          </button>
         </div>
 
+        {/* Date Filter Chips */}
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+          <Filter size={13} style={{ color: 'var(--text-muted)' }} />
+          {DATE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => onDateFilterChange(opt.value)}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '20px',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                border: '1px solid',
+                borderColor: dateFilter === opt.value ? 'var(--accent)' : 'var(--border)',
+                background: dateFilter === opt.value ? 'var(--accent)' : 'var(--white)',
+                color: dateFilter === opt.value ? '#fff' : 'var(--text-secondary)',
+                transition: 'var(--transition)',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Status Filter */}
+        {showStatusFilter && onStatusFilterChange && (
+          <select
+            value={statusFilter}
+            onChange={(e) => onStatusFilterChange(e.target.value as StatusFilter)}
+            className="input"
+            style={{ height: '38px', width: 'auto', padding: '0 12px', fontSize: '12px', fontWeight: 600 }}
+          >
+            {STATUS_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        )}
+
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexShrink: 0 }}>
+          {onRefresh && (
+            <button onClick={onRefresh} className="btn btn-secondary" style={{ height: '38px', padding: '0 12px', gap: '6px' }}>
+              <RefreshCw size={14} />
+              <span className="desktop-only">Refresh</span>
+            </button>
+          )}
+          {onExport && (
+            <button onClick={onExport} className="btn btn-secondary" style={{ height: '38px', padding: '0 14px', gap: '6px' }}>
+              <Download size={14} />
+              <span className="desktop-only">Export</span>
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Result count */}
+      {resultCount !== undefined && (
+        <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
+          Showing <strong>{resultCount.toLocaleString()}</strong> {tabLabel ?? 'records'}
+          {search && <span> matching "<em>{search}</em>"</span>}
+        </div>
+      )}
     </div>
   )
 }
+
+export default FilterToolbar

@@ -21,6 +21,7 @@ import DemoBank from './pages/DemoBank'
 import UserDetail from './pages/UserDetail'
 import PmDetail from './pages/PmDetail'
 import Layout from './components/Layout'
+import OverridesPage from './pages/Overrides'
 
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -48,6 +49,7 @@ function AppRoutes() {
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard token={auth.token} adminRole={auth.user.role} />} />
+          <Route path="/overrides" element={<OverridesPage token={auth.token} adminRole={auth.user.role} />} />
           <Route path="/metrics" element={<Navigate to="/dashboard" replace />} />
           <Route path="/users/:uuid" element={<UserDetail token={auth.token} />} />
           <Route path="/pms/:uuid" element={<PmDetail token={auth.token} />} />
