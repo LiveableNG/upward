@@ -216,13 +216,11 @@ export class AdminController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('search') search?: string,
-    @Query('userType') userType?: any,
   ) {
     return this.getPerformanceMetricsUseCase.execute({
       startDate,
       endDate,
       search,
-      userType,
     })
   }
 
