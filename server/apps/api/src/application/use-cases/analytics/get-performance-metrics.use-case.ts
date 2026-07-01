@@ -213,9 +213,13 @@ export class GetPerformanceMetricsUseCase {
 
         // Resolve PM origin
         const pmMatch = pmTenants.find((t) => t.emailHash === u.emailHash)
-        const pmName = pmMatch?.pm
-          ? pmMatch.pm.businessName || `${pmMatch.pm.firstName} ${pmMatch.pm.lastName}`
-          : 'Platform'
+        let pmName = 'Platform'
+        if (pmMatch?.pm) {
+          const decryptedBusinessName = pmMatch.pm.businessName ? this.encryption.decrypt(pmMatch.pm.businessName) : ''
+          const decryptedFirstName = pmMatch.pm.firstName ? this.encryption.decrypt(pmMatch.pm.firstName) : ''
+          const decryptedLastName = pmMatch.pm.lastName ? this.encryption.decrypt(pmMatch.pm.lastName) : ''
+          pmName = decryptedBusinessName || `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Platform'
+        }
 
         let status: 'INVITED_PENDING' | 'INVITED_SIGNED_UP' | 'GUEST_PAID' | 'SIGNED_UP_PAID' = 'INVITED_PENDING'
         if (isShadow) {
@@ -261,7 +265,13 @@ export class GetPerformanceMetricsUseCase {
           phone = t.phoneEncrypted || ''
         }
 
-        const pmName = t.pm ? t.pm.businessName || `${t.pm.firstName} ${t.pm.lastName}` : 'Platform'
+        let pmName = 'Platform'
+        if (t.pm) {
+          const decryptedBusinessName = t.pm.businessName ? this.encryption.decrypt(t.pm.businessName) : ''
+          const decryptedFirstName = t.pm.firstName ? this.encryption.decrypt(t.pm.firstName) : ''
+          const decryptedLastName = t.pm.lastName ? this.encryption.decrypt(t.pm.lastName) : ''
+          pmName = decryptedBusinessName || `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Platform'
+        }
 
         return {
           id: `inv_p_${t.id}`,
@@ -297,11 +307,11 @@ export class GetPerformanceMetricsUseCase {
       return {
         id: pm.id.toString(),
         uuid: pm.uuid,
-        email: pm.email,
-        firstName: pm.firstName,
-        lastName: pm.lastName,
-        businessName: pm.businessName || 'No Business Name',
-        phone: pm.phone || 'N/A',
+        email: pm.email ? this.encryption.decrypt(pm.email) : '',
+        firstName: pm.firstName ? this.encryption.decrypt(pm.firstName) : '',
+        lastName: pm.lastName ? this.encryption.decrypt(pm.lastName) : '',
+        businessName: pm.businessName ? this.encryption.decrypt(pm.businessName) : 'No Business Name',
+        phone: pm.phone ? this.encryption.decrypt(pm.phone) : 'N/A',
         isVerified: pm.isVerified,
         propertiesCount: pm.properties.length,
         unitsCount: pm.properties.reduce((sum, p) => sum + p.units.length, 0),
