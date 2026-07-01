@@ -118,9 +118,9 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics, dateFilter, onDate
     // Sheet 1: Financial & Revenue Summary
     const summaryData = [
       { Metric: 'Gross Rent Processed', Value: `₦${totalRent.toLocaleString()}`, Description: 'Total rent payments processed on platform' },
-      { Metric: 'Processing Fee Revenue', Value: `₦${feeRevenue.toLocaleString()}`, Description: 'Gross processing/transaction fee revenue' },
+      { Metric: 'Transaction Fee Revenue', Value: `₦${feeRevenue.toLocaleString()}`, Description: 'Gross transaction fee revenue' },
       { Metric: 'Benefits Revenue', Value: `₦${benefitsRevenue.toLocaleString()}`, Description: 'Security/protection benefit program revenue' },
-      { Metric: 'Net Platform Revenue', Value: `₦${netRevenue.toLocaleString()}`, Description: 'Combined processing fees + benefits' },
+      { Metric: 'Net Platform Revenue', Value: `₦${netRevenue.toLocaleString()}`, Description: 'Combined transaction fees + benefits' },
       { Metric: 'Average Rent Size', Value: `₦${avgRent.toLocaleString()}`, Description: 'Average rent payment size per paying tenant' },
       { Metric: 'Average PM Fee Yield', Value: `₦${avgFee.toLocaleString()}`, Description: 'Average fee yields generated per property manager' },
     ]
@@ -197,7 +197,7 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics, dateFilter, onDate
           </h3>
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {subView === 'overview'
-              ? 'Gross rent volume, processing fees, and benefit revenues'
+              ? 'Gross rent volume, transaction fees, and benefit revenues'
               : 'Platform efficiency, MRR estimates, and business health ratios'}
           </span>
         </div>
@@ -240,10 +240,10 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics, dateFilter, onDate
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '14px' }}>
             <RevKpi label="Gross Rent Processed" value={`₦${totalRent.toLocaleString()}`} sub="total rent payments collected" change={+18} color="var(--success)" icon={<Home size={14} />} />
             <RevKpi label="Net Platform Revenue" value={`₦${netRevenue.toLocaleString()}`} sub="fee + benefits combined" change={+11} color="var(--accent)" icon={<TrendingUp size={14} />} />
-            <RevKpi label="Processing Fee Revenue" value={`₦${feeRevenue.toLocaleString()}`} sub="transaction processing fees" change={+6} color="#6366f1" icon={<CreditCard size={14} />} />
+            <RevKpi label="Transaction Fee Revenue" value={`₦${feeRevenue.toLocaleString()}`} sub="transaction fee revenue" change={+6} color="#6366f1" icon={<CreditCard size={14} />} />
             <RevKpi label="Benefits Revenue" value={`₦${benefitsRevenue.toLocaleString()}`} sub="protection benefits fees" change={+9} color="#06b6d4" icon={<ShieldCheck size={14} />} />
             <RevKpi label="Average Rent" value={`₦${avgRent.toLocaleString()}`} sub="per active tenant" color="#8b5cf6" icon={<BarChart2 size={14} />} />
-            <RevKpi label="Avg Processing Fee" value={`₦${avgFee.toLocaleString()}`} sub="per property manager" color="var(--warning)" icon={<ArrowUpRight size={14} />} />
+            <RevKpi label="Avg Transaction Fee" value={`₦${avgFee.toLocaleString()}`} sub="per property manager" color="var(--warning)" icon={<ArrowUpRight size={14} />} />
           </div>
 
           {/* ── Revenue Chart ── */}
@@ -272,7 +272,7 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics, dateFilter, onDate
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {[
                   { label: 'Gross Rent', amount: totalRent, color: 'var(--success)', pct: 100 },
-                  { label: 'Processing Fees', amount: feeRevenue, color: '#6366f1', pct: totalRent > 0 ? Math.round((feeRevenue / totalRent) * 100) : 0 },
+                  { label: 'Transaction Fees', amount: feeRevenue, color: '#6366f1', pct: totalRent > 0 ? Math.round((feeRevenue / totalRent) * 100) : 0 },
                   { label: 'Benefits Revenue', amount: benefitsRevenue, color: '#06b6d4', pct: totalRent > 0 ? Math.round((benefitsRevenue / totalRent) * 100) : 0 },
                 ].map((item) => (
                   <div key={item.label}>

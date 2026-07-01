@@ -81,14 +81,9 @@ export class GetPerformanceMetricsUseCase {
       this.prisma.upward_app_activity_log.groupBy({
         by: ['userId'],
         where: {
-          action: 'LOGIN',
           userId: { not: null },
+          userRole: 'TENANT',
           createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
-        },
-        having: {
-          userId: {
-            _count: { gt: 1 },
-          },
         },
       }),
     ])
@@ -341,9 +336,13 @@ export class GetPerformanceMetricsUseCase {
     const waitlistTotalPaid = waitlistConvertedList.reduce((sum, u) => sum + u.totalPaid, 0)
 
     // Signed Up Stats
-    const signedUpTotalCount = signedUpDirectory.length
-    const signedUpPayingCount = signedUpDirectory.filter((u) => u.hasPaid).length
-    const signedUpTotalPaid = signedUpDirectory.reduce((sum, u) => sum + u.totalPaid, 0)
+    const signedUpTotalCount = allUsers.length
+    const allUsersPayments = allUsers.map((u) => {
+      const totalPaid = u.transactions.reduce((sum, tx) => sum + tx.amount, 0)
+      return { totalPaid, hasPaid: totalPaid > 0 }
+    })
+    const signedUpPayingCount = allUsersPayments.filter((u) => u.hasPaid).length
+    const signedUpTotalPaid = allUsersPayments.reduce((sum, u) => sum + u.totalPaid, 0)
 
     // Invited Stats
     const invitedPendingCount = finalInvitedDirectory.filter((u) => u.status === 'INVITED_PENDING').length
@@ -394,7 +393,7 @@ export class GetPerformanceMetricsUseCase {
           total: finalInvitedDirectory.length,
         },
         sources: {
-          pmCount: pmSourceCount,
+          pmCount: allPms.length,
           platformCount: platformSourceCount,
         },
         revenue: {

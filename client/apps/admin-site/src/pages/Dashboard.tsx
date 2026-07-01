@@ -438,6 +438,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             metrics={flatMetrics}
             dateFilter={dateRange}
             onDateFilterChange={setDateRange}
+            signedUpList={signedUpList}
+            invitedList={invitedList}
           />
         )
       )}
