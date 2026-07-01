@@ -7,7 +7,6 @@ export interface GetPerformanceMetricsOptions {
   startDate?: string
   endDate?: string
   search?: string
-  userType?: 'ALL' | 'INVITED_PENDING' | 'INVITED_SIGNED_UP' | 'GUEST_PAID' | 'SIGNED_UP_PAID' | 'SELF_SIGNED_UP_PENDING'
 }
 
 @Injectable()
@@ -20,7 +19,7 @@ export class GetPerformanceMetricsUseCase {
   ) {}
 
   async execute(options: GetPerformanceMetricsOptions = {}) {
-    const { startDate, endDate, search, userType } = options
+    const { startDate, endDate, search } = options
 
     // 1. Build Date Filters
     const dateFilter: any = {}
@@ -31,104 +30,59 @@ export class GetPerformanceMetricsUseCase {
       }
     }
 
-    // 2. Query Total Accounts (PM & Tenants)
-    const [totalTenants, totalPms] = await Promise.all([
-      this.prisma.upward_user.count(),
-      this.prisma.upward_property_manager.count(),
-    ])
-
-    // Accounts created in the filtered period (if filter is set)
-    const [periodTenants, periodPms] = await Promise.all([
-      this.prisma.upward_user.count({ where: dateFilter }),
-      this.prisma.upward_property_manager.count({ where: dateFilter }),
-    ])
-
-    // 3. Query Active Users (having more than 1 activity in last 30 days)
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-    const recentLogs = await this.prisma.upward_app_activity_log.findMany({
-      where: {
-        createdAt: { gte: thirtyDaysAgo },
-      },
-      select: {
-        app: true,
-        userEmail: true,
-        userId: true,
-        pmId: true,
-      },
-    })
-
-    const pmLogCount: Record<string, number> = {}
-    const tenantLogCount: Record<string, number> = {}
-
-    recentLogs.forEach((log) => {
-      const key = log.userEmail || (log.userId ? `u_${log.userId}` : log.pmId ? `pm_${log.pmId}` : null)
-      if (!key) return
-
-      if (log.app === 'upward-pm' || log.pmId) {
-        pmLogCount[key] = (pmLogCount[key] || 0) + 1
-      } else {
-        tenantLogCount[key] = (tenantLogCount[key] || 0) + 1
-      }
-    })
-
-    const activePmsCount = Object.values(pmLogCount).filter((count) => count > 1).length
-    const activeTenantsCount = Object.values(tenantLogCount).filter((count) => count > 1).length
-
-    // 4. Query Paying Users (has successful transaction in period)
-    const txPeriodFilter: any = { status: 'SUCCESS' }
-    if (startDate || endDate) {
-      txPeriodFilter.createdAt = {
-        ...(startDate && { gte: new Date(startDate) }),
-        ...(endDate && { lte: new Date(endDate) }),
-      }
-    } else {
-      // Default period is last 30 days if no date range is selected
-      txPeriodFilter.createdAt = { gte: thirtyDaysAgo }
-    }
-
-    const payingUsersGroup = await this.prisma.upward_transaction.groupBy({
-      by: ['userId'],
-      where: txPeriodFilter,
-    })
-    const payingUsersCount = payingUsersGroup.length
-
-    // 5. Query Recent User Sessions/Activity Logs
-    const sessionWhere: any = {}
-    if (startDate || endDate) {
-      sessionWhere.createdAt = {
-        ...(startDate && { gte: new Date(startDate) }),
-        ...(endDate && { lte: new Date(endDate) }),
-      }
-    }
-    if (search) {
-      sessionWhere.OR = [
-        { userEmail: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { ipAddress: { contains: search, mode: 'insensitive' } },
-      ]
-    }
-
-    const sessions = await this.prisma.upward_app_activity_log.findMany({
-      where: sessionWhere,
-      take: 100,
-      orderBy: { createdAt: 'desc' },
-    })
-
-    // 6. Build Detailed Users List (with Decryption)
-    const allUsers = await this.prisma.upward_user.findMany({
-      include: {
-        transactions: {
-          where: { status: 'SUCCESS' },
-          select: { amount: true },
+    // 2. Query Base Datasets
+    const [allUsers, allWaitlistEntries, pmTenants, allPms, successTransactions] = await Promise.all([
+      this.prisma.upward_user.findMany({
+        include: {
+          transactions: {
+            where: { status: 'SUCCESS' },
+            select: { amount: true, lineItems: true },
+          },
         },
-      },
-    })
+      }),
+      this.prisma.upward_waitlist.findMany(),
+      this.prisma.upward_pm_tenant.findMany({
+        include: {
+          pm: true,
+        },
+      }),
+      this.prisma.upward_property_manager.findMany({
+        include: {
+          properties: {
+            include: {
+              units: true,
+            },
+          },
+          userProperties: {
+            include: {
+              subaccount: true,
+            },
+          },
+        },
+      }),
+      this.prisma.upward_transaction.findMany({
+        where: {
+          status: 'SUCCESS',
+          ...(startDate || endDate
+            ? {
+                createdAt: {
+                  ...(startDate && { gte: new Date(startDate) }),
+                  ...(endDate && { lte: new Date(endDate) }),
+                },
+              }
+            : {}),
+        },
+        select: {
+          amount: true,
+          landlordId: true,
+          lineItems: true,
+        },
+      }),
+    ])
 
-    const pmTenants = await this.prisma.upward_pm_tenant.findMany({
-      where: { inviteStatus: 'PENDING' },
-    })
-
-    const decryptedUsers = allUsers.map((u) => {
+    // Pre-calculate user emails hash map for fast O(1) matching
+    const userMap = new Map<string, any>()
+    allUsers.forEach((u) => {
       let email = ''
       let firstName = ''
       let lastName = ''
@@ -146,47 +100,149 @@ export class GetPerformanceMetricsUseCase {
         phone = u.phone || ''
       }
 
-      const totalPaid = u.transactions.reduce((sum, tx) => sum + tx.amount, 0)
-      const hasPaid = u.transactions.length > 0
-
-      const isShadow =
-        u.passwordHash === PASS_PLACEHOLDERS.INVITED ||
-        u.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
-        !u.passwordHash.startsWith('$2')
-
-      let status: 'INVITED_PENDING' | 'INVITED_SIGNED_UP' | 'GUEST_PAID' | 'SIGNED_UP_PAID' | 'SELF_SIGNED_UP_PENDING' =
-        'SELF_SIGNED_UP_PENDING'
-
-      if (u.isFromInvite) {
-        if (isShadow) {
-          status = hasPaid ? 'GUEST_PAID' : 'INVITED_PENDING'
-        } else {
-          status = hasPaid ? 'SIGNED_UP_PAID' : 'INVITED_SIGNED_UP'
-        }
-      } else {
-        if (hasPaid) {
-          status = 'SIGNED_UP_PAID'
-        }
-      }
-
-      return {
-        id: u.id.toString(),
-        uuid: u.uuid,
-        email,
-        firstName,
-        lastName,
-        phone,
-        isFromInvite: u.isFromInvite,
-        isFromWaitlist: u.isFromWaitlist,
-        status,
-        totalPaid,
-        createdAt: u.createdAt,
-      }
+      userMap.set(u.emailHash, {
+        ...u,
+        decryptedEmail: email,
+        decryptedFirstName: firstName,
+        decryptedLastName: lastName,
+        decryptedPhone: phone,
+      })
     })
 
-    // Add PM Tenants who haven't signed up at all
-    const userEmails = new Set(decryptedUsers.map((u) => u.email.toLowerCase()))
-    const uncreatedInvites = pmTenants
+    // 3. CALCULATE REVENUE STATS (Upward Fees & Benefits Fees)
+    let totalUpwardFees = 0
+    let totalBenefitsFees = 0
+    let totalRentProcessed = 0
+
+    successTransactions.forEach((tx) => {
+      let txFee = 0
+      let benFee = 0
+
+      if (tx.lineItems && Array.isArray(tx.lineItems)) {
+        tx.lineItems.forEach((item: any) => {
+          const name = item.name || item.label || ''
+          const amt = Number(item.amountPaid || item.amount || item.totalAmount || 0)
+          if (name === 'Processing Fee' || name === 'Transaction Fee') {
+            txFee += amt
+          } else if (name === 'Upward Benefits') {
+            benFee += amt
+          }
+        })
+      }
+
+      totalUpwardFees += txFee
+      totalBenefitsFees += benFee
+      totalRentProcessed += tx.amount - txFee - benFee
+    })
+
+    // 4. MAP AND CLASSIFY USER ECOSYSTEM
+
+    // --- Waitlist Directory ---
+    const userWaitlistEmails = new Set(allUsers.filter((u) => u.isFromWaitlist).map((u) => u.emailHash))
+    
+    // Converted Waitlist Users
+    const waitlistConvertedList = allUsers
+      .filter((u) => u.isFromWaitlist)
+      .map((u) => {
+        const decrypted = userMap.get(u.emailHash)
+        const totalPaid = u.transactions.reduce((sum, tx) => sum + tx.amount, 0)
+        return {
+          id: `w_c_${u.id}`,
+          uuid: u.uuid,
+          email: decrypted.decryptedEmail,
+          firstName: decrypted.decryptedFirstName,
+          lastName: decrypted.decryptedLastName,
+          phone: decrypted.decryptedPhone,
+          createdAt: u.createdAt,
+          converted: true,
+          totalPaid,
+        }
+      })
+
+    // Unconverted Waitlist Entries
+    const waitlistUnconvertedList = allWaitlistEntries
+      .filter((w) => {
+        const hash = this.encryption.hash(w.email)
+        return !userWaitlistEmails.has(hash)
+      })
+      .map((w) => ({
+        id: `w_u_${w.id}`,
+        uuid: w.uuid,
+        email: w.email,
+        firstName: w.firstName || 'N/A',
+        lastName: w.lastName || 'N/A',
+        phone: w.phone || 'N/A',
+        createdAt: w.createdAt,
+        converted: false,
+        totalPaid: 0,
+      }))
+
+    const finalWaitlistDirectory = [...waitlistConvertedList, ...waitlistUnconvertedList]
+
+    // --- Signed Up Users Directory (Self / Waitlist Signups - i.e., NOT Invited) ---
+    const signedUpDirectory = allUsers
+      .filter((u) => !u.isFromInvite)
+      .map((u) => {
+        const decrypted = userMap.get(u.emailHash)
+        const totalPaid = u.transactions.reduce((sum, tx) => sum + tx.amount, 0)
+        return {
+          id: `su_${u.id}`,
+          uuid: u.uuid,
+          email: decrypted.decryptedEmail,
+          firstName: decrypted.decryptedFirstName,
+          lastName: decrypted.decryptedLastName,
+          phone: decrypted.decryptedPhone,
+          createdAt: u.createdAt,
+          isWaitlist: u.isFromWaitlist,
+          totalPaid,
+          hasPaid: totalPaid > 0,
+        }
+      })
+
+    // --- Invited Tenants Directory (including Guest payments) ---
+    // User accounts that are from invite
+    const invitedUserDirectory = allUsers
+      .filter((u) => u.isFromInvite)
+      .map((u) => {
+        const decrypted = userMap.get(u.emailHash)
+        const totalPaid = u.transactions.reduce((sum, tx) => sum + tx.amount, 0)
+        const isShadow =
+          u.passwordHash === PASS_PLACEHOLDERS.INVITED ||
+          u.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+          !u.passwordHash.startsWith('$2')
+
+        // Resolve PM origin
+        const pmMatch = pmTenants.find((t) => t.emailHash === u.emailHash)
+        const pmName = pmMatch?.pm
+          ? pmMatch.pm.businessName || `${pmMatch.pm.firstName} ${pmMatch.pm.lastName}`
+          : 'Platform'
+
+        let status: 'INVITED_PENDING' | 'INVITED_SIGNED_UP' | 'GUEST_PAID' | 'SIGNED_UP_PAID' = 'INVITED_PENDING'
+        if (isShadow) {
+          status = totalPaid > 0 ? 'GUEST_PAID' : 'INVITED_PENDING'
+        } else {
+          status = totalPaid > 0 ? 'SIGNED_UP_PAID' : 'INVITED_SIGNED_UP'
+        }
+
+        return {
+          id: `inv_u_${u.id}`,
+          uuid: u.uuid,
+          email: decrypted.decryptedEmail,
+          firstName: decrypted.decryptedFirstName,
+          lastName: decrypted.decryptedLastName,
+          phone: decrypted.decryptedPhone,
+          createdAt: u.createdAt,
+          status,
+          totalPaid,
+          pmName,
+          pmUuid: pmMatch?.pm?.uuid || null,
+        }
+      })
+
+    // PM tenants who haven't signed up at all
+    const invitedUserEmails = new Set(allUsers.map((u) => u.emailHash))
+    const uncreatedInvitedDirectory = pmTenants
+      .filter((t) => t.emailHash && !invitedUserEmails.has(t.emailHash))
       .map((t) => {
         let email = ''
         let firstName = ''
@@ -205,72 +261,131 @@ export class GetPerformanceMetricsUseCase {
           phone = t.phoneEncrypted || ''
         }
 
+        const pmName = t.pm ? t.pm.businessName || `${t.pm.firstName} ${t.pm.lastName}` : 'Platform'
+
         return {
-          id: `pm_t_${t.id}`,
+          id: `inv_p_${t.id}`,
           uuid: t.uuid,
           email,
           firstName,
           lastName,
           phone,
-          isFromInvite: true,
-          isFromWaitlist: false,
+          createdAt: t.createdAt,
           status: 'INVITED_PENDING' as const,
           totalPaid: 0,
-          createdAt: t.createdAt,
+          pmName,
+          pmUuid: t.pm?.uuid || null,
         }
       })
-      .filter((t) => t.email && !userEmails.has(t.email.toLowerCase()))
 
-    // Combine lists
-    let combinedUsers = [...decryptedUsers, ...uncreatedInvites]
+    const finalInvitedDirectory = [...invitedUserDirectory, ...uncreatedInvitedDirectory]
 
-    // Apply filters
-    if (search) {
-      const searchLower = search.toLowerCase()
-      combinedUsers = combinedUsers.filter(
-        (u) =>
-          u.email.toLowerCase().includes(searchLower) ||
-          u.firstName.toLowerCase().includes(searchLower) ||
-          u.lastName.toLowerCase().includes(searchLower) ||
-          u.phone.includes(searchLower),
+    // --- Property Managers & Platforms Directory ---
+    const finalPmDirectory = allPms.map((pm) => {
+      // Sum successful payments for this PM's properties/units
+      const pmSubaccountUuids = pm.userProperties
+        .map((up) => up.subaccount?.uuid)
+        .filter(Boolean) as string[]
+
+      // Calculate payments
+      const pmTx = successTransactions.filter((tx) => {
+        if (!tx.landlordId) return false
+        return pmSubaccountUuids.includes(tx.landlordId)
+      })
+      const totalGenerated = pmTx.reduce((sum, tx) => sum + tx.amount, 0)
+
+      return {
+        id: pm.id.toString(),
+        uuid: pm.uuid,
+        email: pm.email,
+        firstName: pm.firstName,
+        lastName: pm.lastName,
+        businessName: pm.businessName || 'No Business Name',
+        phone: pm.phone || 'N/A',
+        isVerified: pm.isVerified,
+        propertiesCount: pm.properties.length,
+        unitsCount: pm.properties.reduce((sum, p) => sum + p.units.length, 0),
+        totalGenerated,
+        createdAt: pm.createdAt,
+      }
+    })
+
+    // 5. CALCULATE GRAPH / SUMMARY METRICS
+
+    // Waitlist Stats
+    const waitlistConvertedCount = waitlistConvertedList.length
+    const waitlistTotalCount = finalWaitlistDirectory.length
+    const waitlistTotalPaid = waitlistConvertedList.reduce((sum, u) => sum + u.totalPaid, 0)
+
+    // Signed Up Stats
+    const signedUpTotalCount = signedUpDirectory.length
+    const signedUpPayingCount = signedUpDirectory.filter((u) => u.hasPaid).length
+    const signedUpTotalPaid = signedUpDirectory.reduce((sum, u) => sum + u.totalPaid, 0)
+
+    // Invited Stats
+    const invitedPendingCount = finalInvitedDirectory.filter((u) => u.status === 'INVITED_PENDING').length
+    const invitedOnboardedCount = finalInvitedDirectory.filter((u) => u.status === 'INVITED_SIGNED_UP' || u.status === 'SIGNED_UP_PAID').length
+    const guestPaidCount = finalInvitedDirectory.filter((u) => u.status === 'GUEST_PAID').length
+    const invitedOnboardedPaidCount = finalInvitedDirectory.filter((u) => u.status === 'SIGNED_UP_PAID').length
+    const guestTotalPaid = finalInvitedDirectory.filter((u) => u.status === 'GUEST_PAID').reduce((sum, u) => sum + u.totalPaid, 0)
+    const invitedOnboardedTotalPaid = finalInvitedDirectory.filter((u) => u.status === 'SIGNED_UP_PAID').reduce((sum, u) => sum + u.totalPaid, 0)
+
+    // Platform vs PM distribution
+    const pmSourceCount = pmTenants.length
+    const platformSourceCount = allUsers.length - pmTenants.filter(t => t.emailHash && invitedUserEmails.has(t.emailHash)).length
+
+    // Apply Search Filter (if search query exists)
+    const filterList = (list: any[]) => {
+      if (!search) return list
+      const s = search.toLowerCase()
+      return list.filter(
+        (item) =>
+          (item.email && item.email.toLowerCase().includes(s)) ||
+          (item.firstName && item.firstName.toLowerCase().includes(s)) ||
+          (item.lastName && item.lastName.toLowerCase().includes(s)) ||
+          (item.phone && item.phone.includes(s)) ||
+          (item.businessName && item.businessName.toLowerCase().includes(s)) ||
+          (item.pmName && item.pmName.toLowerCase().includes(s)),
       )
-    }
-
-    if (userType && userType !== 'ALL') {
-      combinedUsers = combinedUsers.filter((u) => u.status === userType)
     }
 
     return {
       metrics: {
-        totalUsers: {
-          tenantCount: totalTenants,
-          pmCount: totalPms,
-          total: totalTenants + totalPms,
+        waitlist: {
+          total: waitlistTotalCount,
+          converted: waitlistConvertedCount,
+          totalPaid: waitlistTotalPaid,
         },
-        periodCreated: {
-          tenantCount: periodTenants,
-          pmCount: periodPms,
-          total: periodTenants + periodPms,
+        signedUp: {
+          total: signedUpTotalCount,
+          paying: signedUpPayingCount,
+          totalPaid: signedUpTotalPaid,
         },
-        activeUsers: {
-          tenantCount: activeTenantsCount,
-          pmCount: activePmsCount,
-          total: activeTenantsCount + activePmsCount,
+        invited: {
+          pending: invitedPendingCount,
+          onboarded: invitedOnboardedCount,
+          guestPaid: guestPaidCount,
+          onboardedPaid: invitedOnboardedPaidCount,
+          guestTotalPaid,
+          onboardedTotalPaid: invitedOnboardedTotalPaid,
+          total: finalInvitedDirectory.length,
         },
-        payingUsers: payingUsersCount,
+        sources: {
+          pmCount: pmSourceCount,
+          platformCount: platformSourceCount,
+        },
+        revenue: {
+          totalUpwardFees,
+          totalBenefitsFees,
+          totalRentProcessed,
+        },
       },
-      sessions: sessions.map((s) => ({
-        id: s.id,
-        app: s.app,
-        userRole: s.userRole,
-        userEmail: s.userEmail || 'Guest / Anon',
-        action: s.action,
-        description: s.description,
-        ipAddress: s.ipAddress || 'unknown',
-        userAgent: s.userAgent || 'unknown',
-        createdAt: s.createdAt,
-      })),
-      users: combinedUsers,
+      directories: {
+        waitlist: filterList(finalWaitlistDirectory),
+        signedUp: filterList(signedUpDirectory),
+        invited: filterList(finalInvitedDirectory),
+        pms: filterList(finalPmDirectory),
+      },
     }
   }
 }
