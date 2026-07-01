@@ -22,6 +22,11 @@ import { DemoteAdminUseCase } from './use-cases/admin/demote-admin.use-case'
 import { PromoteAdminUseCase } from './use-cases/admin/promote-admin.use-case'
 import { ChangeAdminPasswordUseCase } from './use-cases/admin/change-admin-password.use-case'
 import { SearchUsersUseCase } from './use-cases/admin/search-users.use-case'
+import { GetAdminUserDetailUseCase } from './use-cases/admin/get-admin-user-detail.use-case'
+import { GetAdminPmDetailUseCase } from './use-cases/admin/get-admin-pm-detail.use-case'
+import { UpdateAdminUserUseCase } from './use-cases/admin/update-admin-user.use-case'
+import { UpdateAdminPmUseCase } from './use-cases/admin/update-admin-pm.use-case'
+import { SendAdminNotificationUseCase } from './use-cases/admin/send-admin-notification.use-case'
 import {
   GetFeeOverridesUseCase,
   UpsertFeeOverrideUseCase,
@@ -47,6 +52,7 @@ import { MarkAttendanceUseCase } from './use-cases/sessions/mark-attendance.use-
 import { ChangeUserSessionUseCase } from './use-cases/sessions/change-user-session.use-case'
 
 import { GetWaitlistAnalyticsUseCase } from './use-cases/analytics/get-waitlist-analytics.use-case'
+import { GetPerformanceMetricsUseCase } from './use-cases/analytics/get-performance-metrics.use-case'
 import { GetDropOffAnalysisUseCase } from './use-cases/analytics/get-drop-off-analysis.use-case'
 import { GetAbStatsUseCase } from './use-cases/analytics/get-ab-stats.use-case'
 import { SendDailyReportUseCase } from './use-cases/analytics/send-daily-report.use-case'
@@ -257,6 +263,11 @@ const UseCases = [
   PromoteAdminUseCase,
   ChangeAdminPasswordUseCase,
   SearchUsersUseCase,
+  GetAdminUserDetailUseCase,
+  GetAdminPmDetailUseCase,
+  UpdateAdminUserUseCase,
+  UpdateAdminPmUseCase,
+  SendAdminNotificationUseCase,
   GetFeeOverridesUseCase,
   UpsertFeeOverrideUseCase,
   DeleteFeeOverrideUseCase,
@@ -277,6 +288,7 @@ const UseCases = [
   MarkAttendanceUseCase,
   ChangeUserSessionUseCase,
   GetWaitlistAnalyticsUseCase,
+  GetPerformanceMetricsUseCase,
   GetDropOffAnalysisUseCase,
   GetAbStatsUseCase,
   SendDailyReportUseCase,

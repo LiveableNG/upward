@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { LifeBuoy, CheckCircle2 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
+import { Link } from 'react-router-dom'
 
 interface SupportTicket {
   id: number
@@ -99,7 +100,11 @@ const SupportTickets: React.FC<SupportTicketsProps> = ({ token }) => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ fontWeight: 600 }}>
-                        {ticket.user ? `${ticket.user.firstName} ${ticket.user.lastName}` : 'Unknown User'}
+                        {ticket.user ? (
+                          <Link to={`/users/${(ticket.user as any).uuid}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+                            {ticket.user.firstName} {ticket.user.lastName}
+                          </Link>
+                        ) : 'Unknown User'}
                         {ticket.user && (
                           <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: '8px' }}>
                             {ticket.user.email}
