@@ -9,6 +9,7 @@
   flex-direction: column;
   min-width: 0;
   background-color: var(--bg);
+  overflow-x: hidden;
 }
 
 .page-container {

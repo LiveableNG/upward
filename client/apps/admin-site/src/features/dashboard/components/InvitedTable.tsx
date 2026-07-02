@@ -195,7 +195,6 @@ export const InvitedTable: React.FC<InvitedTableProps> = ({ paginatedItems, navi
         <tbody>
           {sorted.map((item) => {
             const meta = statusMeta[item.status] ?? { label: item.status, bg: 'var(--surface-hover)', color: 'var(--text-muted)' }
-            const isOnboarded = item.status === 'INVITED_SIGNED_UP' || item.status === 'SIGNED_UP_PAID'
             return (
               <tr
                 key={item.id}
@@ -250,16 +249,14 @@ export const InvitedTable: React.FC<InvitedTableProps> = ({ paginatedItems, navi
                   </button>
                   {openMenuId === item.id && (
                     <div style={{ position: 'absolute', right: 0, top: '100%', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '10px', boxShadow: 'var(--shadow-lg)', zIndex: 100, minWidth: '160px', overflow: 'hidden' }}>
-                      {isOnboarded && onPreview && (
+                      {onPreview && (
                         <button onClick={() => { setOpenMenuId(null); onPreview(item) }} className="dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)' }}>
                           <Eye size={14} /> Quick Preview
                         </button>
                       )}
-                      {isOnboarded && (
-                        <button onClick={() => { setOpenMenuId(null); navigate(`/users/${item.uuid}`) }} className="dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                          <Eye size={14} /> View Profile
-                        </button>
-                      )}
+                      <button onClick={() => { setOpenMenuId(null); navigate(`/users/${item.uuid}`) }} className="dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        <Eye size={14} /> View Profile
+                      </button>
                       <button onClick={() => { setOpenMenuId(null); navigator.clipboard.writeText(item.email) }} className="dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)' }}>
                         <Copy size={14} /> Copy Email
                       </button>

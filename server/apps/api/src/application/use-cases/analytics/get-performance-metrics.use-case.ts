@@ -192,7 +192,19 @@ export class GetPerformanceMetricsUseCase {
       .filter((u) => !u.isFromInvite)
       .map((u) => {
         const decrypted = userMap.get(u.emailHash)
-        const totalPaid = u.transactions.reduce((sum, tx) => sum + tx.amount, 0)
+        let totalPaid = 0
+        let benefitsPaid = 0
+        u.transactions.forEach((tx) => {
+          totalPaid += tx.amount
+          if (tx.lineItems && Array.isArray(tx.lineItems)) {
+            tx.lineItems.forEach((item: any) => {
+              const name = item.name || item.label || ''
+              if (name === 'Upward Benefits') {
+                benefitsPaid += Number(item.amountPaid || item.amount || item.totalAmount || 0)
+              }
+            })
+          }
+        })
         return {
           id: `su_${u.id}`,
           uuid: u.uuid,
@@ -204,6 +216,8 @@ export class GetPerformanceMetricsUseCase {
           isWaitlist: u.isFromWaitlist,
           totalPaid,
           hasPaid: totalPaid > 0,
+          benefitsPaid,
+          hasPaidBenefits: benefitsPaid > 0,
         }
       })
 
@@ -213,7 +227,19 @@ export class GetPerformanceMetricsUseCase {
       .filter((u) => u.isFromInvite)
       .map((u) => {
         const decrypted = userMap.get(u.emailHash)
-        const totalPaid = u.transactions.reduce((sum, tx) => sum + tx.amount, 0)
+        let totalPaid = 0
+        let benefitsPaid = 0
+        u.transactions.forEach((tx) => {
+          totalPaid += tx.amount
+          if (tx.lineItems && Array.isArray(tx.lineItems)) {
+            tx.lineItems.forEach((item: any) => {
+              const name = item.name || item.label || ''
+              if (name === 'Upward Benefits') {
+                benefitsPaid += Number(item.amountPaid || item.amount || item.totalAmount || 0)
+              }
+            })
+          }
+        })
         const isShadow =
           u.passwordHash === PASS_PLACEHOLDERS.INVITED ||
           u.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
@@ -248,6 +274,8 @@ export class GetPerformanceMetricsUseCase {
           totalPaid,
           pmName,
           pmUuid: pmMatch?.pm?.uuid || null,
+          benefitsPaid,
+          hasPaidBenefits: benefitsPaid > 0,
         }
       })
 
