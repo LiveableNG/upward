@@ -180,6 +180,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sessionStorage.removeItem('upward_session_active')
         localStorage.removeItem('app_backgrounded_at')
       }
+
+      // Clear ALL cached query data so no previous account's data leaks into the next session
+      queryClient.clear()
     } catch (err) {
       console.error('[Auth] Logout error:', err)
     } finally {
