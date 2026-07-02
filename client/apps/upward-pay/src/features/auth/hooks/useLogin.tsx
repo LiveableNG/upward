@@ -24,6 +24,8 @@ export function useLogin(redirect: string) {
         await BiometricsService.saveCredentials(variables.email, variables.password)
       }
 
+      // Clear any stale cache from a previously logged-in account before loading new user data
+      queryClient.clear()
       setAuthUser(result.user)
       queryClient.setQueryData(['user'], result.user)
       router.push(redirect)
@@ -38,6 +40,8 @@ export function useLogin(redirect: string) {
         setCookie('pay_access_token', result.accessToken)
       }
       
+      // Clear any stale cache from a previously logged-in account before loading new user data
+      queryClient.clear()
       setAuthUser(result.user)
       queryClient.setQueryData(['user'], result.user)
       router.push(redirect)
