@@ -132,7 +132,10 @@ export interface LoginSession {
  */
 export interface FlatMetrics {
   waitlistCount: number
-  signedUpCount: number
+  waitlistConverted: number     // waitlist entrants who converted to registered accounts
+  signedUpCount: number         // self-registered + waitlist converts (excludes invited)
+  invitedOnboardedCount: number // invited tenants who completed sign-up (INVITED_SIGNED_UP + SIGNED_UP_PAID)
+  totalAccountsCreated: number  // signedUpCount + invitedOnboardedCount — all accounts across every channel
   pmCount: number
   invitedCount: number
   totalRentProcessed: number
@@ -144,9 +147,14 @@ export interface FlatMetrics {
 }
 
 export function flattenMetrics(m: MetricsSummary): FlatMetrics {
+  // invited.onboarded = INVITED_SIGNED_UP, invited.onboardedPaid = SIGNED_UP_PAID
+  const invitedOnboardedCount = m.invited.onboarded + m.invited.onboardedPaid
   return {
     waitlistCount: m.waitlist.total,
+    waitlistConverted: m.waitlist.converted,
     signedUpCount: m.signedUp.total,
+    invitedOnboardedCount,
+    totalAccountsCreated: m.signedUp.total + invitedOnboardedCount,
     pmCount: m.sources.pmCount,
     invitedCount: m.invited.total,
     totalRentProcessed: m.revenue.totalRentProcessed,

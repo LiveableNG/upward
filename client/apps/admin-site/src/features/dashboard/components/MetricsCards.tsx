@@ -119,7 +119,7 @@ const MetricsCards: React.FC<MetricsCardsProps> = ({ metrics, onTabChange }) => 
   if (!metrics) return null
 
   const convRate = metrics.waitlistCount > 0
-    ? ((metrics.signedUpCount / metrics.waitlistCount) * 100).toFixed(1)
+    ? ((metrics.waitlistConverted / metrics.waitlistCount) * 100).toFixed(1)
     : '0.0'
 
   return (
@@ -142,8 +142,8 @@ const MetricsCards: React.FC<MetricsCardsProps> = ({ metrics, onTabChange }) => 
         />
         <KpiCard
           label="Signed Up"
-          value={metrics.signedUpCount.toLocaleString()}
-          sub="active accounts"
+          value={metrics.totalAccountsCreated.toLocaleString()}
+          sub="accounts created"
           change={+12}
           accentColor="var(--success)"
           accentFaint="var(--success-faint)"
