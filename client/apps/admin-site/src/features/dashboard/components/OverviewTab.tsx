@@ -1,4 +1,5 @@
-import React, { useMemo, useState, useRef } from 'react'
+import React, { useMemo, useState, useRef, useEffect } from 'react'
+import ReactDOM from 'react-dom'
 import {
   Users,
   Building2,
@@ -106,53 +107,77 @@ const insightConfig: Record<InsightLevel, { color: string; bg: string; icon: Rea
 // Info Tooltip — appears on hover over the ⓘ icon
 // ───────────────────────────────────────────────────────────────
 const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
-  const [visible, setVisible] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
+  const iconRef = useRef<HTMLSpanElement>(null)
+
+  const show = () => {
+    if (!iconRef.current) return
+    const rect = iconRef.current.getBoundingClientRect()
+    setCoords({
+      // place the bubble above the icon; account for current scroll
+      top: rect.top + window.scrollY - 8,
+      left: rect.left + window.scrollX + rect.width / 2,
+    })
+  }
+
+  const hide = () => setCoords(null)
+
+  // Clean up if the component unmounts while hovered
+  useEffect(() => () => setCoords(null), [])
+
+  const tooltip = coords
+    ? ReactDOM.createPortal(
+        <div
+          style={{
+            position: 'absolute',
+            top: coords.top,
+            left: coords.left,
+            transform: 'translate(-50%, -100%)',
+            background: 'var(--dark, #1a1a2e)',
+            color: '#fff',
+            fontSize: '11px',
+            fontWeight: 500,
+            lineHeight: 1.45,
+            padding: '8px 11px',
+            borderRadius: '8px',
+            whiteSpace: 'pre-line',
+            maxWidth: '240px',
+            zIndex: 99999,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
+            pointerEvents: 'none',
+            textAlign: 'left',
+          }}
+        >
+          {text}
+          {/* Caret arrow */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 0,
+              height: 0,
+              borderLeft: '5px solid transparent',
+              borderRight: '5px solid transparent',
+              borderTop: '5px solid var(--dark, #1a1a2e)',
+            }}
+          />
+        </div>,
+        document.body,
+      )
+    : null
 
   return (
-    <div
-      ref={ref}
-      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}
-      onMouseEnter={() => setVisible(true)}
-      onMouseLeave={() => setVisible(false)}
+    <span
+      ref={iconRef}
+      style={{ display: 'inline-flex', alignItems: 'center' }}
+      onMouseEnter={show}
+      onMouseLeave={hide}
     >
       <Info size={12} style={{ color: 'var(--text-muted)', cursor: 'help', opacity: 0.6 }} />
-      {visible && (
-        <div style={{
-          position: 'absolute',
-          bottom: 'calc(100% + 8px)',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'var(--dark, #1a1a2e)',
-          color: '#fff',
-          fontSize: '11px',
-          fontWeight: 500,
-          lineHeight: 1.45,
-          padding: '8px 11px',
-          borderRadius: '8px',
-          whiteSpace: 'pre-line',
-          maxWidth: '220px',
-          zIndex: 9999,
-          boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
-          pointerEvents: 'none',
-          textAlign: 'left',
-        }}>
-          {text}
-          {/* Arrow */}
-          <div style={{
-            position: 'absolute',
-            top: '100%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: 0,
-            height: 0,
-            borderLeft: '5px solid transparent',
-            borderRight: '5px solid transparent',
-            borderTop: '5px solid var(--dark, #1a1a2e)',
-          }} />
-        </div>
-      )}
-    </div>
+      {tooltip}
+    </span>
   )
 }
 
@@ -426,9 +451,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       (i) => i.status === 'INVITED_SIGNED_UP' || i.status === 'SIGNED_UP_PAID'
     ).length
     const invitedPendingCount = invitedList.filter((i) => i.status === 'INVITED_PENDING').length
-    const convertedCount = metrics
-      ? Math.round((parseFloat(((metrics.signedUpCount / Math.max(metrics.waitlistCount, 1)) * 100).toFixed(1)) / 100) * metrics.waitlistCount)
-      : 0
+    const convertedCount = metrics?.waitlistConverted ?? 0
 
     // Sheet 1: Platform KPI Summary — enriched with actual figures, formulas and targets
     const generalSummary = [
@@ -441,9 +464,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       },
       {
         Metric: 'Registered Tenants',
-        Value: metrics?.signedUpCount ?? 0,
-        'Actual Detail': `${metrics?.signedUpCount ?? 0} fully onboarded`,
-        Description: 'Total users who have created an account (self sign-ups + waitlist conversions).',
+        Value: metrics?.totalAccountsCreated ?? 0,
+        'Actual Detail': `${metrics?.totalAccountsCreated ?? 0} total accounts created`,
+        Description: `All users who created an account. Breakdown: ${metrics?.waitlistConverted ?? 0} waitlist converts + ${(metrics?.signedUpCount ?? 0) - (metrics?.waitlistConverted ?? 0)} direct sign-ups + ${metrics?.invitedOnboardedCount ?? 0} invited who signed up.`,
         Target: '—',
       },
       {
@@ -462,9 +485,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       },
       {
         Metric: 'Conversion Rate',
-        Value: metrics ? `${((metrics.signedUpCount / Math.max(metrics.waitlistCount, 1)) * 100).toFixed(1)}%` : '0%',
+        Value: metrics ? `${((metrics.waitlistConverted / Math.max(metrics.waitlistCount, 1)) * 100).toFixed(1)}%` : '0%',
         'Actual Detail': `${convertedCount} of ${metrics?.waitlistCount ?? 0} waitlist entries converted`,
-        Description: 'Formula: (Registered Users ÷ Waitlist Total) × 100',
+        Description: 'Formula: (Waitlist Converted ÷ Waitlist Total) × 100. Note: Signed Up count is higher as it includes direct sign-ups.',
         Target: '≥ 20%',
       },
       {
@@ -556,12 +579,15 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   const waitlistSpark = useMemo(() => seedSpark(metrics?.waitlistCount ?? 50), [metrics?.waitlistCount])
   const pmSpark = useMemo(() => seedSpark(metrics?.pmCount ?? 20), [metrics?.pmCount])
   const revenueSpark = useMemo(() => seedSpark(metrics?.totalRentProcessed ?? 500000), [metrics?.totalRentProcessed])
-  const signupSpark = useMemo(() => seedSpark(metrics?.signedUpCount ?? 30), [metrics?.signedUpCount])
+  const signupSpark = useMemo(() => seedSpark(metrics?.totalAccountsCreated ?? 30), [metrics?.totalAccountsCreated])
   const activeSpark = useMemo(() => seedSpark(metrics?.activeCount ?? 20), [metrics?.activeCount])
 
+  // Conversion rate = (waitlist entries who converted) ÷ (total waitlist entries) × 100
+  // We use metrics.waitlistConverted (from waitlist.converted in backend) as the numerator.
+  // signedUpCount includes direct sign-ups (not from waitlist), so it must NOT be used here.
   const conversionRate = metrics
     ? metrics.waitlistCount > 0
-      ? ((metrics.signedUpCount / metrics.waitlistCount) * 100).toFixed(1)
+      ? ((metrics.waitlistConverted / metrics.waitlistCount) * 100).toFixed(1)
       : '0.0'
     : null
 
@@ -570,10 +596,10 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     if (!metrics) return []
     const list: InsightItem[] = []
     if (metrics.waitlistCount > 0 && parseFloat(conversionRate ?? '0') < 20) {
-      list.push({ level: 'warning', message: `Waitlist conversion is ${conversionRate}% — below 20% target.` })
+      list.push({ level: 'warning', message: `Waitlist conversion is ${conversionRate}% (${metrics.waitlistConverted} of ${metrics.waitlistCount}) — below 20% target.` })
     }
     if (metrics.signedUpCount > 0) {
-      list.push({ level: 'success', message: `${metrics.signedUpCount} users have fully onboarded on the platform.` })
+      list.push({ level: 'success', message: `${metrics.totalAccountsCreated} users have created accounts on the platform (${metrics.waitlistConverted} waitlist → ${metrics.signedUpCount - metrics.waitlistConverted} direct → ${metrics.invitedOnboardedCount} invited).` })
     }
     if (metrics.pmCount > 0) {
       list.push({ level: 'info', message: `${metrics.pmCount} active property managers registered.` })
@@ -717,13 +743,14 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
               />
               <HealthCard
                 label="Signed Up"
-                value={metrics.signedUpCount.toLocaleString()}
-                sub="fully onboarded tenants"
+                value={metrics.totalAccountsCreated.toLocaleString()}
+                sub="accounts created"
                 change={+12}
                 sparkData={signupSpark}
                 accentColor="var(--success)"
                 icon={<UserCheck size={16} />}
-                tooltip={`Total number of users who have created an account on the platform.\nIncludes both self sign-ups and waitlist conversions.`}
+                tooltip={`All users who have created an account on the platform, across every acquisition channel:\n\n• Waitlist → converted: ${metrics.waitlistConverted}\n• Direct self sign-up: ${metrics.signedUpCount - metrics.waitlistConverted}\n• Invited by PM → signed up: ${metrics.invitedOnboardedCount}\n───────────────
+Total: ${metrics.totalAccountsCreated}`}
               />
               <HealthCard
                 label="Property Managers"
@@ -747,12 +774,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
               <HealthCard
                 label="Conversion Rate"
                 value={`${conversionRate}%`}
-                subStrong={`${Math.round((parseFloat(conversionRate ?? '0') / 100) * metrics.waitlistCount)} of ${metrics.waitlistCount}`}
+                subStrong={`${metrics.waitlistConverted} of ${metrics.waitlistCount}`}
                 sub="waitlist converted"
                 change={parseFloat(conversionRate ?? '0') >= 20 ? 4 : -4}
                 accentColor="#8b5cf6"
                 icon={<ArrowUpRight size={16} />}
-                tooltip={`Percentage of waitlist entrants who have converted to fully registered tenant accounts.\n\nFormula: (Registered Users ÷ Waitlist Total) × 100\nTarget: ≥ 20%`}
+                tooltip={`Percentage of waitlist entrants who converted to registered accounts.\n\nFormula: (Waitlist Converted ÷ Waitlist Total) × 100\nTarget: ≥ 20%\n\nNote: The \'Signed Up\' total (${metrics.signedUpCount}) is higher because it also includes direct sign-ups who never went through the waitlist.`}
               />
               <HealthCard
                 label="Active Users"
@@ -767,12 +794,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
               <HealthCard
                 label="Active Rate"
                 value={`${metrics.activeRate}%`}
-                subStrong={`${metrics.activeCount} of ${metrics.signedUpCount}`}
+                subStrong={`${metrics.activeCount} of ${metrics.totalAccountsCreated}`}
                 sub="users active last 30d"
                 change={+5}
                 accentColor="#06b6d4"
                 icon={<TrendingUp size={16} />}
-                tooltip={`Percentage of all registered tenants who were active in the last 30 days.\n\nFormula: (Active Users ÷ Total Signed Up) × 100\nTarget: ≥ 60%`}
+                tooltip={`Percentage of all registered tenants who were active in the last 30 days.\n\nFormula: (Active Users ÷ Total Accounts Created) × 100\nTarget: ≥ 60%`}
               />
               <HealthCard
                 label="Total Rent Processed"
