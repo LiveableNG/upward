@@ -21,6 +21,7 @@ import { type UserProfile } from '@/features/auth/types'
 import { ActionCarousel } from './ActionCarousel'
 import { ShareCredibility } from './ShareCredibility'
 import { UpcomingFeaturesWidget } from './UpcomingFeaturesWidget'
+import { ExclusiveHomesPromo } from './exclusive-homes/ExclusiveHomesPromo'
 
 interface DashboardHomeProps {
   user: UserProfile
@@ -347,6 +348,11 @@ export function DashboardHome({
       </div>
 
       <div className="dash-home__wide">
+        <div className="dash-home__discover">
+          <h2 className="dash-home__discover-title">Discover</h2>
+          <ExclusiveHomesPromo />
+        </div>
+
         <div className="dash-home__section-head">
           <h2 className="dash-home__section-title">Recent Activity</h2>
           {recent.length > 0 && (

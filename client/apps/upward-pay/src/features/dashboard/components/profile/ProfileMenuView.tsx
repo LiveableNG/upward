@@ -7,6 +7,8 @@ import {
   LogOut,
   User,
   Building,
+  Building2,
+  ClipboardList,
   Shield,
   MessageCircle,
   FileText,
@@ -115,6 +117,23 @@ export function ProfileMenuView({
     },
   ]
 
+  const discoverGroup = [
+    {
+      id: 'exclusive-homes',
+      title: 'Exclusive Homes',
+      desc: 'Verified rentals only on Upward · 0% agent fees',
+      icon: Building2,
+      onClick: () => router.push('/dashboard/exclusive-homes'),
+    },
+    {
+      id: 'home-applications',
+      title: 'My applications',
+      desc: 'Track viewing prep, docs, and status',
+      icon: ClipboardList,
+      onClick: () => router.push('/dashboard/exclusive-homes/applications'),
+    },
+  ]
+
   const supportGroup = [
     {
       id: 'support',
@@ -213,6 +232,34 @@ export function ProfileMenuView({
                   {showWarning ? (
                     <span className="profile-page__menu-warning" title="Incomplete" />
                   ) : null}
+                  <ChevronRight size={16} />
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="profile-page__section">
+        <h3 className="profile-page__section-label">Discover</h3>
+        <div className="profile-page__menu-card">
+          {discoverGroup.map((item) => {
+            const Icon = item.icon
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className="profile-page__menu-item"
+                onClick={item.onClick}
+              >
+                <span className="profile-page__menu-icon">
+                  <Icon size={16} />
+                </span>
+                <span className="profile-page__menu-text">
+                  <span className="profile-page__menu-title">{item.title}</span>
+                  <span className="profile-page__menu-desc">{item.desc}</span>
+                </span>
+                <span className="profile-page__menu-trail">
                   <ChevronRight size={16} />
                 </span>
               </button>
