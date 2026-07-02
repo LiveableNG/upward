@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useRef } from 'react'
 import {
   Users,
   Building2,
@@ -16,10 +16,21 @@ import {
   ArrowUpRight,
   Download,
   Search,
+  Info,
 } from 'lucide-react'
 import type { FlatMetrics, SignedUpRecord, InvitedRecord } from '../types'
 import * as XLSX from 'xlsx'
 import { showToast } from '@upward/client-core'
+
+// ───────────────────────────────────────────────────────────────
+// Smart currency formatter — ₦209M instead of ₦209024k
+// ───────────────────────────────────────────────────────────────
+function formatNaira(amount: number): string {
+  if (amount >= 1_000_000_000) return `₦${(amount / 1_000_000_000).toFixed(2)}B`
+  if (amount >= 1_000_000) return `₦${(amount / 1_000_000).toFixed(2)}M`
+  if (amount >= 1_000) return `₦${(amount / 1_000).toFixed(1)}K`
+  return `₦${amount.toLocaleString()}`
+}
 
 // ───────────────────────────────────────────────────────────────
 // Tiny SVG Sparkline — no lib needed
@@ -92,17 +103,75 @@ const insightConfig: Record<InsightLevel, { color: string; bg: string; icon: Rea
 // ───────────────────────────────────────────────────────────────
 // Health KPI Card
 // ───────────────────────────────────────────────────────────────
+// Info Tooltip — appears on hover over the ⓘ icon
+// ───────────────────────────────────────────────────────────────
+const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
+  const [visible, setVisible] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  return (
+    <div
+      ref={ref}
+      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+    >
+      <Info size={12} style={{ color: 'var(--text-muted)', cursor: 'help', opacity: 0.6 }} />
+      {visible && (
+        <div style={{
+          position: 'absolute',
+          bottom: 'calc(100% + 8px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'var(--dark, #1a1a2e)',
+          color: '#fff',
+          fontSize: '11px',
+          fontWeight: 500,
+          lineHeight: 1.45,
+          padding: '8px 11px',
+          borderRadius: '8px',
+          whiteSpace: 'pre-line',
+          maxWidth: '220px',
+          zIndex: 9999,
+          boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
+          pointerEvents: 'none',
+          textAlign: 'left',
+        }}>
+          {text}
+          {/* Arrow */}
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 0,
+            height: 0,
+            borderLeft: '5px solid transparent',
+            borderRight: '5px solid transparent',
+            borderTop: '5px solid var(--dark, #1a1a2e)',
+          }} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ───────────────────────────────────────────────────────────────
+// Health KPI Card
+// ───────────────────────────────────────────────────────────────
 interface HealthCardProps {
   label: string
   value: string | number
   sub?: string
+  subStrong?: string      // bolded sub-label for actual counts
+  tooltip?: string        // text shown in the info tooltip on hover
   change?: number         // positive or negative %
   sparkData?: number[]
   accentColor: string
   icon: React.ReactNode
 }
 
-const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, change, sparkData, accentColor, icon }) => {
+const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, subStrong, tooltip, change, sparkData, accentColor, icon }) => {
   const isPositive = change !== undefined ? change >= 0 : true
   return (
     <div
@@ -118,8 +187,9 @@ const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, change, spar
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           {label}
+          {tooltip && <InfoTooltip text={tooltip} />}
         </span>
         <div style={{
           width: '34px',
@@ -139,7 +209,7 @@ const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, change, spar
         {value}
       </div>
 
-      {(change !== undefined || sub) && (
+      {(change !== undefined || sub || subStrong) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           {change !== undefined && (
             <span style={{
@@ -156,6 +226,9 @@ const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, change, spar
               {isPositive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
               {change >= 0 ? '+' : ''}{change}%
             </span>
+          )}
+          {subStrong && (
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700 }}>{subStrong}</span>
           )}
           {sub && <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{sub}</span>}
         </div>
@@ -349,37 +422,117 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   const handleExportOverviewExcel = () => {
     const workbook = XLSX.utils.book_new()
 
-    // Sheet 1: General Platform KPI Summary
+    const invitedSignedUpCount = invitedList.filter(
+      (i) => i.status === 'INVITED_SIGNED_UP' || i.status === 'SIGNED_UP_PAID'
+    ).length
+    const invitedPendingCount = invitedList.filter((i) => i.status === 'INVITED_PENDING').length
+    const convertedCount = metrics
+      ? Math.round((parseFloat(((metrics.signedUpCount / Math.max(metrics.waitlistCount, 1)) * 100).toFixed(1)) / 100) * metrics.waitlistCount)
+      : 0
+
+    // Sheet 1: Platform KPI Summary — enriched with actual figures, formulas and targets
     const generalSummary = [
-      { Metric: 'Waitlist Entries', Count: metrics?.waitlistCount ?? 0, Description: 'Tenants currently on waitlist' },
-      { Metric: 'Registered Tenants', Count: metrics?.signedUpCount ?? 0, Description: 'Total registered tenant user accounts' },
-      { Metric: 'Registered Property Managers', Count: metrics?.pmCount ?? 0, Description: 'Total registered PM accounts' },
-      { Metric: 'Pending Invitations', Count: metrics?.invitedCount ?? 0, Description: 'Awaiting registration acceptance' },
-      { Metric: 'Conversion Rate', Value: metrics ? `${((metrics.signedUpCount / Math.max(metrics.waitlistCount, 1)) * 100).toFixed(1)}%` : '0%', Description: 'Waitlist entries converted to tenants' },
-      { Metric: 'Active Users (30-day)', Count: metrics?.activeCount ?? 0, Description: 'Users with logged activity in last 30d' },
-      { Metric: 'Active Engagement Rate', Value: metrics ? `${metrics.activeRate}%` : '0%', Description: 'Retention rate of active users' },
-      { Metric: 'Total Rent Processed', Value: `₦${metrics?.totalRentProcessed.toLocaleString() ?? '0'}`, Description: 'Gross processed rent payments' },
-      { Metric: 'Transaction Fee Revenue', Value: `₦${metrics?.feeRevenue.toLocaleString() ?? '0'}`, Description: 'Net platform transaction fee revenue' },
-      { Metric: 'Benefits Revenue', Value: `₦${metrics?.benefitsRevenue.toLocaleString() ?? '0'}`, Description: 'Protection benefits program revenue' },
+      {
+        Metric: 'Waitlist Entries',
+        Value: metrics?.waitlistCount ?? 0,
+        'Actual Detail': `${metrics?.waitlistCount ?? 0} total registrations`,
+        Description: 'Total number of people who joined the waitlist. Includes both pending and converted.',
+        Target: '—',
+      },
+      {
+        Metric: 'Registered Tenants',
+        Value: metrics?.signedUpCount ?? 0,
+        'Actual Detail': `${metrics?.signedUpCount ?? 0} fully onboarded`,
+        Description: 'Total users who have created an account (self sign-ups + waitlist conversions).',
+        Target: '—',
+      },
+      {
+        Metric: 'Property Managers',
+        Value: metrics?.pmCount ?? 0,
+        'Actual Detail': `${metrics?.pmCount ?? 0} registered PMs`,
+        Description: 'Property management companies or landlords registered on the platform.',
+        Target: '—',
+      },
+      {
+        Metric: 'Invited Tenants (Total)',
+        Value: metrics?.invitedCount ?? 0,
+        'Actual Detail': `${invitedSignedUpCount} signed up · ${invitedPendingCount} still pending`,
+        Description: 'Tenants invited by property managers. Breakdown: signed-up vs still awaiting.',
+        Target: '—',
+      },
+      {
+        Metric: 'Conversion Rate',
+        Value: metrics ? `${((metrics.signedUpCount / Math.max(metrics.waitlistCount, 1)) * 100).toFixed(1)}%` : '0%',
+        'Actual Detail': `${convertedCount} of ${metrics?.waitlistCount ?? 0} waitlist entries converted`,
+        Description: 'Formula: (Registered Users ÷ Waitlist Total) × 100',
+        Target: '≥ 20%',
+      },
+      {
+        Metric: 'Active Users (30-day)',
+        Value: metrics?.activeCount ?? 0,
+        'Actual Detail': `${metrics?.activeCount ?? 0} of ${metrics?.signedUpCount ?? 0} users active`,
+        Description: 'Registered tenants with at least one recorded app activity in the last 30 days.',
+        Target: '—',
+      },
+      {
+        Metric: 'Active Engagement Rate',
+        Value: metrics ? `${metrics.activeRate}%` : '0%',
+        'Actual Detail': `${metrics?.activeCount ?? 0} of ${metrics?.signedUpCount ?? 0} users`,
+        Description: 'Formula: (Active Users ÷ Total Signed Up) × 100',
+        Target: '≥ 60%',
+      },
+      {
+        Metric: 'Total Rent Processed',
+        Value: `₦${metrics?.totalRentProcessed.toLocaleString() ?? '0'}`,
+        'Actual Detail': formatNaira(metrics?.totalRentProcessed ?? 0),
+        Description: 'Gross value of all successful rent payments before fees are deducted.',
+        Target: '—',
+      },
+      {
+        Metric: 'Transaction Fee Revenue',
+        Value: `₦${metrics?.feeRevenue.toLocaleString() ?? '0'}`,
+        'Actual Detail': formatNaira(metrics?.feeRevenue ?? 0),
+        Description: "Upward's core revenue from processing fees on rent transactions.",
+        Target: '—',
+      },
+      {
+        Metric: 'Benefits Revenue',
+        Value: `₦${metrics?.benefitsRevenue.toLocaleString() ?? '0'}`,
+        'Actual Detail': formatNaira(metrics?.benefitsRevenue ?? 0),
+        Description: 'Revenue from the optional Upward Benefits protection program.',
+        Target: '—',
+      },
     ]
 
     const wsSummary = XLSX.utils.json_to_sheet(generalSummary)
     XLSX.utils.book_append_sheet(workbook, wsSummary, 'Ecosystem Summary')
 
-    // Sheet 2: Paying Users Details
+    // Sheet 2: Invited Tenants Breakdown
+    const invitedBreakdown = [
+      { Category: 'Total Invited', Count: metrics?.invitedCount ?? 0, Notes: 'All tenants ever invited by a PM' },
+      { Category: 'Signed Up (Onboarded)', Count: invitedSignedUpCount, Notes: 'Accepted invite and created account' },
+      { Category: 'Still Pending', Count: invitedPendingCount, Notes: 'Invitation sent but not accepted yet' },
+      { Category: 'Guest Paid', Count: invitedList.filter(i => i.status === 'GUEST_PAID').length, Notes: 'Made guest payment without full sign-up' },
+      { Category: 'Onboarded & Paid', Count: invitedList.filter(i => i.status === 'SIGNED_UP_PAID').length, Notes: 'Signed up and made at least one payment' },
+    ]
+    const wsInvited = XLSX.utils.json_to_sheet(invitedBreakdown)
+    XLSX.utils.book_append_sheet(workbook, wsInvited, 'Invited Tenants Breakdown')
+
+    // Sheet 3: Paying Users Registry
     const payingUsersRows = payingUsers.map((u) => ({
       'Tenant Name': u.name,
       'Email Address': u.email,
-      'Signup Type': u.source,
-      'Benefits Paid (₦)': u.benefitsPaid,
+      'Registration Type': u.source,
+      'Benefits Paid (₦)': u.benefitsPaid > 0 ? u.benefitsPaid : 0,
+      'Rent Paid (₦)': u.totalPaid - u.benefitsPaid,
       'Total Paid (₦)': u.totalPaid,
-      'Registration Date': new Date(u.createdAt).toLocaleDateString(),
+      'Registration Date': new Date(u.createdAt).toLocaleDateString('en-GB'),
     }))
 
     const wsPaying = XLSX.utils.json_to_sheet(payingUsersRows)
     XLSX.utils.book_append_sheet(workbook, wsPaying, 'Paying Tenants Registry')
 
-    // Auto-fit widths helper
+    // Auto-fit column widths
     const fitCols = (ws: any, data: any[]) => {
       if (data.length === 0) return
       const keys = Object.keys(data[0])
@@ -393,10 +546,11 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     }
 
     fitCols(wsSummary, generalSummary)
+    fitCols(wsInvited, invitedBreakdown)
     fitCols(wsPaying, payingUsersRows)
 
     XLSX.writeFile(workbook, `Upward_Ecosystem_Overview_${new Date().toISOString().split('T')[0]}.xlsx`)
-    showToast('Ecosystem summary and paying tenants registry downloaded successfully!')
+    showToast('Overview exported: 3 sheets — Summary, Invited Breakdown & Paying Tenants!')
   }
 
   const waitlistSpark = useMemo(() => seedSpark(metrics?.waitlistCount ?? 50), [metrics?.waitlistCount])
@@ -554,20 +708,22 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
               <HealthCard
                 label="Waitlist"
                 value={metrics.waitlistCount.toLocaleString()}
-                sub="vs last week"
+                sub="total registrations"
                 change={+8}
                 sparkData={waitlistSpark}
                 accentColor="#6366f1"
                 icon={<Users size={16} />}
+                tooltip={`Total number of people who joined the waitlist.\nIncludes both those still waiting and those who have converted to registered tenants.`}
               />
               <HealthCard
                 label="Signed Up"
                 value={metrics.signedUpCount.toLocaleString()}
-                sub="active tenants"
+                sub="fully onboarded tenants"
                 change={+12}
                 sparkData={signupSpark}
                 accentColor="var(--success)"
                 icon={<UserCheck size={16} />}
+                tooltip={`Total number of users who have created an account on the platform.\nIncludes both self sign-ups and waitlist conversions.`}
               />
               <HealthCard
                 label="Property Managers"
@@ -577,62 +733,73 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 sparkData={pmSpark}
                 accentColor="var(--accent)"
                 icon={<Building2 size={16} />}
+                tooltip={`Total number of property management companies or landlords registered on the platform.\nThey invite and manage tenants through the PM dashboard.`}
               />
               <HealthCard
-                label="Pending Invitations"
+                label="Invited Tenants"
                 value={metrics.invitedCount.toLocaleString()}
-                sub="awaiting acceptance"
+                subStrong={`${invitedList.filter(i => i.status === 'INVITED_SIGNED_UP' || i.status === 'SIGNED_UP_PAID').length} signed up`}
+                sub="out of total invites"
                 accentColor="#f59e0b"
                 icon={<MailOpen size={16} />}
+                tooltip={`Tenants invited by property managers via the platform.\n\n• Total invited: ${metrics.invitedCount}\n• Signed up: ${invitedList.filter(i => i.status === 'INVITED_SIGNED_UP' || i.status === 'SIGNED_UP_PAID').length}\n• Still pending: ${invitedList.filter(i => i.status === 'INVITED_PENDING').length}`}
               />
               <HealthCard
                 label="Conversion Rate"
                 value={`${conversionRate}%`}
-                sub="waitlist → tenant"
+                subStrong={`${Math.round((parseFloat(conversionRate ?? '0') / 100) * metrics.waitlistCount)} of ${metrics.waitlistCount}`}
+                sub="waitlist converted"
                 change={parseFloat(conversionRate ?? '0') >= 20 ? 4 : -4}
                 accentColor="#8b5cf6"
                 icon={<ArrowUpRight size={16} />}
+                tooltip={`Percentage of waitlist entrants who have converted to fully registered tenant accounts.\n\nFormula: (Registered Users ÷ Waitlist Total) × 100\nTarget: ≥ 20%`}
               />
               <HealthCard
                 label="Active Users"
                 value={metrics.activeCount.toLocaleString()}
-                sub="active last 30d"
+                sub="logged in last 30 days"
                 change={+14}
                 sparkData={activeSpark}
                 accentColor="#10b981"
                 icon={<Activity size={16} />}
+                tooltip={`Number of registered tenants who have had at least one recorded app activity in the last 30 days.`}
               />
               <HealthCard
                 label="Active Rate"
                 value={`${metrics.activeRate}%`}
-                sub="retention percentage"
+                subStrong={`${metrics.activeCount} of ${metrics.signedUpCount}`}
+                sub="users active last 30d"
                 change={+5}
                 accentColor="#06b6d4"
                 icon={<TrendingUp size={16} />}
+                tooltip={`Percentage of all registered tenants who were active in the last 30 days.\n\nFormula: (Active Users ÷ Total Signed Up) × 100\nTarget: ≥ 60%`}
               />
               <HealthCard
                 label="Total Rent Processed"
-                value={`₦${(metrics.totalRentProcessed / 1000).toFixed(0)}k`}
-                sub="gross rent volume"
+                value={formatNaira(metrics.totalRentProcessed)}
+                sub="gross rent collected"
                 change={+18}
                 sparkData={revenueSpark}
                 accentColor="var(--success)"
                 icon={<CreditCard size={16} />}
+                tooltip={`Total gross value of all successful rent payments processed through the Upward platform.\nThis is the combined sum before deducting transaction fees and benefits.`}
               />
               <HealthCard
                 label="Transaction Fee Revenue"
-                value={`₦${(metrics.feeRevenue / 1000).toFixed(0)}k`}
-                sub="net transaction fee revenue"
+                value={formatNaira(metrics.feeRevenue)}
+                sub="net platform fee revenue"
                 change={+6}
                 accentColor="#10b981"
                 icon={<TrendingUp size={16} />}
+                tooltip={`Revenue earned by Upward from processing fees charged on each rent payment transaction.\nThis is Upward's core revenue stream.`}
               />
               <HealthCard
                 label="Benefits Revenue"
-                value={`₦${(metrics.benefitsRevenue / 1000).toFixed(0)}k`}
-                sub="protection benefits"
+                value={formatNaira(metrics.benefitsRevenue)}
+                sub="protection benefits fees"
                 accentColor="#06b6d4"
                 icon={<Home size={16} />}
+                tooltip={`Revenue from the optional Upward Benefits protection program.\nTenants who opt in pay a separate benefits fee included as a line item on their rent payment.`}
               />
             </div>
 
