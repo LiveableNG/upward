@@ -208,8 +208,8 @@ export const PmsTable: React.FC<PmsTableProps> = ({
               </td>
               <td style={{ padding: '16px 16px' }}>
                 <span className="badge" style={{
-                  backgroundColor: pm.isVerified ? 'var(--success-faint)' : 'var(--error-faint)',
-                  color: pm.isVerified ? 'var(--success)' : 'var(--error)',
+                  backgroundColor: pm.isVerified ? 'var(--success-faint)' : 'var(--danger-faint)',
+                  color: pm.isVerified ? 'var(--success)' : 'var(--danger)',
                 }}>
                   {pm.isVerified ? 'Verified' : 'Unverified'}
                 </span>
