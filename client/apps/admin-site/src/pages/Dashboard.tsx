@@ -440,6 +440,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             onDateFilterChange={setDateRange}
             signedUpList={signedUpList}
             invitedList={invitedList}
+            onPreview={openDrawerForUser}
           />
         )
       )}

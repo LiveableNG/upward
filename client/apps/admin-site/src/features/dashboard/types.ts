@@ -21,6 +21,8 @@ export interface SignedUpRecord {
   isWaitlist: boolean
   totalPaid: number
   hasPaid: boolean
+  benefitsPaid?: number
+  hasPaidBenefits?: boolean
 }
 
 export interface InvitedRecord {
@@ -35,6 +37,8 @@ export interface InvitedRecord {
   totalPaid: number
   pmName: string
   pmUuid: string | null
+  benefitsPaid?: number
+  hasPaidBenefits?: boolean
 }
 
 export interface PmRecord {

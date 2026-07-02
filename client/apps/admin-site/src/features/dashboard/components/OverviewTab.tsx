@@ -241,6 +241,7 @@ interface OverviewTabProps {
   onDateFilterChange: (v: DateFilter) => void
   signedUpList: SignedUpRecord[]
   invitedList: InvitedRecord[]
+  onPreview: (item: any) => void
 }
 
 // Fake trend data seeded from metrics totals to give realistic sparklines
@@ -261,9 +262,11 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   onDateFilterChange,
   signedUpList,
   invitedList,
+  onPreview,
 }) => {
   const [subView, setSubView] = useState<'metrics' | 'paying'>('metrics')
   const [searchQuery, setSearchQuery] = useState('')
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState<'all' | 'benefits' | 'rent_only'>('all')
 
   // Compute paying users list from both SignedUp (self/waitlist) and Invited lists
   const payingUsers = useMemo(() => {
@@ -273,7 +276,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       email: string
       source: 'Waitlist Converted' | 'Self Signed Up' | 'Invited Tenant' | 'Guest Invited'
       totalPaid: number
+      benefitsPaid: number
       createdAt: string
+      rawRecord: any
     }[] = []
 
     // 1. From Signed Up List (Self-registrations and Waitlist conversions)
@@ -285,7 +290,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           email: u.email,
           source: u.isWaitlist ? 'Waitlist Converted' : 'Self Signed Up',
           totalPaid: u.totalPaid,
+          benefitsPaid: u.benefitsPaid ?? 0,
           createdAt: u.createdAt,
+          rawRecord: u,
         })
       }
     })
@@ -299,7 +306,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           email: u.email,
           source: u.status === 'GUEST_PAID' ? 'Guest Invited' : 'Invited Tenant',
           totalPaid: u.totalPaid,
+          benefitsPaid: u.benefitsPaid ?? 0,
           createdAt: u.createdAt,
+          rawRecord: u,
         })
       }
     })
@@ -307,20 +316,34 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     return list.sort((a, b) => b.totalPaid - a.totalPaid)
   }, [signedUpList, invitedList])
 
-  // Filter paying users based on search query
+  // Filter paying users based on search query and payment type filter
   const filteredPayingUsers = useMemo(() => {
-    if (!searchQuery) return payingUsers
+    let result = payingUsers
+
+    // Filter by payment type
+    if (paymentTypeFilter === 'benefits') {
+      result = result.filter((u) => u.benefitsPaid > 0)
+    } else if (paymentTypeFilter === 'rent_only') {
+      result = result.filter((u) => u.benefitsPaid === 0)
+    }
+
+    // Filter by text search query
+    if (!searchQuery) return result
     const q = searchQuery.toLowerCase()
-    return payingUsers.filter(
+    return result.filter(
       (u) =>
         u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
         u.source.toLowerCase().includes(q)
     )
-  }, [payingUsers, searchQuery])
+  }, [payingUsers, searchQuery, paymentTypeFilter])
 
   const totalPaidSum = useMemo(() => {
     return payingUsers.reduce((sum, u) => sum + u.totalPaid, 0)
+  }, [payingUsers])
+
+  const paidBenefitsCount = useMemo(() => {
+    return payingUsers.filter((u) => u.benefitsPaid > 0).length
   }, [payingUsers])
 
   const handleExportOverviewExcel = () => {
@@ -348,6 +371,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       'Tenant Name': u.name,
       'Email Address': u.email,
       'Signup Type': u.source,
+      'Benefits Paid (₦)': u.benefitsPaid,
       'Total Paid (₦)': u.totalPaid,
       'Registration Date': new Date(u.createdAt).toLocaleDateString(),
     }))
@@ -722,7 +746,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           /* Paying Users Registry Table view */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '16px' }}>
             {/* Summary KPIs for Paying Users */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
               <div className="card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '6px', borderLeft: '3px solid var(--success)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--success)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                   <Users size={14} /> Total Paying Users
@@ -743,30 +767,62 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                   ₦{totalPaidSum.toLocaleString()}
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  gross payments collected
+                  gross rent payments collected
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '6px', borderLeft: '3px solid #06b6d4' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#06b6d4', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                  <Zap size={14} /> Paid Benefits Users
+                </div>
+                <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                  {paidBenefitsCount}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  tenants paying benefits protection fee
                 </div>
               </div>
             </div>
 
-            {/* Search bar specifically for Paying Users list */}
+            {/* Search and Filters specifically for Paying Users list */}
             <div className="card" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-              <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
-                <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input
-                  type="text"
-                  placeholder="Search paying users by name, email, or registration type..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+              <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '320px', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    type="text"
+                    placeholder="Search paying users by name, email, or registration type..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px 8px 34px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      background: 'var(--bg)',
+                      color: 'var(--text)',
+                      fontSize: '13px',
+                    }}
+                  />
+                </div>
+                <select
+                  value={paymentTypeFilter}
+                  onChange={(e) => setPaymentTypeFilter(e.target.value as any)}
                   style={{
-                    width: '100%',
-                    padding: '8px 12px 8px 34px',
+                    padding: '8px 12px',
                     borderRadius: '8px',
                     border: '1px solid var(--border)',
-                    background: 'var(--bg)',
+                    background: 'var(--white)',
                     color: 'var(--text)',
                     fontSize: '13px',
+                    cursor: 'pointer',
+                    minWidth: '160px',
                   }}
-                />
+                >
+                  <option value="all">All Paying Users</option>
+                  <option value="benefits">Paid Benefits Fee</option>
+                  <option value="rent_only">Paid Rent Only</option>
+                </select>
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
                 Showing {filteredPayingUsers.length} of {payingUsers.length} paid accounts
@@ -782,6 +838,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Tenant Name</th>
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Email Address</th>
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Registration Type</th>
+                      <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'right' }}>Benefits Paid</th>
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'right' }}>Total Paid</th>
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Registration Date</th>
                     </tr>
@@ -790,7 +847,25 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                     {filteredPayingUsers.length > 0 ? (
                       filteredPayingUsers.map((u, idx) => (
                         <tr key={u.id} style={{ borderBottom: idx < filteredPayingUsers.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                          <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text)' }}>{u.name}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <button
+                              onClick={() => onPreview(u.rawRecord)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                padding: 0,
+                                margin: 0,
+                                cursor: 'pointer',
+                                font: 'inherit',
+                                fontWeight: 600,
+                                color: 'var(--accent)',
+                                textAlign: 'left',
+                              }}
+                              className="table-row-hover"
+                            >
+                              {u.name}
+                            </button>
+                          </td>
                           <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{u.email}</td>
                           <td style={{ padding: '12px 16px' }}>
                             <span style={{
@@ -804,13 +879,16 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                               {u.source}
                             </span>
                           </td>
+                          <td style={{ padding: '12px 16px', fontWeight: 600, color: u.benefitsPaid > 0 ? 'var(--success)' : 'var(--text-muted)', textAlign: 'right' }}>
+                            {u.benefitsPaid > 0 ? `₦${u.benefitsPaid.toLocaleString()}` : '—'}
+                          </td>
                           <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text)', textAlign: 'right' }}>₦{u.totalPaid.toLocaleString()}</td>
                           <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
                           No paying users match the search filter.
                         </td>
                       </tr>
