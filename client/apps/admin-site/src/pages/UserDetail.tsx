@@ -394,8 +394,8 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                           <span
                             className="badge"
                             style={{
-                              backgroundColor: tx.status === 'SUCCESS' ? 'var(--success-faint)' : 'var(--error-faint)',
-                              color: tx.status === 'SUCCESS' ? 'var(--success)' : 'var(--error)'
+                              backgroundColor: tx.status === 'SUCCESS' ? 'var(--success-faint)' : 'var(--danger-faint)',
+                              color: tx.status === 'SUCCESS' ? 'var(--success)' : 'var(--danger)'
                             }}
                           >
                             {tx.status}

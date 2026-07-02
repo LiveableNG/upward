@@ -368,8 +368,8 @@ export const LoginSessionsTab: React.FC<LoginSessionsTabProps> = ({ token }) => 
                   </td>
                   <td style={{ padding: '14px 16px' }}>
                     <span className="badge" style={{
-                      background: session.isRevoked ? 'var(--error-faint)' : 'var(--success-faint)',
-                      color: session.isRevoked ? 'var(--error)' : 'var(--success)',
+                      background: session.isRevoked ? 'var(--danger-faint)' : 'var(--success-faint)',
+                      color: session.isRevoked ? 'var(--danger)' : 'var(--success)',
                     }}>
                       {session.isRevoked ? 'Revoked' : 'Active'}
                     </span>

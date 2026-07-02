@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Mail, Phone, Calendar, ExternalLink, CreditCard, Building2, UserCheck, Clock } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
@@ -60,7 +61,7 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
 
   const statusStyle = entity ? getStatusStyle(entity.type) : getStatusStyle('DEFAULT')
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -238,7 +239,8 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
         .drawer-stat { transition: box-shadow 0.2s; }
         .drawer-stat:hover { box-shadow: var(--shadow-md); }
       `}</style>
-    </>
+    </>,
+    document.body
   )
 }
 

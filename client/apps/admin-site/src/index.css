@@ -120,6 +120,7 @@ select {
 .main-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   height: calc(100vh - var(--header-height));
 }
 

@@ -58,11 +58,10 @@ interface RevKpiProps {
   label: string
   value: string
   sub?: string
-  change?: number
   color: string
   icon: React.ReactNode
 }
-const RevKpi: React.FC<RevKpiProps> = ({ label, value, sub, change, color, icon }) => (
+const RevKpi: React.FC<RevKpiProps> = ({ label, value, sub, color, icon }) => (
   <div className="card" style={{
     padding: '18px',
     display: 'flex',
@@ -76,11 +75,6 @@ const RevKpi: React.FC<RevKpiProps> = ({ label, value, sub, change, color, icon 
     </div>
     <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>{value}</div>
     {sub && <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{sub}</div>}
-    {change !== undefined && (
-      <div style={{ fontSize: '11px', fontWeight: 700, color: change >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-        {change >= 0 ? '↑' : '↓'} {Math.abs(change)}% vs last period
-      </div>
-    )}
   </div>
 )
 
@@ -238,10 +232,10 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics, dateFilter, onDate
         <>
           {/* ── KPI Cards ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '14px' }}>
-            <RevKpi label="Gross Rent Processed" value={`₦${totalRent.toLocaleString()}`} sub="total rent payments collected" change={+18} color="var(--success)" icon={<Home size={14} />} />
-            <RevKpi label="Net Platform Revenue" value={`₦${netRevenue.toLocaleString()}`} sub="fee + benefits combined" change={+11} color="var(--accent)" icon={<TrendingUp size={14} />} />
-            <RevKpi label="Transaction Fee Revenue" value={`₦${feeRevenue.toLocaleString()}`} sub="transaction fee revenue" change={+6} color="#6366f1" icon={<CreditCard size={14} />} />
-            <RevKpi label="Benefits Revenue" value={`₦${benefitsRevenue.toLocaleString()}`} sub="protection benefits fees" change={+9} color="#06b6d4" icon={<ShieldCheck size={14} />} />
+            <RevKpi label="Gross Rent Processed" value={`₦${totalRent.toLocaleString()}`} sub="total rent payments collected" color="var(--success)" icon={<Home size={14} />} />
+            <RevKpi label="Net Platform Revenue" value={`₦${netRevenue.toLocaleString()}`} sub="fee + benefits combined" color="var(--accent)" icon={<TrendingUp size={14} />} />
+            <RevKpi label="Transaction Fee Revenue" value={`₦${feeRevenue.toLocaleString()}`} sub="transaction fee revenue" color="#6366f1" icon={<CreditCard size={14} />} />
+            <RevKpi label="Benefits Revenue" value={`₦${benefitsRevenue.toLocaleString()}`} sub="protection benefits fees" color="#06b6d4" icon={<ShieldCheck size={14} />} />
             <RevKpi label="Average Rent" value={`₦${avgRent.toLocaleString()}`} sub="per active tenant" color="#8b5cf6" icon={<BarChart2 size={14} />} />
             <RevKpi label="Avg Transaction Fee" value={`₦${avgFee.toLocaleString()}`} sub="per property manager" color="var(--warning)" icon={<ArrowUpRight size={14} />} />
           </div>
@@ -329,7 +323,6 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics, dateFilter, onDate
                 label="Est. Monthly Revenue (MRR)"
                 value={`₦${mrr.toLocaleString()}`}
                 sub="annualised ÷ 12 estimate"
-                change={+8}
                 color="var(--accent)"
                 icon={<TrendingUp size={14} />}
               />
@@ -337,7 +330,6 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics, dateFilter, onDate
                 label="Payment Success Rate"
                 value={`${paymentSuccessRate}%`}
                 sub="successful vs attempted"
-                change={+2}
                 color="var(--success)"
                 icon={<ShieldCheck size={14} />}
               />
@@ -366,7 +358,6 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics, dateFilter, onDate
                 label="Avg Processing Fee"
                 value={`₦${avgFee.toLocaleString()}`}
                 sub="per property manager"
-                change={+6}
                 color="var(--warning)"
                 icon={<ArrowUpRight size={14} />}
               />
