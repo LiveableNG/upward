@@ -200,7 +200,7 @@ export class GetPerformanceMetricsUseCase {
             tx.lineItems.forEach((item: any) => {
               const name = item.name || item.label || ''
               if (name === 'Upward Benefits') {
-                benefitsPaid += Number(item.amountPaid || item.amount || 0)
+                benefitsPaid += Number(item.amountPaid || item.amount || item.totalAmount || 0)
               }
             })
           }
@@ -235,7 +235,7 @@ export class GetPerformanceMetricsUseCase {
             tx.lineItems.forEach((item: any) => {
               const name = item.name || item.label || ''
               if (name === 'Upward Benefits') {
-                benefitsPaid += Number(item.amountPaid || item.amount || 0)
+                benefitsPaid += Number(item.amountPaid || item.amount || item.totalAmount || 0)
               }
             })
           }
