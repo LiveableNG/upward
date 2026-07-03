@@ -896,7 +896,7 @@ export class ProcessPaymentWebhookUseCase {
         }
       }
 
-      if (payload.data.dedicated_account || payload.data.channel === 'dedicated_account') {
+      if (payload.data.dedicated_account || payload.data.channel === 'dedicated_account' || payload.data.channel === 'dedicated_nuban') {
         this.logger.log(`DVA Payment detected in charge.success for reference: ${reference}`)
         return this.handleDvaPayment(payload.data)
       }

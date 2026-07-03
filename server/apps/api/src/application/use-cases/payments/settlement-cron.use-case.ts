@@ -35,6 +35,7 @@ export class ProcessHourlySettlementsUseCase {
       include: {
         paymentRequest: {
           include: {
+            subaccount: true,
             userProperty: {
               include: { subaccount: true }
             }
@@ -48,7 +49,8 @@ export class ProcessHourlySettlementsUseCase {
     // 2. Group by Landlord (Subaccount)
     const groups = new Map<string, typeof transactions>();
     for (const tx of transactions) {
-      const subaccountCode = tx.paymentRequest?.userProperty?.subaccount?.subaccountCode;
+      const sub = tx.paymentRequest?.subaccount || tx.paymentRequest?.userProperty?.subaccount;
+      const subaccountCode = sub?.subaccountCode;
       if (!subaccountCode) {
         this.logger.error(`Transaction ${tx.reference} is VERIFIED but has no subaccount linked. Skipping.`);
         continue;
@@ -60,13 +62,36 @@ export class ProcessHourlySettlementsUseCase {
     // 3. Process each group (Bundled Settlement)
     for (const [subaccountCode, txs] of groups.entries()) {
       try {
-        const totalPaid = txs.reduce((sum, tx) => sum + tx.amount, 0);
-        const totalUpwardFees = txs.length * this.paymentConfig.getNetRevenuePerTransaction();
-        const totalRentToSettle = totalPaid - (txs.length * this.paymentConfig.getProcessingFee()); // Net rent only
+        let totalRentToSettle = 0;
+        let totalUpwardFees = 0;
+        for (const tx of txs) {
+          if (tx.lineItems && Array.isArray(tx.lineItems)) {
+            const settleableItems = (tx.lineItems as any[]).filter(item => 
+              item.name === 'Rent' || 
+              (!['Fee', 'Overpayment', 'Package'].includes(item.category) && 
+               !item.name.toLowerCase().includes('fee') && 
+               !item.name.toLowerCase().includes('benefit') && 
+               !item.name.toLowerCase().includes('package'))
+            );
+            if (settleableItems.length > 0) {
+              const settleableSum = settleableItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+              totalRentToSettle += settleableSum;
+              totalUpwardFees += Math.max(0, tx.amount - settleableSum);
+            } else {
+              const fee = this.paymentConfig.getProcessingFee();
+              totalRentToSettle += Math.max(0, tx.amount - fee);
+              totalUpwardFees += Math.min(tx.amount, fee);
+            }
+          } else {
+            const fee = this.paymentConfig.getProcessingFee();
+            totalRentToSettle += Math.max(0, tx.amount - fee);
+            totalUpwardFees += Math.min(tx.amount, fee);
+          }
+        }
 
         if (totalRentToSettle <= 0) continue;
 
-        const sub = txs[0]?.paymentRequest?.userProperty?.subaccount;
+        const sub = txs[0]?.paymentRequest?.subaccount || txs[0]?.paymentRequest?.userProperty?.subaccount;
         if (!sub) continue;
 
         // Create Batch Record
