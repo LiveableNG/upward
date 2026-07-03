@@ -375,6 +375,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 border: '1px solid var(--border)',
                 color: 'var(--text-secondary)',
                 cursor: 'pointer',
+                padding: 0,
               }}
             >
               <RefreshCcw size={16} style={{ color: 'var(--text-secondary)' }} />

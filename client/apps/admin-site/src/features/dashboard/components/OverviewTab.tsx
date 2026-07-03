@@ -576,11 +576,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     showToast('Overview exported: 3 sheets — Summary, Invited Breakdown & Paying Tenants!')
   }
 
-  const waitlistSpark = useMemo(() => seedSpark(metrics?.waitlistCount ?? 50), [metrics?.waitlistCount])
-  const pmSpark = useMemo(() => seedSpark(metrics?.pmCount ?? 20), [metrics?.pmCount])
   const revenueSpark = useMemo(() => seedSpark(metrics?.totalRentProcessed ?? 500000), [metrics?.totalRentProcessed])
   const signupSpark = useMemo(() => seedSpark(metrics?.totalAccountsCreated ?? 30), [metrics?.totalAccountsCreated])
-  const activeSpark = useMemo(() => seedSpark(metrics?.activeCount ?? 20), [metrics?.activeCount])
 
   // Conversion rate = (waitlist entries who converted) ÷ (total waitlist entries) × 100
   // We use metrics.waitlistConverted (from waitlist.converted in backend) as the numerator.
@@ -728,78 +725,17 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           <>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
               gap: '16px',
             }}>
               <HealthCard
-                label="Waitlist"
-                value={metrics.waitlistCount.toLocaleString()}
-                sub="total registrations"
-                change={+8}
-                sparkData={waitlistSpark}
+                label="Total Users"
+                value={metrics.totalUsersWithPassword.toLocaleString()}
+                sub="users with active accounts"
+                sparkData={signupSpark}
                 accentColor="#6366f1"
                 icon={<Users size={16} />}
-                tooltip={`Total number of people who joined the waitlist.\nIncludes both those still waiting and those who have converted to registered tenants.`}
-              />
-              <HealthCard
-                label="Signed Up"
-                value={metrics.totalAccountsCreated.toLocaleString()}
-                sub="accounts created"
-                change={+12}
-                sparkData={signupSpark}
-                accentColor="var(--success)"
-                icon={<UserCheck size={16} />}
-                tooltip={`All users who have created an account on the platform, across every acquisition channel:\n\n• Waitlist → converted: ${metrics.waitlistConverted}\n• Direct self sign-up: ${metrics.signedUpCount - metrics.waitlistConverted}\n• Invited by PM → signed up: ${metrics.invitedOnboardedCount}\n───────────────
-Total: ${metrics.totalAccountsCreated}`}
-              />
-              <HealthCard
-                label="Property Managers"
-                value={metrics.pmCount.toLocaleString()}
-                sub="registered PMs"
-                change={+3}
-                sparkData={pmSpark}
-                accentColor="var(--accent)"
-                icon={<Building2 size={16} />}
-                tooltip={`Total number of property management companies or landlords registered on the platform.\nThey invite and manage tenants through the PM dashboard.`}
-              />
-              <HealthCard
-                label="Invited Tenants"
-                value={metrics.invitedCount.toLocaleString()}
-                subStrong={`${invitedList.filter(i => i.status === 'INVITED_SIGNED_UP' || i.status === 'SIGNED_UP_PAID').length} signed up`}
-                sub="out of total invites"
-                accentColor="#f59e0b"
-                icon={<MailOpen size={16} />}
-                tooltip={`Tenants invited by property managers via the platform.\n\n• Total invited: ${metrics.invitedCount}\n• Signed up: ${invitedList.filter(i => i.status === 'INVITED_SIGNED_UP' || i.status === 'SIGNED_UP_PAID').length}\n• Still pending: ${invitedList.filter(i => i.status === 'INVITED_PENDING').length}`}
-              />
-              <HealthCard
-                label="Conversion Rate"
-                value={`${conversionRate}%`}
-                subStrong={`${metrics.waitlistConverted} of ${metrics.waitlistCount}`}
-                sub="waitlist converted"
-                change={parseFloat(conversionRate ?? '0') >= 20 ? 4 : -4}
-                accentColor="#8b5cf6"
-                icon={<ArrowUpRight size={16} />}
-                tooltip={`Percentage of waitlist entrants who converted to registered accounts.\n\nFormula: (Waitlist Converted ÷ Waitlist Total) × 100\nTarget: ≥ 20%\n\nNote: The \'Signed Up\' total (${metrics.signedUpCount}) is higher because it also includes direct sign-ups who never went through the waitlist.`}
-              />
-              <HealthCard
-                label="Active Users"
-                value={metrics.activeCount.toLocaleString()}
-                sub="logged in last 30 days"
-                change={+14}
-                sparkData={activeSpark}
-                accentColor="#10b981"
-                icon={<Activity size={16} />}
-                tooltip={`Number of registered tenants who have had at least one recorded app activity in the last 30 days.`}
-              />
-              <HealthCard
-                label="Active Rate"
-                value={`${metrics.activeRate}%`}
-                subStrong={`${metrics.activeCount} of ${metrics.totalAccountsCreated}`}
-                sub="users active last 30d"
-                change={+5}
-                accentColor="#06b6d4"
-                icon={<TrendingUp size={16} />}
-                tooltip={`Percentage of all registered tenants who were active in the last 30 days.\n\nFormula: (Active Users ÷ Total Accounts Created) × 100\nTarget: ≥ 60%`}
+                tooltip={`Total number of fully registered users on the platform (including both password and Google OAuth accounts).\nThis counts all completed sign-ups and onboarded users (excludes shadow or invited-pending accounts that have no credentials/password set).`}
               />
               <HealthCard
                 label="Total Rent Processed"

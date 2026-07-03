@@ -434,6 +434,11 @@ export class GetPerformanceMetricsUseCase {
           totalUsers: allUsers.length,
           inactiveCount: allUsers.length - activeUserGroups.length,
           activeRate: allUsers.length > 0 ? Math.round((activeUserGroups.length / allUsers.length) * 100) : 0,
+          totalUsersWithPassword: allUsers.filter(
+            (u) =>
+              u.passwordHash &&
+              (u.passwordHash.startsWith('$2') || u.passwordHash === PASS_PLACEHOLDERS.SOCIAL),
+          ).length,
         },
       },
       directories: {

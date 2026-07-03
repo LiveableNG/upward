@@ -11,7 +11,8 @@
     "test": "jest --passWithNoTests",
     "prisma:generate": "prisma generate --schema=prisma/schema",
     "postinstall": "prisma generate --schema=prisma/schema",
-    "db:seed": "prisma db seed --schema=prisma/schema"
+    "db:seed": "prisma db seed --schema=prisma/schema",
+    "db:seed-all": "tsx prisma/seed.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed-admin.ts"
