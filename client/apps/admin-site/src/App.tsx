@@ -53,7 +53,7 @@ function AppRoutes() {
           <Route path="/metrics" element={<Navigate to="/dashboard" replace />} />
           <Route path="/users/:uuid" element={<UserDetail token={auth.token} />} />
           <Route path="/pms/:uuid" element={<PmDetail token={auth.token} />} />
-          <Route path="/emails" element={<EmailComposer token={auth.token} />} />
+          <Route path="/emails" element={<EmailComposer token={auth.token} adminEmail={auth.user.email} />} />
           <Route path="/email-logs" element={<EmailLogs token={auth.token} />} />
           <Route path="/sessions" element={<Navigate to="/" replace />} />
           <Route path="/drop-off" element={<DropOffAnalysis token={auth.token} />} />

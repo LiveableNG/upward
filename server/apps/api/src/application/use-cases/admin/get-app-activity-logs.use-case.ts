@@ -39,8 +39,10 @@ export class GetAppActivityLogsUseCase {
     })
 
     // Filter out anonymous guest / system logs where no real user identity can be tracked
+    // EXCEPT for SIGNUP actions which are verified registration events containing email in metadata
     andConditions.push({
       OR: [
+        { action: 'SIGNUP' },
         { userId: { not: null } },
         { pmId: { not: null } },
         {
@@ -121,6 +123,24 @@ export class GetAppActivityLogsUseCase {
     const userIds = logs.map((l) => l.userId).filter(Boolean) as number[]
     const pmIds = logs.map((l) => l.pmId).filter(Boolean) as number[]
     const emails = logs.map((l) => l.userEmail).filter(Boolean) as string[]
+
+    // Extract emails from SIGNUP logs metadata if userEmail is null
+    logs.forEach((log) => {
+      if (log.action === 'SIGNUP' && !log.userEmail && log.metadata) {
+        try {
+          const meta = typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata;
+          const email = meta?.body?.email;
+          if (email && typeof email === 'string') {
+            emails.push(email);
+            // Dynamically set userEmail so mapping looks it up correctly
+            log.userEmail = email;
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    });
+
     const tenantUuids = logs
       .filter((l) => l.entityType === 'TENANT' && l.entityId)
       .map((l) => l.entityId) as string[]
@@ -179,7 +199,15 @@ export class GetAppActivityLogsUseCase {
               id: true,
               uuid: true,
               email: true,
+              firstName: true,
+              lastName: true,
               businessName: true,
+              phone: true,
+              cacNumber: true,
+              pmType: true,
+              country: true,
+              isVerified: true,
+              createdAt: true,
             },
           })
         : [],
@@ -190,7 +218,15 @@ export class GetAppActivityLogsUseCase {
               id: true,
               uuid: true,
               email: true,
+              firstName: true,
+              lastName: true,
               businessName: true,
+              phone: true,
+              cacNumber: true,
+              pmType: true,
+              country: true,
+              isVerified: true,
+              createdAt: true,
             },
           })
         : [],
@@ -238,18 +274,35 @@ export class GetAppActivityLogsUseCase {
     allPms.forEach((p) => {
       let email = ''
       let businessName = ''
+      let firstName = ''
+      let lastName = ''
+      let phone = ''
       try {
         email = p.email ? this.encryption.decrypt(p.email) : ''
         businessName = p.businessName ? this.encryption.decrypt(p.businessName) : ''
+        firstName = p.firstName ? this.encryption.decrypt(p.firstName) : ''
+        lastName = p.lastName ? this.encryption.decrypt(p.lastName) : ''
+        phone = p.phone ? this.encryption.decrypt(p.phone) : ''
       } catch (err) {
         email = p.email || ''
         businessName = p.businessName || ''
+        firstName = p.firstName || ''
+        lastName = p.lastName || ''
+        phone = p.phone || ''
       }
       const pmObj = {
         id: p.id,
         uuid: p.uuid,
         email,
         businessName,
+        firstName,
+        lastName,
+        phone,
+        cacNumber: p.cacNumber,
+        pmType: p.pmType,
+        country: p.country,
+        isVerified: p.isVerified,
+        createdAt: p.createdAt,
       }
       pmMap.set(p.id, pmObj)
       if (email) {

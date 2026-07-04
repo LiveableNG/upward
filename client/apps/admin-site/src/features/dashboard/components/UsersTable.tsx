@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   ChevronUp,
   ChevronDown,
@@ -7,6 +8,7 @@ import {
   Copy,
   Trash2,
   Users,
+  Mail,
 } from 'lucide-react'
 import { Square, CheckSquare } from './Checkbox'
 
@@ -36,7 +38,6 @@ interface UsersTableProps {
   selectedUserIds: Set<string>
   toggleSelectAllUsers: () => void
   toggleSelectUser: (id: string, e: React.MouseEvent) => void
-  navigate: (path: string) => void
   onPreview?: (item: UnifiedUserRecord) => void
   onDeleteSelected?: () => void
 }
@@ -52,10 +53,10 @@ export const UsersTable: React.FC<UsersTableProps> = ({
   selectedUserIds,
   toggleSelectAllUsers,
   toggleSelectUser,
-  navigate,
   onPreview,
   onDeleteSelected,
 }) => {
+  const navigate = useNavigate()
   const [sortKey, setSortKey] = useState<SortKey>('createdAt')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -146,11 +147,47 @@ export const UsersTable: React.FC<UsersTableProps> = ({
           fontSize: '13px',
         }}>
           <strong style={{ color: 'var(--accent)' }}>{selectedUserIds.size} selected</strong>
+          <button
+            onClick={() => {
+              const selectedUsers = paginatedItems.filter((u) => selectedUserIds.has(u.id))
+              navigate('/emails', { state: { selectedUsers } })
+            }}
+            className="btn"
+            style={{
+              height: '30px',
+              padding: '0 12px',
+              background: 'var(--accent)',
+              color: 'var(--white)',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+            }}
+          >
+            <Mail size={13} /> Send Email
+          </button>
           {onDeleteSelected && (
             <button
               onClick={onDeleteSelected}
               className="btn"
-              style={{ height: '30px', padding: '0 12px', background: 'var(--danger-faint)', color: 'var(--danger)', border: '1px solid transparent', fontSize: '12px', gap: '6px' }}
+              style={{
+                height: '30px',
+                padding: '0 12px',
+                background: 'var(--danger-faint)',
+                color: 'var(--danger)',
+                border: '1px solid transparent',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+              }}
             >
               <Trash2 size={13} /> Delete Selected
             </button>

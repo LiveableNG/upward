@@ -351,23 +351,7 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
     })
   }
 
-  // Google Analytics stats state
-  const [gaStats, setGaStats] = useState<any>(null)
-  const [loadingGaStats, setLoadingGaStats] = useState(true)
 
-  const fetchGaStats = async () => {
-    setLoadingGaStats(true)
-    try {
-      const response = await apiService.get('/admin/app-activity/google-analytics/stats', token)
-      if (response) {
-        setGaStats(response)
-      }
-    } catch (error) {
-      console.error('Failed to fetch GA stats:', error)
-    } finally {
-      setLoadingGaStats(false)
-    }
-  }
 
   const fetchLogs = async (pageNum = page) => {
     setLoading(true)
@@ -392,9 +376,7 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
     }
   }
 
-  useEffect(() => {
-    fetchGaStats()
-  }, [])
+
 
   useEffect(() => {
     fetchLogs(page)
@@ -408,7 +390,6 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
   }
 
   const handleRefresh = () => {
-    fetchGaStats()
     fetchLogs(1)
     setPage(1)
   }
@@ -483,211 +464,19 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
         <button
           onClick={handleRefresh}
           className="btn btn-secondary"
-          disabled={loading || loadingGaStats}
+          disabled={loading}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
           }}
         >
-          <RefreshCcw size={16} className={loading || loadingGaStats ? 'spin' : ''} />
+          <RefreshCcw size={16} className={loading ? 'spin' : ''} />
           Refresh Data
         </button>
       </div>
 
-      {/* Stats Summary Cards (GA4) */}
-      <div
-        className="stats-grid grid-mobile-1"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '20px',
-          marginBottom: '24px',
-        }}
-      >
-        {/* Website Visitors */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="section-label">Website Visitors (30d)</span>
-            <div style={{ color: 'var(--accent)', background: 'var(--accent-faint)', padding: '6px', borderRadius: '8px' }}>
-              <Users size={18} />
-            </div>
-          </div>
-          <div>
-            <h2 style={{ fontSize: '32px', fontWeight: 800, margin: 0 }}>
-              {loadingGaStats ? '...' : gaStats?.activeUsers?.toLocaleString() || 0}
-            </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '4px 0 0 0' }}>
-              GA4: Unique active visitors
-            </p>
-          </div>
-        </div>
 
-        {/* Total Visits / Sessions */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="section-label">Visits / Sessions</span>
-            <div style={{ color: 'var(--success)', background: 'var(--success-faint)', padding: '6px', borderRadius: '8px' }}>
-              <Activity size={18} />
-            </div>
-          </div>
-          <div>
-            <h2 style={{ fontSize: '32px', fontWeight: 800, margin: 0 }}>
-              {loadingGaStats ? '...' : gaStats?.sessions?.toLocaleString() || 0}
-            </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '4px 0 0 0' }}>
-              GA4: Total sessions initiated
-            </p>
-          </div>
-        </div>
-
-        {/* Page Views */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="section-label">Page Views</span>
-            <div style={{ color: '#3b82f6', background: 'rgba(59, 130, 246, 0.1)', padding: '6px', borderRadius: '8px' }}>
-              <Eye size={18} />
-            </div>
-          </div>
-          <div>
-            <h2 style={{ fontSize: '32px', fontWeight: 800, margin: 0 }}>
-              {loadingGaStats ? '...' : gaStats?.pageViews?.toLocaleString() || 0}
-            </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '4px 0 0 0' }}>
-              GA4: Total page routes viewed
-            </p>
-          </div>
-        </div>
-
-        {/* Views per Visit */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="section-label">Pages per Visit</span>
-            <div style={{ color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.1)', padding: '6px', borderRadius: '8px' }}>
-              <Globe size={18} />
-            </div>
-          </div>
-          <div>
-            <h2 style={{ fontSize: '32px', fontWeight: 800, margin: 0 }}>
-              {loadingGaStats ? '...' : gaStats?.sessions ? (gaStats.pageViews / gaStats.sessions).toFixed(1) : '0.0'}
-            </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '4px 0 0 0' }}>
-              GA4: Average page depth
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* GA4 Traffic Breakdown & Top Visited Pages */}
-      <div
-        className="stats-grid grid-mobile-1"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 2fr',
-          gap: '20px',
-          marginBottom: '24px',
-        }}
-      >
-        {/* Device Categories */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'space-between' }}>
-          <div>
-            <h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>Visitor Devices</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '4px 0 0 0' }}>GA4 traffic breakdown by client</p>
-          </div>
-          {loadingGaStats ? (
-            <div>Loading device stats...</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
-                  <span>Desktop</span>
-                  <span>{gaStats?.devices?.desktop || 0}</span>
-                </div>
-                <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '4px' }}>
-                  <div
-                    style={{
-                      height: '100%',
-                      background: 'var(--accent)',
-                      width: `${gaStats?.activeUsers ? (((gaStats.devices?.desktop || 0) / gaStats.activeUsers) * 100) : 0}%`,
-                    }}
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
-                  <span>Mobile Browser</span>
-                  <span>{gaStats?.devices?.mobile || 0}</span>
-                </div>
-                <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '4px' }}>
-                  <div
-                    style={{
-                      height: '100%',
-                      background: 'var(--success)',
-                      width: `${gaStats?.activeUsers ? (((gaStats.devices?.mobile || 0) / gaStats.activeUsers) * 100) : 0}%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
-                  <span>Tablet</span>
-                  <span>{gaStats?.devices?.tablet || 0}</span>
-                </div>
-                <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '4px' }}>
-                  <div
-                    style={{
-                      height: '100%',
-                      background: 'var(--warning)',
-                      width: `${gaStats?.activeUsers ? (((gaStats.devices?.tablet || 0) / gaStats.activeUsers) * 100) : 0}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Top Pages */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div>
-            <h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>Top Visited Pages</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '4px 0 0 0' }}>Most active routes tracked on the platform</p>
-          </div>
-          {loadingGaStats ? (
-            <div>Loading pages...</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {(gaStats?.topPages || []).map((page: any, idx: number) => (
-                <div
-                  key={page.path}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '8px 12px',
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px',
-                    fontSize: '13px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                    <span style={{ fontWeight: 800, color: 'var(--accent)', minWidth: '16px' }}>#{idx + 1}</span>
-                    <span style={{ fontFamily: 'monospace', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--text)' }}>
-                      {page.path}
-                    </span>
-                  </div>
-                  <span style={{ fontWeight: 700, color: 'var(--text-secondary)', flexShrink: 0 }}>
-                    {page.views.toLocaleString()} views
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Filters/Search Bar */}
       <div className="card" style={{ marginBottom: '24px', padding: '16px' }}>
