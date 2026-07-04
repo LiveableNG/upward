@@ -100,6 +100,35 @@ export class ProcessHourlySettlementsUseCase {
         const sortedTxIds = txs.map(t => t.id).sort().join(',');
         const hash = crypto.createHash('md5').update(sortedTxIds).digest('hex').substring(0, 16);
         const transferReference = `BATCH-SETTLE-${hash}`;
+        let finalReference = transferReference;
+
+        // Check if a batch already exists with the primary reference
+        const existingBatch = await this.prisma.upward_settlement_batch.findUnique({
+          where: { transferReference }
+        });
+
+        if (existingBatch) {
+          if (existingBatch.status === 'COMPLETED') {
+            this.logger.warn(`Batch for reference ${transferReference} was already COMPLETED. Updating transactions to SETTLED and skipping.`);
+            await this.prisma.upward_transaction.updateMany({
+              where: { id: { in: txs.map(t => t.id) } },
+              data: {
+                settlementStatus: 'SETTLED',
+                settlementBatchId: existingBatch.id
+              }
+            });
+            continue;
+          }
+
+          if (existingBatch.status === 'PENDING') {
+            this.logger.warn(`Batch for reference ${transferReference} is PENDING. Skipping to avoid double transfer.`);
+            continue;
+          }
+
+          
+          const retrySuffix = `-RETRY-${Date.now()}`;
+          finalReference = `${transferReference}${retrySuffix}`;
+        }
 
         // Atomically lock transactions by changing status to 'PROCESSING'
         const lockResult = await this.prisma.upward_transaction.updateMany({
@@ -138,7 +167,7 @@ export class ProcessHourlySettlementsUseCase {
               landlordId: subaccountCode,
               totalAmount: totalRentToSettle,
               status: 'PENDING',
-              transferReference
+              transferReference: finalReference
             }
           });
         } catch (dbError: any) {
@@ -165,7 +194,7 @@ export class ProcessHourlySettlementsUseCase {
           amount: totalRentToSettle,
           accountNumber: sub.accountNumber,
           bankCode: sub.bankCode,
-          reference: transferReference,
+          reference: finalReference,
           narration: `Upward Batch Settlement: ${txs.length} properties`
         });
 
