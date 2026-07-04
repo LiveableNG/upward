@@ -1,4 +1,5 @@
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { X, Trash2 } from 'lucide-react'
 import type { FeeOverride } from '../types'
 
@@ -43,7 +44,7 @@ export const GlobalOverridesModal: React.FC<GlobalOverridesModalProps> = ({
 }) => {
   if (!isOpen) return null
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div
         className="modal-content card fade-in"
@@ -174,6 +175,7 @@ export const GlobalOverridesModal: React.FC<GlobalOverridesModalProps> = ({
           <div style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: '16px' }}>No active overrides configured.</div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
