@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { RefreshCcw, Clock } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { apiService } from '../services/api.service'
@@ -47,7 +46,6 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
-  const navigate = useNavigate()
   const isSuperadmin = adminRole === 'SUPERADMIN'
 
   // ── Tab State (persisted) ──────────────────────────────────────
@@ -699,7 +697,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             signedUpList={signedUpList}
             invitedList={invitedList}
             onPreview={openDrawerForUser}
-            onPreviewPm={openDrawerForPm}
             token={token}
           />
         )
