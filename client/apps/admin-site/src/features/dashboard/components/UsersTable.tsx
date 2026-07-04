@@ -9,19 +9,35 @@ import {
   Users,
 } from 'lucide-react'
 import { Square, CheckSquare } from './Checkbox'
-import type { WaitlistRecord } from '../types'
 
-type SortKey = 'name' | 'email' | 'totalPaid' | 'createdAt' | 'converted'
+export interface UnifiedUserRecord {
+  id: string
+  uuid: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  createdAt: string
+  origin: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED'
+  hasPassword: boolean
+  isExWaitlist: boolean
+  pmName?: string
+  pmUuid?: string | null
+  totalPaid: number
+  rawRecord: any
+}
+
+type SortKey = 'name' | 'email' | 'origin' | 'pmName' | 'totalPaid' | 'createdAt'
 type SortDir = 'asc' | 'desc'
 
-interface WaitlistTableProps {
+interface UsersTableProps {
   isSuperadmin: boolean
-  paginatedItems: WaitlistRecord[]
-  selectedWaitlistIds: Set<string>
-  toggleSelectAllWaitlist: () => void
-  toggleSelectWaitlist: (id: string, e: React.MouseEvent) => void
+  paginatedItems: UnifiedUserRecord[]
+  selectedUserIds: Set<string>
+  toggleSelectAllUsers: () => void
+  toggleSelectUser: (id: string, e: React.MouseEvent) => void
   navigate: (path: string) => void
-  onPreview?: (item: WaitlistRecord) => void
+  onPreview?: (item: UnifiedUserRecord) => void
   onDeleteSelected?: () => void
 }
 
@@ -30,12 +46,12 @@ const SortIcon: React.FC<{ col: SortKey; active: SortKey; dir: SortDir }> = ({ c
     ? dir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
     : <ChevronDown size={12} style={{ opacity: 0.25 }} />
 
-export const WaitlistTable: React.FC<WaitlistTableProps> = ({
+export const UsersTable: React.FC<UsersTableProps> = ({
   isSuperadmin,
   paginatedItems,
-  selectedWaitlistIds,
-  toggleSelectAllWaitlist,
-  toggleSelectWaitlist,
+  selectedUserIds,
+  toggleSelectAllUsers,
+  toggleSelectUser,
   navigate,
   onPreview,
   onDeleteSelected,
@@ -51,11 +67,25 @@ export const WaitlistTable: React.FC<WaitlistTableProps> = ({
 
   const sorted = [...paginatedItems].sort((a, b) => {
     let va: string | number = '', vb: string | number = ''
-    if (sortKey === 'name') { va = `${a.firstName} ${a.lastName}`; vb = `${b.firstName} ${b.lastName}` }
-    else if (sortKey === 'email') { va = a.email; vb = b.email }
-    else if (sortKey === 'totalPaid') { va = a.totalPaid; vb = b.totalPaid }
-    else if (sortKey === 'createdAt') { va = a.createdAt; vb = b.createdAt }
-    else if (sortKey === 'converted') { va = a.converted ? 1 : 0; vb = b.converted ? 1 : 0 }
+    if (sortKey === 'name') {
+      va = `${a.firstName} ${a.lastName}`.toLowerCase()
+      vb = `${b.firstName} ${b.lastName}`.toLowerCase()
+    } else if (sortKey === 'email') {
+      va = a.email.toLowerCase()
+      vb = b.email.toLowerCase()
+    } else if (sortKey === 'origin') {
+      va = a.origin
+      vb = b.origin
+    } else if (sortKey === 'pmName') {
+      va = (a.pmName || '').toLowerCase()
+      vb = (b.pmName || '').toLowerCase()
+    } else if (sortKey === 'totalPaid') {
+      va = a.totalPaid
+      vb = b.totalPaid
+    } else if (sortKey === 'createdAt') {
+      va = a.createdAt
+      vb = b.createdAt
+    }
     if (va < vb) return sortDir === 'asc' ? -1 : 1
     if (va > vb) return sortDir === 'asc' ? 1 : -1
     return 0
@@ -73,12 +103,37 @@ export const WaitlistTable: React.FC<WaitlistTableProps> = ({
     whiteSpace: 'nowrap',
   }
 
-  const allSelected = paginatedItems.length > 0 && selectedWaitlistIds.size === paginatedItems.length
+  const allSelected = paginatedItems.length > 0 && selectedUserIds.size === paginatedItems.length
+
+  const getOriginBadge = (origin: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED') => {
+    switch (origin) {
+      case 'WAITLIST':
+        return (
+          <span className="badge" style={{ background: 'rgba(99,102,241,0.08)', color: '#6366f1' }}>
+            Waitlist
+          </span>
+        )
+      case 'SELF_REGISTERED':
+        return (
+          <span className="badge" style={{ background: 'var(--success-faint)', color: 'var(--success)' }}>
+            Self Signed Up
+          </span>
+        )
+      case 'INVITED':
+        return (
+          <span className="badge" style={{ background: 'var(--accent-faint)', color: 'var(--accent)' }}>
+            Invited
+          </span>
+        )
+      default:
+        return null
+    }
+  }
 
   return (
     <>
       {/* Bulk Action Bar */}
-      {selectedWaitlistIds.size > 0 && isSuperadmin && (
+      {selectedUserIds.size > 0 && isSuperadmin && (
         <div style={{
           background: 'var(--accent-faint)',
           border: '1px solid var(--accent-muted)',
@@ -90,7 +145,7 @@ export const WaitlistTable: React.FC<WaitlistTableProps> = ({
           marginBottom: '8px',
           fontSize: '13px',
         }}>
-          <strong style={{ color: 'var(--accent)' }}>{selectedWaitlistIds.size} selected</strong>
+          <strong style={{ color: 'var(--accent)' }}>{selectedUserIds.size} selected</strong>
           {onDeleteSelected && (
             <button
               onClick={onDeleteSelected}
@@ -108,7 +163,7 @@ export const WaitlistTable: React.FC<WaitlistTableProps> = ({
           <tr style={{ backgroundColor: 'var(--surface-hover)', borderBottom: '2px solid var(--border)' }}>
             {isSuperadmin && (
               <th style={{ padding: '13px 8px 13px 20px', width: '44px' }}>
-                <button onClick={toggleSelectAllWaitlist} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--text-muted)' }}>
+                <button onClick={toggleSelectAllUsers} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--text-muted)' }}>
                   {allSelected ? <CheckSquare size={17} color="var(--accent)" /> : <Square size={17} />}
                 </button>
               </th>
@@ -119,8 +174,11 @@ export const WaitlistTable: React.FC<WaitlistTableProps> = ({
             <th style={thStyle} onClick={() => handleSort('email')}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Contact <SortIcon col="email" active={sortKey} dir={sortDir} /></span>
             </th>
-            <th style={thStyle} onClick={() => handleSort('converted')}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Status <SortIcon col="converted" active={sortKey} dir={sortDir} /></span>
+            <th style={thStyle} onClick={() => handleSort('origin')}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Origin <SortIcon col="origin" active={sortKey} dir={sortDir} /></span>
+            </th>
+            <th style={thStyle} onClick={() => handleSort('pmName')}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Manager / Platform <SortIcon col="pmName" active={sortKey} dir={sortDir} /></span>
             </th>
             <th style={thStyle} onClick={() => handleSort('totalPaid')}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Paid <SortIcon col="totalPaid" active={sortKey} dir={sortDir} /></span>
@@ -137,32 +195,48 @@ export const WaitlistTable: React.FC<WaitlistTableProps> = ({
               key={item.id}
               style={{
                 borderBottom: '1px solid var(--border)',
-                background: selectedWaitlistIds.has(item.id) ? 'rgba(217,119,87,0.04)' : 'transparent',
+                background: selectedUserIds.has(item.id) ? 'rgba(217,119,87,0.04)' : 'transparent',
                 transition: 'background 0.15s',
               }}
               className="table-row-hover"
             >
               {isSuperadmin && (
-                <td style={{ padding: '14px 8px 14px 20px' }} onClick={(e) => toggleSelectWaitlist(item.id, e)}>
+                <td style={{ padding: '14px 8px 14px 20px' }} onClick={(e) => toggleSelectUser(item.id, e)}>
                   <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--text-muted)' }}>
-                    {selectedWaitlistIds.has(item.id) ? <CheckSquare size={17} color="var(--accent)" /> : <Square size={17} />}
+                    {selectedUserIds.has(item.id) ? <CheckSquare size={17} color="var(--accent)" /> : <Square size={17} />}
                   </button>
                 </td>
               )}
               <td style={{ padding: '14px 16px' }}>
-                <span style={{ fontWeight: 600, fontSize: '13px' }}>{item.firstName} {item.lastName}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px' }}>{item.firstName} {item.lastName}</span>
+                  {item.isExWaitlist && (
+                    <span style={{
+                      padding: '2px 6px',
+                      fontSize: '9px',
+                      fontWeight: 700,
+                      borderRadius: '4px',
+                      background: 'rgba(217,119,87,0.1)',
+                      color: 'var(--clay, #d97757)',
+                    }}>
+                      Waitlist
+                    </span>
+                  )}
+                </div>
               </td>
               <td style={{ padding: '14px 16px' }}>
                 <div style={{ fontSize: '13px' }}>{item.email}</div>
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.phone}</div>
               </td>
               <td style={{ padding: '14px 16px' }}>
-                <span className="badge" style={{
-                  background: item.converted ? 'var(--success-faint)' : 'var(--warning-faint)',
-                  color: item.converted ? 'var(--success)' : 'var(--warning)',
-                }}>
-                  {item.converted ? 'Converted' : 'Waiting'}
-                </span>
+                {getOriginBadge(item.origin)}
+              </td>
+              <td style={{ padding: '14px 16px' }}>
+                {item.pmName ? (
+                  <span style={{ fontSize: '13px', fontWeight: 500 }}>{item.pmName}</span>
+                ) : (
+                  <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>— <span style={{ fontSize: '11px', opacity: 0.6 }}>(Direct)</span></span>
+                )}
               </td>
               <td style={{ padding: '14px 16px', fontWeight: 700, fontSize: '13px' }}>
                 {item.totalPaid > 0 ? `₦${item.totalPaid.toLocaleString()}` : <span style={{ color: 'var(--text-muted)' }}>—</span>}
@@ -191,7 +265,7 @@ export const WaitlistTable: React.FC<WaitlistTableProps> = ({
                     minWidth: '160px',
                     overflow: 'hidden',
                   }}>
-                    {item.converted && onPreview && (
+                    {onPreview && (
                       <button
                         onClick={() => { setOpenMenuId(null); onPreview(item) }}
                         style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)' }}
@@ -200,7 +274,7 @@ export const WaitlistTable: React.FC<WaitlistTableProps> = ({
                         <Eye size={14} /> Quick Preview
                       </button>
                     )}
-                    {item.converted && (
+                    {item.hasPassword && (
                       <button
                         onClick={() => { setOpenMenuId(null); navigate(`/users/${item.uuid}`) }}
                         style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)' }}
@@ -241,11 +315,11 @@ export const WaitlistTable: React.FC<WaitlistTableProps> = ({
           {/* Empty State */}
           {sorted.length === 0 && (
             <tr>
-              <td colSpan={7} style={{ padding: '64px 24px', textAlign: 'center' }}>
+              <td colSpan={isSuperadmin ? 8 : 7} style={{ padding: '64px 24px', textAlign: 'center' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', color: 'var(--text-muted)' }}>
                   <Users size={40} style={{ opacity: 0.3 }} />
-                  <span style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-secondary)' }}>No waitlist entries found</span>
-                  <span style={{ fontSize: '13px' }}>Try adjusting your search or date filters.</span>
+                  <span style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-secondary)' }}>No records found</span>
+                  <span style={{ fontSize: '13px' }}>Try adjusting your search or filters.</span>
                 </div>
               </td>
             </tr>

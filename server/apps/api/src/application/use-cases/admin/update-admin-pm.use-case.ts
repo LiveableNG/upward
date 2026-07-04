@@ -17,6 +17,7 @@ export class UpdateAdminPmUseCase {
       lastName?: string
       phone?: string
       businessName?: string
+      isVerified?: boolean
     },
   ) {
     const pm = await this.prisma.upward_property_manager.findUnique({
@@ -47,10 +48,33 @@ export class UpdateAdminPmUseCase {
     if (data.businessName !== undefined) {
       updateData.businessName = data.businessName ? this.encryption.encrypt(data.businessName) : null
     }
+    if (data.isVerified !== undefined) {
+      updateData.isVerified = data.isVerified
+    }
 
-    return this.prisma.upward_property_manager.update({
+    const updatedPm = await this.prisma.upward_property_manager.update({
       where: { uuid },
       data: updateData,
     })
+
+    if (data.isVerified === true) {
+      await this.prisma.upward_user_property.updateMany({
+        where: { pmId: pm.id },
+        data: {
+          isVerified: true,
+          verificationStatus: 'VERIFIED'
+        }
+      })
+    } else if (data.isVerified === false) {
+      await this.prisma.upward_user_property.updateMany({
+        where: { pmId: pm.id },
+        data: {
+          isVerified: false,
+          verificationStatus: 'UNVERIFIED'
+        }
+      })
+    }
+
+    return updatedPm
   }
 }
