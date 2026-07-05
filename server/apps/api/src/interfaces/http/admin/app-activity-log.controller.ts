@@ -4,11 +4,23 @@ import { RolesGuard } from '../../../application/auth/guards/roles.guard'
 import { Roles } from '../../../application/auth/decorators/roles.decorator'
 import { AdminRole } from '@upward/shared-types'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { GetAppActivityLogsUseCase } from '../../../application/use-cases/admin/get-app-activity-logs.use-case'
+import { GoogleAnalyticsService } from '../../../shared/infrastructure/common/google-analytics.service'
 
 @Controller('admin/app-activity')
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
 export class AppActivityLogController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly getAppActivityLogsUseCase: GetAppActivityLogsUseCase,
+    private readonly googleAnalyticsService: GoogleAnalyticsService,
+  ) {}
+
+  @Get('google-analytics/stats')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
+  async getGoogleAnalyticsStats() {
+    return this.googleAnalyticsService.getDashboardStats()
+  }
 
   @Get()
   @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
@@ -19,75 +31,17 @@ export class AppActivityLogController {
     @Query('action') actionFilter?: string,
     @Query('search') search?: string,
     @Query('platform') platformFilter?: string,
+    @Query('date') date?: string,
   ) {
-    const pageNum = page ? parseInt(page) : 1
-    const limitNum = limit ? parseInt(limit) : 50
-    const skip = (pageNum - 1) * limitNum
-
-    const where: any = {}
-    const andConditions: any[] = []
-
-    if (appFilter && appFilter !== 'ALL') {
-      andConditions.push({ app: appFilter })
-    }
-
-    if (actionFilter && actionFilter !== 'ALL') {
-      andConditions.push({ action: actionFilter })
-    }
-
-    if (search) {
-      andConditions.push({
-        OR: [
-          { userEmail: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
-          { entityType: { contains: search, mode: 'insensitive' } },
-        ],
-      })
-    }
-
-    if (platformFilter && platformFilter !== 'ALL') {
-      if (platformFilter === 'mobile') {
-        andConditions.push({
-          OR: [
-            { userAgent: { contains: 'Capacitor', mode: 'insensitive' } },
-            { action: 'APP_INSTALL' },
-          ],
-        })
-      } else if (platformFilter === 'web') {
-        andConditions.push({
-          NOT: {
-            OR: [
-              { userAgent: { contains: 'Capacitor', mode: 'insensitive' } },
-              { action: 'APP_INSTALL' },
-            ],
-          },
-        })
-      }
-    }
-
-    if (andConditions.length > 0) {
-      where.AND = andConditions
-    }
-
-    const [logs, total] = await Promise.all([
-      this.prisma.upward_app_activity_log.findMany({
-        where,
-        skip,
-        take: limitNum,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.upward_app_activity_log.count({ where }),
-    ])
-
-    return {
-      data: logs,
-      meta: {
-        total,
-        page: pageNum,
-        limit: limitNum,
-        totalPages: Math.ceil(total / limitNum),
-      },
-    }
+    return this.getAppActivityLogsUseCase.execute({
+      page,
+      limit,
+      appFilter,
+      actionFilter,
+      search,
+      platformFilter,
+      date,
+    })
   }
 
   @Get('stats')

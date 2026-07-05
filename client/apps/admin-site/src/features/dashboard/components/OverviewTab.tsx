@@ -1,5 +1,7 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react'
 import ReactDOM from 'react-dom'
+import { useNavigate } from 'react-router-dom'
+import { apiService } from '../../../services/api.service'
 import {
   Users,
   Home,
@@ -11,6 +13,16 @@ import {
   Download,
   Search,
   Info,
+  Clock,
+  ArrowRight,
+  UserPlus,
+  LogIn,
+  LogOut,
+  Smartphone,
+  Trash2,
+  PlusCircle,
+  Settings,
+  FileText,
 } from 'lucide-react'
 import type { FlatMetrics, SignedUpRecord, InvitedRecord } from '../types'
 import * as XLSX from 'xlsx'
@@ -243,52 +255,28 @@ const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, subStrong, t
 
 
 
-// ───────────────────────────────────────────────────────────────
-// Area Chart (SVG)
-// ───────────────────────────────────────────────────────────────
-interface AreaChartProps {
-  data: { label: string; value: number }[]
-  color: string
-  height?: number
-}
-
-const AreaChart: React.FC<AreaChartProps> = ({ data, color, height = 120 }) => {
-  const width = 600
-  const max = Math.max(...data.map((d) => d.value), 1)
-  const padV = 10
-  const padH = 0
-
-  const points = data.map((d, i) => {
-    const x = padH + (i / (data.length - 1)) * (width - padH * 2)
-    const y = padV + (1 - d.value / max) * (height - padV * 2)
-    return { x, y, ...d }
-  })
-
-  const pathD = points
-    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
-    .join(' ')
-
-  const areaD = `${pathD} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`
-
-  return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      preserveAspectRatio="none"
-      style={{ width: '100%', height, display: 'block' }}
-    >
-      <defs>
-        <linearGradient id={`area-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.01" />
-        </linearGradient>
-      </defs>
-      <path d={areaD} fill={`url(#area-${color.replace('#', '')})`} />
-      <path d={pathD} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      {points.map((p) => (
-        <circle key={p.label} cx={p.x} cy={p.y} r="3.5" fill={color} />
-      ))}
-    </svg>
-  )
+function getActivityIcon(action: string, entityType?: string) {
+  if (entityType === 'PAYMENT' || entityType === 'RENT') return <CreditCard size={15} style={{ color: 'var(--success)' }} />
+  if (entityType === 'CONTRACT' || entityType === 'DOCUMENT') return <FileText size={15} style={{ color: '#3b82f6' }} />
+  
+  switch (action) {
+    case 'SIGNUP':
+      return <UserPlus size={15} style={{ color: '#8b5cf6' }} />
+    case 'LOGIN':
+      return <LogIn size={15} style={{ color: 'var(--success)' }} />
+    case 'LOGOUT':
+      return <LogOut size={15} style={{ color: 'var(--text-muted)' }} />
+    case 'APP_INSTALL':
+      return <Smartphone size={15} style={{ color: 'var(--accent)' }} />
+    case 'DELETE':
+      return <Trash2 size={15} style={{ color: 'var(--danger)' }} />
+    case 'CREATE':
+      return <PlusCircle size={15} style={{ color: '#3b82f6' }} />
+    case 'UPDATE':
+      return <Settings size={15} style={{ color: 'var(--warning)' }} />
+    default:
+      return <Activity size={15} style={{ color: 'var(--text-muted)' }} />
+  }
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -299,6 +287,206 @@ interface OverviewTabProps {
   signedUpList: SignedUpRecord[]
   invitedList: InvitedRecord[]
   onPreview: (item: any) => void
+  onPreviewPm: (pm: any) => void
+  token: string
+}
+
+function renderLogMessage(log: any, onPreviewUser: any, onPreviewPm: any) {
+  const user = log.user;
+  const pm = log.pm;
+
+  const userEmailLink = user?.email || log.userEmail;
+  const userNameStr = user ? `${user.firstName} ${user.lastName}`.trim() : '';
+
+  const pmNameStr = pm ? pm.businessName : '';
+  const pmEmailLink = pm?.email || '';
+
+  const renderTenantLink = () => {
+    if (!userEmailLink) return <span>System / Guest</span>;
+    return (
+      <button
+        type="button"
+        onClick={() => onPreviewUser({
+          uuid: user?.uuid || log.entityId || log.uuid,
+          firstName: user?.firstName || 'Tenant',
+          lastName: user?.lastName || '',
+          email: userEmailLink,
+          createdAt: user?.createdAt || log.createdAt,
+          totalPaid: user?.totalPaid || 0,
+        })}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: 'var(--accent)',
+          textDecoration: 'underline',
+          fontWeight: 700,
+          cursor: 'pointer',
+          padding: 0,
+          fontFamily: 'inherit',
+          fontSize: 'inherit',
+        }}
+      >
+        {userNameStr ? `${userNameStr} (${userEmailLink})` : userEmailLink}
+      </button>
+    );
+  };
+
+  const renderPmLink = () => {
+    if (!pmNameStr && !pmEmailLink) return <span>Property Manager</span>;
+    return (
+      <button
+        type="button"
+        onClick={() => onPreviewPm({
+          uuid: pm?.uuid || log.pmId || log.uuid,
+          businessName: pmNameStr || 'Property Manager',
+          email: pmEmailLink,
+          createdAt: pm?.createdAt || log.createdAt,
+        })}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: 'var(--accent)',
+          textDecoration: 'underline',
+          fontWeight: 700,
+          cursor: 'pointer',
+          padding: 0,
+          fontFamily: 'inherit',
+          fontSize: 'inherit',
+        }}
+      >
+        {pmNameStr ? `${pmNameStr} (${pmEmailLink})` : pmEmailLink}
+      </button>
+    );
+  };
+
+  if (log.action === 'SIGNUP') {
+    if (log.userRole === 'PM' || log.app === 'upward-pm') {
+      return (
+        <span>
+          Property Manager {renderPmLink()} registered a new account.
+        </span>
+      );
+    } else {
+      const details = user?.isFromInvite
+        ? 'completed registration (invited tenant).'
+        : user?.isFromWaitlist
+        ? 'converted from the waitlist and registered.'
+        : 'self-registered a new account.';
+      return (
+        <span>
+          Tenant {renderTenantLink()} {details}
+        </span>
+      );
+    }
+  }
+
+  if (log.action === 'LOGIN') {
+    if (log.userRole === 'PM' || log.app === 'upward-pm') {
+      return (
+        <span>
+          Property Manager {renderPmLink()} logged in.
+        </span>
+      );
+    } else {
+      return (
+        <span>
+          Tenant {renderTenantLink()} logged in.
+        </span>
+      );
+    }
+  }
+
+  if (log.action === 'LOGOUT') {
+    if (log.userRole === 'PM' || log.app === 'upward-pm') {
+      return (
+        <span>
+          Property Manager {renderPmLink()} logged out.
+        </span>
+      );
+    } else {
+      return (
+        <span>
+          Tenant {renderTenantLink()} logged out.
+        </span>
+      );
+    }
+  }
+
+  if (log.action === 'APP_INSTALL') {
+    return (
+      <span>
+        Mobile app installed or launched by user {renderTenantLink()}.
+      </span>
+    );
+  }
+
+  if (log.action === 'CREATE') {
+    if (log.entityType === 'UNIT') {
+      const match = log.description.match(/(?:uploaded|imported|added) (\d+) (?:units|properties|records)/i);
+      if (match) {
+        return (
+          <span>
+            Property Manager {renderPmLink()} bulk uploaded <strong>{match[1]}</strong> units.
+          </span>
+        );
+      } else {
+        return (
+          <span>
+            Property Manager {renderPmLink()} created a new unit.
+          </span>
+        );
+      }
+    }
+    if (log.entityType === 'INVITE') {
+      let inviteEmail = '';
+      try {
+        const meta = log.metadata ? (typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata) : {};
+        if (meta.email) {
+          inviteEmail = meta.email;
+        } else if (meta.tenants && Array.isArray(meta.tenants)) {
+          inviteEmail = meta.tenants.map((t: any) => t.email).join(', ');
+        }
+      } catch (e) {}
+      if (!inviteEmail) {
+        inviteEmail = log.description.match(/invite tenant:?\s*([^\s]+)/i)?.[1] || '';
+      }
+      if (!inviteEmail) {
+        inviteEmail = log.description.replace(/CREATE action on INVITE.*by\s+/i, '') || 'a tenant';
+      }
+      return (
+        <span>
+          Property Manager {renderPmLink()} invited Tenant <strong>{inviteEmail}</strong>.
+        </span>
+      );
+    }
+    if (log.entityType === 'PAYMENT' || log.entityType === 'RENT') {
+      let amountStr = '';
+      try {
+        const meta = log.metadata ? (typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata) : {};
+        if (meta.amount) {
+          amountStr = ` of ₦${Number(meta.amount).toLocaleString()}`;
+        }
+      } catch (e) {}
+      if (!amountStr) {
+        const amtMatch = log.description.match(/₦\s*([\d,]+)/);
+        if (amtMatch) amountStr = ` of ₦${amtMatch[1]}`;
+      }
+      return (
+        <span>
+          Tenant {renderTenantLink()} made a payment{amountStr ? <strong>{amountStr}</strong> : ''}.
+        </span>
+      );
+    }
+    if (log.entityType === 'CREDIBILITY_REQUEST') {
+      return (
+        <span>
+          Tenant {renderTenantLink()} requested their rental history credibility report.
+        </span>
+      );
+    }
+  }
+
+  return <span>{log.readableText || log.description}</span>;
 }
 
 // Fake trend data seeded from metrics totals to give realistic sparklines
@@ -318,10 +506,48 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   signedUpList,
   invitedList,
   onPreview,
+  onPreviewPm,
+  token,
 }) => {
   const [subView, setSubView] = useState<'metrics' | 'paying'>('metrics')
   const [searchQuery, setSearchQuery] = useState('')
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<'all' | 'benefits' | 'rent_only'>('all')
+
+  const [activities, setActivities] = useState<any[]>([])
+  const [loadingActivities, setLoadingActivities] = useState(true)
+  const [activitySearch, setActivitySearch] = useState('')
+  const [activityDate, setActivityDate] = useState('')
+  const navigate = useNavigate()
+
+  const fetchActivities = async () => {
+    setLoadingActivities(true)
+    try {
+      let url = `/admin/app-activity?page=1&limit=10`
+      if (activitySearch.trim()) {
+        url += `&search=${encodeURIComponent(activitySearch.trim())}`
+      }
+      if (activityDate) {
+        url += `&date=${activityDate}`
+      }
+      const res = await apiService.get(url, token)
+      if (res && res.data) {
+        setActivities(res.data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch recent activities in OverviewTab', err)
+    } finally {
+      setLoadingActivities(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchActivities()
+  }, [token, activityDate])
+
+  const handleActivitySearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    fetchActivities()
+  }
 
   // Compute paying users list from both SignedUp (self/waitlist) and Invited lists
   const payingUsers = useMemo(() => {
@@ -541,14 +767,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 
 
 
-  const signupChartData = useMemo(() =>
-    signupSpark.map((v, i) => ({ label: `Day ${i + 1}`, value: v })),
-    [signupSpark]
-  )
-  const revenueChartData = useMemo(() =>
-    revenueSpark.map((v, i) => ({ label: `Day ${i + 1}`, value: v })),
-    [revenueSpark]
-  )
+
 
   if (!metrics) {
     return (
@@ -710,28 +929,207 @@ Total: ${metrics.totalAccountsCreated}`}
               />
             </div>
 
-            {/* ── Charts Row ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '32px' }} className="grid-mobile-1">
-              <div className="card" style={{ padding: '20px' }}>
-                <div style={{ marginBottom: '16px' }}>
-                  <span className="section-label">Daily Signups Trend</span>
-                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>Rolling 7-day new user registrations</p>
+            {/* ── Activity Summary Section ── */}
+            <div className="card" style={{ padding: '24px', marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontWeight: 800, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Activity size={18} style={{ color: 'var(--accent)' }} /> Recent Activity Summary
+                  </h3>
+                  <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Real-time feed of events across tenants, managers, and system conversions.
+                  </p>
                 </div>
-                <AreaChart data={signupChartData} color="var(--success)" height={100} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '10px', color: 'var(--text-muted)' }}>
-                  {signupChartData.map((d) => <span key={d.label}>{d.label}</span>)}
-                </div>
+                
+                {/* Filters */}
+                <form onSubmit={handleActivitySearchSubmit} style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  {/* Date picker */}
+                  <input
+                    type="date"
+                    value={activityDate}
+                    onChange={(e) => setActivityDate(e.target.value)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      background: 'var(--surface-hover)',
+                      color: 'var(--text)',
+                      fontSize: '12px',
+                      height: '32px',
+                    }}
+                  />
+                  
+                  {/* Clear Date Filter Button */}
+                  {activityDate && (
+                    <button
+                      type="button"
+                      onClick={() => setActivityDate('')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        padding: '0 4px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Clear Date
+                    </button>
+                  )}
+
+                  {/* Search input */}
+                  <div style={{ position: 'relative' }}>
+                    <Search size={12} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input
+                      type="text"
+                      placeholder="Search recent events..."
+                      value={activitySearch}
+                      onChange={(e) => setActivitySearch(e.target.value)}
+                      style={{
+                        padding: '6px 12px 6px 28px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border)',
+                        background: 'var(--surface-hover)',
+                        color: 'var(--text)',
+                        fontSize: '12px',
+                        height: '32px',
+                        width: '200px',
+                      }}
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-secondary" style={{ height: '32px', padding: '0 12px', fontSize: '12px', cursor: 'pointer' }}>
+                    Search
+                  </button>
+                </form>
               </div>
 
-              <div className="card" style={{ padding: '20px' }}>
-                <div style={{ marginBottom: '16px' }}>
-                  <span className="section-label">Revenue Volume Trend</span>
-                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>Rolling 7-day gross rent volume processed</p>
-                </div>
-                <AreaChart data={revenueChartData} color="var(--accent)" height={100} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '10px', color: 'var(--text-muted)' }}>
-                  {revenueChartData.map((d) => <span key={d.label}>{d.label}</span>)}
-                </div>
+              {/* Feed List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '120px', position: 'relative' }}>
+                {loadingActivities ? (
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '32px' }}>
+                    <div className="loader"></div>
+                  </div>
+                ) : activities.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)', fontSize: '13px' }}>
+                    No recent activities match the filter.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {activities.map((log) => {
+                      const isMobile = (log.userAgent && log.userAgent.toLowerCase().includes('capacitor')) || log.action === 'APP_INSTALL';
+                      return (
+                        <div
+                          key={log.id}
+                          className="table-row-hover"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px 16px',
+                            background: 'var(--surface-hover)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '10px',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                            <div style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '8px',
+                              background: 'var(--white)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: '1px solid var(--border)',
+                              flexShrink: 0,
+                            }}>
+                              {getActivityIcon(log.action, log.entityType)}
+                            </div>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text)' }}>
+                                  {log.pm?.businessName || (log.user ? `${log.user.firstName} ${log.user.lastName}`.trim() : null) || log.userEmail || 'System / Guest'}
+                                </span>
+                                {log.userPathway && (
+                                  <span style={{
+                                    fontSize: '9px',
+                                    fontWeight: 700,
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    textTransform: 'uppercase',
+                                    background: log.userPathway === 'WAITLIST' ? 'rgba(16, 185, 129, 0.15)' : log.userPathway === 'INVITE' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(107, 114, 128, 0.15)',
+                                    color: log.userPathway === 'WAITLIST' ? '#10b981' : log.userPathway === 'INVITE' ? '#3b82f6' : 'var(--text-muted)',
+                                  }}>
+                                    {log.userPathway === 'WAITLIST' ? 'Waitlist Convert' : log.userPathway === 'INVITE' ? 'Invited Tenant' : 'Self Signed'}
+                                  </span>
+                                )}
+                                <span style={{
+                                  fontSize: '9px',
+                                  fontWeight: 600,
+                                  padding: '1px 5px',
+                                  borderRadius: '4px',
+                                  background: 'var(--white)',
+                                  border: '1px solid var(--border)',
+                                  color: 'var(--text-muted)',
+                                }}>
+                                  {isMobile ? 'Mobile' : 'Web'}
+                                </span>
+                              </div>
+                              <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                {renderLogMessage(log, onPreview, onPreviewPm)}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Clock size={10} />
+                              {new Date(log.createdAt).toLocaleDateString()} {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <button
+                              onClick={() => {
+                                onPreview({
+                                  uuid: log.user?.uuid || log.entityId || log.uuid,
+                                  firstName: log.user?.firstName || 'GUEST',
+                                  lastName: log.user?.lastName || '',
+                                  email: log.userEmail || log.user?.email || 'N/A',
+                                  createdAt: log.createdAt,
+                                  totalPaid: 0,
+                                })
+                              }}
+                              className="btn btn-secondary"
+                              style={{ height: '26px', padding: '0 8px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}
+                            >
+                              Details
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Show More */}
+              <div style={{ display: 'flex', justifyContent: 'center', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                <button
+                  onClick={() => navigate('/app-activity')}
+                  className="btn btn-secondary"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    height: '34px',
+                    padding: '0 16px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Show More Activities <ArrowRight size={14} />
+                </button>
               </div>
             </div>
 
