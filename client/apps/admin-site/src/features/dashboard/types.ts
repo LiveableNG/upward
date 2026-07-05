@@ -54,6 +54,7 @@ export interface PmRecord {
   unitsCount: number
   totalGenerated: number
   createdAt: string
+  pmType?: string
 }
 
 export interface FeeOverride {
@@ -99,6 +100,7 @@ export interface MetricsSummary {
     totalUsers: number
     inactiveCount: number
     activeRate: number
+    totalUsersWithPassword: number
   }
 }
 
@@ -144,6 +146,7 @@ export interface FlatMetrics {
   activeCount: number
   inactiveCount: number
   activeRate: number
+  totalUsersWithPassword: number
 }
 
 export function flattenMetrics(m: MetricsSummary): FlatMetrics {
@@ -163,6 +166,6 @@ export function flattenMetrics(m: MetricsSummary): FlatMetrics {
     activeCount: m.activeUsers?.activeCount ?? 0,
     inactiveCount: m.activeUsers?.inactiveCount ?? 0,
     activeRate: m.activeUsers?.activeRate ?? 0,
+    totalUsersWithPassword: m.activeUsers?.totalUsersWithPassword ?? 0,
   }
 }
-

@@ -38,6 +38,20 @@ class ApiService {
     return this.handleResponse(response)
   }
 
+  async postForm(endpoint: string, body: FormData, token?: string) {
+    const headers: HeadersInit = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      method: 'POST',
+      headers,
+      body,
+      credentials: 'include',
+    })
+    return this.handleResponse(response)
+  }
+
   async put(endpoint: string, body: unknown, token?: string) {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       method: 'PUT',

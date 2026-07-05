@@ -162,7 +162,7 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px', alignItems: 'start' }}>
         
         {/* LEFT COLUMN: Overview & Quick Actions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'sticky', top: '84px', alignSelf: 'start' }}>
           
           {/* Identity Card */}
           <div className="card" style={{ padding: '24px', textAlign: 'center' }}>
@@ -325,7 +325,7 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
               <Home size={16} /> Linked Tenancy Properties
             </h4>
             {user.properties && user.properties.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
                 {user.properties.map((prop: any) => (
                   <div
                     key={prop.id}
@@ -341,10 +341,18 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                   >
                     <div>
                       <span style={{ fontWeight: 600, display: 'block', fontSize: '14px' }}>
-                        {prop.location?.address || 'Property Tenancy'}
+                        {prop.pmUnit?.property?.address || prop.location?.address || 'Property Tenancy'}
                       </span>
                       <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {prop.location?.area}, {prop.location?.state} • {prop.company?.name || 'Upward Platform'}
+                        {prop.location?.area || prop.pmUnit?.property?.area}, {prop.location?.state || prop.pmUnit?.property?.state} •{' '}
+                        {prop.pm ? (
+                          <Link to={`/pms/${prop.pm.uuid}`} style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+                            {prop.pm.businessName || 'Property Manager'}
+                          </Link>
+                        ) : (
+                          prop.company?.name || 'Upward Platform'
+                        )}
+                        {prop.pmUnit && ` • Unit: ${prop.pmUnit.unitName}`}
                       </span>
                     </div>
                     <div style={{ textAlign: 'right' }}>
@@ -371,7 +379,7 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
               <DollarSign size={16} /> Transaction Ledger
             </h4>
             {user.transactions && user.transactions.length > 0 ? (
-              <div className="table-container">
+              <div className="table-container" style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
