@@ -7,14 +7,11 @@ import {
   Filter,
   RefreshCcw,
   ChevronDown,
-  Download,
   Activity,
-  Users,
   Eye,
   X,
   Copy,
   Check,
-  Globe,
   Clock,
   CreditCard,
   FileText,
@@ -50,30 +47,6 @@ interface AppActivityLog {
   readableText?: string
 }
 
-interface StatsData {
-  totalInstalls: number
-  platforms: {
-    ios: number
-    android: number
-    web: number
-    other: number
-  }
-  activeUsersByApp: {
-    app: string
-    _count: number
-  }[]
-  recentActivityCount: number
-  todayStats?: {
-    uniqueUsersMobileCount: number
-    uniqueUsersWebCount: number
-    mobileActionGrouped: { action: string; count: number }[]
-    webActionGrouped: { action: string; count: number }[]
-  }
-  user?: any
-  pm?: any
-  userPathway?: string | null
-  readableText?: string
-}
 
 function getActivityIcon(action: string, entityType?: string) {
   if (entityType === 'PAYMENT' || entityType === 'RENT') return <CreditCard size={15} style={{ color: 'var(--success)' }} />
@@ -392,27 +365,6 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
   const handleRefresh = () => {
     fetchLogs(1)
     setPage(1)
-  }
-
-  const getActionColor = (action: string) => {
-    switch (action) {
-      case 'LOGIN':
-        return 'var(--success)'
-      case 'LOGOUT':
-        return 'var(--text-muted)'
-      case 'SIGNUP':
-        return '#8b5cf6' // Violet
-      case 'APP_INSTALL':
-        return 'var(--accent)'
-      case 'DELETE':
-        return 'var(--danger)'
-      case 'CREATE':
-        return '#3b82f6' // Blue
-      case 'UPDATE':
-        return 'var(--warning)'
-      default:
-        return 'var(--text-muted)'
-    }
   }
 
   const copyToClipboard = (text: string) => {

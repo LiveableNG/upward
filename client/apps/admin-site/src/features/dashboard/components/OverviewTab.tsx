@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import { apiService } from '../../../services/api.service'
 import {
   Users,
-  Home,
   CreditCard,
   TrendingUp,
   TrendingDown,
@@ -13,21 +12,9 @@ import {
   Download,
   Search,
   Info,
-  Clock,
-  ArrowRight,
-  UserPlus,
-  LogIn,
-  LogOut,
   Smartphone,
-  Trash2,
-  PlusCircle,
-  Settings,
-  FileText,
-  Building2,
-  ExternalLink,
+
   Mail,
-  Phone,
-  CheckCircle,
   RefreshCcw,
   Laptop,
   Eye,
@@ -267,238 +254,12 @@ const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, subStrong, t
 
 
 
-function getActivityIcon(action: string, entityType?: string) {
-  if (entityType === 'PAYMENT' || entityType === 'RENT') return <CreditCard size={15} style={{ color: 'var(--success)' }} />
-  if (entityType === 'CONTRACT' || entityType === 'DOCUMENT') return <FileText size={15} style={{ color: '#3b82f6' }} />
-  
-  switch (action) {
-    case 'SIGNUP':
-      return <UserPlus size={15} style={{ color: '#8b5cf6' }} />
-    case 'LOGIN':
-      return <LogIn size={15} style={{ color: 'var(--success)' }} />
-    case 'LOGOUT':
-      return <LogOut size={15} style={{ color: 'var(--text-muted)' }} />
-    case 'APP_INSTALL':
-      return <Smartphone size={15} style={{ color: 'var(--accent)' }} />
-    case 'DELETE':
-      return <Trash2 size={15} style={{ color: 'var(--danger)' }} />
-    case 'CREATE':
-      return <PlusCircle size={15} style={{ color: '#3b82f6' }} />
-    case 'UPDATE':
-      return <Settings size={15} style={{ color: 'var(--warning)' }} />
-    default:
-      return <Activity size={15} style={{ color: 'var(--text-muted)' }} />
-  }
-}
-
-// ───────────────────────────────────────────────────────────────
-// Main Component
-// ───────────────────────────────────────────────────────────────
 interface OverviewTabProps {
   metrics: FlatMetrics | null
   signedUpList: SignedUpRecord[]
   invitedList: InvitedRecord[]
   onPreview: (item: any) => void
-  onPreviewPm: (pm: any) => void
   token: string
-}
-
-function renderLogMessage(log: any, onPreviewUser: any, onPreviewPm: any) {
-  const user = log.user;
-  const pm = log.pm;
-
-  const userEmailLink = user?.email || log.userEmail;
-  const userNameStr = user ? `${user.firstName} ${user.lastName}`.trim() : '';
-
-  const pmNameStr = pm ? pm.businessName : '';
-  const pmEmailLink = pm?.email || '';
-
-  const renderTenantLink = () => {
-    if (!userEmailLink) return <span>System / Guest</span>;
-    return (
-      <button
-        type="button"
-        onClick={() => onPreviewUser({
-          uuid: user?.uuid || log.entityId || log.uuid,
-          firstName: user?.firstName || 'Tenant',
-          lastName: user?.lastName || '',
-          email: userEmailLink,
-          createdAt: user?.createdAt || log.createdAt,
-          totalPaid: user?.totalPaid || 0,
-        })}
-        style={{
-          background: 'none',
-          border: 'none',
-          color: 'var(--accent)',
-          textDecoration: 'underline',
-          fontWeight: 700,
-          cursor: 'pointer',
-          padding: 0,
-          fontFamily: 'inherit',
-          fontSize: 'inherit',
-        }}
-      >
-        {userNameStr ? `${userNameStr} (${userEmailLink})` : userEmailLink}
-      </button>
-    );
-  };
-
-  const renderPmLink = () => {
-    if (!pmNameStr && !pmEmailLink) return <span>Property Manager</span>;
-    return (
-      <button
-        type="button"
-        onClick={() => onPreviewPm({
-          uuid: pm?.uuid || log.pmId || log.uuid,
-          businessName: pmNameStr || 'Property Manager',
-          email: pmEmailLink,
-          createdAt: pm?.createdAt || log.createdAt,
-        })}
-        style={{
-          background: 'none',
-          border: 'none',
-          color: 'var(--accent)',
-          textDecoration: 'underline',
-          fontWeight: 700,
-          cursor: 'pointer',
-          padding: 0,
-          fontFamily: 'inherit',
-          fontSize: 'inherit',
-        }}
-      >
-        {pmNameStr ? `${pmNameStr} (${pmEmailLink})` : pmEmailLink}
-      </button>
-    );
-  };
-
-  if (log.action === 'SIGNUP') {
-    if (log.userRole === 'PM' || log.app === 'upward-pm') {
-      return (
-        <span>
-          Property Manager {renderPmLink()} registered a new account.
-        </span>
-      );
-    } else {
-      const details = user?.isFromInvite
-        ? 'completed registration (invited tenant).'
-        : user?.isFromWaitlist
-        ? 'converted from the waitlist and registered.'
-        : 'self-registered a new account.';
-      return (
-        <span>
-          Tenant {renderTenantLink()} {details}
-        </span>
-      );
-    }
-  }
-
-  if (log.action === 'LOGIN') {
-    if (log.userRole === 'PM' || log.app === 'upward-pm') {
-      return (
-        <span>
-          Property Manager {renderPmLink()} logged in.
-        </span>
-      );
-    } else {
-      return (
-        <span>
-          Tenant {renderTenantLink()} logged in.
-        </span>
-      );
-    }
-  }
-
-  if (log.action === 'LOGOUT') {
-    if (log.userRole === 'PM' || log.app === 'upward-pm') {
-      return (
-        <span>
-          Property Manager {renderPmLink()} logged out.
-        </span>
-      );
-    } else {
-      return (
-        <span>
-          Tenant {renderTenantLink()} logged out.
-        </span>
-      );
-    }
-  }
-
-  if (log.action === 'APP_INSTALL') {
-    return (
-      <span>
-        Mobile app installed or launched by user {renderTenantLink()}.
-      </span>
-    );
-  }
-
-  if (log.action === 'CREATE') {
-    if (log.entityType === 'UNIT') {
-      const match = log.description.match(/(?:uploaded|imported|added) (\d+) (?:units|properties|records)/i);
-      if (match) {
-        return (
-          <span>
-            Property Manager {renderPmLink()} bulk uploaded <strong>{match[1]}</strong> units.
-          </span>
-        );
-      } else {
-        return (
-          <span>
-            Property Manager {renderPmLink()} created a new unit.
-          </span>
-        );
-      }
-    }
-    if (log.entityType === 'INVITE') {
-      let inviteEmail = '';
-      try {
-        const meta = log.metadata ? (typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata) : {};
-        if (meta.email) {
-          inviteEmail = meta.email;
-        } else if (meta.tenants && Array.isArray(meta.tenants)) {
-          inviteEmail = meta.tenants.map((t: any) => t.email).join(', ');
-        }
-      } catch (e) {}
-      if (!inviteEmail) {
-        inviteEmail = log.description.match(/invite tenant:?\s*([^\s]+)/i)?.[1] || '';
-      }
-      if (!inviteEmail) {
-        inviteEmail = log.description.replace(/CREATE action on INVITE.*by\s+/i, '') || 'a tenant';
-      }
-      return (
-        <span>
-          Property Manager {renderPmLink()} invited Tenant <strong>{inviteEmail}</strong>.
-        </span>
-      );
-    }
-    if (log.entityType === 'PAYMENT' || log.entityType === 'RENT') {
-      let amountStr = '';
-      try {
-        const meta = log.metadata ? (typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata) : {};
-        if (meta.amount) {
-          amountStr = ` of ₦${Number(meta.amount).toLocaleString()}`;
-        }
-      } catch (e) {}
-      if (!amountStr) {
-        const amtMatch = log.description.match(/₦\s*([\d,]+)/);
-        if (amtMatch) amountStr = ` of ₦${amtMatch[1]}`;
-      }
-      return (
-        <span>
-          Tenant {renderTenantLink()} made a payment{amountStr ? <strong>{amountStr}</strong> : ''}.
-        </span>
-      );
-    }
-    if (log.entityType === 'CREDIBILITY_REQUEST') {
-      return (
-        <span>
-          Tenant {renderTenantLink()} requested their rental history credibility report.
-        </span>
-      );
-    }
-  }
-
-  return <span>{log.readableText || log.description}</span>;
 }
 
 // Fake trend data seeded from metrics totals to give realistic sparklines
@@ -518,7 +279,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   signedUpList,
   invitedList,
   onPreview,
-  onPreviewPm,
   token,
 }) => {
   const [subView, setSubView] = useState<'metrics' | 'paying'>('metrics')

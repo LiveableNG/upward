@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Send, Search, Users, Info, Monitor, EyeOff, Trash2, X, AlertTriangle, Building2, Clock, Mail } from 'lucide-react'
+import { Send, Search, Users, Monitor, EyeOff, Trash2, X, AlertTriangle, Building2, Clock, Mail } from 'lucide-react'
 import { Editor } from '@hugerte/hugerte-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -17,7 +17,7 @@ interface EmailComposerProps {
   adminEmail?: string
 }
 
-const buildPreviewHtml = (content: string, subject: string = 'Upward Update') => {
+const buildPreviewHtml = (content: string, _subject: string = 'Upward Update') => {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -610,7 +610,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
             <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)' }}>
               <Editor
                 value={content}
-                onInit={(evt, editor) => {
+                onInit={(_evt, editor) => {
                   editorRef.current = editor
                 }}
                 onEditorChange={(newVal) => setContent(newVal)}
