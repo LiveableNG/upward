@@ -194,10 +194,8 @@ select {
 
   /* Table responsiveness */
   .table-container {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
     margin: 0 -16px;
-    padding: 0 16px;
+    padding: 0 16px 120px 16px;
   }
 
   table {
@@ -264,6 +262,12 @@ select {
   box-shadow: var(--shadow-sm);
 }
 
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 120px; /* Buffer to prevent final row dropdown from clipping */
+}
+
 .scroll-x {
   overflow-x: auto;
   scrollbar-width: none; /* Firefox */
@@ -288,6 +292,10 @@ select {
   border: 1px solid transparent;
 }
 
+.btn svg {
+  flex-shrink: 0;
+}
+
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -305,12 +313,13 @@ select {
 
 .btn-secondary {
   background-color: var(--surface);
-  border-color: var(--border);
+  border-color: rgba(15, 23, 42, 0.15); /* Improved border contrast against background */
   color: var(--text);
 }
 
 .btn-secondary:hover {
   background-color: var(--surface-hover);
+  border-color: rgba(15, 23, 42, 0.25);
 }
 
 .input {
@@ -322,6 +331,11 @@ select {
   color: var(--text);
   font-size: 14px;
   transition: var(--transition);
+}
+
+select.input {
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .input:focus {
