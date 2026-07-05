@@ -21,6 +21,10 @@ import {
   Globe,
   Tablet,
   X,
+  UserCheck,
+  Building2,
+  MailOpen,
+  ArrowUpRight,
 } from 'lucide-react'
 import { Square, CheckSquare } from './Checkbox'
 import type { FlatMetrics, SignedUpRecord, InvitedRecord } from '../types'
@@ -312,6 +316,11 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   useEffect(() => {
     fetchGaStats()
   }, [token])
+
+  const conversionRate = useMemo(() => {
+    if (!metrics || !metrics.waitlistCount) return '0'
+    return ((metrics.waitlistConverted / metrics.waitlistCount) * 100).toFixed(1)
+  }, [metrics])
 
   // Compute paying users list from both SignedUp (self/waitlist) and Invited lists
   const payingUsers = useMemo(() => {
