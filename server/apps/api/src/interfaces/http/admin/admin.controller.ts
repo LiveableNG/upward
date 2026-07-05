@@ -9,7 +9,10 @@ import {
   UseGuards,
   Query,
   Req,
+  BadRequestException,
 } from '@nestjs/common'
+import { randomUUID } from 'crypto'
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 import { CreateWaitlistEntryDto, AdminRole } from '@upward/shared-types'
 import { AuthenticatedRequest } from '../../../application/auth/interfaces/authenticated-request.interface'
 import { AdminJwtAuthGuard } from '../../../application/auth/guards/admin-jwt-auth.guard'
@@ -106,6 +109,7 @@ export class AdminController {
     private readonly updateAdminUserUseCase: UpdateAdminUserUseCase,
     private readonly updateAdminPmUseCase: UpdateAdminPmUseCase,
     private readonly sendAdminNotificationUseCase: SendAdminNotificationUseCase,
+    private readonly s3Service: S3Service,
   ) {}
 
   @Get('users/search')
@@ -308,7 +312,7 @@ export class AdminController {
 
   @Post('email/bulk')
   async sendBulkEmail(
-    @Body() payload: { userIds: string[]; subject: string; content: string; sessionId?: string },
+    @Body() payload: { userIds: string[]; subject: string; content: string; targetGroup?: 'TENANTS' | 'PMS' | 'WAITLIST'; sessionId?: string },
     @Req() req: AuthenticatedRequest,
   ) {
     return {
@@ -433,5 +437,26 @@ export class AdminController {
       return { success: false, message: 'Job not found' }
     }
     return { success: true, job }
+  }
+
+  @Post('email/upload-image')
+  async uploadEmailImage(
+    @Body() body: { base64Data: string; contentType: string; originalName: string },
+  ) {
+    if (!body.base64Data || !body.contentType) {
+      throw new BadRequestException('base64Data and contentType are required')
+    }
+    if (!body.contentType.startsWith('image/')) {
+      throw new BadRequestException('Only image files are allowed')
+    }
+    const buffer = Buffer.from(body.base64Data, 'base64')
+    if (buffer.length > 10 * 1024 * 1024) {
+      throw new BadRequestException('File is too large. Max 10MB.')
+    }
+    const uuid = randomUUID()
+    const extension = body.originalName?.split('.').pop() || body.contentType.split('/')[1] || 'png'
+    const key = `email-campaigns/images/${uuid}.${extension}`
+    const url = await this.s3Service.uploadBuffer(buffer, key, body.contentType)
+    return { success: true, url }
   }
 }

@@ -45,23 +45,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
   const sections: NavSection[] = []
 
   // 1. Overview
+  const overviewItems: NavItem[] = [
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+  ]
+  if (showSandboxTools) {
+    overviewItems.push({ name: 'Campaigns', path: '/campaigns', icon: CalendarClock })
+    overviewItems.push({ name: 'Fee Overrides', path: '/overrides', icon: SlidersHorizontal })
+  }
   sections.push({
     title: 'Overview',
-    items: [
-      { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-      { name: 'Campaigns', path: '/campaigns', icon: CalendarClock },
-      { name: 'Fee Overrides', path: '/overrides', icon: SlidersHorizontal },
-    ],
+    items: overviewItems,
   })
 
   // 2. Operations & Support
+  const opsItems: NavItem[] = [
+    { name: 'Support Tickets', path: '/support', icon: LifeBuoy },
+    { name: 'Verifications', path: '/verifications', icon: ShieldCheck },
+  ]
+  if (showSandboxTools) {
+    opsItems.push({ name: 'Fairness Stories', path: '/stories', icon: ShieldCheck })
+  }
   sections.push({
     title: 'Ops & Support',
-    items: [
-      { name: 'Support Tickets', path: '/support', icon: LifeBuoy },
-      { name: 'Verifications', path: '/verifications', icon: ShieldCheck },
-      { name: 'Fairness Stories', path: '/stories', icon: ShieldCheck },
-    ],
+    items: opsItems,
   })
 
   // 3. Communications
@@ -80,7 +86,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     devItems.push({ name: 'Demo Bank Simulator', path: '/demo-bank', icon: Landmark })
   }
   if (isSuperadmin) {
-    devItems.push({ name: 'App Activity Logs', path: '/app-activity', icon: Smartphone })
+    if (showSandboxTools) {
+      devItems.push({ name: 'App Activity Logs', path: '/app-activity', icon: Smartphone })
+    }
     devItems.push({ name: 'User Feedback', path: '/feedback', icon: MessageSquare })
     if (showSandboxTools) {
       devItems.push({ name: 'Dev Email Sandbox', path: '/dev-emails', icon: Mail })

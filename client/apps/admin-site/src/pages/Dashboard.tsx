@@ -733,7 +733,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                     selectedUserIds={selectedUserIds}
                     toggleSelectAllUsers={toggleSelectAllUsers}
                     toggleSelectUser={toggleSelectUser}
-                    navigate={navigate}
                     onPreview={(item) => openDrawerForUser(item)}
                     onDeleteSelected={triggerBulkDelete}
                   />
@@ -742,7 +741,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 {activeTab === 'pms' && (
                   <PmsTable
                     paginatedItems={paginatedItems as PmRecord[]}
-                    navigate={navigate}
                     onPreview={(pm) => openDrawerForPm(pm)}
                   />
                 )}

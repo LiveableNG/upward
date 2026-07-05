@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   ChevronUp,
   ChevronDown,
@@ -10,6 +11,7 @@ import {
   ExternalLink,
   Download,
   X,
+  Mail,
 } from 'lucide-react'
 import { Square, CheckSquare } from './Checkbox'
 import type { PmRecord, FeeOverride } from '../types'
@@ -19,7 +21,6 @@ type SortDir = 'asc' | 'desc'
 
 interface PmsTableProps {
   paginatedItems: PmRecord[]
-  navigate: (path: string) => void
   overrides?: FeeOverride[]
   setSelectedPmOverride?: (pm: PmRecord) => void
   setPmOverrideFeeInput?: (fee: string) => void
@@ -50,9 +51,9 @@ const SortIcon: React.FC<{ col: SortKey; active: SortKey; dir: SortDir }> = ({ c
 
 export const PmsTable: React.FC<PmsTableProps> = ({
   paginatedItems,
-  navigate,
   onPreview,
 }) => {
+  const navigate = useNavigate()
   const [sortKey, setSortKey] = useState<SortKey>('createdAt')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -137,6 +138,29 @@ export const PmsTable: React.FC<PmsTableProps> = ({
           fontSize: '13px',
         }}>
           <strong style={{ color: 'var(--accent)' }}>{selectedIds.size} selected</strong>
+          <button
+            onClick={() => {
+              const selectedPms = sorted.filter((pm) => selectedIds.has(pm.id))
+              navigate('/emails', { state: { selectedPms } })
+            }}
+            className="btn"
+            style={{
+              height: '30px',
+              padding: '0 12px',
+              background: 'var(--accent)',
+              color: 'var(--white)',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+            }}
+          >
+            <Mail size={13} /> Send Email
+          </button>
           <button
             onClick={handleExportSelected}
             className="btn"

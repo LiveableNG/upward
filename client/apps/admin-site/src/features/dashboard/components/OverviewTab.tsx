@@ -23,7 +23,19 @@ import {
   PlusCircle,
   Settings,
   FileText,
+  Building2,
+  ExternalLink,
+  Mail,
+  Phone,
+  CheckCircle,
+  RefreshCcw,
+  Laptop,
+  Eye,
+  Globe,
+  Tablet,
+  X,
 } from 'lucide-react'
+import { Square, CheckSquare } from './Checkbox'
 import type { FlatMetrics, SignedUpRecord, InvitedRecord } from '../types'
 import * as XLSX from 'xlsx'
 import { showToast } from '@upward/client-core'
@@ -172,7 +184,7 @@ const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
 interface HealthCardProps {
   label: string
   value: string | number
-  sub?: string
+  sub?: React.ReactNode
   subStrong?: string      // bolded sub-label for actual counts
   tooltip?: string        // text shown in the info tooltip on hover
   change?: number         // positive or negative %
@@ -240,7 +252,7 @@ const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, subStrong, t
           {subStrong && (
             <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700 }}>{subStrong}</span>
           )}
-          {sub && <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{sub}</span>}
+          {sub && <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{sub}</div>}
         </div>
       )}
 
@@ -512,42 +524,34 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   const [subView, setSubView] = useState<'metrics' | 'paying'>('metrics')
   const [searchQuery, setSearchQuery] = useState('')
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<'all' | 'benefits' | 'rent_only'>('all')
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
 
-  const [activities, setActivities] = useState<any[]>([])
-  const [loadingActivities, setLoadingActivities] = useState(true)
-  const [activitySearch, setActivitySearch] = useState('')
-  const [activityDate, setActivityDate] = useState('')
+  const [gaStats, setGaStats] = useState<any>(null)
+  const [loadingGaStats, setLoadingGaStats] = useState(true)
   const navigate = useNavigate()
 
-  const fetchActivities = async () => {
-    setLoadingActivities(true)
+  // Reset selected users when switching filters or subviews
+  useEffect(() => {
+    setSelectedUserIds(new Set())
+  }, [subView, searchQuery, paymentTypeFilter])
+
+  const fetchGaStats = async () => {
+    setLoadingGaStats(true)
     try {
-      let url = `/admin/app-activity?page=1&limit=10`
-      if (activitySearch.trim()) {
-        url += `&search=${encodeURIComponent(activitySearch.trim())}`
+      const response = await apiService.get('/admin/app-activity/google-analytics/stats', token)
+      if (response) {
+        setGaStats(response)
       }
-      if (activityDate) {
-        url += `&date=${activityDate}`
-      }
-      const res = await apiService.get(url, token)
-      if (res && res.data) {
-        setActivities(res.data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch recent activities in OverviewTab', err)
+    } catch (error) {
+      console.error('Failed to fetch GA stats in OverviewTab:', error)
     } finally {
-      setLoadingActivities(false)
+      setLoadingGaStats(false)
     }
   }
 
   useEffect(() => {
-    fetchActivities()
-  }, [token, activityDate])
-
-  const handleActivitySearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    fetchActivities()
-  }
+    fetchGaStats()
+  }, [token])
 
   // Compute paying users list from both SignedUp (self/waitlist) and Invited lists
   const payingUsers = useMemo(() => {
@@ -827,7 +831,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           <>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
               gap: '16px',
             }}>
               <HealthCard
@@ -904,232 +908,297 @@ Total: ${metrics.totalAccountsCreated}`}
                 label="Total Rent Processed"
                 value={formatNaira(metrics.totalRentProcessed)}
                 sub="gross rent collected"
-                change={+18}
                 sparkData={revenueSpark}
                 accentColor="var(--success)"
                 icon={<CreditCard size={16} />}
                 tooltip={`Total gross value of all successful rent payments processed through the Upward platform.\nThis is the combined sum before deducting transaction fees and benefits.`}
               />
               <HealthCard
-                label="Transaction Fee Revenue"
-                value={formatNaira(metrics.feeRevenue)}
-                sub="net platform fee revenue"
-                change={+6}
+                label="Platform Revenue"
+                value={formatNaira(metrics.feeRevenue + metrics.benefitsRevenue)}
+                sub={
+                  <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                    <span>Tx Fee: <strong style={{ color: 'var(--text)' }}>{formatNaira(metrics.feeRevenue)}</strong></span>
+                    <span>•</span>
+                    <span>Benefits: <strong style={{ color: 'var(--text)' }}>{formatNaira(metrics.benefitsRevenue)}</strong></span>
+                  </div>
+                }
                 accentColor="#10b981"
                 icon={<TrendingUp size={16} />}
-                tooltip={`Revenue earned by Upward from processing fees charged on each rent payment transaction.\nThis is Upward's core revenue stream.`}
-              />
-              <HealthCard
-                label="Benefits Revenue"
-                value={formatNaira(metrics.benefitsRevenue)}
-                sub="protection benefits fees"
-                accentColor="#06b6d4"
-                icon={<Home size={16} />}
-                tooltip={`Revenue from the optional Upward Benefits protection program.\nTenants who opt in pay a separate benefits fee included as a line item on their rent payment.`}
+                tooltip={`Total revenue earned by the platform.\nThis includes both transaction fees (from processing rent payments) and benefits fees (from optional Upward protection packages).`}
               />
             </div>
 
             {/* ── Activity Summary Section ── */}
-            <div className="card" style={{ padding: '24px', marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* ── Web Traffic & Engagement Section (GA4) ── */}
+            <div className="card" style={{ padding: '24px', marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
-                  <h3 style={{ margin: 0, fontWeight: 800, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Activity size={18} style={{ color: 'var(--accent)' }} /> Recent Activity Summary
+                  <h3 style={{ margin: 0, fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Activity size={18} style={{ color: 'var(--accent)' }} /> Website Traffic & Engagement
                   </h3>
                   <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-                    Real-time feed of events across tenants, managers, and system conversions.
+                    Real-time web analytics and conversion funnel insights powered by Google Analytics 4 (GA4).
                   </p>
                 </div>
                 
-                {/* Filters */}
-                <form onSubmit={handleActivitySearchSubmit} style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  {/* Date picker */}
-                  <input
-                    type="date"
-                    value={activityDate}
-                    onChange={(e) => setActivityDate(e.target.value)}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border)',
-                      background: 'var(--surface-hover)',
-                      color: 'var(--text)',
-                      fontSize: '12px',
-                      height: '32px',
-                    }}
-                  />
-                  
-                  {/* Clear Date Filter Button */}
-                  {activityDate && (
-                    <button
-                      type="button"
-                      onClick={() => setActivityDate('')}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--text-muted)',
-                        cursor: 'pointer',
-                        padding: '0 4px',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                      }}
-                    >
-                      Clear Date
-                    </button>
-                  )}
-
-                  {/* Search input */}
-                  <div style={{ position: 'relative' }}>
-                    <Search size={12} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                    <input
-                      type="text"
-                      placeholder="Search recent events..."
-                      value={activitySearch}
-                      onChange={(e) => setActivitySearch(e.target.value)}
-                      style={{
-                        padding: '6px 12px 6px 28px',
-                        borderRadius: '8px',
-                        border: '1px solid var(--border)',
-                        background: 'var(--surface-hover)',
-                        color: 'var(--text)',
-                        fontSize: '12px',
-                        height: '32px',
-                        width: '200px',
-                      }}
-                    />
-                  </div>
-                  <button type="submit" className="btn btn-secondary" style={{ height: '32px', padding: '0 12px', fontSize: '12px', cursor: 'pointer' }}>
-                    Search
-                  </button>
-                </form>
-              </div>
-
-              {/* Feed List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '120px', position: 'relative' }}>
-                {loadingActivities ? (
-                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '32px' }}>
-                    <div className="loader"></div>
-                  </div>
-                ) : activities.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)', fontSize: '13px' }}>
-                    No recent activities match the filter.
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {activities.map((log) => {
-                      const isMobile = (log.userAgent && log.userAgent.toLowerCase().includes('capacitor')) || log.action === 'APP_INSTALL';
-                      return (
-                        <div
-                          key={log.id}
-                          className="table-row-hover"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '12px 16px',
-                            background: 'var(--surface-hover)',
-                            border: '1px solid var(--border)',
-                            borderRadius: '10px',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                            <div style={{
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '8px',
-                              background: 'var(--white)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              border: '1px solid var(--border)',
-                              flexShrink: 0,
-                            }}>
-                              {getActivityIcon(log.action, log.entityType)}
-                            </div>
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text)' }}>
-                                  {log.pm?.businessName || (log.user ? `${log.user.firstName} ${log.user.lastName}`.trim() : null) || log.userEmail || 'System / Guest'}
-                                </span>
-                                {log.userPathway && (
-                                  <span style={{
-                                    fontSize: '9px',
-                                    fontWeight: 700,
-                                    padding: '1px 6px',
-                                    borderRadius: '4px',
-                                    textTransform: 'uppercase',
-                                    background: log.userPathway === 'WAITLIST' ? 'rgba(16, 185, 129, 0.15)' : log.userPathway === 'INVITE' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(107, 114, 128, 0.15)',
-                                    color: log.userPathway === 'WAITLIST' ? '#10b981' : log.userPathway === 'INVITE' ? '#3b82f6' : 'var(--text-muted)',
-                                  }}>
-                                    {log.userPathway === 'WAITLIST' ? 'Waitlist Convert' : log.userPathway === 'INVITE' ? 'Invited Tenant' : 'Self Signed'}
-                                  </span>
-                                )}
-                                <span style={{
-                                  fontSize: '9px',
-                                  fontWeight: 600,
-                                  padding: '1px 5px',
-                                  borderRadius: '4px',
-                                  background: 'var(--white)',
-                                  border: '1px solid var(--border)',
-                                  color: 'var(--text-muted)',
-                                }}>
-                                  {isMobile ? 'Mobile' : 'Web'}
-                                </span>
-                              </div>
-                              <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                {renderLogMessage(log, onPreview, onPreviewPm)}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
-                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <Clock size={10} />
-                              {new Date(log.createdAt).toLocaleDateString()} {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                            <button
-                              onClick={() => {
-                                onPreview({
-                                  uuid: log.user?.uuid || log.entityId || log.uuid,
-                                  firstName: log.user?.firstName || 'GUEST',
-                                  lastName: log.user?.lastName || '',
-                                  email: log.userEmail || log.user?.email || 'N/A',
-                                  createdAt: log.createdAt,
-                                  totalPaid: 0,
-                                })
-                              }}
-                              className="btn btn-secondary"
-                              style={{ height: '26px', padding: '0 8px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}
-                            >
-                              Details
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Show More */}
-              <div style={{ display: 'flex', justifyContent: 'center', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
                 <button
-                  onClick={() => navigate('/app-activity')}
+                  type="button"
+                  onClick={fetchGaStats}
+                  disabled={loadingGaStats}
                   className="btn btn-secondary"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
+                    gap: '8px',
+                    height: '34px',
                     fontSize: '12px',
                     fontWeight: 600,
-                    height: '34px',
-                    padding: '0 16px',
-                    cursor: 'pointer',
                   }}
                 >
-                  Show More Activities <ArrowRight size={14} />
+                  <RefreshCcw size={14} className={loadingGaStats ? 'spin' : ''} />
+                  Refresh GA Data
                 </button>
+              </div>
+
+              {/* GA4 Mini Stats Grid */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '16px',
+                }}
+              >
+                {/* Website Visitors */}
+                <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Website Visitors (30d)</span>
+                    <div style={{ color: 'var(--accent)', background: 'var(--accent-faint)', padding: '4px', borderRadius: '6px' }}>
+                      <Users size={14} />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                      {loadingGaStats ? '...' : gaStats?.activeUsers?.toLocaleString() || 0}
+                    </h4>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+                      Unique active visitors
+                    </p>
+                  </div>
+                </div>
+
+                {/* Visits / Sessions */}
+                <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Visits / Sessions</span>
+                    <div style={{ color: 'var(--success)', background: 'var(--success-faint)', padding: '4px', borderRadius: '6px' }}>
+                      <Activity size={14} />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                      {loadingGaStats ? '...' : gaStats?.sessions?.toLocaleString() || 0}
+                    </h4>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+                      Total sessions initiated
+                    </p>
+                  </div>
+                </div>
+
+                {/* Page Views */}
+                <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Page Views</span>
+                    <div style={{ color: '#3b82f6', background: 'rgba(59, 130, 246, 0.08)', padding: '4px', borderRadius: '6px' }}>
+                      <Eye size={14} />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                      {loadingGaStats ? '...' : gaStats?.pageViews?.toLocaleString() || 0}
+                    </h4>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+                      Total routes viewed
+                    </p>
+                  </div>
+                </div>
+
+                {/* Pages per Visit */}
+                <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pages per Visit</span>
+                    <div style={{ color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.08)', padding: '4px', borderRadius: '6px' }}>
+                      <Globe size={14} />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                      {loadingGaStats ? '...' : gaStats?.sessions ? (gaStats.pageViews / gaStats.sessions).toFixed(1) : '0.0'}
+                    </h4>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+                      Average page depth
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Devices & Top Pages Grid */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 2fr',
+                  gap: '20px',
+                }}
+                className="grid-mobile-1"
+              >
+                {/* Visitor Devices */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
+                  <div>
+                    <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Visitor Devices</h4>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Traffic distribution by device category</p>
+                  </div>
+                  {loadingGaStats ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                      Loading device categories...
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'center', flex: 1 }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Smartphone size={13} style={{ color: 'var(--accent)' }} /> Mobile Browser</span>
+                          <span>{gaStats?.devices?.mobile || 0} ({gaStats?.activeUsers ? Math.round(((gaStats.devices?.mobile || 0) / gaStats.activeUsers) * 100) : 0}%)</span>
+                        </div>
+                        <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
+                          <div
+                            style={{
+                              height: '100%',
+                              background: 'var(--accent)',
+                              width: `${gaStats?.activeUsers ? (((gaStats.devices?.mobile || 0) / gaStats.activeUsers) * 100) : 0}%`,
+                              borderRadius: '3px',
+                            }}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Laptop size={13} style={{ color: 'var(--success)' }} /> Desktop</span>
+                          <span>{gaStats?.devices?.desktop || 0} ({gaStats?.activeUsers ? Math.round(((gaStats.devices?.desktop || 0) / gaStats.activeUsers) * 100) : 0}%)</span>
+                        </div>
+                        <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
+                          <div
+                            style={{
+                              height: '100%',
+                              background: 'var(--success)',
+                              width: `${gaStats?.activeUsers ? (((gaStats.devices?.desktop || 0) / gaStats.activeUsers) * 100) : 0}%`,
+                              borderRadius: '3px',
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Tablet size={13} style={{ color: 'var(--warning)' }} /> Tablet</span>
+                          <span>{gaStats?.devices?.tablet || 0} ({gaStats?.activeUsers ? Math.round(((gaStats.devices?.tablet || 0) / gaStats.activeUsers) * 100) : 0}%)</span>
+                        </div>
+                        <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
+                          <div
+                            style={{
+                              height: '100%',
+                              background: 'var(--warning)',
+                              width: `${gaStats?.activeUsers ? (((gaStats.devices?.tablet || 0) / gaStats.activeUsers) * 100) : 0}%`,
+                              borderRadius: '3px',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Top Visited Pages & Funnel Drop-off Diagnostic */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
+                  <div>
+                    <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Top Visited Pages & drop-off diagnosis</h4>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Monitor critical routes to diagnose onboarding drop-offs and traffic bottlenecks</p>
+                  </div>
+                  {loadingGaStats ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                      Loading popular pages...
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {(gaStats?.topPages || []).map((page: any, idx: number) => {
+                        let pathLabel = '';
+                        let badgeColor = '';
+                        let badgeBg = '';
+                        
+                        if (page.path.includes('login')) {
+                          pathLabel = 'Login Gate';
+                          badgeColor = 'var(--success)';
+                          badgeBg = 'var(--success-faint)';
+                        } else if (page.path.includes('signup') || page.path.includes('register')) {
+                          pathLabel = 'Signup Funnel';
+                          badgeColor = '#8b5cf6';
+                          badgeBg = 'rgba(139, 92, 246, 0.08)';
+                        } else if (page.path.includes('onboarding')) {
+                          pathLabel = 'Onboarding Process';
+                          badgeColor = '#3b82f6';
+                          badgeBg = 'rgba(59, 130, 246, 0.08)';
+                        } else if (page.path.includes('payment') || page.path.includes('rent')) {
+                          pathLabel = 'Rent Checkout';
+                          badgeColor = 'var(--accent)';
+                          badgeBg = 'var(--accent-faint)';
+                        } else if (page.path === '/dashboard' || page.path === '/') {
+                          pathLabel = 'Main Dashboard';
+                          badgeColor = 'var(--text-secondary)';
+                          badgeBg = 'var(--surface-hover)';
+                        }
+
+                        return (
+                          <div
+                            key={page.path}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '10px 14px',
+                              background: 'var(--white)',
+                              border: '1px solid var(--border)',
+                              borderRadius: '8px',
+                              fontSize: '13px',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                              <span style={{ fontWeight: 800, color: 'var(--accent)', minWidth: '16px' }}>#{idx + 1}</span>
+                              <span style={{ fontFamily: 'monospace', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--text)', fontSize: '12px' }}>
+                                {page.path}
+                              </span>
+                              {pathLabel && (
+                                <span style={{
+                                  fontSize: '10px',
+                                  fontWeight: 700,
+                                  padding: '2px 8px',
+                                  borderRadius: '12px',
+                                  color: badgeColor,
+                                  background: badgeBg,
+                                  textTransform: 'uppercase',
+                                  whiteSpace: 'nowrap',
+                                }}>
+                                  {pathLabel}
+                                </span>
+                              )}
+                            </div>
+                            <span style={{ fontWeight: 700, color: 'var(--text-secondary)', flexShrink: 0, fontSize: '12px' }}>
+                              {page.views.toLocaleString()} views
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1222,12 +1291,96 @@ Total: ${metrics.totalAccountsCreated}`}
               </div>
             </div>
 
+            {/* Bulk Action Bar for Paying Users */}
+            {selectedUserIds.size > 0 && (
+              <div style={{
+                background: 'var(--accent-faint)',
+                border: '1px solid var(--accent-muted)',
+                borderRadius: '10px',
+                padding: '10px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '8px',
+                fontSize: '13px',
+              }}>
+                <strong style={{ color: 'var(--accent)' }}>{selectedUserIds.size} selected</strong>
+                <button
+                  onClick={() => {
+                    const selectedList = payingUsers.filter((u) => selectedUserIds.has(u.id))
+                    const selectedUsers = selectedList.map((u) => ({
+                      ...u.rawRecord,
+                      id: u.id,
+                      uuid: u.rawRecord?.uuid || u.id,
+                      firstName: u.rawRecord?.firstName || u.name.split(' ')[0] || '',
+                      lastName: u.rawRecord?.lastName || u.name.split(' ').slice(1).join(' ') || '',
+                      email: u.email,
+                      phone: u.rawRecord?.phone || '',
+                      origin: u.source === 'Waitlist Converted' ? 'WAITLIST' : u.source === 'Invited Tenant' ? 'INVITED' : 'SELF_REGISTERED',
+                    }))
+                    navigate('/emails', { state: { selectedUsers } })
+                  }}
+                  className="btn"
+                  style={{
+                    height: '30px',
+                    padding: '0 12px',
+                    background: 'var(--accent)',
+                    color: 'var(--white)',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Mail size={13} /> Send Email
+                </button>
+                <button
+                  onClick={() => setSelectedUserIds(new Set())}
+                  style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: '4px' }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+
             {/* Paying Users Table */}
             <div className="card" style={{ overflow: 'hidden' }}>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                   <thead>
                     <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
+                      <th style={{ padding: '12px 8px 12px 20px', width: '44px' }}>
+                        <button
+                          onClick={() => {
+                            const visibleIds = filteredPayingUsers.map((u) => u.id)
+                            const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedUserIds.has(id))
+                            if (allSelected) {
+                              setSelectedUserIds((prev) => {
+                                const next = new Set(prev)
+                                visibleIds.forEach((id) => next.delete(id))
+                                return next
+                              })
+                            } else {
+                              setSelectedUserIds((prev) => {
+                                const next = new Set(prev)
+                                visibleIds.forEach((id) => next.add(id))
+                                return next
+                              })
+                            }
+                          }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--text-muted)', padding: 0 }}
+                        >
+                          {filteredPayingUsers.length > 0 && filteredPayingUsers.every((u) => selectedUserIds.has(u.id)) ? (
+                            <CheckSquare size={17} color="var(--accent)" />
+                          ) : (
+                            <Square size={17} />
+                          )}
+                        </button>
+                      </th>
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Tenant Name</th>
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Email Address</th>
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Registration Type</th>
@@ -1239,7 +1392,33 @@ Total: ${metrics.totalAccountsCreated}`}
                   <tbody>
                     {filteredPayingUsers.length > 0 ? (
                       filteredPayingUsers.map((u, idx) => (
-                        <tr key={u.id} style={{ borderBottom: idx < filteredPayingUsers.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                        <tr
+                          key={u.id}
+                          style={{
+                            borderBottom: idx < filteredPayingUsers.length - 1 ? '1px solid var(--border)' : 'none',
+                            background: selectedUserIds.has(u.id) ? 'rgba(217,119,87,0.04)' : 'transparent',
+                            transition: 'background 0.15s',
+                          }}
+                        >
+                          <td style={{ padding: '12px 8px 12px 20px' }}>
+                            <button
+                              onClick={() => {
+                                setSelectedUserIds((prev) => {
+                                  const next = new Set(prev)
+                                  if (next.has(u.id)) next.delete(u.id)
+                                  else next.add(u.id)
+                                  return next
+                                })
+                              }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--text-muted)', padding: 0 }}
+                            >
+                              {selectedUserIds.has(u.id) ? (
+                                <CheckSquare size={17} color="var(--accent)" />
+                              ) : (
+                                <Square size={17} />
+                              )}
+                            </button>
+                          </td>
                           <td style={{ padding: '12px 16px' }}>
                             <button
                               onClick={() => onPreview(u.rawRecord)}
@@ -1281,7 +1460,7 @@ Total: ${metrics.totalAccountsCreated}`}
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
                           No paying users match the search filter.
                         </td>
                       </tr>
