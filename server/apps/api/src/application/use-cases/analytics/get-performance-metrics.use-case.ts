@@ -660,6 +660,15 @@ export class GetPerformanceMetricsUseCase {
     const signedUpPayingCount = allUsersPayments.filter((u) => u.hasPaid).length
     const signedUpTotalPaid = allUsersPayments.reduce((sum, u) => sum + u.totalPaid, 0)
 
+    const totalUsersWithPassword = allUsers.filter((u) => {
+      const isShadow =
+        !u.passwordHash ||
+        u.passwordHash === PASS_PLACEHOLDERS.INVITED ||
+        u.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+        (!u.passwordHash.startsWith('$2') && u.passwordHash !== PASS_PLACEHOLDERS.SOCIAL)
+      return !isShadow
+    }).length
+
     // Invited Stats
     const invitedPendingCount = finalInvitedDirectory.filter((u) => u.status === 'INVITED_PENDING').length
     const invitedOnboardedCount = finalInvitedDirectory.filter((u) => u.status === 'INVITED_SIGNED_UP' || u.status === 'SIGNED_UP_PAID').length
@@ -722,6 +731,7 @@ export class GetPerformanceMetricsUseCase {
           totalUsers: allUsers.length,
           inactiveCount: allUsers.length - activeUserGroups.length,
           activeRate: allUsers.length > 0 ? Math.round((activeUserGroups.length / allUsers.length) * 100) : 0,
+          totalUsersWithPassword,
         },
       },
       directories: {

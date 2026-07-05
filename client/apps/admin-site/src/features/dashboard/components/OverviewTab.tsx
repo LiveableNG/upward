@@ -21,6 +21,7 @@ import {
   Globe,
   Tablet,
   X,
+  Clock,
 } from 'lucide-react'
 import { Square, CheckSquare } from './Checkbox'
 import type { FlatMetrics, SignedUpRecord, InvitedRecord } from '../types'
@@ -32,6 +33,14 @@ function formatNaira(amount: number): string {
   if (amount >= 1_000_000) return `₦${(amount / 1_000_000).toFixed(2)}M`
   if (amount >= 1_000) return `₦${(amount / 1_000).toFixed(1)}K`
   return `₦${amount.toLocaleString()}`
+}
+
+function formatDuration(sec: number | undefined): string {
+  if (sec === undefined || sec === null) return '0s'
+  const m = Math.floor(sec / 60)
+  const s = Math.round(sec % 60)
+  if (m > 0) return `${m}m ${s}s`
+  return `${s}s`
 }
 
 
@@ -82,6 +91,219 @@ const Sparkline: React.FC<SparklineProps> = ({ data, color, height = 36 }) => {
     </svg>
   )
 }
+
+
+// ───────────────────────────────────────────────────────────────
+// 30-Day Daily Traffic Trend Line Chart
+// ───────────────────────────────────────────────────────────────
+interface DailyTrendChartProps {
+  trend: Array<{ date: string; activeUsers: number; sessions: number; pageViews: number }>
+}
+
+const DailyTrendChart: React.FC<DailyTrendChartProps> = ({ trend }) => {
+  if (!trend || trend.length === 0) return null
+
+  const height = 150
+  const width = 600
+
+  const maxViews = Math.max(...trend.map(d => Math.max(d.activeUsers, d.sessions, d.pageViews)), 10)
+  const totalPoints = trend.length
+
+  const getSvgPoints = (key: 'activeUsers' | 'sessions' | 'pageViews') => {
+    return trend.map((d, i) => {
+      const x = (i / (totalPoints - 1)) * width
+      const y = height - (d[key] / maxViews) * (height - 20) - 10
+      return `${x},${y}`
+    })
+  }
+
+  const viewsPoints = getSvgPoints('pageViews')
+  const sessionsPoints = getSvgPoints('sessions')
+  const usersPoints = getSvgPoints('activeUsers')
+
+  const formatDate = (dateStr: string) => {
+    if (dateStr.length !== 8) return dateStr
+    const year = dateStr.substring(0, 4)
+    const month = dateStr.substring(4, 6)
+    const day = dateStr.substring(6, 8)
+    const date = new Date(`${year}-${month}-${day}`)
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px', marginTop: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>30-Day Traffic Trends</h4>
+          <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Daily breakdown of visitors, sessions, and pageviews</p>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '16px', fontSize: '11px', fontWeight: 600, alignItems: 'center' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '10px', height: '3px', background: '#3b82f6', borderRadius: '2px' }} /> Page Views
+            <InfoTooltip text="Total daily page views across all visitors, including repeat views." />
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '10px', height: '3px', background: 'var(--success)', borderRadius: '2px' }} /> Sessions
+            <InfoTooltip text="Total daily visits initiated (expires after 30 minutes of inactivity)." />
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '10px', height: '3px', background: 'var(--accent)', borderRadius: '2px' }} /> Active Users
+            <InfoTooltip text="Total daily unique engaged visitors (each unique individual is counted once)." />
+          </span>
+        </div>
+      </div>
+
+      <div style={{ position: 'relative', width: '100%' }}>
+        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+          <line x1="0" y1={height - 10} x2={width} y2={height - 10} stroke="var(--border)" strokeWidth="1" strokeDasharray="4 4" />
+          <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="var(--border)" strokeWidth="1" strokeDasharray="4 4" />
+          <line x1="0" y1="10" x2={width} y2="10" stroke="var(--border)" strokeWidth="1" strokeDasharray="4 4" />
+
+          <polygon
+            points={`0,${height - 10} ${viewsPoints.join(' ')} ${width},${height - 10}`}
+            fill="url(#trend-views-grad)"
+          />
+          <defs>
+            <linearGradient id="trend-views-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.15" />
+              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.01" />
+            </linearGradient>
+          </defs>
+
+          <polyline points={viewsPoints.join(' ')} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <polyline points={sessionsPoints.join(' ')} fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <polyline points={usersPoints.join(' ')} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <span>{formatDate(trend[0].date)}</span>
+        <span>{formatDate(trend[Math.floor(trend.length / 2)].date)}</span>
+        <span>{formatDate(trend[trend.length - 1].date)}</span>
+      </div>
+    </div>
+  )
+}
+
+
+// ───────────────────────────────────────────────────────────────
+// User Conversion Funnel Widget
+// ───────────────────────────────────────────────────────────────
+interface ConversionFunnelProps {
+  sessions: number
+  events: Record<string, number>
+}
+
+const ConversionFunnel: React.FC<ConversionFunnelProps> = ({ sessions, events }) => {
+  const steps = [
+    { label: 'Website Visits', value: sessions, color: '#3b82f6' },
+    { label: 'Signup Started', value: events?.signup_started || 0, color: '#8b5cf6' },
+    { label: 'Signup Completed', value: events?.signup_completed || 0, color: 'var(--success)' },
+    { label: 'Payment Started', value: events?.payment_initiated || 0, color: '#f59e0b' },
+    { label: 'Payment Success', value: events?.payment_success || 0, color: 'var(--accent)' },
+  ]
+
+  const maxVal = Math.max(sessions, 1)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
+      <div>
+        <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>User Conversion Funnel</h4>
+        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Drop-off diagnostic from initial visit to checkout completion</p>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {steps.map((step, idx) => {
+          const pct = maxVal > 0 ? Math.round((step.value / maxVal) * 100) : 0
+          const prevVal = idx > 0 ? steps[idx - 1].value : maxVal
+          const stepConv = prevVal > 0 ? Math.round((step.value / prevVal) * 100) : 0
+
+          return (
+            <div key={step.label} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
+                  <span>{step.label}</span>
+                  <span>{step.value.toLocaleString()} ({pct}%)</span>
+                </div>
+                <div style={{ height: '10px', background: 'var(--surface-hover)', borderRadius: '5px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', background: step.color, width: `${pct}%`, borderRadius: '5px' }} />
+                </div>
+              </div>
+
+              {idx > 0 && (
+                <div style={{
+                  width: '54px',
+                  textAlign: 'center',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  color: stepConv >= 70 ? 'var(--success)' : stepConv >= 40 ? '#f59e0b' : 'var(--accent)',
+                  background: stepConv >= 70 ? 'var(--success-faint)' : stepConv >= 40 ? 'rgba(245, 158, 11, 0.08)' : 'var(--accent-faint)',
+                  padding: '4px 6px',
+                  borderRadius: '6px',
+                  border: `1px solid ${stepConv >= 70 ? 'rgba(34, 197, 94, 0.15)' : stepConv >= 40 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)'}`
+                }}>
+                  {stepConv}% conv
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+
+// ───────────────────────────────────────────────────────────────
+// Geographic breakdown Card
+// ───────────────────────────────────────────────────────────────
+interface TopCitiesCardProps {
+  cities: Array<{ city: string; count: number }>
+  total: number
+}
+
+const TopCitiesCard: React.FC<TopCitiesCardProps> = ({ cities, total }) => {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
+      <div>
+        <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Geographic Distribution</h4>
+        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Top cities sending active users to the platform</p>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', justifyContent: 'center', flex: 1 }}>
+        {(!cities || cities.length === 0) ? (
+          <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '20px 0' }}>
+            No geographical data available
+          </div>
+        ) : (
+          cities.slice(0, 5).map((c) => {
+            const percentage = total ? Math.round((c.count / total) * 100) : 0
+            return (
+              <div key={c.city}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+                  <span>{c.city}</span>
+                  <span>{c.count} ({percentage}%)</span>
+                </div>
+                <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      background: '#8b5cf6',
+                      width: `${percentage}%`,
+                      borderRadius: '3px',
+                    }}
+                  />
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}
+
+
 
 
 
@@ -288,6 +510,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 
   const [gaStats, setGaStats] = useState<any>(null)
   const [loadingGaStats, setLoadingGaStats] = useState(true)
+  const [showAllPages, setShowAllPages] = useState(false)
   const navigate = useNavigate()
 
   // Reset selected users when switching filters or subviews
@@ -628,10 +851,45 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             {/* ── Activity Summary Section ── */}
             {/* ── Web Traffic & Engagement Section (GA4) ── */}
             <div className="card" style={{ padding: '24px', marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <style>{`
+                @keyframes live-pulse {
+                  0% { opacity: 0.4; transform: scale(0.9); }
+                  50% { opacity: 1; transform: scale(1.15); }
+                  100% { opacity: 0.4; transform: scale(0.9); }
+                }
+                .live-pulse-dot {
+                  animation: live-pulse 2s infinite ease-in-out;
+                }
+              `}</style>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
-                  <h3 style={{ margin: 0, fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h3 style={{ margin: 0, fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <Activity size={18} style={{ color: 'var(--accent)' }} /> Website Traffic & Engagement
+                    {!loadingGaStats && gaStats?.status !== 'unavailable' && typeof gaStats?.realtimeActiveUsers === 'number' && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: '#22c55e',
+                        background: 'rgba(34, 197, 94, 0.08)',
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        marginLeft: '8px',
+                        border: '1px solid rgba(34, 197, 94, 0.2)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}>
+                        <span className="live-pulse-dot" style={{
+                          width: '6px',
+                          height: '6px',
+                          background: '#22c55e',
+                          borderRadius: '50%'
+                        }} />
+                        {gaStats.realtimeActiveUsers} Live User{gaStats.realtimeActiveUsers !== 1 ? 's' : ''}
+                      </span>
+                    )}
                   </h3>
                   <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
                     Real-time web analytics and conversion funnel insights powered by Google Analytics 4 (GA4).
@@ -657,245 +915,532 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 </button>
               </div>
 
-              {/* GA4 Mini Stats Grid */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                  gap: '16px',
-                }}
-              >
-                {/* Website Visitors */}
-                <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Website Visitors (30d)</span>
-                    <div style={{ color: 'var(--accent)', background: 'var(--accent-faint)', padding: '4px', borderRadius: '6px' }}>
-                      <Users size={14} />
-                    </div>
-                  </div>
+              {!loadingGaStats && gaStats?.status === 'unavailable' ? (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '48px 24px',
+                  background: 'var(--bg)',
+                  border: '1px dashed var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  textAlign: 'center',
+                  gap: '12px'
+                }}>
+                  <Info size={28} style={{ color: 'var(--text-muted)', opacity: 0.8 }} />
                   <div>
-                    <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
-                      {loadingGaStats ? '...' : gaStats?.activeUsers?.toLocaleString() || 0}
+                    <h4 style={{ margin: 0, fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>
+                      Google Analytics is currently unavailable
                     </h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
-                      Unique active visitors
+                    <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)', maxWidth: '480px' }}>
+                      {gaStats.reason || 'Failed to fetch live web traffic stats. Please check your internet connection or server configurations.'}
                     </p>
                   </div>
                 </div>
-
-                {/* Visits / Sessions */}
-                <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Visits / Sessions</span>
-                    <div style={{ color: 'var(--success)', background: 'var(--success-faint)', padding: '4px', borderRadius: '6px' }}>
-                      <Activity size={14} />
-                    </div>
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
-                      {loadingGaStats ? '...' : gaStats?.sessions?.toLocaleString() || 0}
-                    </h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
-                      Total sessions initiated
-                    </p>
-                  </div>
-                </div>
-
-                {/* Page Views */}
-                <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Page Views</span>
-                    <div style={{ color: '#3b82f6', background: 'rgba(59, 130, 246, 0.08)', padding: '4px', borderRadius: '6px' }}>
-                      <Eye size={14} />
-                    </div>
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
-                      {loadingGaStats ? '...' : gaStats?.pageViews?.toLocaleString() || 0}
-                    </h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
-                      Total routes viewed
-                    </p>
-                  </div>
-                </div>
-
-                {/* Pages per Visit */}
-                <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pages per Visit</span>
-                    <div style={{ color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.08)', padding: '4px', borderRadius: '6px' }}>
-                      <Globe size={14} />
-                    </div>
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
-                      {loadingGaStats ? '...' : gaStats?.sessions ? (gaStats.pageViews / gaStats.sessions).toFixed(1) : '0.0'}
-                    </h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
-                      Average page depth
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Devices & Top Pages Grid */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 2fr',
-                  gap: '20px',
-                }}
-                className="grid-mobile-1"
-              >
-                {/* Visitor Devices */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
-                  <div>
-                    <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Visitor Devices</h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Traffic distribution by device category</p>
-                  </div>
-                  {loadingGaStats ? (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'var(--text-muted)', fontSize: '12px' }}>
-                      Loading device categories...
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'center', flex: 1 }}>
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Smartphone size={13} style={{ color: 'var(--accent)' }} /> Mobile Browser</span>
-                          <span>{gaStats?.devices?.mobile || 0} ({gaStats?.activeUsers ? Math.round(((gaStats.devices?.mobile || 0) / gaStats.activeUsers) * 100) : 0}%)</span>
-                        </div>
-                        <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
-                          <div
-                            style={{
-                              height: '100%',
-                              background: 'var(--accent)',
-                              width: `${gaStats?.activeUsers ? (((gaStats.devices?.mobile || 0) / gaStats.activeUsers) * 100) : 0}%`,
-                              borderRadius: '3px',
-                            }}
-                          />
+              ) : (
+                <>
+                  {/* GA4 Mini Stats Grid */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                      gap: '16px',
+                    }}
+                  >
+                    {/* Website Visitors */}
+                    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          Website Visitors (30d)
+                          <InfoTooltip text="The number of unique individual visitors who engaged with the platform in the last 30 days." />
+                        </span>
+                        <div style={{ color: 'var(--accent)', background: 'var(--accent-faint)', padding: '4px', borderRadius: '6px' }}>
+                          <Users size={14} />
                         </div>
                       </div>
-                      
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Laptop size={13} style={{ color: 'var(--success)' }} /> Desktop</span>
-                          <span>{gaStats?.devices?.desktop || 0} ({gaStats?.activeUsers ? Math.round(((gaStats.devices?.desktop || 0) / gaStats.activeUsers) * 100) : 0}%)</span>
-                        </div>
-                        <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
-                          <div
-                            style={{
-                              height: '100%',
-                              background: 'var(--success)',
-                              width: `${gaStats?.activeUsers ? (((gaStats.devices?.desktop || 0) / gaStats.activeUsers) * 100) : 0}%`,
-                              borderRadius: '3px',
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Tablet size={13} style={{ color: 'var(--warning)' }} /> Tablet</span>
-                          <span>{gaStats?.devices?.tablet || 0} ({gaStats?.activeUsers ? Math.round(((gaStats.devices?.tablet || 0) / gaStats.activeUsers) * 100) : 0}%)</span>
-                        </div>
-                        <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
-                          <div
-                            style={{
-                              height: '100%',
-                              background: 'var(--warning)',
-                              width: `${gaStats?.activeUsers ? (((gaStats.devices?.tablet || 0) / gaStats.activeUsers) * 100) : 0}%`,
-                              borderRadius: '3px',
-                            }}
-                          />
-                        </div>
+                        <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                          {loadingGaStats ? '...' : gaStats?.activeUsers?.toLocaleString() || 0}
+                        </h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+                          Unique active visitors
+                        </p>
                       </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Top Visited Pages & Funnel Drop-off Diagnostic */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
-                  <div>
-                    <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Top Visited Pages & drop-off diagnosis</h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Monitor critical routes to diagnose onboarding drop-offs and traffic bottlenecks</p>
+                    {/* Visits / Sessions */}
+                    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          Visits / Sessions
+                          <InfoTooltip text="The total number of individual visits initiated on the platform. A visit ends after 30 minutes of inactivity." />
+                        </span>
+                        <div style={{ color: 'var(--success)', background: 'var(--success-faint)', padding: '4px', borderRadius: '6px' }}>
+                          <Activity size={14} />
+                        </div>
+                      </div>
+                      <div>
+                        <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                          {loadingGaStats ? '...' : gaStats?.sessions?.toLocaleString() || 0}
+                        </h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+                          Total sessions initiated
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Page Views */}
+                    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          Page Views
+                          <InfoTooltip text="The total number of page views across the platform, including repeat page views by the same visitor." />
+                        </span>
+                        <div style={{ color: '#3b82f6', background: 'rgba(59, 130, 246, 0.08)', padding: '4px', borderRadius: '6px' }}>
+                          <Eye size={14} />
+                        </div>
+                      </div>
+                      <div>
+                        <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                          {loadingGaStats ? '...' : gaStats?.pageViews?.toLocaleString() || 0}
+                        </h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+                          Total routes viewed
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Pages per Visit */}
+                    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          Pages per Visit
+                          <InfoTooltip text="The average number of screens or pages viewed during a single visit (Page Views divided by Visits)." />
+                        </span>
+                        <div style={{ color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.08)', padding: '4px', borderRadius: '6px' }}>
+                          <Globe size={14} />
+                        </div>
+                      </div>
+                      <div>
+                        <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                          {loadingGaStats ? '...' : gaStats?.sessions ? (gaStats.pageViews / gaStats.sessions).toFixed(1) : '0.0'}
+                        </h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+                          Average page depth
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Average Session Duration */}
+                    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          Avg Session Duration
+                          <InfoTooltip text="The average amount of time visitors spent actively engaged on the site per visit." />
+                        </span>
+                        <div style={{ color: '#f59e0b', background: 'rgba(245, 158, 11, 0.08)', padding: '4px', borderRadius: '6px' }}>
+                          <Clock size={14} />
+                        </div>
+                      </div>
+                      <div>
+                        <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                          {loadingGaStats ? '...' : formatDuration(gaStats?.averageSessionDuration)}
+                        </h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+                          Time spent per session
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Bounce Rate */}
+                    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          Bounce Rate
+                          <InfoTooltip text="The percentage of visits where the user left the site after viewing only a single page without performing any further actions." />
+                        </span>
+                        <div style={{ color: 'var(--warning)', background: 'var(--warning-faint)', padding: '4px', borderRadius: '6px' }}>
+                          <TrendingDown size={14} />
+                        </div>
+                      </div>
+                      <div>
+                        <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                          {loadingGaStats ? '...' : (gaStats?.bounceRate ? `${(gaStats.bounceRate * 100).toFixed(1)}%` : '0.0%')}
+                        </h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+                          Single-page session rate
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  {loadingGaStats ? (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'var(--text-muted)', fontSize: '12px' }}>
-                      Loading popular pages...
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {(gaStats?.topPages || []).map((page: any, idx: number) => {
-                        let pathLabel = '';
-                        let badgeColor = '';
-                        let badgeBg = '';
-                        
-                        if (page.path.includes('login')) {
-                          pathLabel = 'Login Gate';
-                          badgeColor = 'var(--success)';
-                          badgeBg = 'var(--success-faint)';
-                        } else if (page.path.includes('signup') || page.path.includes('register')) {
-                          pathLabel = 'Signup Funnel';
-                          badgeColor = '#8b5cf6';
-                          badgeBg = 'rgba(139, 92, 246, 0.08)';
-                        } else if (page.path.includes('onboarding')) {
-                          pathLabel = 'Onboarding Process';
-                          badgeColor = '#3b82f6';
-                          badgeBg = 'rgba(59, 130, 246, 0.08)';
-                        } else if (page.path.includes('payment') || page.path.includes('rent')) {
-                          pathLabel = 'Rent Checkout';
-                          badgeColor = 'var(--accent)';
-                          badgeBg = 'var(--accent-faint)';
-                        } else if (page.path === '/dashboard' || page.path === '/') {
-                          pathLabel = 'Main Dashboard';
-                          badgeColor = 'var(--text-secondary)';
-                          badgeBg = 'var(--surface-hover)';
-                        }
 
-                        return (
-                          <div
-                            key={page.path}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '10px 14px',
-                              background: 'var(--white)',
-                              border: '1px solid var(--border)',
-                              borderRadius: '8px',
-                              fontSize: '13px',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                              <span style={{ fontWeight: 800, color: 'var(--accent)', minWidth: '16px' }}>#{idx + 1}</span>
-                              <span style={{ fontFamily: 'monospace', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--text)', fontSize: '12px' }}>
-                                {page.path}
-                              </span>
-                              {pathLabel && (
-                                <span style={{
-                                  fontSize: '10px',
-                                  fontWeight: 700,
-                                  padding: '2px 8px',
-                                  borderRadius: '12px',
-                                  color: badgeColor,
-                                  background: badgeBg,
-                                  textTransform: 'uppercase',
-                                  whiteSpace: 'nowrap',
-                                }}>
-                                  {pathLabel}
-                                </span>
-                              )}
-                            </div>
-                            <span style={{ fontWeight: 700, color: 'var(--text-secondary)', flexShrink: 0, fontSize: '12px' }}>
-                              {page.views.toLocaleString()} views
-                            </span>
+                  {/* 30-Day Traffic Trends Line Chart */}
+                  <DailyTrendChart trend={gaStats?.dailyTrend} />
+
+                  {/* Devices & Top Pages Grid */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 2fr',
+                      gap: '20px',
+                    }}
+                    className="grid-mobile-1"
+                  >
+                    {/* Left Column: Devices & Traffic Sources */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                      {/* Visitor Devices */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
+                        <div>
+                          <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Visitor Devices</h4>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Traffic distribution by device category</p>
+                        </div>
+                        {loadingGaStats ? (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                            Loading device categories...
                           </div>
-                        )
-                      })}
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'center', flex: 1 }}>
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Smartphone size={13} style={{ color: 'var(--accent)' }} /> Mobile Browser</span>
+                                <span>{gaStats?.devices?.mobile || 0} ({gaStats?.activeUsers ? Math.round(((gaStats.devices?.mobile || 0) / gaStats.activeUsers) * 100) : 0}%)</span>
+                              </div>
+                              <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
+                                <div
+                                  style={{
+                                    height: '100%',
+                                    background: 'var(--accent)',
+                                    width: `${gaStats?.activeUsers ? (((gaStats.devices?.mobile || 0) / gaStats.activeUsers) * 100) : 0}%`,
+                                    borderRadius: '3px',
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Laptop size={13} style={{ color: 'var(--success)' }} /> Desktop</span>
+                                <span>{gaStats?.devices?.desktop || 0} ({gaStats?.activeUsers ? Math.round(((gaStats.devices?.desktop || 0) / gaStats.activeUsers) * 100) : 0}%)</span>
+                              </div>
+                              <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
+                                <div
+                                  style={{
+                                    height: '100%',
+                                    background: 'var(--success)',
+                                    width: `${gaStats?.activeUsers ? (((gaStats.devices?.desktop || 0) / gaStats.activeUsers) * 100) : 0}%`,
+                                    borderRadius: '3px',
+                                  }}
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Tablet size={13} style={{ color: 'var(--warning)' }} /> Tablet</span>
+                                <span>{gaStats?.devices?.tablet || 0} ({gaStats?.activeUsers ? Math.round(((gaStats.devices?.tablet || 0) / gaStats.activeUsers) * 100) : 0}%)</span>
+                              </div>
+                              <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
+                                <div
+                                  style={{
+                                    height: '100%',
+                                    background: 'var(--warning)',
+                                    width: `${gaStats?.activeUsers ? (((gaStats.devices?.tablet || 0) / gaStats.activeUsers) * 100) : 0}%`,
+                                    borderRadius: '3px',
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Traffic Sources */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
+                        <div>
+                          <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Traffic Acquisition</h4>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Traffic distribution by default channel group</p>
+                        </div>
+                        {loadingGaStats ? (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                            Loading traffic sources...
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'center', flex: 1 }}>
+                            {Object.entries(gaStats?.trafficSources || {}).length === 0 ? (
+                              <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '20px 0' }}>
+                                No traffic source data available
+                              </div>
+                            ) : (
+                              Object.entries(gaStats.trafficSources as Record<string, number>)
+                                .sort((a, b) => b[1] - a[1])
+                                .slice(0, 4)
+                                .map(([source, count]) => {
+                                  const percentage = gaStats?.activeUsers ? Math.round((count / gaStats.activeUsers) * 100) : 0;
+                                  let tooltipText = `Traffic classified as ${source} under Google Analytics default channel groupings.`;
+                                  const sLower = source.toLowerCase();
+                                  if (sLower.includes('direct')) {
+                                    tooltipText = "Direct traffic. Users typed the URL directly, clicked a bookmark, or accessed the site via links in untracked apps (PDFs, WhatsApp, Slack, emails without UTM parameters).";
+                                  } else if (sLower.includes('organic social')) {
+                                    tooltipText = "Organic Social media traffic. Users clicked on links on social networks like Facebook, X/Twitter, Instagram, or LinkedIn without paid promotion.";
+                                  } else if (sLower.includes('organic search')) {
+                                    tooltipText = "Organic Search engine traffic. Users clicked on unpaid listings on search engines like Google, Bing, or Yahoo.";
+                                  } else if (sLower.includes('referral')) {
+                                    tooltipText = "Referral traffic from external websites. Users clicked a link on another website that points to your site.";
+                                  } else if (sLower.includes('email')) {
+                                    tooltipText = "Email traffic. Traffic originating from email campaigns or email clients, typically tagged with UTM parameters.";
+                                  }
+
+                                  return (
+                                    <div key={source}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600, alignItems: 'center' }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'capitalize' }}>
+                                          {source}
+                                          <InfoTooltip text={tooltipText} />
+                                        </span>
+                                        <span>{count} ({percentage}%)</span>
+                                      </div>
+                                      <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
+                                        <div
+                                          style={{
+                                            height: '100%',
+                                            background: '#3b82f6',
+                                            width: `${percentage}%`,
+                                            borderRadius: '3px',
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Top Referring Sites */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
+                        <div>
+                          <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Top Referring Sites</h4>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>External websites sending traffic to your platform</p>
+                        </div>
+                        {loadingGaStats ? (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                            Loading referrals...
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', justifyContent: 'center', flex: 1 }}>
+                            {(!gaStats?.topReferrals || gaStats.topReferrals.length === 0) ? (
+                              <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '20px 0' }}>
+                                No referral traffic recorded
+                              </div>
+                            ) : (
+                              gaStats.topReferrals.slice(0, 5).map((ref: { source: string; count: number }) => {
+                                const percentage = gaStats?.activeUsers ? Math.round((ref.count / gaStats.activeUsers) * 100) : 0;
+                                return (
+                                  <div key={ref.source}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+                                      <span style={{ fontFamily: 'monospace', color: 'var(--text)', fontSize: '11px' }}>{ref.source}</span>
+                                      <span>{ref.count} ({percentage}%)</span>
+                                    </div>
+                                    <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
+                                      <div
+                                        style={{
+                                          height: '100%',
+                                          background: 'var(--success)',
+                                          width: `${percentage}%`,
+                                          borderRadius: '3px',
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-              </div>
+
+                    {/* Top Visited Pages & Funnel Drop-off Diagnostic */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
+                      <div>
+                        <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Top Visited Pages & drop-off diagnosis</h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Monitor critical routes to diagnose onboarding drop-offs and traffic bottlenecks</p>
+                      </div>
+                      {loadingGaStats ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                          Loading popular pages...
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {((gaStats?.topPages || []).slice(0, showAllPages ? 50 : 5)).map((page: any, idx: number) => {
+                            let pathLabel = '';
+                            let badgeColor = '';
+                            let badgeBg = '';
+                            
+                            if (page.path.includes('login')) {
+                              pathLabel = 'Login Gate';
+                              badgeColor = 'var(--success)';
+                              badgeBg = 'var(--success-faint)';
+                            } else if (page.path.includes('signup') || page.path.includes('register')) {
+                              pathLabel = 'Signup Funnel';
+                              badgeColor = '#8b5cf6';
+                              badgeBg = 'rgba(139, 92, 246, 0.08)';
+                            } else if (page.path.includes('onboarding')) {
+                              pathLabel = 'Onboarding Process';
+                              badgeColor = '#3b82f6';
+                              badgeBg = 'rgba(59, 130, 246, 0.08)';
+                            } else if (page.path.includes('payment') || page.path.includes('rent')) {
+                              pathLabel = 'Rent Checkout';
+                              badgeColor = 'var(--accent)';
+                              badgeBg = 'var(--accent-faint)';
+                            } else if (page.path.includes('/pm/dashboard')) {
+                              pathLabel = 'PM Dashboard';
+                              badgeColor = 'var(--accent)';
+                              badgeBg = 'var(--accent-faint)';
+                            } else if (page.path.includes('/pay/dashboard')) {
+                              pathLabel = 'Tenant Dashboard';
+                              badgeColor = '#3b82f6';
+                              badgeBg = 'rgba(59, 130, 246, 0.08)';
+                            } else if (page.path === '/dashboard') {
+                              pathLabel = 'Main Dashboard';
+                              badgeColor = 'var(--text-secondary)';
+                              badgeBg = 'var(--surface-hover)';
+                            } else if (page.path === '/') {
+                              pathLabel = 'Landing Page';
+                              badgeColor = 'var(--text-secondary)';
+                              badgeBg = 'var(--surface-hover)';
+                            }
+
+                            return (
+                              <div
+                                key={page.path}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '10px 14px',
+                                  background: 'var(--white)',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: '8px',
+                                  fontSize: '13px',
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                                  <span style={{ fontWeight: 800, color: 'var(--accent)', minWidth: '16px' }}>#{idx + 1}</span>
+                                  <span style={{ fontFamily: 'monospace', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--text)', fontSize: '12px' }}>
+                                    {page.path}
+                                  </span>
+                                  {pathLabel && (
+                                    <span style={{
+                                      fontSize: '10px',
+                                      fontWeight: 700,
+                                      padding: '2px 8px',
+                                      borderRadius: '12px',
+                                      color: badgeColor,
+                                      background: badgeBg,
+                                      textTransform: 'uppercase',
+                                      whiteSpace: 'nowrap',
+                                    }}>
+                                      {pathLabel}
+                                    </span>
+                                  )}
+                                </div>
+                                <span style={{ fontWeight: 700, color: 'var(--text-secondary)', flexShrink: 0, fontSize: '12px' }}>
+                                  {page.views.toLocaleString()} views
+                                </span>
+                              </div>
+                            )
+                          })}
+
+                          {/* Toggle expand button */}
+                          {(gaStats?.topPages || []).length > 5 && (
+                            <button
+                              type="button"
+                              onClick={() => setShowAllPages(!showAllPages)}
+                              className="btn btn-secondary"
+                              style={{
+                                alignSelf: 'center',
+                                marginTop: '8px',
+                                fontSize: '12px',
+                                padding: '6px 16px',
+                                height: 'auto',
+                                width: 'fit-content',
+                              }}
+                            >
+                              {showAllPages ? 'View Less' : `View More (${(gaStats?.topPages || []).length - 5} pages)`}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Funnel & Sources Grid */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '2fr 1fr',
+                      gap: '20px',
+                      marginTop: '20px',
+                    }}
+                    className="grid-mobile-1"
+                  >
+                    {/* Left: User Conversion Funnel */}
+                    <ConversionFunnel sessions={gaStats?.sessions || 0} events={gaStats?.funnelEvents} />
+
+                    {/* Right: Geographic Distribution & Detailed Sources */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                      {/* Top Cities */}
+                      <TopCitiesCard cities={gaStats?.topCities} total={gaStats?.activeUsers} />
+
+                      {/* Detailed Sources (Source / Medium) */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
+                        <div>
+                          <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Source / Medium details</h4>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Granular user acquisition channels</p>
+                        </div>
+                        {loadingGaStats ? (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                            Loading sources...
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', justifyContent: 'center', flex: 1 }}>
+                            {(!gaStats?.granularSources || gaStats.granularSources.length === 0) ? (
+                              <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '20px 0' }}>
+                                No source details available
+                              </div>
+                            ) : (
+                              gaStats.granularSources.slice(0, 5).map((src: { sourceMedium: string; count: number }) => {
+                                const percentage = gaStats?.activeUsers ? Math.round((src.count / gaStats.activeUsers) * 100) : 0;
+                                return (
+                                  <div key={src.sourceMedium}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+                                      <span style={{ fontFamily: 'monospace', color: 'var(--text)', fontSize: '11px' }}>{src.sourceMedium}</span>
+                                      <span>{src.count} ({percentage}%)</span>
+                                    </div>
+                                    <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
+                                      <div
+                                        style={{
+                                          height: '100%',
+                                          background: '#ef4444',
+                                          width: `${percentage}%`,
+                                          borderRadius: '3px',
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
 
