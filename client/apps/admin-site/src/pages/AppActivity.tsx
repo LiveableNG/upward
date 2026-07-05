@@ -7,23 +7,16 @@ import {
   Filter,
   RefreshCcw,
   ChevronDown,
+  Download,
   Activity,
+  Users,
   Eye,
   X,
   Copy,
   Check,
-  Clock,
-  CreditCard,
-  FileText,
-  UserPlus,
-  LogIn,
-  LogOut,
-  Trash2,
-  PlusCircle,
-  Settings,
+  Globe,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
-import PreviewDrawer, { type DrawerEntity } from '../features/dashboard/components/PreviewDrawer'
 
 interface AppActivityLog {
   id: number
@@ -31,7 +24,7 @@ interface AppActivityLog {
   app: string
   userId: number | null
   pmId: number | null
-  userRole: string | null
+  userRole: string
   userEmail: string | null
   action: string
   entityType: string | null
@@ -41,233 +34,27 @@ interface AppActivityLog {
   ipAddress: string | null
   userAgent: string | null
   createdAt: string
-  user?: any
-  pm?: any
-  userPathway?: string | null
-  readableText?: string
 }
 
-
-function getActivityIcon(action: string, entityType?: string) {
-  if (entityType === 'PAYMENT' || entityType === 'RENT') return <CreditCard size={15} style={{ color: 'var(--success)' }} />
-  if (entityType === 'CONTRACT' || entityType === 'DOCUMENT') return <FileText size={15} style={{ color: '#3b82f6' }} />
-  
-  switch (action) {
-    case 'SIGNUP':
-      return <UserPlus size={15} style={{ color: '#8b5cf6' }} />
-    case 'LOGIN':
-      return <LogIn size={15} style={{ color: 'var(--success)' }} />
-    case 'LOGOUT':
-      return <LogOut size={15} style={{ color: 'var(--text-muted)' }} />
-    case 'APP_INSTALL':
-      return <Smartphone size={15} style={{ color: 'var(--accent)' }} />
-    case 'DELETE':
-      return <Trash2 size={15} style={{ color: 'var(--danger)' }} />
-    case 'CREATE':
-      return <PlusCircle size={15} style={{ color: '#3b82f6' }} />
-    case 'UPDATE':
-      return <Settings size={15} style={{ color: 'var(--warning)' }} />
-    default:
-      return <Activity size={15} style={{ color: 'var(--text-muted)' }} />
+interface StatsData {
+  totalInstalls: number
+  platforms: {
+    ios: number
+    android: number
+    web: number
+    other: number
   }
-}
-
-function renderLogMessage(log: any, onPreviewUser: any, onPreviewPm: any) {
-  const user = log.user;
-  const pm = log.pm;
-
-  const userEmailLink = user?.email || log.userEmail;
-  const userNameStr = user ? `${user.firstName} ${user.lastName}`.trim() : '';
-
-  const pmNameStr = pm ? pm.businessName : '';
-  const pmEmailLink = pm?.email || '';
-
-  const renderTenantLink = () => {
-    if (!userEmailLink) return <span>System / Guest</span>;
-    return (
-      <button
-        type="button"
-        onClick={() => onPreviewUser({
-          uuid: user?.uuid || log.entityId || log.uuid,
-          firstName: user?.firstName || 'Tenant',
-          lastName: user?.lastName || '',
-          email: userEmailLink,
-          createdAt: user?.createdAt || log.createdAt,
-          totalPaid: user?.totalPaid || 0,
-        })}
-        style={{
-          background: 'none',
-          border: 'none',
-          color: 'var(--accent)',
-          textDecoration: 'underline',
-          fontWeight: 700,
-          cursor: 'pointer',
-          padding: 0,
-          fontFamily: 'inherit',
-          fontSize: 'inherit',
-        }}
-      >
-        {userNameStr ? `${userNameStr} (${userEmailLink})` : userEmailLink}
-      </button>
-    );
-  };
-
-  const renderPmLink = () => {
-    if (!pmNameStr && !pmEmailLink) return <span>Property Manager</span>;
-    return (
-      <button
-        type="button"
-        onClick={() => onPreviewPm({
-          uuid: pm?.uuid || log.pmId || log.uuid,
-          businessName: pmNameStr || 'Property Manager',
-          email: pmEmailLink,
-          createdAt: pm?.createdAt || log.createdAt,
-        })}
-        style={{
-          background: 'none',
-          border: 'none',
-          color: 'var(--accent)',
-          textDecoration: 'underline',
-          fontWeight: 700,
-          cursor: 'pointer',
-          padding: 0,
-          fontFamily: 'inherit',
-          fontSize: 'inherit',
-        }}
-      >
-        {pmNameStr ? `${pmNameStr} (${pmEmailLink})` : pmEmailLink}
-      </button>
-    );
-  };
-
-  if (log.action === 'SIGNUP') {
-    if (log.userRole === 'PM' || log.app === 'upward-pm') {
-      return (
-        <span>
-          Property Manager {renderPmLink()} registered a new account.
-        </span>
-      );
-    } else {
-      const details = user?.isFromInvite
-        ? 'completed registration (invited tenant).'
-        : user?.isFromWaitlist
-        ? 'converted from the waitlist and registered.'
-        : 'self-registered a new account.';
-      return (
-        <span>
-          Tenant {renderTenantLink()} {details}
-        </span>
-      );
-    }
+  activeUsersByApp: {
+    app: string
+    _count: number
+  }[]
+  recentActivityCount: number
+  todayStats?: {
+    uniqueUsersMobileCount: number
+    uniqueUsersWebCount: number
+    mobileActionGrouped: { action: string; count: number }[]
+    webActionGrouped: { action: string; count: number }[]
   }
-
-  if (log.action === 'LOGIN') {
-    if (log.userRole === 'PM' || log.app === 'upward-pm') {
-      return (
-        <span>
-          Property Manager {renderPmLink()} logged in.
-        </span>
-      );
-    } else {
-      return (
-        <span>
-          Tenant {renderTenantLink()} logged in.
-        </span>
-      );
-    }
-  }
-
-  if (log.action === 'LOGOUT') {
-    if (log.userRole === 'PM' || log.app === 'upward-pm') {
-      return (
-        <span>
-          Property Manager {renderPmLink()} logged out.
-        </span>
-      );
-    } else {
-      return (
-        <span>
-          Tenant {renderTenantLink()} logged out.
-        </span>
-      );
-    }
-  }
-
-  if (log.action === 'APP_INSTALL') {
-    return (
-      <span>
-        Mobile app installed or launched by user {renderTenantLink()}.
-      </span>
-    );
-  }
-
-  if (log.action === 'CREATE') {
-    if (log.entityType === 'UNIT') {
-      const match = log.description.match(/(?:uploaded|imported|added) (\d+) (?:units|properties|records)/i);
-      if (match) {
-        return (
-          <span>
-            Property Manager {renderPmLink()} bulk uploaded <strong>{match[1]}</strong> units.
-          </span>
-        );
-      } else {
-        return (
-          <span>
-            Property Manager {renderPmLink()} created a new unit.
-          </span>
-        );
-      }
-    }
-    if (log.entityType === 'INVITE') {
-      let inviteEmail = '';
-      try {
-        const meta = log.metadata ? (typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata) : {};
-        if (meta.email) {
-          inviteEmail = meta.email;
-        } else if (meta.tenants && Array.isArray(meta.tenants)) {
-          inviteEmail = meta.tenants.map((t: any) => t.email).join(', ');
-        }
-      } catch (e) {}
-      if (!inviteEmail) {
-        inviteEmail = log.description.match(/invite tenant:?\s*([^\s]+)/i)?.[1] || '';
-      }
-      if (!inviteEmail) {
-        inviteEmail = log.description.replace(/CREATE action on INVITE.*by\s+/i, '') || 'a tenant';
-      }
-      return (
-        <span>
-          Property Manager {renderPmLink()} invited Tenant <strong>{inviteEmail}</strong>.
-        </span>
-      );
-    }
-    if (log.entityType === 'PAYMENT' || log.entityType === 'RENT') {
-      let amountStr = '';
-      try {
-        const meta = log.metadata ? (typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata) : {};
-        if (meta.amount) {
-          amountStr = ` of ₦${Number(meta.amount).toLocaleString()}`;
-        }
-      } catch (e) {}
-      if (!amountStr) {
-        const amtMatch = log.description.match(/₦\s*([\d,]+)/);
-        if (amtMatch) amountStr = ` of ₦${amtMatch[1]}`;
-      }
-      return (
-        <span>
-          Tenant {renderTenantLink()} made a payment{amountStr ? <strong>{amountStr}</strong> : ''}.
-        </span>
-      );
-    }
-    if (log.entityType === 'CREDIBILITY_REQUEST') {
-      return (
-        <span>
-          Tenant {renderTenantLink()} requested their rental history credibility report.
-        </span>
-      );
-    }
-  }
-
-  return <span>{log.readableText || log.description}</span>;
 }
 
 interface AppActivityProps {
@@ -276,7 +63,9 @@ interface AppActivityProps {
 
 const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
   const [logs, setLogs] = useState<AppActivityLog[]>([])
+  const [stats, setStats] = useState<StatsData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingStats, setLoadingStats] = useState(true)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
@@ -286,45 +75,24 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
   const [appFilter, setAppFilter] = useState('ALL')
   const [actionFilter, setActionFilter] = useState('ALL')
   const [platformFilter, setPlatformFilter] = useState('ALL')
-  const [dateFilter, setDateFilter] = useState('')
   
   // Modal details
   const [selectedLog, setSelectedLog] = useState<AppActivityLog | null>(null)
   const [copied, setCopied] = useState(false)
 
-  // Drawer
-  const [drawerEntity, setDrawerEntity] = useState<DrawerEntity | null>(null)
-
-  const openDrawerForUser = (item: any) => {
-    setDrawerEntity({
-      kind: 'user',
-      uuid: item.uuid,
-      name: item.firstName && item.lastName ? `${item.firstName} ${item.lastName}` : 'Tenant Profile',
-      email: item.email,
-      phone: item.phone || '',
-      status: item.totalPaid > 0 ? 'TENANT' : 'PENDING_TENANT',
-      type: item.totalPaid > 0 ? 'TENANT' : 'PENDING_TENANT',
-      joinedAt: item.createdAt,
-      totalPaid: item.totalPaid || 0,
-    })
+  const fetchStats = async () => {
+    setLoadingStats(true)
+    try {
+      const response = await apiService.get('/admin/app-activity/stats', token)
+      if (response) {
+        setStats(response)
+      }
+    } catch (error) {
+      console.error('Failed to fetch stats:', error)
+    } finally {
+      setLoadingStats(false)
+    }
   }
-
-  const openDrawerForPm = (pm: any) => {
-    setDrawerEntity({
-      kind: 'pm',
-      uuid: pm.uuid,
-      name: pm.businessName || 'Property Manager',
-      email: pm.email,
-      phone: pm.phone || '',
-      status: pm.isVerified ? 'VERIFIED' : 'UNVERIFIED',
-      type: pm.isVerified ? 'VERIFIED' : 'UNVERIFIED',
-      joinedAt: pm.createdAt,
-      totalPaid: pm.totalGenerated || 0,
-      propertyCount: pm.propertiesCount || 0,
-    })
-  }
-
-
 
   const fetchLogs = async (pageNum = page) => {
     setLoading(true)
@@ -334,7 +102,6 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
       if (actionFilter !== 'ALL') url += `&action=${actionFilter}`
       if (platformFilter !== 'ALL') url += `&platform=${platformFilter}`
       if (search.trim()) url += `&search=${encodeURIComponent(search.trim())}`
-      if (dateFilter) url += `&date=${dateFilter}`
 
       const response = await apiService.get(url, token)
       if (response && response.data) {
@@ -349,11 +116,13 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
     }
   }
 
-
+  useEffect(() => {
+    fetchStats()
+  }, [])
 
   useEffect(() => {
     fetchLogs(page)
-  }, [page, appFilter, actionFilter, platformFilter, dateFilter])
+  }, [page, appFilter, actionFilter, platformFilter])
 
   // Trigger search on submit or enter key
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -363,14 +132,42 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
   }
 
   const handleRefresh = () => {
-    fetchLogs(1)
-    setPage(1)
+    fetchStats()
+    fetchLogs(page)
+  }
+
+  const getActionColor = (action: string) => {
+    switch (action) {
+      case 'LOGIN':
+        return 'var(--success)'
+      case 'LOGOUT':
+        return 'var(--text-muted)'
+      case 'SIGNUP':
+        return '#8b5cf6' // Violet
+      case 'APP_INSTALL':
+        return 'var(--accent)'
+      case 'DELETE':
+        return 'var(--danger)'
+      case 'CREATE':
+        return '#3b82f6' // Blue
+      case 'UPDATE':
+        return 'var(--warning)'
+      default:
+        return 'var(--text-muted)'
+    }
   }
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  // Count active users by app from stats
+  const getAppActivityCount = (appName: string) => {
+    if (!stats) return 0
+    const appStat = stats.activeUsersByApp.find((s) => s.app === appName)
+    return appStat ? appStat._count : 0
   }
 
   return (
@@ -416,19 +213,205 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
         <button
           onClick={handleRefresh}
           className="btn btn-secondary"
-          disabled={loading}
+          disabled={loading || loadingStats}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
           }}
         >
-          <RefreshCcw size={16} className={loading ? 'spin' : ''} />
+          <RefreshCcw size={16} className={loading || loadingStats ? 'spin' : ''} />
           Refresh Data
         </button>
       </div>
 
+      {/* Stats Summary Cards */}
+      <div
+        className="stats-grid grid-mobile-1"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '20px',
+          marginBottom: '24px',
+        }}
+      >
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="section-label">Total Mobile Installs</span>
+            <div style={{ color: 'var(--accent)', background: 'var(--accent-faint)', padding: '6px', borderRadius: '8px' }}>
+              <Download size={18} />
+            </div>
+          </div>
+          <div>
+            <h2 style={{ fontSize: '32px', fontWeight: 800, margin: 0 }}>
+              {loadingStats ? '...' : stats?.totalInstalls || 0}
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '4px 0 0 0' }}>
+              Total downloads & first-time launches
+            </p>
+          </div>
+        </div>
 
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="section-label">Mobile OS Platform</span>
+            <div style={{ color: 'var(--success)', background: 'var(--success-faint)', padding: '6px', borderRadius: '8px' }}>
+              <Smartphone size={18} />
+            </div>
+          </div>
+          {loadingStats ? (
+            <div>Loading...</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, justifyContent: 'center' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 600 }}>
+                  <span>iOS</span>
+                  <span>{stats?.platforms?.ios || 0}</span>
+                </div>
+                <div style={{ height: '4px', background: 'var(--surface-hover)', borderRadius: '2px', overflow: 'hidden', marginTop: '2px' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      background: 'var(--accent)',
+                      width: `${stats?.totalInstalls ? (((stats.platforms?.ios || 0) / stats.totalInstalls) * 100) : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 600 }}>
+                  <span>Android</span>
+                  <span>{stats?.platforms?.android || 0}</span>
+                </div>
+                <div style={{ height: '4px', background: 'var(--surface-hover)', borderRadius: '2px', overflow: 'hidden', marginTop: '2px' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      background: 'var(--success)',
+                      width: `${stats?.totalInstalls ? (((stats.platforms?.android || 0) / stats.totalInstalls) * 100) : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="section-label">Tenant App Actions</span>
+            <div style={{ color: '#3b82f6', background: 'rgba(59, 130, 246, 0.1)', padding: '6px', borderRadius: '8px' }}>
+              <Activity size={18} />
+            </div>
+          </div>
+          <div>
+            <h2 style={{ fontSize: '32px', fontWeight: 800, margin: 0 }}>
+              {loadingStats ? '...' : getAppActivityCount('upward-pay')}
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '4px 0 0 0' }}>
+              Total logged operations in upward-pay
+            </p>
+          </div>
+        </div>
+
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="section-label">Manager App Actions</span>
+            <div style={{ color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.1)', padding: '6px', borderRadius: '8px' }}>
+              <Users size={18} />
+            </div>
+          </div>
+          <div>
+            <h2 style={{ fontSize: '32px', fontWeight: 800, margin: 0 }}>
+              {loadingStats ? '...' : getAppActivityCount('upward-pm')}
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '4px 0 0 0' }}>
+              Total logged operations in upward-pm
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Today's Closed Testing Telemetry Widget */}
+      <div className="card" style={{ marginBottom: '24px', background: 'var(--white)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+          <Activity size={20} style={{ color: 'var(--accent)' }} />
+          <div>
+            <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>Closed Testing: Today's Check-ins & Interactions</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '2px 0 0 0' }}>
+              Distinct users who checked in today, grouped by their device source and actions.
+            </p>
+          </div>
+        </div>
+
+        <div className="stats-grid grid-mobile-1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          {/* Mobile App Interactions */}
+          <div style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', background: 'var(--surface)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Smartphone size={18} style={{ color: 'var(--accent)' }} />
+                <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>Mobile App (Capacitor)</span>
+              </div>
+              <span className="badge" style={{ background: 'var(--accent-muted)', color: 'var(--accent)', fontSize: '16px', fontWeight: 800, padding: '4px 12px', borderRadius: '8px' }}>
+                {loadingStats ? '...' : stats?.todayStats?.uniqueUsersMobileCount ?? 0}
+              </span>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '6px' }}>Unique active testers on mobile today</p>
+            
+            {loadingStats ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}><div className="loader"></div></div>
+            ) : stats?.todayStats?.mobileActionGrouped && stats.todayStats.mobileActionGrouped.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
+                {stats.todayStats.mobileActionGrouped.map((item) => (
+                  <div key={item.action} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--white)', border: '1px solid var(--border)', padding: '8px 12px', borderRadius: '8px', fontSize: '13px' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--text)' }}>{item.action}</span>
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
+                      {item.count} unique {item.count === 1 ? 'user' : 'users'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', fontStyle: 'italic', marginTop: '16px', textAlign: 'center' }}>
+                No mobile activity recorded today
+              </p>
+            )}
+          </div>
+
+          {/* Web Interactions */}
+          <div style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', background: 'var(--surface)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Globe size={18} style={{ color: '#3b82f6' }} />
+                <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>Web Browser (Standard)</span>
+              </div>
+              <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', fontSize: '16px', fontWeight: 800, padding: '4px 12px', borderRadius: '8px' }}>
+                {loadingStats ? '...' : stats?.todayStats?.uniqueUsersWebCount ?? 0}
+              </span>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '6px' }}>Unique active testers on web today</p>
+            
+            {loadingStats ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}><div className="loader"></div></div>
+            ) : stats?.todayStats?.webActionGrouped && stats.todayStats.webActionGrouped.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
+                {stats.todayStats.webActionGrouped.map((item) => (
+                  <div key={item.action} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--white)', border: '1px solid var(--border)', padding: '8px 12px', borderRadius: '8px', fontSize: '13px' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--text)' }}>{item.action}</span>
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
+                      {item.count} unique {item.count === 1 ? 'user' : 'users'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', fontStyle: 'italic', marginTop: '16px', textAlign: 'center' }}>
+                No web activity recorded today
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Filters/Search Bar */}
       <div className="card" style={{ marginBottom: '24px', padding: '16px' }}>
@@ -470,45 +453,6 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
               onFocus={(e) => (e.target.style.borderColor = 'var(--accent)')}
               onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
             />
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              flex: '0 1 auto',
-            }}
-          >
-            <input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => {
-                setDateFilter(e.target.value)
-                setPage(1)
-              }}
-              style={{
-                padding: '11px 12px',
-                borderRadius: '12px',
-                border: '1px solid var(--border)',
-                background: 'var(--surface)',
-                fontSize: '14px',
-                height: '42px',
-              }}
-            />
-            {dateFilter && (
-              <button
-                type="button"
-                onClick={() => {
-                  setDateFilter('')
-                  setPage(1)
-                }}
-                className="btn btn-secondary"
-                style={{ height: '42px', padding: '0 12px', fontSize: '13px' }}
-              >
-                Clear Date
-              </button>
-            )}
           </div>
 
           <div
@@ -686,123 +630,241 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
         </form>
       </div>
 
-      {/* Timeline Logs Feed List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-        {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '48px', background: 'var(--white)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-            <div className="loader"></div>
-          </div>
-        ) : logs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)', background: 'var(--white)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-            No activity logs found.
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {logs.map((log) => {
-              const isMobileLog = (log.userAgent && log.userAgent.toLowerCase().includes('capacitor')) || log.action === 'APP_INSTALL';
-              return (
-                <div
-                  key={log.id}
-                  className="table-row-hover"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '16px 20px',
-                    background: 'var(--white)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '12px',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '10px',
-                      background: 'var(--surface)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: '1px solid var(--border)',
-                      flexShrink: 0,
-                    }}>
-                      {getActivityIcon(log.action, log.entityType || undefined)}
-                    </div>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <span style={{
-                          fontSize: '10px',
-                          fontWeight: 700,
-                          padding: '2px 8px',
-                          borderRadius: '6px',
-                          background: log.app === 'upward-pay' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
-                          color: log.app === 'upward-pay' ? '#3b82f6' : '#8b5cf6',
-                        }}>
+      {/* Logs Table */}
+      <div className="table-container card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div className="hide-mobile">
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Time</th>
+                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>App</th>
+                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>User / Role</th>
+                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Action</th>
+                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Description</th>
+                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'center' }}>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: '48px', textAlign: 'center' }}>
+                    <div className="loader" style={{ margin: '0 auto' }}></div>
+                  </td>
+                </tr>
+              ) : logs.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    No activity logs found.
+                  </td>
+                </tr>
+              ) : (
+                logs.map((log) => (
+                  <tr key={log.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '16px 24px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 600 }}>
+                        {new Date(log.createdAt).toLocaleDateString()}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {new Date(log.createdAt).toLocaleTimeString()}
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            background: log.app === 'upward-pay' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
+                            color: log.app === 'upward-pay' ? '#3b82f6' : '#8b5cf6',
+                          }}
+                        >
                           {log.app}
                         </span>
-                        {log.userPathway && (
-                          <span style={{
-                            fontSize: '9px',
-                            fontWeight: 700,
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            textTransform: 'uppercase',
-                            background: log.userPathway === 'WAITLIST' ? 'rgba(16, 185, 129, 0.15)' : log.userPathway === 'INVITE' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(107, 114, 128, 0.15)',
-                            color: log.userPathway === 'WAITLIST' ? '#10b981' : log.userPathway === 'INVITE' ? '#3b82f6' : 'var(--text-muted)',
-                          }}>
-                            {log.userPathway === 'WAITLIST' ? 'Waitlist' : log.userPathway === 'INVITE' ? 'Invite' : 'Self'}
-                          </span>
-                        )}
-                        <span style={{
-                          fontSize: '10px',
-                          fontWeight: 600,
-                          padding: '1px 6px',
-                          borderRadius: '4px',
-                          background: 'var(--surface)',
-                          border: '1px solid var(--border)',
-                          color: 'var(--text-muted)',
-                        }}>
-                          {isMobileLog ? 'Mobile' : 'Web'}
-                        </span>
+                        {(() => {
+                          const isMobileLog = (log.userAgent && log.userAgent.toLowerCase().includes('capacitor')) || log.action === 'APP_INSTALL';
+                          return (
+                            <span
+                              style={{
+                                fontSize: '9px',
+                                fontWeight: 600,
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                background: isMobileLog ? 'var(--accent-faint)' : 'var(--surface-hover)',
+                                color: isMobileLog ? 'var(--accent)' : 'var(--text-muted)',
+                                border: '1px solid var(--border)',
+                              }}
+                            >
+                              {isMobileLog ? 'Mobile App' : 'Web Browser'}
+                            </span>
+                          )
+                        })()}
                       </div>
-                      <p style={{ margin: '6px 0 0', fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                        {renderLogMessage(log, openDrawerForUser, openDrawerForPm)}
-                      </p>
-                    </div>
+                    </td>
+                    <td style={{ padding: '16px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: 600 }}>{log.userEmail || 'GUEST'}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Role: {log.userRole} {log.userId ? `(UID: ${log.userId})` : log.pmId ? `(PMID: ${log.pmId})` : ''}
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px' }}>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '4px 10px',
+                          borderRadius: '20px',
+                          background: `${getActionColor(log.action)}15`,
+                          color: getActionColor(log.action),
+                        }}
+                      >
+                        {log.action}
+                      </span>
+                    </td>
+                    <td style={{ padding: '16px' }}>
+                      <div
+                        style={{
+                          fontSize: '13px',
+                          maxWidth: '300px',
+                          whiteSpace: 'normal',
+                          lineBreak: 'anywhere',
+                        }}
+                      >
+                        {log.description}
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                      <button
+                        onClick={() => setSelectedLog(log)}
+                        style={{
+                          background: 'var(--accent-faint)',
+                          color: 'var(--accent)',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <Eye size={14} />
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="show-mobile" style={{ padding: '0' }}>
+          {loading ? (
+            <div style={{ padding: '48px', textAlign: 'center' }}>
+              <div className="loader" style={{ margin: '0 auto' }}></div>
+            </div>
+          ) : logs.length === 0 ? (
+            <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              No activity logs found.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {logs.map((log) => (
+                <div
+                  key={log.id}
+                  style={{
+                    padding: '20px 16px',
+                    borderBottom: '1px solid var(--border)',
+                    background: 'var(--white)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    {(() => {
+                      const isMobileLog = (log.userAgent && log.userAgent.toLowerCase().includes('capacitor')) || log.action === 'APP_INSTALL';
+                      return (
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: log.app === 'upward-pay' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
+                              color: log.app === 'upward-pay' ? '#3b82f6' : '#8b5cf6',
+                            }}
+                          >
+                            {log.app}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: isMobileLog ? 'var(--accent-faint)' : 'var(--surface-hover)',
+                              color: isMobileLog ? 'var(--accent)' : 'var(--text-muted)',
+                            }}
+                          >
+                            {isMobileLog ? 'Mobile' : 'Web'}
+                          </span>
+                        </div>
+                      )
+                    })()}
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        background: `${getActionColor(log.action)}15`,
+                        color: getActionColor(log.action),
+                      }}
+                    >
+                      {log.action}
+                    </span>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0 }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Clock size={12} />
-                      {new Date(log.createdAt).toLocaleDateString()} {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+                  <div style={{ fontSize: '14px', fontWeight: 600 }}>{log.description}</div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                    }}
+                  >
+                    <div>
+                      {log.userEmail || 'GUEST'} ({log.userRole})
+                    </div>
                     <button
                       onClick={() => setSelectedLog(log)}
                       style={{
-                        background: 'var(--accent-faint)',
+                        background: 'transparent',
                         color: 'var(--accent)',
                         border: 'none',
-                        borderRadius: '8px',
-                        padding: '6px 12px',
                         fontSize: '12px',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
                       }}
                     >
-                      <Eye size={14} />
                       View JSON
                     </button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Pagination */}
         {totalPages > 1 && (
@@ -890,6 +952,7 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
             </div>
           </div>
         )}
+      </div>
 
       {/* Details JSON Modal */}
       {selectedLog && (
@@ -1001,11 +1064,6 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
           .show-mobile { display: block; }
         }
       `}</style>
-      {/* Preview Drawer */}
-      <PreviewDrawer
-        entity={drawerEntity}
-        onClose={() => setDrawerEntity(null)}
-      />
     </div>
   )
 }

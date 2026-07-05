@@ -1,5 +1,4 @@
 import React from 'react'
-import { createPortal } from 'react-dom'
 import { AlertTriangle } from 'lucide-react'
 
 interface DeleteConfirmationModalProps {
@@ -19,7 +18,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
 }) => {
   if (!isOpen) return null
 
-  return createPortal(
+  return (
     <div className="modal-overlay" style={{ alignItems: 'center' }} onClick={onClose}>
       <div className="modal-content" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
         <div style={{ padding: '32px', textAlign: 'center' }}>
@@ -63,7 +62,6 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
           </div>
         </div>
       </div>
-    </div>,
-    document.body
+    </div>
   )
 }

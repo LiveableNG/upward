@@ -54,16 +54,16 @@
 /* Modal Overlay */
 .modal-overlay {
   position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 1000;
   padding: 24px;
   animation: fadeIn 0.3s ease;
 }
@@ -309,6 +309,7 @@
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -335,6 +336,7 @@
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 

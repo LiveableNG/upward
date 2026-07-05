@@ -11,8 +11,12 @@ import {
 import * as XLSX from 'xlsx'
 import { showToast } from '@upward/client-core'
 import type { FlatMetrics } from '../types'
+import type { DateFilter } from './FilterToolbar'
+
 interface RevenueAuditProps {
   metrics: FlatMetrics | null
+  dateFilter: DateFilter
+  onDateFilterChange: (v: DateFilter) => void
 }
 
 // ── SVG Area Chart ────────────────────────────────────────────
@@ -84,12 +88,12 @@ function seedData(base: number, points = 30): { label: string; value: number }[]
 }
 
 // ── Main Component ───────────────────────────────────────────
-const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics }) => {
+const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics, dateFilter, onDateFilterChange }) => {
   const [subView, setSubView] = useState<'overview' | 'performance'>('overview')
 
   const chartData = useMemo(
     () => seedData(metrics?.totalRentProcessed ?? 500000, 30),
-    [metrics?.totalRentProcessed],
+    [metrics?.totalRentProcessed, dateFilter],
   )
 
   const feeRevenue = metrics?.feeRevenue ?? 0
@@ -192,6 +196,27 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics }) => {
           </span>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {[
+            { value: 'all', label: 'All Time' },
+            { value: 'today', label: 'Today' },
+            { value: 'week', label: '7 Days' },
+            { value: 'month', label: '30 Days' },
+          ].map((r) => (
+            <button
+              key={r.value}
+              onClick={() => onDateFilterChange(r.value as DateFilter)}
+              style={{
+                padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                border: '1px solid',
+                borderColor: dateFilter === r.value ? 'var(--success)' : 'var(--border)',
+                background: dateFilter === r.value ? 'var(--success)' : 'var(--white)',
+                color: dateFilter === r.value ? '#fff' : 'var(--text-secondary)',
+                transition: 'var(--transition)',
+              }}
+            >
+              {r.label}
+            </button>
+          ))}
           <button
             onClick={handleExportExcel}
             className="btn btn-secondary"
@@ -221,7 +246,7 @@ const RevenueAudit: React.FC<RevenueAuditProps> = ({ metrics }) => {
               <div>
                 <span className="section-label">Rent Volume Trend</span>
                 <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
-                  Rolling rent payment volume
+                  Rolling {dateFilter === 'week' ? '7-day' : dateFilter === 'month' ? '30-day' : dateFilter === 'today' ? 'daily' : 'historical'} rent payment volume
                 </p>
               </div>
               <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--success)' }}>₦{totalRent.toLocaleString()}</span>

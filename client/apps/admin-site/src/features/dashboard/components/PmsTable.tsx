@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   ChevronUp,
   ChevronDown,
@@ -11,7 +10,6 @@ import {
   ExternalLink,
   Download,
   X,
-  Mail,
 } from 'lucide-react'
 import { Square, CheckSquare } from './Checkbox'
 import type { PmRecord, FeeOverride } from '../types'
@@ -21,6 +19,7 @@ type SortDir = 'asc' | 'desc'
 
 interface PmsTableProps {
   paginatedItems: PmRecord[]
+  navigate: (path: string) => void
   overrides?: FeeOverride[]
   setSelectedPmOverride?: (pm: PmRecord) => void
   setPmOverrideFeeInput?: (fee: string) => void
@@ -51,9 +50,9 @@ const SortIcon: React.FC<{ col: SortKey; active: SortKey; dir: SortDir }> = ({ c
 
 export const PmsTable: React.FC<PmsTableProps> = ({
   paginatedItems,
+  navigate,
   onPreview,
 }) => {
-  const navigate = useNavigate()
   const [sortKey, setSortKey] = useState<SortKey>('createdAt')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -139,29 +138,6 @@ export const PmsTable: React.FC<PmsTableProps> = ({
         }}>
           <strong style={{ color: 'var(--accent)' }}>{selectedIds.size} selected</strong>
           <button
-            onClick={() => {
-              const selectedPms = sorted.filter((pm) => selectedIds.has(pm.id))
-              navigate('/emails', { state: { selectedPms } })
-            }}
-            className="btn"
-            style={{
-              height: '30px',
-              padding: '0 12px',
-              background: 'var(--accent)',
-              color: 'var(--white)',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-            }}
-          >
-            <Mail size={13} /> Send Email
-          </button>
-          <button
             onClick={handleExportSelected}
             className="btn"
             style={{ height: '30px', padding: '0 12px', background: 'var(--surface-hover)', border: '1px solid var(--border)', fontSize: '12px', gap: '6px' }}
@@ -190,9 +166,6 @@ export const PmsTable: React.FC<PmsTableProps> = ({
             </th>
             <th style={thStyle} onClick={() => handleSort('propertiesCount')}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Properties / Units <SortIcon col="propertiesCount" active={sortKey} dir={sortDir} /></span>
-            </th>
-            <th style={thStyle}>
-              <span>Type</span>
             </th>
             <th style={thStyle} onClick={() => handleSort('isVerified')}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Status <SortIcon col="isVerified" active={sortKey} dir={sortDir} /></span>
@@ -232,14 +205,6 @@ export const PmsTable: React.FC<PmsTableProps> = ({
               <td style={{ padding: '16px 16px' }}>
                 <div style={{ fontSize: '13px' }}>Properties: <strong>{pm.propertiesCount}</strong></div>
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Total Units: {pm.unitsCount}</div>
-              </td>
-              <td style={{ padding: '16px 16px' }}>
-                <span className="badge" style={{
-                  backgroundColor: pm.pmType === 'Platform' ? 'rgba(99, 102, 241, 0.08)' : 'rgba(217, 119, 87, 0.08)',
-                  color: pm.pmType === 'Platform' ? '#6366f1' : 'var(--accent)',
-                }}>
-                  {pm.pmType || 'Upward PM'}
-                </span>
               </td>
               <td style={{ padding: '16px 16px' }}>
                 <span className="badge" style={{

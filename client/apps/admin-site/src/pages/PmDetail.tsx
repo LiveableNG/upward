@@ -38,22 +38,12 @@ interface PmDetailData {
   tenants: any[]
   rentPayments: any[]
   activityLogs: any[]
-  verification?: {
-    idType: string
-    idNumber: string
-    idImage?: string
-    status: string
-    rejectionReason?: string
-  }
 }
 
 const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
   const { uuid } = useParams<{ uuid: string }>()
   const [loading, setLoading] = useState(true)
   const [pm, setPm] = useState<PmDetailData | null>(null)
-
-  // Verification Toggle State
-  const [updatingVerification, setUpdatingVerification] = useState(false)
 
   // Notification Form State
   const [notifTitle, setNotifTitle] = useState('')
@@ -138,25 +128,6 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
     }
   }
 
-  const handleToggleVerification = async () => {
-    if (!pm || !uuid) return
-    setUpdatingVerification(true)
-    try {
-      const nextVerified = !pm.isVerified
-      await apiService.patch(`/admin/pms/${uuid}`, {
-        isVerified: nextVerified,
-      }, token)
-
-      showToast(nextVerified ? 'Property manager verified successfully!' : 'Property manager verification revoked!')
-      fetchPmDetails()
-    } catch (err: any) {
-      console.error(err)
-      showToast(err.message || 'Failed to update verification status', true)
-    } finally {
-      setUpdatingVerification(false)
-    }
-  }
-
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '128px', color: 'var(--text-muted)' }}>
@@ -197,7 +168,7 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px', alignItems: 'start' }}>
         
         {/* LEFT COLUMN: Overview & Quick Actions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'sticky', top: '84px', alignSelf: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
           {/* Identity Card */}
           <div className="card" style={{ padding: '24px', textAlign: 'center' }}>
@@ -273,55 +244,6 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                 <Calendar size={14} style={{ color: 'var(--text-muted)' }} />
                 <span>Manager since {new Date(pm.createdAt).toLocaleDateString()}</span>
               </div>
-            </div>
-
-            {/* Verification details */}
-            {pm.verification ? (
-              <div style={{ marginTop: '20px', padding: '14px', background: 'var(--surface-hover)', borderRadius: '8px', border: '1px solid var(--border)', textAlign: 'left' }}>
-                <div style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Verification Details</div>
-                <div style={{ fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div><strong style={{ color: 'var(--text-muted)' }}>ID Type:</strong> {pm.verification.idType}</div>
-                  <div><strong style={{ color: 'var(--text-muted)' }}>ID Number:</strong> {pm.verification.idNumber}</div>
-                  {pm.verification.idImage && (
-                    <div style={{ marginTop: '4px' }}>
-                      <a href={pm.verification.idImage} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
-                        View Uploaded Document
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div style={{ marginTop: '20px', padding: '12px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '8px', border: '1px dotted rgba(239, 68, 68, 0.2)', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'left' }}>
-                No uploaded verification files found for this manager.
-              </div>
-            )}
-
-            {/* Verification Action Button */}
-            <div style={{ marginTop: '20px' }}>
-              <button
-                onClick={handleToggleVerification}
-                disabled={updatingVerification}
-                className="btn"
-                style={{
-                  width: '100%',
-                  height: '38px',
-                  justifyContent: 'center',
-                  background: pm.isVerified ? 'var(--danger-faint)' : 'var(--success-faint)',
-                  color: pm.isVerified ? 'var(--danger)' : 'var(--success)',
-                  border: '1px solid transparent',
-                  fontWeight: 600,
-                  fontSize: '13px',
-                  gap: '8px'
-                }}
-              >
-                {pm.isVerified ? <XCircle size={15} /> : <CheckCircle2 size={15} />}
-                {updatingVerification
-                  ? 'Processing...'
-                  : pm.isVerified
-                    ? 'Revoke Verification'
-                    : 'Verify Manager'}
-              </button>
             </div>
           </div>
 
@@ -436,7 +358,7 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
               <Home size={16} /> Managed Real Estate Properties
             </h4>
             {pm.properties && pm.properties.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {pm.properties.map((prop: any) => (
                   <div
                     key={prop.id}
@@ -456,44 +378,20 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                     
                     {/* Units list */}
                     {prop.units && prop.units.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
                         {prop.units.map((unit: any) => (
                           <div
                             key={unit.id}
                             style={{
-                              padding: '10px 12px',
-                              borderRadius: '6px',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
                               backgroundColor: 'var(--white)',
                               border: '1px solid var(--border)',
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              fontSize: '12px'
+                              fontSize: '11px',
+                              fontWeight: 600
                             }}
                           >
-                            <div>
-                              <strong style={{ color: 'var(--text)' }}>Unit {unit.unitName || unit.name || unit.id}</strong>
-                              {unit.unitType && (
-                                <span style={{ color: 'var(--text-muted)', marginLeft: '6px', fontSize: '11px', background: 'var(--surface-hover)', padding: '2px 6px', borderRadius: '4px' }}>
-                                  {unit.unitType}
-                                </span>
-                              )}
-                              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                {unit.tenant ? (
-                                  <>
-                                    Tenant:{' '}
-                                    <Link to={`/users/${unit.tenant.uuid}`} style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
-                                      {unit.tenant.firstName} {unit.tenant.lastName}
-                                    </Link>
-                                  </>
-                                ) : (
-                                  <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>Vacant</span>
-                                )}
-                              </div>
-                            </div>
-                            <div style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                              ₦{unit.rentAmount ? unit.rentAmount.toLocaleString() : '0'} / {unit.rentType || 'year'}
-                            </div>
+                            Unit {unit.name || unit.id}
                           </div>
                         ))}
                       </div>
@@ -518,7 +416,7 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
               <Users size={16} /> Decrypted Tenant Registry
             </h4>
             {pm.tenants && pm.tenants.length > 0 ? (
-              <div className="table-container" style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
+              <div className="table-container">
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>

@@ -96,6 +96,7 @@ select {
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -140,16 +141,16 @@ select {
 /* Modals */
 .modal-overlay {
   position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 2000;
   padding: 20px;
 }
 
@@ -194,8 +195,10 @@ select {
 
   /* Table responsiveness */
   .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     margin: 0 -16px;
-    padding: 0 16px 120px 16px;
+    padding: 0 16px;
   }
 
   table {
@@ -262,12 +265,6 @@ select {
   box-shadow: var(--shadow-sm);
 }
 
-.table-container {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 120px; /* Buffer to prevent final row dropdown from clipping */
-}
-
 .scroll-x {
   overflow-x: auto;
   scrollbar-width: none; /* Firefox */
@@ -292,10 +289,6 @@ select {
   border: 1px solid transparent;
 }
 
-.btn svg {
-  flex-shrink: 0;
-}
-
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -313,13 +306,12 @@ select {
 
 .btn-secondary {
   background-color: var(--surface);
-  border-color: rgba(15, 23, 42, 0.15); /* Improved border contrast against background */
+  border-color: var(--border);
   color: var(--text);
 }
 
 .btn-secondary:hover {
   background-color: var(--surface-hover);
-  border-color: rgba(15, 23, 42, 0.25);
 }
 
 .input {
@@ -331,11 +323,6 @@ select {
   color: var(--text);
   font-size: 14px;
   transition: var(--transition);
-}
-
-select.input {
-  padding-top: 0;
-  padding-bottom: 0;
 }
 
 .input:focus {

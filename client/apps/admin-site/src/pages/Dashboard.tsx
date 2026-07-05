@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { RefreshCcw, Clock } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
+import { RefreshCcw, SlidersHorizontal, Clock } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 
 // Feature Components
 import FilterToolbar, { type DateFilter } from '../features/dashboard/components/FilterToolbar'
-import { UsersTable, type UnifiedUserRecord } from '../features/dashboard/components/UsersTable'
+import { WaitlistTable } from '../features/dashboard/components/WaitlistTable'
+import { SignedUpTable } from '../features/dashboard/components/SignedUpTable'
+import { InvitedTable } from '../features/dashboard/components/InvitedTable'
 import { PmsTable } from '../features/dashboard/components/PmsTable'
+import RevenueAudit from '../features/dashboard/components/RevenueAudit'
 import OverviewTab from '../features/dashboard/components/OverviewTab'
 import PreviewDrawer, { type DrawerEntity } from '../features/dashboard/components/PreviewDrawer'
 import { DeleteConfirmationModal } from '../features/dashboard/components/DeleteConfirmationModal'
@@ -24,7 +28,7 @@ import type {
 } from '../features/dashboard/types'
 import { flattenMetrics } from '../features/dashboard/types'
 
-type ActiveTab = 'overview' | 'users' | 'pms' | 'sessions'
+type ActiveTab = 'overview' | 'waitlist' | 'signedUp' | 'invited' | 'pms' | 'revenue' | 'sessions'
 
 const ITEMS_PER_PAGE_OPTIONS = [10, 25, 50]
 
@@ -46,16 +50,13 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
+  const navigate = useNavigate()
   const isSuperadmin = adminRole === 'SUPERADMIN'
 
   // ── Tab State (persisted) ──────────────────────────────────────
-  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
-    const saved = readLocalPref<ActiveTab | string>('dash_activeTab', 'overview')
-    if (saved === 'waitlist' || saved === 'signedUp' || saved === 'invited' || saved === 'revenue') {
-      return 'users'
-    }
-    return saved as ActiveTab
-  })
+  const [activeTab, setActiveTab] = useState<ActiveTab>(
+    readLocalPref<ActiveTab>('dash_activeTab', 'overview'),
+  )
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -77,14 +78,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const [pmList, setPmList] = useState<PmRecord[]>([])
 
   // ── Selection / Bulk Delete State ──────────────────────────────
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
+  const [selectedWaitlistIds, setSelectedWaitlistIds] = useState<Set<string>>(new Set())
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; ids: string[] }>({ show: false, ids: [] })
   const [deleting, setDeleting] = useState(false)
-
-  // ── Unified Users filters ──────────────────────────────────────
-  const [usersSubtab, setUsersSubtab] = useState<'signedUp' | 'guest'>('signedUp')
-  const [originFilter, setOriginFilter] = useState<'all' | 'waitlist' | 'selfRegistered' | 'invited'>('all')
-  const [pmFilter, setPmFilter] = useState<'all' | string>('all')
 
   // ── Preview Drawer State ───────────────────────────────────────
   const [drawerEntity, setDrawerEntity] = useState<DrawerEntity | null>(null)
@@ -106,9 +102,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     return () => clearInterval(id)
   }, [lastRefreshed])
 
-  const [customStartDate, setCustomStartDate] = useState<string>('')
-  const [customEndDate, setCustomEndDate] = useState<string>('')
-
   // ── Fetch Dashboard Data ───────────────────────────────────────
   const fetchDashboardData = async () => {
     setLoading(true)
@@ -123,9 +116,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         queryStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
       } else if (dateRange === 'month') {
         queryStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
-      } else if (dateRange === 'custom') {
-        queryStart = customStartDate ? new Date(customStartDate).toISOString() : ''
-        queryEnd = customEndDate ? new Date(customEndDate).toISOString() : ''
       } else {
         queryStart = ''
         queryEnd = ''
@@ -157,7 +147,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       fetchDashboardData()
     }, 450)
     return () => clearTimeout(handler)
-  }, [dateRange, search, customStartDate, customEndDate])
+  }, [dateRange, search])
 
   // ── Persist preferences ────────────────────────────────────────
   useEffect(() => {
@@ -173,13 +163,13 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     setCurrentPage(1)
   }, [activeTab, itemsPerPage])
 
-  // ── Bulk User delete handlers ──────────────────────────────────
+  // ── Bulk Waitlist delete handlers ──────────────────────────────
   const handleBatchDelete = async (ids: string[]) => {
     setDeleting(true)
     try {
       await apiService.post('/admin/users/batch-delete', { ids }, token)
-      showToast(`Successfully deleted ${ids.length} records`)
-      setSelectedUserIds(new Set())
+      showToast(`Successfully deleted ${ids.length} waitlist entry records`)
+      setSelectedWaitlistIds(new Set())
       setDeleteModal({ show: false, ids: [] })
       fetchDashboardData()
     } catch (err: any) {
@@ -190,62 +180,36 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   }
 
   const triggerBulkDelete = () => {
-    if (selectedUserIds.size === 0) return
-    setDeleteModal({ show: true, ids: Array.from(selectedUserIds) })
+    if (selectedWaitlistIds.size === 0) return
+    setDeleteModal({ show: true, ids: Array.from(selectedWaitlistIds) })
   }
 
-  const toggleSelectUser = (id: string, e: React.MouseEvent) => {
+  const toggleSelectWaitlist = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    const next = new Set(selectedUserIds)
+    const next = new Set(selectedWaitlistIds)
     if (next.has(id)) next.delete(id)
     else next.add(id)
-    setSelectedUserIds(next)
+    setSelectedWaitlistIds(next)
   }
 
-  const toggleSelectAllUsers = () => {
-    if (selectedUserIds.size === paginatedItems.length) {
-      setSelectedUserIds(new Set())
+  const toggleSelectAllWaitlist = () => {
+    if (selectedWaitlistIds.size === paginatedItems.length) {
+      setSelectedWaitlistIds(new Set())
     } else {
-      setSelectedUserIds(new Set(paginatedItems.map((item: any) => item.id)))
+      setSelectedWaitlistIds(new Set(paginatedItems.map((item: any) => item.id)))
     }
   }
 
   // ── Preview Drawer helpers ─────────────────────────────────────
-  // ── Preview Drawer helpers ─────────────────────────────────────
-  const openDrawerForUser = (item: UnifiedUserRecord | any) => {
-    let userStatus = 'PENDING_TENANT'
-    let userType = 'PENDING_TENANT'
-
-    if (item && 'origin' in item) {
-      // UnifiedUserRecord
-      const isPaid = item.totalPaid > 0
-      userStatus = isPaid ? 'TENANT' : 'PENDING_TENANT'
-      userType = isPaid ? 'TENANT' : 'PENDING_TENANT'
-    } else if (item) {
-      // Legacy structure
-      if ('hasPaid' in item) {
-        const isPaid = item.hasPaid || item.totalPaid > 0
-        userStatus = isPaid ? 'TENANT' : 'PENDING_TENANT'
-        userType = isPaid ? 'TENANT' : 'PENDING_TENANT'
-      } else if ('status' in item) {
-        const isPaid = item.status === 'SIGNED_UP_PAID' || item.status === 'GUEST_PAID' || item.totalPaid > 0
-        userStatus = isPaid ? 'TENANT' : 'PENDING_TENANT'
-        userType = isPaid ? 'TENANT' : 'PENDING_TENANT'
-      } else if ('converted' in item) {
-        const isPaid = item.converted || item.totalPaid > 0
-        userStatus = isPaid ? 'TENANT' : 'PENDING_TENANT'
-        userType = isPaid ? 'TENANT' : 'PENDING_TENANT'
-      }
-    }
-
+  const openDrawerForUser = (item: WaitlistRecord | SignedUpRecord | InvitedRecord) => {
     setDrawerEntity({
       kind: 'user',
       uuid: item.uuid,
       name: `${item.firstName} ${item.lastName}`,
       email: item.email,
       phone: item.phone,
-      status: userStatus,
-      type: userType,
+      status: 'user' in item ? 'TENANT' : 'PENDING_TENANT',
+      type: 'hasPaid' in item && (item as SignedUpRecord).hasPaid ? 'TENANT' : 'PENDING_TENANT',
       joinedAt: item.createdAt,
       totalPaid: item.totalPaid,
     })
@@ -266,123 +230,16 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     })
   }
 
-  // ── Unified Users List Compiler ──────────────────────────────────
-  const unifiedUsers = useMemo((): UnifiedUserRecord[] => {
-    const list: UnifiedUserRecord[] = []
-
-    // 1. Unconverted Waitlist Entries
-    waitlistList.forEach((w) => {
-      list.push({
-        id: w.id,
-        uuid: w.uuid,
-        firstName: w.firstName,
-        lastName: w.lastName,
-        email: w.email,
-        phone: w.phone,
-        createdAt: w.createdAt,
-        origin: 'WAITLIST',
-        hasPassword: false,
-        isExWaitlist: false,
-        totalPaid: 0,
-        rawRecord: w,
-      })
-    })
-
-    // 2. Self-Registered / Converted Waitlist Users
-    signedUpList.forEach((u) => {
-      list.push({
-        id: u.id,
-        uuid: u.uuid,
-        firstName: u.firstName,
-        lastName: u.lastName,
-        email: u.email,
-        phone: u.phone,
-        createdAt: u.createdAt,
-        origin: u.isWaitlist ? 'WAITLIST' : 'SELF_REGISTERED',
-        hasPassword: true,
-        isExWaitlist: u.isWaitlist,
-        totalPaid: u.totalPaid,
-        rawRecord: u,
-      })
-    })
-
-    // 3. Invited Tenants
-    invitedList.forEach((i) => {
-      const isSignedUp = i.status === 'INVITED_SIGNED_UP' || i.status === 'SIGNED_UP_PAID'
-      list.push({
-        id: i.id,
-        uuid: i.uuid,
-        firstName: i.firstName,
-        lastName: i.lastName,
-        email: i.email,
-        phone: i.phone,
-        createdAt: i.createdAt,
-        origin: 'INVITED',
-        hasPassword: isSignedUp,
-        isExWaitlist: false,
-        pmName: i.pmName,
-        pmUuid: i.pmUuid,
-        totalPaid: i.totalPaid,
-        rawRecord: i,
-      })
-    })
-
-    return list
-  }, [waitlistList, signedUpList, invitedList])
-
-  const subtabUsers = useMemo(() => {
-    return unifiedUsers.filter((u) => {
-      if (usersSubtab === 'signedUp') return u.hasPassword
-      return !u.hasPassword
-    })
-  }, [unifiedUsers, usersSubtab])
-
-  const originCounts = useMemo(() => {
-    let waitlist = 0
-    let selfRegistered = 0
-    let invited = 0
-
-    subtabUsers.forEach((u) => {
-      if (u.origin === 'WAITLIST') waitlist++
-      else if (u.origin === 'SELF_REGISTERED') selfRegistered++
-      else if (u.origin === 'INVITED') invited++
-    })
-
-    return {
-      all: subtabUsers.length,
-      waitlist,
-      selfRegistered,
-      invited,
-    }
-  }, [subtabUsers])
-
-  const filteredUsers = useMemo(() => {
-    return subtabUsers.filter((u) => {
-      // 1. Origin Filter
-      if (originFilter === 'waitlist' && u.origin !== 'WAITLIST') return false
-      if (originFilter === 'selfRegistered' && u.origin !== 'SELF_REGISTERED') return false
-      if (originFilter === 'invited' && u.origin !== 'INVITED') return false
-
-      // 2. PM Filter
-      if (pmFilter !== 'all') {
-        if (u.origin === 'INVITED') {
-          return u.pmUuid === pmFilter
-        }
-        return false
-      }
-
-      return true
-    })
-  }, [subtabUsers, originFilter, pmFilter])
-
   // ── Directory list (active tab) ────────────────────────────────
   const currentDirectoryList = useMemo(() => {
     switch (activeTab) {
-      case 'users': return filteredUsers
+      case 'waitlist': return waitlistList
+      case 'signedUp': return signedUpList
+      case 'invited': return invitedList
       case 'pms': return pmList
       default: return []
     }
-  }, [activeTab, filteredUsers, pmList])
+  }, [activeTab, waitlistList, signedUpList, invitedList, pmList])
 
   // ── Client-side pagination ─────────────────────────────────────
   const paginatedItems = useMemo(() => {
@@ -400,17 +257,38 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     }
 
     let worksheetData: any[] = []
-    if (activeTab === 'users') {
-      worksheetData = filteredUsers.map((u) => ({
+    if (activeTab === 'waitlist') {
+      worksheetData = waitlistList.map((w) => ({
+        'Name': `${w.firstName} ${w.lastName}`,
+        'Email Address': w.email,
+        'Phone Number': w.phone,
+        'Status': w.converted ? 'Converted to User' : 'Pending in Waitlist',
+        'Acquired Date': new Date(w.createdAt).toLocaleDateString(),
+        'Paid Amount (₦)': w.totalPaid,
+      }))
+    } else if (activeTab === 'signedUp') {
+      worksheetData = signedUpList.map((u) => ({
         'Name': `${u.firstName} ${u.lastName}`,
         'Email Address': u.email,
         'Phone Number': u.phone,
-        'Origin': u.origin,
-        'Manager / Platform': u.pmName || 'Direct',
+        'Signup Mode': u.isWaitlist ? 'Waitlist Converted' : 'Self Signed-up',
+        'Has Paid': u.hasPaid ? 'Yes' : 'No',
         'Total Paid (₦)': u.totalPaid,
-        'Has Password': u.hasPassword ? 'Yes' : 'No',
-        'Is Ex-Waitlist': u.isExWaitlist ? 'Yes' : 'No',
-        'Registration Date': new Date(u.createdAt).toLocaleDateString(),
+        'Signup Date': new Date(u.createdAt).toLocaleDateString(),
+      }))
+    } else if (activeTab === 'invited') {
+      worksheetData = invitedList.map((i) => ({
+        'Name': `${i.firstName} ${i.lastName}`,
+        'Email Address': i.email,
+        'Phone Number': i.phone,
+        'Invite Classification': i.status
+          .replace('INVITED_PENDING', 'Invited (Pending)')
+          .replace('INVITED_SIGNED_UP', 'Invited & Signed Up')
+          .replace('GUEST_PAID', 'Guest Checkout Completed')
+          .replace('SIGNED_UP_PAID', 'Onboarded User (Paid)'),
+        'PM Origin': i.pmName,
+        'Total Paid (₦)': i.totalPaid,
+        'Invite Date': new Date(i.createdAt).toLocaleDateString(),
       }))
     } else if (activeTab === 'pms') {
       worksheetData = pmList.map((p) => ({
@@ -446,17 +324,22 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   // ── Tab definitions ─────────────────────────────────────────────
   const TABS: { key: ActiveTab; label: (counts: Record<string, number>) => string }[] = [
     { key: 'overview', label: () => 'Overview' },
-    { key: 'users', label: (c) => `Users (${c.users})` },
+    { key: 'waitlist', label: (c) => `Waitlist (${c.waitlist})` },
+    { key: 'signedUp', label: (c) => `Self Registered (${c.signedUp})` },
+    { key: 'invited', label: (c) => `Invited Tenants (${c.invited})` },
     { key: 'pms', label: (c) => `PMs & Platforms (${c.pms})` },
+    { key: 'revenue', label: () => 'Revenue Audit' },
     { key: 'sessions', label: () => 'Login Sessions' },
   ]
 
   const tabCounts = {
-    users: unifiedUsers.length,
+    waitlist: waitlistList.length,
+    signedUp: signedUpList.length,
+    invited: invitedList.length,
     pms: pmList.length,
   }
 
-  const showDirectoryControls = activeTab !== 'overview' && activeTab !== 'sessions'
+  const showDirectoryControls = activeTab !== 'overview' && activeTab !== 'revenue' && activeTab !== 'sessions'
 
   return (
     <div className="page-container fade-in" style={{ paddingTop: '16px' }}>
@@ -470,192 +353,51 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             Multi-team performance metrics, tenant directories, and platform health insights.
           </p>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <div className="date-chips" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              {[
-                { value: 'all', label: 'All Time' },
-                { value: 'today', label: 'Today' },
-                { value: 'week', label: '7 Days' },
-                { value: 'month', label: '30 Days' },
-                { value: 'custom', label: 'Custom Range' },
-              ].map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setDateRange(opt.value as DateFilter)}
-                  className={`date-chip ${dateRange === opt.value ? 'active' : ''}`}
-                  style={{
-                    height: '40px',
-                    padding: '0 16px',
-                    borderRadius: '20px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    border: '1px solid',
-                    borderColor: dateRange === opt.value ? 'var(--accent)' : 'var(--border)',
-                    background: dateRange === opt.value ? 'var(--accent)' : 'var(--white)',
-                    color: dateRange === opt.value ? '#fff' : 'var(--text-secondary)',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-              <button
-                onClick={fetchDashboardData}
-                className="btn btn-secondary"
-                style={{
-                  height: '40px',
-                  width: '40px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'var(--white)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  padding: 0,
-                }}
-              >
-                <RefreshCcw size={16} style={{ color: 'var(--text-secondary)' }} />
-              </button>
-              {elapsed && (
-                <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
-                  <Clock size={9} /> Updated {elapsed}
-                </span>
-              )}
-            </div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <Link
+            to="/overrides"
+            className="btn btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '40px', textDecoration: 'none' }}
+          >
+            <SlidersHorizontal size={16} /> Overrides Config
+          </Link>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+            <button
+              onClick={fetchDashboardData}
+              className="btn btn-secondary"
+              style={{
+                height: '40px',
+                width: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--white)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+              }}
+            >
+              <RefreshCcw size={16} style={{ color: 'var(--text-secondary)' }} />
+            </button>
+            {elapsed && (
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+                <Clock size={9} /> Updated {elapsed}
+              </span>
+            )}
           </div>
-          {dateRange === 'custom' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', animation: 'fadeIn 0.2s ease-out' }}>
-              <input
-                type="date"
-                value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                 style={{
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border)',
-                  background: 'var(--white)',
-                  color: 'var(--text)',
-                  fontSize: '13px',
-                  height: '40px',
-                }}
-              />
-              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>to</span>
-              <input
-                type="date"
-                value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border)',
-                  background: 'var(--white)',
-                  color: 'var(--text)',
-                  fontSize: '13px',
-                  height: '40px',
-                }}
-              />
-            </div>
-          )}
         </div>
       </div>
 
       {/* ── Filter Toolbar (only for directory tabs) ── */}
       {showDirectoryControls && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
-          <FilterToolbar
-            search={search}
-            onSearchChange={setSearch}
-            onExport={handleExportExcel}
-            onRefresh={fetchDashboardData}
-            resultCount={currentDirectoryList.length}
-            tabLabel={activeTab}
-          />
-          {activeTab === 'users' && (
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-              padding: '16px',
-              background: 'var(--surface-hover)',
-              borderRadius: '12px',
-              border: '1px solid var(--border)',
-            }}>
-              {/* Users Subtab Switcher */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '10px', background: 'var(--white)', padding: '3px', border: '1px solid var(--border)', width: 'fit-content' }}>
-                  {(['signedUp', 'guest'] as const).map((view) => (
-                    <button
-                      key={view}
-                      onClick={() => {
-                        setUsersSubtab(view)
-                        setOriginFilter('all')
-                      }}
-                      style={{
-                        padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                        border: 'none', transition: 'all 0.15s ease',
-                        background: usersSubtab === view ? 'var(--white)' : 'transparent',
-                        color: usersSubtab === view ? 'var(--text)' : 'var(--text-muted)',
-                        boxShadow: usersSubtab === view ? 'var(--shadow-sm)' : 'none',
-                      }}
-                    >
-                      {view === 'signedUp' ? 'Signed Up' : 'Guest'}
-                    </button>
-                  ))}
-                </div>
-
-                {/* PM Filter Dropdown */}
-                <select
-                  value={pmFilter}
-                  onChange={(e) => setPmFilter(e.target.value)}
-                  className="input"
-                  style={{ height: '34px', width: '220px', fontSize: '12px', padding: '0 8px', fontWeight: 600 }}
-                >
-                  <option value="all">All Managers & Platforms</option>
-                  {pmList.map((pm) => (
-                    <option key={pm.uuid} value={pm.uuid}>
-                      {pm.businessName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Origin Filters with Counts */}
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
-                <button
-                  onClick={() => setOriginFilter('all')}
-                  className={`date-chip ${originFilter === 'all' ? 'active' : ''}`}
-                >
-                  All ({originCounts.all})
-                </button>
-                <button
-                  onClick={() => setOriginFilter('waitlist')}
-                  className={`date-chip ${originFilter === 'waitlist' ? 'active' : ''}`}
-                >
-                  Waitlist ({originCounts.waitlist})
-                </button>
-                {usersSubtab === 'signedUp' && (
-                  <button
-                    onClick={() => setOriginFilter('selfRegistered')}
-                    className={`date-chip ${originFilter === 'selfRegistered' ? 'active' : ''}`}
-                  >
-                    Self Registered ({originCounts.selfRegistered})
-                  </button>
-                )}
-                <button
-                  onClick={() => setOriginFilter('invited')}
-                  className={`date-chip ${originFilter === 'invited' ? 'active' : ''}`}
-                >
-                  Invited ({originCounts.invited})
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        <FilterToolbar
+          search={search}
+          onSearchChange={setSearch}
+          onExport={handleExportExcel}
+          onRefresh={fetchDashboardData}
+          resultCount={currentDirectoryList.length}
+          tabLabel={activeTab}
+        />
       )}
 
       {/* ── Segmented Display Tabs ── */}
@@ -694,15 +436,23 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         ) : (
           <OverviewTab
             metrics={flatMetrics}
+            dateFilter={dateRange}
+            onDateFilterChange={setDateRange}
             signedUpList={signedUpList}
             invitedList={invitedList}
             onPreview={openDrawerForUser}
-            token={token}
           />
         )
       )}
 
-
+      {/* ── Revenue Tab ── */}
+      {activeTab === 'revenue' && (
+        <RevenueAudit
+          metrics={flatMetrics}
+          dateFilter={dateRange}
+          onDateFilterChange={setDateRange}
+        />
+      )}
 
       {/* ── Sessions Tab ── */}
       {activeTab === 'sessions' && (
@@ -723,21 +473,39 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
           ) : (
             <div className="table-wrapper">
               <div className="table-container">
-                {activeTab === 'users' && (
-                  <UsersTable
+                {activeTab === 'waitlist' && (
+                  <WaitlistTable
                     isSuperadmin={isSuperadmin}
-                    paginatedItems={paginatedItems as UnifiedUserRecord[]}
-                    selectedUserIds={selectedUserIds}
-                    toggleSelectAllUsers={toggleSelectAllUsers}
-                    toggleSelectUser={toggleSelectUser}
+                    paginatedItems={paginatedItems as WaitlistRecord[]}
+                    selectedWaitlistIds={selectedWaitlistIds}
+                    toggleSelectAllWaitlist={toggleSelectAllWaitlist}
+                    toggleSelectWaitlist={toggleSelectWaitlist}
+                    navigate={navigate}
                     onPreview={(item) => openDrawerForUser(item)}
                     onDeleteSelected={triggerBulkDelete}
+                  />
+                )}
+
+                {activeTab === 'signedUp' && (
+                  <SignedUpTable
+                    paginatedItems={paginatedItems as SignedUpRecord[]}
+                    navigate={navigate}
+                    onPreview={(item) => openDrawerForUser(item)}
+                  />
+                )}
+
+                {activeTab === 'invited' && (
+                  <InvitedTable
+                    paginatedItems={paginatedItems as InvitedRecord[]}
+                    navigate={navigate}
+                    onPreview={(item) => openDrawerForUser(item)}
                   />
                 )}
 
                 {activeTab === 'pms' && (
                   <PmsTable
                     paginatedItems={paginatedItems as PmRecord[]}
+                    navigate={navigate}
                     onPreview={(pm) => openDrawerForPm(pm)}
                   />
                 )}
@@ -840,6 +608,20 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
           background: var(--accent);
           color: #fff;
           border-color: var(--accent);
+        }
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.4);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          animation: fadeIn 0.2s ease-out;
         }
         .modal-content {
           background: var(--white);

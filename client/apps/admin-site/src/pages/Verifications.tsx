@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import {
   ShieldCheck,
   RefreshCcw,
@@ -244,7 +243,7 @@ const Verifications: React.FC<VerificationsProps> = ({ token }) => {
         </table>
       </div>
 
-      {modalState.isOpen && createPortal(
+      {modalState.isOpen && (
         <div className="modal-overlay">
           <div className="modal-card">
             <h3 className="modal-title">
@@ -282,8 +281,7 @@ const Verifications: React.FC<VerificationsProps> = ({ token }) => {
               </button>
             </div>
           </div>
-        </div>,
-        document.body
+        </div>
       )}
 
       <style>{`
@@ -296,6 +294,21 @@ const Verifications: React.FC<VerificationsProps> = ({ token }) => {
             border-top: 3px solid var(--accent);
             border-radius: 50%;
             animation: spin 1s linear infinite;
+        }
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.4);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          animation: fadeIn 0.2s ease-out;
+        }
         .modal-card {
           background: var(--white);
           border-radius: 16px;

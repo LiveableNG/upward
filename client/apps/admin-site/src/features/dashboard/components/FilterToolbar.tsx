@@ -7,7 +7,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 
-export type DateFilter = 'all' | 'today' | 'week' | 'month' | 'custom'
+export type DateFilter = 'all' | 'today' | 'week' | 'month'
 export type StatusFilter = 'all' | 'verified' | 'unverified' | 'paid' | 'unpaid' | 'pending' | 'converted'
 
 interface FilterToolbarProps {

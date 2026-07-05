@@ -1,5 +1,4 @@
 import React from 'react'
-import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import type { PmRecord, FeeOverride } from '../types'
 
@@ -26,7 +25,7 @@ export const PmOverrideModal: React.FC<PmOverrideModalProps> = ({
 }) => {
   if (!selectedPmOverride) return null
 
-  return createPortal(
+  return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content card fade-in" style={{ maxWidth: '440px', padding: '24px' }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -66,7 +65,6 @@ export const PmOverrideModal: React.FC<PmOverrideModalProps> = ({
           </div>
         </div>
       </div>
-    </div>,
-    document.body
+    </div>
   )
 }
