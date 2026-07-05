@@ -45,23 +45,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
   const sections: NavSection[] = []
 
   // 1. Overview
+  const overviewItems: NavItem[] = [
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+  ]
+  if (showSandboxTools) {
+    overviewItems.push({ name: 'Campaigns', path: '/campaigns', icon: CalendarClock })
+    overviewItems.push({ name: 'Fee Overrides', path: '/overrides', icon: SlidersHorizontal })
+  }
   sections.push({
     title: 'Overview',
-    items: [
-      { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-      { name: 'Campaigns', path: '/campaigns', icon: CalendarClock },
-      { name: 'Fee Overrides', path: '/overrides', icon: SlidersHorizontal },
-    ],
+    items: overviewItems,
   })
 
   // 2. Operations & Support
+  const opsItems: NavItem[] = [
+    { name: 'Support Tickets', path: '/support', icon: LifeBuoy },
+    { name: 'Verifications', path: '/verifications', icon: ShieldCheck },
+  ]
+  if (showSandboxTools) {
+    opsItems.push({ name: 'Fairness Stories', path: '/stories', icon: ShieldCheck })
+  }
   sections.push({
     title: 'Ops & Support',
-    items: [
-      { name: 'Support Tickets', path: '/support', icon: LifeBuoy },
-      { name: 'Verifications', path: '/verifications', icon: ShieldCheck },
-      { name: 'Fairness Stories', path: '/stories', icon: ShieldCheck },
-    ],
+    items: opsItems,
   })
 
   // 3. Communications
@@ -80,7 +86,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     devItems.push({ name: 'Demo Bank Simulator', path: '/demo-bank', icon: Landmark })
   }
   if (isSuperadmin) {
-    devItems.push({ name: 'App Activity Logs', path: '/app-activity', icon: Smartphone })
+    if (showSandboxTools) {
+      devItems.push({ name: 'App Activity Logs', path: '/app-activity', icon: Smartphone })
+    }
     devItems.push({ name: 'User Feedback', path: '/feedback', icon: MessageSquare })
     if (showSandboxTools) {
       devItems.push({ name: 'Dev Email Sandbox', path: '/dev-emails', icon: Mail })
@@ -111,6 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
         width: isExpanded ? 'var(--sidebar-width)' : 'var(--sidebar-collapsed-width)',
         height: 'calc(100vh - var(--header-height))',
         top: 'var(--header-height)',
+        // GPU-accelerated mobile overlay; no transform needed on desktop (sticky layout)
         transform: isMobileOpen
           ? 'translateX(0)'
           : window.innerWidth <= 768
@@ -156,12 +165,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
           border-right: 1px solid var(--border);
           display: flex;
           flex-direction: column;
-          transition: var(--transition);
+          /* Scope transition to only width + transform — avoids full style recalc */
+          transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                      transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          /* Promote to its own compositor layer — changes won't reflow surrounding content */
+          will-change: width;
+          /* Prevent sidebar changes from invalidating surrounding layout/paint */
+          contain: layout paint;
           position: fixed;
           left: 0;
           z-index: 1001;
-          overflow-y: auto;
-          overflow-x: hidden;
+          overflow: hidden;
         }
 
         .sidebar__nav {
@@ -170,6 +184,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
           display: flex;
           flex-direction: column;
           gap: 16px;
+          overflow-y: auto;
+          overflow-x: hidden;
         }
 
         .sidebar__section {
