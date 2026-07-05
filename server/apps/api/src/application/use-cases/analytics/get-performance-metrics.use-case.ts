@@ -31,107 +31,31 @@ export class GetPerformanceMetricsUseCase {
     }
 
     // 2. Query Base Datasets
-    const _results = await Promise.all([
+    const [allUsers, allWaitlistEntries, pmTenants, allPms, successTransactions, activeUserGroups] = await Promise.all([
       this.prisma.upward_user.findMany({
-        where: {
-          ...(startDate || endDate
-            ? {
-                createdAt: {
-                  ...(startDate && { gte: new Date(startDate) }),
-                  ...(endDate && { lte: new Date(endDate) }),
-                },
-              }
-            : {}),
-        },
-        select: {
-          id: true,
-          uuid: true,
-          email: true,
-          emailHash: true,
-          firstName: true,
-          lastName: true,
-          phone: true,
-          passwordHash: true,
-          isFromWaitlist: true,
-          isFromInvite: true,
-          createdAt: true,
-          updatedAt: true,
-          // Transactions: only amounts/lineItems for revenue calc
+        include: {
           transactions: {
-            where: {
-              status: 'SUCCESS',
-              ...(startDate || endDate
-                ? {
-                    createdAt: {
-                      ...(startDate && { gte: new Date(startDate) }),
-                      ...(endDate && { lte: new Date(endDate) }),
-                    },
-                  }
-                : {}),
-            },
+            where: { status: 'SUCCESS' },
             select: { amount: true, lineItems: true },
           },
-          // Properties: only IDs needed for whitelist filter
-          properties: {
-            select: {
-              id: true,
-              pmId: true,
-              companyId: true,
-              pm: { select: { id: true, createdAt: true } },
-              company: { select: { id: true, createdAt: true } },
-            },
-          },
         },
       }),
-      this.prisma.upward_waitlist.findMany({
-        where: {
-          ...(startDate || endDate
-            ? {
-                createdAt: {
-                  ...(startDate && { gte: new Date(startDate) }),
-                  ...(endDate && { lte: new Date(endDate) }),
-                },
-              }
-            : {}),
-        },
-      }),
+      this.prisma.upward_waitlist.findMany(),
       this.prisma.upward_pm_tenant.findMany({
-        where: {
-          ...(startDate || endDate
-            ? {
-                createdAt: {
-                  ...(startDate && { gte: new Date(startDate) }),
-                  ...(endDate && { lte: new Date(endDate) }),
-                },
-              }
-            : {}),
-        },
         include: {
           pm: true,
         },
       }),
       this.prisma.upward_property_manager.findMany({
-        where: {
-          ...(startDate || endDate
-            ? {
-                createdAt: {
-                  ...(startDate && { gte: new Date(startDate) }),
-                  ...(endDate && { lte: new Date(endDate) }),
-                },
-              }
-            : {}),
-        },
         include: {
           properties: {
             include: {
-              // Only load unit IDs for counting — not full unit data
-              units: { select: { id: true } },
+              units: true,
             },
           },
           userProperties: {
             include: {
               subaccount: true,
-              company: true,
             },
           },
         },
@@ -149,11 +73,9 @@ export class GetPerformanceMetricsUseCase {
             : {}),
         },
         select: {
-          id: true,
           amount: true,
           landlordId: true,
           lineItems: true,
-          userId: true,
         },
       }),
       this.prisma.upward_app_activity_log.groupBy({
@@ -161,65 +83,10 @@ export class GetPerformanceMetricsUseCase {
         where: {
           userId: { not: null },
           userRole: 'TENANT',
-          ...(startDate || endDate
-            ? {
-                createdAt: {
-                  ...(startDate && { gte: new Date(startDate) }),
-                  ...(endDate && { lte: new Date(endDate) }),
-                },
-              }
-            : {
-                createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
-              }),
-        },
-        _count: { userId: true },
-      }),
-      this.prisma.upward_company.findMany({
-        where: {
-          ...(startDate || endDate
-            ? {
-                createdAt: {
-                  ...(startDate && { gte: new Date(startDate) }),
-                  ...(endDate && { lte: new Date(endDate) }),
-                },
-              }
-            : {}),
-        },
-        include: {
-          properties: {
-            // Only load subaccount scalar for revenue; skip heavy relational data
-            select: {
-              id: true,
-              rentAmount: true,
-              currency: true,
-              subaccountId: true,
-              createdAt: true,
-              subaccount: { select: { uuid: true } },
-            },
-          },
-          managers: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-              phone: true,
-            },
-          },
+          createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
         },
       }),
     ])
-
-    // Extract with explicit any[] typing so Prisma's narrow select return type
-    // doesn't conflict with downstream field accesses (transactions, properties).
-    let allUsers: any[]                    = _results[0] as any[]
-    let allWaitlistEntries: any[]          = _results[1] as any[]
-    let pmTenants: any[]                   = _results[2] as any[]
-    let allPms: any[]                      = _results[3] as any[]
-    let successTransactions: any[]         = _results[4] as any[]
-    let activeUserGroups: any[]            = _results[5] as any[]
-    let allCompanies: any[]                = _results[6] as any[]
-
 
     // Pre-calculate user emails hash map for fast O(1) matching
     const userMap = new Map<string, any>()
@@ -248,83 +115,6 @@ export class GetPerformanceMetricsUseCase {
         decryptedLastName: lastName,
         decryptedPhone: phone,
       })
-    })
-
-    // Apply future-proof cutoff and whitelist filtering to clean up historic test data
-    const cutoffDate = new Date('2026-07-04T00:00:00Z')
-
-    // Real PM IDs: 10 (Biodun Odeleye) or any PM created after cutoff
-    const realPmIds = new Set(
-      allPms.filter((pm) => pm.id === 10 || pm.createdAt >= cutoffDate).map((pm) => pm.id)
-    )
-
-    const isRealUser = (u: any) => {
-      // 1. If user signed up after cutoff date, they are real
-      if (u.createdAt >= cutoffDate) return true
-
-      const decrypted = userMap.get(u.emailHash)
-      const email = decrypted ? decrypted.decryptedEmail.toLowerCase().trim() : ''
-
-      // 2. Exclude if email matches test/demo pattern
-      if (
-        email.includes('demo') ||
-        email.includes('support') ||
-        email.includes('test') ||
-        email.includes('goodtenants')
-      ) {
-        return false
-      }
-
-      // 3. Seun Isaac is the only historic user allowed to have historic transactions.
-      // Filter out any other historic user who has transactions.
-      if (u.transactions && u.transactions.length > 0 && email !== 'oluwaseunisaacs@gmail.com') {
-        return false
-      }
-
-      // 4. Exclude if currently linked to any internal (historic, non-whitelisted) PM or Company
-      if (u.properties && u.properties.length > 0) {
-        const hasInternalLink = u.properties.some((p: any) => {
-          // Linked PM is internal (historic and not PM ID 10)
-          if (p.pmId && p.pmId !== 10 && (!p.pm || p.pm.createdAt < cutoffDate)) {
-            return true
-          }
-          // Linked Company is internal (historic and not Company ID 2 or 11)
-          if (p.companyId && p.companyId !== 2 && p.companyId !== 11 && (!p.company || p.company.createdAt < cutoffDate)) {
-            return true
-          }
-          return false
-        })
-        if (hasInternalLink) return false
-      }
-
-      // 5. Otherwise, they are real (e.g. self-signups, waitlist signups with no properties yet)
-      return true
-    }
-
-    // Perform filtering
-    allUsers = allUsers.filter(isRealUser)
-    const realUserIds = new Set(allUsers.map((u) => u.id))
-
-    allPms = allPms.filter((pm) => pm.id === 10 || pm.createdAt >= cutoffDate)
-
-    pmTenants = pmTenants.filter((t) => {
-      if (t.createdAt >= cutoffDate) return true
-      return t.pmId && realPmIds.has(t.pmId)
-    })
-
-    successTransactions = successTransactions.filter((tx) => {
-      return realUserIds.has(tx.userId)
-    })
-
-    activeUserGroups = activeUserGroups.filter((log) => {
-      return log.userId && realUserIds.has(log.userId)
-    })
-
-    allWaitlistEntries = allWaitlistEntries.filter((w) => {
-      if (w.createdAt >= cutoffDate) return true
-      const email = w.email.toLowerCase().trim()
-      const isTest = email.includes('test') || email.includes('demo') || email.includes('techinfoorg') || email.includes('pingpong')
-      return !isTest
     })
 
     // 3. CALCULATE REVENUE STATS (Upward Fees & Benefits Fees)
@@ -363,7 +153,7 @@ export class GetPerformanceMetricsUseCase {
       .filter((u) => u.isFromWaitlist)
       .map((u) => {
         const decrypted = userMap.get(u.emailHash)
-        const totalPaid = u.transactions.reduce((sum: number, tx: any) => sum + tx.amount, 0)
+        const totalPaid = u.transactions.reduce((sum, tx) => sum + tx.amount, 0)
         return {
           id: `w_c_${u.id}`,
           uuid: u.uuid,
@@ -395,7 +185,7 @@ export class GetPerformanceMetricsUseCase {
         totalPaid: 0,
       }))
 
-    const finalWaitlistDirectory = waitlistUnconvertedList
+    const finalWaitlistDirectory = [...waitlistConvertedList, ...waitlistUnconvertedList]
 
     // --- Signed Up Users Directory (Self / Waitlist Signups - i.e., NOT Invited) ---
     const signedUpDirectory = allUsers
@@ -404,7 +194,7 @@ export class GetPerformanceMetricsUseCase {
         const decrypted = userMap.get(u.emailHash)
         let totalPaid = 0
         let benefitsPaid = 0
-        u.transactions.forEach((tx: any) => {
+        u.transactions.forEach((tx) => {
           totalPaid += tx.amount
           if (tx.lineItems && Array.isArray(tx.lineItems)) {
             tx.lineItems.forEach((item: any) => {
@@ -439,7 +229,7 @@ export class GetPerformanceMetricsUseCase {
         const decrypted = userMap.get(u.emailHash)
         let totalPaid = 0
         let benefitsPaid = 0
-        u.transactions.forEach((tx: any) => {
+        u.transactions.forEach((tx) => {
           totalPaid += tx.amount
           if (tx.lineItems && Array.isArray(tx.lineItems)) {
             tx.lineItems.forEach((item: any) => {
@@ -537,10 +327,10 @@ export class GetPerformanceMetricsUseCase {
     const finalInvitedDirectory = [...invitedUserDirectory, ...uncreatedInvitedDirectory]
 
     // --- Property Managers & Platforms Directory ---
-    const finalPmDirectoryRaw = allPms.map((pm) => {
+    const finalPmDirectory = allPms.map((pm) => {
       // Sum successful payments for this PM's properties/units
       const pmSubaccountUuids = pm.userProperties
-        .map((up: any) => up.subaccount?.uuid)
+        .map((up) => up.subaccount?.uuid)
         .filter(Boolean) as string[]
 
       // Calculate payments
@@ -550,99 +340,21 @@ export class GetPerformanceMetricsUseCase {
       })
       const totalGenerated = pmTx.reduce((sum, tx) => sum + tx.amount, 0)
 
-      const decryptedFirstName = pm.firstName ? this.encryption.decrypt(pm.firstName).trim() : ''
-      const decryptedLastName = pm.lastName ? this.encryption.decrypt(pm.lastName).trim() : ''
-      const decryptedBusinessName = pm.businessName ? this.encryption.decrypt(pm.businessName).trim() : ''
-
-      let platformCompanyName = ''
-      const firstCompany = pm.userProperties.find((up: any) => up.company)?.company
-      if (firstCompany && firstCompany.name) {
-        platformCompanyName = this.encryption.decrypt(firstCompany.name).trim()
-      }
-
-      const resolvedBusinessName = platformCompanyName || (decryptedBusinessName && decryptedBusinessName !== 'No Business Name'
-        ? decryptedBusinessName
-        : `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Platform PM')
-
       return {
         id: pm.id.toString(),
         uuid: pm.uuid,
         email: pm.email ? this.encryption.decrypt(pm.email) : '',
-        firstName: decryptedFirstName,
-        lastName: decryptedLastName,
-        businessName: resolvedBusinessName,
+        firstName: pm.firstName ? this.encryption.decrypt(pm.firstName) : '',
+        lastName: pm.lastName ? this.encryption.decrypt(pm.lastName) : '',
+        businessName: pm.businessName ? this.encryption.decrypt(pm.businessName) : 'No Business Name',
         phone: pm.phone ? this.encryption.decrypt(pm.phone) : 'N/A',
         isVerified: pm.isVerified,
         propertiesCount: pm.properties.length,
-        unitsCount: pm.properties.reduce((sum: number, p: any) => sum + p.units.length, 0),
+        unitsCount: pm.properties.reduce((sum, p) => sum + p.units.length, 0),
         totalGenerated,
         createdAt: pm.createdAt,
-        pmType: 'Upward PM',
       }
     })
-
-    // Filter and map platform companies (e.g. Liveable, Company ID 2, or those created on/after cutoff)
-    const filteredCompanies = allCompanies.filter(
-      (c) => c.id === 2 || c.createdAt >= cutoffDate
-    )
-
-    const finalCompanyDirectory = filteredCompanies.map((c) => {
-      const companySubaccountUuids = c.properties
-        .map((p: any) => p.subaccount?.uuid)
-        .filter(Boolean) as string[]
-
-      // Find real transactions for this company (by subaccount OR user links)
-      const companyTx = successTransactions.filter((tx) => {
-        if (tx.landlordId && companySubaccountUuids.includes(tx.landlordId)) {
-          return true
-        }
-        const user = allUsers.find((u) => u.id === tx.userId)
-        return user && user.properties.some((p: any) => p.companyId === c.id)
-      })
-
-      const totalGenerated = companyTx.reduce((sum, tx) => sum + tx.amount, 0)
-
-      const decryptedName = this.encryption.decrypt(c.name).trim()
-      const decryptedEmail = c.email ? this.encryption.decrypt(c.email).trim() : ''
-      const decryptedPhone = c.phone ? this.encryption.decrypt(c.phone).trim() : 'N/A'
-
-      // Resolve manager details (fallback to first manager if available)
-      const firstManager = c.managers && c.managers[0]
-      let resolvedFirstName = ''
-      let resolvedLastName = ''
-      let resolvedEmail = decryptedEmail
-      let resolvedPhone = decryptedPhone
-
-      if (firstManager) {
-        resolvedFirstName = firstManager.firstName ? this.encryption.decrypt(firstManager.firstName).trim() : ''
-        resolvedLastName = firstManager.lastName ? this.encryption.decrypt(firstManager.lastName).trim() : ''
-        
-        if (!resolvedEmail) {
-          resolvedEmail = firstManager.email ? this.encryption.decrypt(firstManager.email).trim() : ''
-        }
-        if (!resolvedPhone || resolvedPhone === 'N/A') {
-          resolvedPhone = firstManager.phone ? this.encryption.decrypt(firstManager.phone).trim() : 'N/A'
-        }
-      }
-
-      return {
-        id: `co_${c.id}`,
-        uuid: c.uuid,
-        email: resolvedEmail,
-        firstName: resolvedFirstName,
-        lastName: resolvedLastName,
-        businessName: decryptedName,
-        phone: resolvedPhone,
-        isVerified: true,
-        propertiesCount: c.properties.length,
-        unitsCount: c.properties.length, // Each tenancy property represents a unit
-        totalGenerated,
-        createdAt: c.createdAt,
-        pmType: 'Platform',
-      }
-    })
-
-    const finalPmDirectory = [...finalPmDirectoryRaw, ...finalCompanyDirectory]
 
     // 5. CALCULATE GRAPH / SUMMARY METRICS
 
@@ -654,7 +366,7 @@ export class GetPerformanceMetricsUseCase {
     // Signed Up Stats
     const signedUpTotalCount = allUsers.length
     const allUsersPayments = allUsers.map((u) => {
-      const totalPaid = u.transactions.reduce((sum: number, tx: any) => sum + tx.amount, 0)
+      const totalPaid = u.transactions.reduce((sum, tx) => sum + tx.amount, 0)
       return { totalPaid, hasPaid: totalPaid > 0 }
     })
     const signedUpPayingCount = allUsersPayments.filter((u) => u.hasPaid).length
@@ -722,11 +434,6 @@ export class GetPerformanceMetricsUseCase {
           totalUsers: allUsers.length,
           inactiveCount: allUsers.length - activeUserGroups.length,
           activeRate: allUsers.length > 0 ? Math.round((activeUserGroups.length / allUsers.length) * 100) : 0,
-          totalUsersWithPassword: allUsers.filter(
-            (u) =>
-              u.passwordHash &&
-              (u.passwordHash.startsWith('$2') || u.passwordHash === PASS_PLACEHOLDERS.SOCIAL),
-          ).length,
         },
       },
       directories: {

@@ -21,116 +21,33 @@ export class SendBulkEmailUseCase {
     userIds: string[]
     subject: string
     content: string
-    targetGroup?: 'TENANTS' | 'PMS' | 'WAITLIST'
     sessionId?: string
     requesterId?: string
   }) {
-    const target = payload.targetGroup || 'TENANTS'
+    const users = await this.prisma.upward_user.findMany({
+      where: { uuid: { in: payload.userIds }, unsubscribed: false },
+    })
+
     const results = []
-    let recipientCount = 0
 
-    if (target === 'PMS') {
-      const pms = await this.prisma.upward_property_manager.findMany({
-        where: { uuid: { in: payload.userIds } },
-      })
-      recipientCount = pms.length
+    for (const user of users) {
+      const email = this.encryption.decrypt(user.email)
+      const firstName = this.encryption.decrypt(user.firstName)
+      const lastName = this.encryption.decrypt(user.lastName)
+      
+      try {
+        const customizedContent = payload.content
+          .replace(/{{firstName}}/g, firstName ? formatName(firstName) : 'there')
+          .replace(/{{lastName}}/g, lastName ? formatName(lastName) : '')
+          .replace(/{{email}}/g, email)
 
-      for (const pm of pms) {
-        let email = ''
-        let firstName = ''
-        let lastName = ''
-        try {
-          email = this.encryption.decrypt(pm.email)
-          firstName = this.encryption.decrypt(pm.firstName)
-          lastName = this.encryption.decrypt(pm.lastName)
-        } catch (err) {
-          email = pm.email
-          firstName = pm.firstName
-          lastName = pm.lastName
-        }
-
-        try {
-          const customizedContent = payload.content
-            .replace(/{{firstName}}/g, firstName ? formatName(firstName) : 'there')
-            .replace(/{{lastName}}/g, lastName ? formatName(lastName) : '')
-            .replace(/{{email}}/g, email)
-
-          const finalHtml = wrapInBaseTemplate(customizedContent, payload.subject, email)
-          await this.emailService.sendGenericEmail(email, payload.subject, finalHtml, pm.uuid)
-          results.push({ email, status: 'SENT' })
-        } catch (error: unknown) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-          this.logger.error(`Failed to send email to PM ${email}`, error)
-          results.push({ email, status: 'FAILED', error: errorMessage })
-        }
-      }
-    } else if (target === 'WAITLIST') {
-      const entries = await this.prisma.upward_waitlist.findMany({
-        where: {
-          OR: [
-            { uuid: { in: payload.userIds } },
-            { id: { in: payload.userIds } }
-          ],
-          unsubscribed: false,
-        },
-      })
-      recipientCount = entries.length
-
-      for (const entry of entries) {
-        const email = entry.email
-        const firstName = entry.firstName || ''
-        const lastName = entry.lastName || ''
-
-        try {
-          const customizedContent = payload.content
-            .replace(/{{firstName}}/g, firstName ? formatName(firstName) : 'there')
-            .replace(/{{lastName}}/g, lastName ? formatName(lastName) : '')
-            .replace(/{{email}}/g, email)
-
-          const finalHtml = wrapInBaseTemplate(customizedContent, payload.subject, email)
-          await this.emailService.sendGenericEmail(email, payload.subject, finalHtml, entry.id)
-          results.push({ email, status: 'SENT' })
-        } catch (error: unknown) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-          this.logger.error(`Failed to send email to Waitlist ${email}`, error)
-          results.push({ email, status: 'FAILED', error: errorMessage })
-        }
-      }
-    } else {
-      // TENANTS (default)
-      const users = await this.prisma.upward_user.findMany({
-        where: { uuid: { in: payload.userIds }, unsubscribed: false },
-      })
-      recipientCount = users.length
-
-      for (const user of users) {
-        let email = ''
-        let firstName = ''
-        let lastName = ''
-        try {
-          email = this.encryption.decrypt(user.email)
-          firstName = this.encryption.decrypt(user.firstName)
-          lastName = this.encryption.decrypt(user.lastName)
-        } catch (err) {
-          email = user.email
-          firstName = user.firstName
-          lastName = user.lastName
-        }
-
-        try {
-          const customizedContent = payload.content
-            .replace(/{{firstName}}/g, firstName ? formatName(firstName) : 'there')
-            .replace(/{{lastName}}/g, lastName ? formatName(lastName) : '')
-            .replace(/{{email}}/g, email)
-
-          const finalHtml = wrapInBaseTemplate(customizedContent, payload.subject, email)
-          await this.emailService.sendGenericEmail(email, payload.subject, finalHtml, String(user.id))
-          results.push({ email, status: 'SENT' })
-        } catch (error: unknown) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-          this.logger.error(`Failed to send email to Tenant ${email}`, error)
-          results.push({ email, status: 'FAILED', error: errorMessage })
-        }
+        const finalHtml = wrapInBaseTemplate(customizedContent, payload.subject, email)
+        await this.emailService.sendGenericEmail(email, payload.subject, finalHtml, String(user.id))
+        results.push({ email, status: 'SENT' })
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        this.logger.error(`Failed to send email to ${email}`, error)
+        results.push({ email, status: 'FAILED', error: errorMessage })
       }
     }
 
@@ -138,7 +55,7 @@ export class SendBulkEmailUseCase {
       await this.adminLogService.logAction(
         payload.requesterId,
         'SEND_EMAIL',
-        `Batch emailed ${recipientCount} recipients (${target}). Subject: ${payload.subject}`,
+        `Batch emailed ${users.length} users. Subject: ${payload.subject}`,
       )
     }
 

@@ -44,12 +44,6 @@ export class GetAdminUserDetailUseCase {
         properties: {
           include: {
             company: true,
-            pm: true,
-            pmUnit: {
-              include: {
-                property: true,
-              },
-            },
           },
         },
         transactions: {
@@ -92,20 +86,10 @@ export class GetAdminUserDetailUseCase {
               phone: p.company.phone ? this.encryption.decrypt(p.company.phone) : null,
             }
           : null
-        const pm = p.pm
-          ? {
-              id: p.pm.id,
-              uuid: p.pm.uuid,
-              businessName: p.pm.businessName ? this.encryption.decrypt(p.pm.businessName) : '',
-              email: p.pm.email ? this.encryption.decrypt(p.pm.email) : '',
-            }
-          : null
         return {
           ...p,
           location: loc || null,
           company,
-          pm,
-          pmUnit: p.pmUnit,
         }
       })
 

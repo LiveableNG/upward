@@ -94,7 +94,7 @@ export const wrapInBaseTemplate = (content: string, subject: string, email: stri
           <tr>
             <td style="padding: 32px 40px; text-align: center;" class="footer-padding">
               <p style="margin: 0 0 12px 0; color: #9CA3AF; font-size: 12px; line-height: 1.6;">
-                You're receiving this because you're part of the Upward community.
+                You're receiving this because you're part of the Upward waitlist community.
               </p>
               <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 12px;">
                 <tr>

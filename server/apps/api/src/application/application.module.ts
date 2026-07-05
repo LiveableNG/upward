@@ -33,7 +33,6 @@ import {
   DeleteFeeOverrideUseCase,
   SearchFeeTargetsUseCase,
 } from './use-cases/admin/fee-overrides.use-cases'
-import { GetAppActivityLogsUseCase } from './use-cases/admin/get-app-activity-logs.use-case'
 
 import { JoinWaitlistUseCase } from './use-cases/waitlist/join-waitlist.use-case'
 import { GetWaitlistUseCase } from './use-cases/waitlist/get-waitlist.use-case'
@@ -255,7 +254,6 @@ import { PmPaymentNotificationHandler } from './events/handlers/pm-payment-notif
 import { TenantSyncHandler } from './events/handlers/tenant-sync.handler'
 import { PrismaDeviceTokenRepository } from '../shared/infrastructure/prisma/repositories/prisma-device-token.repository'
 import { NotificationService } from '../shared/infrastructure/common/notification.service'
-import { GoogleAnalyticsService } from '../shared/infrastructure/common/google-analytics.service'
 
 const UseCases = [
   DeleteAdminUseCase,
@@ -267,7 +265,6 @@ const UseCases = [
   SearchUsersUseCase,
   GetAdminUserDetailUseCase,
   GetAdminPmDetailUseCase,
-  GetAppActivityLogsUseCase,
   UpdateAdminUserUseCase,
   UpdateAdminPmUseCase,
   SendAdminNotificationUseCase,
@@ -501,13 +498,12 @@ const UseCases = [
     EncryptionService,
     PushNotificationService,
     NotificationService,
-    GoogleAnalyticsService,
     PrismaDeviceTokenRepository,
     UnifiedReminderService,
     PaymentConfigurationService,
     ...UseCases,
   ],
-  exports: [WebhookService, BulkInviteService, EncryptionService, PushNotificationService, NotificationService, GoogleAnalyticsService, PrismaDeviceTokenRepository, UnifiedReminderService, PaymentConfigurationService, ...UseCases],
+  exports: [WebhookService, BulkInviteService, EncryptionService, PushNotificationService, NotificationService, PrismaDeviceTokenRepository, UnifiedReminderService, PaymentConfigurationService, ...UseCases],
 
 })
 export class ApplicationModule { }

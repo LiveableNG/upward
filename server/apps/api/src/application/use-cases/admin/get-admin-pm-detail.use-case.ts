@@ -42,206 +42,19 @@ export class GetAdminPmDetailUseCase {
       include: {
         properties: {
           include: {
-            units: {
-              include: {
-                tenant: true,
-                userProperties: {
-                  include: {
-                    user: true,
-                  },
-                },
-              },
-            },
+            units: true,
           },
         },
         tenants: true,
-        verification: true,
       },
     })
 
     if (!pm) {
-      // Try finding platform company in upward_company
-      const company = await this.prisma.upward_company.findUnique({
-        where: { uuid },
-        include: {
-          properties: {
-            include: {
-              user: true,
-              location: true,
-            },
-          },
-          managers: true,
-        },
-      })
-
-      if (!company) {
-        throw new NotFoundException('Property Manager or Platform Company not found')
-      }
-
-      const decryptedName = this.encryption.decrypt(company.name).trim()
-      const decryptedEmail = company.email ? this.encryption.decrypt(company.email).trim() : ''
-      const decryptedPhone = company.phone ? this.encryption.decrypt(company.phone).trim() : 'N/A'
-
-      const firstManager = company.managers && company.managers[0]
-      let resolvedFirstName = ''
-      let resolvedLastName = ''
-      
-      if (firstManager) {
-        resolvedFirstName = firstManager.firstName ? this.encryption.decrypt(firstManager.firstName).trim() : ''
-        resolvedLastName = firstManager.lastName ? this.encryption.decrypt(firstManager.lastName).trim() : ''
-      }
-
-      // Map tenancy properties to standard property/units layout
-      const mappedProperties = company.properties.map((p) => {
-        let tenantInfo: any = null
-        if (p.user) {
-          let email = ''
-          let firstName = ''
-          let lastName = ''
-          let phone = ''
-
-          try {
-            email = this.encryption.decrypt(p.user.email)
-            firstName = this.encryption.decrypt(p.user.firstName)
-            lastName = this.encryption.decrypt(p.user.lastName)
-            phone = p.user.phone ? this.encryption.decrypt(p.user.phone) : ''
-          } catch (err) {
-            email = p.user.email
-            firstName = p.user.firstName
-            lastName = p.user.lastName
-            phone = p.user.phone || ''
-          }
-
-          tenantInfo = {
-            uuid: p.user.uuid,
-            firstName,
-            lastName,
-            email,
-            phone,
-          }
-        }
-
-        return {
-          id: p.id,
-          address: p.location?.address || 'Property Tenancy',
-          currency: p.currency,
-          subaccountId: p.subaccountId ? p.subaccountId.toString() : 'None linked',
-          units: [
-            {
-              id: p.id,
-              unitName: 'Main Unit',
-              rentAmount: p.rentAmount,
-              rentStartDate: p.rentStartDate,
-              rentDueDate: p.rentEndDate,
-              currency: p.currency,
-              status: p.user ? 'OCCUPIED' : 'VACANT',
-              tenant: tenantInfo,
-            }
-          ]
-        }
-      })
-
-      // Get tenants list
-      const companyTenants = company.properties.map((p) => {
-        if (!p.user) return null
-        let email = ''
-        let firstName = ''
-        let lastName = ''
-        let phone = ''
-
-        try {
-          email = this.encryption.decrypt(p.user.email)
-          firstName = this.encryption.decrypt(p.user.firstName)
-          lastName = this.encryption.decrypt(p.user.lastName)
-          phone = p.user.phone ? this.encryption.decrypt(p.user.phone) : ''
-        } catch (err) {
-          email = p.user.email
-          firstName = p.user.firstName
-          lastName = p.user.lastName
-          phone = p.user.phone || ''
-        }
-
-        return {
-          id: p.user.id,
-          uuid: p.user.uuid,
-          email,
-          firstName,
-          lastName,
-          phone,
-          inviteStatus: 'ACCEPTED',
-        }
-      }).filter(Boolean)
-
-      return {
-        type: 'PM',
-        id: `co_${company.id}`,
-        uuid: company.uuid,
-        email: decryptedEmail,
-        firstName: resolvedFirstName,
-        lastName: resolvedLastName,
-        businessName: decryptedName,
-        phone: decryptedPhone,
-        isVerified: true,
-        createdAt: company.createdAt,
-        updatedAt: company.updatedAt,
-        properties: mappedProperties,
-        tenants: companyTenants,
-        rentPayments: [],
-        activityLogs: [],
-        verification: null,
-      }
+      throw new NotFoundException('Property Manager not found')
     }
 
     // Decrypt tenants list
     const decryptedTenants = pm.tenants.map((t) => this.decryptTenant(t))
-
-    // Decrypt tenants inside properties.units
-    const decryptedProperties = pm.properties.map((prop) => {
-      const decryptedUnits = prop.units.map((unit: any) => {
-        let tenantInfo: any = null
-
-        if (unit.tenant) {
-          tenantInfo = this.decryptTenant(unit.tenant)
-        } else if (unit.userProperties && unit.userProperties.length > 0) {
-          const activeUpwardUser = unit.userProperties[0]?.user
-          if (activeUpwardUser) {
-            let email = ''
-            let firstName = ''
-            let lastName = ''
-            let phone = ''
-
-            try {
-              email = this.encryption.decrypt(activeUpwardUser.email)
-              firstName = this.encryption.decrypt(activeUpwardUser.firstName)
-              lastName = this.encryption.decrypt(activeUpwardUser.lastName)
-              phone = activeUpwardUser.phone ? this.encryption.decrypt(activeUpwardUser.phone) : ''
-            } catch (err) {
-              email = activeUpwardUser.email
-              firstName = activeUpwardUser.firstName
-              lastName = activeUpwardUser.lastName
-              phone = activeUpwardUser.phone || ''
-            }
-
-            tenantInfo = {
-              uuid: activeUpwardUser.uuid,
-              firstName,
-              lastName,
-              email,
-              phone,
-            }
-          }
-        }
-
-        return {
-          ...unit,
-          tenant: tenantInfo
-        }
-      })
-      return {
-        ...prop,
-        units: decryptedUnits
-      }
-    })
 
     // Fetch activity logs
     const activityLogs = await this.prisma.upward_app_activity_log.findMany({
@@ -280,11 +93,10 @@ export class GetAdminPmDetailUseCase {
       isVerified: pm.isVerified,
       createdAt: pm.createdAt,
       updatedAt: pm.updatedAt,
-      properties: decryptedProperties,
+      properties: pm.properties,
       tenants: decryptedTenants,
       rentPayments,
       activityLogs,
-      verification: pm.verification,
     }
   }
 }

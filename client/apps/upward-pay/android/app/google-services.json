@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "451444317670-2vghijcnivnpbu7bk3fq4mtf1cueepe8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.goodtenants.upward",
+            "certificate_hash": "79c2eaeaa228328ec09e8ac7a2e1bf514b3c6d2d"
+          }
+        },
+        {
           "client_id": "451444317670-64895jdbo2om1h86rd9gqqirr9i1calq.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

@@ -60,7 +60,7 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
           let action = method;
           if (url.includes('login')) {
             action = 'LOGIN';
-          } else if (url.includes('signup') || url.includes('complete-profile') || url.includes('/accept')) {
+          } else if (url.includes('signup')) {
             action = 'SIGNUP';
           } else if (url.includes('logout')) {
             action = 'LOGOUT';
@@ -124,36 +124,11 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
             description += ` by ${userEmail}`;
           }
 
-          if (url.includes('/units/bulk')) {
-            const count = req.body?.units?.length || 0;
-            description = `Property Manager bulk uploaded ${count} units`;
-          } else if (url.includes('/import/bulk')) {
-            const count = req.body?.rows?.length || 0;
-            description = `Property Manager bulk imported ${count} properties/units`;
-          } else if (url.includes('/records/bulk')) {
-            const count = req.body?.records?.length || 0;
-            description = `Property Manager bulk uploaded ${count} tenant records`;
-          } else if (url.includes('/payments/bulk')) {
-            const count = req.body?.rows?.length || 0;
-            description = `Property Manager bulk added ${count} rent history payments`;
-          } else if (action === 'LOGIN') {
+          if (action === 'LOGIN') {
             description = `User logged in: ${userEmail || 'unknown'}`;
             entityType = 'AUTH';
           } else if (action === 'SIGNUP') {
-            if (app === 'upward-pm') {
-              const bizName = req.body?.businessName ? ` (${req.body.businessName})` : '';
-              description = `New Property Manager registered: ${userEmail || req.body?.email || 'unknown'}${bizName}`;
-            } else {
-              let details = '';
-              if (req.body?.isFromInvite) {
-                details = ' (Invited Tenant converted)';
-              } else if (req.body?.isFromWaitlist) {
-                details = ' (Waitlist converted)';
-              } else {
-                details = ' (Self Registered)';
-              }
-              description = `New user signed up: ${userEmail || req.body?.email || 'unknown'}${details}`;
-            }
+            description = `New user signed up: ${userEmail || 'unknown'}`;
             entityType = 'AUTH';
           } else if (action === 'LOGOUT') {
             description = `User logged out: ${userEmail || 'unknown'}`;
