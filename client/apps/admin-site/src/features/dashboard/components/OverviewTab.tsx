@@ -2,19 +2,12 @@ import React, { useMemo, useState, useRef, useEffect } from 'react'
 import ReactDOM from 'react-dom'
 import {
   Users,
-  Building2,
   Home,
   CreditCard,
   TrendingUp,
   TrendingDown,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
   Activity,
-  UserCheck,
-  MailOpen,
   Zap,
-  ArrowUpRight,
   Download,
   Search,
   Info,
@@ -23,9 +16,6 @@ import type { FlatMetrics, SignedUpRecord, InvitedRecord } from '../types'
 import * as XLSX from 'xlsx'
 import { showToast } from '@upward/client-core'
 
-// ───────────────────────────────────────────────────────────────
-// Smart currency formatter — ₦209M instead of ₦209024k
-// ───────────────────────────────────────────────────────────────
 function formatNaira(amount: number): string {
   if (amount >= 1_000_000_000) return `₦${(amount / 1_000_000_000).toFixed(2)}B`
   if (amount >= 1_000_000) return `₦${(amount / 1_000_000).toFixed(2)}M`
@@ -33,9 +23,7 @@ function formatNaira(amount: number): string {
   return `₦${amount.toLocaleString()}`
 }
 
-// ───────────────────────────────────────────────────────────────
-// Tiny SVG Sparkline — no lib needed
-// ───────────────────────────────────────────────────────────────
+
 interface SparklineProps {
   data: number[]
   color: string
@@ -84,22 +72,7 @@ const Sparkline: React.FC<SparklineProps> = ({ data, color, height = 36 }) => {
   )
 }
 
-// ───────────────────────────────────────────────────────────────
-// Insight Item
-// ───────────────────────────────────────────────────────────────
-type InsightLevel = 'success' | 'warning' | 'danger' | 'info'
 
-interface InsightItem {
-  level: InsightLevel
-  message: string
-}
-
-const insightConfig: Record<InsightLevel, { color: string; bg: string; icon: React.ReactNode }> = {
-  success: { color: 'var(--success)', bg: 'var(--success-faint)', icon: <CheckCircle size={14} /> },
-  warning: { color: 'var(--warning)', bg: 'var(--warning-faint)', icon: <AlertTriangle size={14} /> },
-  danger: { color: 'var(--danger)', bg: 'var(--danger-faint)', icon: <AlertTriangle size={14} /> },
-  info: { color: '#6366f1', bg: 'rgba(99,102,241,0.07)', icon: <Zap size={14} /> },
-}
 
 // ───────────────────────────────────────────────────────────────
 // Health KPI Card
@@ -268,17 +241,7 @@ const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, subStrong, t
   )
 }
 
-// ───────────────────────────────────────────────────────────────
-// Main Activity Feed Item
-// ───────────────────────────────────────────────────────────────
-interface ActivityItem {
-  id: string
-  actor: string
-  action: string
-  time: string
-  icon: React.ReactNode
-  color: string
-}
+
 
 // ───────────────────────────────────────────────────────────────
 // Area Chart (SVG)
@@ -331,12 +294,8 @@ const AreaChart: React.FC<AreaChartProps> = ({ data, color, height = 120 }) => {
 // ───────────────────────────────────────────────────────────────
 // Main Component
 // ───────────────────────────────────────────────────────────────
-import type { DateFilter } from './FilterToolbar'
-
 interface OverviewTabProps {
   metrics: FlatMetrics | null
-  dateFilter: DateFilter
-  onDateFilterChange: (v: DateFilter) => void
   signedUpList: SignedUpRecord[]
   invitedList: InvitedRecord[]
   onPreview: (item: any) => void
@@ -356,8 +315,6 @@ function seedSpark(total: number, len = 7): number[] {
 
 const OverviewTab: React.FC<OverviewTabProps> = ({
   metrics,
-  dateFilter,
-  onDateFilterChange,
   signedUpList,
   invitedList,
   onPreview,
@@ -582,55 +539,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   const signupSpark = useMemo(() => seedSpark(metrics?.totalAccountsCreated ?? 30), [metrics?.totalAccountsCreated])
   const activeSpark = useMemo(() => seedSpark(metrics?.activeCount ?? 20), [metrics?.activeCount])
 
-  // Conversion rate = (waitlist entries who converted) ÷ (total waitlist entries) × 100
-  // We use metrics.waitlistConverted (from waitlist.converted in backend) as the numerator.
-  // signedUpCount includes direct sign-ups (not from waitlist), so it must NOT be used here.
-  const conversionRate = metrics
-    ? metrics.waitlistCount > 0
-      ? ((metrics.waitlistConverted / metrics.waitlistCount) * 100).toFixed(1)
-      : '0.0'
-    : null
 
-  // Derived Insights (rule-based from data)
-  const insights: InsightItem[] = useMemo(() => {
-    if (!metrics) return []
-    const list: InsightItem[] = []
-    if (metrics.waitlistCount > 0 && parseFloat(conversionRate ?? '0') < 20) {
-      list.push({ level: 'warning', message: `Waitlist conversion is ${conversionRate}% (${metrics.waitlistConverted} of ${metrics.waitlistCount}) — below 20% target.` })
-    }
-    if (metrics.signedUpCount > 0) {
-      list.push({ level: 'success', message: `${metrics.totalAccountsCreated} users have created accounts on the platform (${metrics.waitlistConverted} waitlist → ${metrics.signedUpCount - metrics.waitlistConverted} direct → ${metrics.invitedOnboardedCount} invited).` })
-    }
-    if (metrics.pmCount > 0) {
-      list.push({ level: 'info', message: `${metrics.pmCount} active property managers registered.` })
-    }
-    if (metrics.totalRentProcessed > 0) {
-      list.push({ level: 'success', message: `₦${metrics.totalRentProcessed.toLocaleString()} in total rent has been processed.` })
-    }
-    if (metrics.invitedCount > 0) {
-      list.push({ level: 'info', message: `${metrics.invitedCount} tenants have pending invitations awaiting acceptance.` })
-    }
-    if (metrics.activeRate > 0) {
-      if (metrics.activeRate < 50) {
-        list.push({ level: 'danger', message: `Low user retention! Platform active rate is only ${metrics.activeRate}% (target >60%).` })
-      } else {
-        list.push({ level: 'success', message: `Healthy engagement! ${metrics.activeRate}% of registered users logged in this month.` })
-      }
-    }
-    return list
-  }, [metrics, conversionRate])
-
-  // Simulated weekly activity feed (production would come from API)
-  const activityItems: ActivityItem[] = useMemo(() => {
-    if (!metrics) return []
-    return [
-      { id: '1', actor: 'Platform', action: 'Daily metrics sync completed', time: 'Just now', icon: <Activity size={14} />, color: '#6366f1' },
-      { id: '2', actor: `${metrics.pmCount} PMs`, action: 'are actively managing properties', time: 'Today', icon: <Building2 size={14} />, color: 'var(--accent)' },
-      { id: '3', actor: `${metrics.waitlistCount} tenants`, action: 'on the waitlist queue', time: 'Today', icon: <Clock size={14} />, color: 'var(--warning)' },
-      { id: '4', actor: `${metrics.invitedCount} invites`, action: 'pending onboarding acceptance', time: 'This week', icon: <MailOpen size={14} />, color: '#8b5cf6' },
-      { id: '5', actor: `${metrics.signedUpCount} tenants`, action: 'successfully onboarded', time: 'This week', icon: <UserCheck size={14} />, color: 'var(--success)' },
-    ]
-  }, [metrics])
 
   const signupChartData = useMemo(() =>
     signupSpark.map((v, i) => ({ label: `Day ${i + 1}`, value: v })),
@@ -685,35 +594,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           </div>
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            {subView === 'metrics' && (
-              <div style={{ display: 'flex', gap: '6px' }}>
-                {[
-                  { value: 'all', label: 'All Time' },
-                  { value: 'today', label: 'Today' },
-                  { value: 'week', label: '7 Days' },
-                  { value: 'month', label: '30 Days' },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => onDateFilterChange(opt.value as DateFilter)}
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: '20px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      border: '1px solid',
-                      borderColor: dateFilter === opt.value ? 'var(--accent)' : 'var(--border)',
-                      background: dateFilter === opt.value ? 'var(--accent)' : 'var(--white)',
-                      color: dateFilter === opt.value ? '#fff' : 'var(--text-secondary)',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
             <button
               onClick={handleExportOverviewExcel}
               className="btn btn-secondary"
@@ -855,86 +735,7 @@ Total: ${metrics.totalAccountsCreated}`}
               </div>
             </div>
 
-            {/* ── Quick Insights + Activity Feed ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '32px' }} className="grid-mobile-1">
-              {/* Quick Insights */}
-              <div className="card" style={{ padding: '20px' }}>
-                <div style={{ marginBottom: '16px' }}>
-                  <span className="section-label">Quick Insights</span>
-                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>Automatically surfaced business signals</p>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {insights.length > 0 ? insights.map((insight, idx) => {
-                    const cfg = insightConfig[insight.level]
-                    return (
-                      <div
-                        key={idx}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: '10px',
-                          padding: '12px 14px',
-                          background: cfg.bg,
-                          borderRadius: '10px',
-                          fontSize: '13px',
-                          color: 'var(--text-secondary)',
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        <span style={{ color: cfg.color, marginTop: '1px', flexShrink: 0 }}>{cfg.icon}</span>
-                        <span>{insight.message}</span>
-                      </div>
-                    )
-                  }) : (
-                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>
-                      No notable insights detected at this time.
-                    </p>
-                  )}
-                </div>
-              </div>
 
-              {/* Recent Activity */}
-              <div className="card" style={{ padding: '20px' }}>
-                <div style={{ marginBottom: '16px' }}>
-                  <span className="section-label">Recent Activity</span>
-                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>Latest platform events and state changes</p>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-                  {activityItems.map((item, idx) => (
-                    <div
-                      key={item.id}
-                      style={{
-                        display: 'flex',
-                        gap: '12px',
-                        alignItems: 'flex-start',
-                        padding: '12px 0',
-                        borderBottom: idx < activityItems.length - 1 ? '1px solid var(--border)' : 'none',
-                      }}
-                    >
-                      <div style={{
-                        width: '30px',
-                        height: '30px',
-                        borderRadius: '50%',
-                        backgroundColor: `${item.color}18`,
-                        color: item.color,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}>
-                        {item.icon}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: '13px', color: 'var(--text)' }}>
-                          <strong>{item.actor}</strong> {item.action}
-                        </p>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.time}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
           </>
         ) : (
           /* Paying Users Registry Table view */

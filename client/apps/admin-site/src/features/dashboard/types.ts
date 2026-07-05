@@ -54,6 +54,7 @@ export interface PmRecord {
   unitsCount: number
   totalGenerated: number
   createdAt: string
+  pmType?: string
 }
 
 export interface FeeOverride {

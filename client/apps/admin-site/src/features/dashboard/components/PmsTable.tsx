@@ -167,6 +167,9 @@ export const PmsTable: React.FC<PmsTableProps> = ({
             <th style={thStyle} onClick={() => handleSort('propertiesCount')}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Properties / Units <SortIcon col="propertiesCount" active={sortKey} dir={sortDir} /></span>
             </th>
+            <th style={thStyle}>
+              <span>Type</span>
+            </th>
             <th style={thStyle} onClick={() => handleSort('isVerified')}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Status <SortIcon col="isVerified" active={sortKey} dir={sortDir} /></span>
             </th>
@@ -205,6 +208,14 @@ export const PmsTable: React.FC<PmsTableProps> = ({
               <td style={{ padding: '16px 16px' }}>
                 <div style={{ fontSize: '13px' }}>Properties: <strong>{pm.propertiesCount}</strong></div>
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Total Units: {pm.unitsCount}</div>
+              </td>
+              <td style={{ padding: '16px 16px' }}>
+                <span className="badge" style={{
+                  backgroundColor: pm.pmType === 'Platform' ? 'rgba(99, 102, 241, 0.08)' : 'rgba(217, 119, 87, 0.08)',
+                  color: pm.pmType === 'Platform' ? '#6366f1' : 'var(--accent)',
+                }}>
+                  {pm.pmType || 'Upward PM'}
+                </span>
               </td>
               <td style={{ padding: '16px 16px' }}>
                 <span className="badge" style={{
