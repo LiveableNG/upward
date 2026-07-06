@@ -35,8 +35,11 @@ export async function socialSignIn(data: { provider: 'google'; idToken: string }
   })
 }
 
-export async function login(data: { email: string; password: string }) {
-  return request<AuthResponse>('/user/auth/login', { method: 'POST', body: JSON.stringify(data) })
+export async function login(credentials: { email: string; password: string; type?: 'email' | 'phone' }) {
+  return request<AuthResponse>('/user/auth/login', {
+    method: 'POST',
+    body: JSON.stringify(credentials),
+  })
 }
 
 export async function logout() {
@@ -107,7 +110,7 @@ export async function resetPassword(data: { email: string; otp: string; new: str
   })
 }
 
-export async function checkEmail(email: string) {
+export async function checkEmail(email: string, type?: 'email' | 'phone') {
   return request<{
     exists: boolean
     hasPassword?: boolean
@@ -117,29 +120,29 @@ export async function checkEmail(email: string) {
     authProvider?: string
   }>('/user/auth/check-email', {
     method: 'POST',
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, type }),
   })
 }
 
-export async function requestOTP(email: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' | 'WAITLIST') {
+export async function requestOTP(email: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' | 'WAITLIST', type?: 'email' | 'phone') {
   return request<{ success: boolean; message: string }>('/user/auth/request-otp', {
     method: 'POST',
-    body: JSON.stringify({ email, context }),
+    body: JSON.stringify({ email, context, type }),
   })
 }
 
-export async function verifyOTP(email: string, otp: string, context: string) {
+export async function verifyOTP(email: string, otp: string, context: string, type?: 'email' | 'phone') {
   return request<{ success: boolean; message?: string; inviteToken?: string }>('/user/auth/verify-otp', {
 
     method: 'POST',
-    body: JSON.stringify({ email, otp, context }),
+    body: JSON.stringify({ email, otp, context, type }),
   })
 }
 
-export async function loginWithOTP(email: string, otp: string) {
+export async function loginWithOTP(email: string, otp: string, type?: 'email' | 'phone') {
   return request<AuthResponse>('/user/auth/otp-login', {
     method: 'POST',
-    body: JSON.stringify({ email, otp }),
+    body: JSON.stringify({ email, otp, type }),
   })
 }
 

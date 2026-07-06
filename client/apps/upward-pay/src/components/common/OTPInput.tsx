@@ -100,17 +100,19 @@ export const OTPInput: React.FC<OTPInputProps> = ({
     }
   }
 
+  const isPhone = email.startsWith('+') || /^\d+$/.test(email)
+
   return (
     <div className="otp-container">
       <div className="otp-header">
         <h2>Verify your identity</h2>
         <p>
           We've sent a 6-digit code to <strong>{email}</strong>. 
-          Be sure to check your <strong>spam/junk</strong> folder if you don't see it.
+          {!isPhone && <span> Be sure to check your <strong>spam/junk</strong> folder if you don't see it.</span>}
         </p>
         {onChangeEmail && (
           <button className="otp-change-email" onClick={onChangeEmail} disabled={isLoading}>
-            Not your email? Change it
+            Not your {isPhone ? 'phone number' : 'email'}? Change it
           </button>
         )}
       </div>

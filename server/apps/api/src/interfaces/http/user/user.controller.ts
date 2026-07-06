@@ -167,14 +167,15 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   async login(
     @Req() req: any,
-    @Body() body: { email: string; password: string },
+    @Body() body: { email: string; password: string; type?: 'email' | 'phone' },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
+    const type = body.type || (body.email.startsWith('+') ? 'phone' : 'email');
     const ipAddress = req.headers['x-forwarded-for']
       ? req.headers['x-forwarded-for'].split(',')[0].trim()
       : req.ip
     const userAgent = req.headers['user-agent']
-    const { refreshToken, ...rest } = await this.userAuthService.login(body.email, body.password, ipAddress, userAgent)
+    const { refreshToken, ...rest } = await this.userAuthService.login(body.email, body.password, ipAddress, userAgent, type)
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(rest)
   }
@@ -286,36 +287,39 @@ export class UserController {
 
   @Post('check-email')
   @HttpCode(HttpStatus.OK)
-  async checkEmail(@Body() body: { email: string }) {
-    return this.userAuthService.checkEmail(body.email)
+  async checkEmail(@Body() body: { email: string; type?: 'email' | 'phone' }) {
+    const type = body.type || (body.email.startsWith('+') ? 'phone' : 'email');
+    return this.userAuthService.checkEmail(body.email, type)
   }
 
   @Post('request-otp')
   @HttpCode(HttpStatus.OK)
-  async requestOTP(@Body() body: { email: string; context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' }) {
-    return this.userAuthService.requestOTP(body.email, body.context)
+  async requestOTP(@Body() body: { email: string; context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT'; type?: 'email' | 'phone' }) {
+    const type = body.type || (body.email.startsWith('+') ? 'phone' : 'email');
+    return this.userAuthService.requestOTP(body.email, body.context, type)
   }
 
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
-  async verifyOTP(@Body() body: { email: string; otp: string; context: string }) {
-    return this.userAuthService.verifyOTP(body.email, body.otp, body.context)
+  async verifyOTP(@Body() body: { email: string; otp: string; context: string; type?: 'email' | 'phone' }) {
+    const type = body.type || (body.email.startsWith('+') ? 'phone' : 'email');
+    return this.userAuthService.verifyOTP(body.email, body.otp, body.context, true, type)
   }
 
   @Post('otp-login')
   @HttpCode(HttpStatus.OK)
   async otpLogin(
     @Req() req: any,
-    @Body() body: { email: string; otp: string },
+    @Body() body: { email: string; otp: string; type?: 'email' | 'phone' },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
-    const verification = await this.userAuthService.verifyOTP(body.email, body.otp, 'LOGIN')
-    if (!verification.success) {
-      throw new UnauthorizedException(verification.message)
+    const type = body.type || (body.email.startsWith('+') ? 'phone' : 'email');
+    const verification = await this.userAuthService.verifyOTP(body.email, body.otp, 'LOGIN', true, type)
+    if (!verification.success || !verification.user) {
+      throw new UnauthorizedException(verification.message || 'Invalid verification code')
     }
 
-    const user = await this.userAuthService.findByEmail(body.email)
-    if (!user) throw new UnauthorizedException('User not found')
+    const user = verification.user;
 
     const ipAddress = req.headers['x-forwarded-for']
       ? req.headers['x-forwarded-for'].split(',')[0].trim()
