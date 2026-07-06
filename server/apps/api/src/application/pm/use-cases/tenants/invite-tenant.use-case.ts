@@ -11,6 +11,8 @@ import { EmailService } from '../../../../shared/infrastructure/email/email.serv
 import { SingleInviteUseCase, InviteRequest } from '../../../use-cases/external/single-invite.use-case';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 
+import { SmsService } from '../../../../shared/infrastructure/sms/sms.service';
+
 @Injectable()
 export class InviteTenantUseCase {
   constructor(
@@ -25,6 +27,7 @@ export class InviteTenantUseCase {
     private readonly emailService: EmailService,
     private readonly singleInviteUseCase: SingleInviteUseCase,
     private readonly prisma: PrismaService,
+    private readonly smsService: SmsService,
   ) { }
 
   async execute(pmId: number, tenantUuid: string): Promise<void> {
@@ -70,8 +73,8 @@ export class InviteTenantUseCase {
       throw new NotFoundException('Tenant not found');
     }
 
-    if (!tenant.email) {
-      throw new Error('Tenant has no email address');
+    if (!tenant.email && !tenant.phone) {
+      throw new Error('Tenant has no email or phone address');
     }
 
     if ((tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED') && (!tenant.units || tenant.units.length === 0)) {
@@ -81,7 +84,7 @@ export class InviteTenantUseCase {
     const pm = await this.pmRepo.findById(tenant.pmId);
     if (!pm) throw new NotFoundException('Property Manager not found');
 
-    const existingUser = await this.userRepo.findByEmail(tenant.email);
+    const existingUser = tenant.email ? await this.userRepo.findByEmail(tenant.email) : await this.userRepo.findByPhone(tenant.phone!);
     
     const isActuallyOnUpward = existingUser && 
       existingUser.passwordHash !== PASS_PLACEHOLDERS.INVITED && 
@@ -107,7 +110,7 @@ export class InviteTenantUseCase {
       },
       invite: {
         user: {
-          email: tenant.email,
+          email: tenant.email || '',
           firstName: derivedFirstName,
           lastName: derivedLastName,
           phone: tenant.phone || '',
@@ -148,20 +151,30 @@ export class InviteTenantUseCase {
 
     let success = true;
     if (!isActuallyOnUpward) {
-      if (tenant.email.endsWith('@upward.com')) {
-        success = true;
-      } else {
-        const displayName = tenant.commercialName ||
+      const pmName = pm.businessName || `${pm.firstName} ${pm.lastName}`;
+      const displayName = tenant.commercialName ||
           `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() ||
           'Tenant';
+
+      if (tenant.email && !tenant.email.endsWith('@upward.com')) {
         success = await this.emailService.sendTenantInvite({
           email: tenant.email,
           tenantName: displayName,
-          pmName: pm.businessName || `${pm.firstName} ${pm.lastName}`,
+          pmName: pmName,
           pmType: pm.pmType,
           inviteLink: inviteResult.inviteLink,
           pmUuid: pm.uuid,
         });
+      } else if (tenant.phone && tenant.phone.startsWith('+234')) {
+        // Send SMS invite
+        const smsMessage = `Hi ${displayName}, ${pmName} has invited you to join Upward. Build your credit score, earn rewards for on-time payments, and verify your tenancy history effortlessly with Upward. Claim your account here: ${inviteResult.inviteLink}`;
+        success = await this.smsService.sendSms({
+          to: tenant.phone,
+          message: smsMessage,
+        });
+      } else {
+        // Assume success if no valid contact info for actual sending but internal DB operations worked
+        success = true;
       }
     }
 

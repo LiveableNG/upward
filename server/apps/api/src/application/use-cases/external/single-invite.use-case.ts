@@ -135,7 +135,18 @@ export class SingleInviteUseCase {
 
     // 2. Find or Create User
     const userData = invite.user
-    let user = await this.userRepository.findByEmail(userData.email)
+    
+    let effectiveEmail = userData.email;
+    let user = null;
+    
+    if (effectiveEmail) {
+      user = await this.userRepository.findByEmail(effectiveEmail);
+    } else if (userData.phone) {
+      user = await this.userRepository.findByPhone(userData.phone);
+      effectiveEmail = `${userData.phone.replace('+', '')}@upward.com`;
+    } else {
+      throw new BadRequestException('User must have either email or phone');
+    }
 
     if (!user) {
       if (!userData.firstName || !userData.lastName) {
@@ -143,7 +154,7 @@ export class SingleInviteUseCase {
       }
       user = await this.userRepository.save({
         uuid: randomUUID(),
-        email: userData.email,
+        email: effectiveEmail,
         firstName: userData.firstName,
         lastName: userData.lastName,
         phone: userData.phone,

@@ -11,7 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class SmsService {
   private readonly logger = new Logger(SmsService.name);
   private readonly termiiApiKey = process.env.TERMII_API_KEY;
-  private readonly termiiSenderId = process.env.TERMII_SENDER_ID || 'Upward';
+  private readonly termiiSenderId = process.env.TERMII_SENDER_ID || 'goodtenants';
   private readonly termiiUrl = 'https://api.ng.termii.com/api/sms/send';
 
   constructor(private readonly prisma: PrismaService) {}
@@ -36,12 +36,15 @@ export class SmsService {
     }
 
     try {
+      // Termii requires phone numbers without the '+' sign
+      const sanitizedPhone = options.to.replace('+', '');
+
       const payload = {
-        to: options.to,
+        to: sanitizedPhone,
         from: this.termiiSenderId,
         sms: options.message,
         type: 'plain',
-        channel: 'generic',
+        channel: 'generic', // Reverted to generic as per active channels
         api_key: this.termiiApiKey,
       };
 

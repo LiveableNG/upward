@@ -163,6 +163,13 @@ export class UserAuthService extends BaseAuthService {
       throw new ConflictException('User with this email already exists')
     }
 
+    if (dto.phone) {
+      const existingPhone = await this.userRepository.findByPhone(dto.phone)
+      if (existingPhone) {
+        throw new ConflictException('User with this phone number already exists')
+      }
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 10)
 
     const userData: Partial<User> = {
@@ -791,7 +798,7 @@ export class UserAuthService extends BaseAuthService {
 
     let user = null;
     if (type === 'phone') {
-      user = await this.prisma.upward_user.findFirst({ where: { phone: identifier } });
+      user = await this.userRepository.findByPhone(identifier);
     } else {
       user = await this.userRepository.findByEmail(identifier);
     }

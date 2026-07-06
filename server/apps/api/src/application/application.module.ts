@@ -484,8 +484,10 @@ const UseCases = [
   GetUnreadPmPopupsUseCase,
 ]
 
+import { SmsModule } from '../shared/infrastructure/sms/sms.module'
+
 @Module({
-  imports: [S3Module, ReceiptModule, KYCModule, AuthModule],
+  imports: [S3Module, ReceiptModule, KYCModule, AuthModule, SmsModule],
   providers: [
     AdminAuditEventHandler,
     EmailLogEventHandler,

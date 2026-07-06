@@ -87,34 +87,30 @@ export class CreateTenantUseCase {
       }
     }
 
-    let tenant: TenantEntity;
-    let existingUser: Awaited<ReturnType<UserRepository['findByEmail']>> | null = null;
+    let tenant: TenantEntity | null = null;
+    let existingUser: any = null;
 
-    // If email is provided, check for duplicate by email hash
     if (data.email) {
       const emailHash = this.encryption.hash(data.email);
-      const existingTenant = await this.tenantRepo.findByEmailHash(ownerPmId, emailHash);
+      tenant = await this.tenantRepo.findByEmailHash(ownerPmId, emailHash);
       existingUser = await this.userRepo.findByEmail(data.email);
-      const initialStatus = existingUser ? 'ON_UPWARD' : 'PENDING';
-
-      if (existingTenant) {
-        tenant = existingTenant;
-      } else {
-        const { units, ...tenantData } = data;
-        tenant = await this.tenantRepo.create({
-          pmId: ownerPmId,
-          ...tenantData,
-          inviteStatus: initialStatus,
-          inviteSentAt: null,
-        });
+    } 
+    
+    if (!tenant && data.phone) {
+      const phoneHash = this.encryption.hash(data.phone);
+      tenant = await this.tenantRepo.findByPhoneHash(ownerPmId, phoneHash);
+      if (!existingUser) {
+        existingUser = await this.userRepo.findByPhone(data.phone);
       }
-    } else {
-      // No email — create a guest tenant (commercial or unnamed)
+    }
+
+    if (!tenant) {
+      const initialStatus = existingUser ? 'ON_UPWARD' : 'PENDING';
       const { units, ...tenantData } = data;
       tenant = await this.tenantRepo.create({
         pmId: ownerPmId,
         ...tenantData,
-        inviteStatus: 'PENDING',
+        inviteStatus: initialStatus,
         inviteSentAt: null,
       });
     }
