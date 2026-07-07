@@ -39,6 +39,8 @@ export class RentReminderWorkflowUseCase {
   }
 
   private async processProperty(prop: any) {
+    if (prop.user?.email && prop.user.email.endsWith('@upward.com')) return;
+
     const now = new Date()
     const due = new Date(prop.rentEndDate)
     
