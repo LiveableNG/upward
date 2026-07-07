@@ -13,6 +13,8 @@ export class PmPaymentNotificationEvent extends DomainEvent {
     public readonly corePrUuid: string,
     public readonly isReminder: boolean = false,
     public readonly pmType?: string | null,
+    public readonly channels: ('EMAIL' | 'WHATSAPP' | 'SMS')[] = ['EMAIL'],
+    public readonly tenantPhoneNumber?: string,
   ) {
     super();
   }

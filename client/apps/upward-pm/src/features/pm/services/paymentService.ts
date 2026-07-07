@@ -82,10 +82,10 @@ export const getPaymentRequest = (uuid: string) => {
   return request<PmPaymentRequest>(`/pm/payment-requests/${uuid}`)
 }
 
-export const resendPaymentRequest = (uuid: string, email?: string) => {
+export const resendPaymentRequest = (uuid: string, email?: string, channels?: string[]) => {
   return request<{ success: boolean; message: string }>(`/pm/payment-requests/${uuid}/resend`, {
     method: 'POST',
-    body: JSON.stringify({ email })
+    body: JSON.stringify({ email, channels })
   })
 }
 

@@ -126,6 +126,32 @@ export class PrismaUserRepository implements UserRepository {
     return record ? this.toDomain(record) : null
   }
 
+  async findByPhone(phone: string, tx?: any): Promise<User | null> {
+    const prisma = tx || this.prisma
+    const phoneHash = this.encryption.hash(phone)
+    const record = await prisma.upward_user.findFirst({
+      where: { phoneHash },
+      include: {
+        properties: {
+          include: {
+            location: true,
+            company: true,
+            manager: true,
+            pm: true,
+            subaccount: true,
+            dedicatedAccount: true
+          }
+        },
+        companyUsers: {
+          include: {
+            company: true
+          }
+        }
+      }
+    })
+    return record ? this.toDomain(record) : null
+  }
+
   async findByProviderId(providerId: string, tx?: any): Promise<User | null> {
     const prisma = tx || this.prisma
     const record = await prisma.upward_user.findUnique({

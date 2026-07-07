@@ -44,6 +44,7 @@ export const PaymentDetailView: React.FC = () => {
   const [showResendModal, setShowResendModal] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [resendEmail, setResendEmail] = useState('')
+  const [selectedChannels, setSelectedChannels] = useState<string[]>(['EMAIL'])
 
   if (isLoading) {
     return (
@@ -84,7 +85,8 @@ export const PaymentDetailView: React.FC = () => {
 
   const handleConfirmResend = () => {
     if (!uuid) return
-    resendInvoice({ uuid: uuid as string, email: resendEmail }, {
+    if (selectedChannels.length === 0) return error('Please select at least one delivery channel')
+    resendInvoice({ uuid: uuid as string, email: resendEmail, channels: selectedChannels }, {
       onSuccess: (res) => {
         success(res.message || 'Invoice resent successfully')
         setShowResendModal(false)
@@ -468,6 +470,31 @@ export const PaymentDetailView: React.FC = () => {
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
                 You can keep the current email or enter a different one to redirect the invoice.
               </p>
+            </div>
+
+            <div className="form-group" style={{ marginTop: 20 }}>
+              <label className="form-label">Delivery Channels</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
+                {['EMAIL', 'SMS', 'WHATSAPP'].map(channel => (
+                  <label key={channel} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedChannels.includes(channel)}
+                      onChange={e => {
+                        if (e.target.checked) setSelectedChannels(prev => [...prev, channel])
+                        else setSelectedChannels(prev => prev.filter(c => c !== channel))
+                      }}
+                      style={{ accentColor: 'var(--clay)' }}
+                    />
+                    {channel === 'EMAIL' ? 'Email' : channel === 'SMS' ? 'SMS Text Message' : 'WhatsApp'}
+                  </label>
+                ))}
+              </div>
+              {request.tenant && !request.tenant.phone && (selectedChannels.includes('SMS') || selectedChannels.includes('WHATSAPP')) && (
+                <p style={{ fontSize: 11, color: 'var(--error)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <AlertCircle size={12} /> Tenant does not have a phone number on file. Delivery will fail.
+                </p>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>

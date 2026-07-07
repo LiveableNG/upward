@@ -257,9 +257,9 @@ export class LandlordManagementController {
   }
 
   @Post('tenants/:uuid/invite')
-  async inviteTenant(@Req() req: any, @Param('uuid') uuid: string) {
+  async inviteTenant(@Req() req: any, @Param('uuid') uuid: string, @Body() body: { deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP' }) {
     const pmId = await this.getElevatedPmId(req);
-    return this.inviteTenantUseCase.execute(pmId, uuid);
+    return this.inviteTenantUseCase.execute(pmId, uuid, body?.deliveryChannel);
   }
 
   @Post('tenants/:uuid/assign')
@@ -431,10 +431,10 @@ export class LandlordManagementController {
   async resendPaymentRequest(
     @Req() req: any, 
     @Param('uuid') uuid: string,
-    @Body() body: { email?: string }
+    @Body() body: { email?: string; channels?: ('EMAIL' | 'WHATSAPP' | 'SMS')[] }
   ) {
     const pmId = await this.getElevatedPmId(req);
-    return this.resendPmPaymentRequestUseCase.execute(pmId, uuid, body.email);
+    return this.resendPmPaymentRequestUseCase.execute(pmId, uuid, body.email, body.channels);
   }
 
   @Delete('payment-requests/:uuid')

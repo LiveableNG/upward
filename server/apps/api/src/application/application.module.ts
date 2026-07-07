@@ -504,8 +504,11 @@ const UseCases = [
   UploadBlogImageUseCase,
 ]
 
+import { SmsModule } from '../shared/infrastructure/sms/sms.module'
+import { WhatsappModule } from '../shared/infrastructure/whatsapp/whatsapp.module'
+
 @Module({
-  imports: [S3Module, ReceiptModule, KYCModule, AuthModule],
+  imports: [S3Module, ReceiptModule, KYCModule, AuthModule, SmsModule, WhatsappModule],
   providers: [
     AdminAuditEventHandler,
     EmailLogEventHandler,

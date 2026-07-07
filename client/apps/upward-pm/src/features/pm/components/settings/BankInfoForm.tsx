@@ -157,9 +157,13 @@ export function BankInfoForm() {
                   <label className="settings__label">Select Bank</label>
                   <select {...register('bankCode')} className="settings__input">
                     <option value="">Select a bank</option>
-                    {banks.map(bank => (
-                      <option key={bank.code} value={bank.code}>{bank.name}</option>
-                    ))}
+                    {banks
+                      .filter((bank, index, self) => self.findIndex(b => b.code === bank.code) === index)
+                      .map((bank) => (
+                        <option key={bank.code} value={bank.code}>
+                          {bank.name}
+                        </option>
+                      ))}
                   </select>
                 </div>
                 <div className="settings__field">

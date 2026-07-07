@@ -53,9 +53,22 @@ export class SyncUnitToUpwardUseCase {
     }
 
     const tenantEmail = unit.tenant.email;
-    if (!tenantEmail) throw new Error('Tenant has no email address');
+    const tenantPhone = unit.tenant.phone;
 
-    const upwardUser = await this.userRepo.findByEmail(tenantEmail);
+    if (!tenantEmail && !tenantPhone) {
+      throw new Error('Tenant has no email or phone address');
+    }
+
+    let upwardUser = null;
+
+    if (tenantPhone) {
+      upwardUser = await this.userRepo.findByPhone(tenantPhone);
+    }
+
+    if (!upwardUser && tenantEmail) {
+      upwardUser = await this.userRepo.findByEmail(tenantEmail);
+    }
+
     if (!upwardUser) throw new Error('Tenant user record not found on Upward');
 
     const pmRecord = await this.prisma.upward_property_manager.findUnique({

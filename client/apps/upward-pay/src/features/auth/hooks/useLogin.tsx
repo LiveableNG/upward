@@ -12,7 +12,7 @@ export function useLogin(redirect: string) {
   const queryClient = useQueryClient()
 
   const loginMutation = useMutation({
-    mutationFn: (credentials: { email: string; password: string }) => authLogin(credentials),
+    mutationFn: (credentials: { email: string; password: string; type?: 'email' | 'phone' }) => authLogin(credentials),
     onSuccess: async (result, variables) => {
       if (result.accessToken) {
         setAccessToken(result.accessToken)
@@ -33,7 +33,7 @@ export function useLogin(redirect: string) {
   })
 
   const otpLoginMutation = useMutation({
-    mutationFn: (data: { email: string; otp: string }) => authOTPLogin(data.email, data.otp),
+    mutationFn: (data: { email: string; otp: string; type?: 'email' | 'phone' }) => authOTPLogin(data.email, data.otp, data.type),
     onSuccess: async (result) => {
       if (result.accessToken) {
         setAccessToken(result.accessToken)
@@ -49,8 +49,8 @@ export function useLogin(redirect: string) {
   })
 
   return {
-    login: (email: string, password: string) => loginMutation.mutate({ email, password }),
-    otpLogin: (email: string, otp: string) => otpLoginMutation.mutate({ email, otp }),
+    login: (email: string, password: string, type?: 'email' | 'phone') => loginMutation.mutate({ email, password, type }),
+    otpLogin: (email: string, otp: string, type?: 'email' | 'phone') => otpLoginMutation.mutate({ email, otp, type }),
     loading: loginMutation.isPending || otpLoginMutation.isPending,
     error: (loginMutation.error || otpLoginMutation.error) as any,
   }

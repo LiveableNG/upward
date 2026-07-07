@@ -27,6 +27,7 @@ export const TenantList: React.FC = () => {
   const [propertyFilter, setPropertyFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'on_upward' | 'pending'>('all')
   const [selectedTenants, setSelectedTenants] = useState<Set<string>>(new Set())
+  const [bulkDeliveryChannel, setBulkDeliveryChannel] = useState<'EMAIL' | 'SMS' | 'WHATSAPP'>('EMAIL')
 
   const filteredTenants = useMemo(() => {
     return tenants.filter(t => {
@@ -63,7 +64,7 @@ export const TenantList: React.FC = () => {
 
   const handleBulkInvite = () => {
     if (selectedTenants.size === 0) return
-    bulkInvite.mutate(Array.from(selectedTenants), {
+    bulkInvite.mutate({ tenantUuids: Array.from(selectedTenants), deliveryChannel: bulkDeliveryChannel }, {
       onSuccess: () => {
         setSelectedTenants(new Set())
       }
@@ -170,7 +171,7 @@ export const TenantList: React.FC = () => {
                 className="btn btn--sm"
                 onClick={(e) => {
                   e.stopPropagation()
-                  inviteTenant.mutate(tenant.uuid)
+                  inviteTenant.mutate({ uuid: tenant.uuid })
                 }}
                 disabled={inviteTenant.isPending || tenant.email?.endsWith('@upward.com')}
                 style={{ 
@@ -269,14 +270,26 @@ export const TenantList: React.FC = () => {
             </button>
             <span style={{ fontWeight: 700 }}>{selectedTenants.size} Selected</span>
           </div>
-          <button 
-            className="btn btn--primary" 
-            onClick={handleBulkInvite}
-            disabled={bulkInvite.isPending}
-            style={{ borderRadius: 100, padding: '10px 24px' }}
-          >
-            {bulkInvite.isPending ? 'Processing...' : 'Remind Selected'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <select
+              value={bulkDeliveryChannel}
+              onChange={(e) => setBulkDeliveryChannel(e.target.value as any)}
+              className="form-input"
+              style={{ padding: '8px 12px', height: '40px', borderRadius: 100, width: 'auto', border: '1px solid var(--border)' }}
+            >
+              <option value="EMAIL">Email</option>
+              <option value="SMS">SMS</option>
+              <option value="WHATSAPP">WhatsApp</option>
+            </select>
+            <button 
+              className="btn btn--primary" 
+              onClick={handleBulkInvite}
+              disabled={bulkInvite.isPending}
+              style={{ borderRadius: 100, padding: '10px 24px' }}
+            >
+              {bulkInvite.isPending ? 'Processing...' : 'Remind Selected'}
+            </button>
+          </div>
         </div>
       )}
 

@@ -6,6 +6,8 @@ interface OnboardingFieldsProps {
     firstName: string
     lastName: string
     email: string
+    phone?: string
+    isPhoneOnly?: boolean
   }
   setFormData: (data: any) => void
   disabled?: boolean
@@ -49,19 +51,34 @@ export function OnboardingFields({ formData, setFormData, disabled = false }: On
         </div>
       </div>
 
-      <div className="auth-form__field auth-u-mt-4">
-        <label>Email Address</label>
-        <div className="input-with-icon">
-          <Mail size={17} />
-          <input
-            type="email"
-            value={formData.email}
-            disabled
-            className="disabled-input"
-            placeholder="your@email.com"
-          />
+      {formData.isPhoneOnly ? (
+        <div className="auth-form__field auth-u-mt-4">
+          <label>Phone Number</label>
+          <div className="input-with-icon">
+            <Mail size={17} />
+            <input
+              type="tel"
+              value={formData.phone}
+              disabled
+              className="disabled-input"
+            />
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="auth-form__field auth-u-mt-4">
+          <label>Email Address</label>
+          <div className="input-with-icon">
+            <Mail size={17} />
+            <input
+              type="email"
+              value={formData.email}
+              disabled
+              className="disabled-input"
+              placeholder="your@email.com"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

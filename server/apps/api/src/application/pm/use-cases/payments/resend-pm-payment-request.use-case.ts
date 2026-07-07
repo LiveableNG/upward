@@ -25,7 +25,7 @@ export class ResendPmPaymentRequestUseCase {
     private readonly prisma: PrismaService,
   ) {}
 
-  async execute(pmId: number, uuid: string, overrideEmail?: string): Promise<any> {
+  async execute(pmId: number, uuid: string, overrideEmail?: string, channels: ('EMAIL' | 'WHATSAPP' | 'SMS')[] = ['EMAIL']): Promise<any> {
     const pmPR = await this.pmPaymentRepo.findByUuid(uuid);
     if (!pmPR) {
       throw new NotFoundException('Payment request not found');
@@ -86,8 +86,13 @@ export class ResendPmPaymentRequestUseCase {
     if (!tenant) throw new NotFoundException('Tenant not found');
 
     const tenantEmail = overrideEmail || tenant.email || null;
-    if (!tenantEmail) {
+    if (channels.includes('EMAIL') && !tenantEmail) {
       throw new BadRequestException('Tenant does not have an email address');
+    }
+
+    const tenantPhone = tenant.phone || null;
+    if ((channels.includes('SMS') || channels.includes('WHATSAPP')) && !tenantPhone) {
+      throw new BadRequestException('Tenant does not have a phone number');
     }
 
     const tenantName = tenant.firstName || 'Tenant';
@@ -104,7 +109,7 @@ export class ResendPmPaymentRequestUseCase {
 
     // Trigger Notification Event asynchronously
     this.eventBus.publish(new PmPaymentNotificationEvent(
-      tenantEmail,
+      tenantEmail || '',
       tenantName,
       pmName,
       pmPR.amount,
@@ -114,7 +119,9 @@ export class ResendPmPaymentRequestUseCase {
       paymentLink,
       coreRequestUuid,
       true, // Mark as reminder
-      pm.pmType
+      pm.pmType,
+      channels,
+      tenantPhone || undefined
     ));
 
     return { success: true, message: 'Invoice reminder is being sent' };
