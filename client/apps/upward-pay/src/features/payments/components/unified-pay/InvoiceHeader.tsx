@@ -94,8 +94,8 @@ export function InvoiceHeader({ companyName, description, logo, propertyAddress,
           border: 1px solid rgba(217, 119, 87, 0.1);
         }
         .pay-invoice-header__title {
-          font-size: 20px;
-          font-weight: 900;
+          font-size: 18px;
+          font-weight: 700;
           letter-spacing: -0.03em;
           margin: 0;
           color: var(--text);

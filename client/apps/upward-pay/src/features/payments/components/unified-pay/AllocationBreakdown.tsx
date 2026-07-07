@@ -219,6 +219,7 @@ export function AllocationBreakdown({
           font-size: 11px;
           font-weight: 600;
           color: var(--text-muted);
+          display: none;
         }
         .pay-breakdown-item__amount {
           font-size: 14px;

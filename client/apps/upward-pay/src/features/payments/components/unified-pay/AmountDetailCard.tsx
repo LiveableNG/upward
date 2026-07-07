@@ -40,10 +40,10 @@ export function AmountDetailCard({
         .pay-amount-card {
           background: var(--bg);
           border: 1px solid var(--border-solid);
-          padding: 24px;
-          border-radius: 32px;
+          padding: 16px;
+          border-radius: 12px;
           text-align: center;
-          margin-bottom: 24px;
+          margin-bottom: 16px;
           box-shadow: 0 12px 48px rgba(0,0,0,0.04);
           position: relative;
           overflow: hidden;
@@ -62,8 +62,8 @@ export function AmountDetailCard({
           margin-bottom: 12px;
         }
         .pay-amount-card__value {
-          font-size: 32px;
-          font-weight: 950;
+          font-size: 28px;
+          font-weight: 700;
           color: var(--text);
           margin-bottom: 12px;
           letter-spacing: -0.05em;
