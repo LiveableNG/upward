@@ -146,7 +146,18 @@ export class PaymentConfigurationService implements OnModuleInit {
         where: { targetType_targetId: { targetType: 'USER', targetId: user.uuid } },
       });
       if (userOverride) {
-        return { transactionFee: userOverride.fee, benefitsFee: 0, rentValue };
+        return { transactionFee: userOverride.fee, benefitsFee: 0, rentValue, benefitsPaid: true, benefitsPaidForRequest: true };
+      }
+      // TEMP GLOBAL ENV OVERRIDE
+      const tempGlobalFee = this.configService.get<number>('TEMP_GLOBAL_FEE_AMOUNT');
+      if (tempGlobalFee !== undefined && tempGlobalFee !== null && !isNaN(Number(tempGlobalFee))) {
+        return { 
+          transactionFee: Number(tempGlobalFee), 
+          benefitsFee: 0, 
+          rentValue, 
+          benefitsPaid: true, 
+          benefitsPaidForRequest: true 
+        };
       }
 
       // Check if benefits are already paid for this tenure
@@ -211,12 +222,17 @@ export class PaymentConfigurationService implements OnModuleInit {
     return rates.transactionFee + activeBenefitsFee;
   }
 
-  getGatewayFee(): number {
-    return this.configService.get<number>('PAYMENT_GATEWAY_FEE') || 300;
+  getGatewayFee(amount?: number): number {
+    const defaultCap = this.configService.get<number>('PAYMENT_GATEWAY_FEE') || 300;
+    if (amount !== undefined && amount > 0) {
+      const dynamicFee = amount * 0.01;
+      return Math.min(dynamicFee, defaultCap);
+    }
+    return defaultCap;
   }
 
-  getNetRevenuePerTransaction(): number {
-    return this.getProcessingFee() - this.getGatewayFee();
+  getNetRevenuePerTransaction(amount?: number): number {
+    return this.getProcessingFee() - this.getGatewayFee(amount);
   }
 
   getMinPaymentAmount(): number {

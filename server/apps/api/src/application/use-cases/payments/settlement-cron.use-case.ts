@@ -300,7 +300,7 @@ export class ProcessHourlySettlementsUseCase {
 
       try {
         const bank = tx.user.bankDetails;
-        const refundAmount = tx.amount - this.paymentConfig.getGatewayFee(); // Refund everything minus Paystack fee
+        const refundAmount = tx.amount - this.paymentConfig.getGatewayFee(tx.amount); // Refund everything minus Paystack fee
 
         this.logger.log(`Initiating automated refund of ₦${refundAmount} to ${bank.accountNumber}`);
 
