@@ -211,17 +211,12 @@ export class PaymentConfigurationService implements OnModuleInit {
     return rates.transactionFee + activeBenefitsFee;
   }
 
-  getGatewayFee(amount?: number): number {
-    const defaultCap = this.configService.get<number>('PAYMENT_GATEWAY_FEE') || 300;
-    if (amount !== undefined && amount > 0) {
-      const dynamicFee = amount * 0.01;
-      return Math.min(dynamicFee, defaultCap);
-    }
-    return defaultCap;
+  getGatewayFee(): number {
+    return this.configService.get<number>('PAYMENT_GATEWAY_FEE') || 300;
   }
 
-  getNetRevenuePerTransaction(amount?: number): number {
-    return this.getProcessingFee() - this.getGatewayFee(amount);
+  getNetRevenuePerTransaction(): number {
+    return this.getProcessingFee() - this.getGatewayFee();
   }
 
   getMinPaymentAmount(): number {
