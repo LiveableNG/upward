@@ -1,7 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { CreateBlogPostDto, UpdateBlogPostDto } from '../../../interfaces/http/dto/blog-post.dto'
-
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
+import { ConfigService } from '@nestjs/config'
+import * as crypto from 'crypto'
 const PUBLISHED_STATUS = 'PUBLISHED'
 const DRAFT_STATUS = 'DRAFT'
 
@@ -171,8 +173,52 @@ export class DeleteBlogPostUseCase {
     if (!existing) {
       throw new NotFoundException('Blog post not found')
     }
-
     await this.prisma.upward_blog_post.delete({ where: { uuid } })
     return { deleted: true }
+  }
+}
+
+export interface UploadBlogImageDto {
+  base64Data: string
+  contentType: string
+  originalName?: string
+}
+
+@Injectable()
+export class UploadBlogImageUseCase {
+  private readonly MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+
+  constructor(
+    private readonly s3Service: S3Service,
+    private readonly configService: ConfigService,
+  ) { }
+
+  async execute(dto: UploadBlogImageDto) {
+    if (!dto.contentType.startsWith('image/')) {
+      throw new BadRequestException('Only image files are allowed.')
+    }
+
+    const buffer = Buffer.from(dto.base64Data, 'base64')
+    if (buffer.length > this.MAX_FILE_SIZE) {
+      throw new BadRequestException('File is too large. Max 5MB.')
+    }
+
+    const fileExtension = dto.originalName?.split('.').pop() || dto.contentType.split('/')[1] || 'png'
+    const uuid = crypto.randomUUID()
+    const s3Key = `blog/images/${uuid}.${fileExtension}`
+
+    // Still upload to S3 for storage
+    await this.s3Service.uploadBuffer(buffer, s3Key, dto.contentType)
+
+    // Return the proxy URL instead of the direct AWS URL
+    const baseUrl = this.configService.get<string>('API_URL') || 
+                    this.configService.get<string>('BACKEND_URL') || 
+                    'http://localhost:4000';
+                    
+    const url = `${baseUrl}/api/v1/public/blog/images/${uuid}.${fileExtension}`;
+
+    return {
+      url,
+    }
   }
 }

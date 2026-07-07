@@ -107,9 +107,16 @@ const BlogPosts: React.FC<BlogPostsProps> = ({ token }) => {
       }
       await fetchPosts()
       if (!selectedUuid) resetEditor()
-    } catch (error) {
+    } catch (error: any) {
       console.error(error)
-      showToast('Could not save blog post', true)
+      const msg = error?.message
+      if (Array.isArray(msg) && msg.length > 0) {
+        showToast(msg[0], true)
+      } else if (typeof msg === 'string') {
+        showToast(msg, true)
+      } else {
+        showToast('Could not save blog post', true)
+      }
     } finally {
       setSubmitting(false)
     }
@@ -250,12 +257,60 @@ const BlogPosts: React.FC<BlogPostsProps> = ({ token }) => {
               value={form.authorName}
               onChange={(event) => setForm((prev) => ({ ...prev, authorName: event.target.value }))}
             />
-            <input
-              className="input"
-              placeholder="Cover image URL"
-              value={form.coverImageUrl}
-              onChange={(event) => setForm((prev) => ({ ...prev, coverImageUrl: event.target.value }))}
-            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                className="input"
+                style={{ flex: 1 }}
+                placeholder="Cover image URL"
+                value={form.coverImageUrl}
+                onChange={(event) => setForm((prev) => ({ ...prev, coverImageUrl: event.target.value }))}
+              />
+              <button
+                className="btn btn-secondary"
+                disabled={submitting}
+                type="button"
+                onClick={() => {
+                  const input = document.createElement('input')
+                  input.type = 'file'
+                  input.accept = 'image/*'
+                  input.onchange = async (e: any) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setSubmitting(true)
+                    try {
+                      const reader = new FileReader()
+                      reader.onload = async () => {
+                        try {
+                          const base64Data = (reader.result as string).split(',')[1]
+                          const res = await apiService.post('/admin/blog-posts/upload-image', {
+                            base64Data,
+                            contentType: file.type,
+                            originalName: file.name
+                          }, token)
+                          if (res.url) {
+                            setForm(prev => ({ ...prev, coverImageUrl: res.url }))
+                            showToast('Cover image uploaded successfully')
+                          }
+                        } catch (err: any) {
+                          console.error(err)
+                          showToast('Failed to upload image', true)
+                        } finally {
+                          setSubmitting(false)
+                        }
+                      }
+                      reader.readAsDataURL(file)
+                    } catch (err: any) {
+                      console.error(err)
+                      showToast('Failed to read file', true)
+                      setSubmitting(false)
+                    }
+                  }
+                  input.click()
+                }}
+              >
+                Upload
+              </button>
+            </div>
           </div>
           <textarea
             className="input"
@@ -273,9 +328,62 @@ const BlogPosts: React.FC<BlogPostsProps> = ({ token }) => {
                 menubar: false,
                 plugins: ['advlist', 'autolink', 'lists', 'link', 'image', 'table', 'code', 'fullscreen'],
                 toolbar:
-                  'undo redo | blocks fontfamily fontsize | bold italic underline | forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link image table | code fullscreen',
+                  'undo redo | blocks fontfamily fontsize | bold italic underline | forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link customimage table | code fullscreen',
                 branding: false,
                 promotion: false,
+                images_upload_handler: async (blobInfo: any) => {
+                  try {
+                    const base64Data = blobInfo.base64()
+                    const file = blobInfo.blob()
+                    const res = await apiService.post('/admin/blog-posts/upload-image', {
+                      base64Data,
+                      contentType: file.type,
+                      originalName: blobInfo.filename()
+                    }, token)
+                    if (res.url) {
+                      return res.url
+                    }
+                    throw new Error('Upload failed')
+                  } catch (err: any) {
+                    console.error(err)
+                    throw new Error(err.message || 'Image upload failed')
+                  }
+                },
+                file_picker_types: 'image',
+                setup: (editor: any) => {
+                  editor.ui.registry.addButton('customimage', {
+                    icon: 'image',
+                    tooltip: 'Insert Image',
+                    onAction: () => {
+                      const input = document.createElement('input')
+                      input.setAttribute('type', 'file')
+                      input.setAttribute('accept', 'image/*')
+                      input.onchange = async (e: any) => {
+                        const file = e.target.files[0]
+                        if (!file) return
+                        const reader = new FileReader()
+                        reader.onload = async () => {
+                          try {
+                            const base64Data = (reader.result as string).split(',')[1]
+                            const res = await apiService.post('/admin/blog-posts/upload-image', {
+                              base64Data,
+                              contentType: file.type,
+                              originalName: file.name
+                            }, token)
+                            if (res.url) {
+                              editor.insertContent(`<img src="${res.url}" alt="${file.name}" style="max-width: 100%; height: auto;" />`)
+                            }
+                          } catch (err) {
+                            console.error(err)
+                            showToast('Failed to upload inline image', true)
+                          }
+                        }
+                        reader.readAsDataURL(file)
+                      }
+                      input.click()
+                    }
+                  })
+                }
               }}
             />
           </div>

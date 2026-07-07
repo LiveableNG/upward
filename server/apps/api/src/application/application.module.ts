@@ -198,6 +198,7 @@ import {
   PublishBlogPostUseCase,
   UnpublishBlogPostUseCase,
   UpdateBlogPostUseCase,
+  UploadBlogImageUseCase,
 } from './use-cases/blog/blog-post.use-cases'
 import { AuthModule } from './auth/auth.module'
 import { CreateAnnouncementUseCase } from './use-cases/notifications/create-announcement.use-case'
@@ -500,6 +501,7 @@ const UseCases = [
   PublishBlogPostUseCase,
   UnpublishBlogPostUseCase,
   DeleteBlogPostUseCase,
+  UploadBlogImageUseCase,
 ]
 
 @Module({

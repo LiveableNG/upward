@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards, BadRequestException } from '@nestjs/common'
+import { randomUUID } from 'crypto'
 import { AdminJwtAuthGuard } from '../../../application/auth/guards/admin-jwt-auth.guard'
 import {
   CreateBlogPostUseCase,
@@ -7,6 +8,7 @@ import {
   PublishBlogPostUseCase,
   UnpublishBlogPostUseCase,
   UpdateBlogPostUseCase,
+  UploadBlogImageUseCase,
 } from '../../../application/use-cases/blog/blog-post.use-cases'
 import { CreateBlogPostDto, UpdateBlogPostDto } from '../dto/blog-post.dto'
 
@@ -20,8 +22,8 @@ export class AdminBlogPostsController {
     private readonly publishBlogPostUseCase: PublishBlogPostUseCase,
     private readonly unpublishBlogPostUseCase: UnpublishBlogPostUseCase,
     private readonly deleteBlogPostUseCase: DeleteBlogPostUseCase,
+    private readonly uploadBlogImageUseCase: UploadBlogImageUseCase,
   ) {}
-
   @Get()
   async getAll() {
     return { data: await this.getAdminBlogPostsUseCase.execute() }
@@ -50,5 +52,21 @@ export class AdminBlogPostsController {
   @Delete(':uuid')
   async remove(@Param('uuid') uuid: string) {
     return { data: await this.deleteBlogPostUseCase.execute(uuid) }
+  }
+
+  @Post('upload-image')
+  async uploadImage(
+    @Body() body: { base64Data: string; contentType: string; originalName?: string },
+  ) {
+    if (!body.base64Data || !body.contentType) {
+      throw new BadRequestException('base64Data and contentType are required')
+    }
+    
+    const result = await this.uploadBlogImageUseCase.execute(body)
+    
+    return {
+      success: true,
+      ...result,
+    }
   }
 }
