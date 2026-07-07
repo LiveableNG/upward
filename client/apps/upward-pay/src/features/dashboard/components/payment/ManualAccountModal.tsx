@@ -23,10 +23,16 @@ type ManualAccountForm = z.infer<typeof manualAccountSchema>
 interface ManualAccountModalProps {
   propertyId: number
   propertyName: string
+  initialData?: {
+    bankCode?: string
+    accountNumber: string
+    accountName: string
+    bankName: string
+  }
   onClose: () => void
 }
 
-export function ManualAccountModal({ propertyId, propertyName, onClose }: ManualAccountModalProps) {
+export function ManualAccountModal({ propertyId, propertyName, initialData, onClose }: ManualAccountModalProps) {
   const toast = useToast()
   const queryClient = useQueryClient()
   const [isVerifying, setIsVerifying] = useState(false)
@@ -35,7 +41,7 @@ export function ManualAccountModal({ propertyId, propertyName, onClose }: Manual
 
   const { register, handleSubmit, setValue, control, reset, formState: { errors, isDirty } } = useForm<ManualAccountForm>({
     resolver: zodResolver(manualAccountSchema),
-    defaultValues: {
+    defaultValues: initialData || {
       bankCode: '',
       accountNumber: '',
       accountName: '',
@@ -45,6 +51,7 @@ export function ManualAccountModal({ propertyId, propertyName, onClose }: Manual
 
   const selectedBankCode = useWatch({ control, name: 'bankCode' })
   const accountNumber = useWatch({ control, name: 'accountNumber' })
+  const accountName = useWatch({ control, name: 'accountName' })
 
   const { data: banks = [], isLoading: loadingBanks } = useQuery<{ name: string, code: string }[]>({
     queryKey: ['banks'],
@@ -124,8 +131,8 @@ export function ManualAccountModal({ propertyId, propertyName, onClose }: Manual
           </div>
         </div>
 
-        <form onSubmit={handleSubmit((data) => addAccount(data))} className="p-6">
-          <div className="pay-flow__field mb-4">
+        <form onSubmit={handleSubmit((data) => addAccount(data))} className="modal-card__form">
+          <div className="pay-flow__field field-spacing-sm">
             <label className="pay-flow__field-label">Bank</label>
             <div
               role="button"
@@ -144,10 +151,10 @@ export function ManualAccountModal({ propertyId, propertyName, onClose }: Manual
                 </span>
               )}
             </div>
-            {errors.bankCode && <span className="text-[var(--error)] text-xs mt-1 block">{errors.bankCode.message}</span>}
+            {errors.bankCode && <span className="field-error">{errors.bankCode.message}</span>}
           </div>
 
-          <div className="pay-flow__field mb-6">
+          <div className="pay-flow__field field-spacing-md">
             <label className="pay-flow__field-label">Account Number</label>
             <div className={`pay-flow__input-wrap ${isVerifying ? 'pay-flow__input-wrap--loading' : ''} ${isConfirmed ? 'pay-flow__input-wrap--success' : ''}`}>
               <input 
@@ -161,20 +168,20 @@ export function ManualAccountModal({ propertyId, propertyName, onClose }: Manual
               {isVerifying && <span className="pay-flow__cta-spinner" style={{ borderColor: 'var(--clay)', borderTopColor: 'transparent' }} />}
               {isConfirmed && <span style={{ color: 'var(--success)' }}><CheckCircle2 size={18} /></span>}
             </div>
-            {errors.accountNumber && <span className="text-[var(--error)] text-xs mt-1 block">{errors.accountNumber.message}</span>}
+            {errors.accountNumber && <span className="field-error">{errors.accountNumber.message}</span>}
           </div>
 
           {isConfirmed && !isVerifying && (
-            <div className="bg-[var(--success-faint)] text-[var(--success)] p-3 rounded-lg flex items-center gap-2 border border-green-200 mb-6">
+            <div className="success-banner">
               <CheckCircle2 size={18} />
-              <div className="flex-1 overflow-hidden">
-                <p className="text-xs font-semibold">Account Verified</p>
-                <p className="text-sm truncate font-bold">{useWatch({ control, name: 'accountName' })}</p>
+              <div className="success-banner__content">
+                <p className="success-banner__title">Account Verified</p>
+                <p className="success-banner__text">{accountName}</p>
               </div>
             </div>
           )}
 
-          <div className="flex gap-3 pt-2 mt-6">
+          <div className="modal-card__actions">
             <button type="button" className="btn btn--secondary flex-1" onClick={onClose} disabled={isPending}>
               Cancel
             </button>
@@ -217,12 +224,15 @@ export function ManualAccountModal({ propertyId, propertyName, onClose }: Manual
         }
         .modal-card {
           background: var(--bg);
-          width: 100%;
-          max-width: 440px;
+          width: 95%;
+          max-width: 500px;
+          height: auto;
           border-radius: 24px;
           box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
           overflow: hidden;
           position: relative;
+          display: flex;
+          flex-direction: column;
         }
         .modal-card__header {
           padding: 24px 24px 20px;
@@ -248,6 +258,64 @@ export function ManualAccountModal({ propertyId, propertyName, onClose }: Manual
         .modal-card__subtitle {
           font-size: 13px;
           color: var(--text-secondary);
+        }
+        .modal-card__form {
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+        }
+        .field-spacing-sm {
+          margin-bottom: 16px;
+        }
+        .field-spacing-md {
+          margin-bottom: 24px;
+        }
+        .field-error {
+          color: var(--error);
+          font-size: 12px;
+          margin-top: 4px;
+          display: block;
+        }
+        .success-banner {
+          background: var(--success-faint);
+          color: var(--success);
+          padding: 12px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          border: 1px solid var(--success);
+          margin-bottom: 24px;
+        }
+        .success-banner__content {
+          flex: 1;
+          overflow: hidden;
+        }
+        .success-banner__title {
+          font-size: 12px;
+          font-weight: 600;
+          margin: 0;
+        }
+        .success-banner__text {
+          font-size: 14px;
+          font-weight: 700;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          margin: 0;
+        }
+        .modal-card__actions {
+          display: flex;
+          gap: 12px;
+          margin-top: 8px;
+        }
+        .flex-1 {
+          flex: 1;
+        }
+        form input, 
+        form select {
+          width: 100%;
+          box-sizing: border-box;
         }
       `}</style>
     </div>

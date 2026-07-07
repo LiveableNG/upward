@@ -1399,13 +1399,13 @@ export class GetPendingPaymentsUseCase {
         status: { in: ['PENDING', 'REJECTED'] }
       },
       include: {
-        userProperty: { include: { location: true } }
+        userProperty: { include: { location: true, company: true } }
       }
     })
 
     const standaloneProofsData = standaloneProofs.map(proof => {
       const p = proof.userProperty
-      const property_address = p?.location ? `${p.location.area}, ${p.location.state}` : p?.address || 'Your Property'
+      const property_address = p?.location ? `${p.location.area}, ${p.location.state}` : 'Your Property'
       return {
         id: proof.id,
         uuid: proof.uuid,

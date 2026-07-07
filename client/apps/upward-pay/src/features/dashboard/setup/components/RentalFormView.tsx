@@ -117,6 +117,7 @@ export function RentalFormView() {
   }
 
   const validatePaymentStep = () => {
+    if (draft.isManagedProperty) return true
     if (!isPaymentAccountResolved(draft.paymentDetails)) {
       toast.error('Please enter and verify a valid bank account.', 'Required')
       return false
@@ -261,7 +262,7 @@ export function RentalFormView() {
 
   const footer = isEdit ? (
   <>
-    {formStep === 'manager' ? (
+    {formStep === 'manager' && !draft.isManagedProperty ? (
       <button
         type="button"
         className="setup-page__change-contact"
@@ -271,13 +272,19 @@ export function RentalFormView() {
         Skip for now
       </button>
     ) : null}
-    <PayFlowPrimaryButton onClick={handlePrimaryContinue}>
-      {formStep === 'manager' ? 'Continue' : 'Continue'}
-    </PayFlowPrimaryButton>
+    {formStep === 'manager' && draft.isManagedProperty ? (
+      <PayFlowPrimaryButton onClick={() => router.push(setupRentalListPath())}>
+        Close
+      </PayFlowPrimaryButton>
+    ) : (
+      <PayFlowPrimaryButton onClick={handlePrimaryContinue}>
+        Continue
+      </PayFlowPrimaryButton>
+    )}
   </>
   ) : (
     <>
-      {formStep === 'manager' ? (
+      {formStep === 'manager' && !draft.isManagedProperty ? (
         <button
           type="button"
           className="setup-page__change-contact"
@@ -287,10 +294,16 @@ export function RentalFormView() {
           Skip for now
         </button>
       ) : null}
-      <SetupPrimaryButton onClick={handlePrimaryContinue}>
-        Continue
-        <ArrowRight size={18} aria-hidden />
-      </SetupPrimaryButton>
+      {formStep === 'manager' && draft.isManagedProperty ? (
+        <SetupPrimaryButton onClick={() => router.push(setupRentalListPath())}>
+          Close
+        </SetupPrimaryButton>
+      ) : (
+        <SetupPrimaryButton onClick={handlePrimaryContinue}>
+          Continue
+          <ArrowRight size={18} aria-hidden />
+        </SetupPrimaryButton>
+      )}
     </>
   )
 
@@ -298,9 +311,15 @@ export function RentalFormView() {
     <>
       {formStep === 'property' && (
         <div className="setup-page__fields">
+          {draft.isManagedProperty && (
+            <p className="setup-page__hint" style={{ marginBottom: 16, color: 'var(--primary)' }}>
+              This property is managed by your property manager. Your tenancy details are locked and cannot be edited.
+            </p>
+          )}
           <div className="setup-page__field">
             <label>Property address</label>
             <input
+              disabled={draft.isManagedProperty}
               className="setup-page__input"
               type="text"
               placeholder="14 Admiralty Way, Lekki"
@@ -315,6 +334,7 @@ export function RentalFormView() {
             <div className="setup-page__field">
               <label>Area</label>
               <input
+                disabled={draft.isManagedProperty}
                 className="setup-page__input"
                 type="text"
                 placeholder="Lekki"
@@ -327,6 +347,7 @@ export function RentalFormView() {
             <div className="setup-page__field">
               <label>State</label>
               <select
+                disabled={draft.isManagedProperty}
                 className="setup-page__input"
                 value={draft.formData.state}
                 onChange={(e) =>
@@ -345,6 +366,7 @@ export function RentalFormView() {
           <div className="setup-page__field">
             <label>Country</label>
             <select
+              disabled={draft.isManagedProperty}
               className="setup-page__input"
               value={draft.formData.country}
               onChange={(e) =>
@@ -369,6 +391,7 @@ export function RentalFormView() {
             <div className="setup-page__field">
               <label>Rent cycle</label>
               <select
+                disabled={draft.isManagedProperty}
                 className="setup-page__input"
                 value={draft.formData.rentType || 'Annually'}
                 onChange={(e) => {
@@ -390,6 +413,7 @@ export function RentalFormView() {
               <div className="setup-page__input-row">
                 <span>₦</span>
                 <input
+                  disabled={draft.isManagedProperty}
                   type="text"
                   placeholder="1,200,000"
                   value={draft.formData.rentAmount}
@@ -411,6 +435,7 @@ export function RentalFormView() {
             <div className="setup-page__field">
               <label>Lease start</label>
               <input
+                disabled={draft.isManagedProperty}
                 className="setup-page__input"
                 type="date"
                 value={draft.formData.rentStartDate}
@@ -430,6 +455,7 @@ export function RentalFormView() {
             <div className="setup-page__field">
               <label>Next rent due</label>
               <input
+                disabled={draft.isManagedProperty}
                 className="setup-page__input"
                 type="date"
                 min={draft.formData.rentStartDate || undefined}
@@ -449,11 +475,19 @@ export function RentalFormView() {
       )}
 
       {formStep === 'payment' && (
-        <PaymentAccountForm
-          value={draft.paymentDetails}
-          onChange={(paymentDetails) => updateDraft({ paymentDetails })}
-          intro=""
-        />
+        <div className="setup-page__fields">
+          {draft.isManagedProperty && (
+            <p className="setup-page__hint" style={{ marginBottom: 16, color: 'var(--primary)' }}>
+              This property is managed by your property manager. Payment details are locked and cannot be edited.
+            </p>
+          )}
+          <PaymentAccountForm
+            value={draft.paymentDetails}
+            onChange={(paymentDetails) => updateDraft({ paymentDetails })}
+            intro=""
+            disabled={draft.isManagedProperty}
+          />
+        </div>
       )}
 
       {formStep === 'manager' && (
@@ -497,9 +531,11 @@ export function RentalFormView() {
               <div>
                 <p className="setup-page__status-label">Manager found on Upward</p>
                 <p className="setup-page__status-value">{draft.pmDetails.businessName}</p>
-                <button type="button" className="setup-page__change-contact" onClick={handleChangeContact}>
-                  Use a different contact
-                </button>
+                {!draft.isManagedProperty && (
+                  <button type="button" className="setup-page__change-contact" onClick={handleChangeContact}>
+                    Use a different contact
+                  </button>
+                )}
               </div>
             </div>
           )}

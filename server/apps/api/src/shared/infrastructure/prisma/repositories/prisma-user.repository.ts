@@ -83,6 +83,12 @@ export class PrismaUserRepository implements UserRepository {
           accountName: p.dedicatedAccount.accountName,
           bankName: p.dedicatedAccount.bankName,
           bankCode: p.dedicatedAccount.bankCode
+        } : undefined,
+        manualAccount: p.manualAccount ? {
+          accountNumber: p.manualAccount.accountNumber,
+          accountName: p.manualAccount.accountName,
+          bankName: p.manualAccount.bankName,
+          bankCode: p.manualAccount.bankCode
         } : undefined
       })) : [],
       companyUsers: model.companyUsers ? model.companyUsers.map((cu: any) => ({
@@ -113,7 +119,8 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true
+            dedicatedAccount: true,
+            manualAccount: true
           }
         },
         companyUsers: {
@@ -139,7 +146,8 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true
+            dedicatedAccount: true,
+            manualAccount: true
           }
         },
         companyUsers: {
@@ -165,6 +173,7 @@ export class PrismaUserRepository implements UserRepository {
             pm: true,
             subaccount: true,
             dedicatedAccount: true,
+            manualAccount: true,
           },
         },
         companyUsers: {
@@ -189,7 +198,8 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true
+            dedicatedAccount: true,
+            manualAccount: true
           }
         },
         companyUsers: {
@@ -214,7 +224,8 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true
+            dedicatedAccount: true,
+            manualAccount: true
           }
         },
         companyUsers: {
@@ -239,7 +250,8 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true
+            dedicatedAccount: true,
+            manualAccount: true
           }
         },
         companyUsers: {
@@ -263,7 +275,8 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true
+            dedicatedAccount: true,
+            manualAccount: true
           }
         },
         companyUsers: {
@@ -352,7 +365,8 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true
+            dedicatedAccount: true,
+            manualAccount: true
           }
         },
         companyUsers: {

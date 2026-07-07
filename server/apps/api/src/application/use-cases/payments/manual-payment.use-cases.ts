@@ -23,14 +23,23 @@ export class AddManualAccountUseCase {
       throw new Error('Must provide either userPropertyId or pmPropertyId')
     }
 
-    return this.prisma.upward_manual_account.create({
-      data: {
+    return this.prisma.upward_manual_account.upsert({
+      where: data.userPropertyId 
+        ? { userPropertyId: data.userPropertyId } 
+        : { pmPropertyId: data.pmPropertyId },
+      create: {
         accountNumber: data.accountNumber,
         accountName: data.accountName,
         bankName: data.bankName,
         bankCode: data.bankCode,
         userPropertyId: data.userPropertyId,
         pmPropertyId: data.pmPropertyId,
+      },
+      update: {
+        accountNumber: data.accountNumber,
+        accountName: data.accountName,
+        bankName: data.bankName,
+        bankCode: data.bankCode,
       }
     })
   }

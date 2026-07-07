@@ -46,6 +46,12 @@ export interface UserProfile {
       state?: string;
       country?: string;
     }
+    manualAccount?: {
+      accountNumber: string;
+      accountName: string;
+      bankName: string;
+      bankCode?: string;
+    }
   }>
   isFromWaitlist: boolean
   isFromInvite: boolean

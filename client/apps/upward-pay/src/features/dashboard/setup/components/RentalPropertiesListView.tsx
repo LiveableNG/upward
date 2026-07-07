@@ -40,7 +40,7 @@ interface RentalPropertiesListViewProps {
 
 export function RentalPropertiesListView({ properties }: RentalPropertiesListViewProps) {
   const router = useRouter()
-  const [manualAccountModalProperty, setManualAccountModalProperty] = useState<{ id: number, name: string } | null>(null)
+  const [manualAccountModalProperty, setManualAccountModalProperty] = useState<{ id: number, name: string, initialData?: any } | null>(null)
 
   return (
     <PayPageShell
@@ -57,13 +57,22 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
             const manager = formatManagerLabel(prop)
 
             return (
-              <button
+              <div
                 key={prop.uuid || address}
-                type="button"
+                role="button"
+                tabIndex={0}
                 className="pay-flow__card pay-flow__property-card"
                 onClick={() => {
                   if (prop.uuid) {
                     router.push(setupEditPropertyPath(prop.uuid))
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    if (prop.uuid) {
+                      router.push(setupEditPropertyPath(prop.uuid))
+                    }
                   }
                 }}
               >
@@ -98,16 +107,25 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                       className="btn btn--secondary btn--sm"
                       onClick={(e) => {
                         e.stopPropagation()
-                        setManualAccountModalProperty({ id: prop.id, name: prop.location?.area || prop.address || 'Property' })
+                        setManualAccountModalProperty({ 
+                          id: prop.id, 
+                          name: prop.location?.area || prop.address || 'Property',
+                          initialData: prop.manualAccount
+                        })
                       }}
                       style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8 }}
                     >
-                      Setup Manual Transfer
+                      {prop.manualAccount ? 'Edit Manual Transfer' : 'Setup Manual Transfer'}
                     </button>
+                    {prop.manualAccount && (
+                      <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ marginTop: 8 }}>
+                        Bank: {prop.manualAccount.bankName} - {prop.manualAccount.accountNumber}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <ChevronRight size={18} className="pay-flow__card-trailing" />
-              </button>
+              </div>
             )
           })}
 
@@ -136,6 +154,7 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
         <ManualAccountModal
           propertyId={manualAccountModalProperty.id}
           propertyName={manualAccountModalProperty.name}
+          initialData={manualAccountModalProperty.initialData}
           onClose={() => setManualAccountModalProperty(null)}
         />
       )}

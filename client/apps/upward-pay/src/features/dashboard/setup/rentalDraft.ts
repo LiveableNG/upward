@@ -3,6 +3,7 @@ import { isPaymentAccountResolved } from '../components/payment/PaymentAccountFo
 import { isRentDateRangeValid } from './rentalDates'
 
 export function isPaymentDraftComplete(draft: SetupDraft): boolean {
+  if (draft.isManagedProperty) return true
   return isPaymentAccountResolved(draft.paymentDetails)
 }
 
