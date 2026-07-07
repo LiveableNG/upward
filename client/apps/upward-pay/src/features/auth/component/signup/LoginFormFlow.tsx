@@ -58,6 +58,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
   const [loginEmail, setLoginEmail] = useState(initialEmail)
   const [loginPhone, setLoginPhone] = useState('')
   const [identifierType, setIdentifierType] = useState<'email' | 'phone'>('email')
+  const [phoneChannel, setPhoneChannel] = useState<'SMS' | 'WHATSAPP'>('SMS')
   const [loginPassword, setLoginPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loginMethod, setLoginMethod] = useState<LoginMethod>(null)
@@ -184,7 +185,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
     const identifier = identifierType === 'phone' ? (loginPhone.startsWith('+') ? loginPhone : `+234${loginPhone.replace(/^0/, '')}`) : loginEmail
 
     try {
-      await requestOTP(identifier, context, identifierType)
+      await requestOTP(identifier, context, identifierType, phoneChannel)
       setStep('otp')
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to send verification code'
@@ -359,18 +360,30 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
                 {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} />}
               </div>
             ) : (
-              <div className="input-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center', border: '1px solid #e2e2e2', borderRadius: '14px', padding: '0 16px', background: '#fff', transition: 'border-color 0.2s', height: '46px' }}>
-                <span className="country-code" style={{ fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', color: '#7a7268', borderRight: '1px solid #eee', paddingRight: '8px', marginRight: '8px' }}>+234</span>
-                <input 
-                  type="tel" 
-                  inputMode="numeric"
-                  placeholder="800 000 0000" 
-                  style={{ border: 'none', outline: 'none', height: '100%', width: '100%', fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', background: 'transparent' }}
-                  value={loginPhone}
-                  onChange={(e) => setLoginPhone(e.target.value)}
-                  required={identifierType === 'phone'}
-                />
-                {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} style={{ position: 'absolute', right: '16px' }} />}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div className="input-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center', border: '1px solid #e2e2e2', borderRadius: '14px', padding: '0 16px', background: '#fff', transition: 'border-color 0.2s', height: '46px' }}>
+                  <span className="country-code" style={{ fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', color: '#7a7268', borderRight: '1px solid #eee', paddingRight: '8px', marginRight: '8px' }}>+234</span>
+                  <input 
+                    type="tel" 
+                    inputMode="numeric"
+                    placeholder="800 000 0000" 
+                    style={{ border: 'none', outline: 'none', height: '100%', width: '100%', fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', background: 'transparent' }}
+                    value={loginPhone}
+                    onChange={(e) => setLoginPhone(e.target.value)}
+                    required={identifierType === 'phone'}
+                  />
+                  {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} style={{ position: 'absolute', right: '16px' }} />}
+                </div>
+                {loginMethod === 'code' && (
+                  <div style={{ display: 'flex', gap: '16px', marginTop: '12px', paddingLeft: '4px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
+                      <input type="radio" name="phoneChannelLogin" checked={phoneChannel === 'SMS'} onChange={() => setPhoneChannel('SMS')} style={{ accentColor: 'var(--clay)' }} /> SMS
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
+                      <input type="radio" name="phoneChannelLogin" checked={phoneChannel === 'WHATSAPP'} onChange={() => setPhoneChannel('WHATSAPP')} style={{ accentColor: 'var(--clay)' }} /> WhatsApp
+                    </label>
+                  </div>
+                )}
               </div>
             )}
 

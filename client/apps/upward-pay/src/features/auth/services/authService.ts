@@ -124,10 +124,10 @@ export async function checkEmail(email: string, type?: 'email' | 'phone') {
   })
 }
 
-export async function requestOTP(email: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' | 'WAITLIST', type?: 'email' | 'phone') {
+export async function requestOTP(email: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' | 'WAITLIST', type?: 'email' | 'phone', channel?: 'SMS' | 'WHATSAPP') {
   return request<{ success: boolean; message: string }>('/user/auth/request-otp', {
     method: 'POST',
-    body: JSON.stringify({ email, context, type }),
+    body: JSON.stringify({ email, context, type, channel }),
   })
 }
 

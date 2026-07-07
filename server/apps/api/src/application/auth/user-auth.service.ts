@@ -11,6 +11,7 @@ import * as bcrypt from 'bcrypt'
 import { UserAuthResponse } from '@upward/shared-types'
 import { BaseAuthService } from './base-auth.service'
 import { EncryptionService } from '../../shared/infrastructure/common/encryption.service'
+import { WhatsappService } from '../../shared/infrastructure/whatsapp/whatsapp.service'
 
 @Injectable()
 export class UserAuthService extends BaseAuthService {
@@ -20,6 +21,7 @@ export class UserAuthService extends BaseAuthService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
+    private readonly whatsappService: WhatsappService,
     private readonly encryption: EncryptionService,
     private readonly s3Service: S3Service,
     jwtService: JwtService,
@@ -727,7 +729,7 @@ export class UserAuthService extends BaseAuthService {
 
   }
 
-  async requestOTP(identifier: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' | 'WAITLIST', type: 'email' | 'phone' = 'email'): Promise<{ context: string }> {
+  async requestOTP(identifier: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' | 'WAITLIST', type: 'email' | 'phone' = 'email', channel: 'SMS' | 'WHATSAPP' = 'SMS'): Promise<{ context: string }> {
     let existing = null;
     if (type === 'phone') {
       existing = await this.userRepository.findByPhone(identifier);
@@ -768,12 +770,20 @@ export class UserAuthService extends BaseAuthService {
       expiresAt,
     })
 
-    // 4. Send email or SMS
+    // 4. Send email or SMS/WhatsApp
     if (type === 'phone') {
-      await this.smsService.sendSms({
-        to: identifier,
-        message: `Your Upward verification code is ${otp}. It expires in 10 minutes.`,
-      })
+      const messageText = `Your Upward verification code is ${otp}. It expires in 10 minutes.`;
+      if (channel === 'WHATSAPP') {
+        await this.whatsappService.sendMessage({
+          to: identifier,
+          message: messageText,
+        }).catch((e: any) => console.error(`Failed to send WhatsApp OTP to ${identifier}:`, e.message));
+      } else {
+        await this.smsService.sendSms({
+          to: identifier,
+          message: messageText,
+        }).catch((e: any) => console.error(`Failed to send SMS OTP to ${identifier}:`, e.message));
+      }
     } else {
       await this.emailService.sendAuthOTP(identifier, otp, effectiveContext as any)
     }

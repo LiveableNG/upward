@@ -294,9 +294,9 @@ export class UserController {
 
   @Post('request-otp')
   @HttpCode(HttpStatus.OK)
-  async requestOTP(@Body() body: { email: string; context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT'; type?: 'email' | 'phone' }) {
+  async requestOTP(@Body() body: { email: string; context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT'; type?: 'email' | 'phone'; channel?: 'SMS' | 'WHATSAPP' }) {
     const type = body.type || (body.email.startsWith('+') ? 'phone' : 'email');
-    return this.userAuthService.requestOTP(body.email, body.context, type)
+    return this.userAuthService.requestOTP(body.email, body.context, type, body.channel || 'SMS')
   }
 
   @Post('verify-otp')
