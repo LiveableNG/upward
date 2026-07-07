@@ -75,7 +75,7 @@ export class ResolvePendingRefundUseCase {
       }
 
       const bank = tx.user.bankDetails;
-      const refundAmount = tx.amount - this.paymentConfig.getGatewayFee();
+      const refundAmount = tx.amount - this.paymentConfig.getGatewayFee(tx.amount);
 
       this.logger.log(`Initiating manual refund of ₦${refundAmount} for transaction ${tx.reference}`);
 

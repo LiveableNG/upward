@@ -25,6 +25,7 @@ const tenantSchema = z.object({
   otherPhone: z.string().optional().refine((val) => !val || isValidPhoneNumber(val), {
     message: 'Invalid international phone number (e.g. +234...)'
   }),
+  deliveryChannel: z.enum(['EMAIL', 'SMS', 'WHATSAPP']).optional(),
   // Assignment fields
   unitUuid: z.string().optional(),
   rentAmount: z.string().optional(),
@@ -146,6 +147,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
       email: initialData?.email || '',
       phone: initialData?.phone || '',
       otherPhone: '',
+      deliveryChannel: undefined,
       unitUuid: '',
       rentAmount: initialData?.unitDetails?.rentAmount?.toString() || '',
       rentType: 'Annually',
@@ -230,7 +232,8 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
       commercialName: tenantType === 'commercial' ? (tenantData.commercialName || '') : '',
       email,
       phone: tenantData.phone,
-      otherPhone: tenantData.otherPhone || undefined
+      otherPhone: tenantData.otherPhone || undefined,
+      deliveryChannel: tenantData.deliveryChannel
     }
 
     if (showLeaseFields && assignMode === 'create') {
@@ -549,6 +552,49 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
               </div>
               <div />
             </div>
+
+            {/* Delivery Channel Selector */}
+            <div style={{ marginTop: 16 }}>
+              <label className="form-label" style={{ marginBottom: 8 }}>Preferred Invite Delivery Method</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12 }}>
+                {!(watch('email') || '').endsWith('@upward.com') && (watch('email') || '').trim() !== '' && (
+                  <label className={cn("delivery-option", watch('deliveryChannel') === 'EMAIL' && "delivery-option--active")}>
+                    <input
+                      type="radio"
+                      value="EMAIL"
+                      {...register('deliveryChannel')}
+                      className="sr-only"
+                    />
+                    <span>Email</span>
+                  </label>
+                )}
+                <label className={cn("delivery-option", watch('deliveryChannel') === 'SMS' && "delivery-option--active", !watch('phone') && "delivery-option--disabled")}>
+                  <input
+                    type="radio"
+                    value="SMS"
+                    {...register('deliveryChannel')}
+                    disabled={!watch('phone')}
+                    className="sr-only"
+                  />
+                  <span>SMS</span>
+                </label>
+                <label className={cn("delivery-option", watch('deliveryChannel') === 'WHATSAPP' && "delivery-option--active", !watch('phone') && "delivery-option--disabled")}>
+                  <input
+                    type="radio"
+                    value="WHATSAPP"
+                    {...register('deliveryChannel')}
+                    disabled={!watch('phone')}
+                    className="sr-only"
+                  />
+                  <span>WhatsApp</span>
+                </label>
+              </div>
+              {!watch('phone') && (
+                <p className="form-error-text" style={{ marginTop: 6, color: 'var(--text-muted)' }}>
+                  Phone number is required for SMS/WhatsApp delivery.
+                </p>
+              )}
+            </div>
           </div>
 
           {/* ── Unit Assignment ── */}
@@ -857,6 +903,50 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
         .join-request-card__val--highlight {
           color: var(--forest);
           font-size: 14px;
+        }
+
+        .delivery-option {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 10px 14px;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-muted);
+          transition: all 0.2s;
+          background: #fff;
+        }
+        .delivery-option:hover:not(.delivery-option--disabled) {
+          border-color: var(--clay);
+          color: var(--clay);
+          background: var(--clay-faint);
+        }
+        .delivery-option--active {
+          border-color: var(--clay);
+          background: var(--clay);
+          color: #fff;
+        }
+        .delivery-option--active:hover:not(.delivery-option--disabled) {
+          color: #fff;
+        }
+        .delivery-option--disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          background: var(--ivory-dim);
+        }
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border-width: 0;
         }
       `}</style>
     </div>

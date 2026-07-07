@@ -12,6 +12,7 @@ import { SingleInviteUseCase, InviteRequest } from '../../../use-cases/external/
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 
 import { SmsService } from '../../../../shared/infrastructure/sms/sms.service';
+import { WhatsappService } from '../../../../shared/infrastructure/whatsapp/whatsapp.service';
 
 @Injectable()
 export class InviteTenantUseCase {
@@ -28,9 +29,10 @@ export class InviteTenantUseCase {
     private readonly singleInviteUseCase: SingleInviteUseCase,
     private readonly prisma: PrismaService,
     private readonly smsService: SmsService,
+    private readonly whatsappService: WhatsappService,
   ) { }
 
-  async execute(pmId: number, tenantUuid: string): Promise<void> {
+  async execute(pmId: number, tenantUuid: string, deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP'): Promise<void> {
     const tenant = await this.tenantRepo.findByUuid(tenantUuid);
     if (!tenant) {
       throw new NotFoundException('Tenant not found');
@@ -156,7 +158,14 @@ export class InviteTenantUseCase {
           `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() ||
           'Tenant';
 
-      if (tenant.email && !tenant.email.endsWith('@upward.com')) {
+      // Decide channel based on preference and fallback
+      let actualChannel = deliveryChannel;
+      if (!actualChannel) {
+        if (tenant.email && !tenant.email.endsWith('@upward.com')) actualChannel = 'EMAIL';
+        else if (tenant.phone) actualChannel = 'SMS';
+      }
+
+      if (actualChannel === 'EMAIL' && tenant.email && !tenant.email.endsWith('@upward.com')) {
         success = await this.emailService.sendTenantInvite({
           email: tenant.email,
           tenantName: displayName,
@@ -165,12 +174,41 @@ export class InviteTenantUseCase {
           inviteLink: inviteResult.inviteLink,
           pmUuid: pm.uuid,
         });
-      } else if (tenant.phone && tenant.phone.startsWith('+234')) {
-        // Send SMS invite
-        const smsMessage = `Hi ${displayName}, ${pmName} has invited you to join Upward. Build your credit score, earn rewards for on-time payments, and verify your tenancy history effortlessly with Upward. Claim your account here: ${inviteResult.inviteLink}`;
+      } else if (actualChannel === 'WHATSAPP' && tenant.phone) {
+        const companyName = pm.businessName || 'Upward';
+        const managerName = `${pm.firstName} ${pm.lastName}`.trim();
+        const message = `Hi *${displayName}*,
+ 
+${managerName} at ${companyName} has invited you to join Upward, your new platform for rent payments and tenancy management.
+ 
+Your rent payments can now do more than pay for your home—they can work for you.
+ 
+With Upward you can:
+ 
+✅ Build a verified rental credibility profile from your payment history.
+✅ Keep your rental history even when you move.
+✅ Access your rent records and receipts anytime.
+ 
+*Good news:* We'll import your previous rent payment history, so you won't be starting from scratch.
+ 
+Getting started takes just a few minutes.
+ 
+👉 *Accept your invitation and activate your Upward account today:* ${inviteResult.inviteLink}
+ 
+Welcome to a more rewarding rental experience.
+
+
+*The ${companyName} Team*`;
+        success = await this.whatsappService.sendMessage({
+          to: tenant.phone,
+          message: message,
+        });
+      } else if ((actualChannel === 'SMS' || actualChannel === 'WHATSAPP') && tenant.phone && tenant.phone.startsWith('+234')) {
+        // Fallback to SMS if WHATSAPP requested but fails/invalid, or explicitly SMS
+        const message = `Hi ${displayName}, ${pmName} has invited you to join Upward. Build your credit score, earn rewards for on-time payments, and verify your tenancy history effortlessly with Upward. Claim your account here: ${inviteResult.inviteLink}`;
         success = await this.smsService.sendSms({
           to: tenant.phone,
-          message: smsMessage,
+          message: message,
         });
       } else {
         // Assume success if no valid contact info for actual sending but internal DB operations worked

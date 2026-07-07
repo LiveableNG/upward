@@ -13,6 +13,7 @@ export interface CreateTenantDto {
   phone?: string;
   otherPhone?: string;
   units?: string[]; // Optional unit UUIDs to assign immediately
+  deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP';
 }
 
 @Injectable()
@@ -115,7 +116,7 @@ export class CreateTenantUseCase {
       });
     }
 
-    this.inviteTenantUseCase.execute(pmId, tenant.uuid).catch((error) => {
+    this.inviteTenantUseCase.execute(ownerPmId, tenant.uuid, data.deliveryChannel).catch((error) => {
       console.error(`[CreateTenantUseCase] Failed to auto-sync/invite tenant ${tenant.uuid}:`, error);
     });
 

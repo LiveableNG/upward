@@ -18,20 +18,24 @@ export class SmsService {
 
   async sendSms(options: SmsOptions): Promise<boolean> {
     const isProd = process.env.NODE_ENV === 'production';
+    let finalMessage = options.message;
+    if (!finalMessage.includes('Upward by Goodtenants')) {
+      finalMessage = `${finalMessage}\n\nUpward by Goodtenants`;
+    }
 
     if (!isProd) {
       await this.prisma.upward_dev_email_preview.create({
         data: {
           to: options.to,
           subject: 'SMS Message',
-          html: `<p>${options.message}</p>`,
-          text: options.message,
+          html: `<p>${finalMessage}</p>`,
+          text: finalMessage,
         }
       });
     }
 
     if (!this.termiiApiKey) {
-      this.logger.warn(`Termii API Key missing. Mock sending SMS to ${options.to}: ${options.message}`);
+      this.logger.warn(`Termii API Key missing. Mock sending SMS to ${options.to}: ${finalMessage}`);
       return true;
     }
 
@@ -42,7 +46,7 @@ export class SmsService {
       const payload = {
         to: sanitizedPhone,
         from: this.termiiSenderId,
-        sms: options.message,
+        sms: finalMessage,
         type: 'plain',
         channel: 'generic', // Reverted to generic as per active channels
         api_key: this.termiiApiKey,
