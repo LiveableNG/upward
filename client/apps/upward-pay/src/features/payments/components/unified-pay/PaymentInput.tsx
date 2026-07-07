@@ -1,6 +1,7 @@
 'use client'
 
-import { Info, AlertCircle, Check, Lock } from 'lucide-react'
+import { useState } from 'react'
+import { Info, AlertCircle, Check, Lock, Edit2 } from 'lucide-react'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 
 interface PaymentInputProps {
@@ -30,6 +31,7 @@ export function PaymentInput({
 }: PaymentInputProps) {
   const amountNum = parseFloat(amountInput) || 0
   const formattedAmount = formatCurrencyInput(parseCurrencyInput(amountInput) ?? amountNum)
+  const [isEditingCustom, setIsEditingCustom] = useState(false)
 
   return (
     <div className="pay-input-section">
@@ -49,20 +51,31 @@ export function PaymentInput({
           <div className="pay-amount-field__currency">
             {currency}
           </div>
-          <input
-            type="text"
-            inputMode="numeric"
-            className="pay-amount-field__input"
-            value={formattedAmount}
-            onChange={e => onAmountChange(e.target.value)}
-            placeholder="0.00"
-            min={0}
-            readOnly={true}
-          />
+          {canPayPartial && !isEditingCustom ? (
+            <div className="pay-amount-field__static-value">
+              {formattedAmount}
+            </div>
+          ) : (
+            <input
+              type="text"
+              inputMode="numeric"
+              className="pay-amount-field__input"
+              value={formattedAmount}
+              onChange={e => onAmountChange(e.target.value)}
+              placeholder="0.00"
+              min={0}
+              autoFocus={isEditingCustom}
+            />
+          )}
           {!canPayPartial && (
             <div className="pay-amount-field__fixed-badge">
                <span className="pay-amount-field__fixed-text">Fixed</span>
             </div>
+          )}
+          {canPayPartial && !isEditingCustom && (
+            <button type="button" className="pay-amount-field__edit-btn" onClick={() => setIsEditingCustom(true)}>
+              Pay a custom amount
+            </button>
           )}
         </div>
 
@@ -142,10 +155,10 @@ export function PaymentInput({
           align-items: center;
           background: var(--bg);
           border: 1.5px solid var(--border-solid);
-          border-radius: 20px;
+          border-radius: 8px;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           overflow: hidden;
-          height: 60px;
+          height: 48px;
           box-shadow: 0 4px 12px rgba(0,0,0,0.02);
         }
         .pay-amount-field__container:focus-within {
@@ -180,6 +193,31 @@ export function PaymentInput({
           outline: none;
           width: 100%;
           letter-spacing: -0.02em;
+        }
+        .pay-amount-field__static-value {
+          flex: 1;
+          padding: 0 24px;
+          font-size: 28px;
+          font-weight: 950;
+          color: var(--text);
+          letter-spacing: -0.02em;
+        }
+        .pay-amount-field__edit-btn {
+          margin-right: 16px;
+          padding: 6px 12px;
+          background: var(--surface);
+          border: 1px solid var(--border-solid);
+          border-radius: 8px;
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--clay);
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+        .pay-amount-field__edit-btn:hover {
+          background: var(--clay-faint);
+          border-color: rgba(217, 119, 87, 0.2);
         }
         .pay-amount-field__fixed-badge {
           margin-right: 16px;
@@ -322,6 +360,12 @@ export function PaymentInput({
           font-size: 11px;
           font-weight: 800;
           text-transform: uppercase;
+        }
+
+        @media (max-width: 768px) {
+          .pay-amount-field {
+            display: none;
+          }
         }
       `}</style>
     </div>

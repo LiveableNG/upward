@@ -2,7 +2,12 @@
 
 import React, { useState } from 'react'
 import { ChevronDown, FileText } from 'lucide-react'
-import { RichTextEditor } from '@/components/common/RichTextEditor'
+import dynamic from 'next/dynamic'
+
+const RichTextEditor = dynamic(
+  () => import('@/components/common/RichTextEditor').then((mod) => mod.RichTextEditor),
+  { ssr: false, loading: () => <div className="animate-pulse h-[400px] bg-slate-100 rounded-md w-full" /> }
+)
 import { useDocuments } from '../../hooks/useDocuments'
 import { useToast } from '@/components/common/Toast'
 import { Modal } from '@/components/ui/Modal/Modal'

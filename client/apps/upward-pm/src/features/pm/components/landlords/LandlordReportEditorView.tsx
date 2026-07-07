@@ -12,7 +12,12 @@ import {
   User,
   AlertCircle
 } from 'lucide-react'
-import { RichTextEditor } from '@/components/common/RichTextEditor'
+import dynamic from 'next/dynamic'
+
+const RichTextEditor = dynamic(
+  () => import('@/components/common/RichTextEditor').then((mod) => mod.RichTextEditor),
+  { ssr: false, loading: () => <div className="animate-pulse h-[400px] bg-slate-100 rounded-md w-full" /> }
+)
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { api } from '@/lib/api'

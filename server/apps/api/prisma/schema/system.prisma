@@ -337,3 +337,23 @@ model upward_dev_email_preview {
   @@index([to])
   @@index([createdAt])
 }
+
+model upward_blog_post {
+  id           Int      @id @default(autoincrement())
+  uuid         String   @unique @default(uuid())
+  title        String
+  slug         String   @unique
+  excerpt      String
+  contentHtml  String
+  coverImageUrl String?
+  authorName   String
+  status       String   @default("DRAFT")
+  publishedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([slug])
+  @@index([status])
+  @@index([publishedAt])
+  @@index([createdAt])
+}
