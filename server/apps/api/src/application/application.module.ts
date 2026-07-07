@@ -189,6 +189,16 @@ import {
 } from './pm/use-cases/notifications/pm-notification.use-cases'
 
 import { RejectCredibilityRequestUseCase } from './use-cases/external/reject-credibility-request.use-case'
+import {
+  CreateBlogPostUseCase,
+  DeleteBlogPostUseCase,
+  GetAdminBlogPostsUseCase,
+  GetPublicBlogPostBySlugUseCase,
+  GetPublicBlogPostsUseCase,
+  PublishBlogPostUseCase,
+  UnpublishBlogPostUseCase,
+  UpdateBlogPostUseCase,
+} from './use-cases/blog/blog-post.use-cases'
 import { AuthModule } from './auth/auth.module'
 import { CreateAnnouncementUseCase } from './use-cases/notifications/create-announcement.use-case'
 import { DeactivateAnnouncementsUseCase } from './use-cases/notifications/deactivate-announcements.use-case'
@@ -482,6 +492,14 @@ const UseCases = [
   MarkPmNotificationReadUseCase,
   MarkAllPmNotificationsReadUseCase,
   GetUnreadPmPopupsUseCase,
+  GetAdminBlogPostsUseCase,
+  GetPublicBlogPostsUseCase,
+  GetPublicBlogPostBySlugUseCase,
+  CreateBlogPostUseCase,
+  UpdateBlogPostUseCase,
+  PublishBlogPostUseCase,
+  UnpublishBlogPostUseCase,
+  DeleteBlogPostUseCase,
 ]
 
 @Module({
