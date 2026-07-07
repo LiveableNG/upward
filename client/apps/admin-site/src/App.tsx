@@ -22,6 +22,7 @@ import UserDetail from './pages/UserDetail'
 import PmDetail from './pages/PmDetail'
 import Layout from './components/Layout'
 import OverridesPage from './pages/Overrides'
+import BlogPosts from './pages/BlogPosts'
 
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -64,6 +65,7 @@ function AppRoutes() {
           />
           <Route path="/campaigns" element={<WaitlistCampaigns token={auth.token} />} />
           <Route path="/announcements" element={<Announcements token={auth.token} />} />
+          <Route path="/blog" element={<BlogPosts token={auth.token} />} />
           <Route path="/support" element={<SupportTickets token={auth.token} />} />
           <Route path="/verifications" element={<Verifications token={auth.token} />} />
           {showSandboxTools && <Route path="/demo-bank" element={<DemoBank token={auth.token} />} />}

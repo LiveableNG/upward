@@ -53,6 +53,8 @@ import { AppActivityLogController } from './admin/app-activity-log.controller'
 import { FeedbackAdminController } from './admin/feedback-admin.controller'
 import { DevEmailAdminController } from './admin/dev-email-admin.controller'
 import { AdminLoginSessionsController } from './admin/admin-login-sessions.controller'
+import { AdminBlogPostsController } from './admin/blog-posts.controller'
+import { PublicBlogController } from './public/blog.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module],
@@ -107,6 +109,8 @@ import { AdminLoginSessionsController } from './admin/admin-login-sessions.contr
     FeedbackAdminController,
     DevEmailAdminController,
     AdminLoginSessionsController,
+    AdminBlogPostsController,
+    PublicBlogController,
   ],
 })
 export class HttpModule {}

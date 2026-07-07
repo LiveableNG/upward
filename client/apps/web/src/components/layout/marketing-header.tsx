@@ -26,6 +26,7 @@ export function MarketingHeader() {
             </Link>
 
             <nav className="marketing-header__nav" aria-label="Primary">
+              <Link href="/blog">Blog</Link>
               <Link href="/portal/login">Landlords</Link>
               <Link href="/pm-signup">Property Managers</Link>
             </nav>
@@ -92,6 +93,9 @@ export function MarketingHeader() {
         <nav className="marketing-mobile-menu__links" aria-label="Mobile">
           <Link href="/portal/login" onClick={() => setMobileMenuOpen(false)}>
             Landlords
+          </Link>
+          <Link href="/blog" onClick={() => setMobileMenuOpen(false)}>
+            Blog
           </Link>
           <Link href="/pm-signup" onClick={() => setMobileMenuOpen(false)}>
             Property Managers

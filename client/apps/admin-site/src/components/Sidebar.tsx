@@ -76,6 +76,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     items: [
       { name: 'Emailing', path: '/emails', icon: Mail },
       { name: 'Announcements', path: '/announcements', icon: Megaphone },
+      { name: 'Blog', path: '/blog', icon: FileText },
       { name: 'Email Logs', path: '/email-logs', icon: History },
     ],
   })
