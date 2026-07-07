@@ -523,9 +523,9 @@ function UnitDetailContent() {
                   </div>
                   <div>
                     <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Rent Reminders</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 13, fontWeight: 500, color: unit?.rentReminderEnabled ? 'var(--forest)' : 'var(--text-muted)' }}>
-                        {unit?.rentReminderEnabled ? `Active (${unit.rentReminderDaysBefore}d before)` : 'Disabled'}
+                        {unit?.rentReminderEnabled ? 'Active' : 'Disabled'}
                       </span>
                       <button
                         onClick={() => {
@@ -537,6 +537,7 @@ function UnitDetailContent() {
                         style={{
                           width: 36,
                           height: 18,
+                          flexShrink: 0,
                           background: unit?.rentReminderEnabled ? 'var(--forest)' : '#ccc',
                           borderRadius: 9,
                           border: 'none',

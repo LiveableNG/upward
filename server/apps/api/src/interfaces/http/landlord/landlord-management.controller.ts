@@ -431,10 +431,10 @@ export class LandlordManagementController {
   async resendPaymentRequest(
     @Req() req: any, 
     @Param('uuid') uuid: string,
-    @Body() body: { email?: string }
+    @Body() body: { email?: string; channels?: ('EMAIL' | 'WHATSAPP' | 'SMS')[] }
   ) {
     const pmId = await this.getElevatedPmId(req);
-    return this.resendPmPaymentRequestUseCase.execute(pmId, uuid, body.email);
+    return this.resendPmPaymentRequestUseCase.execute(pmId, uuid, body.email, body.channels);
   }
 
   @Delete('payment-requests/:uuid')

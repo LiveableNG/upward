@@ -229,10 +229,10 @@ export class PmPropertyController {
   async resendPaymentRequest(
     @Req() req: any, 
     @Param('uuid') uuid: string,
-    @Body() body: { email?: string }
+    @Body() body: { email?: string; channels?: ('EMAIL' | 'WHATSAPP' | 'SMS')[] }
   ) {
     const pmId = await this.getPmId(req);
-    return this.resendPmPaymentRequestUseCase.execute(pmId, uuid, body.email);
+    return this.resendPmPaymentRequestUseCase.execute(pmId, uuid, body.email, body.channels);
   }
 
   @Patch('payment-requests/:uuid')
