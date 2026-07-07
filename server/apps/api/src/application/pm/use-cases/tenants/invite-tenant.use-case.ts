@@ -152,19 +152,19 @@ export class InviteTenantUseCase {
     const inviteResult = await this.singleInviteUseCase.execute(invitePayload);
 
     let success = true;
+    const pmName = pm.businessName || `${pm.firstName} ${pm.lastName}`;
+    const displayName = tenant.commercialName ||
+        `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() ||
+        'Tenant';
+
+    // Decide channel based on preference and fallback
+    let actualChannel = deliveryChannel;
+    if (!actualChannel) {
+      if (tenant.email && !tenant.email.endsWith('@upward.com')) actualChannel = 'EMAIL';
+      else if (tenant.phone) actualChannel = 'SMS';
+    }
+
     if (!isActuallyOnUpward) {
-      const pmName = pm.businessName || `${pm.firstName} ${pm.lastName}`;
-      const displayName = tenant.commercialName ||
-          `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() ||
-          'Tenant';
-
-      // Decide channel based on preference and fallback
-      let actualChannel = deliveryChannel;
-      if (!actualChannel) {
-        if (tenant.email && !tenant.email.endsWith('@upward.com')) actualChannel = 'EMAIL';
-        else if (tenant.phone) actualChannel = 'SMS';
-      }
-
       if (actualChannel === 'EMAIL' && tenant.email && !tenant.email.endsWith('@upward.com')) {
         success = await this.emailService.sendTenantInvite({
           email: tenant.email,
@@ -212,6 +212,40 @@ Welcome to a more rewarding rental experience.
         });
       } else {
         // Assume success if no valid contact info for actual sending but internal DB operations worked
+        success = true;
+      }
+    } else {
+      // User is already on Upward, send a notification instead of an invite
+      const loginUrl = 'https://upward.goodtenants.io/login';
+      
+      if (actualChannel === 'WHATSAPP' && tenant.phone) {
+        const companyName = pm.businessName || 'Upward';
+        const managerName = `${pm.firstName} ${pm.lastName}`.trim();
+        const message = `Hi *${displayName}*,
+ 
+${managerName} at ${companyName} has just added a new property unit for you on Upward. 
+ 
+You can now manage your tenancy and track your rent payments for this unit directly from your Upward dashboard.
+ 
+👉 *Log in to your Upward account to view your new property details:* ${loginUrl}
+ 
+*The ${companyName} Team*`;
+        success = await this.whatsappService.sendMessage({
+          to: tenant.phone,
+          message: message,
+        });
+      } else if ((actualChannel === 'SMS' || actualChannel === 'WHATSAPP') && tenant.phone && tenant.phone.startsWith('+234')) {
+        const message = `Hi ${displayName}, ${pmName} has added a new property unit for you on Upward. Log in to your Upward account at ${loginUrl} to view your property details and manage your rent payments.`;
+        success = await this.smsService.sendSms({
+          to: tenant.phone,
+          message: message,
+        });
+      } else if (actualChannel === 'EMAIL' && tenant.email && !tenant.email.endsWith('@upward.com')) {
+        const subject = `New Property Unit Added by ${pmName}`;
+        const content = `<p>Hi ${displayName},</p><p>${pmName} has just added a new property unit for you on Upward.</p><p>You can now manage your tenancy and track your rent payments for this unit directly from your Upward dashboard.</p><p><a href="${loginUrl}">Log in to your Upward account</a> to view your new property details.</p>`;
+        await this.emailService.sendGenericEmail(tenant.email, subject, content);
+        success = true;
+      } else {
         success = true;
       }
     }
