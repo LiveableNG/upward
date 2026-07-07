@@ -361,6 +361,12 @@ export function PaymentInput({
           font-weight: 800;
           text-transform: uppercase;
         }
+
+        @media (max-width: 768px) {
+          .pay-amount-field {
+            display: none;
+          }
+        }
       `}</style>
     </div>
   )

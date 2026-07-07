@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Building2, MapPin, CheckCircle2 } from 'lucide-react'
 
 interface InvoiceHeaderProps {
@@ -12,6 +12,25 @@ interface InvoiceHeaderProps {
 }
 
 export function InvoiceHeader({ companyName, description, logo, propertyAddress, isVerified }: InvoiceHeaderProps) {
+  const [showFullAddress, setShowFullAddress] = useState(false)
+  const addressRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showFullAddress) return;
+    const closePopup = (e: Event) => {
+      if (addressRef.current && !addressRef.current.contains(e.target as Node)) {
+        setShowFullAddress(false);
+      }
+    };
+    document.addEventListener('mousedown', closePopup);
+    document.addEventListener('touchstart', closePopup);
+    window.addEventListener('scroll', closePopup, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', closePopup);
+      document.removeEventListener('touchstart', closePopup);
+      window.removeEventListener('scroll', closePopup);
+    };
+  }, [showFullAddress]);
   return (
     <header className="pay-invoice-header">
       <div className="pay-invoice-header__brand">
@@ -33,9 +52,19 @@ export function InvoiceHeader({ companyName, description, logo, propertyAddress,
         </div>
         
         {propertyAddress && (
-          <div className="pay-invoice-header__address">
-            <MapPin size={14} className="icon-clay" />
-            <span>{propertyAddress}</span>
+          <div className="pay-invoice-header__address-wrapper" ref={addressRef}>
+            <div 
+              className="pay-invoice-header__address"
+              onClick={() => setShowFullAddress(!showFullAddress)}
+            >
+              <MapPin size={14} className="icon-clay" />
+              <span className="pay-invoice-header__address-text">{propertyAddress}</span>
+            </div>
+            {showFullAddress && (
+              <div className="pay-invoice-header__address-popup">
+                {propertyAddress}
+              </div>
+            )}
           </div>
         )}
 
@@ -101,6 +130,13 @@ export function InvoiceHeader({ companyName, description, logo, propertyAddress,
           color: var(--text);
           line-height: 1.2;
         }
+        .pay-invoice-header__address-wrapper {
+          position: relative;
+          display: flex;
+          justify-content: center;
+          max-width: 100%;
+          margin-top: 2px;
+        }
         .pay-invoice-header__address {
           display: flex;
           align-items: center;
@@ -108,11 +144,50 @@ export function InvoiceHeader({ companyName, description, logo, propertyAddress,
           color: var(--text-muted);
           font-size: 13px;
           font-weight: 600;
-          margin-top: 2px;
           background: var(--surface);
           padding: 4px 14px;
           border-radius: 100px;
           border: 1px solid var(--border-solid);
+          max-width: 260px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .pay-invoice-header__address:hover {
+          border-color: var(--clay);
+          background: var(--clay-faint);
+        }
+        .pay-invoice-header__address-text {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .pay-invoice-header__address svg {
+          flex-shrink: 0;
+        }
+        .pay-invoice-header__address-popup {
+          position: absolute;
+          top: 100%;
+          left: 50%;
+          transform: translateX(-50%);
+          margin-top: 8px;
+          background: var(--bg);
+          border: 1px solid var(--border-solid);
+          padding: 12px 16px;
+          border-radius: 12px;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+          color: var(--text);
+          font-size: 13px;
+          font-weight: 500;
+          z-index: 100;
+          width: max-content;
+          max-width: 300px;
+          text-align: center;
+          line-height: 1.4;
+          animation: popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes popupFadeIn {
+          from { opacity: 0; transform: translate(-50%, -10px); }
+          to { opacity: 1; transform: translate(-50%, 0); }
         }
         .icon-clay { color: var(--clay); }
         .pay-invoice-header__title-container {

@@ -385,9 +385,9 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
         <footer className="pay-footer">
           <p className="pay-footer__disclaimer">
             All payments are processed securely via Paystack. By continuing, you agree to our{' '}
-            <a href="#" className="link--dark">Terms of Service</a>
+            <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/terms`} target="_blank" rel="noopener noreferrer" className="link--dark">Terms of Service</a>
             {' '}and{' '}
-            <a href="#" className="link--dark">Privacy Policy</a>.
+            <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/privacy`} target="_blank" rel="noopener noreferrer" className="link--dark">Privacy Policy</a>.
           </p>
         </footer>
 
@@ -440,6 +440,10 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
           .icon--left { margin-right: 6px; }
           .icon--right { margin-left: 8px; }
 
+          .auth-shell.auth-shell--pay {
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 100px) !important;
+          }
+
           .pay-main {
             padding-top: 64px;
             padding-bottom: 96px; /* Added spacing to prevent mobile sticky CTA overlap */
@@ -459,9 +463,9 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             border: 1px solid var(--border-solid);
           }
 
-          .pay-layout { display: flex; flex-direction: column; gap: 24px; }
+          .pay-layout { display: flex; flex-direction: column; gap: 12px; }
           .pay-layout__left { display: flex; flex-direction: column; gap: 16px; }
-          .pay-layout__right { display: flex; flex-direction: column; gap: 12px; }
+          .pay-layout__right { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
           
           .pay-cta { margin-top: 8px; }
           
@@ -538,7 +542,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             margin-bottom: 74px; /* Space on mobile footer so it's not hidden behind sticky button */
           }
           .pay-footer__disclaimer {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 500;
             color: var(--text-muted);
             text-align: center;
