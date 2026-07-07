@@ -156,7 +156,7 @@ export class PaymentConfigurationService implements OnModuleInit {
           benefitsFee: 0, 
           rentValue, 
           benefitsPaid: true, 
-          benefitsPaidForRequest: true 
+          benefitsPaidForRequest: false 
         };
       }
 
