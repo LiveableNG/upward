@@ -17,6 +17,7 @@ model upward_transaction {
   paymentRequestId Int?
   isManual         Boolean                 @default(false)
   transactionType  String                  @default("PAYMENT")
+  proof            upward_payment_proof?
   overpayments     upward_overpayment[]
   refundLogs       upward_refund_log[]
   paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
@@ -68,6 +69,7 @@ model upward_payment_request {
   pmPaymentRequests upward_pm_payment_request[]
   rentCycles        upward_rent_cycle[]
   transactions      upward_transaction[]
+  paymentProofs     upward_payment_proof[]
 
   @@index([userId])
   @@index([status])
@@ -249,5 +251,29 @@ model upward_fee_override {
 
   @@unique([targetType, targetId])
   @@index([targetType, targetId])
+}
+
+model upward_payment_proof {
+  id                Int                   @id @default(autoincrement())
+  uuid              String                @unique @default(uuid())
+  transactionId     Int?                  @unique
+  paymentRequestId  Int?
+  userPropertyId    Int?
+  amount            Float?
+  currency          String                @default("NGN")
+  fileUrl           String
+  fileName          String?
+  uploadedByUserId  Int?
+  status            String                @default("PENDING") // PENDING, APPROVED, REJECTED
+  remarks           String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  
+  transaction       upward_transaction?   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  paymentRequest    upward_payment_request? @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
+  userProperty      upward_user_property?   @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
+
+  @@index([paymentRequestId])
+  @@index([userPropertyId])
 }
 

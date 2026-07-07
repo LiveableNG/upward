@@ -6,6 +6,8 @@ import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShe
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { type UserProfile } from '@/features/auth/types'
 import { setupAddPropertyEditPath, setupEditPropertyPath, SETUP_PATHS } from '../setupPaths'
+import { ManualAccountModal } from '@/features/dashboard/components/payment/ManualAccountModal'
+import { useState } from 'react'
 
 type Property = NonNullable<UserProfile['properties']>[number]
 
@@ -38,6 +40,7 @@ interface RentalPropertiesListViewProps {
 
 export function RentalPropertiesListView({ properties }: RentalPropertiesListViewProps) {
   const router = useRouter()
+  const [manualAccountModalProperty, setManualAccountModalProperty] = useState<{ id: number, name: string } | null>(null)
 
   return (
     <PayPageShell
@@ -89,6 +92,19 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                       Next due {formatDate(prop.rentEndDate)}
                     </div>
                   ) : null}
+                  <div style={{ marginTop: 12 }}>
+                    <button
+                      type="button"
+                      className="btn btn--secondary btn--sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setManualAccountModalProperty({ id: prop.id, name: prop.location?.area || prop.address || 'Property' })
+                      }}
+                      style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8 }}
+                    >
+                      Setup Manual Transfer
+                    </button>
+                  </div>
                 </div>
                 <ChevronRight size={18} className="pay-flow__card-trailing" />
               </button>
@@ -115,6 +131,14 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
           </button>
         </div>
       </section>
+
+      {manualAccountModalProperty && (
+        <ManualAccountModal
+          propertyId={manualAccountModalProperty.id}
+          propertyName={manualAccountModalProperty.name}
+          onClose={() => setManualAccountModalProperty(null)}
+        />
+      )}
     </PayPageShell>
   )
 }

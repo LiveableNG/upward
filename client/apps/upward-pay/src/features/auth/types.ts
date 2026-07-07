@@ -22,6 +22,7 @@ export interface UserProfile {
   profileSlug?: string | null
   bio?: string | null
   properties?: Array<{
+    id: number;
     uuid?: string;
     address: string;
     rentStartDate?: string;

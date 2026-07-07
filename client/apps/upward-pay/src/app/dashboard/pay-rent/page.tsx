@@ -11,6 +11,7 @@ import { StepPropertySelect } from '@/features/dashboard/components/payment/Step
 import { PayRentSkeleton } from '@/features/dashboard/components/payment/PayRentSkeleton'
 import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { RenewalModal } from '@/features/payments/components/unified-pay/RenewalModal'
+import { UploadProofOfPayment } from '@/features/payments/components/unified-pay/UploadProofOfPayment'
 import { clearSetupDraft } from '@/features/dashboard/setup/setupDraft'
 import { SETUP_RETURN_PATHS, setupAddPropertyPath } from '@/features/dashboard/setup/setupPaths'
 
@@ -147,6 +148,7 @@ export default function PayRentPage() {
     'property-select': 'Pay Rent',
     new: 'Payment details',
     confirm: 'Enter Amount',
+    'upload-proof': 'Upload Proof of Payment'
   }
 
   const stepSubtitle: Record<PayRentStep, string | undefined> = {
@@ -154,6 +156,7 @@ export default function PayRentPage() {
     'property-select': 'Select the property you are making a payment for to ensure your credit score is updated correctly.',
     new: 'Enter the bank account this rent payment should be sent to.',
     confirm: 'Set the amount and breakdown',
+    'upload-proof': 'Upload your payment receipt'
   }
 
   function handleBack() {
@@ -171,6 +174,8 @@ export default function PayRentPage() {
         setSelectedLandlord(null)
         setStep('property-select')
       }
+    } else if (step === 'upload-proof') {
+      setStep('confirm')
     } else {
       setSelectedLandlord(null)
       router.push('/dashboard')
@@ -276,6 +281,11 @@ export default function PayRentPage() {
               setProcessing(false)
             }
           }}
+          onSubmitProof={(amt, propertyUuid) => {
+            setPayAmount(amt)
+            if (propertyUuid) setSelectedPropertyUuid(propertyUuid)
+            setStep('upload-proof')
+          }}
           onBack={() => {
             setPayAmount(0)
             setRequestedAmount(0)
@@ -288,6 +298,20 @@ export default function PayRentPage() {
             }
           }}
         />
+      )}
+
+      {step === 'upload-proof' && selectedPropertyUuid && (
+        <div className="bg-[var(--surface)] p-6 rounded-3xl border border-[var(--border-solid)] shadow-[0_8px_30px_rgb(0,0,0,0.04)] max-w-xl mx-auto mt-6">
+          <UploadProofOfPayment 
+            userPropertyId={userProperties.find(p => p.uuid === selectedPropertyUuid)?.id}
+            amount={payAmount}
+            currency="NGN"
+            onSuccess={() => {
+              router.push('/dashboard')
+            }}
+            onCancel={() => setStep('confirm')}
+          />
+        </div>
       )}
 
       {renewalPropertyUuid && (

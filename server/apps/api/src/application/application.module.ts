@@ -249,6 +249,8 @@ import { SyncPmPaymentStatusUseCase } from './use-cases/payments/sync-pm-status.
 import { SettlePropertyBalanceUseCase } from './use-cases/payments/settle-property.use-case'
 import { HandlePaymentOverpaymentUseCase } from './use-cases/payments/handle-overpayment.use-case'
 import { ProcessHourlySettlementsUseCase } from './use-cases/payments/settlement-cron.use-case'
+import { AddManualAccountUseCase, UploadProofOfPaymentUseCase, ReviewManualPaymentUseCase, GetPaymentProofUploadUrlUseCase, GetPaymentProofUseCase, DeletePaymentProofUseCase } from './use-cases/payments/manual-payment.use-cases'
+import { GetPendingManualPaymentsUseCase } from './use-cases/payments/get-pending-manual-payments.use-case'
 
 import { UploadContractUseCase } from './use-cases/contracts/upload-contract.use-case'
 import { GetContractUploadUrlUseCase } from './use-cases/contracts/get-contract-upload-url.use-case'
@@ -481,6 +483,13 @@ const UseCases = [
   SettlePropertyBalanceUseCase,
   HandlePaymentOverpaymentUseCase,
   ProcessHourlySettlementsUseCase,
+  AddManualAccountUseCase,
+  UploadProofOfPaymentUseCase,
+  ReviewManualPaymentUseCase,
+  GetPaymentProofUploadUrlUseCase,
+  GetPaymentProofUseCase,
+  DeletePaymentProofUseCase,
+  GetPendingManualPaymentsUseCase,
   ResolvePendingRefundUseCase,
   GetPmUnresolvedTransactionsUseCase,
   RejectCredibilityRequestUseCase,

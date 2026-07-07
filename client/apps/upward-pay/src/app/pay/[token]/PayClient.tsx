@@ -24,6 +24,7 @@ import { AllocationBreakdown } from '@/features/payments/components/unified-pay/
 import { SuccessStep } from '@/features/payments/components/unified-pay/SuccessStep'
 import { OnboardingStep } from '@/features/payments/components/unified-pay/OnboardingStep'
 import { SettledStep } from '@/features/payments/components/unified-pay/SettledStep'
+import { UploadProofOfPayment } from '@/features/payments/components/unified-pay/UploadProofOfPayment'
 import { StatusStep } from '@/features/payments/components/unified-pay/StatusStep'
 import { RenewalModal } from '@/features/payments/components/unified-pay/RenewalModal'
 import { PaymentConfirmationModal } from '@/features/payments/components/unified-pay/PaymentConfirmationModal'
@@ -127,6 +128,44 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
               lineItems={finalLineItemPayments.map(p => ({ name: p.name, amount: p.amountPaid }))}
             />
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (step === 'manual-transfer') {
+    return (
+      <div className="checkout-view flex items-center justify-center min-h-screen bg-[var(--bg)] relative overflow-hidden p-4">
+        <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] bg-[var(--clay-faint)] rounded-full blur-[120px] opacity-50 pointer-events-none" />
+        <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-[var(--clay-faint)] rounded-full blur-[120px] opacity-50 pointer-events-none" />
+
+        <div className="w-full max-w-[540px] z-10 space-y-6">
+          <div className="bg-[var(--surface)] p-6 rounded-3xl border border-[var(--border-solid)] shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+            <h2 className="text-xl font-bold mb-2">Manual Bank Transfer</h2>
+            <p className="text-sm text-[var(--text-secondary)] mb-6">
+              Please transfer {formatCurrency(parsedAmount, currency)} to the account below, then upload your proof of payment.
+            </p>
+            <div className="bg-[var(--bg)] p-5 rounded-2xl border border-[var(--border-solid)] space-y-4 mb-6">
+              <div className="flex justify-between items-center">
+                <span className="text-[var(--text-muted)] text-sm font-medium">Bank Name</span>
+                <span className="font-bold text-[var(--text)]">{paymentData?.property?.manualAccount?.bankName || 'GTBank'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[var(--text-muted)] text-sm font-medium">Account Name</span>
+                <span className="font-bold text-[var(--text)] text-right">{paymentData?.property?.manualAccount?.accountName || paymentData?.company?.name || 'Property Manager'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[var(--text-muted)] text-sm font-medium">Account Number</span>
+                <span className="font-extrabold text-lg tracking-wider text-[var(--clay)]">{paymentData?.property?.manualAccount?.accountNumber || '0000000000'}</span>
+              </div>
+            </div>
+          </div>
+          
+          <UploadProofOfPayment 
+            paymentRequestId={paymentData?.payment?.id} 
+            onCancel={() => setStep('invoice')}
+            onSuccess={() => setStep('success')}
+          />
         </div>
       </div>
     )
@@ -300,6 +339,37 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                               )}
                             </div>
                           )}
+                        </div>
+                      </div>
+                    )}
+
+                    {paymentData.payment?.latestProof?.status === 'REJECTED' && (
+                      <div className="proof-rejected-banner">
+                        <ShieldAlert size={20} className="proof-rejected-banner__icon" />
+                        <div className="proof-rejected-banner__content">
+                          <h4 className="proof-rejected-banner__title">Payment Proof Rejected</h4>
+                          <p className="proof-rejected-banner__text">
+                            Your uploaded proof of payment was rejected.
+                          </p>
+                          {paymentData.payment.latestProof.remarks && (
+                            <div className="proof-rejected-banner__remarks">
+                              <strong>Reason:</strong> {paymentData.payment.latestProof.remarks}
+                            </div>
+                          )}
+                          <p className="proof-rejected-banner__text" style={{ marginTop: '6px' }}>
+                            Please upload a clearer proof of payment or proceed to pay online below.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {paymentData.payment?.latestProof?.status === 'PENDING' && (
+                      <div className="proof-review-banner">
+                        <div className="proof-review-banner__content">
+                          <h4 className="proof-review-banner__title">Payment Proof In Review</h4>
+                          <p className="proof-review-banner__text">
+                            Your uploaded proof of payment is currently being reviewed by the property manager. You will be notified once it is approved.
+                          </p>
                         </div>
                       </div>
                     )}
@@ -656,15 +726,74 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
           .refund-pending-banner__bank-warning {
             margin-top: 8px;
             padding-top: 8px;
-            border-top: 1px dashed rgba(239, 68, 68, 0.15);
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-          }
           .refund-pending-banner__btn {
             margin-top: 8px;
           }
-        `}</style>
+          .refund-pending-banner__btn:hover {
+          background: rgba(217, 119, 87, 0.25);
+        }
+
+        .proof-rejected-banner {
+          background: rgba(239, 68, 68, 0.05);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          border-radius: 12px;
+          padding: 16px;
+          display: flex;
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+        .proof-rejected-banner__icon {
+          color: #ef4444;
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+        .proof-rejected-banner__content {
+          flex: 1;
+        }
+        .proof-rejected-banner__title {
+          font-size: 14px;
+          font-weight: 700;
+          color: #b91c1c;
+          margin: 0 0 4px 0;
+        }
+        .proof-rejected-banner__text {
+          font-size: 13px;
+          color: #7f1d1d;
+          line-height: 1.5;
+          margin: 0;
+        }
+        .proof-rejected-banner__remarks {
+          margin-top: 8px;
+          padding: 8px 12px;
+          background: rgba(239, 68, 68, 0.1);
+          border-radius: 8px;
+          font-size: 13px;
+          color: #991b1b;
+        }
+
+        .proof-review-banner {
+          background: var(--surface);
+          border: 1px solid var(--border-solid);
+          border-left: 4px solid #f59e0b;
+          border-radius: 12px;
+          padding: 16px;
+          display: flex;
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+        .proof-review-banner__title {
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--text);
+          margin: 0 0 4px 0;
+        }
+        .proof-review-banner__text {
+          font-size: 13px;
+          color: var(--text-secondary);
+          line-height: 1.5;
+          margin: 0;
+        }
+      `}</style>
 
         {paymentData?.property && (
           <RenewalModal
@@ -688,6 +817,14 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             setShowPaymentConfirm(false)
             setStep('checkout')
           }}
+          onManualTransfer={
+            paymentData?.property?.manualAccount 
+              ? () => {
+                  setShowPaymentConfirm(false)
+                  setStep('manual-transfer')
+                }
+              : undefined
+          }
         />
 
         {showUnverifiedModal && (

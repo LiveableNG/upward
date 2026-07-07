@@ -55,10 +55,12 @@ import { DevEmailAdminController } from './admin/dev-email-admin.controller'
 import { AdminLoginSessionsController } from './admin/admin-login-sessions.controller'
 import { AdminBlogPostsController } from './admin/blog-posts.controller'
 import { PublicBlogController } from './public/blog.controller'
+import { ManualPaymentsController } from './controllers/manual-payments.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module],
   controllers: [
+    ManualPaymentsController,
     AdminAuthController,
     AdminFeesController,
     AdminLogController,

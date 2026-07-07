@@ -1342,6 +1342,13 @@ export class GetPendingPaymentsUseCase {
           include: { pm: true }
       })
 
+      const proofs = await this.prisma.upward_payment_proof.findMany({
+        where: { paymentRequestId: p.id },
+        orderBy: { createdAt: 'desc' },
+      })
+      
+      const latestProof = proofs.length > 0 ? proofs[0] : null
+
       return {
         id: p.id,
         uuid: p.uuid,
@@ -1363,7 +1370,13 @@ export class GetPendingPaymentsUseCase {
         isManual: p.isManual,
         isVerified: pmPR?.pm?.isVerified || false,
         lineItemRecords,
-        type: 'invoice'
+        type: 'invoice',
+        latestProof: latestProof ? {
+          id: latestProof.id,
+          status: latestProof.status,
+          remarks: latestProof.remarks,
+          createdAt: latestProof.createdAt,
+        } : null
       }
     }))
 
@@ -1379,7 +1392,52 @@ export class GetPendingPaymentsUseCase {
       property_address: a.propertyAddress || 'Your Property'
     }))
 
-    return [...alertsData, ...paymentsData]
+    const standaloneProofs = await this.prisma.upward_payment_proof.findMany({
+      where: { 
+        uploadedByUserId: user.id,
+        paymentRequestId: null,
+        status: { in: ['PENDING', 'REJECTED'] }
+      },
+      include: {
+        userProperty: { include: { location: true } }
+      }
+    })
+
+    const standaloneProofsData = standaloneProofs.map(proof => {
+      const p = proof.userProperty
+      const property_address = p?.location ? `${p.location.area}, ${p.location.state}` : p?.address || 'Your Property'
+      return {
+        id: proof.id,
+        uuid: proof.uuid,
+        total_amount: proof.amount || 0,
+        amountPaid: 0,
+        currency: proof.currency || 'NGN',
+        status: 'PENDING',
+        allowPartial: false,
+        minAmount: null,
+        remainingBalance: proof.amount || 0,
+        payment_link_token: proof.uuid,
+        invoice_number: `MNL-${proof.id}`,
+        description: 'Manual Payment Proof',
+        subaccountCode: null,
+        company_name: p?.company?.name,
+        manager_name: null,
+        property_address,
+        userPropertyUuid: p?.uuid,
+        isManual: true,
+        isVerified: false,
+        lineItemRecords: [],
+        type: 'invoice',
+        latestProof: {
+          id: proof.id,
+          status: proof.status,
+          remarks: proof.remarks,
+          createdAt: proof.createdAt,
+        }
+      }
+    })
+
+    return [...alertsData, ...paymentsData, ...standaloneProofsData]
   }
 }
 

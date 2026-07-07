@@ -23,6 +23,12 @@ export interface PendingPayment {
   dueDate?: string | Date
   isManual?: boolean
   type?: string
+  latestProof?: {
+    id: number
+    status: 'PENDING' | 'APPROVED' | 'REJECTED'
+    remarks?: string | null
+    createdAt: string
+  } | null
 }
 
 export interface CompletedPayment {

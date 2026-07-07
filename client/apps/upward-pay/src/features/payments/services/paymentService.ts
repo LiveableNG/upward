@@ -138,3 +138,50 @@ export async function createManualPaymentRequest(data: {
     body: JSON.stringify(data),
   })
 }
+
+export async function addManualAccount(data: { accountNumber: string, accountName: string, bankName: string, bankCode?: string, propertyId?: number }) {
+  return request<any>('/payments/manual/account', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function getProofUploadUrl(fileName: string, fileType: string, fileSize: number) {
+  return request<{ uuid: string, uploadUrl: string, fileUrl: string }>(`/payments/manual/proof/upload-url?fileName=${encodeURIComponent(fileName)}&fileType=${encodeURIComponent(fileType)}&fileSize=${fileSize}`, {
+    method: 'GET'
+  })
+}
+
+export async function uploadFileToS3(uploadUrl: string, file: File) {
+  const response = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': file.type
+    },
+    body: file
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to upload file to S3')
+  }
+}
+
+export async function uploadProofOfPayment(data: { paymentRequestId?: number, userPropertyId?: number, amount?: number, currency?: string, fileUrl: string, fileName: string }) {
+  return request<any>('/payments/manual/proof', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteProofOfPayment(proofId: number) {
+  return request<any>(`/payments/manual/proof/${proofId}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function reviewProofOfPayment(proofId: number, data: { status: 'APPROVED' | 'REJECTED', remarks?: string }) {
+  return request<any>(`/payments/manual/proof/${proofId}/review`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}

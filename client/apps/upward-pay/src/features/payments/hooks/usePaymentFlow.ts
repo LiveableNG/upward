@@ -11,7 +11,7 @@ import { BiometricsService } from '@/features/auth/services/biometricsService'
 import { Capacitor } from '@capacitor/core'
 import { setCookie } from '@/lib/cookie-utils'
 
-export type PayStep = 'loading' | 'invoice' | 'checkout' | 'processing' | 'success' | 'onboarding' | 'already-paid' | 'cancelled' | 'error'
+export type PayStep = 'loading' | 'invoice' | 'checkout' | 'processing' | 'success' | 'onboarding' | 'already-paid' | 'cancelled' | 'error' | 'manual-transfer'
 
 export interface LineItemRecord {
   id: number

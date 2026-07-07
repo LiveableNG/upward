@@ -24,6 +24,7 @@ model upward_user_property {
   verificationStatus     String?                      @default("PENDING") // PENDING, VERIFIED, REJECTED
   rejectionReason        String?                      @db.Text
   paymentRequests        upward_payment_request[]
+  paymentProofs          upward_payment_proof[]
   infractions            upward_property_infraction[]
   inspections            upward_property_inspection[]
   rentCycles             upward_rent_cycle[]
@@ -36,6 +37,23 @@ model upward_user_property {
   subaccount             upward_paystack_subaccount?  @relation(fields: [subaccountId], references: [id])
   user                   upward_user                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   dedicatedAccount       upward_dedicated_virtual_account?
+  manualAccount          upward_manual_account?
+}
+
+model upward_manual_account {
+  id              Int                   @id @default(autoincrement())
+  uuid            String                @unique @default(uuid())
+  accountNumber   String
+  accountName     String
+  bankName        String
+  bankCode        String?
+  userPropertyId  Int?                  @unique
+  pmPropertyId    Int?                  @unique
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  userProperty    upward_user_property? @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
+  pmProperty      upward_pm_property?   @relation(fields: [pmPropertyId], references: [id], onDelete: Cascade)
 }
 
 model upward_location {
