@@ -127,10 +127,7 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-            pmUnit: {
-              include: { property: { include: { manualAccount: true } } }
-            }
-        },
+            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
         companyUsers: {
           include: {
             company: true
@@ -156,10 +153,7 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-            pmUnit: {
-              include: { property: { include: { manualAccount: true } } }
-            }
-        },
+            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
         companyUsers: {
           include: {
             company: true
@@ -184,10 +178,7 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-            pmUnit: {
-              include: { property: { include: { manualAccount: true } } }
-            },
-        },
+            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
         companyUsers: {
           include: {
             company: true,
@@ -212,10 +203,7 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-            pmUnit: {
-              include: { property: { include: { manualAccount: true } } }
-            }
-        },
+            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
         companyUsers: {
           include: {
             company: true
@@ -240,10 +228,7 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-            pmUnit: {
-              include: { property: { include: { manualAccount: true } } }
-            }
-        },
+            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
         companyUsers: {
           include: {
             company: true
@@ -268,10 +253,7 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-            pmUnit: {
-              include: { property: { include: { manualAccount: true } } }
-            }
-        },
+            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
         companyUsers: {
           include: {
             company: true
@@ -295,10 +277,7 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-            pmUnit: {
-              include: { property: { include: { manualAccount: true } } }
-            }
-        },
+            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
         companyUsers: {
           include: {
             company: true
@@ -387,10 +366,7 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-            pmUnit: {
-              include: { property: { include: { manualAccount: true } } }
-            }
-        },
+            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
         companyUsers: {
           include: {
             company: true

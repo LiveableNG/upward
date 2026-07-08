@@ -38,7 +38,7 @@ export class ManualPaymentsController {
     if (req.user.role !== 'PM' && req.user.role !== 'ADMIN') {
       throw new Error('Unauthorized')
     }
-    return this.getPendingManualPaymentsUseCase.execute(req.user.id)
+    return this.getPendingManualPaymentsUseCase.execute({ pmUuid: req.user.id })
   }
 
   @Get('proof/upload-url')
@@ -91,6 +91,25 @@ export class ManualPaymentsController {
       fileName,
       uploadedByUserId: typeof req.user.id === 'number' ? req.user.id : (Number.isNaN(Number(req.user.id)) ? undefined : Number(req.user.id)),
       userUuid: req.user.id, // For generating S3 key securely
+    })
+  }
+
+  @Post('proof/manual')
+  @HttpCode(HttpStatus.CREATED)
+  async uploadManualProof(@Req() req: any, @Body() body: any) {
+    const { paymentRequestUuid, userPropertyUuid, amount, currency, lineItems, senderName, paymentDate, referenceNumber } = body
+
+    return this.uploadProofUseCase.execute({
+      paymentRequestUuid,
+      userPropertyUuid,
+      amount,
+      currency,
+      lineItems,
+      senderName,
+      paymentDate: paymentDate ? new Date(paymentDate) : undefined,
+      referenceNumber,
+      uploadedByUserId: typeof req.user.id === 'number' ? req.user.id : (Number.isNaN(Number(req.user.id)) ? undefined : Number(req.user.id)),
+      userUuid: req.user.id,
     })
   }
 

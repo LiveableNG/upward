@@ -261,8 +261,11 @@ model upward_payment_proof {
   userPropertyId    Int?
   amount            Float?
   currency          String                @default("NGN")
-  fileUrl           String
+  fileUrl           String?
   fileName          String?
+  senderName        String?
+  paymentDate       DateTime?
+  referenceNumber   String?
   uploadedByUserId  Int?
   status            String                @default("PENDING") // PENDING, APPROVED, REJECTED
   remarks           String?

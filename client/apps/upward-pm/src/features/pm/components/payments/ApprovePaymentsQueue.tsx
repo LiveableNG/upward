@@ -237,27 +237,60 @@ export function ApprovePaymentsQueue() {
                 </div>
               )}
 
-              <div style={{ padding: 16, background: 'var(--surface2)', borderRadius: 12, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <FileText size={20} style={{ color: 'var(--text-muted)' }} />
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{selectedProof.fileName || 'Proof of Payment'}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Document ready for review</div>
+              {selectedProof.senderName || selectedProof.referenceNumber || selectedProof.paymentDate ? (
+                <div className="join-request-card">
+                  <div className="join-request-card__header" style={{ background: 'var(--clay-faint)', color: 'var(--clay)' }}>
+                    <CheckCircle size={14} />
+                    <span>Manual Transfer Details</span>
+                  </div>
+                  <div className="join-request-card__body">
+                    {selectedProof.senderName && (
+                      <div className="join-request-card__row">
+                        <span className="join-request-card__label">Sender Name</span>
+                        <span className="join-request-card__val font-semibold">{selectedProof.senderName}</span>
+                      </div>
+                    )}
+                    {selectedProof.paymentDate && (
+                      <div className="join-request-card__row">
+                        <span className="join-request-card__label">Payment Date</span>
+                        <span className="join-request-card__val">
+                          {new Date(selectedProof.paymentDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                    {selectedProof.referenceNumber && (
+                      <div className="join-request-card__row">
+                        <span className="join-request-card__label">Reference Number</span>
+                        <span className="join-request-card__val">{selectedProof.referenceNumber}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <button 
-                  className="btn btn--secondary btn--sm"
-                  onClick={() => handleDownload(selectedProof)}
-                  disabled={isDownloading}
-                >
-                  {isDownloading ? (
-                    <Loader2 size={14} className="animate-spin" style={{ marginRight: 6 }} />
-                  ) : (
-                    <Download size={14} style={{ marginRight: 6 }} />
-                  )}
-                  {isDownloading ? 'Downloading...' : 'View'}
-                </button>
-              </div>
+              ) : null}
+
+              {selectedProof.fileUrl && (
+                <div style={{ padding: 16, background: 'var(--surface2)', borderRadius: 12, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <FileText size={20} style={{ color: 'var(--text-muted)' }} />
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{selectedProof.fileName || 'Proof of Payment'}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Document ready for review</div>
+                    </div>
+                  </div>
+                  <button 
+                    className="btn btn--secondary btn--sm"
+                    onClick={() => handleDownload(selectedProof)}
+                    disabled={isDownloading}
+                  >
+                    {isDownloading ? (
+                      <Loader2 size={14} className="animate-spin" style={{ marginRight: 6 }} />
+                    ) : (
+                      <Download size={14} style={{ marginRight: 6 }} />
+                    )}
+                    {isDownloading ? 'Downloading...' : 'View'}
+                  </button>
+                </div>
+              )}
 
               <div className="form-group">
                 <label className="form-label">Remarks (Optional)</label>

@@ -166,6 +166,15 @@ export async function uploadProofOfPayment(data: { paymentRequestUuid?: string, 
   return res.data || res
 }
 
+export async function uploadManualProofOfPayment(data: { paymentRequestUuid?: string, userPropertyUuid?: string, amount?: number, currency?: string, lineItems?: any[], senderName: string, paymentDate: string, referenceNumber?: string }) {
+  const res = await request<any>('/payments/manual/proof/manual', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+  
+  return res.data || res
+}
+
 export async function deleteProofOfPayment(proofId: number) {
   return request<any>(`/payments/manual/proof/${proofId}`, {
     method: 'DELETE',

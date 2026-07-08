@@ -9,14 +9,20 @@ export class GetPendingManualPaymentsUseCase {
     private readonly encryptionService: EncryptionService
   ) {}
 
-  async execute(pmUuid?: string) {
+  async execute(filters?: { pmUuid?: string; platformId?: number }) {
     const proofs = await this.prisma.upward_payment_proof.findMany({
       where: {
         status: 'PENDING',
-        ...(pmUuid ? {
+        ...(filters?.pmUuid ? {
           OR: [
-            { userProperty: { pm: { uuid: pmUuid } } },
-            { paymentRequest: { userProperty: { pm: { uuid: pmUuid } } } }
+            { userProperty: { pm: { uuid: filters.pmUuid } } },
+            { paymentRequest: { userProperty: { pm: { uuid: filters.pmUuid } } } }
+          ]
+        } : {}),
+        ...(filters?.platformId ? {
+          OR: [
+            { userProperty: { company: { platformId: filters.platformId } } },
+            { paymentRequest: { userProperty: { company: { platformId: filters.platformId } } } }
           ]
         } : {})
       },

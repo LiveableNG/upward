@@ -174,15 +174,27 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                 </div>
               </div>
               <div className="pay-layout__right">
-                <UploadProofOfPayment 
-                  paymentRequestUuid={paymentData?.payment?.uuid}
-                  userPropertyUuid={paymentData?.property?.uuid}
-                  amount={parsedAmount}
-                  currency={currency}
-                  lineItems={finalLineItemPayments}
-                  onCancel={() => setStep('invoice')}
-                  onSuccess={() => setStep('success-manual')}
-                />
+                {paymentData?.payment?.latestProof?.status === 'PENDING' ? (
+                  <div className="proof-review-banner" style={{ marginTop: 0 }}>
+                    <div className="proof-review-banner__content">
+                      <h4 className="proof-review-banner__title">Payment Proof In Review</h4>
+                      <p className="proof-review-banner__text">
+                        Your submitted proof of payment is currently being reviewed. You will be notified once it is approved. Please wait for the review to complete before submitting another.
+                      </p>
+                      <button className="btn btn--secondary btn--sm mt-4" onClick={() => setStep('invoice')}>Back to Invoice</button>
+                    </div>
+                  </div>
+                ) : (
+                  <UploadProofOfPayment 
+                    paymentRequestUuid={paymentData?.payment?.uuid}
+                    userPropertyUuid={paymentData?.property?.uuid}
+                    amount={parsedAmount}
+                    currency={currency}
+                    lineItems={finalLineItemPayments}
+                    onCancel={() => setStep('invoice')}
+                    onSuccess={() => setStep('success-manual')}
+                  />
+                )}
               </div>
             </div>
           </div>

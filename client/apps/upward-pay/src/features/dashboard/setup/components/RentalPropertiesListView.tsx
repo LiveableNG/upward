@@ -102,7 +102,7 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                     </div>
                   ) : null}
                   <div style={{ marginTop: 12 }}>
-                    {prop.pmManualAccount ? (
+                    {prop.pmManualAccount || ((prop.isManaged || prop.isPlatformLinked || prop.companyName) && prop.manualAccount) ? (
                       <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--forest)' }}>
                         <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--forest)' }} />
                         Bank configured by Property Manager

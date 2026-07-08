@@ -6,6 +6,7 @@ import { NotificationService } from '../../../shared/infrastructure/common/notif
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 import * as crypto from 'crypto'
+import { WebhookService } from '../../../shared/infrastructure/common/webhook/webhook.service'
 
 @Injectable()
 export class AddManualAccountUseCase {
@@ -47,7 +48,11 @@ export class AddManualAccountUseCase {
 
 @Injectable()
 export class UploadProofOfPaymentUseCase {
-  constructor(private readonly prisma: PrismaService, private readonly s3Service: S3Service) {}
+  constructor(
+    private readonly prisma: PrismaService, 
+    private readonly s3Service: S3Service,
+    private readonly webhookService: WebhookService
+  ) {}
 
   async execute(data: {
     paymentRequestUuid?: string
@@ -55,10 +60,13 @@ export class UploadProofOfPaymentUseCase {
     amount?: number
     currency?: string
     lineItems?: any[]
-    fileBuffer: Buffer
-    fileType: string
-    fileSize: number
-    fileName: string
+    fileBuffer?: Buffer
+    fileType?: string
+    fileSize?: number
+    fileName?: string
+    senderName?: string
+    paymentDate?: Date
+    referenceNumber?: string
     uploadedByUserId?: number
     userUuid: string
   }) {
@@ -83,24 +91,28 @@ export class UploadProofOfPaymentUseCase {
       userPropertyId = prop.id
     }
 
-    if (data.fileSize > 10 * 1024 * 1024) {
-      throw new Error(`File size exceeds limit of 10MB.`)
+    let s3Key: string | undefined
+
+    if (data.fileBuffer && data.fileType && data.fileName) {
+      if (data.fileSize && data.fileSize > 10 * 1024 * 1024) {
+        throw new Error(`File size exceeds limit of 10MB.`)
+      }
+
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png']
+      if (!allowedTypes.includes(data.fileType)) {
+        throw new Error('Only PDF, JPG, and PNG files are allowed')
+      }
+
+      const fileExtension = data.fileName.split('.').pop()
+      const uuid = crypto.randomUUID()
+      s3Key = `users/${data.userUuid}/payment-proofs/${uuid}.${fileExtension}`
+
+      // Upload to S3 in the background or await it
+      await this.s3Service.uploadBuffer(data.fileBuffer, s3Key, data.fileType)
+        .catch((err) => console.error(`Background S3 upload failed for ${s3Key}:`, err))
     }
 
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png']
-    if (!allowedTypes.includes(data.fileType)) {
-      throw new Error('Only PDF, JPG, and PNG files are allowed')
-    }
-
-    const fileExtension = data.fileName.split('.').pop()
-    const uuid = crypto.randomUUID()
-    const s3Key = `users/${data.userUuid}/payment-proofs/${uuid}.${fileExtension}`
-
-    // Upload to S3 in the background or await it
-    await this.s3Service.uploadBuffer(data.fileBuffer, s3Key, data.fileType)
-      .catch((err) => console.error(`Background S3 upload failed for ${s3Key}:`, err))
-
-    return this.prisma.upward_payment_proof.create({
+    const proof = await this.prisma.upward_payment_proof.create({
       data: {
         paymentRequestId,
         userPropertyId,
@@ -108,11 +120,38 @@ export class UploadProofOfPaymentUseCase {
         currency: data.currency || 'NGN',
         fileUrl: s3Key,
         fileName: data.fileName,
+        senderName: data.senderName,
+        paymentDate: data.paymentDate,
+        referenceNumber: data.referenceNumber,
         uploadedByUserId: data.uploadedByUserId,
         status: 'PENDING',
         lineItems: data.lineItems ? JSON.parse(JSON.stringify(data.lineItems)) : undefined
       }
     })
+
+    if (userPropertyId) {
+      const userProp = await this.prisma.upward_user_property.findUnique({
+        where: { id: userPropertyId },
+        include: { company: true }
+      })
+      if (userProp?.company?.platformId) {
+        await this.webhookService.sendWebhook(userProp.company.platformId, 'payment_proof.uploaded', {
+          proofId: proof.id,
+          paymentRequestUuid: data.paymentRequestUuid,
+          userPropertyUuid: data.userPropertyUuid,
+          amount: proof.amount,
+          currency: proof.currency,
+          fileUrl: proof.fileUrl,
+          fileName: proof.fileName,
+          senderName: proof.senderName,
+          paymentDate: proof.paymentDate,
+          referenceNumber: proof.referenceNumber,
+          status: proof.status
+        }).catch(err => console.error('Failed to dispatch webhook for payment proof:', err))
+      }
+    }
+
+    return proof
   }
 }
 
@@ -164,6 +203,10 @@ export class GetPaymentProofUseCase {
       throw new NotFoundException('Proof of payment not found')
     }
 
+    if (!proof.fileUrl) {
+      throw new NotFoundException('This payment proof does not have an attached file')
+    }
+
     const buffer = await this.s3Service.getFileBuffer(proof.fileUrl)
     return {
       buffer,
@@ -192,7 +235,7 @@ export class DeletePaymentProofUseCase {
     // Assuming S3Service has a deleteFile method or we just leave it for garbage collection, 
     // but typically we should delete. For now, we'll try to call delete if it exists on S3Service.
     try {
-      if ((this.s3Service as any).deleteFile) {
+      if (proof.fileUrl && (this.s3Service as any).deleteFile) {
         await (this.s3Service as any).deleteFile(proof.fileUrl)
       }
     } catch (e) {}
