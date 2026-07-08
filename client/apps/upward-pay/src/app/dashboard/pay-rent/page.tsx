@@ -65,11 +65,12 @@ export default function PayRentPage() {
       accountName:
         prop.subaccount?.businessName ||
         prop.dedicatedAccount?.accountName ||
+        prop.manualAccount?.accountName ||
         prop.company?.name ||
         'Verified Recipient',
-      accountNumber: prop.subaccount?.accountNumber || prop.dedicatedAccount?.accountNumber || '',
-      bankName: prop.dedicatedAccount?.bankName || '',
-      bankCode: prop.subaccount?.bankCode || prop.dedicatedAccount?.bankCode || '',
+      accountNumber: prop.subaccount?.accountNumber || prop.dedicatedAccount?.accountNumber || prop.manualAccount?.accountNumber || '',
+      bankName: prop.dedicatedAccount?.bankName || prop.manualAccount?.bankName || '',
+      bankCode: prop.subaccount?.bankCode || prop.dedicatedAccount?.bankCode || prop.manualAccount?.bankCode || '',
       avatar: (prop.company?.name || prop.manager?.firstName || 'P')[0].toUpperCase(),
       lastPaid: null,
       lastAmount: 0,
@@ -79,7 +80,7 @@ export default function PayRentPage() {
   }
 
   function propertyHasPayoutRoute(prop: any): boolean {
-    return !!(prop.isVerified || prop.subaccount || prop.dedicatedAccount)
+    return !!(prop.isVerified || prop.subaccount || prop.dedicatedAccount || prop.manualAccount)
   }
 
   function handlePropertySelect(prop: any, pending: any[]) {

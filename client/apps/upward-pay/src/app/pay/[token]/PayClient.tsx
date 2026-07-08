@@ -31,6 +31,7 @@ import { PaymentConfirmationModal } from '@/features/payments/components/unified
 import { BenefitsSelector } from '@/features/payments/components/unified-pay/BenefitsSelector'
 import { BenefitsOptOutModal } from '@/features/payments/components/unified-pay/BenefitsOptOutModal'
 import { usePaymentFlow } from '@/features/payments/hooks/usePaymentFlow'
+import { useToast } from '@/components/common/Toast'
 
 export default function PayClient({ overrideToken }: { overrideToken?: string }) {
   const router = useRouter()
@@ -38,6 +39,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
   const [showPaymentConfirm, setShowPaymentConfirm] = React.useState(false)
   const [showOptOutModal, setShowOptOutModal] = React.useState(false)
   const [showUnverifiedModal, setShowUnverifiedModal] = React.useState(false)
+  const { error: toastError } = useToast()
   
   const uuid = useMemo(() => {
     if (overrideToken) return overrideToken
@@ -135,38 +137,214 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
   if (step === 'manual-transfer') {
     return (
-      <div className="checkout-view flex items-center justify-center min-h-screen bg-[var(--bg)] relative overflow-hidden p-4">
-        <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] bg-[var(--clay-faint)] rounded-full blur-[120px] opacity-50 pointer-events-none" />
-        <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-[var(--clay-faint)] rounded-full blur-[120px] opacity-50 pointer-events-none" />
+      <div className="auth-shell auth-shell--pay">
+        <header className="pay-header">
+          <div className="pay-header__content">
+            <UpwardLogo size={24} color="var(--clay)" />
+            <button onClick={() => setStep('invoice')} className="pay-header__dashboard-btn">
+              <ChevronRight size={14} className="icon--back" />
+              <span>Back to Invoice</span>
+            </button>
+          </div>
+        </header>
 
-        <div className="w-full max-w-[540px] z-10 space-y-6">
-          <div className="bg-[var(--surface)] p-6 rounded-3xl border border-[var(--border-solid)] shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-            <h2 className="text-xl font-bold mb-2">Manual Bank Transfer</h2>
-            <p className="text-sm text-[var(--text-secondary)] mb-6">
-              Please transfer {formatCurrency(parsedAmount, currency)} to the account below, then upload your proof of payment.
-            </p>
-            <div className="bg-[var(--bg)] p-5 rounded-2xl border border-[var(--border-solid)] space-y-4 mb-6">
-              <div className="flex justify-between items-center">
-                <span className="text-[var(--text-muted)] text-sm font-medium">Bank Name</span>
-                <span className="font-bold text-[var(--text)]">{paymentData?.property?.manualAccount?.bankName || 'GTBank'}</span>
+        <main className="pay-main" style={{ alignItems: 'center' }}>
+          <div className="pay-container">
+            <div className="pay-layout">
+              <div className="pay-layout__left">
+                <div className="manual-transfer-card">
+                  <h2 className="manual-transfer-card__title">Manual Bank Transfer</h2>
+                  <p className="manual-transfer-card__desc">
+                    Please transfer {formatCurrency(parsedAmount, currency)} to the account below, then upload your proof of payment.
+                  </p>
+                  <div className="manual-transfer-details">
+                    <div className="manual-transfer-row">
+                      <span className="manual-transfer-label">Bank Name</span>
+                      <span className="manual-transfer-value">{paymentData?.property?.manualAccount?.bankName || 'GTBank'}</span>
+                    </div>
+                    <div className="manual-transfer-row">
+                      <span className="manual-transfer-label">Account Name</span>
+                      <span className="manual-transfer-value">{paymentData?.property?.manualAccount?.accountName || paymentData?.company?.name || 'Property Manager'}</span>
+                    </div>
+                    <div className="manual-transfer-row">
+                      <span className="manual-transfer-label">Account Number</span>
+                      <span className="manual-transfer-value manual-transfer-value--highlight">{paymentData?.property?.manualAccount?.accountNumber || '0000000000'}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[var(--text-muted)] text-sm font-medium">Account Name</span>
-                <span className="font-bold text-[var(--text)] text-right">{paymentData?.property?.manualAccount?.accountName || paymentData?.company?.name || 'Property Manager'}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[var(--text-muted)] text-sm font-medium">Account Number</span>
-                <span className="font-extrabold text-lg tracking-wider text-[var(--clay)]">{paymentData?.property?.manualAccount?.accountNumber || '0000000000'}</span>
+              <div className="pay-layout__right">
+                <UploadProofOfPayment 
+                  paymentRequestId={paymentData?.payment?.id} 
+                  onCancel={() => setStep('invoice')}
+                  onSuccess={() => setStep('success')}
+                />
               </div>
             </div>
           </div>
+        </main>
+        <style jsx>{`
+          .pay-header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 50;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border-solid);
+            height: 64px;
+            display: flex;
+            align-items: center;
+          }
+          @supports (backdrop-filter: blur(12px)) {
+            .pay-header {
+               opacity: 0.95;
+               backdrop-filter: blur(12px);
+            }
+          }
+          .pay-header__content {
+            width: 100%;
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
+          .pay-header__dashboard-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 100px;
+            background: var(--surface);
+            border: 1px solid var(--border-solid);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+          .pay-header__dashboard-btn:hover {
+            color: var(--clay);
+            border-color: rgba(217, 119, 87, 0.2);
+            background: var(--clay-faint);
+          }
+          .icon--back { transform: rotate(180deg); }
+          .pay-main {
+            padding-top: 64px;
+            padding-bottom: 96px;
+            min-height: calc(100vh - 64px - 52px);
+            background: radial-gradient(circle at 80% 0%, var(--clay-faint), transparent 360px), var(--oat-dim);
+            display: flex;
+            align-items: flex-start;
+          }
+          .pay-container {
+            width: 100%;
+            max-width: 520px;
+            margin: 0 auto;
+            background: var(--bg);
+            border-radius: 32px;
+            padding: 36px 32px 32px;
+            box-shadow: 0 32px 80px rgba(0,0,0,0.07), 0 8px 32px rgba(0,0,0,0.03);
+            border: 1px solid var(--border-solid);
+          }
+          .pay-layout { display: flex; flex-direction: column; gap: 12px; }
+          .pay-layout__left { display: flex; flex-direction: column; gap: 16px; }
+          .pay-layout__right { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
           
-          <UploadProofOfPayment 
-            paymentRequestId={paymentData?.payment?.id} 
-            onCancel={() => setStep('invoice')}
-            onSuccess={() => setStep('success')}
-          />
-        </div>
+          /* Manual Transfer Card */
+          .manual-transfer-card {
+            background: var(--surface);
+            padding: 24px;
+            border-radius: 24px;
+            border: 1px solid var(--border-solid);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.04);
+            margin-bottom: 24px;
+          }
+          .manual-transfer-card__title {
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            color: var(--text);
+          }
+          .manual-transfer-card__desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.5;
+          }
+          .manual-transfer-details {
+            background: var(--bg);
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid var(--border-solid);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 24px;
+          }
+          .manual-transfer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .manual-transfer-label {
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 500;
+          }
+          .manual-transfer-value {
+            font-weight: 700;
+            color: var(--text);
+            text-align: right;
+          }
+          .manual-transfer-value--highlight {
+            font-weight: 800;
+            font-size: 18px;
+            letter-spacing: 0.05em;
+            color: var(--clay);
+          }
+          
+          @media (max-width: 520px) {
+            .pay-main { background: var(--bg); min-height: auto; }
+            .pay-container {
+              border-radius: 0;
+              padding: 20px 20px 24px;
+              border: none;
+              box-shadow: none;
+              background: transparent;
+            }
+            .pay-layout { gap: 20px; }
+          }
+          
+          @media (min-width: 1024px) {
+            .auth-shell--pay { max-width: 100%; padding: 0; }
+            .pay-main {
+              padding-top: 80px; padding-bottom: 80px;
+              align-items: center; justify-content: center;
+              min-height: 100vh;
+            }
+            .pay-container {
+              max-width: 1080px; padding: 0; border-radius: 40px;
+              margin: 0 auto; overflow: hidden; display: flex;
+            }
+            .pay-layout { flex-direction: row; align-items: stretch; gap: 0; width: 100%; }
+            .pay-layout__left {
+              flex: 1.1; gap: 32px; padding: 64px;
+              background: var(--surface); border-right: 1px solid var(--border-solid);
+              display: flex;
+              flex-direction: column;
+            }
+            .pay-layout__right { flex: 1; padding: 64px; justify-content: flex-start; gap: 40px; }
+            .pay-header__content { max-width: 960px; padding: 0 64px; }
+            
+            .manual-transfer-card {
+              background: transparent;
+              padding: 0;
+              border: none;
+              box-shadow: none;
+            }
+          }
+        `}</style>
       </div>
     )
   }
@@ -817,14 +995,23 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             setShowPaymentConfirm(false)
             setStep('checkout')
           }}
-          onManualTransfer={
-            paymentData?.property?.manualAccount 
-              ? () => {
-                  setShowPaymentConfirm(false)
-                  setStep('manual-transfer')
+          onManualTransfer={() => {
+            if (paymentData?.property?.manualAccount || paymentData?.company?.bankDetails) {
+              setShowPaymentConfirm(false)
+              setStep('manual-transfer')
+            } else {
+              if (!authUser) {
+                toastError('No manual account configured for this property.')
+              } else {
+                toastError('Please configure a manual transfer account first.')
+                if (paymentData?.property?.uuid) {
+                  router.push(`/dashboard/setup/rental?mode=edit&property=${encodeURIComponent(paymentData.property.uuid)}&returnTo=${encodeURIComponent(`/pay/${uuid}`)}`)
+                } else {
+                  router.push('/dashboard')
                 }
-              : undefined
-          }
+              }
+            }
+          }}
         />
 
         {showUnverifiedModal && (

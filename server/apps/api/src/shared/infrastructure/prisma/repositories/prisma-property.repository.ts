@@ -20,7 +20,7 @@ export class PrismaPropertyRepository implements PropertyRepository {
     const prisma = tx || this.prisma
     const record = await prisma.upward_user_property.findUnique({
       where: { id },
-      include: { location: true }
+      include: { location: true, manualAccount: true }
     })
     return record as unknown as Property | null
   }
@@ -36,7 +36,8 @@ export class PrismaPropertyRepository implements PropertyRepository {
         pm: true,
         pmUnit: {
           include: { property: true }
-        }
+        },
+        manualAccount: true,
       },
     })
     if (!record) return null
@@ -75,7 +76,8 @@ export class PrismaPropertyRepository implements PropertyRepository {
         pm: true,
         pmUnit: {
           include: { property: true }
-        }
+        },
+        manualAccount: true,
       }
     })
     return records.map(record => {

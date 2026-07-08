@@ -183,6 +183,7 @@ export class GetPublicPaymentDetailsUseCase {
         rentEndDate: property.rentEndDate,
         isPastTenancy: property.isPastTenancy,
         locationAddress: locationAddress,
+        manualAccount: (property as any).manualAccount || null,
       },
       company: {
         name: companyName,

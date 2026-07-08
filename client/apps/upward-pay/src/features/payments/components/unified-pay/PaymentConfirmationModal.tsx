@@ -82,7 +82,7 @@ export function PaymentConfirmationModal({
               style={{ background: 'var(--surface)', color: 'var(--text)' }}
               onClick={onManualTransfer}
             >
-              Pay via Bank Transfer
+              Submit Proof of Payment
             </button>
           )}
           <button 

@@ -98,8 +98,8 @@ export class GetPaymentProofUploadUrlUseCase {
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
   ) {}
 
-  async execute(dto: { userId: string; fileName: string; fileType: string; fileSize?: number }) {
-    const user = await this.userRepository.findByUuid(dto.userId)
+  async execute(dto: { userId: number; fileName: string; fileType: string; fileSize?: number }) {
+    const user = await this.userRepository.findById(dto.userId)
     if (!user) throw new Error('User not found')
 
     if (dto.fileSize && dto.fileSize > this.MAX_FILE_SIZE) {

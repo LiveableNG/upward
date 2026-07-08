@@ -44,7 +44,7 @@ export class ManualPaymentsController {
   @Get('proof/upload-url')
   async getUploadUrl(@Req() req: any, @Query('fileName') fileName: string, @Query('fileType') fileType: string, @Query('fileSize') fileSize: string) {
     return this.getUploadUrlUseCase.execute({
-      userId: req.user.uuid,
+      userId: req.user.id,
       fileName,
       fileType,
       fileSize: fileSize ? Number(fileSize) : undefined,
