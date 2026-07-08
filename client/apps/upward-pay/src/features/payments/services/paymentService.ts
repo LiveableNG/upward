@@ -146,31 +146,24 @@ export async function addManualAccount(data: { accountNumber: string, accountNam
   })
 }
 
-export async function getProofUploadUrl(fileName: string, fileType: string, fileSize: number) {
-  return request<{ uuid: string, uploadUrl: string, fileUrl: string }>(`/payments/manual/proof/upload-url?fileName=${encodeURIComponent(fileName)}&fileType=${encodeURIComponent(fileType)}&fileSize=${fileSize}`, {
-    method: 'GET'
-  })
-}
-
-export async function uploadFileToS3(uploadUrl: string, file: File) {
-  const response = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': file.type
-    },
-    body: file
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to upload file to S3')
+export async function uploadProofOfPayment(data: { paymentRequestUuid?: string, userPropertyUuid?: string, amount?: number, currency?: string, lineItems?: any[], file: File }) {
+  const formData = new FormData()
+  if (data.paymentRequestUuid) formData.append('paymentRequestId', data.paymentRequestUuid)
+  if (data.userPropertyUuid) formData.append('userPropertyId', data.userPropertyUuid)
+  if (data.amount) formData.append('amount', data.amount.toString())
+  if (data.currency) formData.append('currency', data.currency)
+  if (data.lineItems && data.lineItems.length > 0) {
+    formData.append('lineItems', JSON.stringify(data.lineItems))
   }
-}
+  formData.append('fileName', data.file.name)
+  formData.append('file', data.file)
 
-export async function uploadProofOfPayment(data: { paymentRequestId?: number, userPropertyId?: number, amount?: number, currency?: string, fileUrl: string, fileName: string }) {
-  return request<any>('/payments/manual/proof', {
+  const res = await request<any>('/payments/manual/proof', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: formData,
   })
+  
+  return res.data || res
 }
 
 export async function deleteProofOfPayment(proofId: number) {

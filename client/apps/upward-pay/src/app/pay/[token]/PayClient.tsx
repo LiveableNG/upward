@@ -175,9 +175,13 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
               </div>
               <div className="pay-layout__right">
                 <UploadProofOfPayment 
-                  paymentRequestId={paymentData?.payment?.id} 
+                  paymentRequestUuid={paymentData?.payment?.uuid}
+                  userPropertyUuid={paymentData?.property?.uuid}
+                  amount={parsedAmount}
+                  currency={currency}
+                  lineItems={finalLineItemPayments}
                   onCancel={() => setStep('invoice')}
-                  onSuccess={() => setStep('success')}
+                  onSuccess={() => setStep('success-manual')}
                 />
               </div>
             </div>
@@ -388,6 +392,18 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
         currency={currency}
         companyName={paymentData.company.name}
         isPendingRefund={isPendingRefund}
+        onDone={() => router.push('/dashboard')}
+      />
+    )
+  }
+
+  if (step === 'success-manual') {
+    return (
+      <SuccessStep
+        finalAmount={parsedAmount}
+        currency={currency}
+        companyName={paymentData.company.name}
+        isManualReview={true}
         onDone={() => router.push('/dashboard')}
       />
     )

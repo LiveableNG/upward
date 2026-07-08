@@ -1,18 +1,25 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle, XCircle, Eye, FileText, Download, Loader2 } from 'lucide-react'
-import { getPendingManualPayments, reviewManualPayment } from '../../services/paymentService'
+import { getPendingManualPayments, reviewManualPayment, downloadManualPaymentProof } from '../../services/paymentService'
 import { useToast } from '@/components/common/Toast'
-import { Modal } from '@/components/ui/Modal/Modal'
 import { formatCurrency } from '@/lib/utils'
+import { DataTable, Column } from '@/components/common/DataTable'
 
 export function ApprovePaymentsQueue() {
   const { success, error } = useToast()
   const queryClient = useQueryClient()
   const [selectedProof, setSelectedProof] = useState<any>(null)
   const [remarks, setRemarks] = useState('')
+  const [mounted, setMounted] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   const { data: proofs = [], isLoading } = useQuery({
     queryKey: ['pm-pending-proofs'],
@@ -35,20 +42,11 @@ export function ApprovePaymentsQueue() {
   })
 
   const handleDownload = async (proof: any) => {
+    if (isDownloading) return
+    setIsDownloading(true)
     try {
-      // Create a temporary link to download the file directly from our endpoint
-      const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/v1/payments/manual/proof/${proof.id}`
-      // We'll need to pass the auth token. Better way: fetch it as blob
-      const token = localStorage.getItem('upward_pm_token')
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      const blob = await downloadManualPaymentProof(proof.id) as Blob
       
-      if (!response.ok) throw new Error('Failed to fetch document')
-      
-      const blob = await response.blob()
       const downloadUrl = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = downloadUrl
@@ -59,139 +57,294 @@ export function ApprovePaymentsQueue() {
       URL.revokeObjectURL(downloadUrl)
     } catch (err: any) {
       error('Failed to download document')
+    } finally {
+      setIsDownloading(false)
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center p-12">
-        <Loader2 size={24} className="animate-spin text-[var(--clay)]" />
+  const emptyStateNode = (
+    <div className="flex flex-col items-center justify-center py-12">
+      <div className="w-12 h-12 rounded-full bg-[var(--clay-faint)] flex items-center justify-center mb-4">
+        <CheckCircle size={24} className="text-[var(--clay)]" />
       </div>
-    )
-  }
+      <h3 className="text-lg font-bold text-[var(--text)]">All Caught Up!</h3>
+      <p className="text-[var(--text-secondary)] mt-1">There are no pending manual payment proofs to review.</p>
+    </div>
+  )
 
-  if (proofs.length === 0) {
-    return (
-      <div className="text-center p-12 bg-[var(--surface)] rounded-2xl border border-[var(--border-solid)]">
-        <div className="mx-auto w-12 h-12 rounded-full bg-[var(--clay-faint)] flex items-center justify-center mb-4">
-          <CheckCircle size={24} className="text-[var(--clay)]" />
+  const columns: Column<any>[] = [
+    {
+      header: 'Tenant & Unit',
+      render: (proof) => {
+        const tenant = proof.paymentRequest?.user || proof.userProperty?.user || proof.paymentRequest?.userProperty?.user
+        const tenantName = tenant ? `${tenant.firstName} ${tenant.lastName}`.trim() : 'Unknown Tenant'
+        const unitName = proof.paymentRequest?.userProperty?.pmUnitId ? `Unit ${proof.paymentRequest.userProperty.pmUnitId}` : proof.userProperty?.pmUnitId ? `Unit ${proof.userProperty.pmUnitId}` : ''
+        
+        return (
+          <div className="tenant-cell">
+            <div className="tenant-avatar">
+              {tenant ? `${tenant.firstName?.[0] || ''}${tenant.lastName?.[0] || ''}` : 'U'}
+            </div>
+            <div>
+              <div style={{ fontWeight: 600, color: 'var(--text)' }}>{tenantName}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{unitName || 'No Unit'}</div>
+            </div>
+          </div>
+        )
+      }
+    },
+    {
+      header: 'Property',
+      render: (proof) => {
+        const location = proof.paymentRequest?.userProperty?.location || proof.userProperty?.location
+        const propertyName = location?.name || location?.address || 'Property'
+        return <span style={{ fontSize: 13 }}>{propertyName}</span>
+      }
+    },
+    {
+      header: 'Expected Amount',
+      render: (proof) => {
+        const amount = proof.amount || proof.paymentRequest?.amount || 0
+        const currency = proof.currency || proof.paymentRequest?.currency || 'NGN'
+        return (
+          <div className="amount-text">
+            {formatCurrency(amount, currency)}
+          </div>
+        )
+      }
+    },
+    {
+      header: 'Upload Date',
+      render: (proof) => (
+        <div style={{ fontSize: 13 }}>
+          {new Date(proof.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
         </div>
-        <h3 className="text-lg font-bold text-[var(--text)]">All Caught Up!</h3>
-        <p className="text-[var(--text-secondary)] mt-1">There are no pending manual payment proofs to review.</p>
-      </div>
-    )
-  }
+      )
+    },
+    {
+      header: 'Status',
+      render: (proof) => (
+        <span className={`status-chip status-chip--${proof.status.toLowerCase()}`}>
+          {proof.status}
+        </span>
+      )
+    },
+    {
+      header: '',
+      align: 'right',
+      render: (proof) => (
+        <button 
+          className="btn btn--secondary btn--sm"
+          onClick={(e) => {
+            e.stopPropagation()
+            setSelectedProof(proof)
+          }}
+        >
+          <Eye size={16} className="mr-2" /> Review
+        </button>
+      )
+    }
+  ]
 
   return (
     <div className="space-y-4">
-      {proofs.map((proof: any) => (
-        <div key={proof.id} className="bg-[var(--bg)] p-5 rounded-2xl border border-[var(--border-solid)] flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[var(--surface2)] flex items-center justify-center text-[var(--clay)]">
-              <FileText size={24} />
-            </div>
-            <div>
-              <h4 className="font-bold text-[var(--text)]">{proof.paymentRequest?.tenant?.firstName} {proof.paymentRequest?.tenant?.lastName}</h4>
-              <p className="text-sm text-[var(--text-secondary)] mt-1">
-                {proof.paymentRequest?.unit?.property?.name} - Unit {proof.paymentRequest?.unit?.unitName}
-              </p>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs font-semibold bg-[var(--clay-faint)] text-[var(--clay)] px-2 py-1 rounded-md">
-                  {formatCurrency(proof.paymentRequest?.amount || 0, proof.paymentRequest?.currency || 'NGN')}
-                </span>
-                <span className="text-xs text-[var(--text-muted)]">
-                  Uploaded on {new Date(proof.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button 
-              className="btn btn--secondary btn--sm"
-              onClick={() => setSelectedProof(proof)}
-            >
-              <Eye size={16} className="mr-2" /> Review
-            </button>
-          </div>
-        </div>
-      ))}
+      <DataTable
+        columns={columns}
+        data={proofs}
+        isLoading={isLoading}
+        emptyMessage={emptyStateNode}
+        onRowClick={(proof) => setSelectedProof(proof)}
+        pageSize={10}
+      />
 
-      {selectedProof && (
-        <Modal 
-          isOpen={true} 
-          onClose={() => {
-            setSelectedProof(null)
-            setRemarks('')
-          }}
-          title="Review Payment Proof"
-          size="md"
-        >
-          <div className="p-6 space-y-6">
-            <div className="bg-[var(--surface)] p-4 rounded-xl border border-[var(--border-solid)]">
-              <h5 className="font-bold text-sm text-[var(--text-secondary)] uppercase tracking-wider mb-3">Payment Details</h5>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Tenant</span>
-                  <span className="font-medium">{selectedProof.paymentRequest?.tenant?.firstName} {selectedProof.paymentRequest?.tenant?.lastName}</span>
+      {selectedProof && mounted && createPortal(
+        <div className="modal-overlay" onClick={() => {
+          setSelectedProof(null)
+          setRemarks('')
+        }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 540 }}>
+            {/* ── Header ── */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div className="modal-header-icon" style={{ background: 'var(--clay-faint)', color: 'var(--clay)' }}>
+                  <FileText size={22} />
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Property</span>
-                  <span className="font-medium">{selectedProof.paymentRequest?.unit?.property?.name} (Unit {selectedProof.paymentRequest?.unit?.unitName})</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Expected Amount</span>
-                  <span className="font-bold text-[var(--clay)]">{formatCurrency(selectedProof.paymentRequest?.amount || 0, selectedProof.paymentRequest?.currency || 'NGN')}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-[var(--bg)] p-4 rounded-xl border border-[var(--border-solid)] flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <FileText size={20} className="text-[var(--text-muted)]" />
                 <div>
-                  <p className="font-medium text-sm">{selectedProof.fileName}</p>
-                  <p className="text-xs text-[var(--text-muted)]">Document ready for review</p>
+                  <h2 className="modal__title" style={{ marginBottom: 2 }}>
+                    Review Payment Proof
+                  </h2>
+                  <p className="modal__desc" style={{ margin: 0 }}>
+                    Verify the uploaded document and mark the payment as approved or rejected.
+                  </p>
                 </div>
               </div>
               <button 
-                className="btn btn--secondary btn--sm btn--pill"
-                onClick={() => handleDownload(selectedProof)}
+                onClick={() => {
+                  setSelectedProof(null)
+                  setRemarks('')
+                }} 
+                className="btn-icon"
               >
-                <Download size={14} className="mr-2" /> View / Download
+                <XCircle size={20} />
               </button>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-[var(--text)] mb-2">Remarks (Optional)</label>
-              <textarea 
-                className="w-full p-3 rounded-xl border border-[var(--border-solid)] bg-[var(--surface)] focus:border-[var(--clay)] outline-none resize-none transition-colors"
-                rows={3}
-                placeholder="Add a note for the tenant..."
-                value={remarks}
-                onChange={(e) => setRemarks(e.target.value)}
-              />
-            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              
+              <div className="join-request-card">
+                <div className="join-request-card__header">
+                  <CheckCircle size={14} />
+                  <span>Payment Request Details</span>
+                </div>
+                <div className="join-request-card__body">
+                  <div className="join-request-card__row">
+                    <span className="join-request-card__label">Tenant</span>
+                    <span className="join-request-card__val font-semibold">
+                      {selectedProof.paymentRequest?.user?.firstName || selectedProof.userProperty?.user?.firstName} {selectedProof.paymentRequest?.user?.lastName || selectedProof.userProperty?.user?.lastName}
+                    </span>
+                  </div>
+                  <div className="join-request-card__row">
+                    <span className="join-request-card__label">Property</span>
+                    <span className="join-request-card__val">
+                      {selectedProof.paymentRequest?.userProperty?.location?.name || selectedProof.userProperty?.location?.name || 'Property'}
+                    </span>
+                  </div>
+                  <div className="join-request-card__row">
+                    <span className="join-request-card__label">Expected Amount</span>
+                    <span className="join-request-card__val join-request-card__val--highlight">
+                      {formatCurrency(selectedProof.amount || selectedProof.paymentRequest?.amount || 0, selectedProof.currency || selectedProof.paymentRequest?.currency || 'NGN')}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-            <div className="flex gap-3 pt-2">
-              <button 
-                className="btn flex-1 py-3 text-white font-bold rounded-xl flex items-center justify-center gap-2"
-                style={{ background: 'var(--error)' }}
-                onClick={() => reviewProof({ id: selectedProof.id, status: 'REJECTED', remarks })}
-                disabled={isPending}
-              >
-                {isPending ? <Loader2 size={18} className="animate-spin" /> : <XCircle size={18} />} Reject
-              </button>
-              <button 
-                className="btn btn--primary flex-1 py-3 rounded-xl flex items-center justify-center gap-2"
-                onClick={() => reviewProof({ id: selectedProof.id, status: 'APPROVED', remarks })}
-                disabled={isPending}
-              >
-                {isPending ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />} Approve
-              </button>
+              {selectedProof.lineItems && selectedProof.lineItems.length > 0 && (
+                <div className="join-request-card">
+                  <div className="join-request-card__header" style={{ background: 'var(--clay-faint)', color: 'var(--clay)' }}>
+                    <CheckCircle size={14} />
+                    <span>Custom Allocation Breakdown</span>
+                  </div>
+                  <div className="join-request-card__body">
+                    {selectedProof.lineItems.map((item: any, idx: number) => (
+                      <div className="join-request-card__row" key={idx}>
+                        <span className="join-request-card__label">{item.name}</span>
+                        <span className="join-request-card__val font-semibold">
+                          {formatCurrency(item.amountPaid || item.amount || 0, selectedProof.currency || 'NGN')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ padding: 16, background: 'var(--surface2)', borderRadius: 12, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <FileText size={20} style={{ color: 'var(--text-muted)' }} />
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{selectedProof.fileName || 'Proof of Payment'}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Document ready for review</div>
+                  </div>
+                </div>
+                <button 
+                  className="btn btn--secondary btn--sm"
+                  onClick={() => handleDownload(selectedProof)}
+                  disabled={isDownloading}
+                >
+                  {isDownloading ? (
+                    <Loader2 size={14} className="animate-spin" style={{ marginRight: 6 }} />
+                  ) : (
+                    <Download size={14} style={{ marginRight: 6 }} />
+                  )}
+                  {isDownloading ? 'Downloading...' : 'View'}
+                </button>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Remarks (Optional)</label>
+                <textarea 
+                  className="form-input"
+                  rows={3}
+                  placeholder="Add a note for the tenant..."
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
+                  style={{ resize: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+                <button 
+                  className="btn"
+                  style={{ flex: 1, background: 'var(--error-faint)', color: 'var(--error)', borderColor: 'var(--error-faint)' }}
+                  onClick={() => reviewProof({ id: selectedProof.id, status: 'REJECTED', remarks })}
+                  disabled={isPending}
+                >
+                  {isPending ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />} Reject
+                </button>
+                <button 
+                  className="btn btn--primary"
+                  style={{ flex: 1 }}
+                  onClick={() => reviewProof({ id: selectedProof.id, status: 'APPROVED', remarks })}
+                  disabled={isPending}
+                >
+                  {isPending ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />} Approve
+                </button>
+              </div>
             </div>
           </div>
-        </Modal>
+        </div>,
+        document.body
       )}
+
+      <style jsx>{`
+        /* Join Request Card (Reused for Payment Details) */
+        .join-request-card {
+          border: 1.5px solid var(--forest);
+          border-radius: 16px;
+          overflow: hidden;
+          background: rgba(22, 101, 52, 0.03);
+        }
+        .join-request-card__header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 16px;
+          background: rgba(22, 101, 52, 0.07);
+          border-bottom: 1px solid rgba(22, 101, 52, 0.12);
+          font-size: 11px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: var(--forest);
+        }
+        .join-request-card__body {
+          padding: 12px 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .join-request-card__row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .join-request-card__label {
+          font-size: 12px;
+          color: var(--text-muted);
+          font-weight: 500;
+          white-space: nowrap;
+        }
+        .join-request-card__val {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text);
+          text-align: right;
+        }
+        .join-request-card__val--highlight {
+          color: var(--forest);
+          font-size: 14px;
+        }
+      `}</style>
     </div>
   )
 }

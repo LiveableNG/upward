@@ -102,25 +102,34 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                     </div>
                   ) : null}
                   <div style={{ marginTop: 12 }}>
-                    <button
-                      type="button"
-                      className="btn btn--secondary btn--sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setManualAccountModalProperty({ 
-                          id: prop.id, 
-                          name: prop.location?.area || prop.address || 'Property',
-                          initialData: prop.manualAccount
-                        })
-                      }}
-                      style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8 }}
-                    >
-                      {prop.manualAccount ? 'Edit Manual Transfer' : 'Setup Manual Transfer'}
-                    </button>
-                    {prop.manualAccount && (
-                      <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ marginTop: 8 }}>
-                        Bank: {prop.manualAccount.bankName} - {prop.manualAccount.accountNumber}
+                    {prop.pmManualAccount ? (
+                      <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--forest)' }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--forest)' }} />
+                        Bank configured by Property Manager
                       </div>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn--secondary btn--sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setManualAccountModalProperty({ 
+                              id: prop.id, 
+                              name: prop.location?.area || prop.address || 'Property',
+                              initialData: prop.manualAccount
+                            })
+                          }}
+                          style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8 }}
+                        >
+                          {prop.manualAccount ? 'Edit Manual Transfer' : 'Setup Manual Transfer'}
+                        </button>
+                        {prop.manualAccount && (
+                          <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ marginTop: 8 }}>
+                            Bank: {prop.manualAccount.bankName} - {prop.manualAccount.accountNumber}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

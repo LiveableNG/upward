@@ -125,6 +125,12 @@ export const reviewManualPayment = (id: string, status: 'APPROVED' | 'REJECTED',
   })
 }
 
+export const downloadManualPaymentProof = (id: string) => {
+  return request<Blob>(`/payments/manual/proof/${id}`, {
+    method: 'GET'
+  })
+}
+
 export const addManualAccount = (data: { propertyId: number; bankName: string; bankCode: string; accountNumber: string; accountName: string }) => {
   return request<{ success: boolean; message: string }>('/payments/manual/account', {
     method: 'POST',

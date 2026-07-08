@@ -89,6 +89,12 @@ export class PrismaUserRepository implements UserRepository {
           accountName: p.manualAccount.accountName,
           bankName: p.manualAccount.bankName,
           bankCode: p.manualAccount.bankCode
+        } : undefined,
+        pmManualAccount: p.pmUnit?.property?.manualAccount ? {
+          accountNumber: p.pmUnit.property.manualAccount.accountNumber,
+          accountName: p.pmUnit.property.manualAccount.accountName,
+          bankName: p.pmUnit.property.manualAccount.bankName,
+          bankCode: p.pmUnit.property.manualAccount.bankCode
         } : undefined
       })) : [],
       companyUsers: model.companyUsers ? model.companyUsers.map((cu: any) => ({
@@ -120,8 +126,10 @@ export class PrismaUserRepository implements UserRepository {
             pm: true,
             subaccount: true,
             dedicatedAccount: true,
-            manualAccount: true
-          }
+            manualAccount: true,
+            pmUnit: {
+              include: { property: { include: { manualAccount: true } } }
+            }
         },
         companyUsers: {
           include: {
@@ -147,8 +155,10 @@ export class PrismaUserRepository implements UserRepository {
             pm: true,
             subaccount: true,
             dedicatedAccount: true,
-            manualAccount: true
-          }
+            manualAccount: true,
+            pmUnit: {
+              include: { property: { include: { manualAccount: true } } }
+            }
         },
         companyUsers: {
           include: {
@@ -174,7 +184,9 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-          },
+            pmUnit: {
+              include: { property: { include: { manualAccount: true } } }
+            },
         },
         companyUsers: {
           include: {
@@ -199,8 +211,10 @@ export class PrismaUserRepository implements UserRepository {
             pm: true,
             subaccount: true,
             dedicatedAccount: true,
-            manualAccount: true
-          }
+            manualAccount: true,
+            pmUnit: {
+              include: { property: { include: { manualAccount: true } } }
+            }
         },
         companyUsers: {
           include: {
@@ -225,8 +239,10 @@ export class PrismaUserRepository implements UserRepository {
             pm: true,
             subaccount: true,
             dedicatedAccount: true,
-            manualAccount: true
-          }
+            manualAccount: true,
+            pmUnit: {
+              include: { property: { include: { manualAccount: true } } }
+            }
         },
         companyUsers: {
           include: {
@@ -251,8 +267,10 @@ export class PrismaUserRepository implements UserRepository {
             pm: true,
             subaccount: true,
             dedicatedAccount: true,
-            manualAccount: true
-          }
+            manualAccount: true,
+            pmUnit: {
+              include: { property: { include: { manualAccount: true } } }
+            }
         },
         companyUsers: {
           include: {
@@ -276,8 +294,10 @@ export class PrismaUserRepository implements UserRepository {
             pm: true,
             subaccount: true,
             dedicatedAccount: true,
-            manualAccount: true
-          }
+            manualAccount: true,
+            pmUnit: {
+              include: { property: { include: { manualAccount: true } } }
+            }
         },
         companyUsers: {
           include: {
@@ -366,8 +386,10 @@ export class PrismaUserRepository implements UserRepository {
             pm: true,
             subaccount: true,
             dedicatedAccount: true,
-            manualAccount: true
-          }
+            manualAccount: true,
+            pmUnit: {
+              include: { property: { include: { manualAccount: true } } }
+            }
         },
         companyUsers: {
           include: {

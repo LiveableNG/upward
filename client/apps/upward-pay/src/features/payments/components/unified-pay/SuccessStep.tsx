@@ -9,6 +9,7 @@ interface SuccessStepProps {
   currency: string
   companyName: string
   isPendingRefund?: boolean
+  isManualReview?: boolean
   onDone: () => void
 }
 
@@ -17,16 +18,17 @@ export function SuccessStep({
   currency,
   companyName,
   isPendingRefund,
+  isManualReview,
   onDone
 }: SuccessStepProps) {
   React.useEffect(() => {
-    if (!isPendingRefund) {
+    if (!isPendingRefund && !isManualReview) {
       const timer = setTimeout(() => {
         onDone()
       }, 3000)
       return () => clearTimeout(timer)
     }
-  }, [isPendingRefund, onDone])
+  }, [isPendingRefund, isManualReview, onDone])
 
   return (
     <div className={`pay-success-view ${isPendingRefund ? 'is-warning' : ''}`}>
@@ -39,6 +41,16 @@ export function SuccessStep({
             <h1 className="pay-success-title is-warning">Review Pending</h1>
             <p className="pay-success-text">
               We detected a payment to <strong>{companyName}</strong>, but it is below the required invoice amount. Since this invoice requires full payment, your Property Manager will decide whether to accept this amount or issue a refund.
+            </p>
+          </>
+        ) : isManualReview ? (
+          <>
+            <div className="pay-success-icon is-info">
+              <Check size={40} strokeWidth={3} />
+            </div>
+            <h1 className="pay-success-title is-info">Proof Submitted</h1>
+            <p className="pay-success-text">
+              Your payment proof for <strong>{companyName}</strong> has been uploaded successfully. It is currently under review by your Property Manager.
             </p>
           </>
         ) : (
@@ -56,7 +68,7 @@ export function SuccessStep({
         <div className="pay-receipt">
           <div className="pay-receipt-row is-total">
             <span className="pay-receipt-label">
-              {isPendingRefund ? 'Amount Detected' : 'Amount paid'}
+              {isPendingRefund ? 'Amount Detected' : isManualReview ? 'Amount Declared' : 'Amount paid'}
             </span>
             <span className="pay-receipt-value">{formatCurrency(finalAmount, currency)}</span>
           </div>
@@ -225,6 +237,21 @@ export function SuccessStep({
           box-shadow: 0 20px 48px rgba(217, 119, 87, 0.35);
         }
 
+        /* Info Overrides (Manual Review) */
+        .pay-success-icon.is-info {
+          background: #0ea5e9;
+          box-shadow: 0 12px 32px rgba(14, 165, 233, 0.25);
+        }
+        .pay-success-title.is-info {
+          color: #0ea5e9;
+        }
+        .pay-done-btn.is-info {
+          background: #0ea5e9;
+          box-shadow: 0 12px 28px rgba(14, 165, 233, 0.2);
+        }
+        .pay-done-btn.is-info:hover {
+          box-shadow: 0 20px 48px rgba(14, 165, 233, 0.35);
+        }
       `}</style>
     </div>
   )

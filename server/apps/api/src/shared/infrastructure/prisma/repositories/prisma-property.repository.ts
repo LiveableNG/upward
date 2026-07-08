@@ -35,7 +35,7 @@ export class PrismaPropertyRepository implements PropertyRepository {
         location: true,
         pm: true,
         pmUnit: {
-          include: { property: true }
+          include: { property: { include: { manualAccount: true } } }
         },
         manualAccount: true,
       },
@@ -43,6 +43,9 @@ export class PrismaPropertyRepository implements PropertyRepository {
     if (!record) return null
 
     const result = { ...record } as any
+    if (result.pmUnit?.property?.manualAccount) {
+      result.pmManualAccount = result.pmUnit.property.manualAccount
+    }
     if (result.company) {
       result.company.name = this.encryption.decrypt(result.company.name)
     }
@@ -75,13 +78,16 @@ export class PrismaPropertyRepository implements PropertyRepository {
         location: true,
         pm: true,
         pmUnit: {
-          include: { property: true }
+          include: { property: { include: { manualAccount: true } } }
         },
         manualAccount: true,
       }
     })
     return records.map(record => {
       const result = { ...record } as any
+      if (result.pmUnit?.property?.manualAccount) {
+        result.pmManualAccount = result.pmUnit.property.manualAccount
+      }
       if (result.pm && !result.manager) {
         result.manager = {
           firstName: this.encryption.decrypt(result.pm.firstName),

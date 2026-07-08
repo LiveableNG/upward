@@ -117,7 +117,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     }
 
     const contentType = res.headers.get('content-type')
-    if (contentType?.includes('application/pdf')) {
+    if (contentType?.includes('application/pdf') || contentType?.includes('image/')) {
       return (await res.blob()) as any
     }
 

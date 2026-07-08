@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Patch, Param, UseGuards, Req, Logger, Get, Delete, Query, Res } from '@nestjs/common'
+import { Controller, Post, Body, Patch, Param, UseGuards, Req, Logger, Get, Delete, Query, Res, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common'
 import { AddManualAccountUseCase, UploadProofOfPaymentUseCase, ReviewManualPaymentUseCase, GetPaymentProofUploadUrlUseCase, GetPaymentProofUseCase, DeletePaymentProofUseCase } from '../../../application/use-cases/payments/manual-payment.use-cases'
 import { GetPendingManualPaymentsUseCase } from '../../../application/use-cases/payments/get-pending-manual-payments.use-case'
 import { Response } from 'express'
@@ -52,25 +52,62 @@ export class ManualPaymentsController {
   }
 
   @Post('proof')
-  async uploadProofOfPayment(@Req() req: any, @Body() body: any) {
+  @HttpCode(HttpStatus.CREATED)
+  async uploadProofOfPayment(@Req() req: any) {
+    if (!req.isMultipart || !req.isMultipart()) {
+      throw new BadRequestException('Request must be multipart/form-data')
+    }
+
+    const data = await req.file()
+    if (!data) {
+      throw new BadRequestException('No file uploaded')
+    }
+
+    const buffer = await data.toBuffer()
+    const fields = data.fields as any
+    console.log('--- UPLOAD FIELDS ---', fields)
+
+    const paymentRequestUuid = fields?.paymentRequestId?.value ? String(fields.paymentRequestId.value) : undefined
+    const userPropertyUuid = fields?.userPropertyId?.value ? String(fields.userPropertyId.value) : undefined
+    const amount = fields?.amount?.value ? Number(fields.amount.value) : undefined
+    const currency = fields?.currency?.value ? String(fields.currency.value) : undefined
+    const fileName = fields?.fileName?.value ? String(fields.fileName.value) : data.filename
+    let lineItems = undefined
+    if (fields?.lineItems?.value) {
+      try {
+        lineItems = JSON.parse(fields.lineItems.value)
+      } catch (e) {}
+    }
+
     return this.uploadProofUseCase.execute({
-      paymentRequestId: body.paymentRequestId ? Number(body.paymentRequestId) : undefined,
-      userPropertyId: body.userPropertyId ? Number(body.userPropertyId) : undefined,
-      amount: body.amount ? Number(body.amount) : undefined,
-      currency: body.currency,
-      fileUrl: body.fileUrl,
-      fileName: body.fileName,
-      uploadedByUserId: req.user.id,
+      paymentRequestUuid,
+      userPropertyUuid,
+      amount,
+      currency,
+      lineItems,
+      fileBuffer: buffer,
+      fileType: data.mimetype,
+      fileSize: buffer.length,
+      fileName,
+      uploadedByUserId: typeof req.user.id === 'number' ? req.user.id : (Number.isNaN(Number(req.user.id)) ? undefined : Number(req.user.id)),
+      userUuid: req.user.id, // For generating S3 key securely
     })
   }
 
   @Get('proof/:id')
-  async getProof(@Param('id') id: string, @Res() res: Response) {
+  async getProof(@Param('id') id: string, @Res() res: any) {
     const { buffer, fileName, fileType } = await this.getProofUseCase.execute(Number(id))
-    res.set({
-      'Content-Type': fileType,
-      'Content-Disposition': `inline; filename="${fileName}"`,
-    })
+    
+    if (typeof res.header === 'function') {
+      res.header('Content-Type', fileType)
+      res.header('Content-Disposition', `inline; filename="${fileName}"`)
+    } else if (typeof res.set === 'function') {
+      res.set({
+        'Content-Type': fileType,
+        'Content-Disposition': `inline; filename="${fileName}"`,
+      })
+    }
+    
     res.send(buffer)
   }
 
@@ -87,8 +124,8 @@ export class ManualPaymentsController {
     
     return this.reviewProofUseCase.execute({
       proofId: Number(id),
-      pmId: req.user.id,
-      status: body.status, // 'APPROVED' or 'REJECTED'
+      pmUuid: req.user.id,
+      status: body.status, // 'APPROVED' | 'REJECTED'
       remarks: body.remarks,
     })
   }

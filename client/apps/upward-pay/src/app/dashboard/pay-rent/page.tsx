@@ -304,7 +304,7 @@ export default function PayRentPage() {
       {step === 'upload-proof' && selectedPropertyUuid && (
         <div className="bg-[var(--surface)] p-6 rounded-3xl border border-[var(--border-solid)] shadow-[0_8px_30px_rgb(0,0,0,0.04)] max-w-xl mx-auto mt-6">
           <UploadProofOfPayment 
-            userPropertyId={userProperties.find(p => p.uuid === selectedPropertyUuid)?.id}
+            userPropertyUuid={selectedPropertyUuid}
             amount={payAmount}
             currency="NGN"
             onSuccess={() => {

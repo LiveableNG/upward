@@ -2,19 +2,20 @@
 
 import React, { useState } from 'react'
 import { UploadCloud, FileText, X, Image as ImageIcon, CheckCircle2, Loader2 } from 'lucide-react'
-import { getProofUploadUrl, uploadFileToS3, uploadProofOfPayment } from '../../services/paymentService'
+import { uploadProofOfPayment } from '../../services/paymentService'
 import { useToast } from '@/components/common/Toast'
 
 interface UploadProofOfPaymentProps {
-  paymentRequestId?: number
-  userPropertyId?: number
+  paymentRequestUuid?: string
+  userPropertyUuid?: string
   amount?: number
   currency?: string
+  lineItems?: any[]
   onSuccess?: () => void
   onCancel?: () => void
 }
 
-export function UploadProofOfPayment({ paymentRequestId, userPropertyId, amount, currency, onSuccess, onCancel }: UploadProofOfPaymentProps) {
+export function UploadProofOfPayment({ paymentRequestUuid, userPropertyUuid, amount, currency, lineItems, onSuccess, onCancel }: UploadProofOfPaymentProps) {
   const { success, error } = useToast()
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -44,20 +45,13 @@ export function UploadProofOfPayment({ paymentRequestId, userPropertyId, amount,
 
     setIsUploading(true)
     try {
-      // 1. Get upload URL from our backend
-      const { uploadUrl, fileUrl } = await getProofUploadUrl(file.name, file.type, file.size)
-      
-      // 2. Upload file to S3
-      await uploadFileToS3(uploadUrl, file)
-      
-      // 3. Inform backend that file is uploaded and linked
       await uploadProofOfPayment({
-        paymentRequestId,
-        userPropertyId,
+        paymentRequestUuid,
+        userPropertyUuid,
         amount,
         currency,
-        fileUrl,
-        fileName: file.name
+        lineItems,
+        file,
       })
 
       setIsUploaded(true)

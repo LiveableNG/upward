@@ -52,6 +52,12 @@ export interface UserProfile {
       bankName: string;
       bankCode?: string;
     }
+    pmManualAccount?: {
+      accountNumber: string;
+      accountName: string;
+      bankName: string;
+      bankCode?: string;
+    }
   }>
   isFromWaitlist: boolean
   isFromInvite: boolean

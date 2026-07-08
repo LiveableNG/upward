@@ -14,7 +14,7 @@ interface DataTableProps<T> {
   columns: Column<T>[];
   data: T[];
   onRowClick?: (item: T) => void;
-  emptyMessage?: string;
+  emptyMessage?: React.ReactNode;
   isLoading?: boolean;
   keyExtractor?: (item: T) => string | number;
   rowClassName?: (item: T) => string;
@@ -49,9 +49,28 @@ export function DataTable<T>({
   if (isLoading) {
     return (
       <div className="upward-table-container animate-pulse">
-        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-          Loading data...
-        </div>
+        <table className="upward-table">
+          <thead>
+            <tr>
+              {columns.map((col, idx) => (
+                <th key={idx} style={{ textAlign: col.align || 'left', width: col.width }}>
+                  {col.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 5 }).map((_, idx) => (
+              <tr key={idx}>
+                {columns.map((col, colIdx) => (
+                  <td key={colIdx}>
+                    <div style={{ height: '20px', backgroundColor: 'var(--surface2)', borderRadius: '4px', width: colIdx === 0 ? '60%' : '80%' }}></div>
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     );
   }

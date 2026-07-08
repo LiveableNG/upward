@@ -47,43 +47,70 @@ export class AddManualAccountUseCase {
 
 @Injectable()
 export class UploadProofOfPaymentUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly s3Service: S3Service) {}
 
   async execute(data: {
-    paymentRequestId?: number
-    userPropertyId?: number
+    paymentRequestUuid?: string
+    userPropertyUuid?: string
     amount?: number
     currency?: string
-    fileUrl: string
-    fileName?: string
-    uploadedByUserId: number
+    lineItems?: any[]
+    fileBuffer: Buffer
+    fileType: string
+    fileSize: number
+    fileName: string
+    uploadedByUserId?: number
+    userUuid: string
   }) {
-    if (!data.paymentRequestId && (!data.userPropertyId || !data.amount)) {
-      throw new Error('Must provide either paymentRequestId or userPropertyId + amount')
+    if (!data.paymentRequestUuid && (!data.userPropertyUuid || !data.amount)) {
+      throw new Error('Must provide either paymentRequestUuid or userPropertyUuid + amount')
     }
 
-    if (data.paymentRequestId) {
+    let paymentRequestId: number | undefined
+    let userPropertyId: number | undefined
+
+    if (data.paymentRequestUuid) {
       const pr = await this.prisma.upward_payment_request.findUnique({
-        where: { id: data.paymentRequestId }
+        where: { uuid: data.paymentRequestUuid }
       })
       if (!pr) throw new NotFoundException('Payment request not found')
-    } else if (data.userPropertyId) {
+      paymentRequestId = pr.id
+    } else if (data.userPropertyUuid) {
       const prop = await this.prisma.upward_user_property.findUnique({
-        where: { id: data.userPropertyId }
+        where: { uuid: data.userPropertyUuid }
       })
       if (!prop) throw new NotFoundException('Property not found')
+      userPropertyId = prop.id
     }
+
+    if (data.fileSize > 10 * 1024 * 1024) {
+      throw new Error(`File size exceeds limit of 10MB.`)
+    }
+
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png']
+    if (!allowedTypes.includes(data.fileType)) {
+      throw new Error('Only PDF, JPG, and PNG files are allowed')
+    }
+
+    const fileExtension = data.fileName.split('.').pop()
+    const uuid = crypto.randomUUID()
+    const s3Key = `users/${data.userUuid}/payment-proofs/${uuid}.${fileExtension}`
+
+    // Upload to S3 in the background or await it
+    await this.s3Service.uploadBuffer(data.fileBuffer, s3Key, data.fileType)
+      .catch((err) => console.error(`Background S3 upload failed for ${s3Key}:`, err))
 
     return this.prisma.upward_payment_proof.create({
       data: {
-        paymentRequestId: data.paymentRequestId,
-        userPropertyId: data.userPropertyId,
+        paymentRequestId,
+        userPropertyId,
         amount: data.amount,
         currency: data.currency || 'NGN',
-        fileUrl: data.fileUrl,
+        fileUrl: s3Key,
         fileName: data.fileName,
         uploadedByUserId: data.uploadedByUserId,
-        status: 'PENDING'
+        status: 'PENDING',
+        lineItems: data.lineItems ? JSON.parse(JSON.stringify(data.lineItems)) : undefined
       }
     })
   }
@@ -98,9 +125,9 @@ export class GetPaymentProofUploadUrlUseCase {
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
   ) {}
 
-  async execute(dto: { userId: number; fileName: string; fileType: string; fileSize?: number }) {
-    const user = await this.userRepository.findById(dto.userId)
-    if (!user) throw new Error('User not found')
+  async execute(dto: { userId: string; fileName: string; fileType: string; fileSize?: number }) {
+
+    const folderUuid = dto.userId;
 
     if (dto.fileSize && dto.fileSize > this.MAX_FILE_SIZE) {
       throw new Error(`File size exceeds limit of 10MB.`)
@@ -113,7 +140,7 @@ export class GetPaymentProofUploadUrlUseCase {
 
     const fileExtension = dto.fileName.split('.').pop()
     const uuid = crypto.randomUUID()
-    const s3Key = `users/${user.uuid}/payment-proofs/${uuid}.${fileExtension}`
+    const s3Key = `users/${folderUuid}/payment-proofs/${uuid}.${fileExtension}`
 
     const uploadUrl = await this.s3Service.getUploadUrl(s3Key, dto.fileType)
 
@@ -189,7 +216,7 @@ export class ReviewManualPaymentUseCase {
 
   async execute(data: {
     proofId: number
-    pmId: number
+    pmUuid: string
     status: 'APPROVED' | 'REJECTED'
     remarks?: string
   }) {
@@ -232,9 +259,11 @@ export class ReviewManualPaymentUseCase {
           reference: reference,
           type: 'RENT',
           status: 'SUCCESS',
-          narration: `Manual Payment Approved - Proof #${proof.id}`,
+          narration: pr?.description ? `${pr.description} (Manual)` : 'Manual Rent Payment',
           settlementStatus: 'VERIFIED',
           isManual: true,
+          sequentialFill: (proof as any).lineItems ? false : true,
+          lineItemPayments: (proof as any).lineItems ? (proof as any).lineItems : undefined,
           userPropertyUuid: property?.uuid,
         }
         

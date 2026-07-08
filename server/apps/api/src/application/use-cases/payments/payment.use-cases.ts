@@ -354,7 +354,7 @@ export class RecordTransactionUseCase {
                                   (hasLineItems && !hasBenefitsItem) ||
                                   matchesRentPlusTxFee
           const activeBenefitsFee = (ratesForExpected.benefitsPaid || excludeBenefits) ? 0 : ratesForExpected.benefitsFee
-          const dynamicFee = ratesForExpected.transactionFee + activeBenefitsFee
+          const dynamicFee = data.isManual ? 0 : (ratesForExpected.transactionFee + activeBenefitsFee)
           const expectedTotal = pr.amount + dynamicFee
           if (!pr.allowPartial && effectiveAmount < expectedTotal && !data.settlementStatus) {
             data.settlementStatus = 'PENDING_REFUND'
@@ -363,7 +363,7 @@ export class RecordTransactionUseCase {
 
           const prItems = await txClient.upward_payment_line_item.findMany({ where: { paymentRequestId: pr.id } })
           const rentRemaining = prItems.reduce((sum, item) => {
-            if (item.name === 'Processing Fee') return sum
+            if (item.name === 'Processing Fee' || item.name === 'Transaction Fee' || item.name === 'Upward Benefits') return sum
             return sum + Math.max(0, item.totalAmount - item.amountPaid)
           }, 0)
           remaining = rentRemaining
@@ -382,7 +382,7 @@ export class RecordTransactionUseCase {
         }
       }
 
-      if (upwardFeeAmount === 0 && pr) {
+      if (upwardFeeAmount === 0 && pr && !data.isManual) {
         try {
           const rates = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId, pr.id)
           const txFee = rates.transactionFee
@@ -427,7 +427,9 @@ export class RecordTransactionUseCase {
           const settlementPortion = Math.max(0, paymentAmount - upwardFeeAmount)
           const newAmountPaid = (pr.amountPaid || 0) + settlementPortion
           const prItems = await txClient.upward_payment_line_item.findMany({ where: { paymentRequestId: pr.id } })
-          const totalRentOwed = prItems.reduce((sum: number, i: any) => i.name === 'Processing Fee' ? sum : sum + i.totalAmount, 0)
+          const totalRentOwed = prItems.reduce((sum: number, i: any) => 
+            (i.name === 'Processing Fee' || i.name === 'Transaction Fee' || i.name === 'Upward Benefits') ? sum : sum + i.totalAmount
+          , 0)
           const newStatus = newAmountPaid >= totalRentOwed ? 'PAID' : 'PARTIAL'
 
           pr = await this.paymentRequestRepo.update(pr.id!, {
