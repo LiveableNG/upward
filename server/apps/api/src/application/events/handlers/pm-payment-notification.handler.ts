@@ -6,6 +6,8 @@ import { EmailService } from '../../../shared/infrastructure/email/email.service
 import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { SmsService } from '../../../shared/infrastructure/sms/sms.service'
+import { WhatsappService } from '../../../shared/infrastructure/whatsapp/whatsapp.service'
 
 @Injectable()
 export class PmPaymentNotificationHandler implements OnModuleInit, OnModuleDestroy {
@@ -17,6 +19,8 @@ export class PmPaymentNotificationHandler implements OnModuleInit, OnModuleDestr
     private readonly notificationService: NotificationService,
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
+    private readonly smsService: SmsService,
+    private readonly whatsappService: WhatsappService,
   ) {}
 
   onModuleInit() {
@@ -38,20 +42,44 @@ export class PmPaymentNotificationHandler implements OnModuleInit, OnModuleDestr
           }
 
           // 1. Send Email
-          await this.emailService.sendPaymentRequestEmail({
-            email: event.email,
-            tenantName: event.tenantName,
-            pmName: event.pmName,
-            amount: event.amount,
-            currency: event.currency,
-            dueDate: event.dueDate,
-            description: event.description,
-            paymentLink: event.paymentLink,
-            pmType: event.pmType,
-            pmUuid,
-          });
+          if (event.channels.includes('EMAIL')) {
+            await this.emailService.sendPaymentRequestEmail({
+              email: event.email,
+              tenantName: event.tenantName,
+              pmName: event.pmName,
+              amount: event.amount,
+              currency: event.currency,
+              dueDate: event.dueDate,
+              description: event.description,
+              paymentLink: event.paymentLink,
+              pmType: event.pmType,
+              pmUuid,
+            });
+          }
 
-          // 2. Send Push Notification if user exists
+          // 2. Send SMS
+          if (event.channels.includes('SMS') && event.tenantPhoneNumber) {
+            const smsMessage = event.isReminder 
+              ? `Reminder: You have an unpaid invoice of ${event.currency} ${event.amount.toLocaleString()} from ${event.pmName}. View and pay here: ${event.paymentLink}`
+              : `New invoice of ${event.currency} ${event.amount.toLocaleString()} from ${event.pmName}. View and pay here: ${event.paymentLink}`;
+            await this.smsService.sendSms({
+              to: event.tenantPhoneNumber,
+              message: smsMessage,
+            });
+          }
+
+          // 3. Send WhatsApp
+          if (event.channels.includes('WHATSAPP') && event.tenantPhoneNumber) {
+            const waMessage = event.isReminder 
+              ? `*Payment Reminder*\n\nHi ${event.tenantName},\n\nThis is a friendly reminder for an unpaid invoice of *${event.currency} ${event.amount.toLocaleString()}* from *${event.pmName}*.\n\nYou can view and pay securely here:\n${event.paymentLink}`
+              : `*New Invoice*\n\nHi ${event.tenantName},\n\nYou have received a new invoice of *${event.currency} ${event.amount.toLocaleString()}* from *${event.pmName}*.\n\nYou can view and pay securely here:\n${event.paymentLink}`;
+            await this.whatsappService.sendMessage({
+              to: event.tenantPhoneNumber,
+              message: waMessage,
+            });
+          }
+
+          // 4. Send Push Notification if user exists
           const emailHash = this.encryption.hash(event.email);
           const coreUser = await this.prisma.upward_user.findUnique({
             where: { emailHash }

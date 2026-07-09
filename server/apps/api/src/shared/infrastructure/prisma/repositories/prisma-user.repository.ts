@@ -83,6 +83,18 @@ export class PrismaUserRepository implements UserRepository {
           accountName: p.dedicatedAccount.accountName,
           bankName: p.dedicatedAccount.bankName,
           bankCode: p.dedicatedAccount.bankCode
+        } : undefined,
+        manualAccount: p.manualAccount ? {
+          accountNumber: p.manualAccount.accountNumber,
+          accountName: p.manualAccount.accountName,
+          bankName: p.manualAccount.bankName,
+          bankCode: p.manualAccount.bankCode
+        } : undefined,
+        pmManualAccount: p.pmUnit?.property?.manualAccount ? {
+          accountNumber: p.pmUnit.property.manualAccount.accountNumber,
+          accountName: p.pmUnit.property.manualAccount.accountName,
+          bankName: p.pmUnit.property.manualAccount.bankName,
+          bankCode: p.pmUnit.property.manualAccount.bankCode
         } : undefined
       })) : [],
       companyUsers: model.companyUsers ? model.companyUsers.map((cu: any) => ({
@@ -113,9 +125,35 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true
+            dedicatedAccount: true,
+            manualAccount: true,
+            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
+        companyUsers: {
+          include: {
+            company: true
           }
-        },
+        }
+      }
+    })
+    return record ? this.toDomain(record) : null
+  }
+
+  async findByPhone(phone: string, tx?: any): Promise<User | null> {
+    const prisma = tx || this.prisma
+    const phoneHash = this.encryption.hash(phone)
+    const record = await prisma.upward_user.findFirst({
+      where: { phoneHash },
+      include: {
+        properties: {
+          include: {
+            location: true,
+            company: true,
+            manager: true,
+            pm: true,
+            subaccount: true,
+            dedicatedAccount: true,
+            manualAccount: true,
+            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
         companyUsers: {
           include: {
             company: true
@@ -139,8 +177,8 @@ export class PrismaUserRepository implements UserRepository {
             pm: true,
             subaccount: true,
             dedicatedAccount: true,
-          },
-        },
+            manualAccount: true,
+            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
         companyUsers: {
           include: {
             company: true,
@@ -163,9 +201,9 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true
-          }
-        },
+            dedicatedAccount: true,
+            manualAccount: true,
+            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
         companyUsers: {
           include: {
             company: true
@@ -188,9 +226,9 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true
-          }
-        },
+            dedicatedAccount: true,
+            manualAccount: true,
+            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
         companyUsers: {
           include: {
             company: true
@@ -213,9 +251,9 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true
-          }
-        },
+            dedicatedAccount: true,
+            manualAccount: true,
+            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
         companyUsers: {
           include: {
             company: true
@@ -237,9 +275,9 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true
-          }
-        },
+            dedicatedAccount: true,
+            manualAccount: true,
+            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
         companyUsers: {
           include: {
             company: true
@@ -326,9 +364,9 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true
-          }
-        },
+            dedicatedAccount: true,
+            manualAccount: true,
+            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
         companyUsers: {
           include: {
             company: true

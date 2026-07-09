@@ -5,11 +5,13 @@ import { UserRepository, USER_REPOSITORY, User, PASS_PLACEHOLDERS } from '../../
 import { VerificationTokenRepository, VERIFICATION_TOKEN_REPOSITORY } from '../../domains/auth/verification-token.repository'
 import { EmailService } from '../../shared/infrastructure/email/email.service'
 import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service'
+import { SmsService } from '../../shared/infrastructure/sms/sms.service'
 import { S3Service } from '../../shared/infrastructure/common/s3/s3.service'
 import * as bcrypt from 'bcrypt'
 import { UserAuthResponse } from '@upward/shared-types'
 import { BaseAuthService } from './base-auth.service'
 import { EncryptionService } from '../../shared/infrastructure/common/encryption.service'
+import { WhatsappService } from '../../shared/infrastructure/whatsapp/whatsapp.service'
 
 @Injectable()
 export class UserAuthService extends BaseAuthService {
@@ -18,6 +20,8 @@ export class UserAuthService extends BaseAuthService {
     @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly smsService: SmsService,
+    private readonly whatsappService: WhatsappService,
     private readonly encryption: EncryptionService,
     private readonly s3Service: S3Service,
     jwtService: JwtService,
@@ -161,6 +165,13 @@ export class UserAuthService extends BaseAuthService {
       throw new ConflictException('User with this email already exists')
     }
 
+    if (dto.phone) {
+      const existingPhone = await this.userRepository.findByPhone(dto.phone)
+      if (existingPhone) {
+        throw new ConflictException('User with this phone number already exists')
+      }
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 10)
 
     const userData: Partial<User> = {
@@ -199,12 +210,18 @@ export class UserAuthService extends BaseAuthService {
   }
 
   async login(
-    email: string,
+    identifier: string,
     password: string,
     ipAddress?: string,
     userAgent?: string,
+    type: 'email' | 'phone' = 'email'
   ): Promise<UserAuthResponse & { refreshToken: string }> {
-    const user = await this.userRepository.findByEmail(email)
+    let user = null;
+    if (type === 'phone') {
+      user = await this.userRepository.findByPhone(identifier);
+    } else {
+      user = await this.userRepository.findByEmail(identifier);
+    }
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials')
@@ -671,7 +688,7 @@ export class UserAuthService extends BaseAuthService {
     await this.syncTenantStatuses(email)
   }
 
-  async checkEmail(email: string): Promise<{ 
+  async checkEmail(identifier: string, type: 'email' | 'phone' = 'email'): Promise<{ 
     exists: boolean; 
     hasPassword?: boolean; 
     isInvited?: boolean; 
@@ -679,14 +696,16 @@ export class UserAuthService extends BaseAuthService {
     uuid?: string;
     authProvider?: string;
   }> {
-    const user = await this.userRepository.findByEmail(email)
+    let user = null;
+    if (type === 'phone') {
+      user = await this.userRepository.findByPhone(identifier);
+    } else {
+      user = await this.userRepository.findByEmail(identifier)
+    }
     
     if (!user) {
       const waitlistEntry = await this.prisma.upward_waitlist.findFirst({
-        where: { 
-          email,
-          role: { not: 'OWNER' }
-        }
+        where: type === 'phone' ? { phone: identifier, role: { not: 'OWNER' } } : { email: identifier, role: { not: 'OWNER' } }
       })
       if (waitlistEntry) {
         return { 
@@ -710,20 +729,23 @@ export class UserAuthService extends BaseAuthService {
 
   }
 
-  async requestOTP(email: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' | 'WAITLIST'): Promise<{ context: string }> {
-    const existing = await this.userRepository.findByEmail(email)
+  async requestOTP(identifier: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' | 'WAITLIST', type: 'email' | 'phone' = 'email', channel: 'SMS' | 'WHATSAPP' = 'SMS'): Promise<{ context: string }> {
+    let existing = null;
+    if (type === 'phone') {
+      existing = await this.userRepository.findByPhone(identifier);
+    } else {
+      existing = await this.userRepository.findByEmail(identifier)
+    }
+
     let effectiveContext = context
 
     if (context === 'LOGIN' && !existing) {
-      throw new UnauthorizedException('No account found with this email address.')
+      throw new UnauthorizedException('No account found with this identifier.')
     }
 
     if (context === 'WAITLIST') {
       const entry = await this.prisma.upward_waitlist.findFirst({
-        where: { 
-          email,
-          role: { not: 'OWNER' }
-        }
+        where: type === 'phone' ? { phone: identifier, role: { not: 'OWNER' } } : { email: identifier, role: { not: 'OWNER' } }
       })
       if (!entry) throw new ForbiddenException('You are not on the priority waitlist.')
     }
@@ -733,8 +755,8 @@ export class UserAuthService extends BaseAuthService {
       effectiveContext = 'LOGIN'
     }
 
-    // 1. Delete any old OTPs for this email/context
-    await this.tokenRepository.deleteOldTokens(email, effectiveContext)
+    // 1. Delete any old OTPs for this identifier/context
+    await this.tokenRepository.deleteOldTokens(identifier, effectiveContext)
 
     // 2. Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString()
@@ -744,17 +766,32 @@ export class UserAuthService extends BaseAuthService {
     await this.tokenRepository.create({
       otp,
       context: effectiveContext as any,
-      identifier: email,
+      identifier: identifier,
       expiresAt,
     })
 
-    // 4. Send email
-    await this.emailService.sendAuthOTP(email, otp, effectiveContext as any)
+    // 4. Send email or SMS/WhatsApp
+    if (type === 'phone') {
+      const messageText = `Your Upward verification code is ${otp}. It expires in 10 minutes.`;
+      if (channel === 'WHATSAPP') {
+        await this.whatsappService.sendMessage({
+          to: identifier,
+          message: messageText,
+        }).catch((e: any) => console.error(`Failed to send WhatsApp OTP to ${identifier}:`, e.message));
+      } else {
+        await this.smsService.sendSms({
+          to: identifier,
+          message: messageText,
+        }).catch((e: any) => console.error(`Failed to send SMS OTP to ${identifier}:`, e.message));
+      }
+    } else {
+      await this.emailService.sendAuthOTP(identifier, otp, effectiveContext as any)
+    }
     return { context: effectiveContext }
   }
 
-  async verifyOTP(email: string, otp: string, context: string, deleteOnSuccess = true): Promise<{ success: boolean; message?: string; inviteToken?: string }> {
-    const record = await this.tokenRepository.findByIdentifier(email, context)
+  async verifyOTP(identifier: string, otp: string, context: string, deleteOnSuccess = true, type: 'email' | 'phone' = 'email'): Promise<{ success: boolean; message?: string; inviteToken?: string; user?: any }> {
+    const record = await this.tokenRepository.findByIdentifier(identifier, context)
 
     if (!record || !record.otp || record.expiresAt < new Date()) {
       return { success: false, message: 'Invalid or expired verification code' }
@@ -769,8 +806,14 @@ export class UserAuthService extends BaseAuthService {
       await this.tokenRepository.delete(record.id!)
     }
 
+    let user = null;
+    if (type === 'phone') {
+      user = await this.userRepository.findByPhone(identifier);
+    } else {
+      user = await this.userRepository.findByEmail(identifier);
+    }
+
     if (context === 'INVITE') {
-      const user = await this.userRepository.findByEmail(email)
       if (user) {
         const inviteToken = crypto.randomUUID()
         await this.tokenRepository.create({
@@ -780,23 +823,20 @@ export class UserAuthService extends BaseAuthService {
           identifier: user.uuid,
           expiresAt: new Date(Date.now() + 60 * 60 * 1000) // 1 hour
         })
-        return { success: true, inviteToken }
+        return { success: true, inviteToken, user }
       }
     }
 
     if (context === 'WAITLIST') {
       const entry = await this.prisma.upward_waitlist.findFirst({
-        where: { 
-          email,
-          role: { not: 'OWNER' }
-        }
+        where: type === 'phone' ? { phone: identifier, role: { not: 'OWNER' } } : { email: identifier, role: { not: 'OWNER' } }
       })
       if (entry) {
-        return { success: true, inviteToken: entry.uuid }
+        return { success: true, inviteToken: entry.uuid, user }
       }
     }
 
-    return { success: true }
+    return { success: true, user }
   }
 
 

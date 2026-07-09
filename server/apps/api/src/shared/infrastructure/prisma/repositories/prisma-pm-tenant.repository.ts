@@ -162,6 +162,19 @@ export class PrismaPmTenantRepository implements ITenantRepository {
     return this.mapTenant(tenant);
   }
 
+  async findByPhoneHash(pmId: number, phoneHash: string): Promise<TenantEntity | null> {
+    const tenant = await this.prisma.upward_pm_tenant.findFirst({
+      where: { pmId, phoneHash },
+      include: { 
+        units: {
+          include: { property: true }
+        }
+      }
+    });
+    if (!tenant) return null;
+    return this.mapTenant(tenant);
+  }
+
   async create(data: Omit<TenantEntity, 'id' | 'uuid'>): Promise<TenantEntity> {
     const firstNameEncrypted = data.firstName ? this.encryption.encrypt(data.firstName) : null;
     const lastNameEncrypted = data.lastName ? this.encryption.encrypt(data.lastName) : null;

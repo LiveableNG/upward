@@ -41,9 +41,15 @@ export const TenantDetailView: React.FC = () => {
   const [showEditor, setShowEditor] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
   const [paymentContext, setPaymentContext] = useState<any>(null)
+  const [deliveryChannel, setDeliveryChannel] = useState<'EMAIL' | 'SMS' | 'WHATSAPP'>('EMAIL')
 
   if (isLoading || !tenant) {
     return <Splash />
+  }
+
+  // Set default delivery channel once tenant is loaded
+  if (tenant && deliveryChannel === 'EMAIL' && (tenant.email?.endsWith('@upward.com') || !tenant.email) && tenant.phone) {
+    setDeliveryChannel('SMS');
   }
 
   const handleOpenPaymentRequest = (unit: any) => {
@@ -65,7 +71,7 @@ export const TenantDetailView: React.FC = () => {
   }
 
   const handleInvite = () => {
-    inviteTenant.mutate(tenant.uuid)
+    inviteTenant.mutate({ uuid: tenant.uuid, deliveryChannel })
   }
 
   const handleProceedToEditor = (template: any, context: any) => {
@@ -140,34 +146,57 @@ export const TenantDetailView: React.FC = () => {
               PROCESSING
             </div>
           ) : (
-            <button 
-              className="btn"
-              onClick={handleInvite}
-              disabled={inviteTenant.isPending || tenant.email?.endsWith('@upward.com')}
-              style={{ 
-                fontSize: 13, 
-                padding: '10px 24px',
-                borderRadius: 100,
-                background: tenant.email?.endsWith('@upward.com') ? 'var(--ivory-dark)' : tenant.inviteSentAt ? 'var(--ivory-dark)' : 'var(--forest)',
-                color: tenant.email?.endsWith('@upward.com') || tenant.inviteSentAt ? 'var(--text-muted)' : 'white',
-                border: '1px solid var(--border)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                cursor: tenant.email?.endsWith('@upward.com') ? 'not-allowed' : 'pointer',
-                opacity: tenant.email?.endsWith('@upward.com') ? 0.6 : 1
-              }}
-              title={tenant.email?.endsWith('@upward.com') ? 'Configure a real email address before inviting' : undefined}
-            >
-              {inviteTenant.isPending ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <>
-                  <Send size={16} />
-                  {tenant.inviteSentAt ? 'Remind' : 'Send Invite'}
-                </>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {((tenant.email && !tenant.email.endsWith('@upward.com')) || tenant.phone) && (
+                <select
+                  value={deliveryChannel}
+                  onChange={(e) => setDeliveryChannel(e.target.value as any)}
+                  className="form-input"
+                  style={{ 
+                    padding: '8px 12px', 
+                    height: '40px', 
+                    borderRadius: 100, 
+                    width: 'auto',
+                    minWidth: '110px',
+                    fontSize: 13,
+                    border: '1px solid var(--border)'
+                  }}
+                >
+                  {tenant.email && !tenant.email.endsWith('@upward.com') && <option value="EMAIL">Email</option>}
+                  {tenant.phone && <option value="SMS">SMS</option>}
+                  {tenant.phone && <option value="WHATSAPP">WhatsApp</option>}
+                </select>
               )}
-            </button>
+              <button 
+                className="btn"
+                onClick={handleInvite}
+                disabled={inviteTenant.isPending || (!tenant.phone && tenant.email?.endsWith('@upward.com'))}
+                style={{ 
+                  fontSize: 13, 
+                  padding: '10px 24px',
+                  height: '40px',
+                  borderRadius: 100,
+                  background: (!tenant.phone && tenant.email?.endsWith('@upward.com')) ? 'var(--ivory-dark)' : tenant.inviteSentAt ? 'var(--ivory-dark)' : 'var(--forest)',
+                  color: (!tenant.phone && tenant.email?.endsWith('@upward.com')) || tenant.inviteSentAt ? 'var(--text-muted)' : 'white',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  cursor: (!tenant.phone && tenant.email?.endsWith('@upward.com')) ? 'not-allowed' : 'pointer',
+                  opacity: (!tenant.phone && tenant.email?.endsWith('@upward.com')) ? 0.6 : 1
+                }}
+                title={(!tenant.phone && tenant.email?.endsWith('@upward.com')) ? 'Configure a real email or phone number before inviting' : undefined}
+              >
+                {inviteTenant.isPending ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <>
+                    <Send size={16} />
+                    {tenant.inviteSentAt ? 'Remind' : 'Send Invite'}
+                  </>
+                )}
+              </button>
+            </div>
           )}
 
           <button 

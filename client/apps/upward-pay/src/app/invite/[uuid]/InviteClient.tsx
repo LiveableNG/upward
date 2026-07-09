@@ -69,7 +69,9 @@ export default function InviteClient() {
           ...formData,
           firstName: res.firstName || '',
           lastName: res.lastName || '',
-          email: res.email || ''
+          email: res.email || '',
+          phone: res.phone || '',
+          isPhoneOnly: res.isPhoneOnly || false,
         })
       }
     } catch (err) {

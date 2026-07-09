@@ -1,0 +1,102 @@
+# External API Changelog
+
+## [Added] Platform Webhooks for Payment Proofs
+- **Event Name:** `payment_proof.uploaded`
+- **Description:** Triggered whenever a tenant uploads a manual proof of payment for a property managed by your platform.
+- **Payload Data:**
+  - `proofId` (number): The internal ID of the proof of payment.
+  - `paymentRequestUuid` (string, optional): The UUID of the payment request this proof is for.
+  - `userPropertyUuid` (string, optional): The UUID of the property this proof is for.
+  - `amount` (number): The payment amount specified by the tenant.
+  - `currency` (string): The currency used (e.g. `NGN`).
+  - `fileUrl` (string, optional): The S3 key/URL pointing to the uploaded receipt image or PDF (null if manual text entry).
+  - `fileName` (string, optional): The original name of the uploaded file.
+  - `senderName` (string, optional): The name of the person who sent the manual transfer (if text entry was used).
+  - `paymentDate` (string, optional): ISO date string of when the payment was made (if text entry was used).
+  - `referenceNumber` (string, optional): An optional reference number for the manual transfer.
+  - `status` (string): The current status of the proof (will always be `PENDING`).
+
+### Sample Webhook Payload
+```json
+{
+  "event": "payment_proof.uploaded",
+  "data": {
+    "proofId": 142,
+    "paymentRequestUuid": "pr_1234abcd5678",
+    "userPropertyUuid": "up_8765dcba4321",
+    "amount": 150000,
+    "currency": "NGN",
+    "fileUrl": "users/uuid/payment-proofs/receipt.pdf",
+    "fileName": "receipt.pdf",
+    "senderName": "John Doe",
+    "paymentDate": "2023-10-15T00:00:00.000Z",
+    "referenceNumber": "REF-998877",
+    "status": "PENDING"
+  }
+}
+```
+
+## [Added] Platform API Endpoints
+
+### 1. Retrieve Pending Payment Proofs
+- **Endpoint:** `GET /platform/payments/proof`
+- **Authentication:** Requires Platform API Key.
+- **Description:** Retrieves all `PENDING` proofs of payment associated with any properties managed by the authenticated platform.
+
+#### Sample Request
+```http
+GET /platform/payments/proof HTTP/1.1
+Host: api.upward.com
+x-api-key: your_platform_api_key_here
+```
+
+#### Sample Response
+```json
+[
+  {
+    "id": 142,
+    "paymentRequestId": 10,
+    "userPropertyId": 5,
+    "amount": 150000,
+    "currency": "NGN",
+    "fileUrl": null,
+    "fileName": null,
+    "senderName": "Jane Smith",
+    "paymentDate": "2023-10-15T00:00:00.000Z",
+    "referenceNumber": "TRX-ABCDEF",
+    "status": "PENDING",
+    "createdAt": "2023-10-16T10:30:00.000Z"
+  }
+]
+```
+
+### 2. Review (Approve/Reject) a Payment Proof
+- **Endpoint:** `PATCH /platform/payments/proof/:id/review`
+- **Authentication:** Requires Platform API Key.
+- **Description:** Approves or rejects a pending proof of payment. If approved, the backend automatically settles the transaction, updates the ledger, boosts the tenant's Upward Score, and emails them a receipt. If rejected, the tenant is notified to upload a new proof.
+
+#### Sample Request
+```http
+PATCH /platform/payments/proof/142/review HTTP/1.1
+Host: api.upward.com
+x-api-key: your_platform_api_key_here
+Content-Type: application/json
+
+{
+  "status": "APPROVED",
+  "remarks": "Payment received successfully."
+}
+```
+
+#### Sample Response (Approved)
+```json
+{
+  "success": true,
+  "transaction": {
+    "id": 505,
+    "amount": 150000,
+    "status": "SUCCESS",
+    "reference": "TXN-12345678"
+  }
+}
+```

@@ -23,6 +23,7 @@ import { ExternalInviteController } from './external/external-invite.controller'
 import { InviteController } from './public/invite.controller'
 import { PlatformAdminController } from './external/platform-invite.controller'
 import { ExternalPaymentController } from './external/external-payment.controller'
+import { PlatformPaymentProofController } from './external/platform-payment-proof.controller'
 import { PublicCredibilityController } from './public/credibility.controller'
 import { ExternalCredibilityController } from './external/external-credibility.controller'
 import { WellKnownController } from './public/well-known.controller'
@@ -55,10 +56,12 @@ import { DevEmailAdminController } from './admin/dev-email-admin.controller'
 import { AdminLoginSessionsController } from './admin/admin-login-sessions.controller'
 import { AdminBlogPostsController } from './admin/blog-posts.controller'
 import { PublicBlogController } from './public/blog.controller'
+import { ManualPaymentsController } from './controllers/manual-payments.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module],
   controllers: [
+    ManualPaymentsController,
     AdminAuthController,
     AdminFeesController,
     AdminLogController,
@@ -77,6 +80,7 @@ import { PublicBlogController } from './public/blog.controller'
     InviteController,
     PlatformAdminController,
     ExternalPaymentController,
+    PlatformPaymentProofController,
     UserSupportController,
     AdminSupportController,
     PublicCredibilityController,

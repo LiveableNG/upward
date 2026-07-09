@@ -82,10 +82,10 @@ export const getPaymentRequest = (uuid: string) => {
   return request<PmPaymentRequest>(`/pm/payment-requests/${uuid}`)
 }
 
-export const resendPaymentRequest = (uuid: string, email?: string) => {
+export const resendPaymentRequest = (uuid: string, email?: string, channels?: string[]) => {
   return request<{ success: boolean; message: string }>(`/pm/payment-requests/${uuid}/resend`, {
     method: 'POST',
-    body: JSON.stringify({ email })
+    body: JSON.stringify({ email, channels })
   })
 }
 
@@ -111,5 +111,29 @@ export const resolveTransaction = (uuid: string, action: 'REFUND' | 'ACCEPT') =>
   return request<{ success: boolean; message: string }>(`/pm/payments/unresolved/${uuid}/resolve`, {
     method: 'POST',
     body: JSON.stringify({ action })
+  })
+}
+
+export const getPendingManualPayments = () => {
+  return request<any[]>('/payments/manual/proof')
+}
+
+export const reviewManualPayment = (id: string, status: 'APPROVED' | 'REJECTED', remarks?: string) => {
+  return request<{ success: boolean; message: string }>(`/payments/manual/proof/${id}/review`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, remarks })
+  })
+}
+
+export const downloadManualPaymentProof = (id: string) => {
+  return request<Blob>(`/payments/manual/proof/${id}`, {
+    method: 'GET'
+  })
+}
+
+export const addManualAccount = (data: { propertyId: number; bankName: string; bankCode: string; accountNumber: string; accountName: string }) => {
+  return request<{ success: boolean; message: string }>('/payments/manual/account', {
+    method: 'POST',
+    body: JSON.stringify(data)
   })
 }

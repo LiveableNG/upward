@@ -41,6 +41,23 @@ function buildPaymentAlert(p: PendingPayment): Pick<ActionItem, 'title' | 'meta'
   const dueLabel = formatShortDue(dateStr)
   const duePart = dueLabel ? `Due ${dueLabel}` : ''
 
+  if (p.latestProof) {
+    if (p.latestProof.status === 'PENDING') {
+      return {
+        title: 'Payment In Review',
+        meta: `Your uploaded proof is being reviewed${duePart ? ` · ${duePart}` : ''}`,
+        urgency: 'neutral',
+      }
+    }
+    if (p.latestProof.status === 'REJECTED') {
+      return {
+        title: 'Proof Rejected',
+        meta: `Action needed: ${p.latestProof.remarks || 'Document was rejected'}${duePart ? ` · ${duePart}` : ''}`,
+        urgency: 'critical',
+      }
+    }
+  }
+
   const isSelfInitiated =
     p.isManual || (!p.company_name && !p.manager_name) || p.company_name === 'Manual Payment'
 

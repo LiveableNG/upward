@@ -77,8 +77,8 @@ export class GetPerformanceMetricsUseCase {
               id: true,
               pmId: true,
               companyId: true,
-              pm: { select: { id: true, createdAt: true } },
-              company: { select: { id: true, createdAt: true } },
+              pm: { select: { id: true, createdAt: true, uuid: true } },
+              company: { select: { id: true, createdAt: true, uuid: true } },
             },
           },
         },
@@ -250,82 +250,7 @@ export class GetPerformanceMetricsUseCase {
       })
     })
 
-    // Apply future-proof cutoff and whitelist filtering to clean up historic test data
-    const cutoffDate = new Date('2026-07-04T00:00:00Z')
-
-    // Real PM IDs: 10 (Biodun Odeleye) or any PM created after cutoff
-    const realPmIds = new Set(
-      allPms.filter((pm) => pm.id === 10 || pm.createdAt >= cutoffDate).map((pm) => pm.id)
-    )
-
-    const isRealUser = (u: any) => {
-      // 1. If user signed up after cutoff date, they are real
-      if (u.createdAt >= cutoffDate) return true
-
-      const decrypted = userMap.get(u.emailHash)
-      const email = decrypted ? decrypted.decryptedEmail.toLowerCase().trim() : ''
-
-      // 2. Exclude if email matches test/demo pattern
-      if (
-        email.includes('demo') ||
-        email.includes('support') ||
-        email.includes('test') ||
-        email.includes('goodtenants')
-      ) {
-        return false
-      }
-
-      // 3. Seun Isaac is the only historic user allowed to have historic transactions.
-      // Filter out any other historic user who has transactions.
-      if (u.transactions && u.transactions.length > 0 && email !== 'oluwaseunisaacs@gmail.com') {
-        return false
-      }
-
-      // 4. Exclude if currently linked to any internal (historic, non-whitelisted) PM or Company
-      if (u.properties && u.properties.length > 0) {
-        const hasInternalLink = u.properties.some((p: any) => {
-          // Linked PM is internal (historic and not PM ID 10)
-          if (p.pmId && p.pmId !== 10 && (!p.pm || p.pm.createdAt < cutoffDate)) {
-            return true
-          }
-          // Linked Company is internal (historic and not Company ID 2 or 11)
-          if (p.companyId && p.companyId !== 2 && p.companyId !== 11 && (!p.company || p.company.createdAt < cutoffDate)) {
-            return true
-          }
-          return false
-        })
-        if (hasInternalLink) return false
-      }
-
-      // 5. Otherwise, they are real (e.g. self-signups, waitlist signups with no properties yet)
-      return true
-    }
-
-    // Perform filtering
-    allUsers = allUsers.filter(isRealUser)
-    const realUserIds = new Set(allUsers.map((u) => u.id))
-
-    allPms = allPms.filter((pm) => pm.id === 10 || pm.createdAt >= cutoffDate)
-
-    pmTenants = pmTenants.filter((t) => {
-      if (t.createdAt >= cutoffDate) return true
-      return t.pmId && realPmIds.has(t.pmId)
-    })
-
-    successTransactions = successTransactions.filter((tx) => {
-      return realUserIds.has(tx.userId)
-    })
-
-    activeUserGroups = activeUserGroups.filter((log) => {
-      return log.userId && realUserIds.has(log.userId)
-    })
-
-    allWaitlistEntries = allWaitlistEntries.filter((w) => {
-      if (w.createdAt >= cutoffDate) return true
-      const email = w.email.toLowerCase().trim()
-      const isTest = email.includes('test') || email.includes('demo') || email.includes('techinfoorg') || email.includes('pingpong')
-      return !isTest
-    })
+    // No hardcoded filtering based on cutoff or test emails. All entries are considered valid.
 
     // 3. CALCULATE REVENUE STATS (Upward Fees & Benefits Fees)
     let totalUpwardFees = 0
@@ -415,6 +340,12 @@ export class GetPerformanceMetricsUseCase {
             })
           }
         })
+        const pmUuids: string[] = []
+        u.properties.forEach((p: any) => {
+          if (p.pm?.uuid) pmUuids.push(p.pm.uuid)
+          if (p.company?.uuid) pmUuids.push(p.company.uuid)
+        })
+
         return {
           id: `su_${u.id}`,
           uuid: u.uuid,
@@ -428,6 +359,7 @@ export class GetPerformanceMetricsUseCase {
           hasPaid: totalPaid > 0,
           benefitsPaid,
           hasPaidBenefits: benefitsPaid > 0,
+          pmUuid: pmUuids,
         }
       })
 
@@ -472,6 +404,13 @@ export class GetPerformanceMetricsUseCase {
           status = totalPaid > 0 ? 'SIGNED_UP_PAID' : 'INVITED_SIGNED_UP'
         }
 
+        const pmUuids = new Set<string>()
+        if (pmMatch?.pm?.uuid) pmUuids.add(pmMatch.pm.uuid)
+        u.properties.forEach((p: any) => {
+          if (p.pm?.uuid) pmUuids.add(p.pm.uuid)
+          if (p.company?.uuid) pmUuids.add(p.company.uuid)
+        })
+
         return {
           id: `inv_u_${u.id}`,
           uuid: u.uuid,
@@ -483,7 +422,7 @@ export class GetPerformanceMetricsUseCase {
           status,
           totalPaid,
           pmName,
-          pmUuid: pmMatch?.pm?.uuid || null,
+          pmUuid: Array.from(pmUuids),
           benefitsPaid,
           hasPaidBenefits: benefitsPaid > 0,
         }
@@ -578,15 +517,11 @@ export class GetPerformanceMetricsUseCase {
         totalGenerated,
         createdAt: pm.createdAt,
         pmType: 'Upward PM',
+        mergedUuids: undefined as string[] | undefined,
       }
     })
 
-    // Filter and map platform companies (e.g. Liveable, Company ID 2, or those created on/after cutoff)
-    const filteredCompanies = allCompanies.filter(
-      (c) => c.id === 2 || c.createdAt >= cutoffDate
-    )
-
-    const finalCompanyDirectory = filteredCompanies.map((c) => {
+    const finalCompanyDirectory = allCompanies.map((c) => {
       const companySubaccountUuids = c.properties
         .map((p: any) => p.subaccount?.uuid)
         .filter(Boolean) as string[]
@@ -642,7 +577,33 @@ export class GetPerformanceMetricsUseCase {
       }
     })
 
-    const finalPmDirectory = [...finalPmDirectoryRaw, ...finalCompanyDirectory]
+    // Deduplicate and Merge PMs and Companies by email
+    const finalPmDirectoryFiltered = [...finalPmDirectoryRaw]
+    const finalCompanyDirectoryFiltered: any[] = []
+
+    finalCompanyDirectory.forEach((company) => {
+      const companyEmail = company.email.toLowerCase().trim()
+      const matchingPmIndex = finalPmDirectoryFiltered.findIndex(
+        (pm) => pm.email.toLowerCase().trim() === companyEmail && companyEmail !== ''
+      )
+
+      if (matchingPmIndex !== -1) {
+        // Merge stats into the Upward PM
+        const matchedPm = finalPmDirectoryFiltered[matchingPmIndex]!
+        matchedPm.totalGenerated += company.totalGenerated
+        matchedPm.propertiesCount += company.propertiesCount
+        matchedPm.unitsCount += company.unitsCount
+        // Add company UUID to merged UUIDs so frontend can filter
+        if (!matchedPm.mergedUuids) matchedPm.mergedUuids = [matchedPm.uuid]
+        matchedPm.mergedUuids.push(company.uuid)
+        // Prioritize Upward PM type, so we don't change pmType.
+      } else {
+        // No matching PM, keep the company
+        finalCompanyDirectoryFiltered.push(company)
+      }
+    })
+
+    const finalPmDirectory = [...finalPmDirectoryFiltered, ...finalCompanyDirectoryFiltered]
 
     // 5. CALCULATE GRAPH / SUMMARY METRICS
 
@@ -656,7 +617,7 @@ export class GetPerformanceMetricsUseCase {
     const allUsersPayments = allUsers.map((u) => {
       const totalPaid = u.transactions.reduce((sum: number, tx: any) => sum + tx.amount, 0)
       return { totalPaid, hasPaid: totalPaid > 0 }
-    })
+    })    
     const signedUpPayingCount = allUsersPayments.filter((u) => u.hasPaid).length
     const signedUpTotalPaid = allUsersPayments.reduce((sum, u) => sum + u.totalPaid, 0)
 

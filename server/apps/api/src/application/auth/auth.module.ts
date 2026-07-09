@@ -11,10 +11,13 @@ import { JwtStrategy } from './strategies/jwt.strategy'
 import { PrismaModule } from '../../shared/infrastructure/prisma/prisma.module'
 import { S3Module } from '../../shared/infrastructure/common/s3/s3.module'
 
+import { SmsModule } from '../../shared/infrastructure/sms/sms.module'
+
 @Module({
   imports: [
     PrismaModule,
     S3Module,
+    SmsModule,
     PassportModule,
     JwtModule.registerAsync({
       inject: [ConfigService],

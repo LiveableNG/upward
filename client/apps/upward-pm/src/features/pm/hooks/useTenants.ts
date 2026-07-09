@@ -43,7 +43,7 @@ export const useTenantActions = () => {
   })
 
   const inviteTenant = useMutation({
-    mutationFn: (uuid: string) => tenantService.inviteTenant(uuid),
+    mutationFn: ({ uuid, deliveryChannel }: { uuid: string, deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP' }) => tenantService.inviteTenant(uuid, deliveryChannel),
     onSuccess: (_, uuid) => {
       queryClient.invalidateQueries({ queryKey: ['tenants'] })
       queryClient.invalidateQueries({ queryKey: ['tenant', uuid] })
@@ -107,7 +107,7 @@ export const useTenantActions = () => {
   })
 
   const bulkInvite = useMutation({
-    mutationFn: (tenantUuids: string[]) => tenantService.bulkInvite(tenantUuids),
+    mutationFn: ({ tenantUuids, deliveryChannel }: { tenantUuids: string[], deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP' }) => tenantService.bulkInvite(tenantUuids, deliveryChannel),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenants'] })
       toast.success('Tenant reminders are being processed.')

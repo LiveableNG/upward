@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, UserPlus, Loader2, Building2, Calendar, CreditCard, ChevronDown, MapPin, CheckCircle2 } from 'lucide-react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -25,6 +26,7 @@ const tenantSchema = z.object({
   otherPhone: z.string().optional().refine((val) => !val || isValidPhoneNumber(val), {
     message: 'Invalid international phone number (e.g. +234...)'
   }),
+  deliveryChannel: z.enum(['EMAIL', 'SMS', 'WHATSAPP']).optional(),
   // Assignment fields
   unitUuid: z.string().optional(),
   rentAmount: z.string().optional(),
@@ -146,6 +148,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
       email: initialData?.email || '',
       phone: initialData?.phone || '',
       otherPhone: '',
+      deliveryChannel: undefined,
       unitUuid: '',
       rentAmount: initialData?.unitDetails?.rentAmount?.toString() || '',
       rentType: 'Annually',
@@ -209,7 +212,13 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
     }
   }, [rentStartDate, rentType, setValue])
 
-  if (!isOpen) return null
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!isOpen || !mounted) return null
+
 
   const onSubmit = async (data: TenantFormData) => {
     const { tenantType, unitUuid, rentAmount, rentType, rentStartDate, rentEndDate, ...tenantData } = data
@@ -230,7 +239,8 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
       commercialName: tenantType === 'commercial' ? (tenantData.commercialName || '') : '',
       email,
       phone: tenantData.phone,
-      otherPhone: tenantData.otherPhone || undefined
+      otherPhone: tenantData.otherPhone || undefined,
+      deliveryChannel: tenantData.deliveryChannel
     }
 
     if (showLeaseFields && assignMode === 'create') {
@@ -348,7 +358,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
   const requestedLocation = [ud?.address, ud?.area, ud?.state, ud?.country]
     .filter(Boolean).join(', ')
 
-  return (
+  const modalContent = (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 620 }}>
 
@@ -549,10 +559,61 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
               </div>
               <div />
             </div>
+
+            <div style={{ marginTop: 16 }}>
+              <label className="form-label" style={{ marginBottom: 8 }}>Preferred Invite Delivery Method</label>
+              <div className="delivery-options-container">
+                {!(watch('email') || '').endsWith('@upward.com') && (watch('email') || '').trim() !== '' && (
+                  <label 
+                    className={cn("delivery-option", watch('deliveryChannel') === 'EMAIL' && "delivery-option--active")}
+                    style={watch('deliveryChannel') === 'EMAIL' ? { backgroundColor: 'var(--forest)', color: '#ffffff', borderColor: 'var(--forest)' } : {}}
+                  >
+                    <input
+                      type="radio"
+                      value="EMAIL"
+                      {...register('deliveryChannel')}
+                      className="sr-only"
+                    />
+                    <span>Email</span>
+                  </label>
+                )}
+                <label 
+                  className={cn("delivery-option", watch('deliveryChannel') === 'SMS' && "delivery-option--active", !watch('phone') && "delivery-option--disabled")}
+                  style={watch('deliveryChannel') === 'SMS' ? { backgroundColor: 'var(--forest)', color: '#ffffff', borderColor: 'var(--forest)' } : {}}
+                >
+                  <input
+                    type="radio"
+                    value="SMS"
+                    {...register('deliveryChannel')}
+                    disabled={!watch('phone')}
+                    className="sr-only"
+                  />
+                  <span>SMS</span>
+                </label>
+                <label 
+                  className={cn("delivery-option", watch('deliveryChannel') === 'WHATSAPP' && "delivery-option--active", !watch('phone') && "delivery-option--disabled")}
+                  style={watch('deliveryChannel') === 'WHATSAPP' ? { backgroundColor: 'var(--forest)', color: '#ffffff', borderColor: 'var(--forest)' } : {}}
+                >
+                  <input
+                    type="radio"
+                    value="WHATSAPP"
+                    {...register('deliveryChannel')}
+                    disabled={!watch('phone')}
+                    className="sr-only"
+                  />
+                  <span>WhatsApp</span>
+                </label>
+              </div>
+              {!watch('phone') && (
+                <p className="form-error-text" style={{ marginTop: 6, color: 'var(--text-muted)' }}>
+                  Phone number is required for SMS/WhatsApp delivery.
+                </p>
+              )}
+            </div>
           </div>
 
           {/* ── Unit Assignment ── */}
-          <div style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid var(--border)' }}>
+          <div style={{ marginTop: 40, paddingTop: 32, borderTop: '1px solid var(--border)' }}>
             <div
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
               onClick={() => setShowLeaseFields(!showLeaseFields)}
@@ -760,105 +821,151 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
             </button>
           </div>
         </form>
+
+        <style jsx>{`
+          .modal-header-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+          .icon-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+          .form-section-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+          }
+          .form-section {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+          .form-error-text {
+            color: var(--error);
+            font-size: 12px;
+            margin-top: 4px;
+            display: block;
+          }
+          .no-units-warning {
+            padding: 14px 16px;
+            background-color: #fffbeb;
+            border-radius: 12px;
+            border: 1px solid #fef3c7;
+            font-size: 13px;
+            color: #b45309;
+            line-height: 1.5;
+          }
+
+          /* Join Request Card */
+          .join-request-card {
+            border: 1.5px solid var(--forest);
+            border-radius: 16px;
+            overflow: hidden;
+            background: rgba(22, 101, 52, 0.03);
+          }
+          .join-request-card__header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: rgba(22, 101, 52, 0.07);
+            border-bottom: 1px solid rgba(22, 101, 52, 0.12);
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--forest);
+          }
+          .join-request-card__body {
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          }
+          .join-request-card__row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+          }
+          .join-request-card__label {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            white-space: nowrap;
+          }
+          .join-request-card__val {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            text-align: right;
+          }
+          .join-request-card__val--highlight {
+            color: var(--forest);
+            font-size: 14px;
+          }
+
+          .delivery-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            background: #fff;
+          }
+          .delivery-option:hover:not(.delivery-option--disabled) {
+            border-color: var(--clay);
+            color: var(--clay);
+            background: var(--clay-faint);
+          }
+          .delivery-option--active {
+            border-color: var(--forest) !important;
+            background: var(--forest) !important;
+            color: #fff !important;
+          }
+          .delivery-option--active:hover:not(.delivery-option--disabled) {
+            color: #fff !important;
+          }
+          .delivery-option--disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: var(--ivory-dim);
+          }
+          .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+          }
+        `}</style>
       </div>
-
-      <style jsx>{`
-        .modal-header-icon {
-          width: 44px;
-          height: 44px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-        .icon-box {
-          width: 40px;
-          height: 40px;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-        .form-section-label {
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          color: var(--text-muted);
-          margin-bottom: 12px;
-        }
-        .form-section {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .form-error-text {
-          color: var(--error);
-          font-size: 12px;
-          margin-top: 4px;
-          display: block;
-        }
-        .no-units-warning {
-          padding: 14px 16px;
-          background-color: #fffbeb;
-          border-radius: 12px;
-          border: 1px solid #fef3c7;
-          font-size: 13px;
-          color: #b45309;
-          line-height: 1.5;
-        }
-
-        /* Join Request Card */
-        .join-request-card {
-          border: 1.5px solid var(--forest);
-          border-radius: 16px;
-          overflow: hidden;
-          background: rgba(22, 101, 52, 0.03);
-        }
-        .join-request-card__header {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 16px;
-          background: rgba(22, 101, 52, 0.07);
-          border-bottom: 1px solid rgba(22, 101, 52, 0.12);
-          font-size: 11px;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          color: var(--forest);
-        }
-        .join-request-card__body {
-          padding: 12px 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .join-request-card__row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-        }
-        .join-request-card__label {
-          font-size: 12px;
-          color: var(--text-muted);
-          font-weight: 500;
-          white-space: nowrap;
-        }
-        .join-request-card__val {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--text);
-          text-align: right;
-        }
-        .join-request-card__val--highlight {
-          color: var(--forest);
-          font-size: 14px;
-        }
-      `}</style>
     </div>
   )
+
+  return createPortal(modalContent, document.body)
 }

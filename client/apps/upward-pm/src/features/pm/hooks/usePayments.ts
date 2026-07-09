@@ -56,7 +56,7 @@ export const useUpdatePaymentRequest = () => {
 
 export const useResendPaymentRequest = () => {
   return useMutation({
-    mutationFn: ({ uuid, email }: { uuid: string; email?: string }) => api.resendPaymentRequest(uuid, email)
+    mutationFn: ({ uuid, email, channels }: { uuid: string; email?: string; channels?: string[] }) => api.resendPaymentRequest(uuid, email, channels)
   })
 }
 

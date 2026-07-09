@@ -73,6 +73,8 @@ export class UnifiedReminderService {
 
   private async sendPmPaymentReminder(pr: any) {
     const tenantEmail = pr.tenant?.emailEncrypted ? this.encryption.decrypt(pr.tenant.emailEncrypted) : null;
+    if (tenantEmail && tenantEmail.endsWith('@upward.com')) return;
+
     const decryptedCommercialName = pr.tenant?.commercialNameEncrypted ? this.encryption.decrypt(pr.tenant.commercialNameEncrypted) : '';
     const decryptedTenantFirstName = pr.tenant?.firstNameEncrypted ? this.encryption.decrypt(pr.tenant.firstNameEncrypted) : '';
     const decryptedTenantLastName = pr.tenant?.lastNameEncrypted ? this.encryption.decrypt(pr.tenant.lastNameEncrypted) : '';

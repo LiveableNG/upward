@@ -24,7 +24,7 @@ export interface UnifiedUserRecord {
   hasPassword: boolean
   isExWaitlist: boolean
   pmName?: string
-  pmUuid?: string | null
+  pmUuid?: string | string[] | null
   totalPaid: number
   rawRecord: any
 }

@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { ArrowLeft, Search, Eye, LayoutGrid, Wallet, FileText, ClipboardList, Package, ShieldCheck, Edit3 } from 'lucide-react'
 import { Property, Unit } from '../../services/propertyService'
 import { cn, formatTenantName } from '@/lib/utils'
+import { ManualAccountModal } from './modals/ManualAccountModal'
 
 interface PropertyDetailViewProps {
   property: Property;
@@ -17,6 +18,7 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
   const [activeTab, setActiveTab] = useState('Unit')
   const [unitSearch, setUnitSearch] = useState('')
   const [unitFilter, setUnitFilter] = useState<'All' | 'Occupied' | 'Vacant'>('All')
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false)
 
   const occupiedCount = units.filter(u => u.status === 'OCCUPIED').length
   const vacantCount = units.filter(u => u.status === 'VACANT').length
@@ -40,13 +42,23 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
         </button>
         <h2 style={{ fontSize: 18, fontWeight: 600, color: '#334155' }}>Property Detail</h2>
         
-        <button 
-          onClick={onEdit}
-          className="btn btn--secondary btn--sm" 
-          style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, height: 36, padding: '0 16px', borderRadius: 10 }}
-        >
-          <Edit3 size={16} /> Edit Property
-        </button>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 12 }}>
+          <button 
+            onClick={() => setIsManualModalOpen(true)}
+            className="btn btn--secondary btn--sm" 
+            style={{ display: 'flex', alignItems: 'center', gap: 8, height: 36, padding: '0 16px', borderRadius: 10 }}
+          >
+            <Wallet size={16} /> Setup Manual Payment
+          </button>
+          
+          <button 
+            onClick={onEdit}
+            className="btn btn--secondary btn--sm" 
+            style={{ display: 'flex', alignItems: 'center', gap: 8, height: 36, padding: '0 16px', borderRadius: 10 }}
+          >
+            <Edit3 size={16} /> Edit Property
+          </button>
+        </div>
       </div>
 
       {/* Top Section Cards */}
@@ -238,6 +250,13 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
           )}
         </div>
       </div>
+
+      <ManualAccountModal 
+        isOpen={isManualModalOpen} 
+        onClose={() => setIsManualModalOpen(false)} 
+        propertyId={property.id} 
+        propertyName={property.name} 
+      />
     </div>
   )
 }

@@ -95,6 +95,8 @@ export class InviteController {
       isWaitlist: false,
       hasPassword,
       email: user.email,
+      phone: user.phone,
+      isPhoneOnly: user.email.endsWith('@upward.com'),
       firstName: user.firstName,
       lastName: user.lastName,
       company: companyUser ? {

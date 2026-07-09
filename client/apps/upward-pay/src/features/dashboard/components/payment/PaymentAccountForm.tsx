@@ -18,6 +18,7 @@ type PaymentAccountFormProps = {
   onChange: (value: PaymentAccountFormValue) => void
   intro?: string
   className?: string
+  disabled?: boolean
 }
 
 export function isPaymentAccountResolved(value: PaymentAccountFormValue): boolean {
@@ -33,6 +34,7 @@ export function PaymentAccountForm({
   onChange,
   intro = "Enter the bank account rent should be paid to. We'll confirm the account name before you continue.",
   className,
+  disabled = false,
 }: PaymentAccountFormProps) {
   const [banks, setBanks] = useState<{ code: string; name: string }[]>([])
   const [resolving, setResolving] = useState(false)
@@ -63,7 +65,7 @@ export function PaymentAccountForm({
   }, [])
 
   useEffect(() => {
-    if (isPaymentAccountResolved(value)) {
+    if (disabled || isPaymentAccountResolved(value)) {
       setResolved(true)
       setResolveError(null)
       return
@@ -120,10 +122,11 @@ export function PaymentAccountForm({
         <label className="pay-flow__field-label">Bank</label>
         <div
           role="button"
-          tabIndex={0}
-          className={`pay-flow__select-trigger ${isBankModalOpen ? 'pay-flow__select-trigger--open' : ''}`}
-          onClick={() => !loadingBanks && setIsBankModalOpen(true)}
-          onKeyDown={(e) => e.key === 'Enter' && !loadingBanks && setIsBankModalOpen(true)}
+          tabIndex={disabled ? -1 : 0}
+          className={`pay-flow__select-trigger ${isBankModalOpen ? 'pay-flow__select-trigger--open' : ''} ${disabled ? 'pay-flow__select-trigger--disabled' : ''}`}
+          onClick={() => !disabled && !loadingBanks && setIsBankModalOpen(true)}
+          onKeyDown={(e) => e.key === 'Enter' && !disabled && !loadingBanks && setIsBankModalOpen(true)}
+          style={disabled ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
         >
           <span className="pay-flow__select-trigger-icon">
             <Landmark size={20} />
@@ -173,6 +176,7 @@ export function PaymentAccountForm({
             pattern="[0-9]*"
             placeholder="10-digit account number"
             maxLength={10}
+            disabled={disabled}
             value={value.accountNumber}
             onChange={(e) =>
               onChange({

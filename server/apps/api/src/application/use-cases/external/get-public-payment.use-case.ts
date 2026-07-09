@@ -126,6 +126,13 @@ export class GetPublicPaymentDetailsUseCase {
       },
     })
 
+    const proofs = await this.prisma.upward_payment_proof.findMany({
+      where: { paymentRequestId: paymentRequest.id },
+      orderBy: { createdAt: 'desc' },
+    })
+    
+    const latestProof = proofs.length > 0 ? proofs[0] : null
+
     return {
       payment: {
         uuid: paymentRequest.uuid,
@@ -151,6 +158,12 @@ export class GetPublicPaymentDetailsUseCase {
           benefitsPaidForRequest: (dynamicRates as any).benefitsPaidForRequest || false
         },
         isPendingRefund: !!pendingRefundTx,
+        latestProof: latestProof ? {
+          id: latestProof.id,
+          status: latestProof.status,
+          remarks: latestProof.remarks,
+          createdAt: latestProof.createdAt,
+        } : null,
       },
       user: {
         uuid: user.uuid,
@@ -170,6 +183,7 @@ export class GetPublicPaymentDetailsUseCase {
         rentEndDate: property.rentEndDate,
         isPastTenancy: property.isPastTenancy,
         locationAddress: locationAddress,
+        manualAccount: (property as any).pmManualAccount || (property as any).manualAccount || null,
       },
       company: {
         name: companyName,

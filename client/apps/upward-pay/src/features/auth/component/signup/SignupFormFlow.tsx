@@ -35,7 +35,10 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   const router = useRouter()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState(initialEmail)
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [identifierType, setIdentifierType] = useState<'email' | 'phone'>('email')
+  const [phoneChannel, setPhoneChannel] = useState<'SMS' | 'WHATSAPP'>('SMS')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -43,7 +46,13 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
 
   useEffect(() => {
     if (initialEmail) {
-      setEmail(initialEmail)
+      if (initialEmail.startsWith('+') || /^\d+$/.test(initialEmail)) {
+        setIdentifierType('phone')
+        setPhone(initialEmail)
+      } else {
+        setIdentifierType('email')
+        setEmail(initialEmail)
+      }
     }
   }, [initialEmail])
 
@@ -64,17 +73,19 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     onSignupSuccess(email, password)
   })
 
-  // Debounced email existence check
+  // Debounced email/phone existence check
   useEffect(() => {
     setEmailExists(false)
     setIsInvited(false)
     setIsWaitlist(false)
-    if (email && email.includes('@') && email.length > 5) {
+    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
+
+    if (identifier && (identifierType === 'phone' ? identifier.length >= 10 : (identifier.includes('@') && identifier.length > 5))) {
       if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
       emailCheckTimeout.current = setTimeout(async () => {
         setIsCheckingEmail(true)
         try {
-          const res = await checkEmail(email)
+          const res = await checkEmail(identifier, identifierType)
           setEmailExists(res.exists)
           setIsInvited(res.isInvited ?? false)
           setIsWaitlist(res.isWaitlist ?? false)
@@ -88,7 +99,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     return () => {
       if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
     }
-  }, [email])
+  }, [email, phone, identifierType])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -114,9 +125,11 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
       return
     }
 
+    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
+
     setIsRequestingOTP(true)
     try {
-      const res: any = await requestOTP(email, 'SIGNUP')
+      const res: any = await requestOTP(identifier, 'SIGNUP', identifierType, phoneChannel)
       setEffectiveContext(res.context || 'SIGNUP')
       setStep('otp')
     } catch (err: any) {
@@ -127,9 +140,10 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   }
 
   const handleInviteProceed = async () => {
+    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
     setIsRequestingOTP(true)
     try {
-      const res: any = await requestOTP(email, 'INVITE')
+      const res: any = await requestOTP(identifier, 'INVITE', identifierType, phoneChannel)
       setEffectiveContext('INVITE')
       setStep('otp')
     } catch (err: any) {
@@ -140,11 +154,11 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   }
 
 
-
   const handleWaitlistProceed = async () => {
+    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
     setIsRequestingOTP(true)
     try {
-      const res: any = await requestOTP(email, 'WAITLIST')
+      const res: any = await requestOTP(identifier, 'WAITLIST', identifierType, phoneChannel)
       setEffectiveContext('WAITLIST')
       setStep('otp')
     } catch (err: any) {
@@ -156,17 +170,19 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
 
   const handleVerifyOTP = async (otp: string) => {
     setOtpError(null)
+    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
+
     try {
       if (effectiveContext === 'LOGIN') {
         // Seamless switch: existing account
-        const result = await loginWithOTP(email, otp)
+        const result = await loginWithOTP(identifier, otp, identifierType)
         if (result.accessToken) {
           setAccessToken(result.accessToken)
           setCookie('pay_access_token', result.accessToken)
         }
-        onSignupSuccess(email, password)
+        onSignupSuccess(identifier, password)
       } else {
-        const verification = await verifyOTP(email, otp, effectiveContext)
+        const verification = await verifyOTP(identifier, otp, effectiveContext, identifierType)
         if (!verification.success) {
           setOtpError(verification.message || 'Invalid verification code')
           return
@@ -189,7 +205,12 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
         } else if (isInvited) {
           setOtpError('Invite verification failed. Please try again.')
         } else {
-          signup({ email, password, firstName, lastName })
+          if (identifierType === 'phone') {
+            const generatedEmail = `${identifier.replace('+', '')}@upward.com`
+            signup({ email: generatedEmail, password, firstName, lastName, phone: identifier })
+          } else {
+            signup({ email, password, firstName, lastName })
+          }
         }
       }
     } catch (err: any) {
@@ -198,7 +219,8 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   }
 
   const handleResendOTP = async () => {
-    await requestOTP(email, effectiveContext)
+    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
+    await requestOTP(identifier, effectiveContext, identifierType)
   }
 
   if (step === 'otp') {
@@ -214,7 +236,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
         </a>
         <div className="auth-stage">
           <OTPInput
-            email={email}
+            email={identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email}
             onVerify={handleVerifyOTP}
             onResend={handleResendOTP}
             onChangeEmail={() => setStep('form')}
@@ -256,26 +278,68 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           )}
 
           <div className="auth-form__field">
-            <label htmlFor="signup-email">Email Address</label>
-            <div
-              className={
-                emailExists && !isInvited && !isWaitlist
-                  ? 'input-with-icon input-with-icon--error'
-                  : 'input-with-icon'
-              }
-            >
-              <Mail size={17} />
-              <input
-                id="signup-email"
-                type="email"
-                placeholder="sarah@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                required
-              />
-              {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} />}
+            <div className="auth-form__label-row">
+              <label htmlFor="signup-identifier">{identifierType === 'email' ? 'Email Address' : 'Phone Number'}</label>
+              <button
+                type="button"
+                className="auth-form__link auth-form__link--quiet"
+                onClick={() => {
+                  setIdentifierType(identifierType === 'email' ? 'phone' : 'email')
+                  setEmailExists(false)
+                }}
+              >
+                Sign up with {identifierType === 'email' ? 'Phone Number' : 'Email'}
+              </button>
             </div>
+            
+            {identifierType === 'email' ? (
+              <div
+                className={
+                  emailExists && !isInvited && !isWaitlist
+                    ? 'input-with-icon input-with-icon--error'
+                    : 'input-with-icon'
+                }
+              >
+                <Mail size={17} />
+                <input
+                  id="signup-email"
+                  type="email"
+                  placeholder="sarah@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  required={identifierType === 'email'}
+                />
+                {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} />}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div 
+                  className="input-wrapper" 
+                  style={{ position: 'relative', display: 'flex', alignItems: 'center', border: emailExists && !isInvited && !isWaitlist ? '1px solid #ff4b4b' : '1px solid #e2e2e2', borderRadius: '14px', padding: '0 16px', background: '#fff', transition: 'border-color 0.2s', height: '46px' }}
+                >
+                  <span className="country-code" style={{ fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', color: '#7a7268', borderRight: '1px solid #eee', paddingRight: '8px', marginRight: '8px' }}>+234</span>
+                  <input 
+                    type="tel" 
+                    inputMode="numeric"
+                    placeholder="800 000 0000" 
+                    style={{ border: 'none', outline: 'none', height: '100%', width: '100%', fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', background: 'transparent' }}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required={identifierType === 'phone'}
+                  />
+                  {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} style={{ position: 'absolute', right: '16px' }} />}
+                </div>
+                <div style={{ display: 'flex', gap: '16px', marginTop: '12px', paddingLeft: '4px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
+                    <input type="radio" name="phoneChannelSignup" checked={phoneChannel === 'SMS'} onChange={() => setPhoneChannel('SMS')} style={{ accentColor: 'var(--clay)' }} /> SMS
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
+                    <input type="radio" name="phoneChannelSignup" checked={phoneChannel === 'WHATSAPP'} onChange={() => setPhoneChannel('WHATSAPP')} style={{ accentColor: 'var(--clay)' }} /> WhatsApp
+                  </label>
+                </div>
+              </div>
+            )}
             {emailExists && !isInvited && !isWaitlist && (
               <div className="auth-field-hint auth-field-hint--error">
                 <AlertCircle size={12} /> This email is already registered.{' '}
@@ -396,7 +460,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             className="btn btn--primary btn--full btn--pay auth-form__mt-8"
             type="submit"
             disabled={
-              !email ||
+              (identifierType === 'email' ? !email : !phone) ||
               signupLoading ||
               isRequestingOTP ||
               isCheckingEmail ||

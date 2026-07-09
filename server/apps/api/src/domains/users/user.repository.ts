@@ -37,6 +37,7 @@ export interface UserRepository {
   findById(id: number, tx?: any): Promise<User | null>
   findByUuid(uuid: string, tx?: any): Promise<User | null>
   findBySlug(slug: string, tx?: any): Promise<User | null>
+  findByPhone(phone: string, tx?: any): Promise<User | null>
   findAll(tx?: any): Promise<User[]>
   save(user: User, tx?: any): Promise<User>
   update(id: number, data: Partial<User>, tx?: any): Promise<User>

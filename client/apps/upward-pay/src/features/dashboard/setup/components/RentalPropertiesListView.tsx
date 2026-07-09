@@ -6,6 +6,8 @@ import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShe
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { type UserProfile } from '@/features/auth/types'
 import { setupAddPropertyEditPath, setupEditPropertyPath, SETUP_PATHS } from '../setupPaths'
+import { ManualAccountModal } from '@/features/dashboard/components/payment/ManualAccountModal'
+import { useState } from 'react'
 
 type Property = NonNullable<UserProfile['properties']>[number]
 
@@ -38,6 +40,7 @@ interface RentalPropertiesListViewProps {
 
 export function RentalPropertiesListView({ properties }: RentalPropertiesListViewProps) {
   const router = useRouter()
+  const [manualAccountModalProperty, setManualAccountModalProperty] = useState<{ id: number, name: string, initialData?: any } | null>(null)
 
   return (
     <PayPageShell
@@ -54,13 +57,22 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
             const manager = formatManagerLabel(prop)
 
             return (
-              <button
+              <div
                 key={prop.uuid || address}
-                type="button"
+                role="button"
+                tabIndex={0}
                 className="pay-flow__card pay-flow__property-card"
                 onClick={() => {
                   if (prop.uuid) {
                     router.push(setupEditPropertyPath(prop.uuid))
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    if (prop.uuid) {
+                      router.push(setupEditPropertyPath(prop.uuid))
+                    }
                   }
                 }}
               >
@@ -89,9 +101,40 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                       Next due {formatDate(prop.rentEndDate)}
                     </div>
                   ) : null}
+                  <div style={{ marginTop: 12 }}>
+                    {prop.pmManualAccount || ((prop.isManaged || prop.isPlatformLinked || prop.companyName) && prop.manualAccount) ? (
+                      <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--forest)' }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--forest)' }} />
+                        Bank configured by Property Manager
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn--secondary btn--sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setManualAccountModalProperty({ 
+                              id: prop.id, 
+                              name: prop.location?.area || prop.address || 'Property',
+                              initialData: prop.manualAccount
+                            })
+                          }}
+                          style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8 }}
+                        >
+                          {prop.manualAccount ? 'Edit Manual Transfer' : 'Setup Manual Transfer'}
+                        </button>
+                        {prop.manualAccount && (
+                          <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ marginTop: 8 }}>
+                            Bank: {prop.manualAccount.bankName} - {prop.manualAccount.accountNumber}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
                 <ChevronRight size={18} className="pay-flow__card-trailing" />
-              </button>
+              </div>
             )
           })}
 
@@ -115,6 +158,15 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
           </button>
         </div>
       </section>
+
+      {manualAccountModalProperty && (
+        <ManualAccountModal
+          propertyId={manualAccountModalProperty.id}
+          propertyName={manualAccountModalProperty.name}
+          initialData={manualAccountModalProperty.initialData}
+          onClose={() => setManualAccountModalProperty(null)}
+        />
+      )}
     </PayPageShell>
   )
 }

@@ -209,23 +209,25 @@ model upward_notification {
 }
 
 model upward_webhook_log {
-  id           String          @id @default(uuid())
-  platformId   Int
+  id           String           @id @default(uuid())
+  platformId   Int?
   event        String
   url          String
   payload      Json
   status       String
   responseCode Int?
   errorMessage String?
-  retries      Int             @default(0)
+  retries      Int              @default(0)
   lastTriedAt  DateTime?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  platform     upward_platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  direction    String           @default("OUTGOING")
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  platform     upward_platform? @relation(fields: [platformId], references: [id], onDelete: Cascade)
 
   @@index([platformId])
   @@index([status])
   @@index([createdAt])
+  @@index([direction])
 }
 
 model upward_platform {

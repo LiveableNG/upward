@@ -134,6 +134,7 @@ export interface ITenantRepository {
   findByUuid(uuid: string): Promise<TenantEntity | null>;
   findByUuids(uuids: string[]): Promise<TenantEntity[]>;
   findByEmailHash(pmId: number, emailHash: string): Promise<TenantEntity | null>;
+  findByPhoneHash(pmId: number, phoneHash: string): Promise<TenantEntity | null>;
   create(data: Omit<TenantEntity, 'id' | 'uuid'>): Promise<TenantEntity>;
   update(uuid: string, data: Partial<Omit<TenantEntity, 'id' | 'uuid' | 'pmId'>>): Promise<TenantEntity>;
 }

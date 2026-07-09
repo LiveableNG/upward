@@ -60,9 +60,10 @@ export const tenantService = {
     })
   },
 
-  inviteTenant: (uuid: string) => {
+  inviteTenant: (uuid: string, deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP') => {
     return request<void>(`/pm/tenants/${uuid}/invite`, {
-      method: 'POST'
+      method: 'POST',
+      body: JSON.stringify({ deliveryChannel })
     })
   },
 
@@ -93,10 +94,10 @@ export const tenantService = {
     })
   },
 
-  bulkInvite: (tenantUuids: string[]) => {
+  bulkInvite: (tenantUuids: string[], deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP') => {
     return request<{ bulkInviteId: string }>('/pm/tenants/bulk-invite', {
       method: 'POST',
-      body: JSON.stringify({ tenantUuids })
+      body: JSON.stringify({ tenantUuids, deliveryChannel })
     })
   }
 }

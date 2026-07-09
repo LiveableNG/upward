@@ -139,9 +139,9 @@ export function BankSelectionModal({
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {filteredBanks.map((bank) => (
+              {filteredBanks.map((bank, index) => (
                 <button
-                  key={bank.code}
+                  key={`${bank.code}-${index}`}
                   onClick={() => onSelect(bank)}
                   style={{
                     display: 'flex',

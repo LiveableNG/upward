@@ -11,6 +11,8 @@ import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../..
 import { S3Service } from '../../../../shared/infrastructure/common/s3/s3.service';
 import { EmailService } from '../../../../shared/infrastructure/email/email.service';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import { SmsService } from '../../../../shared/infrastructure/sms/sms.service';
+import { WhatsappService } from '../../../../shared/infrastructure/whatsapp/whatsapp.service';
 import * as crypto from 'crypto';
 
 
@@ -27,6 +29,7 @@ export interface SendDocumentDto {
   recipientEmail: string;
   paymentRequestUuid?: string;
   includeLetterhead?: boolean;
+  deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP';
 }
 
 @Injectable()
@@ -49,6 +52,8 @@ export class SendDocumentUseCase {
     private readonly emailService: EmailService,
     private readonly prisma: PrismaService,
     private readonly generatePdfUseCase: GenerateDocumentPdfUseCase,
+    private readonly smsService: SmsService,
+    private readonly whatsappService: WhatsappService,
   ) {}
 
   async execute(actorPmId: number, data: SendDocumentDto) {
@@ -378,26 +383,42 @@ export class SendDocumentUseCase {
         throw error;
       }
       
-      await this.emailService.sendEmailWithRetry({
-        userId: pm?.uuid || '',
-        email: data.recipientEmail,
-        subject: data.subject,
-        html: `<p>Hello ${data.recipientName},</p><p>Please find the attached document: <strong>${data.subject}</strong> from your property manager.</p>`,
-        type: 'DOCUMENT',
-        attachments: [
-          {
-            filename: `${data.subject.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`,
-            content: pdfBuffer,
-          }
-        ]
-      } as any);
+      if (!data.deliveryChannel || data.deliveryChannel === 'EMAIL') {
+        await this.emailService.sendEmailWithRetry({
+          userId: pm?.uuid || '',
+          email: data.recipientEmail,
+          subject: data.subject,
+          html: `<p>Hello ${data.recipientName},</p><p>Please find the attached document: <strong>${data.subject}</strong> from your property manager.</p>`,
+          type: 'DOCUMENT',
+          attachments: [
+            {
+              filename: `${data.subject.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`,
+              content: pdfBuffer,
+            }
+          ]
+        } as any);
+      }
     } else {
-      await this.emailService.sendGenericEmail(
-        data.recipientEmail,
-        data.subject,
-        content,
-        pm?.uuid
-      );
+      if (!data.deliveryChannel || data.deliveryChannel === 'EMAIL') {
+        await this.emailService.sendGenericEmail(
+          data.recipientEmail,
+          data.subject,
+          content,
+          pm?.uuid
+        );
+      }
+    }
+
+    if (data.deliveryChannel === 'SMS' || data.deliveryChannel === 'WHATSAPP') {
+      const plainText = content.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim();
+      const message = `${data.subject}\n\n${plainText}`;
+      if (tenant?.phone) {
+        if (data.deliveryChannel === 'WHATSAPP') {
+          await this.whatsappService.sendMessage({ to: tenant.phone, message });
+        } else {
+          await this.smsService.sendSms({ to: tenant.phone, message });
+        }
+      }
     }
 
     // 5. Save the record
