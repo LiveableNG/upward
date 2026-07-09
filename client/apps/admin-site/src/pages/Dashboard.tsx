@@ -284,11 +284,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         hasPassword: false,
         isExWaitlist: false,
         totalPaid: 0,
+        pmName: w.pmName,
+        pmUuid: w.pmUuid,
         rawRecord: w,
       })
     })
 
-    // 2. Self-Registered / Converted Waitlist Users
     signedUpList.forEach((u) => {
       list.push({
         id: u.id,
@@ -302,6 +303,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         hasPassword: true,
         isExWaitlist: u.isWaitlist,
         totalPaid: u.totalPaid,
+        pmName: u.pmName,
+        pmUuid: u.pmUuid,
         rawRecord: u,
       })
     })
@@ -365,10 +368,13 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
       // 2. PM Filter
       if (pmFilter !== 'all') {
-        if (u.origin === 'INVITED') {
-          return u.pmUuid === pmFilter
+        const selectedPm = pmList.find((pm) => pm.uuid === pmFilter)
+        const pmUuidsToCheck = selectedPm?.mergedUuids || [pmFilter]
+
+        if (Array.isArray(u.pmUuid)) {
+          return u.pmUuid.some((id) => pmUuidsToCheck.includes(id))
         }
-        return false
+        return pmUuidsToCheck.includes(u.pmUuid!)
       }
 
       return true

@@ -178,7 +178,45 @@ export class PaymentsController {
   async handleWebhook(@Body() payload: any, @Req() req: any) {
     console.log(`[PaymentsController] Webhook POST received: ${payload?.event}`)
     const signature = req.headers['x-paystack-signature']
-    return this.processWebhookUc.execute(payload, signature)
+    
+    let logRecord;
+    try {
+      logRecord = await this.prisma.upward_webhook_log.create({
+        data: {
+          event: payload?.event || 'UNKNOWN',
+          url: req.url || '/payments/webhook',
+          payload: payload || {},
+          status: 'RECEIVED',
+          direction: 'INCOMING'
+        }
+      });
+    } catch (e) {
+      console.error('[PaymentsController] Failed to create incoming webhook log', e);
+    }
+
+    try {
+      const result = await this.processWebhookUc.execute(payload, signature)
+      
+      if (logRecord) {
+        await this.prisma.upward_webhook_log.update({
+          where: { id: logRecord.id },
+          data: { status: 'SUCCESS', responseCode: 200 }
+        }).catch(() => {});
+      }
+      return result;
+    } catch (error: any) {
+      if (logRecord) {
+        await this.prisma.upward_webhook_log.update({
+          where: { id: logRecord.id },
+          data: { 
+            status: 'FAILED', 
+            errorMessage: error.message || String(error),
+            responseCode: error.status || 500
+          }
+        }).catch(() => {});
+      }
+      throw error;
+    }
   }
 
   @UseGuards(JwtAuthGuard)

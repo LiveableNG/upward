@@ -8,6 +8,8 @@ export interface WaitlistRecord {
   createdAt: string
   converted: boolean
   totalPaid: number
+  pmName?: string
+  pmUuid?: string | string[]
 }
 
 export interface SignedUpRecord {
@@ -23,6 +25,8 @@ export interface SignedUpRecord {
   hasPaid: boolean
   benefitsPaid?: number
   hasPaidBenefits?: boolean
+  pmName?: string
+  pmUuid?: string | string[]
 }
 
 export interface InvitedRecord {
@@ -36,7 +40,7 @@ export interface InvitedRecord {
   status: 'INVITED_PENDING' | 'INVITED_SIGNED_UP' | 'GUEST_PAID' | 'SIGNED_UP_PAID'
   totalPaid: number
   pmName: string
-  pmUuid: string | null
+  pmUuid: string | string[] | null
   benefitsPaid?: number
   hasPaidBenefits?: boolean
 }
@@ -55,6 +59,7 @@ export interface PmRecord {
   totalGenerated: number
   createdAt: string
   pmType?: string
+  mergedUuids?: string[]
 }
 
 export interface FeeOverride {

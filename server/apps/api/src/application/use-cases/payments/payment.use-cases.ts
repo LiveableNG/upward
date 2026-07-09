@@ -1049,7 +1049,7 @@ export class ProcessPaymentWebhookUseCase {
   }
 
   private async handleDvaPayment(data: any) {
-    const accountNumber = data.dedicated_account?.account_number || data.dedicated_account
+    const accountNumber = data.dedicated_account?.account_number || data.dedicated_account || data.authorization?.receiver_bank_account_number || data.metadata?.receiver_account_number
     if (!accountNumber) {
       this.logger.error(`Could not resolve account number from DVA payload: ${JSON.stringify(data)}`)
       return { success: false, message: 'Missing account number' }

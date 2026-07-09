@@ -211,6 +211,7 @@ export interface WebhookLog {
   errorMessage?: string
   retries: number
   lastTriedAt?: Date
+  direction: string
   createdAt: Date
   updatedAt: Date
   platform?: {
