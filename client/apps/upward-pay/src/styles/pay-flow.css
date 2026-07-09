@@ -515,6 +515,14 @@
   font-weight: 700;
 }
 
+.pay-flow__amount-hero-status {
+  margin: 6px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a9a096;
+  line-height: 1.4;
+}
+
 .pay-flow__amount-hero-value {
   font-size: 32px;
   font-weight: 800;
@@ -1471,4 +1479,282 @@
     margin-right: 0;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 24%);
   }
+}
+
+/* Public payment link — basic checkout */
+.pay-flow__recipient--checkout {
+  align-items: flex-start;
+}
+
+.pay-flow__recipient-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.pay-flow__recipient-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pay-flow__recipient-verified {
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.pay-flow__recipient-due {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--skin-primary, #c2501f);
+  margin-top: 4px;
+}
+
+.pay-flow__amount-hero-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #a9a096;
+  vertical-align: middle;
+}
+
+.pay-flow__amount-hero-input-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pay-flow__amount-hero-input-wrap.is-error .pay-flow__amount-hero-input {
+  color: #ef4444;
+}
+
+.pay-flow__amount-hero-currency {
+  font-size: 14px;
+  font-weight: 800;
+  color: #a9a096;
+}
+
+.pay-flow__amount-hero-input {
+  border: none;
+  background: transparent;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #1a1714;
+  text-align: center;
+  width: min(100%, 220px);
+  outline: none;
+  box-shadow: none;
+  font-family: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.pay-flow__amount-hero-input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.pay-flow__amount-hero-input:read-only {
+  cursor: default;
+}
+
+.pay-flow__amount-hero-hint {
+  margin: 10px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a9a096;
+}
+
+.pay-flow__amount-hero-hint.is-error {
+  color: #ef4444;
+}
+
+.pay-flow__receipt {
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #f0e9df;
+  border-radius: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.pay-flow__receipt-heading {
+  margin: 0 0 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a9a096;
+}
+
+.pay-flow__receipt-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pay-flow__receipt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.pay-flow__receipt-label {
+  color: #5c544b;
+  font-weight: 600;
+}
+
+.pay-flow__receipt-value {
+  font-weight: 800;
+  color: #1a1714;
+}
+
+.pay-flow__receipt-edit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pay-flow__receipt-currency {
+  font-size: 10px;
+  font-weight: 700;
+  color: #a9a096;
+}
+
+.pay-flow__receipt-input {
+  width: 96px;
+  padding: 6px 8px;
+  border: 1px solid #ece4d9;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
+  font-family: inherit;
+  color: #1a1714;
+  background: #faf8f5;
+}
+
+.pay-flow__receipt-input:focus {
+  outline: none;
+  border-color: var(--skin-primary, #c2501f);
+}
+
+.pay-flow__receipt-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0e9df;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1714;
+}
+
+.pay-flow__receipt-total strong {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--skin-primary, #c2501f);
+}
+
+.pay-flow__partial-hint {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a9a096;
+  line-height: 1.4;
+}
+
+.pay-flow__login-prompt {
+  padding: 20px 16px;
+  background: #fff;
+  border: 1px solid #f0e9df;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.pay-flow__login-prompt p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5c544b;
+  line-height: 1.45;
+}
+
+.pay-flow__alert {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pay-flow__alert strong {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.pay-flow__alert p {
+  margin: 0;
+  font-weight: 500;
+  color: #5c544b;
+}
+
+.pay-flow__alert--error {
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+}
+
+/* Pinned footer — public checkout pay CTA */
+.pay-flow--pin-footer {
+  min-height: 100dvh;
+}
+
+.pay-flow--pin-footer .pay-flow__shell {
+  min-height: 100dvh;
+}
+
+.pay-flow--pin-footer .pay-flow__scroll {
+  flex: 1;
+  padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+}
+
+.pay-flow__footer--pinned {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  margin: 0 auto;
+  max-width: 520px;
+  border-top: 1px solid #f0e9df;
+  background: var(--shell-page-bg, #faf8f5);
+  padding: 12px 24px calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+.pay-flow__footer--pinned .pay-flow__secure {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a9a096;
 }

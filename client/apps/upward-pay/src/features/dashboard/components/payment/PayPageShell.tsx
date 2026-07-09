@@ -9,6 +9,7 @@ interface PayPageShellProps {
   onBack?: () => void
   rightElement?: React.ReactNode
   footer?: React.ReactNode
+  pinFooter?: boolean
   children: React.ReactNode
 }
 
@@ -19,13 +20,18 @@ export function PayPageShell({
   onBack,
   rightElement,
   footer,
+  pinFooter = false,
   children,
 }: PayPageShellProps) {
+  const headerBalanced = showBack && !rightElement
+
   return (
-    <div className="pay-flow dashboard--nav-offset">
+    <div className={`pay-flow dashboard--nav-offset${pinFooter ? ' pay-flow--pin-footer' : ''}`}>
       <div className="pay-flow__shell">
         <header className="pay-flow__header">
-          <div className="pay-flow__header-row">
+          <div
+            className={`pay-flow__header-row${headerBalanced ? ' pay-flow__header-row--centered' : ''}`}
+          >
             {showBack ? (
               <button
                 type="button"
@@ -39,7 +45,11 @@ export function PayPageShell({
               <span className="pay-flow__back-spacer" aria-hidden />
             )}
             <h1 className="pay-flow__title">{title}</h1>
-            {rightElement ? <div className="pay-flow__header-right">{rightElement}</div> : null}
+            {rightElement ? (
+              <div className="pay-flow__header-right">{rightElement}</div>
+            ) : (
+              <span className="pay-flow__back-spacer" aria-hidden />
+            )}
           </div>
         </header>
 
@@ -50,7 +60,11 @@ export function PayPageShell({
           </div>
         </div>
 
-        {footer ? <footer className="pay-flow__footer">{footer}</footer> : null}
+        {footer ? (
+          <footer className={`pay-flow__footer${pinFooter ? ' pay-flow__footer--pinned' : ''}`}>
+            {footer}
+          </footer>
+        ) : null}
       </div>
     </div>
   )

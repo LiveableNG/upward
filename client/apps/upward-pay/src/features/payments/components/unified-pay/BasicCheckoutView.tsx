@@ -1,0 +1,267 @@
+'use client'
+
+import React, { useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import { Lock, ShieldAlert } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
+import {
+  PayFlowPrimaryButton,
+  PayPageShell,
+} from '@/features/dashboard/components/payment/PayPageShell'
+import { CapacitorGuard } from '@/components/common/CapacitorGuard'
+import { BiometricLoginButton } from '@/features/auth/component/BiometricLoginButton'
+import { CheckoutRecipientCard } from './CheckoutRecipientCard'
+import { CheckoutAmountHero, parseRentInput } from './CheckoutAmountHero'
+import { CheckoutReceipt, type CheckoutReceiptRow } from './CheckoutReceipt'
+
+const FEE_NAMES = new Set(['Processing Fee', 'Transaction Fee', 'Upward Benefits'])
+const FEE_IDS = new Set([-2, -3])
+
+function isFeeLine(name: string, id: number): boolean {
+  return FEE_NAMES.has(name) || FEE_IDS.has(id)
+}
+
+interface BasicCheckoutViewProps {
+  uuid: string
+  paymentData: any
+  currency: string
+  totalOwed: number
+  parsedAmount: number
+  minRequired: number
+  isBelowMin: boolean
+  isValidAmount: boolean
+  isFullPaymentRequired: boolean
+  isUnderpaying: boolean
+  isPendingRefund: boolean
+  rates: {
+    transactionFee: number
+  }
+  visibleAllocs: Array<{
+    id: number
+    name: string
+    totalAmount: number
+    amountPaid: number
+    remaining: number
+    allocated: number
+  }>
+  visibleLineItems: Array<{
+    id: number
+    name: string
+    status?: string
+  }>
+  loginLoading: boolean
+  authUser: { isIdentityVerified?: boolean } | null
+  executeLogin: (email: string, pass: string) => void
+  handleAllocationChange: (id: number, amount: number) => void
+  onPayClick: () => void
+}
+
+export function BasicCheckoutView({
+  uuid,
+  paymentData,
+  currency,
+  totalOwed,
+  parsedAmount,
+  minRequired,
+  isBelowMin,
+  isValidAmount,
+  isFullPaymentRequired,
+  isUnderpaying,
+  isPendingRefund,
+  rates,
+  visibleAllocs,
+  visibleLineItems,
+  loginLoading,
+  authUser,
+  executeLogin,
+  handleAllocationChange,
+  onPayClick,
+}: BasicCheckoutViewProps) {
+  const router = useRouter()
+
+  const loginRequired = paymentData.hasPassword && !authUser
+  const isGuest = !paymentData.hasPassword
+  const isLoggedIn = !!authUser
+  const canPayPartial =
+    !!paymentData.payment.allowPartial && !isPendingRefund && !isGuest
+
+  const accountName =
+    paymentData.payment?.verifiedRecipientName ||
+    paymentData.company?.name ||
+    'Payment recipient'
+
+  const bankName = paymentData.payment?.bankName as string | undefined
+  const accountNumber = paymentData.payment?.accountNumber as string | undefined
+  const accountMeta =
+    bankName && accountNumber
+      ? `${bankName} · ${accountNumber}`
+      : paymentData.property?.locationAddress || paymentData.payment?.description || null
+
+  const rentLineItems = useMemo(
+    () => visibleLineItems.filter((item) => !isFeeLine(item.name, item.id)),
+    [visibleLineItems],
+  )
+
+  const rentAllocations = useMemo(
+    () => visibleAllocs.filter((alloc) => !isFeeLine(alloc.name, alloc.id)),
+    [visibleAllocs],
+  )
+
+  const rentSubtotal = useMemo(
+    () => rentAllocations.reduce((sum, alloc) => sum + alloc.allocated, 0),
+    [rentAllocations],
+  )
+
+  const transactionFeeAmount = useMemo(() => {
+    const feeAlloc = visibleAllocs.find(
+      (a) => a.name === 'Transaction Fee' || a.id === -2,
+    )
+    return feeAlloc?.allocated ?? (rentSubtotal > 0 ? rates.transactionFee : 0)
+  }, [visibleAllocs, rentSubtotal, rates.transactionFee])
+
+  const heroEditable =
+    canPayPartial && rentLineItems.length === 1 && !isPendingRefund
+
+  const receiptRows: CheckoutReceiptRow[] = useMemo(() => {
+    const rows: CheckoutReceiptRow[] = rentAllocations
+      .filter((alloc) => alloc.allocated > 0 || canPayPartial)
+      .map((alloc) => {
+        const isPaid = visibleLineItems.find((i) => i.id === alloc.id)?.status === 'PAID'
+        const multiRent = rentLineItems.length > 1
+        return {
+          id: alloc.id,
+          name: alloc.name,
+          amount: alloc.allocated,
+          editable:
+            canPayPartial &&
+            !isPaid &&
+            multiRent &&
+            !isFeeLine(alloc.name, alloc.id),
+          maxAmount: alloc.remaining,
+        }
+      })
+      .filter((row) => row.amount > 0 || row.editable)
+
+    if (transactionFeeAmount > 0 || rentSubtotal > 0) {
+      rows.push({
+        id: -2,
+        name: 'Transaction fee',
+        amount: transactionFeeAmount,
+      })
+    }
+
+    return rows
+  }, [
+    rentAllocations,
+    visibleLineItems,
+    canPayPartial,
+    rentLineItems.length,
+    transactionFeeAmount,
+    rentSubtotal,
+  ])
+
+  const handleRentHeroChange = (value: string) => {
+    const rent = parseRentInput(value)
+    const primaryRent = rentLineItems[0]
+    if (primaryRent) {
+      handleAllocationChange(primaryRent.id, rent)
+    }
+  }
+
+  const ctaLabel = () => {
+    if (isPendingRefund) return 'Refund pending'
+    if (parsedAmount === 0) return 'Enter amount to continue'
+    if (isBelowMin) return `Minimum is ${formatCurrency(minRequired, currency)}`
+    if (isUnderpaying) {
+      return `Full payment required — ${formatCurrency(totalOwed, currency)}`
+    }
+    return `Pay ${formatCurrency(parsedAmount, currency)} now`
+  }
+
+  const ctaDisabled = !isValidAmount || isUnderpaying || isPendingRefund
+
+  const handleBack = () => {
+    if (authUser) {
+      router.push('/dashboard')
+      return
+    }
+    router.push('/')
+  }
+
+  return (
+    <PayPageShell
+      title="Pay Rent"
+      showBack
+      onBack={handleBack}
+      pinFooter
+      footer={
+        !loginRequired && (isLoggedIn || isGuest) ? (
+          <>
+            <PayFlowPrimaryButton onClick={onPayClick} disabled={ctaDisabled}>
+              {ctaLabel()}
+            </PayFlowPrimaryButton>
+            <p className="pay-flow__secure">🔒 Secured by Upward</p>
+          </>
+        ) : undefined
+      }
+    >
+      <CheckoutRecipientCard
+        accountName={accountName}
+        accountMeta={accountMeta}
+        dueDate={paymentData.payment.dueDate}
+        isVerified={!!paymentData.payment?.verifiedRecipientName}
+      />
+
+      {loginRequired ? (
+        <div className="pay-flow__login-prompt">
+          <p>This request is linked to an account. Log in to pay.</p>
+          <button
+            type="button"
+            className="pay-flow__cta"
+            onClick={() => router.push(`/login?redirect=/pay/${uuid}`)}
+            disabled={loginLoading}
+          >
+            <Lock size={16} />
+            {loginLoading ? 'Logging in…' : 'Log in to pay'}
+          </button>
+          <CapacitorGuard>
+            <BiometricLoginButton onAuthenticated={(email, pass) => executeLogin(email, pass)} />
+          </CapacitorGuard>
+        </div>
+      ) : (
+        <>
+          {isPendingRefund ? (
+            <div className="pay-flow__alert pay-flow__alert--error">
+              <ShieldAlert size={18} />
+              <div>
+                <strong>Refund action required</strong>
+                <p>
+                  An underpayment was detected. A refund is pending for this
+                  payment request.
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          <CheckoutAmountHero
+            currency={currency}
+            rentAmount={rentSubtotal}
+            editable={heroEditable}
+            canPayPartial={canPayPartial}
+            isBelowMin={isBelowMin}
+            isFullPaymentRequired={isFullPaymentRequired}
+            minRequired={minRequired}
+            onRentChange={handleRentHeroChange}
+          />
+
+          <CheckoutReceipt
+            rows={receiptRows}
+            total={parsedAmount}
+            currency={currency}
+            onRowChange={canPayPartial ? handleAllocationChange : undefined}
+          />
+        </>
+      )}
+    </PayPageShell>
+  )
+}

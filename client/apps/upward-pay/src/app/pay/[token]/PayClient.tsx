@@ -32,6 +32,7 @@ import { usePaymentFlow } from '@/features/payments/hooks/usePaymentFlow'
 import { useToast } from '@/components/common/Toast'
 import { useCheckoutVariant } from '@/features/premium/components/LaunchDarklyProvider'
 import { CheckoutComparisonCards } from '@/features/premium/components/CheckoutComparisonCards'
+import { BasicCheckoutView } from '@/features/payments/components/unified-pay/BasicCheckoutView'
 
 export default function PayClient({ overrideToken }: { overrideToken?: string }) {
   const router = useRouter()
@@ -477,7 +478,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
   if (step === 'processing') return <FallbackSuspense message="Finalizing payment..." />
 
-  if (step === 'invoice' && !isCheckoutVariantReady) {
+  if (step === 'invoice' && !isCheckoutVariantReady && isPremiumCheckout) {
     return <FallbackSuspense message="Preparing checkout..." />
   }
 
@@ -485,6 +486,137 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     const loginRequired = paymentData.hasPassword && !authUser
     const isGuest = !paymentData.hasPassword
     const isLoggedIn = !!authUser
+
+    const handlePayClick = () => {
+      const verificationOn = paymentData?.user?.verificationOn ?? true
+      const hasPaidBefore = (paymentData?.user?.paidRequestsCount ?? 0) >= 1
+      if (verificationOn && authUser && !authUser.isIdentityVerified && !isGuest && hasPaidBefore) {
+        setShowUnverifiedModal(true)
+      } else {
+        setShowPaymentConfirm(true)
+      }
+    }
+
+    const checkoutModals = (
+      <>
+        {paymentData?.property && (
+          <RenewalModal
+            isOpen={showRenewalModal}
+            propertyUuid={paymentData.property.uuid}
+            onClose={() => setShowRenewalModal(false)}
+            onRenewed={() => {
+              setShowRenewalModal(false)
+              loadPaymentDetails()
+            }}
+          />
+        )}
+
+        <PaymentConfirmationModal
+          isOpen={showPaymentConfirm}
+          amount={parsedAmount}
+          currency={currency}
+          isFullRequired={isFullPaymentRequired}
+          onClose={() => setShowPaymentConfirm(false)}
+          onConfirm={() => {
+            setShowPaymentConfirm(false)
+            setStep('checkout')
+          }}
+          onManualTransfer={() => {
+            if (paymentData?.property?.manualAccount || paymentData?.company?.bankDetails) {
+              setShowPaymentConfirm(false)
+              setStep('manual-transfer')
+            } else {
+              if (!authUser) {
+                toastError('No manual account configured for this property.')
+              } else {
+                toastError('Please configure a manual transfer account first.')
+                if (paymentData?.property?.uuid) {
+                  router.push(`/dashboard/setup/rental?mode=edit&property=${encodeURIComponent(paymentData.property.uuid)}&returnTo=${encodeURIComponent(`/pay/${uuid}`)}`)
+                } else {
+                  router.push('/dashboard')
+                }
+              }
+            }
+          }}
+        />
+
+        {showUnverifiedModal && (
+          <div className="modal-overlay" onClick={() => setShowUnverifiedModal(false)}>
+            <div className="modal-card animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-card__header">
+                <div className="modal-card__badge" style={{ background: 'var(--error)' }}>
+                  VERIFICATION REQUIRED
+                </div>
+                <button className="modal-card__close" onClick={() => setShowUnverifiedModal(false)}>
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="modal-card__body py-6 text-center">
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                  <div style={{ background: '#fee2e2', color: 'var(--error)', borderRadius: '50%', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ShieldAlert size={36} />
+                  </div>
+                </div>
+                <h3 className="modal-card__title" style={{ fontSize: '20px', fontWeight: 800 }}>Verify Your Identity</h3>
+                <p className="modal-card__text" style={{ marginTop: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  To comply with financial regulations and secure your transactions, you must verify your identity using your Bank Verification Number (BVN) before completing payments.
+                </p>
+                <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '12px', marginTop: '16px', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left' }}>
+                  <Lock size={16} style={{ flexShrink: 0, color: 'var(--clay)' }} />
+                  <span>Your BVN is only used for one-time verification. <strong>We do not save your BVN number</strong>.</span>
+                </div>
+              </div>
+              <div className="modal-card__footer flex flex-col gap-3 pt-2">
+                <button
+                  className="btn btn--primary btn--full btn--pill"
+                  onClick={() => {
+                    setShowUnverifiedModal(false)
+                    router.push(`/dashboard/verify-identity?redirect=${encodeURIComponent(`/pay/${uuid}`)}`)
+                  }}
+                >
+                  Verify Identity Now <ArrowRight size={16} />
+                </button>
+                <button
+                  className="btn btn--ghost btn--full btn--pill"
+                  onClick={() => setShowUnverifiedModal(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    )
+
+    if (isBasicCheckout) {
+      return (
+        <>
+          <BasicCheckoutView
+            uuid={uuid}
+            paymentData={paymentData}
+            currency={currency}
+            totalOwed={totalOwed}
+            parsedAmount={parsedAmount}
+            minRequired={minRequired}
+            isBelowMin={isBelowMin}
+            isValidAmount={isValidAmount}
+            isFullPaymentRequired={isFullPaymentRequired}
+            isUnderpaying={isUnderpaying}
+            isPendingRefund={isPendingRefund}
+            rates={rates}
+            visibleAllocs={visibleAllocs}
+            visibleLineItems={visibleLineItems}
+            loginLoading={loginLoading}
+            authUser={authUser}
+            executeLogin={executeLogin}
+            handleAllocationChange={handleAllocationChange}
+            onPayClick={handlePayClick}
+          />
+          {checkoutModals}
+        </>
+      )
+    }
 
     const ctaLabel = () => {
       if (isPendingRefund) return 'Refund Pending'
@@ -660,15 +792,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                     <div className="pay-cta pay-cta--sticky">
                       <button
                         className="btn btn--primary btn--full btn--pay btn--pill"
-                        onClick={() => {
-                          const verificationOn = paymentData?.user?.verificationOn ?? true
-                          const hasPaidBefore = (paymentData?.user?.paidRequestsCount ?? 0) >= 1
-                          if (verificationOn && authUser && !authUser.isIdentityVerified && !isGuest && hasPaidBefore) {
-                            setShowUnverifiedModal(true)
-                          } else {
-                            setShowPaymentConfirm(true)
-                          }
-                        }}
+                        onClick={handlePayClick}
                         disabled={ctaDisabled}
                       >
                         <CreditCard size={18} className="icon--left" />
@@ -1020,93 +1144,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
         }
       `}</style>
 
-        {paymentData?.property && (
-          <RenewalModal
-            isOpen={showRenewalModal}
-            propertyUuid={paymentData.property.uuid}
-            onClose={() => setShowRenewalModal(false)}
-            onRenewed={() => {
-              setShowRenewalModal(false)
-              loadPaymentDetails()
-            }}
-          />
-        )}
-
-        <PaymentConfirmationModal
-          isOpen={showPaymentConfirm}
-          amount={parsedAmount}
-          currency={currency}
-          isFullRequired={isFullPaymentRequired}
-          onClose={() => setShowPaymentConfirm(false)}
-          onConfirm={() => {
-            setShowPaymentConfirm(false)
-            setStep('checkout')
-          }}
-          onManualTransfer={() => {
-            if (paymentData?.property?.manualAccount || paymentData?.company?.bankDetails) {
-              setShowPaymentConfirm(false)
-              setStep('manual-transfer')
-            } else {
-              if (!authUser) {
-                toastError('No manual account configured for this property.')
-              } else {
-                toastError('Please configure a manual transfer account first.')
-                if (paymentData?.property?.uuid) {
-                  router.push(`/dashboard/setup/rental?mode=edit&property=${encodeURIComponent(paymentData.property.uuid)}&returnTo=${encodeURIComponent(`/pay/${uuid}`)}`)
-                } else {
-                  router.push('/dashboard')
-                }
-              }
-            }
-          }}
-        />
-
-        {showUnverifiedModal && (
-          <div className="modal-overlay" onClick={() => setShowUnverifiedModal(false)}>
-            <div className="modal-card animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-card__header">
-                <div className="modal-card__badge" style={{ background: 'var(--error)' }}>
-                  VERIFICATION REQUIRED
-                </div>
-                <button className="modal-card__close" onClick={() => setShowUnverifiedModal(false)}>
-                  <X size={16} />
-                </button>
-              </div>
-              <div className="modal-card__body py-6 text-center">
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-                  <div style={{ background: '#fee2e2', color: 'var(--error)', borderRadius: '50%', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <ShieldAlert size={36} />
-                  </div>
-                </div>
-                <h3 className="modal-card__title" style={{ fontSize: '20px', fontWeight: 800 }}>Verify Your Identity</h3>
-                <p className="modal-card__text" style={{ marginTop: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  To comply with financial regulations and secure your transactions, you must verify your identity using your Bank Verification Number (BVN) before completing payments.
-                </p>
-                <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '12px', marginTop: '16px', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left' }}>
-                  <Lock size={16} style={{ flexShrink: 0, color: 'var(--clay)' }} />
-                  <span>Your BVN is only used for one-time verification. <strong>We do not save your BVN number</strong>.</span>
-                </div>
-              </div>
-              <div className="modal-card__footer flex flex-col gap-3 pt-2">
-                <button
-                  className="btn btn--primary btn--full btn--pill"
-                  onClick={() => {
-                    setShowUnverifiedModal(false)
-                    router.push(`/dashboard/verify-identity?redirect=${encodeURIComponent(`/pay/${uuid}`)}`)
-                  }}
-                >
-                  Verify Identity Now <ArrowRight size={16} />
-                </button>
-                <button
-                  className="btn btn--ghost btn--full btn--pill"
-                  onClick={() => setShowUnverifiedModal(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {checkoutModals}
       </div>
     )
   }
