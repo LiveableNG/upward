@@ -30,6 +30,7 @@ export class WebhookService {
       },
       status: 'PENDING',
       retries: 0,
+      direction: 'OUTGOING',
     })
 
     await this.dispatch(log)
