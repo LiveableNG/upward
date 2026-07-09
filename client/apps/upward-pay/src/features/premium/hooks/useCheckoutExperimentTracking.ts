@@ -1,12 +1,12 @@
 'use client'
 
 import { useCallback } from 'react'
-import { useLDClient } from '@launchdarkly/react-sdk'
+import { useCheckoutVariant } from '../components/LaunchDarklyProvider'
 import type { CheckoutVariant } from '../constants/checkoutVariant'
 import { trackCheckoutExperimentEvent } from '../utils/checkoutExperimentTracking'
 
 export function useCheckoutExperimentTracking() {
-  const ldClient = useLDClient()
+  const { ldClient } = useCheckoutVariant()
 
   const track = useCallback(
     (

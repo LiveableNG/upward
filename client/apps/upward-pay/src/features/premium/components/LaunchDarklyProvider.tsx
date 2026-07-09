@@ -55,6 +55,7 @@ export interface CheckoutVariantState {
   isBasicCheckout: boolean
   isReady: boolean
   isLaunchDarklyEnabled: boolean
+  ldClient?: any
 }
 
 const DEFAULT_STATE: CheckoutVariantState = {
@@ -63,6 +64,7 @@ const DEFAULT_STATE: CheckoutVariantState = {
   isBasicCheckout: true,
   isReady: true,
   isLaunchDarklyEnabled: false,
+  ldClient: undefined,
 }
 
 const CheckoutVariantContext = createContext<CheckoutVariantState>(DEFAULT_STATE)
@@ -100,6 +102,7 @@ function CheckoutVariantBridge({ children }: { children: React.ReactNode }) {
     CHECKOUT_VARIANT_FLAG,
     CHECKOUT_VARIANTS.BASIC,
   )
+  const ldClient = useLDClient()
 
   const variant = normalizeVariant(rawVariant)
   const isReady =
@@ -114,6 +117,7 @@ function CheckoutVariantBridge({ children }: { children: React.ReactNode }) {
     isBasicCheckout: variant === CHECKOUT_VARIANTS.BASIC,
     isReady,
     isLaunchDarklyEnabled: true,
+    ldClient,
   }
 
   return (
