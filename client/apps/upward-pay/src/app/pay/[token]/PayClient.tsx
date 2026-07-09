@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   Lock,
@@ -28,19 +28,23 @@ import { UploadProofOfPayment } from '@/features/payments/components/unified-pay
 import { StatusStep } from '@/features/payments/components/unified-pay/StatusStep'
 import { RenewalModal } from '@/features/payments/components/unified-pay/RenewalModal'
 import { PaymentConfirmationModal } from '@/features/payments/components/unified-pay/PaymentConfirmationModal'
-import { BenefitsSelector } from '@/features/payments/components/unified-pay/BenefitsSelector'
-import { BenefitsOptOutModal } from '@/features/payments/components/unified-pay/BenefitsOptOutModal'
 import { usePaymentFlow } from '@/features/payments/hooks/usePaymentFlow'
 import { useToast } from '@/components/common/Toast'
+import { useCheckoutVariant } from '@/features/premium/components/LaunchDarklyProvider'
+import { CheckoutComparisonCards } from '@/features/premium/components/CheckoutComparisonCards'
 
 export default function PayClient({ overrideToken }: { overrideToken?: string }) {
   const router = useRouter()
   const params = useParams()
+  const {
+    isReady: isCheckoutVariantReady,
+    isBasicCheckout,
+    isPremiumCheckout,
+  } = useCheckoutVariant()
   const [showPaymentConfirm, setShowPaymentConfirm] = React.useState(false)
-  const [showOptOutModal, setShowOptOutModal] = React.useState(false)
   const [showUnverifiedModal, setShowUnverifiedModal] = React.useState(false)
   const { error: toastError } = useToast()
-  
+  const hasInitializedPremiumSelection = useRef(false)
   const uuid = useMemo(() => {
     if (overrideToken) return overrideToken
     const t = params?.token
@@ -82,7 +86,57 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     isBenefitsOptedIn,
     setIsBenefitsOptedIn,
     rates
-  } = usePaymentFlow(uuid)
+  } = usePaymentFlow(uuid, { forceBenefitsOptOut: isBasicCheckout })
+
+  useEffect(() => {
+    if (isBasicCheckout && isBenefitsOptedIn) {
+      setIsBenefitsOptedIn(false)
+    }
+  }, [isBasicCheckout, isBenefitsOptedIn, setIsBenefitsOptedIn])
+
+  useEffect(() => {
+    if (
+      isPremiumCheckout &&
+      !hasInitializedPremiumSelection.current &&
+      !isBenefitsOptedIn
+    ) {
+      setIsBenefitsOptedIn(true)
+    }
+    if (isPremiumCheckout) {
+      hasInitializedPremiumSelection.current = true
+    } else {
+      hasInitializedPremiumSelection.current = false
+    }
+  }, [
+    isPremiumCheckout,
+    isBenefitsOptedIn,
+    setIsBenefitsOptedIn,
+  ])
+
+  const showBenefitsUI = isPremiumCheckout
+  const renameBenefitsLabel = (name: string) =>
+    isPremiumCheckout && name === 'Upward Benefits'
+      ? 'Rent Protection Insurance'
+      : name
+  const visibleLineItems = useMemo(
+    () =>
+      (isBasicCheckout ? lineItems.filter((item) => item.name !== 'Upward Benefits') : lineItems).map((item) => ({
+        ...item,
+        name: renameBenefitsLabel(item.name),
+      })),
+    [isBasicCheckout, isPremiumCheckout, lineItems],
+  )
+  const visibleAllocs = useMemo(
+    () =>
+      (isBasicCheckout
+        ? effectiveAllocs.filter((alloc) => alloc.name !== 'Upward Benefits')
+        : effectiveAllocs
+      ).map((alloc) => ({
+        ...alloc,
+        name: renameBenefitsLabel(alloc.name),
+      })),
+    [isBasicCheckout, isPremiumCheckout, effectiveAllocs],
+  )
 
   if (step === 'loading') return <FallbackSuspense message="Retrieving secure payment details..." />
 
@@ -423,6 +477,10 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
   if (step === 'processing') return <FallbackSuspense message="Finalizing payment..." />
 
+  if (step === 'invoice' && !isCheckoutVariantReady) {
+    return <FallbackSuspense message="Preparing checkout..." />
+  }
+
   if (step === 'invoice' && paymentData) {
     const loginRequired = paymentData.hasPassword && !authUser
     const isGuest = !paymentData.hasPassword
@@ -477,20 +535,17 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                   }
                 />
 
-                {/* Benefits Card shifted to Left Column on Desktop for balance */}
                 <div className="benefits-desktop-wrap">
-                  {rates.benefitsFee > 0 && !rates.benefitsPaid && (
-                    <BenefitsSelector
-                      benefitsFee={rates.benefitsFee}
+                  {showBenefitsUI && (
+                    <CheckoutComparisonCards
                       currency={currency}
-                      isOptedIn={isBenefitsOptedIn}
-                      rentValue={rates.rentValue}
-                      onToggle={(checked) => {
-                        if (!checked) {
-                          setShowOptOutModal(true)
-                        } else {
-                          setIsBenefitsOptedIn(true)
-                        }
+                      transactionFee={rates.transactionFee}
+                      benefitsFee={rates.benefitsFee}
+                      isPremiumSelected={isBenefitsOptedIn}
+                      onSelectStandard={() => setIsBenefitsOptedIn(false)}
+                      onSelectPremium={() => setIsBenefitsOptedIn(true)}
+                      onDecideLater={() => {
+                        setIsBenefitsOptedIn(false)
                       }}
                     />
                   )}
@@ -593,31 +648,12 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                       isUnderpaying={isUnderpaying}
                     />
 
-                    {/* Render Benefits Selector inside Right Column on Mobile viewports only */}
-                    <div className="benefits-mobile-wrap">
-                      {rates.benefitsFee > 0 && !rates.benefitsPaid && (
-                        <BenefitsSelector
-                          benefitsFee={rates.benefitsFee}
-                          currency={currency}
-                          isOptedIn={isBenefitsOptedIn}
-                          rentValue={rates.rentValue}
-                          onToggle={(checked) => {
-                            if (!checked) {
-                              setShowOptOutModal(true)
-                            } else {
-                              setIsBenefitsOptedIn(true)
-                            }
-                          }}
-                        />
-                      )}
-                    </div>
-
                     <AllocationBreakdown
                       showBreakdown={showBreakdown}
                       setShowBreakdown={setShowBreakdown}
-                      effectiveAllocs={effectiveAllocs}
+                      effectiveAllocs={visibleAllocs}
                       currency={currency}
-                      lineItems={lineItems}
+                      lineItems={visibleLineItems}
                       canPayPartial={!!paymentData.payment.allowPartial}
                       onAllocationChange={handleAllocationChange}
                     />
@@ -646,17 +682,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             </div>
           </div>
         </main>
-
-        <BenefitsOptOutModal
-          isOpen={showOptOutModal}
-          rentValue={rates.rentValue}
-          currency={currency}
-          onClose={() => setShowOptOutModal(false)}
-          onConfirmOptOut={() => {
-            setIsBenefitsOptedIn(false)
-            setShowOptOutModal(false)
-          }}
-        />
 
         <footer className="pay-footer">
           <p className="pay-footer__disclaimer">
@@ -741,8 +766,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
           .pay-layout { display: flex; flex-direction: column; gap: 12px; }
           .pay-layout__left { display: flex; flex-direction: column; gap: 16px; }
-          .pay-layout__right { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
-          
+          .pay-layout__right { display: flex; flex-direction: column; gap: 12px; }
+
           .pay-cta { margin-top: 8px; }
           
           /* Sticky Bottom CTA for MobileUX */
@@ -849,9 +874,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
               border-top: none;
             }
             .benefits-desktop-wrap {
-              display: none;
-            }
-            .benefits-mobile-wrap {
               display: block;
               margin-bottom: 24px;
             }
@@ -865,9 +887,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             }
             .benefits-desktop-wrap :global(.benefits-card) {
               background: var(--bg);
-            }
-            .benefits-mobile-wrap {
-              display: none;
             }
             .auth-shell--pay { max-width: 100%; padding: 0; }
             .pay-main {

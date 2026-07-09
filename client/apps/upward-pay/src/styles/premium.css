@@ -1,0 +1,135 @@
+.checkout-comparison-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.comparison-card {
+  width: 100%;
+  text-align: left;
+  background: var(--bg);
+  border: 1px solid var(--border-solid);
+  border-radius: 20px;
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.comparison-card:hover {
+  border-color: rgba(217, 119, 87, 0.3);
+  transform: translateY(-1px);
+}
+
+.comparison-card.is-selected {
+  border-color: var(--clay);
+  box-shadow: 0 10px 24px rgba(217, 119, 87, 0.15);
+}
+
+.comparison-card--premium {
+  background: linear-gradient(180deg, rgba(217, 119, 87, 0.06), rgba(255, 255, 255, 1));
+}
+
+.comparison-card__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.comparison-card__title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+
+.comparison-card__badge {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--clay);
+  background: var(--clay-faint);
+  border-radius: 999px;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.comparison-card__subtitle {
+  margin: 8px 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.comparison-card__price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.comparison-card__price-row strong {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.comparison-card__benefits {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.comparison-card__benefits li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.comparison-card__benefits li svg {
+  color: var(--clay);
+  flex-shrink: 0;
+}
+
+.comparison-card__social-proof {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.comparison-card__social-proof svg {
+  color: var(--clay);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.comparison-cards__later-btn {
+  border: none;
+  background: transparent;
+  color: var(--clay);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  padding: 4px 2px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}

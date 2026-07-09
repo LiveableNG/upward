@@ -98,7 +98,12 @@ function distributeAmount(
   return allocs
 }
 
-export function usePaymentFlow(uuid: string) {
+export function usePaymentFlow(
+  uuid: string,
+  options?: {
+    forceBenefitsOptOut?: boolean
+  },
+) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { user: authUser, login } = useAuth()
@@ -130,9 +135,12 @@ export function usePaymentFlow(uuid: string) {
     }
     return true
   })
+  const effectiveIsBenefitsOptedIn = options?.forceBenefitsOptOut
+    ? false
+    : isBenefitsOptedIn
 
   const rates = paymentData?.payment?.processingRates || { transactionFee: 2000, benefitsFee: 0, rentValue: 0, benefitsPaid: false, benefitsPaidForRequest: false }
-  const activeBenefitsFee = (isBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0
+  const activeBenefitsFee = (effectiveIsBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0
   const feeVal = rates.transactionFee + activeBenefitsFee
 
   const [formData, setFormData] = useState({
@@ -232,7 +240,7 @@ export function usePaymentFlow(uuid: string) {
           return sum + Math.max(0, item.totalAmount - item.amountPaid)
         }, 0)
 
-        const finalDue = rentRemaining > 0 ? rentRemaining + dynamicRates.transactionFee + ((isBenefitsOptedIn && !dynamicRates.benefitsPaid) ? dynamicRates.benefitsFee : 0) : 0
+        const finalDue = rentRemaining > 0 ? rentRemaining + dynamicRates.transactionFee + ((effectiveIsBenefitsOptedIn && !dynamicRates.benefitsPaid) ? dynamicRates.benefitsFee : 0) : 0
         setAmountInput(finalDue.toString())
         
         setFormData(prev => ({
@@ -254,7 +262,7 @@ export function usePaymentFlow(uuid: string) {
       setErrorMessage(err.message || 'Payment request not found or expired')
       setStep('error')
     }
-  }, [uuid, isBenefitsOptedIn])
+  }, [uuid, effectiveIsBenefitsOptedIn])
 
   useEffect(() => {
     if (uuid) loadPaymentDetails()
@@ -346,8 +354,8 @@ export function usePaymentFlow(uuid: string) {
       return sum + Math.max(0, item.totalAmount - item.amountPaid)
     }, 0)
     if (rentRemaining <= 0) return 0
-    return rentRemaining + rates.transactionFee + ((isBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0)
-  }, [paymentData, rates, isBenefitsOptedIn])
+    return rentRemaining + rates.transactionFee + ((effectiveIsBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0)
+  }, [paymentData, rates, effectiveIsBenefitsOptedIn])
 
   const parsedAmount = parseFloat(amountInput) || 0
   const minRequired = paymentData?.payment?.minAmount || 0
@@ -362,15 +370,15 @@ export function usePaymentFlow(uuid: string) {
     lineItems,
     rates.transactionFee,
     rates.benefitsPaid ? 0 : rates.benefitsFee,
-    isBenefitsOptedIn
-  ), [parsedAmount, lineItems, totalOwed, rates, isBenefitsOptedIn])
+    effectiveIsBenefitsOptedIn
+  ), [parsedAmount, lineItems, totalOwed, rates, effectiveIsBenefitsOptedIn])
 
   const effectiveAllocs: LineItemAllocation[] = useMemo(() => {
     if (Object.keys(manualAllocs).length === 0) return autoAllocs
 
     const manualSum = Object.values(manualAllocs).reduce((acc, val) => acc + val, 0)
     const dynamicTxFee = manualSum > 0 ? rates.transactionFee : 0
-    const dynamicBenFee = (manualSum > 0 && isBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0
+    const dynamicBenFee = (manualSum > 0 && effectiveIsBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0
     
     let remaining = parsedAmount - manualSum
 
@@ -418,7 +426,7 @@ export function usePaymentFlow(uuid: string) {
         allocated: manualAllocs[item.id] || 0
       }
     })
-  }, [autoAllocs, manualAllocs, lineItems, parsedAmount, rates, isBenefitsOptedIn])
+  }, [autoAllocs, manualAllocs, lineItems, parsedAmount, rates, effectiveIsBenefitsOptedIn])
 
   const finalLineItemPayments = useMemo(() => {
     return effectiveAllocs.filter(a => a.allocated > 0).map(a => ({
@@ -458,7 +466,7 @@ export function usePaymentFlow(uuid: string) {
     setManualAllocs(newManual)
     
     const manualSum = Object.values(newManual).reduce((acc, val) => acc + val, 0)
-    const dynamicFee = manualSum > 0 ? (rates.transactionFee + ((isBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0)) : 0
+    const dynamicFee = manualSum > 0 ? (rates.transactionFee + ((effectiveIsBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0)) : 0
     setAmountInput((manualSum + dynamicFee).toString())
   }
 
@@ -555,7 +563,7 @@ export function usePaymentFlow(uuid: string) {
     executeLogin,
     authUser,
     isPendingRefund,
-    isBenefitsOptedIn,
+    isBenefitsOptedIn: effectiveIsBenefitsOptedIn,
     setIsBenefitsOptedIn,
     rates
   }
