@@ -354,7 +354,7 @@ export class RecordTransactionUseCase {
                                   (hasLineItems && !hasBenefitsItem) ||
                                   matchesRentPlusTxFee
           const activeBenefitsFee = (ratesForExpected.benefitsPaid || excludeBenefits) ? 0 : ratesForExpected.benefitsFee
-          const dynamicFee = ratesForExpected.transactionFee + activeBenefitsFee
+          const dynamicFee = data.isManual ? 0 : (ratesForExpected.transactionFee + activeBenefitsFee)
           const expectedTotal = pr.amount + dynamicFee
           if (!pr.allowPartial && effectiveAmount < expectedTotal && !data.settlementStatus) {
             data.settlementStatus = 'PENDING_REFUND'
@@ -363,7 +363,7 @@ export class RecordTransactionUseCase {
 
           const prItems = await txClient.upward_payment_line_item.findMany({ where: { paymentRequestId: pr.id } })
           const rentRemaining = prItems.reduce((sum, item) => {
-            if (item.name === 'Processing Fee') return sum
+            if (item.name === 'Processing Fee' || item.name === 'Transaction Fee' || item.name === 'Upward Benefits') return sum
             return sum + Math.max(0, item.totalAmount - item.amountPaid)
           }, 0)
           remaining = rentRemaining
@@ -382,7 +382,7 @@ export class RecordTransactionUseCase {
         }
       }
 
-      if (upwardFeeAmount === 0 && pr) {
+      if (upwardFeeAmount === 0 && pr && !data.isManual) {
         try {
           const rates = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId, pr.id)
           const txFee = rates.transactionFee
@@ -427,7 +427,9 @@ export class RecordTransactionUseCase {
           const settlementPortion = Math.max(0, paymentAmount - upwardFeeAmount)
           const newAmountPaid = (pr.amountPaid || 0) + settlementPortion
           const prItems = await txClient.upward_payment_line_item.findMany({ where: { paymentRequestId: pr.id } })
-          const totalRentOwed = prItems.reduce((sum: number, i: any) => i.name === 'Processing Fee' ? sum : sum + i.totalAmount, 0)
+          const totalRentOwed = prItems.reduce((sum: number, i: any) => 
+            (i.name === 'Processing Fee' || i.name === 'Transaction Fee' || i.name === 'Upward Benefits') ? sum : sum + i.totalAmount
+          , 0)
           const newStatus = newAmountPaid >= totalRentOwed ? 'PAID' : 'PARTIAL'
 
           pr = await this.paymentRequestRepo.update(pr.id!, {
@@ -1342,6 +1344,13 @@ export class GetPendingPaymentsUseCase {
           include: { pm: true }
       })
 
+      const proofs = await this.prisma.upward_payment_proof.findMany({
+        where: { paymentRequestId: p.id },
+        orderBy: { createdAt: 'desc' },
+      })
+      
+      const latestProof = proofs.length > 0 ? proofs[0] : null
+
       return {
         id: p.id,
         uuid: p.uuid,
@@ -1363,7 +1372,13 @@ export class GetPendingPaymentsUseCase {
         isManual: p.isManual,
         isVerified: pmPR?.pm?.isVerified || false,
         lineItemRecords,
-        type: 'invoice'
+        type: 'invoice',
+        latestProof: latestProof ? {
+          id: latestProof.id,
+          status: latestProof.status,
+          remarks: latestProof.remarks,
+          createdAt: latestProof.createdAt,
+        } : null
       }
     }))
 
@@ -1379,7 +1394,52 @@ export class GetPendingPaymentsUseCase {
       property_address: a.propertyAddress || 'Your Property'
     }))
 
-    return [...alertsData, ...paymentsData]
+    const standaloneProofs = await this.prisma.upward_payment_proof.findMany({
+      where: { 
+        uploadedByUserId: user.id,
+        paymentRequestId: null,
+        status: { in: ['PENDING', 'REJECTED'] }
+      },
+      include: {
+        userProperty: { include: { location: true, company: true } }
+      }
+    })
+
+    const standaloneProofsData = standaloneProofs.map(proof => {
+      const p = proof.userProperty
+      const property_address = p?.location ? `${p.location.area}, ${p.location.state}` : 'Your Property'
+      return {
+        id: proof.id,
+        uuid: proof.uuid,
+        total_amount: proof.amount || 0,
+        amountPaid: 0,
+        currency: proof.currency || 'NGN',
+        status: 'PENDING',
+        allowPartial: false,
+        minAmount: null,
+        remainingBalance: proof.amount || 0,
+        payment_link_token: proof.uuid,
+        invoice_number: `MNL-${proof.id}`,
+        description: 'Manual Payment Proof',
+        subaccountCode: null,
+        company_name: p?.company?.name,
+        manager_name: null,
+        property_address,
+        userPropertyUuid: p?.uuid,
+        isManual: true,
+        isVerified: false,
+        lineItemRecords: [],
+        type: 'invoice',
+        latestProof: {
+          id: proof.id,
+          status: proof.status,
+          remarks: proof.remarks,
+          createdAt: proof.createdAt,
+        }
+      }
+    })
+
+    return [...alertsData, ...paymentsData, ...standaloneProofsData]
   }
 }
 

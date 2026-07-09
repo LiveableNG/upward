@@ -70,13 +70,29 @@ function getRentDue(pendingPayments: PendingPayment[], user: UserProfile) {
     const amount = remaining > 0 ? remaining : firstPending.total_amount
     const isOverdue = dateStr ? new Date(dateStr) < new Date() : false
     const days = dateStr ? Math.abs(daysUntil(dateStr)) : 0
+    let label = isOverdue ? 'Overdue' : 'Rent Due'
+    let isRejected = false
+    let isReviewing = false
+
+    if (firstPending.latestProof) {
+      if (firstPending.latestProof.status === 'PENDING') {
+        label = 'In Review'
+        isReviewing = true
+      } else if (firstPending.latestProof.status === 'REJECTED') {
+        label = 'Proof Rejected'
+        isRejected = true
+      }
+    }
+
     return {
       amount,
       currency: firstPending.currency || 'NGN',
       address: formatPropertyShort(firstPending.property_address),
       days,
       isOverdue,
-      label: isOverdue ? 'Overdue' : 'Rent Due',
+      isReviewing,
+      isRejected,
+      label,
       daysLabel: isOverdue ? 'OVERDUE' : 'DAYS',
       href: `/dashboard/pay-rent${firstPending.uuid ? `?paymentUuid=${firstPending.uuid}` : ''}`,
     }
@@ -96,6 +112,8 @@ function getRentDue(pendingPayments: PendingPayment[], user: UserProfile) {
         address: formatPropertyShort(address),
         days,
         isOverdue: false,
+        isReviewing: false,
+        isRejected: false,
         label: 'Rent Due',
         daysLabel: 'DAYS',
         href: `/dashboard/pay-rent?propertyUuid=${prop.uuid}`,
@@ -285,12 +303,16 @@ export function DashboardHome({
                 {rentDue.amount > 0 ? formatCurrency(rentDue.amount, rentDue.currency) : '—'}
               </div>
               <div className="dash-home__rent-due-meta">
-                {rentDue.isOverdue
+                {rentDue.isRejected ? (
+                  <span style={{ color: 'var(--error)' }}>Upload new proof or pay online</span>
+                ) : rentDue.isReviewing ? (
+                  <span style={{ color: 'var(--warning-text)' }}>Your document is being reviewed</span>
+                ) : rentDue.isOverdue
                   ? `Overdue · ${rentDue.address}`
                   : `Due in ${rentDue.days} days · ${rentDue.address}`}
               </div>
             </div>
-            <div className={`dash-home__rent-due-badge ${rentDue.isOverdue ? 'dash-home__rent-due-badge--overdue' : ''}`}>
+            <div className={`dash-home__rent-due-badge ${rentDue.isOverdue || rentDue.isRejected ? 'dash-home__rent-due-badge--overdue' : rentDue.isReviewing ? 'dash-home__rent-due-badge--review' : ''}`}>
               <div className={`dash-home__rent-due-days ${rentDue.isOverdue ? 'dash-home__rent-due-days--overdue' : ''}`}>
                 {rentDue.days}
               </div>

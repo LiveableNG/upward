@@ -113,3 +113,27 @@ export const resolveTransaction = (uuid: string, action: 'REFUND' | 'ACCEPT') =>
     body: JSON.stringify({ action })
   })
 }
+
+export const getPendingManualPayments = () => {
+  return request<any[]>('/payments/manual/proof')
+}
+
+export const reviewManualPayment = (id: string, status: 'APPROVED' | 'REJECTED', remarks?: string) => {
+  return request<{ success: boolean; message: string }>(`/payments/manual/proof/${id}/review`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, remarks })
+  })
+}
+
+export const downloadManualPaymentProof = (id: string) => {
+  return request<Blob>(`/payments/manual/proof/${id}`, {
+    method: 'GET'
+  })
+}
+
+export const addManualAccount = (data: { propertyId: number; bankName: string; bankCode: string; accountNumber: string; accountName: string }) => {
+  return request<{ success: boolean; message: string }>('/payments/manual/account', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}

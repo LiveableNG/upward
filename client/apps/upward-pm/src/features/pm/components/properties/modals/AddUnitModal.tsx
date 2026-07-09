@@ -304,7 +304,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                     <h5 style={{ fontSize: 11, fontWeight: 700, margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Rent Configuration</h5>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div className="form-group">
                     <label className="form-label" style={{ fontSize: 11 }}>Rent Amount (₦)</label>
                     <input
@@ -314,16 +314,6 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                       placeholder="Required"
                       value={formData.rentAmount}
                       onChange={e => setFormData({ ...formData, rentAmount: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontSize: 11 }}>Initial Amount Paid (₦)</label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      style={{ fontSize: 13, padding: '10px 14px' }}
-                      value={formData.rentAmountPaid}
-                      onChange={e => setFormData({ ...formData, rentAmountPaid: e.target.value })}
                     />
                   </div>
                   <div className="form-group">

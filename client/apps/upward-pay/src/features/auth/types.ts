@@ -22,6 +22,7 @@ export interface UserProfile {
   profileSlug?: string | null
   bio?: string | null
   properties?: Array<{
+    id: number;
     uuid?: string;
     address: string;
     rentStartDate?: string;
@@ -44,6 +45,18 @@ export interface UserProfile {
       address?: string;
       state?: string;
       country?: string;
+    }
+    manualAccount?: {
+      accountNumber: string;
+      accountName: string;
+      bankName: string;
+      bankCode?: string;
+    }
+    pmManualAccount?: {
+      accountNumber: string;
+      accountName: string;
+      bankName: string;
+      bankCode?: string;
     }
   }>
   isFromWaitlist: boolean

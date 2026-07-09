@@ -40,6 +40,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     lineItemRecords: p.lineItemRecords || [],
     isManual: !!p.isManual,
     isVerified: !!p.isVerified,
+    latestProof: p.latestProof || null,
   }))
 
   const completedPayments: CompletedPayment[] = (txs || []).map((t: any) => ({

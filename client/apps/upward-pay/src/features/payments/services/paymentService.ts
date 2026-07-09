@@ -138,3 +138,52 @@ export async function createManualPaymentRequest(data: {
     body: JSON.stringify(data),
   })
 }
+
+export async function addManualAccount(data: { accountNumber: string, accountName: string, bankName: string, bankCode?: string, propertyId?: number }) {
+  return request<any>('/payments/manual/account', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function uploadProofOfPayment(data: { paymentRequestUuid?: string, userPropertyUuid?: string, amount?: number, currency?: string, lineItems?: any[], file: File }) {
+  const formData = new FormData()
+  if (data.paymentRequestUuid) formData.append('paymentRequestId', data.paymentRequestUuid)
+  if (data.userPropertyUuid) formData.append('userPropertyId', data.userPropertyUuid)
+  if (data.amount) formData.append('amount', data.amount.toString())
+  if (data.currency) formData.append('currency', data.currency)
+  if (data.lineItems && data.lineItems.length > 0) {
+    formData.append('lineItems', JSON.stringify(data.lineItems))
+  }
+  formData.append('fileName', data.file.name)
+  formData.append('file', data.file)
+
+  const res = await request<any>('/payments/manual/proof', {
+    method: 'POST',
+    body: formData,
+  })
+  
+  return res.data || res
+}
+
+export async function uploadManualProofOfPayment(data: { paymentRequestUuid?: string, userPropertyUuid?: string, amount?: number, currency?: string, lineItems?: any[], senderName: string, paymentDate: string, referenceNumber?: string }) {
+  const res = await request<any>('/payments/manual/proof/manual', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+  
+  return res.data || res
+}
+
+export async function deleteProofOfPayment(proofId: number) {
+  return request<any>(`/payments/manual/proof/${proofId}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function reviewProofOfPayment(proofId: number, data: { status: 'APPROVED' | 'REJECTED', remarks?: string }) {
+  return request<any>(`/payments/manual/proof/${proofId}/review`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}

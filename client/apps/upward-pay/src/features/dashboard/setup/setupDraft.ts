@@ -31,6 +31,7 @@ export type SetupDraft = {
   pmType: string
   companyName: string
   pmFound: boolean
+  isManagedProperty: boolean
   pmDetails: { id?: number; name?: string; businessName?: string } | null
   landlordSkipped: boolean
   paymentDetails: PaymentDraftDetails
@@ -68,6 +69,7 @@ export function createEmptyDraft(mode: SetupMode = 'onboarding'): SetupDraft {
     pmType: 'Property Manager',
     companyName: '',
     pmFound: false,
+    isManagedProperty: false,
     pmDetails: null,
     landlordSkipped: false,
     paymentDetails: { ...EMPTY_PAYMENT_DETAILS },
@@ -236,6 +238,7 @@ export function draftFromProperty(
   draft.paymentDetails = paymentDetailsFromProperty(prop)
   draft.companyName = companyName
   draft.pmFound = !!(prop.isManaged || prop.isPlatformLinked)
+  draft.isManagedProperty = !!(prop.isManaged || prop.isPlatformLinked)
   if (draft.pmFound) {
     draft.pmDetails = {
       name: managerName || companyName,

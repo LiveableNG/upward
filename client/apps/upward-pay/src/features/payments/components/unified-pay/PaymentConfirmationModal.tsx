@@ -11,6 +11,7 @@ interface PaymentConfirmationModalProps {
   amount: number
   currency: string
   isFullRequired?: boolean
+  onManualTransfer?: () => void
 }
 
 export function PaymentConfirmationModal({
@@ -19,7 +20,8 @@ export function PaymentConfirmationModal({
   onConfirm,
   amount,
   currency,
-  isFullRequired
+  isFullRequired,
+  onManualTransfer
 }: PaymentConfirmationModalProps) {
   if (!isOpen) return null
 
@@ -72,10 +74,20 @@ export function PaymentConfirmationModal({
             className="btn btn--primary btn--full btn--pill py-4 text-base font-bold shadow-xl"
             onClick={onConfirm}
           >
-            Agree & Proceed to Pay
+            Agree & Proceed to Pay (Online)
           </button>
+          {onManualTransfer && (
+            <button 
+              className="btn btn--secondary btn--full btn--pill py-4 text-base font-bold"
+              style={{ background: 'var(--surface)', color: 'var(--text)' }}
+              onClick={onManualTransfer}
+            >
+              Submit Proof of Payment
+            </button>
+          )}
           <button 
-            className="btn btn--secondary btn--full btn--pill py-4 text-base font-medium"
+            className="btn btn--ghost btn--full btn--pill py-4 text-base font-medium"
+            style={{ border: 'none', background: 'transparent' }}
             onClick={onClose}
           >
             Cancel

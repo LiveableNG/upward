@@ -20,6 +20,7 @@ import { usePaymentRequests, useCancelPaymentRequest } from '../../hooks/usePaym
 import { useProperties } from '../../hooks/useProperties'
 import { useToast } from '@/components/common/Toast'
 import { PayoutsList } from './PayoutsList'
+import { ApprovePaymentsQueue } from './ApprovePaymentsQueue'
 
 import { DataTable, Column } from '@/components/common/DataTable'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
@@ -243,7 +244,7 @@ export function PaymentsView() {
   const [dateFilter, setDateFilter] = useState('All Time')
   const [statusFilter, setStatusFilter] = useState(initialStatus)
   const [propertyFilter, setPropertyFilter] = useState('All')
-  const [activeTab, setActiveTab] = useState<'requests' | 'payouts'>('requests')
+  const [activeTab, setActiveTab] = useState<'requests' | 'payouts' | 'proofs'>('requests')
   
   const [isDateOpen, setIsDateOpen] = useState(false)
   const [isMoreOpen, setIsMoreOpen] = useState(false)
@@ -362,6 +363,13 @@ export function PaymentsView() {
           <ArrowRightLeft size={18} />
           Manage Payouts
         </button>
+        <button 
+          className={`tab-btn ${activeTab === 'proofs' ? 'active' : ''}`}
+          onClick={() => setActiveTab('proofs')}
+        >
+          <CheckCircle size={18} />
+          Review Proofs
+        </button>
       </div>
 
       {activeTab === 'requests' ? (
@@ -454,8 +462,12 @@ export function PaymentsView() {
         allRequests={requests || []} 
       />
       </>
-      ) : (
+      ) : activeTab === 'payouts' ? (
         <PayoutsList />
+      ) : (
+        <div className="mt-4 max-w-4xl">
+          <ApprovePaymentsQueue />
+        </div>
       )}
 
       <style jsx>{`

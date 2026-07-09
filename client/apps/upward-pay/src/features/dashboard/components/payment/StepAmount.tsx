@@ -90,6 +90,10 @@ type StepAmountProps = {
     lineItems?: LineItem[],
     propertyUuid?: string,
   ) => void
+  onSubmitProof?: (
+    amount: number,
+    propertyUuid?: string,
+  ) => void
   onBack?: () => void
 }
 
@@ -106,6 +110,7 @@ export function StepAmount({
   totalPaidAlready = 0,
   processing = false,
   onContinue,
+  onSubmitProof,
   onBack,
 }: StepAmountProps) {
   void userProperties
@@ -377,6 +382,17 @@ export function StepAmount({
         >
           Confirm Transaction
         </PayFlowPrimaryButton>
+        {onSubmitProof && (
+          <button 
+            type="button" 
+            className="btn btn--secondary btn--full btn--pill" 
+            style={{ marginTop: '12px' }}
+            disabled={!canProceed || processing}
+            onClick={() => onSubmitProof(Number(amount), initialPropertyUuid || undefined)}
+          >
+            Submit Proof of Payment
+          </button>
+        )}
         <p className="pay-flow__footnote">
           <Info size={12} /> Min. ₦1,000
         </p>
