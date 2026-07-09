@@ -23,8 +23,7 @@ export interface UnifiedUserRecord {
   origin: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED'
   hasPassword: boolean
   isExWaitlist: boolean
-  pmName?: string
-  pmUuid?: string | string[] | null
+  pms?: Array<{ uuid: string; name: string; propertyAddress?: string }>
   totalPaid: number
   rawRecord: any
 }
@@ -46,6 +45,104 @@ const SortIcon: React.FC<{ col: SortKey; active: SortKey; dir: SortDir }> = ({ c
   active === col
     ? dir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
     : <ChevronDown size={12} style={{ opacity: 0.25 }} />
+
+const PmBadgeList: React.FC<{ pms?: UnifiedUserRecord['pms'] }> = ({ pms }) => {
+  const [openPmUuid, setOpenPmUuid] = useState<string | null>(null)
+  
+  const uniquePms = React.useMemo(() => {
+    if (!pms) return []
+    const map = new Map<string, { uuid: string; name: string; propertyAddresses: string[] }>()
+    pms.forEach(pm => {
+      if (!map.has(pm.name)) {
+        map.set(pm.name, { uuid: pm.uuid, name: pm.name, propertyAddresses: pm.propertyAddress ? [pm.propertyAddress] : [] })
+      } else {
+        const existing = map.get(pm.name)!
+        if (pm.propertyAddress && !existing.propertyAddresses.includes(pm.propertyAddress)) {
+          existing.propertyAddresses.push(pm.propertyAddress)
+        }
+      }
+    })
+    return Array.from(map.values())
+  }, [pms])
+
+  if (!uniquePms || uniquePms.length === 0) {
+    return <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>— <span style={{ fontSize: '11px', opacity: 0.6 }}>(Direct)</span></span>
+  }
+
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+      {uniquePms.map((pm) => (
+        <div key={pm.uuid} style={{ position: 'relative' }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setOpenPmUuid(openPmUuid === pm.uuid ? null : pm.uuid)
+            }}
+            onBlur={() => setOpenPmUuid(null)}
+            style={{
+              fontSize: '11px',
+              fontWeight: 600,
+              background: 'var(--surface)',
+              border: '1px solid var(--border-solid)',
+              padding: '2px 8px',
+              borderRadius: '100px',
+              color: 'var(--text-secondary)',
+              cursor: pm.propertyAddresses.length > 0 ? 'pointer' : 'default',
+              transition: 'all 0.15s ease'
+            }}
+            className={pm.propertyAddresses.length > 0 ? "pm-badge-hover" : ""}
+          >
+            {pm.name}
+          </button>
+          
+          {openPmUuid === pm.uuid && pm.propertyAddresses.length > 0 && (
+            <div 
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                marginTop: '4px',
+                background: 'var(--bg)',
+                border: '1px solid var(--border-solid)',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                color: 'var(--text)',
+                fontSize: '12px',
+                fontWeight: 500,
+                zIndex: 50,
+                width: 'max-content',
+                maxWidth: '240px',
+                lineHeight: 1.4,
+                whiteSpace: 'normal',
+                animation: 'popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+              onMouseDown={(e) => e.stopPropagation()} // Prevent blur when clicking inside
+            >
+              {pm.propertyAddresses.map((addr, idx) => (
+                <div key={idx} style={{ marginBottom: idx < pm.propertyAddresses.length - 1 ? '4px' : 0 }}>
+                  {addr}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+      <style>{`
+        .pm-badge-hover:hover {
+          border-color: var(--clay);
+          background: var(--clay-faint);
+          color: var(--clay);
+        }
+        @keyframes popupFadeIn {
+          from { opacity: 0; transform: translate(-50%, -5px); }
+          to { opacity: 1; transform: translate(-50%, 0); }
+        }
+      `}</style>
+    </div>
+  )
+}
 
 export const UsersTable: React.FC<UsersTableProps> = ({
   isSuperadmin,
@@ -78,8 +175,8 @@ export const UsersTable: React.FC<UsersTableProps> = ({
       va = a.origin
       vb = b.origin
     } else if (sortKey === 'pmName') {
-      va = (a.pmName || '').toLowerCase()
-      vb = (b.pmName || '').toLowerCase()
+      va = (a.pms?.[0]?.name || '').toLowerCase()
+      vb = (b.pms?.[0]?.name || '').toLowerCase()
     } else if (sortKey === 'totalPaid') {
       va = a.totalPaid
       vb = b.totalPaid
@@ -269,11 +366,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                 {getOriginBadge(item.origin)}
               </td>
               <td style={{ padding: '14px 16px' }}>
-                {item.pmName ? (
-                  <span style={{ fontSize: '13px', fontWeight: 500 }}>{item.pmName}</span>
-                ) : (
-                  <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>— <span style={{ fontSize: '11px', opacity: 0.6 }}>(Direct)</span></span>
-                )}
+                <PmBadgeList pms={item.pms} />
               </td>
               <td style={{ padding: '14px 16px', fontWeight: 700, fontSize: '13px' }}>
                 {item.totalPaid > 0 ? `₦${item.totalPaid.toLocaleString()}` : <span style={{ color: 'var(--text-muted)' }}>—</span>}

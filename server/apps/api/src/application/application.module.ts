@@ -54,6 +54,11 @@ import { ChangeUserSessionUseCase } from './use-cases/sessions/change-user-sessi
 
 import { GetWaitlistAnalyticsUseCase } from './use-cases/analytics/get-waitlist-analytics.use-case'
 import { GetPerformanceMetricsUseCase } from './use-cases/analytics/get-performance-metrics.use-case'
+import { GetRevenueMetricsUseCase } from './use-cases/analytics/get-revenue-metrics.use-case'
+import { GetWaitlistMetricsUseCase } from './use-cases/analytics/get-waitlist-metrics.use-case'
+import { GetSignedUpMetricsUseCase } from './use-cases/analytics/get-signed-up-metrics.use-case'
+import { GetInvitedMetricsUseCase } from './use-cases/analytics/get-invited-metrics.use-case'
+import { GetPmMetricsUseCase } from './use-cases/analytics/get-pm-metrics.use-case'
 import { GetDropOffAnalysisUseCase } from './use-cases/analytics/get-drop-off-analysis.use-case'
 import { GetAbStatsUseCase } from './use-cases/analytics/get-ab-stats.use-case'
 import { SendDailyReportUseCase } from './use-cases/analytics/send-daily-report.use-case'
@@ -305,6 +310,11 @@ const UseCases = [
   ChangeUserSessionUseCase,
   GetWaitlistAnalyticsUseCase,
   GetPerformanceMetricsUseCase,
+  GetRevenueMetricsUseCase,
+  GetWaitlistMetricsUseCase,
+  GetSignedUpMetricsUseCase,
+  GetInvitedMetricsUseCase,
+  GetPmMetricsUseCase,
   GetDropOffAnalysisUseCase,
   GetAbStatsUseCase,
   SendDailyReportUseCase,

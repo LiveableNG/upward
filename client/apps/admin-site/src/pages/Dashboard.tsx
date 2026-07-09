@@ -270,7 +270,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const unifiedUsers = useMemo((): UnifiedUserRecord[] => {
     const list: UnifiedUserRecord[] = []
 
-    // 1. Unconverted Waitlist Entries
     waitlistList.forEach((w) => {
       list.push({
         id: w.id,
@@ -284,8 +283,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         hasPassword: false,
         isExWaitlist: false,
         totalPaid: 0,
-        pmName: w.pmName,
-        pmUuid: w.pmUuid,
+        pms: w.pms,
         rawRecord: w,
       })
     })
@@ -303,13 +301,11 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         hasPassword: true,
         isExWaitlist: u.isWaitlist,
         totalPaid: u.totalPaid,
-        pmName: u.pmName,
-        pmUuid: u.pmUuid,
+        pms: u.pms,
         rawRecord: u,
       })
     })
 
-    // 3. Invited Tenants
     invitedList.forEach((i) => {
       const isSignedUp = i.status === 'INVITED_SIGNED_UP' || i.status === 'SIGNED_UP_PAID'
       list.push({
@@ -323,8 +319,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         origin: 'INVITED',
         hasPassword: isSignedUp,
         isExWaitlist: false,
-        pmName: i.pmName,
-        pmUuid: i.pmUuid,
+        pms: i.pms,
         totalPaid: i.totalPaid,
         rawRecord: i,
       })
@@ -340,46 +335,48 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     })
   }, [unifiedUsers, usersSubtab])
 
+  const usersFilteredByPm = useMemo(() => {
+    if (pmFilter === 'all') return subtabUsers
+
+    const selectedPm = pmList.find((pm) => pm.uuid === pmFilter)
+    const pmUuidsToCheck = selectedPm?.mergedUuids || [pmFilter]
+
+    return subtabUsers.filter((u) => {
+      if (u.pms && u.pms.length > 0) {
+        return u.pms.some((pm) => pmUuidsToCheck.includes(pm.uuid))
+      }
+      return false
+    })
+  }, [subtabUsers, pmFilter, pmList])
+
   const originCounts = useMemo(() => {
     let waitlist = 0
     let selfRegistered = 0
     let invited = 0
 
-    subtabUsers.forEach((u) => {
+    usersFilteredByPm.forEach((u) => {
       if (u.origin === 'WAITLIST') waitlist++
       else if (u.origin === 'SELF_REGISTERED') selfRegistered++
       else if (u.origin === 'INVITED') invited++
     })
 
     return {
-      all: subtabUsers.length,
+      all: usersFilteredByPm.length,
       waitlist,
       selfRegistered,
       invited,
     }
-  }, [subtabUsers])
+  }, [usersFilteredByPm])
 
   const filteredUsers = useMemo(() => {
-    return subtabUsers.filter((u) => {
+    return usersFilteredByPm.filter((u) => {
       // 1. Origin Filter
       if (originFilter === 'waitlist' && u.origin !== 'WAITLIST') return false
       if (originFilter === 'selfRegistered' && u.origin !== 'SELF_REGISTERED') return false
       if (originFilter === 'invited' && u.origin !== 'INVITED') return false
-
-      // 2. PM Filter
-      if (pmFilter !== 'all') {
-        const selectedPm = pmList.find((pm) => pm.uuid === pmFilter)
-        const pmUuidsToCheck = selectedPm?.mergedUuids || [pmFilter]
-
-        if (Array.isArray(u.pmUuid)) {
-          return u.pmUuid.some((id) => pmUuidsToCheck.includes(id))
-        }
-        return pmUuidsToCheck.includes(u.pmUuid!)
-      }
-
       return true
     })
-  }, [subtabUsers, originFilter, pmFilter])
+  }, [usersFilteredByPm, originFilter])
 
   // ── Directory list (active tab) ────────────────────────────────
   const currentDirectoryList = useMemo(() => {
@@ -412,7 +409,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         'Email Address': u.email,
         'Phone Number': u.phone,
         'Origin': u.origin,
-        'Manager / Platform': u.pmName || 'Direct',
+        'Manager / Platform': u.pms?.length ? u.pms.map((pm: any) => pm.name).join(', ') : 'Direct',
         'Total Paid (₦)': u.totalPaid,
         'Has Password': u.hasPassword ? 'Yes' : 'No',
         'Is Ex-Waitlist': u.isExWaitlist ? 'Yes' : 'No',
