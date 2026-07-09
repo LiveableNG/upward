@@ -33,11 +33,12 @@ export class GetPerformanceMetricsUseCase {
     const _results = await Promise.all([
       this.prisma.upward_user.findMany({
         where: {
+          isInternal: false,
           ...(startDate || endDate
             ? {
                 createdAt: {
-                  ...(startDate && { gte: new Date(startDate) }),
-                  ...(endDate && { lte: new Date(endDate) }),
+                  ...(startDate ? { gte: new Date(startDate) } : {}),
+                  ...(endDate ? { lte: new Date(endDate) } : {}),
                 },
               }
             : {}),
@@ -97,6 +98,7 @@ export class GetPerformanceMetricsUseCase {
       }),
       this.prisma.upward_pm_tenant.findMany({
         where: {
+          isInternal: false,
           ...(startDate || endDate
             ? {
                 createdAt: {
@@ -113,6 +115,7 @@ export class GetPerformanceMetricsUseCase {
       }),
       this.prisma.upward_property_manager.findMany({
         where: {
+          isInternal: false,
           ...(startDate || endDate
             ? {
                 createdAt: {

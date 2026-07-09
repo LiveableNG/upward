@@ -34,6 +34,8 @@ import {
   SearchFeeTargetsUseCase,
 } from './use-cases/admin/fee-overrides.use-cases'
 import { GetAppActivityLogsUseCase } from './use-cases/admin/get-app-activity-logs.use-case'
+import { GetInternalAccountsUseCase } from './use-cases/admin/get-internal-accounts.use-case'
+import { ToggleInternalAccountUseCase } from './use-cases/admin/toggle-internal-account.use-case'
 
 import { JoinWaitlistUseCase } from './use-cases/waitlist/join-waitlist.use-case'
 import { GetWaitlistUseCase } from './use-cases/waitlist/get-waitlist.use-case'
@@ -286,6 +288,8 @@ const UseCases = [
   GetAdminUserDetailUseCase,
   GetAdminPmDetailUseCase,
   GetAppActivityLogsUseCase,
+  GetInternalAccountsUseCase,
+  ToggleInternalAccountUseCase,
   UpdateAdminUserUseCase,
   UpdateAdminPmUseCase,
   SendAdminNotificationUseCase,

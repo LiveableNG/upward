@@ -23,6 +23,7 @@ import PmDetail from './pages/PmDetail'
 import Layout from './components/Layout'
 import OverridesPage from './pages/Overrides'
 import BlogPosts from './pages/BlogPosts'
+import InternalAccounts from './pages/InternalAccounts'
 
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -80,6 +81,7 @@ function AppRoutes() {
               <Route path="/feedback" element={<Feedback token={auth.token} />} />
               {showSandboxTools && <Route path="/dev-emails" element={<DevEmails token={auth.token} />} />}
               <Route path="/webhooks" element={<Webhooks token={auth.token} />} />
+              <Route path="/internal-accounts" element={<InternalAccounts token={auth.token} />} />
             </>
           )}
           <Route path="*" element={<Navigate to="/" replace />} />

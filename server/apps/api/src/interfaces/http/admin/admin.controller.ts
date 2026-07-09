@@ -65,6 +65,8 @@ import { GetAdminPmDetailUseCase } from '../../../application/use-cases/admin/ge
 import { UpdateAdminUserUseCase } from '../../../application/use-cases/admin/update-admin-user.use-case'
 import { UpdateAdminPmUseCase } from '../../../application/use-cases/admin/update-admin-pm.use-case'
 import { SendAdminNotificationUseCase } from '../../../application/use-cases/admin/send-admin-notification.use-case'
+import { GetInternalAccountsUseCase } from '../../../application/use-cases/admin/get-internal-accounts.use-case'
+import { ToggleInternalAccountUseCase } from '../../../application/use-cases/admin/toggle-internal-account.use-case'
 
 @Controller('admin')
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
@@ -109,6 +111,8 @@ export class AdminController {
     private readonly updateAdminUserUseCase: UpdateAdminUserUseCase,
     private readonly updateAdminPmUseCase: UpdateAdminPmUseCase,
     private readonly sendAdminNotificationUseCase: SendAdminNotificationUseCase,
+    private readonly getInternalAccountsUseCase: GetInternalAccountsUseCase,
+    private readonly toggleInternalAccountUseCase: ToggleInternalAccountUseCase,
     private readonly s3Service: S3Service,
   ) {}
 
@@ -458,5 +462,24 @@ export class AdminController {
     const key = `email-campaigns/images/${uuid}.${extension}`
     const url = await this.s3Service.uploadBuffer(buffer, key, body.contentType)
     return { success: true, url }
+  }
+
+  @Get('internal-accounts')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
+  async getInternalAccountsList() {
+    return this.getInternalAccountsUseCase.execute()
+  }
+
+  @Patch('internal-accounts/:type/:uuid')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
+  async toggleInternalAccountStatus(
+    @Param('type') type: 'user' | 'pm' | 'guest' | 'company' | 'waitlist',
+    @Param('uuid') uuid: string,
+    @Body() body: { isInternal: boolean }
+  ) {
+    if (typeof body.isInternal !== 'boolean') {
+      throw new BadRequestException('isInternal must be a boolean')
+    }
+    return this.toggleInternalAccountUseCase.execute(type, uuid, body.isInternal)
   }
 }
