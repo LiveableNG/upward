@@ -1,9 +1,11 @@
 'use client'
 
 import { ShieldCheck, Sparkles } from 'lucide-react'
-import { useLDClient } from '@launchdarkly/react-sdk'
 import { formatCurrency } from '@/lib/utils'
 import { PREMIUM_BENEFITS } from '../constants/premiumBenefits'
+import { CHECKOUT_VARIANTS } from '../constants/checkoutVariant'
+import { useCheckoutExperimentTracking } from '../hooks/useCheckoutExperimentTracking'
+import { CHECKOUT_EXPERIMENT_EVENTS } from '../utils/checkoutExperimentTracking'
 
 interface CheckoutComparisonCardsProps {
   currency: string
@@ -22,15 +24,14 @@ export function CheckoutComparisonCards({
   onSelectStandard,
   onSelectPremium,
 }: CheckoutComparisonCardsProps) {
-  const ldClient = useLDClient()
+  const { track } = useCheckoutExperimentTracking()
 
   const handlePremiumClick = () => {
-    ldClient?.track('handlePremiumClick', {
-      option: 'premium',
-      screen: 'pay_token_checkout',
-      flag: 'checkout-experience',
-      variant: 'premium-checkout',
-    })
+    track(
+      CHECKOUT_EXPERIMENT_EVENTS.PREMIUM_CLICK,
+      CHECKOUT_VARIANTS.PREMIUM,
+      true,
+    )
     onSelectPremium()
   }
 

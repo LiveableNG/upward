@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   Lock,
@@ -30,6 +30,8 @@ import { RenewalModal } from '@/features/payments/components/unified-pay/Renewal
 import { usePaymentFlow } from '@/features/payments/hooks/usePaymentFlow'
 import { useToast } from '@/components/common/Toast'
 import { useCheckoutVariant } from '@/features/premium/components/LaunchDarklyProvider'
+import { useCheckoutExperimentTracking } from '@/features/premium/hooks/useCheckoutExperimentTracking'
+import { CHECKOUT_EXPERIMENT_EVENTS } from '@/features/premium/utils/checkoutExperimentTracking'
 import { CheckoutComparisonCards } from '@/features/premium/components/CheckoutComparisonCards'
 import { BasicCheckoutView } from '@/features/payments/components/unified-pay/BasicCheckoutView'
 
@@ -37,11 +39,14 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
   const router = useRouter()
   const params = useParams()
   const {
+    variant,
     isReady: isCheckoutVariantReady,
     isBasicCheckout,
     isPremiumCheckout,
   } = useCheckoutVariant()
+  const { track } = useCheckoutExperimentTracking()
   const [showUnverifiedModal, setShowUnverifiedModal] = React.useState(false)
+  const checkoutViewedRef = useRef(false)
 
   const uuid = useMemo(() => {
     if (overrideToken) return overrideToken
@@ -49,6 +54,17 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     if (Array.isArray(t)) return t[0]
     return t as string
   }, [params?.token, overrideToken])
+
+  const onPaymentConfirmed = useCallback(
+    (isPremiumSelected: boolean) => {
+      track(
+        CHECKOUT_EXPERIMENT_EVENTS.PAYMENT_COMPLETED,
+        variant,
+        isPremiumSelected,
+      )
+    },
+    [track, variant],
+  )
 
   const {
     step, setStep,
@@ -84,7 +100,66 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     isBenefitsOptedIn,
     setIsBenefitsOptedIn,
     rates
-  } = usePaymentFlow(uuid, { forceBenefitsOptOut: isBasicCheckout })
+  } = usePaymentFlow(uuid, {
+    forceBenefitsOptOut: isBasicCheckout,
+    onPaymentConfirmed,
+  })
+
+  useEffect(() => {
+    checkoutViewedRef.current = false
+  }, [uuid])
+
+  useEffect(() => {
+    if (step !== 'invoice' || !paymentData || !isCheckoutVariantReady) return
+    if (checkoutViewedRef.current) return
+
+    checkoutViewedRef.current = true
+    track(
+      CHECKOUT_EXPERIMENT_EVENTS.VIEWED,
+      variant,
+      isBenefitsOptedIn,
+    )
+  }, [
+    step,
+    paymentData,
+    isCheckoutVariantReady,
+    variant,
+    isBenefitsOptedIn,
+    track,
+  ])
+
+  const handlePayClick = useCallback(() => {
+    if (!paymentData) return
+
+    const isGuest = !paymentData.hasPassword
+    const verificationOn = paymentData?.user?.verificationOn ?? true
+    const hasPaidBefore = (paymentData?.user?.paidRequestsCount ?? 0) >= 1
+
+    if (
+      verificationOn &&
+      authUser &&
+      !authUser.isIdentityVerified &&
+      !isGuest &&
+      hasPaidBefore
+    ) {
+      setShowUnverifiedModal(true)
+      return
+    }
+
+    track(
+      CHECKOUT_EXPERIMENT_EVENTS.PAYMENT_STARTED,
+      variant,
+      isBenefitsOptedIn,
+    )
+    setStep('checkout')
+  }, [
+    paymentData,
+    authUser,
+    variant,
+    isBenefitsOptedIn,
+    track,
+    setStep,
+  ])
 
   useEffect(() => {
     if (isBasicCheckout && isBenefitsOptedIn) {
@@ -464,16 +539,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     const loginRequired = paymentData.hasPassword && !authUser
     const isGuest = !paymentData.hasPassword
     const isLoggedIn = !!authUser
-
-    const handlePayClick = () => {
-      const verificationOn = paymentData?.user?.verificationOn ?? true
-      const hasPaidBefore = (paymentData?.user?.paidRequestsCount ?? 0) >= 1
-      if (verificationOn && authUser && !authUser.isIdentityVerified && !isGuest && hasPaidBefore) {
-        setShowUnverifiedModal(true)
-      } else {
-        setStep('checkout')
-      }
-    }
 
     const checkoutModals = (
       <>

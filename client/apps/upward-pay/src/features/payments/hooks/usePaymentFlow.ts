@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
@@ -102,6 +102,7 @@ export function usePaymentFlow(
   uuid: string,
   options?: {
     forceBenefitsOptOut?: boolean
+    onPaymentConfirmed?: (isPremiumSelected: boolean) => void
   },
 ) {
   const router = useRouter()
@@ -139,6 +140,13 @@ export function usePaymentFlow(
   const effectiveIsBenefitsOptedIn = options?.forceBenefitsOptOut
     ? false
     : isBenefitsOptedIn
+  const paymentConfirmedTrackedRef = useRef(false)
+
+  const notifyPaymentConfirmed = useCallback(() => {
+    if (paymentConfirmedTrackedRef.current) return
+    paymentConfirmedTrackedRef.current = true
+    options?.onPaymentConfirmed?.(effectiveIsBenefitsOptedIn)
+  }, [effectiveIsBenefitsOptedIn, options?.onPaymentConfirmed])
 
   const rates = paymentData?.payment?.processingRates || { transactionFee: 2000, benefitsFee: 0, rentValue: 0, benefitsPaid: false, benefitsPaidForRequest: false }
   const activeBenefitsFee = (effectiveIsBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0
@@ -267,6 +275,7 @@ export function usePaymentFlow(
 
   useEffect(() => {
     if (uuid) loadPaymentDetails()
+    paymentConfirmedTrackedRef.current = false
   }, [uuid, loadPaymentDetails])
 
   useEffect(() => {
@@ -331,6 +340,7 @@ export function usePaymentFlow(
           toastInfo('Payment confirmed. Updating checkout...', 'Payment Success')
           setStep(prev => {
             if (prev === 'invoice' || prev === 'checkout' || prev === 'processing') {
+              notifyPaymentConfirmed()
               return 'success'
             }
             return prev
@@ -354,7 +364,7 @@ export function usePaymentFlow(
       console.log('[SSE Checkout] Disconnecting')
       eventSource.close()
     }
-  }, [uuid, loadPaymentDetails, toastInfo])
+  }, [uuid, loadPaymentDetails, toastInfo, notifyPaymentConfirmed])
 
   // Biometrics
   useEffect(() => {
@@ -517,6 +527,7 @@ export function usePaymentFlow(
         lineItemPayments: finalLineItemPayments
       })
       if (res.success) {
+        notifyPaymentConfirmed()
         if (res.settlementStatus === 'PENDING_REFUND') {
           setIsPendingRefund(true)
           setStep('success')
