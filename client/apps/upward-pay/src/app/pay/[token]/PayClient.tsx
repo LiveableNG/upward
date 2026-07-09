@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useRef } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   Lock,
@@ -27,7 +27,6 @@ import { SettledStep } from '@/features/payments/components/unified-pay/SettledS
 import { UploadProofOfPayment } from '@/features/payments/components/unified-pay/UploadProofOfPayment'
 import { StatusStep } from '@/features/payments/components/unified-pay/StatusStep'
 import { RenewalModal } from '@/features/payments/components/unified-pay/RenewalModal'
-import { PaymentConfirmationModal } from '@/features/payments/components/unified-pay/PaymentConfirmationModal'
 import { usePaymentFlow } from '@/features/payments/hooks/usePaymentFlow'
 import { useToast } from '@/components/common/Toast'
 import { useCheckoutVariant } from '@/features/premium/components/LaunchDarklyProvider'
@@ -42,10 +41,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     isBasicCheckout,
     isPremiumCheckout,
   } = useCheckoutVariant()
-  const [showPaymentConfirm, setShowPaymentConfirm] = React.useState(false)
   const [showUnverifiedModal, setShowUnverifiedModal] = React.useState(false)
-  const { error: toastError } = useToast()
-  const hasInitializedPremiumSelection = useRef(false)
+
   const uuid = useMemo(() => {
     if (overrideToken) return overrideToken
     const t = params?.token
@@ -94,25 +91,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
       setIsBenefitsOptedIn(false)
     }
   }, [isBasicCheckout, isBenefitsOptedIn, setIsBenefitsOptedIn])
-
-  useEffect(() => {
-    if (
-      isPremiumCheckout &&
-      !hasInitializedPremiumSelection.current &&
-      !isBenefitsOptedIn
-    ) {
-      setIsBenefitsOptedIn(true)
-    }
-    if (isPremiumCheckout) {
-      hasInitializedPremiumSelection.current = true
-    } else {
-      hasInitializedPremiumSelection.current = false
-    }
-  }, [
-    isPremiumCheckout,
-    isBenefitsOptedIn,
-    setIsBenefitsOptedIn,
-  ])
 
   const showBenefitsUI = isPremiumCheckout
   const renameBenefitsLabel = (name: string) =>
@@ -493,7 +471,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
       if (verificationOn && authUser && !authUser.isIdentityVerified && !isGuest && hasPaidBefore) {
         setShowUnverifiedModal(true)
       } else {
-        setShowPaymentConfirm(true)
+        setStep('checkout')
       }
     }
 
@@ -511,34 +489,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
           />
         )}
 
-        <PaymentConfirmationModal
-          isOpen={showPaymentConfirm}
-          amount={parsedAmount}
-          currency={currency}
-          isFullRequired={isFullPaymentRequired}
-          onClose={() => setShowPaymentConfirm(false)}
-          onConfirm={() => {
-            setShowPaymentConfirm(false)
-            setStep('checkout')
-          }}
-          onManualTransfer={() => {
-            if (paymentData?.property?.manualAccount || paymentData?.company?.bankDetails) {
-              setShowPaymentConfirm(false)
-              setStep('manual-transfer')
-            } else {
-              if (!authUser) {
-                toastError('No manual account configured for this property.')
-              } else {
-                toastError('Please configure a manual transfer account first.')
-                if (paymentData?.property?.uuid) {
-                  router.push(`/dashboard/setup/rental?mode=edit&property=${encodeURIComponent(paymentData.property.uuid)}&returnTo=${encodeURIComponent(`/pay/${uuid}`)}`)
-                } else {
-                  router.push('/dashboard')
-                }
-              }
-            }
-          }}
-        />
 
         {showUnverifiedModal && (
           <div className="modal-overlay" onClick={() => setShowUnverifiedModal(false)}>
@@ -618,6 +568,39 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
       )
     }
 
+    if (isPremiumCheckout) {
+      return (
+        <>
+          <BasicCheckoutView
+            uuid={uuid}
+            paymentData={paymentData}
+            currency={currency}
+            totalOwed={totalOwed}
+            parsedAmount={parsedAmount}
+            minRequired={minRequired}
+            isBelowMin={isBelowMin}
+            isValidAmount={isValidAmount}
+            isFullPaymentRequired={isFullPaymentRequired}
+            isUnderpaying={isUnderpaying}
+            isPendingRefund={isPendingRefund}
+            rates={rates}
+            visibleAllocs={visibleAllocs}
+            visibleLineItems={visibleLineItems}
+            loginLoading={loginLoading}
+            authUser={authUser}
+            executeLogin={executeLogin}
+            handleAllocationChange={handleAllocationChange}
+            onPayClick={handlePayClick}
+            showPremiumOptions
+            isPremiumSelected={isBenefitsOptedIn}
+            onSelectStandard={() => setIsBenefitsOptedIn(false)}
+            onSelectPremium={() => setIsBenefitsOptedIn(true)}
+          />
+          {checkoutModals}
+        </>
+      )
+    }
+
     const ctaLabel = () => {
       if (isPendingRefund) return 'Refund Pending'
       if (parsedAmount === 0) return 'Enter amount to continue'
@@ -676,9 +659,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                       isPremiumSelected={isBenefitsOptedIn}
                       onSelectStandard={() => setIsBenefitsOptedIn(false)}
                       onSelectPremium={() => setIsBenefitsOptedIn(true)}
-                      onDecideLater={() => {
-                        setIsBenefitsOptedIn(false)
-                      }}
                     />
                   )}
                 </div>

@@ -8,6 +8,8 @@ import {
   useInitializationStatus,
   type LDContext,
 } from '@launchdarkly/react-sdk'
+import Observability from '@launchdarkly/observability'
+import SessionReplay from '@launchdarkly/session-replay'
 import { useAuth } from '@/features/auth/AuthContext'
 import { buildLdContext } from '../utils/launchDarklyContext'
 import { LaunchDarklyFlagProbe } from './LaunchDarklyFlagProbe'
@@ -30,6 +32,19 @@ const LDProvider = clientSideId
       // Docs recommend a short timeout so app does not sit in initializing on network issues.
       startOptions: {
         timeout: 3,
+        ...({
+          plugins: [
+            new Observability({
+              networkRecording: {
+                enabled: true,
+                recordHeadersAndBody: true,
+              },
+            }),
+            new SessionReplay({
+              privacySetting: 'strict',
+            }),
+          ],
+        } as Record<string, unknown>),
       },
     })
   : null

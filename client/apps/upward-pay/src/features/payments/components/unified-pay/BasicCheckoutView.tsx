@@ -13,6 +13,7 @@ import { BiometricLoginButton } from '@/features/auth/component/BiometricLoginBu
 import { CheckoutRecipientCard } from './CheckoutRecipientCard'
 import { CheckoutAmountHero, parseRentInput } from './CheckoutAmountHero'
 import { CheckoutReceipt, type CheckoutReceiptRow } from './CheckoutReceipt'
+import { CheckoutComparisonCards } from '@/features/premium/components/CheckoutComparisonCards'
 
 const FEE_NAMES = new Set(['Processing Fee', 'Transaction Fee', 'Upward Benefits'])
 const FEE_IDS = new Set([-2, -3])
@@ -35,6 +36,7 @@ interface BasicCheckoutViewProps {
   isPendingRefund: boolean
   rates: {
     transactionFee: number
+    benefitsFee: number
   }
   visibleAllocs: Array<{
     id: number
@@ -54,6 +56,10 @@ interface BasicCheckoutViewProps {
   executeLogin: (email: string, pass: string) => void
   handleAllocationChange: (id: number, amount: number) => void
   onPayClick: () => void
+  showPremiumOptions?: boolean
+  isPremiumSelected?: boolean
+  onSelectStandard?: () => void
+  onSelectPremium?: () => void
 }
 
 export function BasicCheckoutView({
@@ -76,6 +82,10 @@ export function BasicCheckoutView({
   executeLogin,
   handleAllocationChange,
   onPayClick,
+  showPremiumOptions = false,
+  isPremiumSelected = false,
+  onSelectStandard,
+  onSelectPremium,
 }: BasicCheckoutViewProps) {
   const router = useRouter()
 
@@ -118,6 +128,15 @@ export function BasicCheckoutView({
     )
     return feeAlloc?.allocated ?? (rentSubtotal > 0 ? rates.transactionFee : 0)
   }, [visibleAllocs, rentSubtotal, rates.transactionFee])
+  const benefitsFeeAmount = useMemo(() => {
+    const benefitsAlloc = visibleAllocs.find(
+      (a) =>
+        a.id === -3 ||
+        a.name === 'Upward Benefits' ||
+        a.name === 'Rent Protection Insurance',
+    )
+    return benefitsAlloc?.allocated ?? 0
+  }, [visibleAllocs])
 
   const heroEditable =
     canPayPartial && rentLineItems.length === 1 && !isPendingRefund
@@ -149,6 +168,13 @@ export function BasicCheckoutView({
         amount: transactionFeeAmount,
       })
     }
+    if (benefitsFeeAmount > 0) {
+      rows.push({
+        id: -3,
+        name: 'Rent Protection Insurance',
+        amount: benefitsFeeAmount,
+      })
+    }
 
     return rows
   }, [
@@ -157,6 +183,7 @@ export function BasicCheckoutView({
     canPayPartial,
     rentLineItems.length,
     transactionFeeAmount,
+    benefitsFeeAmount,
     rentSubtotal,
   ])
 
@@ -243,16 +270,29 @@ export function BasicCheckoutView({
             </div>
           ) : null}
 
-          <CheckoutAmountHero
-            currency={currency}
-            rentAmount={rentSubtotal}
-            editable={heroEditable}
-            canPayPartial={canPayPartial}
-            isBelowMin={isBelowMin}
-            isFullPaymentRequired={isFullPaymentRequired}
-            minRequired={minRequired}
-            onRentChange={handleRentHeroChange}
-          />
+          {showPremiumOptions ? (
+            <CheckoutComparisonCards
+              currency={currency}
+              transactionFee={rates.transactionFee}
+              benefitsFee={rates.benefitsFee}
+              isPremiumSelected={isPremiumSelected}
+              onSelectStandard={onSelectStandard || (() => {})}
+              onSelectPremium={onSelectPremium || (() => {})}
+            />
+          ) : null}
+
+          {canPayPartial ? (
+            <CheckoutAmountHero
+              currency={currency}
+              rentAmount={rentSubtotal}
+              editable={heroEditable}
+              canPayPartial={canPayPartial}
+              isBelowMin={isBelowMin}
+              isFullPaymentRequired={isFullPaymentRequired}
+              minRequired={minRequired}
+              onRentChange={handleRentHeroChange}
+            />
+          ) : null}
 
           <CheckoutReceipt
             rows={receiptRows}

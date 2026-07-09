@@ -133,7 +133,8 @@ export function usePaymentFlow(
         return searchParams.get('benefits') === 'true'
       }
     }
-    return true
+    // Default to standard checkout unless explicitly opted in.
+    return false
   })
   const effectiveIsBenefitsOptedIn = options?.forceBenefitsOptOut
     ? false
@@ -262,11 +263,49 @@ export function usePaymentFlow(
       setErrorMessage(err.message || 'Payment request not found or expired')
       setStep('error')
     }
-  }, [uuid, effectiveIsBenefitsOptedIn])
+  }, [uuid])
 
   useEffect(() => {
     if (uuid) loadPaymentDetails()
   }, [uuid, loadPaymentDetails])
+
+  useEffect(() => {
+    if (!paymentData?.payment) return
+    if (Object.keys(manualAllocs).length > 0) return
+
+    const rentRemaining = lineItems.reduce((sum, item) => {
+      const isFee =
+        item.name === 'Processing Fee' ||
+        item.id === -2 ||
+        item.name === 'Transaction Fee' ||
+        item.id === -3 ||
+        item.name === 'Upward Benefits'
+      if (isFee) return sum
+      return sum + Math.max(0, item.totalAmount - item.amountPaid)
+    }, 0)
+
+    const nextDue =
+      rentRemaining > 0
+        ? rentRemaining +
+          rates.transactionFee +
+          ((effectiveIsBenefitsOptedIn && !rates.benefitsPaid)
+            ? rates.benefitsFee
+            : 0)
+        : 0
+
+    setAmountInput((prev) => {
+      const current = parseFloat(prev) || 0
+      return current === nextDue ? prev : nextDue.toString()
+    })
+  }, [
+    paymentData,
+    lineItems,
+    manualAllocs,
+    rates.transactionFee,
+    rates.benefitsFee,
+    rates.benefitsPaid,
+    effectiveIsBenefitsOptedIn,
+  ])
 
   useEffect(() => {
     if (!uuid) return

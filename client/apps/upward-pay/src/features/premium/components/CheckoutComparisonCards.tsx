@@ -1,6 +1,7 @@
 'use client'
 
 import { ShieldCheck, Sparkles } from 'lucide-react'
+import { useLDClient } from '@launchdarkly/react-sdk'
 import { formatCurrency } from '@/lib/utils'
 import { PREMIUM_BENEFITS } from '../constants/premiumBenefits'
 
@@ -11,7 +12,6 @@ interface CheckoutComparisonCardsProps {
   isPremiumSelected: boolean
   onSelectStandard: () => void
   onSelectPremium: () => void
-  onDecideLater: () => void
 }
 
 export function CheckoutComparisonCards({
@@ -21,65 +21,66 @@ export function CheckoutComparisonCards({
   isPremiumSelected,
   onSelectStandard,
   onSelectPremium,
-  onDecideLater,
 }: CheckoutComparisonCardsProps) {
+  const ldClient = useLDClient()
+
+  const handlePremiumClick = () => {
+    ldClient?.track('handlePremiumClick', {
+      option: 'premium',
+      screen: 'pay_token_checkout',
+      flag: 'checkout-experience',
+      variant: 'premium-checkout',
+    })
+    onSelectPremium()
+  }
+
   return (
     <section className="checkout-comparison-cards">
       <div className="comparison-grid">
         <button
           type="button"
-          className={`comparison-card ${!isPremiumSelected ? 'is-selected' : ''}`}
+          className={`comparison-option-row ${!isPremiumSelected ? 'is-selected' : ''}`}
           onClick={onSelectStandard}
         >
-          <div className="comparison-card__title-row">
-            <h4 className="comparison-card__title">Pay Rent Only</h4>
-          </div>
-          <p className="comparison-card__subtitle">Simple, fast, no extra costs.</p>
-          <div className="comparison-card__price-row">
-            <span>Transaction fee</span>
-            <strong>{formatCurrency(transactionFee, currency)}</strong>
+          <span className="comparison-option-row__radio" aria-hidden />
+          <div className="comparison-option-row__content">
+            <div className="comparison-option-row__top">
+              <h4 className="comparison-option-row__title">Pay Rent Only</h4>
+            </div>
+            <p className="comparison-option-row__subtitle">Simple, fast, no extra costs.</p>
           </div>
         </button>
 
         <button
           type="button"
-          className={`comparison-card comparison-card--premium ${isPremiumSelected ? 'is-selected' : ''}`}
-          onClick={onSelectPremium}
+          className={`comparison-option-row comparison-option-row--premium ${isPremiumSelected ? 'is-selected' : ''}`}
+          onClick={handlePremiumClick}
         >
-          <div className="comparison-card__title-row">
-            <h4 className="comparison-card__title">Pay Rent + Get Protected</h4>
-            <span className="comparison-card__badge">Most Popular</span>
+          <span className="comparison-option-row__radio" aria-hidden />
+          <div className="comparison-option-row__content">
+            <div className="comparison-option-row__top">
+              <h4 className="comparison-option-row__title">Pay Rent + Get Protected</h4>
+              <span className="comparison-card__badge">RECOMMENDED</span>
+            </div>
+            <p className="comparison-option-row__subtitle">
+              + {formatCurrency(benefitsFee, currency)} Rent Protection Insurance
+            </p>
+            <ul className="comparison-card__benefits comparison-card__benefits--inline">
+              {PREMIUM_BENEFITS.items.map((item) => (
+                <li key={item}>
+                  <ShieldCheck size={14} />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="comparison-card__social-proof">
+              <Sparkles size={14} />
+              <span>{PREMIUM_BENEFITS.socialProof}</span>
+            </p>
           </div>
-          <p className="comparison-card__subtitle">{PREMIUM_BENEFITS.tagline}</p>
-
-          <div className="comparison-card__price-row">
-            <span>Transaction fee</span>
-            <strong>{formatCurrency(transactionFee, currency)}</strong>
-          </div>
-          <div className="comparison-card__price-row">
-            <span>Rent Protection Insurance</span>
-            <strong>+ {formatCurrency(benefitsFee, currency)}</strong>
-          </div>
-
-          <ul className="comparison-card__benefits">
-            {PREMIUM_BENEFITS.items.map((item) => (
-              <li key={item}>
-                <ShieldCheck size={14} />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-
-          <p className="comparison-card__social-proof">
-            <Sparkles size={14} />
-            <span>{PREMIUM_BENEFITS.socialProof}</span>
-          </p>
         </button>
       </div>
 
-      <button type="button" className="comparison-cards__later-btn" onClick={onDecideLater}>
-        Decide Later - pay rent without insurance for now
-      </button>
     </section>
   )
 }
