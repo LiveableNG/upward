@@ -50,7 +50,12 @@ export class GetInvitedMetricsUseCase {
           }
         }
 
+        let rentExpiryDate: Date | null | undefined = null
+
         u.properties.forEach((p: any) => {
+          if (p.rentEndDate && (!rentExpiryDate || p.rentEndDate > rentExpiryDate)) rentExpiryDate = p.rentEndDate
+          if (p.pmUnit?.rentDueDate && (!rentExpiryDate || p.pmUnit.rentDueDate > rentExpiryDate)) rentExpiryDate = p.pmUnit.rentDueDate
+
           let pmName = 'Platform'
           let pUuid = ''
           if (p.pm) {
@@ -77,6 +82,13 @@ export class GetInvitedMetricsUseCase {
 
         const pmsList = Array.from(pmsMap.values())
 
+        let originType: 'INVITED_EMAIL' | 'INVITED_PHONE' = 'INVITED_EMAIL'
+        if (pmMatch) {
+          originType = pmMatch.emailHash ? 'INVITED_EMAIL' : 'INVITED_PHONE'
+        } else if (!u.emailHash || u.emailHash.startsWith('dummy') || u.email.includes('@upward.local')) {
+          originType = 'INVITED_PHONE'
+        }
+
         return {
           id: `inv_u_${u.id}`,
           uuid: u.uuid,
@@ -90,6 +102,8 @@ export class GetInvitedMetricsUseCase {
           pms: pmsList,
           benefitsPaid,
           hasPaidBenefits: benefitsPaid > 0,
+          rentExpiryDate,
+          originType,
         }
       })
 
@@ -122,6 +136,7 @@ export class GetInvitedMetricsUseCase {
           pmName = decryptedBusinessName || `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Platform'
         }
         const pmsList = t.pm?.uuid ? [{ uuid: t.pm.uuid, name: pmName, propertyAddress: t.pmUnit?.property?.address }] : []
+        const rentExpiryDate = t.units && t.units.length > 0 ? t.units[0].rentDueDate : null
 
         return {
           id: `inv_p_${t.id}`,
@@ -134,6 +149,8 @@ export class GetInvitedMetricsUseCase {
           status: 'INVITED_PENDING' as const,
           totalPaid: 0,
           pms: pmsList,
+          rentExpiryDate,
+          originType: t.emailHash ? 'INVITED_EMAIL' as const : 'INVITED_PHONE' as const,
         }
       })
 

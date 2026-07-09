@@ -77,7 +77,8 @@ export class GetPerformanceMetricsUseCase {
               pm: { select: { id: true, createdAt: true, uuid: true, businessName: true, firstName: true, lastName: true } },
               company: { select: { id: true, createdAt: true, uuid: true, name: true } },
               location: { select: { address: true } },
-              pmUnit: { select: { unitName: true, property: { select: { address: true } } } },
+              rentEndDate: true,
+              pmUnit: { select: { unitName: true, rentDueDate: true, property: { select: { address: true } } } },
             },
           },
         },
@@ -107,6 +108,7 @@ export class GetPerformanceMetricsUseCase {
         },
         include: {
           pm: true,
+          units: { select: { rentDueDate: true } },
         },
       }),
       this.prisma.upward_property_manager.findMany({

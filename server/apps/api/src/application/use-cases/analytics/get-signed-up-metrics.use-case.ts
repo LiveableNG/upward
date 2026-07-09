@@ -27,8 +27,10 @@ export class GetSignedUpMetricsUseCase {
         const pmsMap = new Map<string, { uuid: string; name: string; propertyAddress?: string }>()
 
         // Check if they were invited by a PM (even if they self-registered first)
+        let originType: 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE' = 'SELF_REGISTERED'
         const pmMatch = pmTenants.find((t) => t.emailHash === u.emailHash || (u.phoneHash && u.phoneHash === t.phoneHash))
         if (pmMatch?.pm) {
+          originType = pmMatch.emailHash ? 'INVITED_EMAIL' : 'INVITED_PHONE'
           const decryptedBusinessName = pmMatch.pm.businessName ? this.encryption.decrypt(pmMatch.pm.businessName) : ''
           const decryptedFirstName = pmMatch.pm.firstName ? this.encryption.decrypt(pmMatch.pm.firstName) : ''
           const decryptedLastName = pmMatch.pm.lastName ? this.encryption.decrypt(pmMatch.pm.lastName) : ''
@@ -38,7 +40,12 @@ export class GetSignedUpMetricsUseCase {
           }
         }
 
+        let rentExpiryDate: Date | null | undefined = null
+
         u.properties.forEach((p: any) => {
+          if (p.rentEndDate && (!rentExpiryDate || p.rentEndDate > rentExpiryDate)) rentExpiryDate = p.rentEndDate
+          if (p.pmUnit?.rentDueDate && (!rentExpiryDate || p.pmUnit.rentDueDate > rentExpiryDate)) rentExpiryDate = p.pmUnit.rentDueDate
+
           let pmName = 'Platform'
           let pUuid = ''
           if (p.pm) {
@@ -78,6 +85,8 @@ export class GetSignedUpMetricsUseCase {
           benefitsPaid,
           hasPaidBenefits: benefitsPaid > 0,
           pms: pmsList,
+          rentExpiryDate,
+          originType,
         }
       })
 

@@ -20,15 +20,16 @@ export interface UnifiedUserRecord {
   email: string
   phone: string
   createdAt: string
-  origin: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED'
+  origin: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE'
   hasPassword: boolean
   isExWaitlist: boolean
   pms?: Array<{ uuid: string; name: string; propertyAddress?: string }>
   totalPaid: number
+  rentExpiryDate?: string
   rawRecord: any
 }
 
-type SortKey = 'name' | 'email' | 'origin' | 'pmName' | 'totalPaid' | 'createdAt'
+type SortKey = 'name' | 'email' | 'origin' | 'pmName' | 'totalPaid' | 'createdAt' | 'rentExpiry'
 type SortDir = 'asc' | 'desc'
 
 interface UsersTableProps {
@@ -183,6 +184,12 @@ export const UsersTable: React.FC<UsersTableProps> = ({
     } else if (sortKey === 'createdAt') {
       va = a.createdAt
       vb = b.createdAt
+    } else if (sortKey === 'rentExpiry') {
+      // Put empty rent expiries at the end
+      if (!a.rentExpiryDate && b.rentExpiryDate) return sortDir === 'asc' ? 1 : -1
+      if (a.rentExpiryDate && !b.rentExpiryDate) return sortDir === 'asc' ? -1 : 1
+      va = a.rentExpiryDate || ''
+      vb = b.rentExpiryDate || ''
     }
     if (va < vb) return sortDir === 'asc' ? -1 : 1
     if (va > vb) return sortDir === 'asc' ? 1 : -1
@@ -203,7 +210,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
 
   const allSelected = paginatedItems.length > 0 && selectedUserIds.size === paginatedItems.length
 
-  const getOriginBadge = (origin: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED') => {
+  const getOriginBadge = (origin: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE') => {
     switch (origin) {
       case 'WAITLIST':
         return (
@@ -217,10 +224,16 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             Self Signed Up
           </span>
         )
-      case 'INVITED':
+      case 'INVITED_EMAIL':
         return (
           <span className="badge" style={{ background: 'var(--accent-faint)', color: 'var(--accent)' }}>
-            Invited
+            Invited (Email)
+          </span>
+        )
+      case 'INVITED_PHONE':
+        return (
+          <span className="badge" style={{ background: 'var(--accent-faint)', color: 'var(--accent)' }}>
+            Invited (Phone)
           </span>
         )
       default:
@@ -320,6 +333,9 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             <th style={thStyle} onClick={() => handleSort('createdAt')}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Joined <SortIcon col="createdAt" active={sortKey} dir={sortDir} /></span>
             </th>
+            <th style={thStyle} onClick={() => handleSort('rentExpiry')}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Rent Expiry <SortIcon col="rentExpiry" active={sortKey} dir={sortDir} /></span>
+            </th>
             <th style={{ ...thStyle, width: '44px', cursor: 'default' }} />
           </tr>
         </thead>
@@ -373,6 +389,9 @@ export const UsersTable: React.FC<UsersTableProps> = ({
               </td>
               <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
                 {new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </td>
+              <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                {item.rentExpiryDate ? new Date(item.rentExpiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : <span style={{ opacity: 0.5 }}>—</span>}
               </td>
               {/* Actions */}
               <td style={{ padding: '14px 12px', position: 'relative' }}>
@@ -445,7 +464,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
           {/* Empty State */}
           {sorted.length === 0 && (
             <tr>
-              <td colSpan={isSuperadmin ? 8 : 7} style={{ padding: '64px 24px', textAlign: 'center' }}>
+              <td colSpan={isSuperadmin ? 9 : 8} style={{ padding: '64px 24px', textAlign: 'center' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', color: 'var(--text-muted)' }}>
                   <Users size={40} style={{ opacity: 0.3 }} />
                   <span style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-secondary)' }}>No records found</span>

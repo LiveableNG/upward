@@ -10,6 +10,7 @@ export interface WaitlistRecord {
   totalPaid: number
   pmName?: string
   pmUuid?: string | string[]
+  pms?: Array<{ uuid: string; name: string; propertyAddress?: string }>
 }
 
 export interface SignedUpRecord {
@@ -27,6 +28,9 @@ export interface SignedUpRecord {
   hasPaidBenefits?: boolean
   pmName?: string
   pmUuid?: string | string[]
+  rentExpiryDate?: string
+  originType?: 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE'
+  pms?: Array<{ uuid: string; name: string; propertyAddress?: string }>
 }
 
 export interface InvitedRecord {
@@ -39,8 +43,11 @@ export interface InvitedRecord {
   createdAt: string
   status: 'INVITED_PENDING' | 'INVITED_SIGNED_UP' | 'GUEST_PAID' | 'SIGNED_UP_PAID'
   totalPaid: number
-  pmName: string
-  pmUuid: string | string[] | null
+  rentExpiryDate?: string
+  pmName?: string
+  pmUuid?: string | string[] | null
+  originType?: 'INVITED_EMAIL' | 'INVITED_PHONE'
+  pms?: Array<{ uuid: string; name: string; propertyAddress?: string }>
   benefitsPaid?: number
   hasPaidBenefits?: boolean
 }

@@ -83,7 +83,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
   // ── Unified Users filters ──────────────────────────────────────
   const [usersSubtab, setUsersSubtab] = useState<'signedUp' | 'guest'>('signedUp')
-  const [originFilter, setOriginFilter] = useState<'all' | 'waitlist' | 'selfRegistered' | 'invited'>('all')
+  const [originFilter, setOriginFilter] = useState<'all' | 'waitlist' | 'selfRegistered' | 'invited_email' | 'invited_phone'>('all')
   const [pmFilter, setPmFilter] = useState<'all' | string>('all')
 
   // ── Preview Drawer State ───────────────────────────────────────
@@ -283,6 +283,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         hasPassword: false,
         isExWaitlist: false,
         totalPaid: 0,
+        rentExpiryDate: undefined,
         pms: w.pms,
         rawRecord: w,
       })
@@ -297,10 +298,11 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         email: u.email,
         phone: u.phone,
         createdAt: u.createdAt,
-        origin: u.isWaitlist ? 'WAITLIST' : 'SELF_REGISTERED',
+        origin: u.originType === 'INVITED_EMAIL' ? 'INVITED_EMAIL' : u.originType === 'INVITED_PHONE' ? 'INVITED_PHONE' : u.isWaitlist ? 'WAITLIST' : 'SELF_REGISTERED',
         hasPassword: true,
         isExWaitlist: u.isWaitlist,
         totalPaid: u.totalPaid,
+        rentExpiryDate: u.rentExpiryDate,
         pms: u.pms,
         rawRecord: u,
       })
@@ -316,11 +318,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         email: i.email,
         phone: i.phone,
         createdAt: i.createdAt,
-        origin: 'INVITED',
+        origin: i.originType === 'INVITED_PHONE' ? 'INVITED_PHONE' : 'INVITED_EMAIL',
         hasPassword: isSignedUp,
         isExWaitlist: false,
         pms: i.pms,
         totalPaid: i.totalPaid,
+        rentExpiryDate: i.rentExpiryDate,
         rawRecord: i,
       })
     })
@@ -352,19 +355,22 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const originCounts = useMemo(() => {
     let waitlist = 0
     let selfRegistered = 0
-    let invited = 0
+    let invitedEmail = 0
+    let invitedPhone = 0
 
     usersFilteredByPm.forEach((u) => {
       if (u.origin === 'WAITLIST') waitlist++
       else if (u.origin === 'SELF_REGISTERED') selfRegistered++
-      else if (u.origin === 'INVITED') invited++
+      else if (u.origin === 'INVITED_EMAIL') invitedEmail++
+      else if (u.origin === 'INVITED_PHONE') invitedPhone++
     })
 
     return {
       all: usersFilteredByPm.length,
       waitlist,
       selfRegistered,
-      invited,
+      invitedEmail,
+      invitedPhone,
     }
   }, [usersFilteredByPm])
 
@@ -373,7 +379,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       // 1. Origin Filter
       if (originFilter === 'waitlist' && u.origin !== 'WAITLIST') return false
       if (originFilter === 'selfRegistered' && u.origin !== 'SELF_REGISTERED') return false
-      if (originFilter === 'invited' && u.origin !== 'INVITED') return false
+      if (originFilter === 'invited_email' && u.origin !== 'INVITED_EMAIL') return false
+      if (originFilter === 'invited_phone' && u.origin !== 'INVITED_PHONE') return false
       return true
     })
   }, [usersFilteredByPm, originFilter])
@@ -650,10 +657,16 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                   </button>
                 )}
                 <button
-                  onClick={() => setOriginFilter('invited')}
-                  className={`date-chip ${originFilter === 'invited' ? 'active' : ''}`}
+                  onClick={() => setOriginFilter('invited_email')}
+                  className={`date-chip ${originFilter === 'invited_email' ? 'active' : ''}`}
                 >
-                  Invited ({originCounts.invited})
+                  Invited (Email) ({originCounts.invitedEmail})
+                </button>
+                <button
+                  onClick={() => setOriginFilter('invited_phone')}
+                  className={`date-chip ${originFilter === 'invited_phone' ? 'active' : ''}`}
+                >
+                  Invited (Phone) ({originCounts.invitedPhone})
                 </button>
               </div>
             </div>
