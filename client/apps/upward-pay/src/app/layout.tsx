@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import { AuthProvider } from '@/features/auth/AuthContext'
+import { LaunchDarklyProvider } from '@/features/premium/components/LaunchDarklyProvider'
 import Providers from './Providers'
 import { SmartAppBanner } from '@/components/common/SmartAppBanner'
 import './globals.css'
@@ -52,8 +53,10 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <Providers>
           <AuthProvider>
-            <SmartAppBanner />
-            {children}
+            <LaunchDarklyProvider>
+              <SmartAppBanner />
+              {children}
+            </LaunchDarklyProvider>
           </AuthProvider>
         </Providers>
 

@@ -1,0 +1,160 @@
+.checkout-comparison-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.comparison-option-row {
+  width: 100%;
+  text-align: left;
+  background: var(--bg);
+  border: 1.5px solid var(--border-solid);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.comparison-option-row:hover {
+  border-color: rgba(217, 119, 87, 0.28);
+}
+
+.comparison-option-row.is-selected {
+  border: 2px solid var(--clay);
+}
+
+.comparison-option-row__radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #c8beb2;
+  margin-top: 2px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.comparison-option-row.is-selected .comparison-option-row__radio {
+  border-color: var(--clay);
+}
+
+.comparison-option-row.is-selected .comparison-option-row__radio::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--clay);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.comparison-option-row__content {
+  min-width: 0;
+  width: 100%;
+}
+
+.comparison-option-row__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.comparison-option-row__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.comparison-option-row__top strong {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.comparison-option-row__subtitle {
+  margin: 4px 0 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.comparison-card__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.comparison-card__title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+
+.comparison-card__badge {
+  font-size: 8px;
+  font-weight: 800;
+  color: #166534;
+  /* background: #dcfce7; */
+  border-radius: 999px;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.comparison-card__benefits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.comparison-card__benefits--inline {
+  margin-top: 8px;
+}
+
+.comparison-card__benefits li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.comparison-card__benefits li svg {
+  color: var(--clay);
+  flex-shrink: 0;
+}
+
+.comparison-card__social-proof {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.comparison-card__social-proof svg {
+  color: var(--clay);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
