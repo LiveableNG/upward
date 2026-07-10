@@ -34,9 +34,11 @@ export function MarketingFooter() {
         </div>
 
         <nav className="marketing-footer__legal" aria-label="Legal">
-          <Link href="/blog" className={pathname.startsWith('/blog') ? 'is-active' : undefined}>
-            Blog
-          </Link>
+          {process.env.NEXT_PUBLIC_ENABLE_BLOG_LINK === 'true' && (
+            <Link href="/blog" className={pathname.startsWith('/blog') ? 'is-active' : undefined}>
+              Blog
+            </Link>
+          )}
           {LEGAL_LINKS.map(({ label, href }) => (
             <Link
               key={href}

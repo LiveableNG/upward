@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 
 export function MarketingHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const showBlog = process.env.NEXT_PUBLIC_ENABLE_BLOG_LINK === 'true'
 
   useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? 'hidden' : ''
@@ -26,7 +27,7 @@ export function MarketingHeader() {
             </Link>
 
             <nav className="marketing-header__nav" aria-label="Primary">
-              <Link href="/blog">Blog</Link>
+              {showBlog && <Link href="/blog">Blog</Link>}
               <Link href="/portal/login">Landlords</Link>
               <Link href="/pm-signup">Property Managers</Link>
             </nav>
@@ -94,9 +95,11 @@ export function MarketingHeader() {
           <Link href="/portal/login" onClick={() => setMobileMenuOpen(false)}>
             Landlords
           </Link>
-          <Link href="/blog" onClick={() => setMobileMenuOpen(false)}>
-            Blog
-          </Link>
+          {showBlog && (
+            <Link href="/blog" onClick={() => setMobileMenuOpen(false)}>
+              Blog
+            </Link>
+          )}
           <Link href="/pm-signup" onClick={() => setMobileMenuOpen(false)}>
             Property Managers
           </Link>
@@ -114,3 +117,4 @@ export function MarketingHeader() {
     </>
   )
 }
+

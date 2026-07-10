@@ -68,18 +68,6 @@ export class PmPaymentNotificationHandler implements OnModuleInit, OnModuleDestr
             });
           }
 
-          // 3. Send WhatsApp
-          if (event.channels.includes('WHATSAPP') && event.tenantPhoneNumber) {
-            const waMessage = event.isReminder 
-              ? `*Payment Reminder*\n\nHi ${event.tenantName},\n\nThis is a friendly reminder for an unpaid invoice of *${event.currency} ${event.amount.toLocaleString()}* from *${event.pmName}*.\n\nYou can view and pay securely here:\n${event.paymentLink}`
-              : `*New Invoice*\n\nHi ${event.tenantName},\n\nYou have received a new invoice of *${event.currency} ${event.amount.toLocaleString()}* from *${event.pmName}*.\n\nYou can view and pay securely here:\n${event.paymentLink}`;
-            await this.whatsappService.sendMessage({
-              to: event.tenantPhoneNumber,
-              message: waMessage,
-            });
-          }
-
-          // 4. Send Push Notification if user exists
           const emailHash = this.encryption.hash(event.email);
           const coreUser = await this.prisma.upward_user.findUnique({
             where: { emailHash }

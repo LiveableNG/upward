@@ -83,7 +83,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
   // ── Unified Users filters ──────────────────────────────────────
   const [usersSubtab, setUsersSubtab] = useState<'signedUp' | 'guest'>('signedUp')
-  const [originFilter, setOriginFilter] = useState<'all' | 'waitlist' | 'selfRegistered' | 'invited'>('all')
+  const [originFilter, setOriginFilter] = useState<'all' | 'waitlist' | 'selfRegistered' | 'invited_email' | 'invited_phone'>('all')
   const [pmFilter, setPmFilter] = useState<'all' | string>('all')
 
   // ── Preview Drawer State ───────────────────────────────────────
@@ -270,7 +270,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const unifiedUsers = useMemo((): UnifiedUserRecord[] => {
     const list: UnifiedUserRecord[] = []
 
-    // 1. Unconverted Waitlist Entries
     waitlistList.forEach((w) => {
       list.push({
         id: w.id,
@@ -284,8 +283,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         hasPassword: false,
         isExWaitlist: false,
         totalPaid: 0,
-        pmName: w.pmName,
-        pmUuid: w.pmUuid,
+        rentExpiryDate: undefined,
+        pms: w.pms,
         rawRecord: w,
       })
     })
@@ -299,17 +298,16 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         email: u.email,
         phone: u.phone,
         createdAt: u.createdAt,
-        origin: u.isWaitlist ? 'WAITLIST' : 'SELF_REGISTERED',
+        origin: u.originType === 'INVITED_EMAIL' ? 'INVITED_EMAIL' : u.originType === 'INVITED_PHONE' ? 'INVITED_PHONE' : u.isWaitlist ? 'WAITLIST' : 'SELF_REGISTERED',
         hasPassword: true,
         isExWaitlist: u.isWaitlist,
         totalPaid: u.totalPaid,
-        pmName: u.pmName,
-        pmUuid: u.pmUuid,
+        rentExpiryDate: u.rentExpiryDate,
+        pms: u.pms,
         rawRecord: u,
       })
     })
 
-    // 3. Invited Tenants
     invitedList.forEach((i) => {
       const isSignedUp = i.status === 'INVITED_SIGNED_UP' || i.status === 'SIGNED_UP_PAID'
       list.push({
@@ -320,12 +318,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         email: i.email,
         phone: i.phone,
         createdAt: i.createdAt,
-        origin: 'INVITED',
+        origin: i.originType === 'INVITED_PHONE' ? 'INVITED_PHONE' : 'INVITED_EMAIL',
         hasPassword: isSignedUp,
         isExWaitlist: false,
-        pmName: i.pmName,
-        pmUuid: i.pmUuid,
+        pms: i.pms,
         totalPaid: i.totalPaid,
+        rentExpiryDate: i.rentExpiryDate,
         rawRecord: i,
       })
     })
@@ -340,46 +338,52 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     })
   }, [unifiedUsers, usersSubtab])
 
+  const usersFilteredByPm = useMemo(() => {
+    if (pmFilter === 'all') return subtabUsers
+
+    const selectedPm = pmList.find((pm) => pm.uuid === pmFilter)
+    const pmUuidsToCheck = selectedPm?.mergedUuids || [pmFilter]
+
+    return subtabUsers.filter((u) => {
+      if (u.pms && u.pms.length > 0) {
+        return u.pms.some((pm) => pmUuidsToCheck.includes(pm.uuid))
+      }
+      return false
+    })
+  }, [subtabUsers, pmFilter, pmList])
+
   const originCounts = useMemo(() => {
     let waitlist = 0
     let selfRegistered = 0
-    let invited = 0
+    let invitedEmail = 0
+    let invitedPhone = 0
 
-    subtabUsers.forEach((u) => {
+    usersFilteredByPm.forEach((u) => {
       if (u.origin === 'WAITLIST') waitlist++
       else if (u.origin === 'SELF_REGISTERED') selfRegistered++
-      else if (u.origin === 'INVITED') invited++
+      else if (u.origin === 'INVITED_EMAIL') invitedEmail++
+      else if (u.origin === 'INVITED_PHONE') invitedPhone++
     })
 
     return {
-      all: subtabUsers.length,
+      all: usersFilteredByPm.length,
       waitlist,
       selfRegistered,
-      invited,
+      invitedEmail,
+      invitedPhone,
     }
-  }, [subtabUsers])
+  }, [usersFilteredByPm])
 
   const filteredUsers = useMemo(() => {
-    return subtabUsers.filter((u) => {
+    return usersFilteredByPm.filter((u) => {
       // 1. Origin Filter
       if (originFilter === 'waitlist' && u.origin !== 'WAITLIST') return false
       if (originFilter === 'selfRegistered' && u.origin !== 'SELF_REGISTERED') return false
-      if (originFilter === 'invited' && u.origin !== 'INVITED') return false
-
-      // 2. PM Filter
-      if (pmFilter !== 'all') {
-        const selectedPm = pmList.find((pm) => pm.uuid === pmFilter)
-        const pmUuidsToCheck = selectedPm?.mergedUuids || [pmFilter]
-
-        if (Array.isArray(u.pmUuid)) {
-          return u.pmUuid.some((id) => pmUuidsToCheck.includes(id))
-        }
-        return pmUuidsToCheck.includes(u.pmUuid!)
-      }
-
+      if (originFilter === 'invited_email' && u.origin !== 'INVITED_EMAIL') return false
+      if (originFilter === 'invited_phone' && u.origin !== 'INVITED_PHONE') return false
       return true
     })
-  }, [subtabUsers, originFilter, pmFilter])
+  }, [usersFilteredByPm, originFilter])
 
   // ── Directory list (active tab) ────────────────────────────────
   const currentDirectoryList = useMemo(() => {
@@ -412,7 +416,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         'Email Address': u.email,
         'Phone Number': u.phone,
         'Origin': u.origin,
-        'Manager / Platform': u.pmName || 'Direct',
+        'Manager / Platform': u.pms?.length ? u.pms.map((pm: any) => pm.name).join(', ') : 'Direct',
         'Total Paid (₦)': u.totalPaid,
         'Has Password': u.hasPassword ? 'Yes' : 'No',
         'Is Ex-Waitlist': u.isExWaitlist ? 'Yes' : 'No',
@@ -653,10 +657,16 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                   </button>
                 )}
                 <button
-                  onClick={() => setOriginFilter('invited')}
-                  className={`date-chip ${originFilter === 'invited' ? 'active' : ''}`}
+                  onClick={() => setOriginFilter('invited_email')}
+                  className={`date-chip ${originFilter === 'invited_email' ? 'active' : ''}`}
                 >
-                  Invited ({originCounts.invited})
+                  Invited (Email) ({originCounts.invitedEmail})
+                </button>
+                <button
+                  onClick={() => setOriginFilter('invited_phone')}
+                  className={`date-chip ${originFilter === 'invited_phone' ? 'active' : ''}`}
+                >
+                  Invited (Phone) ({originCounts.invitedPhone})
                 </button>
               </div>
             </div>

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { LandlordAvatar } from './LandlordAvatar'
 import { PayFlowPrimaryButton } from './PayPageShell'
 import { type Landlord, type LineItem } from './types'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import { Plus, Trash2, Info } from 'lucide-react'
+import { useToast } from '@/components/common/Toast'
 
 function syncFeeLineItems(prevItems: LineItem[]): LineItem[] {
   return prevItems.filter(
@@ -57,6 +59,7 @@ function BalanceStrip({
 type StepAmountProps = {
   landlord: Landlord
   userProperties?: any[]
+  authUser?: any
   initialPaymentType?: string
   initialPropertyAddress?: string
   initialPropertyUuid?: string | null
@@ -100,6 +103,7 @@ type StepAmountProps = {
 export function StepAmount({
   landlord,
   userProperties = [],
+  authUser,
   initialPaymentType = 'Rent Payment',
   initialPropertyAddress = '',
   initialPropertyUuid = null,
@@ -114,9 +118,11 @@ export function StepAmount({
   onBack,
 }: StepAmountProps) {
   void userProperties
-  void initialPaymentType
   void initialPropertyAddress
   void onBack
+
+  const { error } = useToast()
+  const router = useRouter()
 
   const rates = propertyBalance?.processingRates || {
     transactionFee: 1000,
@@ -262,9 +268,9 @@ export function StepAmount({
           color={landlord.source === 'pm' ? '#3b82f6' : undefined}
         />
         <div>
-          <div className="pay-flow__recipient-name">{landlord.accountName}</div>
-          <div className="pay-flow__recipient-meta">
-            {landlord.bankName} · {landlord.accountNumber}
+          <div className="pay-flow__recipient-name">{landlord.name || landlord.accountName}</div>
+          <div className="pay-flow__recipient-meta" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '240px' }} title={initialPropertyAddress || ''}>
+            {initialPropertyAddress || (landlord.source === 'pm' ? 'Property Manager' : 'Landlord')}
           </div>
         </div>
       </div>
@@ -380,22 +386,36 @@ export function StepAmount({
             }
           }}
         >
-          Confirm Transaction
+          Online Payment
         </PayFlowPrimaryButton>
-        {onSubmitProof && (
-          <button 
-            type="button" 
-            className="btn btn--secondary btn--full btn--pill" 
-            style={{ marginTop: '12px' }}
-            disabled={!canProceed || processing}
-            onClick={() => onSubmitProof(Number(amount), initialPropertyUuid || undefined)}
-          >
-            Submit Proof of Payment
-          </button>
-        )}
-        <p className="pay-flow__footnote">
-          <Info size={12} /> Min. ₦1,000
-        </p>
+        {onSubmitProof && (() => {
+          const prop = userProperties?.find(p => p.uuid === (initialPropertyUuid || undefined))
+          const isVerified = !!prop?.isVerified
+          const hasManualAccount = !!prop?.manualAccount
+
+          return (
+            <button 
+              type="button" 
+              className="btn btn--ghost btn--full btn--pill" 
+              style={{ marginTop: '8px', color: 'var(--text-secondary)' }}
+              disabled={!canProceed || processing}
+              onClick={() => {
+                if (!hasManualAccount) {
+                  if (isVerified) {
+                    error('The property manager has not configured a manual payment account.')
+                  } else {
+                    error('Please set up your manual bank account in Rental details first.')
+                    router.push('/dashboard/setup')
+                  }
+                  return
+                }
+                onSubmitProof(Number(amount), initialPropertyUuid || undefined)
+              }}
+            >
+              Paid manually? Upload proof
+            </button>
+          )
+        })()}
       </div>
 
       {showOverpaymentDialog && (

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   Lock,
@@ -13,6 +13,7 @@ import {
 import { formatCurrency, generateId } from '@/lib/utils'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import PaystackEmbeddedCheckout from '@/features/dashboard/components/payment/PaystackEmbeddedCheckout'
+import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import FallbackSuspense from '@/components/FallbackSuspense'
 import { CapacitorGuard } from '@/components/common/CapacitorGuard'
 import { BiometricLoginButton } from '@/features/auth/component/BiometricLoginButton'
@@ -27,26 +28,45 @@ import { SettledStep } from '@/features/payments/components/unified-pay/SettledS
 import { UploadProofOfPayment } from '@/features/payments/components/unified-pay/UploadProofOfPayment'
 import { StatusStep } from '@/features/payments/components/unified-pay/StatusStep'
 import { RenewalModal } from '@/features/payments/components/unified-pay/RenewalModal'
-import { PaymentConfirmationModal } from '@/features/payments/components/unified-pay/PaymentConfirmationModal'
-import { BenefitsSelector } from '@/features/payments/components/unified-pay/BenefitsSelector'
-import { BenefitsOptOutModal } from '@/features/payments/components/unified-pay/BenefitsOptOutModal'
 import { usePaymentFlow } from '@/features/payments/hooks/usePaymentFlow'
 import { useToast } from '@/components/common/Toast'
+import { useCheckoutVariant } from '@/features/premium/components/LaunchDarklyProvider'
+import { useCheckoutExperimentTracking } from '@/features/premium/hooks/useCheckoutExperimentTracking'
+import { CHECKOUT_EXPERIMENT_EVENTS } from '@/features/premium/utils/checkoutExperimentTracking'
+import { CheckoutComparisonCards } from '@/features/premium/components/CheckoutComparisonCards'
+import { BasicCheckoutView } from '@/features/payments/components/unified-pay/BasicCheckoutView'
 
 export default function PayClient({ overrideToken }: { overrideToken?: string }) {
   const router = useRouter()
   const params = useParams()
-  const [showPaymentConfirm, setShowPaymentConfirm] = React.useState(false)
-  const [showOptOutModal, setShowOptOutModal] = React.useState(false)
+  const {
+    variant,
+    isReady: isCheckoutVariantReady,
+    isBasicCheckout,
+    isPremiumCheckout,
+  } = useCheckoutVariant()
+  const { track } = useCheckoutExperimentTracking()
+  const { error } = useToast()
   const [showUnverifiedModal, setShowUnverifiedModal] = React.useState(false)
-  const { error: toastError } = useToast()
-  
+  const checkoutViewedRef = useRef(false)
+
   const uuid = useMemo(() => {
     if (overrideToken) return overrideToken
     const t = params?.token
     if (Array.isArray(t)) return t[0]
     return t as string
   }, [params?.token, overrideToken])
+
+  const onPaymentConfirmed = useCallback(
+    (isPremiumSelected: boolean) => {
+      track(
+        CHECKOUT_EXPERIMENT_EVENTS.PAYMENT_COMPLETED,
+        variant,
+        isPremiumSelected,
+      )
+    },
+    [track, variant],
+  )
 
   const {
     step, setStep,
@@ -74,6 +94,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     handleAllocationChange,
     handlePaymentSuccess,
     handleActivation,
+    handleCancelRequest,
     loadPaymentDetails,
     loginLoading,
     executeLogin,
@@ -82,7 +103,143 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     isBenefitsOptedIn,
     setIsBenefitsOptedIn,
     rates
-  } = usePaymentFlow(uuid)
+  } = usePaymentFlow(uuid, {
+    forceBenefitsOptOut: isBasicCheckout,
+    onPaymentConfirmed,
+  })
+
+  useEffect(() => {
+    checkoutViewedRef.current = false
+  }, [uuid])
+
+  useEffect(() => {
+    if (step !== 'invoice' || !paymentData || !isCheckoutVariantReady) return
+    if (checkoutViewedRef.current) return
+
+    checkoutViewedRef.current = true
+    track(
+      CHECKOUT_EXPERIMENT_EVENTS.VIEWED,
+      variant,
+      isBenefitsOptedIn,
+    )
+  }, [
+    step,
+    paymentData,
+    isCheckoutVariantReady,
+    variant,
+    isBenefitsOptedIn,
+    track,
+  ])
+
+  const handlePayClick = useCallback(() => {
+    if (!paymentData) return
+
+    const isGuest = !paymentData.hasPassword
+    const verificationOn = paymentData?.user?.verificationOn ?? true
+    const hasPaidBefore = (paymentData?.user?.paidRequestsCount ?? 0) >= 1
+
+    if (
+      verificationOn &&
+      authUser &&
+      !authUser.isIdentityVerified &&
+      !isGuest &&
+      hasPaidBefore
+    ) {
+      setShowUnverifiedModal(true)
+      return
+    }
+
+    track(
+      CHECKOUT_EXPERIMENT_EVENTS.PAYMENT_STARTED,
+      variant,
+      isBenefitsOptedIn,
+    )
+    setStep('checkout')
+  }, [
+    paymentData,
+    authUser,
+    variant,
+    isBenefitsOptedIn,
+    track,
+    setStep,
+  ])
+
+  const handleManualPayClick = useCallback(() => {
+    if (!paymentData) return
+
+    const isGuest = !paymentData.hasPassword
+    const verificationOn = paymentData?.user?.verificationOn ?? true
+    const hasPaidBefore = (paymentData?.user?.paidRequestsCount ?? 0) >= 1
+
+    if (
+      verificationOn &&
+      authUser &&
+      !authUser.isIdentityVerified &&
+      !isGuest &&
+      hasPaidBefore
+    ) {
+      setShowUnverifiedModal(true)
+      return
+    }
+
+    const hasManualAccount = !!paymentData?.property?.manualAccount
+    const isVerifiedProperty = !!paymentData?.property?.isVerified
+
+    if (!hasManualAccount) {
+      if (isVerifiedProperty) {
+        error('The property manager has not configured a manual payment account.')
+      } else {
+        error('Please set up your manual bank account in Rental details first.')
+        router.push('/dashboard/setup')
+      }
+      return
+    }
+
+    track(
+      CHECKOUT_EXPERIMENT_EVENTS.PAYMENT_STARTED,
+      variant,
+      isBenefitsOptedIn,
+    )
+    setStep('manual-transfer')
+  }, [
+    paymentData,
+    authUser,
+    variant,
+    isBenefitsOptedIn,
+    track,
+    setStep,
+  ])
+
+  useEffect(() => {
+    if (isBasicCheckout && isBenefitsOptedIn) {
+      setIsBenefitsOptedIn(false)
+    }
+  }, [isBasicCheckout, isBenefitsOptedIn, setIsBenefitsOptedIn])
+
+  const showBenefitsUI = isPremiumCheckout
+  const renameBenefitsLabel = (name: string) =>
+    isPremiumCheckout && name === 'Upward Benefits'
+      ? 'Rent Protection Insurance'
+      : name
+  const visibleLineItems = useMemo(
+    () =>
+      (isBasicCheckout ? lineItems.filter((item) => item.name !== 'Upward Benefits') : lineItems).map((item) => ({
+        ...item,
+        name: renameBenefitsLabel(item.name),
+      })),
+    [isBasicCheckout, isPremiumCheckout, lineItems],
+  )
+  const visibleAllocs = useMemo(
+    () =>
+      (isBasicCheckout
+        ? effectiveAllocs.filter((alloc) => alloc.name !== 'Upward Benefits')
+        : effectiveAllocs
+      ).map((alloc) => ({
+        ...alloc,
+        name: renameBenefitsLabel(alloc.name),
+      })),
+    [isBasicCheckout, isPremiumCheckout, effectiveAllocs],
+  )
 
   if (step === 'loading') return <FallbackSuspense message="Retrieving secure payment details..." />
 
@@ -137,158 +294,73 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
   if (step === 'manual-transfer') {
     return (
-      <div className="auth-shell auth-shell--pay">
-        <header className="pay-header">
-          <div className="pay-header__content">
-            <UpwardLogo size={24} color="var(--clay)" />
-            <button onClick={() => setStep('invoice')} className="pay-header__dashboard-btn">
-              <ChevronRight size={14} className="icon--back" />
-              <span>Back to Invoice</span>
-            </button>
+      <PayPageShell
+        title="Upload Payment Proof"
+        showBack
+        onBack={() => setStep('invoice')}
+      >
+        <div className="manual-transfer-wrapper">
+          {/* Transfer Instructions */}
+          <div className="manual-transfer-section">
+            <h2 className="manual-transfer-title">Manual Bank Transfer</h2>
+            <p className="manual-transfer-desc">
+              Please transfer {formatCurrency(parsedAmount, currency)} to the account below, then upload your proof of payment.
+            </p>
           </div>
-        </header>
 
-        <main className="pay-main" style={{ alignItems: 'center' }}>
-          <div className="pay-container">
-            <div className="pay-layout">
-              <div className="pay-layout__left">
-                <div className="manual-transfer-card">
-                  <h2 className="manual-transfer-card__title">Manual Bank Transfer</h2>
-                  <p className="manual-transfer-card__desc">
-                    Please transfer {formatCurrency(parsedAmount, currency)} to the account below, then upload your proof of payment.
-                  </p>
-                  <div className="manual-transfer-details">
-                    <div className="manual-transfer-row">
-                      <span className="manual-transfer-label">Bank Name</span>
-                      <span className="manual-transfer-value">{paymentData?.property?.manualAccount?.bankName || 'GTBank'}</span>
-                    </div>
-                    <div className="manual-transfer-row">
-                      <span className="manual-transfer-label">Account Name</span>
-                      <span className="manual-transfer-value">{paymentData?.property?.manualAccount?.accountName || paymentData?.company?.name || 'Property Manager'}</span>
-                    </div>
-                    <div className="manual-transfer-row">
-                      <span className="manual-transfer-label">Account Number</span>
-                      <span className="manual-transfer-value manual-transfer-value--highlight">{paymentData?.property?.manualAccount?.accountNumber || '0000000000'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="pay-layout__right">
-                {paymentData?.payment?.latestProof?.status === 'PENDING' ? (
-                  <div className="proof-review-banner" style={{ marginTop: 0 }}>
-                    <div className="proof-review-banner__content">
-                      <h4 className="proof-review-banner__title">Payment Proof In Review</h4>
-                      <p className="proof-review-banner__text">
-                        Your submitted proof of payment is currently being reviewed. You will be notified once it is approved. Please wait for the review to complete before submitting another.
-                      </p>
-                      <button className="btn btn--secondary btn--sm mt-4" onClick={() => setStep('invoice')}>Back to Invoice</button>
-                    </div>
-                  </div>
-                ) : (
-                  <UploadProofOfPayment 
-                    paymentRequestUuid={paymentData?.payment?.uuid}
-                    userPropertyUuid={paymentData?.property?.uuid}
-                    amount={parsedAmount}
-                    currency={currency}
-                    lineItems={finalLineItemPayments}
-                    onCancel={() => setStep('invoice')}
-                    onSuccess={() => setStep('success-manual')}
-                  />
-                )}
-              </div>
+          {/* Upload Component */}
+          {paymentData?.payment?.latestProof?.status === 'PENDING' ? (
+            <div className="manual-transfer-section manual-transfer-review">
+              <h4 className="manual-transfer-review-title">Payment Proof In Review</h4>
+              <p className="manual-transfer-review-desc">
+                Your submitted proof of payment is currently being reviewed. You will be notified once it is approved. Please wait for the review to complete before submitting another.
+              </p>
+              <button className="btn btn--secondary btn--sm btn--pill" onClick={() => setStep('invoice')}>Back to Invoice</button>
             </div>
-          </div>
-        </main>
+          ) : (
+            <div className="manual-transfer-upload-wrapper">
+              <UploadProofOfPayment 
+                paymentRequestUuid={paymentData?.payment?.uuid}
+                userPropertyUuid={paymentData?.payment?.userPropertyUuid}
+                amount={totalOwed}
+                currency={currency}
+                lineItems={finalLineItemPayments}
+                bankName={paymentData?.property?.manualAccount?.bankName || ''}
+                accountName={paymentData?.property?.manualAccount?.accountName || paymentData?.company?.name || 'Property Manager'}
+                accountNumber={paymentData?.property?.manualAccount?.accountNumber || '0000000000'}
+                onCancel={() => setStep('invoice')}
+                onSuccess={() => setStep('success-manual')}
+              />
+            </div>
+          )}
+        </div>
         <style jsx>{`
-          .pay-header {
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            z-index: 50;
-            background: var(--bg);
-            border-bottom: 1px solid var(--border-solid);
-            height: 64px;
+          .manual-transfer-wrapper {
             display: flex;
-            align-items: center;
-          }
-          @supports (backdrop-filter: blur(12px)) {
-            .pay-header {
-               opacity: 0.95;
-               backdrop-filter: blur(12px);
-            }
-          }
-          .pay-header__content {
+            flex-direction: column;
+            gap: 24px;
             width: 100%;
-            max-width: 520px;
-            margin: 0 auto;
-            padding: 0 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
           }
-          .pay-header__dashboard-btn {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            border-radius: 100px;
-            background: var(--surface);
-            border: 1px solid var(--border-solid);
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-muted);
-            cursor: pointer;
-            transition: all 0.2s ease;
-          }
-          .pay-header__dashboard-btn:hover {
-            color: var(--clay);
-            border-color: rgba(217, 119, 87, 0.2);
-            background: var(--clay-faint);
-          }
-          .icon--back { transform: rotate(180deg); }
-          .pay-main {
-            padding-top: 64px;
-            padding-bottom: 96px;
-            min-height: calc(100vh - 64px - 52px);
-            background: radial-gradient(circle at 80% 0%, var(--clay-faint), transparent 360px), var(--oat-dim);
-            display: flex;
-            align-items: flex-start;
-          }
-          .pay-container {
-            width: 100%;
-            max-width: 520px;
-            margin: 0 auto;
-            background: var(--bg);
-            border-radius: 32px;
-            padding: 36px 32px 32px;
-            box-shadow: 0 32px 80px rgba(0,0,0,0.07), 0 8px 32px rgba(0,0,0,0.03);
-            border: 1px solid var(--border-solid);
-          }
-          .pay-layout { display: flex; flex-direction: column; gap: 12px; }
-          .pay-layout__left { display: flex; flex-direction: column; gap: 16px; }
-          .pay-layout__right { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
-          
-          /* Manual Transfer Card */
-          .manual-transfer-card {
+          .manual-transfer-section {
             background: var(--surface);
             padding: 24px;
             border-radius: 24px;
-            border: 1px solid var(--border-solid);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.04);
-            margin-bottom: 24px;
+            border: none;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
           }
-          .manual-transfer-card__title {
-            font-size: 20px;
-            font-weight: 800;
-            margin-bottom: 8px;
+          .manual-transfer-title {
+            font-size: 18px;
+            font-weight: 700;
             color: var(--text);
+            margin-bottom: 8px;
           }
-          .manual-transfer-card__desc {
+          .manual-transfer-desc {
             font-size: 14px;
             color: var(--text-secondary);
             margin-bottom: 24px;
             line-height: 1.5;
           }
-          .manual-transfer-details {
+          .manual-transfer-box {
             background: var(--bg);
             padding: 20px;
             border-radius: 16px;
@@ -296,7 +368,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             display: flex;
             flex-direction: column;
             gap: 16px;
-            margin-bottom: 24px;
           }
           .manual-transfer-row {
             display: flex;
@@ -304,64 +375,47 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             align-items: center;
           }
           .manual-transfer-label {
-            color: var(--text-muted);
             font-size: 14px;
             font-weight: 500;
+            color: var(--text-muted);
           }
           .manual-transfer-value {
+            font-size: 14px;
             font-weight: 700;
             color: var(--text);
             text-align: right;
+            max-width: 60%;
+            word-break: break-word;
           }
-          .manual-transfer-value--highlight {
-            font-weight: 800;
+          .manual-transfer-highlight {
             font-size: 18px;
+            font-weight: 800;
             letter-spacing: 0.05em;
             color: var(--clay);
           }
-          
-          @media (max-width: 520px) {
-            .pay-main { background: var(--bg); min-height: auto; }
-            .pay-container {
-              border-radius: 0;
-              padding: 20px 20px 24px;
-              border: none;
-              box-shadow: none;
-              background: transparent;
-            }
-            .pay-layout { gap: 20px; }
+          .manual-transfer-review {
+            text-align: center;
           }
-          
-          @media (min-width: 1024px) {
-            .auth-shell--pay { max-width: 100%; padding: 0; }
-            .pay-main {
-              padding-top: 80px; padding-bottom: 80px;
-              align-items: center; justify-content: center;
-              min-height: 100vh;
-            }
-            .pay-container {
-              max-width: 1080px; padding: 0; border-radius: 40px;
-              margin: 0 auto; overflow: hidden; display: flex;
-            }
-            .pay-layout { flex-direction: row; align-items: stretch; gap: 0; width: 100%; }
-            .pay-layout__left {
-              flex: 1.1; gap: 32px; padding: 64px;
-              background: var(--surface); border-right: 1px solid var(--border-solid);
-              display: flex;
-              flex-direction: column;
-            }
-            .pay-layout__right { flex: 1; padding: 64px; justify-content: flex-start; gap: 40px; }
-            .pay-header__content { max-width: 960px; padding: 0 64px; }
-            
-            .manual-transfer-card {
-              background: transparent;
-              padding: 0;
-              border: none;
-              box-shadow: none;
-            }
+          .manual-transfer-review-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+          }
+          .manual-transfer-review-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+          }
+          .manual-transfer-upload-wrapper {
+            background: var(--surface);
+            padding: 24px;
+            border-radius: 24px;
+            border: none;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
           }
         `}</style>
-      </div>
+      </PayPageShell>
     )
   }
 
@@ -423,10 +477,146 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
   if (step === 'processing') return <FallbackSuspense message="Finalizing payment..." />
 
+  if (step === 'invoice' && !isCheckoutVariantReady && isPremiumCheckout) {
+    return <FallbackSuspense message="Preparing checkout..." />
+  }
+
   if (step === 'invoice' && paymentData) {
     const loginRequired = paymentData.hasPassword && !authUser
     const isGuest = !paymentData.hasPassword
     const isLoggedIn = !!authUser
+
+    const checkoutModals = (
+      <>
+        {paymentData?.property && (
+          <RenewalModal
+            isOpen={showRenewalModal}
+            propertyUuid={paymentData.property.uuid}
+            onClose={() => setShowRenewalModal(false)}
+            onRenewed={() => {
+              setShowRenewalModal(false)
+              loadPaymentDetails()
+            }}
+          />
+        )}
+
+
+        {showUnverifiedModal && (
+          <div className="modal-overlay" onClick={() => setShowUnverifiedModal(false)}>
+            <div className="modal-card animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-card__header">
+                <div className="modal-card__badge" style={{ background: 'var(--error)' }}>
+                  VERIFICATION REQUIRED
+                </div>
+                <button className="modal-card__close" onClick={() => setShowUnverifiedModal(false)}>
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="modal-card__body py-6 text-center">
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                  <div style={{ background: '#fee2e2', color: 'var(--error)', borderRadius: '50%', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ShieldAlert size={36} />
+                  </div>
+                </div>
+                <h3 className="modal-card__title" style={{ fontSize: '20px', fontWeight: 800 }}>Verify Your Identity</h3>
+                <p className="modal-card__text" style={{ marginTop: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  To comply with financial regulations and secure your transactions, you must verify your identity using your Bank Verification Number (BVN) before completing payments.
+                </p>
+                <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '12px', marginTop: '16px', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left' }}>
+                  <Lock size={16} style={{ flexShrink: 0, color: 'var(--clay)' }} />
+                  <span>Your BVN is only used for one-time verification. <strong>We do not save your BVN number</strong>.</span>
+                </div>
+              </div>
+              <div className="modal-card__footer flex flex-col gap-3 pt-2">
+                <button
+                  className="btn btn--primary btn--full btn--pill"
+                  onClick={() => {
+                    setShowUnverifiedModal(false)
+                    router.push(`/dashboard/verify-identity?redirect=${encodeURIComponent(`/pay/${uuid}`)}`)
+                  }}
+                >
+                  Verify Identity Now <ArrowRight size={16} />
+                </button>
+                <button
+                  className="btn btn--ghost btn--full btn--pill"
+                  onClick={() => setShowUnverifiedModal(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    )
+
+    const isSelfInitiated = paymentData?.payment?.description?.includes('Manual') || paymentData?.payment?.description?.includes('Self-initiated')
+
+    if (isBasicCheckout) {
+      return (
+        <>
+          <BasicCheckoutView
+            uuid={uuid}
+            paymentData={paymentData}
+            currency={currency}
+            totalOwed={totalOwed}
+            parsedAmount={parsedAmount}
+            minRequired={minRequired}
+            isBelowMin={isBelowMin}
+            isValidAmount={isValidAmount}
+            isFullPaymentRequired={isFullPaymentRequired}
+            isUnderpaying={isUnderpaying}
+            isPendingRefund={isPendingRefund}
+            rates={rates}
+            visibleAllocs={visibleAllocs}
+            visibleLineItems={visibleLineItems}
+            loginLoading={loginLoading}
+            authUser={authUser}
+            executeLogin={executeLogin}
+            handleAllocationChange={handleAllocationChange}
+            onPayClick={handlePayClick}
+            onManualPayClick={isSelfInitiated ? undefined : handleManualPayClick}
+            onCancelRequest={isSelfInitiated ? handleCancelRequest : undefined}
+          />
+          {checkoutModals}
+        </>
+      )
+    }
+
+    if (isPremiumCheckout) {
+      return (
+        <>
+          <BasicCheckoutView
+            uuid={uuid}
+            paymentData={paymentData}
+            currency={currency}
+            totalOwed={totalOwed}
+            parsedAmount={parsedAmount}
+            minRequired={minRequired}
+            isBelowMin={isBelowMin}
+            isValidAmount={isValidAmount}
+            isFullPaymentRequired={isFullPaymentRequired}
+            isUnderpaying={isUnderpaying}
+            isPendingRefund={isPendingRefund}
+            rates={rates}
+            visibleAllocs={visibleAllocs}
+            visibleLineItems={visibleLineItems}
+            loginLoading={loginLoading}
+            authUser={authUser}
+            executeLogin={executeLogin}
+            handleAllocationChange={handleAllocationChange}
+            onPayClick={handlePayClick}
+            onManualPayClick={isSelfInitiated ? undefined : handleManualPayClick}
+            onCancelRequest={isSelfInitiated ? handleCancelRequest : undefined}
+            showPremiumOptions
+            isPremiumSelected={isBenefitsOptedIn}
+            onSelectStandard={() => setIsBenefitsOptedIn(false)}
+            onSelectPremium={() => setIsBenefitsOptedIn(true)}
+          />
+          {checkoutModals}
+        </>
+      )
+    }
 
     const ctaLabel = () => {
       if (isPendingRefund) return 'Refund Pending'
@@ -477,21 +667,15 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                   }
                 />
 
-                {/* Benefits Card shifted to Left Column on Desktop for balance */}
                 <div className="benefits-desktop-wrap">
-                  {rates.benefitsFee > 0 && !rates.benefitsPaid && (
-                    <BenefitsSelector
-                      benefitsFee={rates.benefitsFee}
+                  {showBenefitsUI && (
+                    <CheckoutComparisonCards
                       currency={currency}
-                      isOptedIn={isBenefitsOptedIn}
-                      rentValue={rates.rentValue}
-                      onToggle={(checked) => {
-                        if (!checked) {
-                          setShowOptOutModal(true)
-                        } else {
-                          setIsBenefitsOptedIn(true)
-                        }
-                      }}
+                      transactionFee={rates.transactionFee}
+                      benefitsFee={rates.benefitsFee}
+                      isPremiumSelected={isBenefitsOptedIn}
+                      onSelectStandard={() => setIsBenefitsOptedIn(false)}
+                      onSelectPremium={() => setIsBenefitsOptedIn(true)}
                     />
                   )}
                 </div>
@@ -593,46 +777,19 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                       isUnderpaying={isUnderpaying}
                     />
 
-                    {/* Render Benefits Selector inside Right Column on Mobile viewports only */}
-                    <div className="benefits-mobile-wrap">
-                      {rates.benefitsFee > 0 && !rates.benefitsPaid && (
-                        <BenefitsSelector
-                          benefitsFee={rates.benefitsFee}
-                          currency={currency}
-                          isOptedIn={isBenefitsOptedIn}
-                          rentValue={rates.rentValue}
-                          onToggle={(checked) => {
-                            if (!checked) {
-                              setShowOptOutModal(true)
-                            } else {
-                              setIsBenefitsOptedIn(true)
-                            }
-                          }}
-                        />
-                      )}
-                    </div>
-
                     <AllocationBreakdown
                       showBreakdown={showBreakdown}
                       setShowBreakdown={setShowBreakdown}
-                      effectiveAllocs={effectiveAllocs}
+                      effectiveAllocs={visibleAllocs}
                       currency={currency}
-                      lineItems={lineItems}
+                      lineItems={visibleLineItems}
                       canPayPartial={!!paymentData.payment.allowPartial}
                       onAllocationChange={handleAllocationChange}
                     />
                     <div className="pay-cta pay-cta--sticky">
                       <button
                         className="btn btn--primary btn--full btn--pay btn--pill"
-                        onClick={() => {
-                          const verificationOn = paymentData?.user?.verificationOn ?? true
-                          const hasPaidBefore = (paymentData?.user?.paidRequestsCount ?? 0) >= 1
-                          if (verificationOn && authUser && !authUser.isIdentityVerified && !isGuest && hasPaidBefore) {
-                            setShowUnverifiedModal(true)
-                          } else {
-                            setShowPaymentConfirm(true)
-                          }
-                        }}
+                        onClick={handlePayClick}
                         disabled={ctaDisabled}
                       >
                         <CreditCard size={18} className="icon--left" />
@@ -646,17 +803,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             </div>
           </div>
         </main>
-
-        <BenefitsOptOutModal
-          isOpen={showOptOutModal}
-          rentValue={rates.rentValue}
-          currency={currency}
-          onClose={() => setShowOptOutModal(false)}
-          onConfirmOptOut={() => {
-            setIsBenefitsOptedIn(false)
-            setShowOptOutModal(false)
-          }}
-        />
 
         <footer className="pay-footer">
           <p className="pay-footer__disclaimer">
@@ -741,8 +887,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
           .pay-layout { display: flex; flex-direction: column; gap: 12px; }
           .pay-layout__left { display: flex; flex-direction: column; gap: 16px; }
-          .pay-layout__right { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
-          
+          .pay-layout__right { display: flex; flex-direction: column; gap: 12px; }
+
           .pay-cta { margin-top: 8px; }
           
           /* Sticky Bottom CTA for MobileUX */
@@ -849,9 +995,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
               border-top: none;
             }
             .benefits-desktop-wrap {
-              display: none;
-            }
-            .benefits-mobile-wrap {
               display: block;
               margin-bottom: 24px;
             }
@@ -865,9 +1008,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             }
             .benefits-desktop-wrap :global(.benefits-card) {
               background: var(--bg);
-            }
-            .benefits-mobile-wrap {
-              display: none;
             }
             .auth-shell--pay { max-width: 100%; padding: 0; }
             .pay-main {
@@ -1001,93 +1141,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
         }
       `}</style>
 
-        {paymentData?.property && (
-          <RenewalModal
-            isOpen={showRenewalModal}
-            propertyUuid={paymentData.property.uuid}
-            onClose={() => setShowRenewalModal(false)}
-            onRenewed={() => {
-              setShowRenewalModal(false)
-              loadPaymentDetails()
-            }}
-          />
-        )}
-
-        <PaymentConfirmationModal
-          isOpen={showPaymentConfirm}
-          amount={parsedAmount}
-          currency={currency}
-          isFullRequired={isFullPaymentRequired}
-          onClose={() => setShowPaymentConfirm(false)}
-          onConfirm={() => {
-            setShowPaymentConfirm(false)
-            setStep('checkout')
-          }}
-          onManualTransfer={() => {
-            if (paymentData?.property?.manualAccount || paymentData?.company?.bankDetails) {
-              setShowPaymentConfirm(false)
-              setStep('manual-transfer')
-            } else {
-              if (!authUser) {
-                toastError('No manual account configured for this property.')
-              } else {
-                toastError('Please configure a manual transfer account first.')
-                if (paymentData?.property?.uuid) {
-                  router.push(`/dashboard/setup/rental?mode=edit&property=${encodeURIComponent(paymentData.property.uuid)}&returnTo=${encodeURIComponent(`/pay/${uuid}`)}`)
-                } else {
-                  router.push('/dashboard')
-                }
-              }
-            }
-          }}
-        />
-
-        {showUnverifiedModal && (
-          <div className="modal-overlay" onClick={() => setShowUnverifiedModal(false)}>
-            <div className="modal-card animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-card__header">
-                <div className="modal-card__badge" style={{ background: 'var(--error)' }}>
-                  VERIFICATION REQUIRED
-                </div>
-                <button className="modal-card__close" onClick={() => setShowUnverifiedModal(false)}>
-                  <X size={16} />
-                </button>
-              </div>
-              <div className="modal-card__body py-6 text-center">
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-                  <div style={{ background: '#fee2e2', color: 'var(--error)', borderRadius: '50%', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <ShieldAlert size={36} />
-                  </div>
-                </div>
-                <h3 className="modal-card__title" style={{ fontSize: '20px', fontWeight: 800 }}>Verify Your Identity</h3>
-                <p className="modal-card__text" style={{ marginTop: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  To comply with financial regulations and secure your transactions, you must verify your identity using your Bank Verification Number (BVN) before completing payments.
-                </p>
-                <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '12px', marginTop: '16px', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left' }}>
-                  <Lock size={16} style={{ flexShrink: 0, color: 'var(--clay)' }} />
-                  <span>Your BVN is only used for one-time verification. <strong>We do not save your BVN number</strong>.</span>
-                </div>
-              </div>
-              <div className="modal-card__footer flex flex-col gap-3 pt-2">
-                <button
-                  className="btn btn--primary btn--full btn--pill"
-                  onClick={() => {
-                    setShowUnverifiedModal(false)
-                    router.push(`/dashboard/verify-identity?redirect=${encodeURIComponent(`/pay/${uuid}`)}`)
-                  }}
-                >
-                  Verify Identity Now <ArrowRight size={16} />
-                </button>
-                <button
-                  className="btn btn--ghost btn--full btn--pill"
-                  onClick={() => setShowUnverifiedModal(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {checkoutModals}
       </div>
     )
   }

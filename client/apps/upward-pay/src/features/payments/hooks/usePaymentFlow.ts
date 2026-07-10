@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
@@ -98,7 +98,13 @@ function distributeAmount(
   return allocs
 }
 
-export function usePaymentFlow(uuid: string) {
+export function usePaymentFlow(
+  uuid: string,
+  options?: {
+    forceBenefitsOptOut?: boolean
+    onPaymentConfirmed?: (isPremiumSelected: boolean) => void
+  },
+) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { user: authUser, login } = useAuth()
@@ -128,11 +134,22 @@ export function usePaymentFlow(uuid: string) {
         return searchParams.get('benefits') === 'true'
       }
     }
-    return true
+    // Default to standard checkout unless explicitly opted in.
+    return false
   })
+  const effectiveIsBenefitsOptedIn = options?.forceBenefitsOptOut
+    ? false
+    : isBenefitsOptedIn
+  const paymentConfirmedTrackedRef = useRef(false)
+
+  const notifyPaymentConfirmed = useCallback(() => {
+    if (paymentConfirmedTrackedRef.current) return
+    paymentConfirmedTrackedRef.current = true
+    options?.onPaymentConfirmed?.(effectiveIsBenefitsOptedIn)
+  }, [effectiveIsBenefitsOptedIn, options?.onPaymentConfirmed])
 
   const rates = paymentData?.payment?.processingRates || { transactionFee: 2000, benefitsFee: 0, rentValue: 0, benefitsPaid: false, benefitsPaidForRequest: false }
-  const activeBenefitsFee = (isBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0
+  const activeBenefitsFee = (effectiveIsBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0
   const feeVal = rates.transactionFee + activeBenefitsFee
 
   const [formData, setFormData] = useState({
@@ -232,7 +249,7 @@ export function usePaymentFlow(uuid: string) {
           return sum + Math.max(0, item.totalAmount - item.amountPaid)
         }, 0)
 
-        const finalDue = rentRemaining > 0 ? rentRemaining + dynamicRates.transactionFee + ((isBenefitsOptedIn && !dynamicRates.benefitsPaid) ? dynamicRates.benefitsFee : 0) : 0
+        const finalDue = rentRemaining > 0 ? rentRemaining + dynamicRates.transactionFee + ((effectiveIsBenefitsOptedIn && !dynamicRates.benefitsPaid) ? dynamicRates.benefitsFee : 0) : 0
         setAmountInput(finalDue.toString())
         
         setFormData(prev => ({
@@ -254,11 +271,50 @@ export function usePaymentFlow(uuid: string) {
       setErrorMessage(err.message || 'Payment request not found or expired')
       setStep('error')
     }
-  }, [uuid, isBenefitsOptedIn])
+  }, [uuid])
 
   useEffect(() => {
     if (uuid) loadPaymentDetails()
+    paymentConfirmedTrackedRef.current = false
   }, [uuid, loadPaymentDetails])
+
+  useEffect(() => {
+    if (!paymentData?.payment) return
+    if (Object.keys(manualAllocs).length > 0) return
+
+    const rentRemaining = lineItems.reduce((sum, item) => {
+      const isFee =
+        item.name === 'Processing Fee' ||
+        item.id === -2 ||
+        item.name === 'Transaction Fee' ||
+        item.id === -3 ||
+        item.name === 'Upward Benefits'
+      if (isFee) return sum
+      return sum + Math.max(0, item.totalAmount - item.amountPaid)
+    }, 0)
+
+    const nextDue =
+      rentRemaining > 0
+        ? rentRemaining +
+          rates.transactionFee +
+          ((effectiveIsBenefitsOptedIn && !rates.benefitsPaid)
+            ? rates.benefitsFee
+            : 0)
+        : 0
+
+    setAmountInput((prev) => {
+      const current = parseFloat(prev) || 0
+      return current === nextDue ? prev : nextDue.toString()
+    })
+  }, [
+    paymentData,
+    lineItems,
+    manualAllocs,
+    rates.transactionFee,
+    rates.benefitsFee,
+    rates.benefitsPaid,
+    effectiveIsBenefitsOptedIn,
+  ])
 
   useEffect(() => {
     if (!uuid) return
@@ -284,6 +340,7 @@ export function usePaymentFlow(uuid: string) {
           toastInfo('Payment confirmed. Updating checkout...', 'Payment Success')
           setStep(prev => {
             if (prev === 'invoice' || prev === 'checkout' || prev === 'processing') {
+              notifyPaymentConfirmed()
               return 'success'
             }
             return prev
@@ -307,7 +364,7 @@ export function usePaymentFlow(uuid: string) {
       console.log('[SSE Checkout] Disconnecting')
       eventSource.close()
     }
-  }, [uuid, loadPaymentDetails, toastInfo])
+  }, [uuid, loadPaymentDetails, toastInfo, notifyPaymentConfirmed])
 
   // Biometrics
   useEffect(() => {
@@ -346,8 +403,8 @@ export function usePaymentFlow(uuid: string) {
       return sum + Math.max(0, item.totalAmount - item.amountPaid)
     }, 0)
     if (rentRemaining <= 0) return 0
-    return rentRemaining + rates.transactionFee + ((isBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0)
-  }, [paymentData, rates, isBenefitsOptedIn])
+    return rentRemaining + rates.transactionFee + ((effectiveIsBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0)
+  }, [paymentData, rates, effectiveIsBenefitsOptedIn])
 
   const parsedAmount = parseFloat(amountInput) || 0
   const minRequired = paymentData?.payment?.minAmount || 0
@@ -362,15 +419,15 @@ export function usePaymentFlow(uuid: string) {
     lineItems,
     rates.transactionFee,
     rates.benefitsPaid ? 0 : rates.benefitsFee,
-    isBenefitsOptedIn
-  ), [parsedAmount, lineItems, totalOwed, rates, isBenefitsOptedIn])
+    effectiveIsBenefitsOptedIn
+  ), [parsedAmount, lineItems, totalOwed, rates, effectiveIsBenefitsOptedIn])
 
   const effectiveAllocs: LineItemAllocation[] = useMemo(() => {
     if (Object.keys(manualAllocs).length === 0) return autoAllocs
 
     const manualSum = Object.values(manualAllocs).reduce((acc, val) => acc + val, 0)
     const dynamicTxFee = manualSum > 0 ? rates.transactionFee : 0
-    const dynamicBenFee = (manualSum > 0 && isBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0
+    const dynamicBenFee = (manualSum > 0 && effectiveIsBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0
     
     let remaining = parsedAmount - manualSum
 
@@ -418,7 +475,7 @@ export function usePaymentFlow(uuid: string) {
         allocated: manualAllocs[item.id] || 0
       }
     })
-  }, [autoAllocs, manualAllocs, lineItems, parsedAmount, rates, isBenefitsOptedIn])
+  }, [autoAllocs, manualAllocs, lineItems, parsedAmount, rates, effectiveIsBenefitsOptedIn])
 
   const finalLineItemPayments = useMemo(() => {
     return effectiveAllocs.filter(a => a.allocated > 0).map(a => ({
@@ -458,7 +515,7 @@ export function usePaymentFlow(uuid: string) {
     setManualAllocs(newManual)
     
     const manualSum = Object.values(newManual).reduce((acc, val) => acc + val, 0)
-    const dynamicFee = manualSum > 0 ? (rates.transactionFee + ((isBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0)) : 0
+    const dynamicFee = manualSum > 0 ? (rates.transactionFee + ((effectiveIsBenefitsOptedIn && !rates.benefitsPaid) ? rates.benefitsFee : 0)) : 0
     setAmountInput((manualSum + dynamicFee).toString())
   }
 
@@ -470,6 +527,7 @@ export function usePaymentFlow(uuid: string) {
         lineItemPayments: finalLineItemPayments
       })
       if (res.success) {
+        notifyPaymentConfirmed()
         if (res.settlementStatus === 'PENDING_REFUND') {
           setIsPendingRefund(true)
           setStep('success')
@@ -523,6 +581,21 @@ export function usePaymentFlow(uuid: string) {
     }
   }
 
+  const handleCancelRequest = async () => {
+    setIsSubmitting(true)
+    try {
+      const res = await api.post(`/payments/manual-request/${uuid}/cancel`, {})
+      if (res.success) {
+        success('Payment request cancelled')
+        router.push('/dashboard')
+      }
+    } catch (err: any) {
+      toastError(err.message || 'Failed to cancel request')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return {
     step, setStep,
     paymentData,
@@ -550,12 +623,13 @@ export function usePaymentFlow(uuid: string) {
     handleAllocationChange,
     handlePaymentSuccess,
     handleActivation,
+    handleCancelRequest,
     loadPaymentDetails,
     loginLoading,
     executeLogin,
     authUser,
     isPendingRefund,
-    isBenefitsOptedIn,
+    isBenefitsOptedIn: effectiveIsBenefitsOptedIn,
     setIsBenefitsOptedIn,
     rates
   }

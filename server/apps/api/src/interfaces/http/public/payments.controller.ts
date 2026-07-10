@@ -34,6 +34,7 @@ import {
   ResolveSubaccountUseCase,
   GetPropertyBalanceUseCase,
   CreateManualPaymentRequestUseCase,
+  CancelManualPaymentRequestUseCase,
   InitializePaymentUseCase,
   ProcessPaymentWebhookUseCase,
   GetBankDetailsUseCase,
@@ -57,6 +58,7 @@ export class PaymentsController {
     private readonly resolveSubaccountUc: ResolveSubaccountUseCase,
     private readonly getPropertyBalanceUc: GetPropertyBalanceUseCase,
     private readonly createManualRequestUc: CreateManualPaymentRequestUseCase,
+    private readonly cancelManualRequestUc: CancelManualPaymentRequestUseCase,
     private readonly initializePaymentUc: InitializePaymentUseCase,
     private readonly processWebhookUc: ProcessPaymentWebhookUseCase,
     private readonly verifyGatewayTransactionUc: VerifyGatewayTransactionUseCase,
@@ -243,6 +245,13 @@ export class PaymentsController {
       propertyUuid: body.propertyUuid,
       metadata: body.metadata,
     })
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('manual-request/:uuid/cancel')
+  async cancelManualRequest(@Req() req: any, @Param('uuid') uuid: string) {
+    const userId = req.user.id
+    return this.cancelManualRequestUc.execute(userId, uuid)
   }
 
   @UseGuards(JwtAuthGuard)

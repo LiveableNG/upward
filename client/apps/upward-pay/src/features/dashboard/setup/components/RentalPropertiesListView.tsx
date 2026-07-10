@@ -107,12 +107,18 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                         <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--forest)' }} />
                         Bank configured by Property Manager
                       </div>
+                    ) : prop.isVerified && !prop.manualAccount ? (
+                      <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--error)' }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--error)' }} />
+                        PM hasn't configured your bank account details for this property
+                      </div>
                     ) : (
                       <>
                         <button
                           type="button"
                           className="btn btn--secondary btn--sm"
                           onClick={(e) => {
+                            e.preventDefault()
                             e.stopPropagation()
                             setManualAccountModalProperty({ 
                               id: prop.id, 
@@ -120,7 +126,8 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                               initialData: prop.manualAccount
                             })
                           }}
-                          style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8 }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8, position: 'relative', zIndex: 10 }}
                         >
                           {prop.manualAccount ? 'Edit Manual Transfer' : 'Setup Manual Transfer'}
                         </button>

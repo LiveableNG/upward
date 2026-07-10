@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Res } from '@nestjs/common'
+import { Controller, Get, Param, Res, StreamableFile } from '@nestjs/common'
 import { GetPublicBlogPostBySlugUseCase, GetPublicBlogPostsUseCase } from '../../../application/use-cases/blog/blog-post.use-cases'
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 import { Response } from 'express' // Using fastify/express generic
@@ -22,7 +22,7 @@ export class PublicBlogController {
   }
 
   @Get('images/:filename')
-  async getBlogImage(@Param('filename') filename: string, @Res() res: any) {
+  async getBlogImage(@Param('filename') filename: string, @Res({ passthrough: true }) res: any) {
     const buffer = await this.s3Service.getFileBuffer(`blog/images/${filename}`);
     
     const ext = filename.split('.').pop()?.toLowerCase();
@@ -38,10 +38,10 @@ export class PublicBlogController {
     // Support both Express and Fastify response objects
     if (typeof res.set === 'function') {
       res.set('Content-Type', contentType);
-      res.send(buffer);
     } else {
       res.header('Content-Type', contentType);
-      res.send(buffer);
     }
+
+    return new StreamableFile(buffer);
   }
 }

@@ -13,9 +13,12 @@ interface UploadProofOfPaymentProps {
   lineItems?: any[]
   onSuccess?: () => void
   onCancel?: () => void
+  bankName?: string
+  accountName?: string
+  accountNumber?: string
 }
 
-export function UploadProofOfPayment({ paymentRequestUuid, userPropertyUuid, amount, currency, lineItems, onSuccess, onCancel }: UploadProofOfPaymentProps) {
+export function UploadProofOfPayment({ paymentRequestUuid, userPropertyUuid, amount, currency, lineItems, onSuccess, onCancel, bankName, accountName, accountNumber }: UploadProofOfPaymentProps) {
   const { success, error } = useToast()
   
   const [mode, setMode] = useState<'upload' | 'manual'>('upload')
@@ -112,15 +115,32 @@ export function UploadProofOfPayment({ paymentRequestUuid, userPropertyUuid, amo
         </div>
       </div>
 
-      <div className="flex bg-[var(--surface)] p-1 rounded-xl mb-6">
+      {bankName && accountNumber && (
+        <div className="manual-transfer-box mb-6 p-4 rounded-2xl bg-[var(--surface2)] border border-[var(--border-solid)]">
+          <div className="flex justify-between items-center py-2 border-b border-[var(--border-solid)] last:border-0">
+            <span className="text-sm text-[var(--text-secondary)]">Bank Name</span>
+            <span className="text-sm font-medium text-[var(--text)]">{bankName}</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-[var(--border-solid)] last:border-0">
+            <span className="text-sm text-[var(--text-secondary)]">Account Name</span>
+            <span className="text-sm font-medium text-[var(--text)] text-right max-w-[60%]">{accountName}</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-[var(--border-solid)] last:border-0">
+            <span className="text-sm text-[var(--text-secondary)]">Account Number</span>
+            <span className="text-base font-bold text-[var(--clay)] tracking-wider">{accountNumber}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="buttons-container-selector">
         <button
-          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${mode === 'upload' ? 'bg-white shadow-sm text-[var(--text)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
+          className={`button-selector ${mode === 'upload' ? 'active' : 'inactive'}`}
           onClick={() => setMode('upload')}
         >
           Upload Receipt
         </button>
         <button
-          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${mode === 'manual' ? 'bg-white shadow-sm text-[var(--text)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
+          className={`button-selector ${mode === 'manual' ? 'active' : 'inactive'}`}
           onClick={() => setMode('manual')}
         >
           Enter Details Manually
@@ -160,9 +180,11 @@ export function UploadProofOfPayment({ paymentRequestUuid, userPropertyUuid, amo
                 <CheckCircle2 size={20} className="text-[var(--success)]" />
               ) : (
                 <button 
-                  className="p-2 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  type="button"
+                  className="remove-file-btn"
                   onClick={handleRemove}
                   disabled={isUploading}
+                  aria-label="Remove file"
                 >
                   <X size={16} />
                 </button>
@@ -241,12 +263,49 @@ export function UploadProofOfPayment({ paymentRequestUuid, userPropertyUuid, amo
       )}
 
       <style jsx>{`
+        /* Segmented control container for toggle buttons */
+        .buttons-container-selector {
+          background-color: var(--surface);
+          padding: 4px;
+          border-radius: 12px;
+          display: flex;
+          gap: 4px;
+          margin-bottom: 24px;
+        }
+
+        /* Individual toggle buttons */
+        .button-selector {
+          border: none;
+          flex: 1;
+          padding: 10px 0;
+          font-weight: 600;
+          font-size: 14px;
+          border-radius: 8px;
+          transition: all 0.2s ease;
+          cursor: pointer;
+        }
+
+        .button-selector.active {
+          background-color: #ffffff;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          color: var(--text);
+        }
+
+        .button-selector.inactive {
+          background-color: transparent;
+          color: var(--text-muted);
+        }
+
+        .button-selector.inactive:hover {
+          color: var(--text);
+        }
+
         .upload-proof-card {
-          background: var(--bg);
-          border: 1px solid var(--border-solid);
-          border-radius: 24px;
-          padding: 24px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+          background: transparent;
+          border: none;
+          border-radius: 0;
+          padding: 0;
+          box-shadow: none;
         }
         .upload-dropzone {
           border: 2px dashed var(--border-solid);
@@ -257,6 +316,22 @@ export function UploadProofOfPayment({ paymentRequestUuid, userPropertyUuid, amo
         .upload-dropzone:hover {
           border-color: var(--clay);
           background: var(--clay-faint);
+        }
+        .remove-file-btn {
+          background: transparent;
+          border: none;
+          padding: 8px;
+          border-radius: 8px;
+          color: var(--text-muted);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+        .remove-file-btn:hover:not(:disabled) {
+          color: #ef4444;
+          background-color: #fef2f2;
         }
         .hidden-input {
           display: none;
