@@ -60,6 +60,7 @@ interface BasicCheckoutViewProps {
   isPremiumSelected?: boolean
   onSelectStandard?: () => void
   onSelectPremium?: () => void
+  onManualPayClick?: () => void
 }
 
 export function BasicCheckoutView({
@@ -86,6 +87,7 @@ export function BasicCheckoutView({
   isPremiumSelected = false,
   onSelectStandard,
   onSelectPremium,
+  onManualPayClick,
 }: BasicCheckoutViewProps) {
   const router = useRouter()
 
@@ -223,12 +225,28 @@ export function BasicCheckoutView({
       pinFooter
       footer={
         !loginRequired && (isLoggedIn || isGuest) ? (
-          <>
+          <div className="flex flex-col gap-3 w-full">
             <PayFlowPrimaryButton onClick={onPayClick} disabled={ctaDisabled}>
               {ctaLabel()}
             </PayFlowPrimaryButton>
-            <p className="pay-flow__secure">🔒 Secured by Upward</p>
-          </>
+            
+            {onManualPayClick && (
+              <button
+                type="button"
+                className="btn btn--full btn--pill manual-upload-btn"
+                onClick={onManualPayClick}
+                disabled={ctaDisabled}
+              >
+                Upload payment proof
+              </button>
+            )}
+            <p 
+              className="pay-flow__secure flex items-center justify-center gap-1.5 w-full text-center"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+            >
+              <Lock size={12} /> Secured by Upward
+            </p>
+          </div>
         ) : undefined
       }
     >
@@ -238,6 +256,24 @@ export function BasicCheckoutView({
         dueDate={paymentData.payment.dueDate}
         isVerified={!!paymentData.payment?.verifiedRecipientName}
       />
+      <style jsx>{`
+        .manual-upload-btn {
+          color: var(--text-secondary);
+          font-weight: 600;
+          font-size: 14px;
+          height: 48px;
+          background-color: var(--surface);
+          border: 1px solid var(--border-solid);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+          transition: all 0.2s ease;
+        }
+        .manual-upload-btn:hover:not(:disabled) {
+          background-color: var(--clay-faint, #faf9f5);
+          border-color: var(--clay);
+          color: var(--clay);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+        }
+      `}</style>
 
       {loginRequired ? (
         <div className="pay-flow__login-prompt">

@@ -112,15 +112,15 @@ export function UploadProofOfPayment({ paymentRequestUuid, userPropertyUuid, amo
         </div>
       </div>
 
-      <div className="flex bg-[var(--surface)] p-1 rounded-xl mb-6">
+      <div className="buttons-container-selector">
         <button
-          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${mode === 'upload' ? 'bg-white shadow-sm text-[var(--text)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
+          className={`button-selector ${mode === 'upload' ? 'active' : 'inactive'}`}
           onClick={() => setMode('upload')}
         >
           Upload Receipt
         </button>
         <button
-          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${mode === 'manual' ? 'bg-white shadow-sm text-[var(--text)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
+          className={`button-selector ${mode === 'manual' ? 'active' : 'inactive'}`}
           onClick={() => setMode('manual')}
         >
           Enter Details Manually
@@ -241,12 +241,49 @@ export function UploadProofOfPayment({ paymentRequestUuid, userPropertyUuid, amo
       )}
 
       <style jsx>{`
+        /* Segmented control container for toggle buttons */
+        .buttons-container-selector {
+          background-color: var(--surface);
+          padding: 4px;
+          border-radius: 12px;
+          display: flex;
+          gap: 4px;
+          margin-bottom: 24px;
+        }
+
+        /* Individual toggle buttons */
+        .button-selector {
+          border: none;
+          flex: 1;
+          padding: 10px 0;
+          font-weight: 600;
+          font-size: 14px;
+          border-radius: 8px;
+          transition: all 0.2s ease;
+          cursor: pointer;
+        }
+
+        .button-selector.active {
+          background-color: #ffffff;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          color: var(--text);
+        }
+
+        .button-selector.inactive {
+          background-color: transparent;
+          color: var(--text-muted);
+        }
+
+        .button-selector.inactive:hover {
+          color: var(--text);
+        }
+
         .upload-proof-card {
-          background: var(--bg);
-          border: 1px solid var(--border-solid);
-          border-radius: 24px;
-          padding: 24px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+          background: transparent;
+          border: none;
+          border-radius: 0;
+          padding: 0;
+          box-shadow: none;
         }
         .upload-dropzone {
           border: 2px dashed var(--border-solid);
