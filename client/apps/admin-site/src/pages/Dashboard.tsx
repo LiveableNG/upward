@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 
-// Feature Components
+
 import FilterToolbar, { type DateFilter } from '../features/dashboard/components/FilterToolbar'
 import { UsersTable, type UnifiedUserRecord } from '../features/dashboard/components/UsersTable'
 import { PmsTable } from '../features/dashboard/components/PmsTable'
@@ -206,12 +206,11 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     if (selectedUserIds.size === paginatedItems.length) {
       setSelectedUserIds(new Set())
     } else {
-      setSelectedUserIds(new Set(paginatedItems.map((item: any) => item.id)))
+      setSelectedUserIds(new Set(paginatedItems.map((item: any) => item.uuid)))
     }
   }
 
-  // ── Preview Drawer helpers ─────────────────────────────────────
-  // ── Preview Drawer helpers ─────────────────────────────────────
+
   const openDrawerForUser = (item: UnifiedUserRecord | any) => {
     let userStatus = 'PENDING_TENANT'
     let userType = 'PENDING_TENANT'
@@ -266,7 +265,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     })
   }
 
-  // ── Unified Users List Compiler ──────────────────────────────────
+
   const unifiedUsers = useMemo((): UnifiedUserRecord[] => {
     const list: UnifiedUserRecord[] = []
 
@@ -411,17 +410,19 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
     let worksheetData: any[] = []
     if (activeTab === 'users') {
-      worksheetData = filteredUsers.map((u) => ({
-        'Name': `${u.firstName} ${u.lastName}`,
-        'Email Address': u.email,
-        'Phone Number': u.phone,
-        'Origin': u.origin,
-        'Manager / Platform': u.pms?.length ? u.pms.map((pm: any) => pm.name).join(', ') : 'Direct',
-        'Total Paid (₦)': u.totalPaid,
-        'Has Password': u.hasPassword ? 'Yes' : 'No',
-        'Is Ex-Waitlist': u.isExWaitlist ? 'Yes' : 'No',
-        'Registration Date': new Date(u.createdAt).toLocaleDateString(),
-      }))
+      worksheetData = filteredUsers.map((u) => {
+        const source = u.pms?.length ? 'PM' : 'Organic'
+        const activity = u.totalPaid > 0 ? 'Payed' : 'None'
+
+        return {
+          'Name': `${u.firstName} ${u.lastName}`.trim(),
+          'Sign up date': new Date(u.createdAt).toLocaleDateString(),
+          'Phone number': u.phone || 'N/A',
+          'Email': u.email,
+          'Source': source,
+          'Activity': activity,
+        }
+      })
     } else if (activeTab === 'pms') {
       worksheetData = pmList.map((p) => ({
         'Business Name': p.businessName,

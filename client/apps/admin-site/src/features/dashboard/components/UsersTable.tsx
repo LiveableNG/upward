@@ -259,7 +259,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
           <strong style={{ color: 'var(--accent)' }}>{selectedUserIds.size} selected</strong>
           <button
             onClick={() => {
-              const selectedUsers = paginatedItems.filter((u) => selectedUserIds.has(u.id))
+              const selectedUsers = paginatedItems.filter((u) => selectedUserIds.has(u.uuid))
               navigate('/emails', { state: { selectedUsers } })
             }}
             className="btn"
@@ -345,15 +345,15 @@ export const UsersTable: React.FC<UsersTableProps> = ({
               key={item.id}
               style={{
                 borderBottom: '1px solid var(--border)',
-                background: selectedUserIds.has(item.id) ? 'rgba(217,119,87,0.04)' : 'transparent',
+                background: selectedUserIds.has(item.uuid) ? 'rgba(217,119,87,0.04)' : 'transparent',
                 transition: 'background 0.15s',
               }}
               className="table-row-hover"
             >
               {isSuperadmin && (
-                <td style={{ padding: '14px 8px 14px 20px' }} onClick={(e) => toggleSelectUser(item.id, e)}>
+                <td style={{ padding: '14px 8px 14px 20px' }} onClick={(e) => toggleSelectUser(item.uuid, e)}>
                   <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--text-muted)' }}>
-                    {selectedUserIds.has(item.id) ? <CheckSquare size={17} color="var(--accent)" /> : <Square size={17} />}
+                    {selectedUserIds.has(item.uuid) ? <CheckSquare size={17} color="var(--accent)" /> : <Square size={17} />}
                   </button>
                 </td>
               )}
