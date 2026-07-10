@@ -160,9 +160,11 @@ export function UploadProofOfPayment({ paymentRequestUuid, userPropertyUuid, amo
                 <CheckCircle2 size={20} className="text-[var(--success)]" />
               ) : (
                 <button 
-                  className="p-2 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  type="button"
+                  className="remove-file-btn"
                   onClick={handleRemove}
                   disabled={isUploading}
+                  aria-label="Remove file"
                 >
                   <X size={16} />
                 </button>
@@ -294,6 +296,22 @@ export function UploadProofOfPayment({ paymentRequestUuid, userPropertyUuid, amo
         .upload-dropzone:hover {
           border-color: var(--clay);
           background: var(--clay-faint);
+        }
+        .remove-file-btn {
+          background: transparent;
+          border: none;
+          padding: 8px;
+          border-radius: 8px;
+          color: var(--text-muted);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+        .remove-file-btn:hover:not(:disabled) {
+          color: #ef4444;
+          background-color: #fef2f2;
         }
         .hidden-input {
           display: none;

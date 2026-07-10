@@ -113,6 +113,7 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                           type="button"
                           className="btn btn--secondary btn--sm"
                           onClick={(e) => {
+                            e.preventDefault()
                             e.stopPropagation()
                             setManualAccountModalProperty({ 
                               id: prop.id, 
@@ -120,7 +121,8 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                               initialData: prop.manualAccount
                             })
                           }}
-                          style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8 }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8, position: 'relative', zIndex: 10 }}
                         >
                           {prop.manualAccount ? 'Edit Manual Transfer' : 'Setup Manual Transfer'}
                         </button>
