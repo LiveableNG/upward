@@ -1,5 +1,15 @@
 import React from 'react'
 import { Home, ChevronRight, AlertCircle, Plus } from 'lucide-react'
+import {
+  formatManagerLabel,
+  formatPendingInvoiceTitle,
+  formatPropertyPaymentSubline,
+  formatPropertyTitle,
+  getPendingDueBadge,
+  getPropertyCardClassName,
+  getRentCycleDisplay,
+  sortPropertiesForDisplay,
+} from './propertyPayDisplay'
 
 export function StepPropertySelect({
   properties,
@@ -32,96 +42,100 @@ export function StepPropertySelect({
     )
   }
 
+  const sortedProperties = sortPropertiesForDisplay(properties)
+
   return (
     <div>
       {pending.length > 0 && (
         <section className="pay-flow__section">
           <p className="pay-flow__section-label">Pending Invoices</p>
-          {pending.map((p) => (
-            <div
-              key={p.uuid}
-              role="button"
-              tabIndex={0}
-              className="pay-flow__card pay-flow__card--pending"
-              onClick={() => onSelectPending?.(p)}
-              onKeyDown={(e) => e.key === 'Enter' && onSelectPending?.(p)}
-            >
-              <div className="pay-flow__card-icon pay-flow__card-icon--primary">
-                <ChevronRight size={20} />
-              </div>
-              <div className="pay-flow__card-body">
-                <div className="pay-flow__card-title">{p.company_name || p.description || 'Invoice'}</div>
-                <div className="pay-flow__card-meta">
-                  {p.manager_name && <span>{p.manager_name} · </span>}
-                  {new Intl.NumberFormat('en-NG', {
-                    style: 'currency',
-                    currency: p.currency || 'NGN',
-                  }).format((p.total_amount || p.amount || 0) - (p.amountPaid || 0))}
+          {pending.map((p) => {
+            const dueBadge = getPendingDueBadge(p)
+            const remaining = (p.total_amount || p.amount || 0) - (p.amountPaid || 0)
+
+            return (
+              <div
+                key={p.uuid}
+                role="button"
+                tabIndex={0}
+                className={`pay-flow__card pay-flow__card--pending${dueBadge?.overdue ? ' pay-flow__card--overdue' : ''}`}
+                onClick={() => onSelectPending?.(p)}
+                onKeyDown={(e) => e.key === 'Enter' && onSelectPending?.(p)}
+              >
+                <div className="pay-flow__card-icon pay-flow__card-icon--primary">
+                  <ChevronRight size={20} />
                 </div>
+                <div className="pay-flow__card-body">
+                  <div className="pay-flow__card-top-row">
+                    <div className="pay-flow__card-title">{formatPendingInvoiceTitle(p)}</div>
+                    {dueBadge ? (
+                      <span
+                        className={`pay-flow__rent-pill pay-flow__rent-pill--${dueBadge.overdue ? 'expired' : 'soon'}`}
+                      >
+                        {dueBadge.label}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="pay-flow__card-meta">
+                    {p.manager_name && <span>{p.manager_name} · </span>}
+                    {new Intl.NumberFormat('en-NG', {
+                      style: 'currency',
+                      currency: p.currency || 'NGN',
+                    }).format(remaining > 0 ? remaining : p.total_amount || p.amount || 0)}
+                  </div>
+                </div>
+                <ChevronRight size={18} className="pay-flow__card-trailing" />
               </div>
-              {(p.due_date || p.dueDate) && (
-                <span className="pay-flow__due-badge">
-                  DUE {new Date(p.due_date || p.dueDate).toLocaleDateString()}
-                </span>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </section>
       )}
 
       <section className={`pay-flow__section${pending.length > 0 ? ' pay-flow__section--spaced' : ''}`}>
         <p className="pay-flow__section-label">Your Properties</p>
         <div className="pay-flow__property-list">
-        {properties.map((prop) => {
-          const loc = prop.location
-          const fullAddr = [prop.address, loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
-          const managerName =
-            prop.company?.name ||
-            prop.companyName ||
-            (prop.manager?.firstName ? `${prop.manager.firstName} ${prop.manager.lastName || ''}` : null) ||
-            prop.managerName ||
-            'Private Landlord'
+          {sortedProperties.map((prop) => {
+            const rentCycle = getRentCycleDisplay(prop)
+            const paymentSubline = formatPropertyPaymentSubline(prop)
+            const cardToneClass = getPropertyCardClassName(prop)
 
-          return (
-            <button
-              key={prop.uuid}
-              type="button"
-              className="pay-flow__card pay-flow__property-card"
-              onClick={() => onSelect(prop)}
-            >
-              <div className="pay-flow__card-icon pay-flow__card-icon--home">
-                <Home size={22} />
-              </div>
-              <div className="pay-flow__card-body">
-                <div className="pay-flow__card-title">
-                  {managerName}
-                  {(prop.subaccount || prop.dedicatedAccount || prop.isVerified) && (
-                    <span className="pay-flow__badge">
-                      <span className="pay-flow__badge-dot" />
-                      {prop.isVerified ? 'Verified' : 'Verified Recipient'}
+            return (
+              <button
+                key={prop.uuid}
+                type="button"
+                className={`pay-flow__card pay-flow__property-card pay-flow__property-card--compact${cardToneClass ? ` ${cardToneClass}` : ''}`}
+                onClick={() => onSelect(prop)}
+              >
+                <div className="pay-flow__card-body">
+                  <div className="pay-flow__card-top-row">
+                    <div className="pay-flow__card-title">{formatPropertyTitle(prop)}</div>
+                    <span className={`pay-flow__rent-pill pay-flow__rent-pill--${rentCycle.tone}`}>
+                      {rentCycle.label}
                     </span>
-                  )}
+                  </div>
+                  <div className="pay-flow__card-meta">{formatManagerLabel(prop)}</div>
+                  {paymentSubline ? (
+                    <div className="pay-flow__card-meta pay-flow__card-meta--muted">{paymentSubline}</div>
+                  ) : null}
                 </div>
-                <div className="pay-flow__card-meta">{fullAddr || 'Address not set'}</div>
-              </div>
-              <ChevronRight size={18} className="pay-flow__card-trailing" />
-            </button>
-          )
-        })}
+                <ChevronRight size={18} className="pay-flow__card-trailing" />
+              </button>
+            )
+          })}
 
-        <button type="button" className="pay-flow__card pay-flow__card--dashed" onClick={onAddProperty}>
-          <div className="pay-flow__card-icon pay-flow__card-icon--soft">
-            <Plus size={22} />
-          </div>
-          <div className="pay-flow__card-body">
-            <div className="pay-flow__card-title">Add Property</div>
-            <div className="pay-flow__card-meta pay-flow__card-meta--muted">Pay rent for a new property</div>
-          </div>
-          <span className="pay-flow__card-trailing">
-            <ChevronRight size={18} />
-          </span>
-        </button>
-      </div>
+          <button type="button" className="pay-flow__card pay-flow__card--dashed" onClick={onAddProperty}>
+            <div className="pay-flow__card-icon pay-flow__card-icon--soft">
+              <Plus size={22} />
+            </div>
+            <div className="pay-flow__card-body">
+              <div className="pay-flow__card-title">Add Property</div>
+              <div className="pay-flow__card-meta pay-flow__card-meta--muted">Pay rent for a new property</div>
+            </div>
+            <span className="pay-flow__card-trailing">
+              <ChevronRight size={18} />
+            </span>
+          </button>
+        </div>
       </section>
 
       <div className="pay-flow__tip">

@@ -157,7 +157,7 @@ export default function PayRentPage() {
 
   const stepSubtitle: Record<PayRentStep, string | undefined> = {
     select: 'Send payments to your landlord or property manager',
-    'property-select': 'Select the property you are making a payment for to ensure your credit score is updated correctly.',
+    'property-select': 'Choose the property you are paying rent for.',
     new: 'Enter the bank account this rent payment should be sent to.',
     confirm: 'Set the amount and breakdown',
     'upload-proof': 'Upload your payment receipt'
