@@ -177,31 +177,29 @@ export class InviteTenantUseCase {
       } else if (actualChannel === 'WHATSAPP' && tenant.phone) {
         const companyName = pm.businessName || 'Upward';
         const managerName = `${pm.firstName} ${pm.lastName}`.trim();
-        const message = `Hi *${displayName}*,
- 
-${managerName} at ${companyName} has invited you to join Upward, your new platform for rent payments and tenancy management.
- 
-Your rent payments can now do more than pay for your home—they can work for you.
- 
-With Upward you can:
- 
-✅ Build a verified rental credibility profile from your payment history.
-✅ Keep your rental history even when you move.
-✅ Access your rent records and receipts anytime.
- 
-*Good news:* We'll import your previous rent payment history, so you won't be starting from scratch.
- 
-Getting started takes just a few minutes.
- 
-👉 *Accept your invitation and activate your Upward account today:* ${inviteResult.inviteLink}
- 
-Welcome to a more rewarding rental experience.
-
-
-*The ${companyName} Team*`;
         const waResult = await this.whatsappService.sendMessage({
           to: tenant.phone,
-          message: message,
+          template: {
+            name: 'upward_tenant_invite_v2',
+            components: [
+              {
+                type: 'body',
+                parameters: [
+                  { type: 'text', text: displayName },
+                  { type: 'text', text: managerName },
+                  { type: 'text', text: companyName }
+                ]
+              },
+              {
+                type: 'button',
+                sub_type: 'url',
+                index: '0',
+                parameters: [
+                  { type: 'text', text: new URL(inviteResult.inviteLink).pathname.slice(1) }
+                ]
+              }
+            ]
+          }
         });
         success = waResult.success;
       } else if ((actualChannel === 'SMS' || actualChannel === 'WHATSAPP') && tenant.phone && tenant.phone.startsWith('+234')) {
@@ -215,25 +213,7 @@ Welcome to a more rewarding rental experience.
       }
     } else {
       const loginUrl = 'https://upward.goodtenants.io/login';
-      
-      if (actualChannel === 'WHATSAPP' && tenant.phone) {
-        const companyName = pm.businessName || 'Upward';
-        const managerName = `${pm.firstName} ${pm.lastName}`.trim();
-        const message = `Hi *${displayName}*,
- 
-${managerName} at ${companyName} has just added a new property unit for you on Upward. 
- 
-You can now manage your tenancy and track your rent payments for this unit directly from your Upward dashboard.
- 
-👉 *Log in to your Upward account to view your new property details:* ${loginUrl}
- 
-*The ${companyName} Team*`;
-        const waResult = await this.whatsappService.sendMessage({
-          to: tenant.phone,
-          message: message,
-        });
-        success = waResult.success;
-      } else if ((actualChannel === 'SMS' || actualChannel === 'WHATSAPP') && tenant.phone && tenant.phone.startsWith('+234')) {
+      if ((actualChannel === 'SMS' || actualChannel === 'WHATSAPP') && tenant.phone && tenant.phone.startsWith('+234')) {
         const message = `Hi ${displayName}, ${pmName} has added a new property unit for you on Upward. Log in to your Upward account at ${loginUrl} to view your property details and manage your rent payments.`;
         success = await this.smsService.sendSms({
           to: tenant.phone,

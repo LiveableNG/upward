@@ -70,7 +70,7 @@ export const InvitedTable: React.FC<InvitedTableProps> = ({ paginatedItems, navi
     else if (sortKey === 'totalPaid') { va = a.totalPaid; vb = b.totalPaid }
     else if (sortKey === 'createdAt') { va = a.createdAt; vb = b.createdAt }
     else if (sortKey === 'status') { va = a.status; vb = b.status }
-    else if (sortKey === 'pmName') { va = a.pmName; vb = b.pmName }
+    else if (sortKey === 'pmName') { va = a.pmName || ''; vb = b.pmName || '' }
     if (va < vb) return sortDir === 'asc' ? -1 : 1
     if (va > vb) return sortDir === 'asc' ? 1 : -1
     return 0

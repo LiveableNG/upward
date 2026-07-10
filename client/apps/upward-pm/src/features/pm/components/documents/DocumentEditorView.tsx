@@ -657,40 +657,6 @@ export function DocumentEditorView({
                        </div>
                       <Mail size={18} /> SMS
                     </button>
-                    <button 
-                      onClick={() => setDeliveryMode('whatsapp')}
-                      style={{ 
-                        flex: 1, 
-                        padding: '12px', 
-                        borderRadius: 12, 
-                        border: `1px solid ${deliveryMode === 'whatsapp' ? 'var(--clay)' : 'var(--border)'}`,
-                        background: deliveryMode === 'whatsapp' ? 'var(--clay-faint)' : 'white',
-                        color: deliveryMode === 'whatsapp' ? 'var(--clay)' : 'var(--text-muted)',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 4,
-                        position: 'relative'
-                      }}
-                    >
-                      <div style={{ 
-                          position: 'absolute', 
-                          top: 8, 
-                          left: 8, 
-                          width: 14, 
-                          height: 14, 
-                          borderRadius: '50%', 
-                          border: `1.5px solid ${deliveryMode === 'whatsapp' ? 'var(--clay)' : 'var(--border)'}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                       }}>
-                          {deliveryMode === 'whatsapp' && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clay)' }}></div>}
-                       </div>
-                      <Mail size={18} /> WhatsApp
-                    </button>
                   </div>
                 )}
              </div>

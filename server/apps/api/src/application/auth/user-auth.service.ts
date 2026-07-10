@@ -776,7 +776,25 @@ export class UserAuthService extends BaseAuthService {
       if (channel === 'WHATSAPP') {
         await this.whatsappService.sendMessage({
           to: identifier,
-          message: messageText,
+          template: {
+            name: 'upward_auth_otp_v3',
+            components: [
+              {
+                type: 'body',
+                parameters: [
+                  { type: 'text', text: otp }
+                ]
+              },
+              {
+                type: 'button',
+                sub_type: 'url',
+                index: '0',
+                parameters: [
+                  { type: 'text', text: otp }
+                ]
+              }
+            ]
+          }
         }).catch((e: any) => console.error(`Failed to send WhatsApp OTP to ${identifier}:`, e.message));
       } else {
         await this.smsService.sendSms({
