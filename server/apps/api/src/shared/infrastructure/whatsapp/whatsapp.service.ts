@@ -4,7 +4,12 @@ import { PrismaService } from '../prisma/prisma.service';
 
 export interface WhatsappOptions {
   to: string;
-  message: string;
+  message?: string;
+  template?: {
+    name: string;
+    languageCode?: string;
+    components?: any[];
+  };
 }
 
 export interface WhatsappResult {
@@ -39,8 +44,9 @@ export class WhatsappService {
 
   async sendMessage(options: WhatsappOptions): Promise<WhatsappResult> {
     const isProd = process.env.NODE_ENV === 'production';
-    let finalMessage = options.message;
-    if (!finalMessage.endsWith('Upward by Goodtenants')) {
+    
+    let finalMessage = options.message || '';
+    if (finalMessage && !finalMessage.endsWith('Upward by Goodtenants')) {
       finalMessage = `${finalMessage}\n\nUpward by Goodtenants`;
     }
 
@@ -48,9 +54,9 @@ export class WhatsappService {
       await this.prisma.upward_dev_email_preview.create({
         data: {
           to: options.to,
-          subject: 'WhatsApp Message',
-          html: `<p>${finalMessage.replace(/\n/g, '<br>')}</p>`,
-          text: finalMessage,
+          subject: options.template ? `WhatsApp Template: ${options.template.name}` : 'WhatsApp Message',
+          html: `<p>${options.template ? JSON.stringify(options.template) : finalMessage.replace(/\n/g, '<br>')}</p>`,
+          text: options.template ? JSON.stringify(options.template) : finalMessage,
         }
       });
       this.logger.log(`WhatsApp preview saved for ${options.to}`);
@@ -58,23 +64,42 @@ export class WhatsappService {
     }
 
     if (!this.token || !this.phoneNumberId) {
-      this.logger.warn(`WhatsApp credentials missing. Mock sending WhatsApp to ${options.to}: ${finalMessage}`);
+      this.logger.warn(`WhatsApp credentials missing. Mock sending WhatsApp to ${options.to}`);
       return { success: true };
     }
 
     try {
       const sanitizedPhone = options.to.replace(/\D/g, '');
       
-      const payload = {
-        messaging_product: 'whatsapp',
-        to: sanitizedPhone,
-        type: 'text',
-        text: {
-          body: finalMessage,
-        },
-      };
+      let payload: any;
+      
+      if (options.template) {
+        payload = {
+          messaging_product: 'whatsapp',
+          to: sanitizedPhone,
+          type: 'template',
+          template: {
+            name: options.template.name,
+            language: {
+              code: options.template.languageCode || 'en_US',
+            },
+            ...(options.template.components && options.template.components.length > 0 
+              ? { components: options.template.components } 
+              : {}),
+          },
+        };
+      } else {
+        payload = {
+          messaging_product: 'whatsapp',
+          to: sanitizedPhone,
+          type: 'text',
+          text: {
+            body: finalMessage,
+          },
+        };
+      }
 
-      const url = `https://graph.facebook.com/v19.0/${this.phoneNumberId}/messages`;
+      const url = `https://graph.facebook.com/v25.0/${this.phoneNumberId}/messages`;
 
       const response = await fetch(url, {
         method: 'POST',

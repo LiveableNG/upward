@@ -199,23 +199,21 @@ Welcome to a more rewarding rental experience.
 
 
 *The ${companyName} Team*`;
-        success = await this.whatsappService.sendMessage({
+        const waResult = await this.whatsappService.sendMessage({
           to: tenant.phone,
           message: message,
         });
+        success = waResult.success;
       } else if ((actualChannel === 'SMS' || actualChannel === 'WHATSAPP') && tenant.phone && tenant.phone.startsWith('+234')) {
-        // Fallback to SMS if WHATSAPP requested but fails/invalid, or explicitly SMS
         const message = `Hi ${displayName}, ${pmName} has invited you to join Upward. Build your credit score, earn rewards for on-time payments, and verify your tenancy history effortlessly with Upward. Claim your account here: ${inviteResult.inviteLink}`;
         success = await this.smsService.sendSms({
           to: tenant.phone,
           message: message,
         });
       } else {
-        // Assume success if no valid contact info for actual sending but internal DB operations worked
         success = true;
       }
     } else {
-      // User is already on Upward, send a notification instead of an invite
       const loginUrl = 'https://upward.goodtenants.io/login';
       
       if (actualChannel === 'WHATSAPP' && tenant.phone) {
@@ -230,10 +228,11 @@ You can now manage your tenancy and track your rent payments for this unit direc
 👉 *Log in to your Upward account to view your new property details:* ${loginUrl}
  
 *The ${companyName} Team*`;
-        success = await this.whatsappService.sendMessage({
+        const waResult = await this.whatsappService.sendMessage({
           to: tenant.phone,
           message: message,
         });
+        success = waResult.success;
       } else if ((actualChannel === 'SMS' || actualChannel === 'WHATSAPP') && tenant.phone && tenant.phone.startsWith('+234')) {
         const message = `Hi ${displayName}, ${pmName} has added a new property unit for you on Upward. Log in to your Upward account at ${loginUrl} to view your property details and manage your rent payments.`;
         success = await this.smsService.sendSms({
