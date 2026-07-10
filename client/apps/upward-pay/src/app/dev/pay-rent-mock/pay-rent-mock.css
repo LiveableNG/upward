@@ -1,0 +1,390 @@
+.pay-rent-mock {
+  min-height: 100dvh;
+  background: #ece8e1;
+  font-family: var(--font-auth);
+  padding: 24px 16px 48px;
+}
+
+.pay-rent-mock__intro {
+  max-width: 720px;
+  margin: 0 auto 32px;
+}
+
+.pay-rent-mock__intro h1 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1a1714;
+  margin: 0 0 8px;
+}
+
+.pay-rent-mock__intro p {
+  font-size: 14px;
+  color: #6b6258;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.pay-rent-mock__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 28px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.pay-rent-mock__case {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pay-rent-mock__case-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a7d70;
+  padding: 0 4px;
+}
+
+.pay-rent-mock__case-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1714;
+  padding: 0 4px;
+}
+
+.pay-rent-mock__conditions {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e4dcd0;
+}
+
+.pay-rent-mock__conditions-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a9a096;
+  margin: 0 0 8px;
+}
+
+.pay-rent-mock__conditions-list {
+  margin: 0;
+  padding: 0 0 0 16px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #4a433c;
+}
+
+.pay-rent-mock__conditions-list li + li {
+  margin-top: 4px;
+}
+
+.pay-rent-mock__conditions-list code {
+  font-size: 11px;
+  background: #f5f0e8;
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #6b3f1f;
+}
+
+.pay-rent-mock__conditions-today {
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed #e8e0d4;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #8a7d70;
+}
+
+.pay-rent-mock__conditions-today strong {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.pay-rent-mock__frame {
+  background: var(--shell-page-bg, #faf8f5);
+  border-radius: 20px;
+  border: 1px solid #ddd5c8;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(40, 28, 16, 0.08);
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pay-rent-mock__frame .pay-flow {
+  min-height: 420px;
+  flex: 1;
+}
+
+.pay-rent-mock__frame .pay-flow__shell {
+  min-height: 420px;
+}
+
+.pay-rent-mock__summary {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b6258;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #f0e9df;
+}
+
+.pay-rent-mock__section-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a9a096;
+  margin: 0 0 10px;
+}
+
+.pay-rent-mock__section-label--spaced {
+  margin-top: 18px;
+}
+
+.pay-rent-mock__card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1.5px solid #f0e9df;
+  background: #fff;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.pay-rent-mock__card--urgent {
+  border-color: rgba(194, 80, 31, 0.35);
+  background: #fffaf7;
+}
+
+.pay-rent-mock__card--soon {
+  border-color: rgba(194, 140, 31, 0.3);
+}
+
+.pay-rent-mock__card--muted {
+  opacity: 0.72;
+  background: #faf8f5;
+}
+
+.pay-rent-mock__card--disabled {
+  opacity: 0.85;
+  background: #f8f6f3;
+}
+
+.pay-rent-mock__card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pay-rent-mock__pill {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pay-rent-mock__pill--overdue {
+  background: #fde8e8;
+  color: #b42318;
+}
+
+.pay-rent-mock__pill--soon {
+  background: #fef3e2;
+  color: #b45309;
+}
+
+.pay-rent-mock__pill--calm {
+  background: #eef4ee;
+  color: #3d6b4f;
+}
+
+.pay-rent-mock__pill--warn {
+  background: #fef3e2;
+  color: #92400e;
+}
+
+.pay-rent-mock__pill--neutral {
+  background: #f0ebe3;
+  color: #6b6258;
+}
+
+.pay-rent-mock__pill--ended {
+  background: #f0ebe3;
+  color: #8a7d70;
+}
+
+.pay-rent-mock__address {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1714;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.pay-rent-mock__sub {
+  font-size: 12.5px;
+  color: #8a7d70;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.pay-rent-mock__amount-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pay-rent-mock__amount {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1a1714;
+}
+
+.pay-rent-mock__due {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8a7d70;
+}
+
+.pay-rent-mock__progress {
+  height: 6px;
+  border-radius: 999px;
+  background: #f0e9df;
+  overflow: hidden;
+}
+
+.pay-rent-mock__progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--skin-primary, #c2501f);
+}
+
+.pay-rent-mock__progress-label {
+  font-size: 11px;
+  color: #a9a096;
+  margin: 0;
+}
+
+.pay-rent-mock__cta {
+  align-self: flex-start;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  background: var(--skin-primary, #c2501f);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: default;
+}
+
+.pay-rent-mock__cta--secondary {
+  background: #fff;
+  color: var(--skin-primary, #c2501f);
+  border: 1.5px solid rgba(194, 80, 31, 0.35);
+}
+
+.pay-rent-mock__cta--disabled {
+  background: #e8e2d8;
+  color: #a9a096;
+  cursor: not-allowed;
+}
+
+.pay-rent-mock__cta-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pay-rent-mock__add-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--skin-primary, #c2501f);
+  margin-top: 14px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  cursor: default;
+}
+
+.pay-rent-mock__card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pay-rent-mock__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 48px 20px;
+  gap: 12px;
+}
+
+.pay-rent-mock__empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: #f5f0e8;
+  color: var(--skin-primary, #c2501f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pay-rent-mock__empty h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+  color: #1a1714;
+}
+
+.pay-rent-mock__empty p {
+  font-size: 13px;
+  color: #8a7d70;
+  margin: 0;
+  line-height: 1.45;
+  max-width: 260px;
+}
+
+.pay-rent-mock__status-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.pay-rent-mock__status-line--error {
+  color: #b42318;
+}
+
+.pay-rent-mock__status-line--warn {
+  color: #b45309;
+}
+
+.pay-rent-mock__status-line--neutral {
+  color: #6b6258;
+}
