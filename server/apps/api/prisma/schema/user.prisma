@@ -19,6 +19,7 @@ model upward_user {
   isFromWaitlist       Boolean                          @default(false)
   isIdentityVerified   Boolean                          @default(false)
   isFromInvite         Boolean                          @default(false)
+  isInternal           Boolean                          @default(false)
   profileSlug          String?                          @unique
   bio                  String?
   profilePic           String?

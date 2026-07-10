@@ -82,6 +82,7 @@ model upward_company {
   createdAt    DateTime               @default(now())
   updatedAt    DateTime               @updatedAt
   platformId   Int?
+  isInternal   Boolean                @default(false)
   platform     upward_platform?       @relation(fields: [platformId], references: [id], onDelete: Cascade)
   companyUsers upward_company_user[]
   managers     upward_manager[]
