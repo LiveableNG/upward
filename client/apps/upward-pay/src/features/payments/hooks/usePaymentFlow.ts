@@ -581,6 +581,21 @@ export function usePaymentFlow(
     }
   }
 
+  const handleCancelRequest = async () => {
+    setIsSubmitting(true)
+    try {
+      const res = await api.post(`/payments/manual-request/${uuid}/cancel`, {})
+      if (res.success) {
+        success('Payment request cancelled')
+        router.push('/dashboard')
+      }
+    } catch (err: any) {
+      toastError(err.message || 'Failed to cancel request')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return {
     step, setStep,
     paymentData,
@@ -608,6 +623,7 @@ export function usePaymentFlow(
     handleAllocationChange,
     handlePaymentSuccess,
     handleActivation,
+    handleCancelRequest,
     loadPaymentDetails,
     loginLoading,
     executeLogin,

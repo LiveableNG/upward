@@ -61,6 +61,7 @@ interface BasicCheckoutViewProps {
   onSelectStandard?: () => void
   onSelectPremium?: () => void
   onManualPayClick?: () => void
+  onCancelRequest?: () => void
 }
 
 export function BasicCheckoutView({
@@ -88,6 +89,7 @@ export function BasicCheckoutView({
   onSelectStandard,
   onSelectPremium,
   onManualPayClick,
+  onCancelRequest,
 }: BasicCheckoutViewProps) {
   const router = useRouter()
 
@@ -240,6 +242,17 @@ export function BasicCheckoutView({
                 Upload payment proof
               </button>
             )}
+            
+            {onCancelRequest && (
+              <button
+                type="button"
+                className="btn btn--ghost btn--full btn--pill"
+                onClick={onCancelRequest}
+              >
+                Cancel payment request
+              </button>
+            )}
+
             <p 
               className="pay-flow__secure flex items-center justify-center gap-1.5 w-full text-center"
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}

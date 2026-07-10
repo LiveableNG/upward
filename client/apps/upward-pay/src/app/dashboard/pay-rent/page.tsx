@@ -36,6 +36,8 @@ export default function PayRentPage() {
   const [renewalPropertyUuid, setRenewalPropertyUuid] = useState<string | null>(null)
   const [processing, setProcessing] = useState(false)
 
+  const [authUser, setAuthUser] = useState<any>(null)
+
   const handleAddProperty = () => {
     clearSetupDraft()
     router.push(setupAddPropertyPath(SETUP_RETURN_PATHS.payRent))
@@ -117,6 +119,7 @@ export default function PayRentPage() {
     setLoading(true)
     Promise.all([api.getProfile(), api.getPendingPayments()])
       .then(([profile, pending]) => {
+        setAuthUser(profile)
         const props = profile?.properties || []
         setUserProperties(props)
         setPendingPayments(pending || [])
@@ -249,6 +252,7 @@ export default function PayRentPage() {
           requestedAmount={requestedAmount}
           totalPaidAlready={totalPaidAlready}
           userProperties={userProperties}
+          authUser={authUser}
           processing={processing}
           onContinue={async (amt, nar, addr, name, items, propertyUuid) => {
             setProcessing(true)
@@ -301,19 +305,25 @@ export default function PayRentPage() {
         />
       )}
 
-      {step === 'upload-proof' && selectedPropertyUuid && (
-        <div className="bg-[var(--surface)] p-6 rounded-3xl border border-[var(--border-solid)] shadow-[0_8px_30px_rgb(0,0,0,0.04)] max-w-xl mx-auto mt-6">
-          <UploadProofOfPayment 
-            userPropertyUuid={selectedPropertyUuid}
-            amount={payAmount}
-            currency="NGN"
-            onSuccess={() => {
-              router.push('/dashboard')
-            }}
-            onCancel={() => setStep('confirm')}
-          />
-        </div>
-      )}
+      {step === 'upload-proof' && selectedPropertyUuid && (() => {
+        const prop = userProperties.find(p => p.uuid === selectedPropertyUuid)
+        return (
+          <div className="bg-[var(--surface)] p-6 rounded-3xl border border-[var(--border-solid)] shadow-[0_8px_30px_rgb(0,0,0,0.04)] max-w-xl mx-auto mt-6">
+            <UploadProofOfPayment 
+              userPropertyUuid={selectedPropertyUuid}
+              amount={payAmount}
+              currency="NGN"
+              bankName={prop?.manualAccount?.bankName || ''}
+              accountName={prop?.manualAccount?.accountName || prop?.company?.name || 'Property Manager'}
+              accountNumber={prop?.manualAccount?.accountNumber || ''}
+              onSuccess={() => {
+                router.push('/dashboard')
+              }}
+              onCancel={() => setStep('confirm')}
+            />
+          </div>
+        )
+      })()}
 
       {renewalPropertyUuid && (
         <RenewalModal

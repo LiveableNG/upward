@@ -46,6 +46,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     isPremiumCheckout,
   } = useCheckoutVariant()
   const { track } = useCheckoutExperimentTracking()
+  const { error } = useToast()
   const [showUnverifiedModal, setShowUnverifiedModal] = React.useState(false)
   const checkoutViewedRef = useRef(false)
 
@@ -93,6 +94,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     handleAllocationChange,
     handlePaymentSuccess,
     handleActivation,
+    handleCancelRequest,
     loadPaymentDetails,
     loginLoading,
     executeLogin,
@@ -177,6 +179,19 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
       hasPaidBefore
     ) {
       setShowUnverifiedModal(true)
+      return
+    }
+
+    const hasManualAccount = !!paymentData?.property?.manualAccount
+    const isVerifiedProperty = !!paymentData?.property?.isVerified
+
+    if (!hasManualAccount) {
+      if (isVerifiedProperty) {
+        error('The property manager has not configured a manual payment account.')
+      } else {
+        error('Please set up your manual bank account in Rental details first.')
+        router.push('/dashboard/setup')
+      }
       return
     }
 
@@ -291,21 +306,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             <p className="manual-transfer-desc">
               Please transfer {formatCurrency(parsedAmount, currency)} to the account below, then upload your proof of payment.
             </p>
-            
-            <div className="manual-transfer-box">
-              <div className="manual-transfer-row">
-                <span className="manual-transfer-label">Bank Name</span>
-                <span className="manual-transfer-value">{paymentData?.property?.manualAccount?.bankName || 'GTBank'}</span>
-              </div>
-              <div className="manual-transfer-row">
-                <span className="manual-transfer-label">Account Name</span>
-                <span className="manual-transfer-value">{paymentData?.property?.manualAccount?.accountName || paymentData?.company?.name || 'Property Manager'}</span>
-              </div>
-              <div className="manual-transfer-row">
-                <span className="manual-transfer-label">Account Number</span>
-                <span className="manual-transfer-value manual-transfer-highlight">{paymentData?.property?.manualAccount?.accountNumber || '0000000000'}</span>
-              </div>
-            </div>
           </div>
 
           {/* Upload Component */}
@@ -321,10 +321,13 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             <div className="manual-transfer-upload-wrapper">
               <UploadProofOfPayment 
                 paymentRequestUuid={paymentData?.payment?.uuid}
-                userPropertyUuid={paymentData?.property?.uuid}
-                amount={parsedAmount}
+                userPropertyUuid={paymentData?.payment?.userPropertyUuid}
+                amount={totalOwed}
                 currency={currency}
                 lineItems={finalLineItemPayments}
+                bankName={paymentData?.property?.manualAccount?.bankName || ''}
+                accountName={paymentData?.property?.manualAccount?.accountName || paymentData?.company?.name || 'Property Manager'}
+                accountNumber={paymentData?.property?.manualAccount?.accountNumber || '0000000000'}
                 onCancel={() => setStep('invoice')}
                 onSuccess={() => setStep('success-manual')}
               />
@@ -547,6 +550,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
       </>
     )
 
+    const isSelfInitiated = paymentData?.payment?.description?.includes('Manual') || paymentData?.payment?.description?.includes('Self-initiated')
+
     if (isBasicCheckout) {
       return (
         <>
@@ -570,7 +575,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             executeLogin={executeLogin}
             handleAllocationChange={handleAllocationChange}
             onPayClick={handlePayClick}
-            onManualPayClick={handleManualPayClick}
+            onManualPayClick={isSelfInitiated ? undefined : handleManualPayClick}
+            onCancelRequest={isSelfInitiated ? handleCancelRequest : undefined}
           />
           {checkoutModals}
         </>
@@ -600,7 +606,8 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             executeLogin={executeLogin}
             handleAllocationChange={handleAllocationChange}
             onPayClick={handlePayClick}
-            onManualPayClick={handleManualPayClick}
+            onManualPayClick={isSelfInitiated ? undefined : handleManualPayClick}
+            onCancelRequest={isSelfInitiated ? handleCancelRequest : undefined}
             showPremiumOptions
             isPremiumSelected={isBenefitsOptedIn}
             onSelectStandard={() => setIsBenefitsOptedIn(false)}

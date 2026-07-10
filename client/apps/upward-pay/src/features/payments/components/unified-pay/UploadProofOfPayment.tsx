@@ -13,9 +13,12 @@ interface UploadProofOfPaymentProps {
   lineItems?: any[]
   onSuccess?: () => void
   onCancel?: () => void
+  bankName?: string
+  accountName?: string
+  accountNumber?: string
 }
 
-export function UploadProofOfPayment({ paymentRequestUuid, userPropertyUuid, amount, currency, lineItems, onSuccess, onCancel }: UploadProofOfPaymentProps) {
+export function UploadProofOfPayment({ paymentRequestUuid, userPropertyUuid, amount, currency, lineItems, onSuccess, onCancel, bankName, accountName, accountNumber }: UploadProofOfPaymentProps) {
   const { success, error } = useToast()
   
   const [mode, setMode] = useState<'upload' | 'manual'>('upload')
@@ -111,6 +114,23 @@ export function UploadProofOfPayment({ paymentRequestUuid, userPropertyUuid, amo
           </div>
         </div>
       </div>
+
+      {bankName && accountNumber && (
+        <div className="manual-transfer-box mb-6 p-4 rounded-2xl bg-[var(--surface2)] border border-[var(--border-solid)]">
+          <div className="flex justify-between items-center py-2 border-b border-[var(--border-solid)] last:border-0">
+            <span className="text-sm text-[var(--text-secondary)]">Bank Name</span>
+            <span className="text-sm font-medium text-[var(--text)]">{bankName}</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-[var(--border-solid)] last:border-0">
+            <span className="text-sm text-[var(--text-secondary)]">Account Name</span>
+            <span className="text-sm font-medium text-[var(--text)] text-right max-w-[60%]">{accountName}</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-[var(--border-solid)] last:border-0">
+            <span className="text-sm text-[var(--text-secondary)]">Account Number</span>
+            <span className="text-base font-bold text-[var(--clay)] tracking-wider">{accountNumber}</span>
+          </div>
+        </div>
+      )}
 
       <div className="buttons-container-selector">
         <button
