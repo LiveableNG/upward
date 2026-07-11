@@ -22,12 +22,18 @@ export function getSuggestedTransferAccounts(prop: PropertyLike): TransferBankAc
   }
 
   if (prop.manualAccount) {
+    const isPmConfigured = !!(
+      prop.isManaged ||
+      prop.isPlatformLinked ||
+      prop.companyName ||
+      prop.company
+    )
     add({
       accountNumber: prop.manualAccount.accountNumber,
       accountName: prop.manualAccount.accountName,
       bankName: prop.manualAccount.bankName || '',
       bankCode: prop.manualAccount.bankCode,
-      label: 'Your saved account',
+      label: isPmConfigured ? 'Property manager account' : 'Your saved account',
     })
   }
 
@@ -55,7 +61,10 @@ export function getSuggestedTransferAccounts(prop: PropertyLike): TransferBankAc
 }
 
 export function propertySupportsBankTransfer(prop: PropertyLike | null | undefined): boolean {
-  return !!prop?.pmManualAccount?.accountNumber?.trim()
+  if (!prop) return false
+  if (prop.pmManualAccount?.accountNumber?.trim()) return true
+  if (!prop.manualAccount?.accountNumber?.trim()) return false
+  return !!(prop.isManaged || prop.isPlatformLinked || prop.companyName || prop.company)
 }
 
 export function accountsMatch(
