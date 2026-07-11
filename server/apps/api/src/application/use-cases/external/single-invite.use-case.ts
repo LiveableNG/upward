@@ -20,6 +20,7 @@ import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../domains/payments/paym
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
 import { ResolveDedicatedAccountUseCase } from '../../use-cases/payments/payment.use-cases'
+import { AddManualAccountUseCase } from '../../use-cases/payments/manual-payment.use-cases'
 import { randomUUID } from 'crypto'
 import { EVENT_BUS, EventBus } from '../../events/domain-event'
 import { TenantSyncedEvent } from '../../events/definition/tenant-synced.event'
@@ -52,6 +53,7 @@ export class SingleInviteUseCase {
     @Inject(PAYMENT_GATEWAY) private readonly paymentGateway: IPaymentGateway,
     private readonly notificationService: NotificationService,
     private readonly resolveDedicatedAccount: ResolveDedicatedAccountUseCase,
+    private readonly addManualAccountUseCase: AddManualAccountUseCase,
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
   ) { }
 
@@ -328,6 +330,16 @@ export class SingleInviteUseCase {
           message: `Your rent for ${locData.address || locData.area} ${urgencyMsg}. Amount: ${amountStr}`,
           type: 'RENT_REMINDER',
           url: `/dashboard/pay-rent?propertyUuid=${property.uuid}`
+        })
+      }
+
+      if (propData.allowDirectBankTransfer && bankCode && accountNumber) {
+        await this.addManualAccountUseCase.execute({
+          userPropertyId: property.id,
+          accountNumber,
+          accountName: businessName,
+          bankName: propData.paymentAccount?.bank_name || '',
+          bankCode,
         })
       }
 

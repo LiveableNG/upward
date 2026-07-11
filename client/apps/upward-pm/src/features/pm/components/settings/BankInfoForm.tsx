@@ -9,6 +9,7 @@ import { useToast } from '@/components/common/Toast'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2, Loader2, Edit2, Check } from 'lucide-react'
 import { api } from '@/lib/api'
+import { dedupeBanksByCode } from '@/lib/utils'
 import { useUpdateBankInfo } from '../../hooks/usePmSettings'
 
 const bankSchema = z.object({
@@ -157,13 +158,11 @@ export function BankInfoForm() {
                   <label className="settings__label">Select Bank</label>
                   <select {...register('bankCode')} className="settings__input">
                     <option value="">Select a bank</option>
-                    {banks
-                      .filter((bank, index, self) => self.findIndex(b => b.code === bank.code) === index)
-                      .map((bank) => (
-                        <option key={bank.code} value={bank.code}>
-                          {bank.name}
-                        </option>
-                      ))}
+                    {dedupeBanksByCode(banks).map((bank) => (
+                      <option key={bank.code} value={bank.code}>
+                        {bank.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="settings__field">

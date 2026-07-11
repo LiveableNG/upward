@@ -16,7 +16,14 @@ export type Landlord = {
   isVerified?: boolean
 }
 
-export type PayRentStep = 'select' | 'property-select' | 'new' | 'confirm' | 'upload-proof'
+export type PayRentStep =
+  | 'select'
+  | 'property-select'
+  | 'new'
+  | 'confirm'
+  | 'payment-method'
+  | 'bank-transfer'
+  | 'upload-proof'
 export interface LineItem {
   label: string
   amount: number

@@ -4,7 +4,7 @@ import {
   formatManagerLabel,
   formatPendingInvoiceTitle,
   formatPropertyPaymentSubline,
-  formatPropertyTitle,
+  formatPropertyTitleWithUnit,
   getPendingDueBadge,
   getPropertyCardClassName,
   getRentCycleDisplay,
@@ -108,7 +108,7 @@ export function StepPropertySelect({
               >
                 <div className="pay-flow__card-body">
                   <div className="pay-flow__card-top-row">
-                    <div className="pay-flow__card-title">{formatPropertyTitle(prop)}</div>
+                    <div className="pay-flow__card-title">{formatPropertyTitleWithUnit(prop)}</div>
                     <span className={`pay-flow__rent-pill pay-flow__rent-pill--${rentCycle.tone}`}>
                       {rentCycle.label}
                     </span>

@@ -30,6 +30,44 @@ export function formatPropertyTitle(prop: PropertyLike): string {
   return loc?.address || loc?.area || prop.address || 'Property'
 }
 
+export function formatPropertyTitleWithUnit(prop: PropertyLike): string {
+  const unitName = prop.unitName || prop.pmUnit?.unitName
+  const base = formatPropertyTitle(prop)
+  if (unitName) return `${unitName} · ${base}`
+  return base
+}
+
+export function shouldShowPropertyBalanceStrip(
+  propertyBalance: {
+    hasActiveRequest?: boolean
+    amountPaid?: number
+    remainingBalance?: number
+  } | null | undefined,
+  requestedAmount = 0,
+): boolean {
+  if (!propertyBalance) return false
+  if (requestedAmount > 0) return true
+  if (propertyBalance.hasActiveRequest) return true
+  if ((propertyBalance.amountPaid ?? 0) > 0) return true
+  return false
+}
+
+export function getOwedRentAmount(
+  propertyBalance: { remainingBalance?: number } | null | undefined,
+  property: { rentAmount?: number } | null | undefined,
+): number {
+  if ((propertyBalance?.remainingBalance ?? 0) > 0) {
+    return propertyBalance!.remainingBalance!
+  }
+  return property?.rentAmount ?? 0
+}
+
+export function isRentAmountEditable(
+  propertyBalance: { allowPartial?: boolean } | null | undefined,
+): boolean {
+  return propertyBalance?.allowPartial === true
+}
+
 export function formatManagerLabel(prop: PropertyLike): string {
   const company = prop.company?.name || prop.companyName
   const manager = prop.manager?.firstName

@@ -150,6 +150,7 @@ describe('SingleInviteUseCase', () => {
   let tokenRepository: jest.Mocked<VerificationTokenRepository>
   let paymentGateway: jest.Mocked<IPaymentGateway>
   let resolveDedicatedAccount: any
+  let addManualAccountUseCase: any
   let eventBus: any
 
   beforeEach(() => {
@@ -221,6 +222,10 @@ describe('SingleInviteUseCase', () => {
       execute: jest.fn().mockResolvedValue({}),
     }
 
+    addManualAccountUseCase = {
+      execute: jest.fn().mockResolvedValue({}),
+    }
+
     eventBus = {
       publish: jest.fn(),
     }
@@ -238,6 +243,7 @@ describe('SingleInviteUseCase', () => {
       paymentGateway,
       notificationService,
       resolveDedicatedAccount,
+      addManualAccountUseCase,
       eventBus,
     )
   })
@@ -691,6 +697,49 @@ describe('SingleInviteUseCase', () => {
 
       const saved = propertyRepository.save.mock.calls[0]![0] as any
       expect(saved.currency).toBe('NGN')
+    })
+
+    it('should create a manual account when allowDirectBankTransfer is enabled', async () => {
+      setupPre()
+      locationRepository.save.mockResolvedValue(makeLocation() as any)
+      propertyRepository.save.mockResolvedValue(makeProperty() as any)
+
+      const payload = validInviteRequest()
+      payload.invite.properties[0].paymentAccount = {
+        bank_name: 'GTBank',
+        bank_code: '058',
+        account_name: 'Acme Properties Ltd',
+        account_number: '0123456789',
+      }
+      payload.invite.properties[0].allowDirectBankTransfer = true
+
+      await useCase.setupInviteContext(payload)
+
+      expect(addManualAccountUseCase.execute).toHaveBeenCalledWith({
+        userPropertyId: 30,
+        accountNumber: '0123456789',
+        accountName: 'Acme Properties Ltd',
+        bankName: 'GTBank',
+        bankCode: '058',
+      })
+    })
+
+    it('should not create a manual account when allowDirectBankTransfer is disabled', async () => {
+      setupPre()
+      locationRepository.save.mockResolvedValue(makeLocation() as any)
+      propertyRepository.save.mockResolvedValue(makeProperty() as any)
+
+      const payload = validInviteRequest()
+      payload.invite.properties[0].paymentAccount = {
+        bank_name: 'GTBank',
+        bank_code: '058',
+        account_name: 'Acme Properties Ltd',
+        account_number: '0123456789',
+      }
+
+      await useCase.setupInviteContext(payload)
+
+      expect(addManualAccountUseCase.execute).not.toHaveBeenCalled()
     })
   })
 
