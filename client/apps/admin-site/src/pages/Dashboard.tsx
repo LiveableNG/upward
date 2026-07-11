@@ -82,7 +82,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const [deleting, setDeleting] = useState(false)
 
   // ── Unified Users filters ──────────────────────────────────────
-  const [usersSubtab, setUsersSubtab] = useState<'signedUp' | 'guest'>('signedUp')
+  const [usersSubtab, setUsersSubtab] = useState<'signedUp' | 'guest' | 'unsynced'>('signedUp')
   const [originFilter, setOriginFilter] = useState<'all' | 'waitlist' | 'selfRegistered' | 'invited_email' | 'invited_phone'>('all')
   const [pmFilter, setPmFilter] = useState<'all' | string>('all')
 
@@ -278,6 +278,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         email: w.email,
         phone: w.phone,
         createdAt: w.createdAt,
+        joinedAt: null, // Waitlist never has a password or a joined date
         origin: 'WAITLIST',
         hasPassword: false,
         isExWaitlist: false,
@@ -297,9 +298,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         email: u.email,
         phone: u.phone,
         createdAt: u.createdAt,
-        origin: u.originType === 'INVITED_EMAIL' ? 'INVITED_EMAIL' : u.originType === 'INVITED_PHONE' ? 'INVITED_PHONE' : u.isWaitlist ? 'WAITLIST' : 'SELF_REGISTERED',
-        hasPassword: true,
-        isExWaitlist: u.isWaitlist,
+        joinedAt: u.joinedAt, // Mapped from backend
+        origin: u.origin || 'SELF_REGISTERED',
+        hasPassword: u.hasPassword ?? true,
+        isExWaitlist: u.origin === 'WAITLIST',
         totalPaid: u.totalPaid,
         rentExpiryDate: u.rentExpiryDate,
         pms: u.pms,
@@ -308,7 +310,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     })
 
     invitedList.forEach((i) => {
-      const isSignedUp = i.status === 'INVITED_SIGNED_UP' || i.status === 'SIGNED_UP_PAID'
       list.push({
         id: i.id,
         uuid: i.uuid,
@@ -317,9 +318,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         email: i.email,
         phone: i.phone,
         createdAt: i.createdAt,
-        origin: i.originType === 'INVITED_PHONE' ? 'INVITED_PHONE' : 'INVITED_EMAIL',
-        hasPassword: isSignedUp,
-        isExWaitlist: false,
+        joinedAt: i.joinedAt, // Mapped from backend
+        origin: i.origin || 'INVITED_EMAIL',
+        hasPassword: i.hasPassword ?? false,
+        isExWaitlist: i.origin === 'WAITLIST',
         pms: i.pms,
         totalPaid: i.totalPaid,
         rentExpiryDate: i.rentExpiryDate,
@@ -333,7 +335,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const subtabUsers = useMemo(() => {
     return unifiedUsers.filter((u) => {
       if (usersSubtab === 'signedUp') return u.hasPassword
-      return !u.hasPassword
+      if (usersSubtab === 'guest') return !u.hasPassword && u.rawRecord?.isSynced !== false
+      if (usersSubtab === 'unsynced') return u.rawRecord?.isSynced === false
+      return false
     })
   }, [unifiedUsers, usersSubtab])
 
@@ -599,7 +603,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
               {/* Users Subtab Switcher */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '10px', background: 'var(--white)', padding: '3px', border: '1px solid var(--border)', width: 'fit-content' }}>
-                  {(['signedUp', 'guest'] as const).map((view) => (
+                  {(['signedUp', 'guest', 'unsynced'] as const).map((view) => (
                     <button
                       key={view}
                       onClick={() => {
@@ -614,7 +618,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                         boxShadow: usersSubtab === view ? 'var(--shadow-sm)' : 'none',
                       }}
                     >
-                      {view === 'signedUp' ? 'Signed Up' : 'Guest'}
+                      {view === 'signedUp' ? 'Signed Up' : view === 'guest' ? 'Guest' : 'Unsynced'}
                     </button>
                   ))}
                 </div>

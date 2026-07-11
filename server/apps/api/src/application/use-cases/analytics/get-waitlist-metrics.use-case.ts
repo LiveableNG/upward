@@ -5,9 +5,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
 export class GetWaitlistMetricsUseCase {
   constructor(private readonly encryption: EncryptionService) {}
 
-  execute(allUsers: any[], allWaitlistEntries: any[], userMap: Map<string, any>) {
-    const userWaitlistEmails = new Set(allUsers.filter((u) => u.isFromWaitlist).map((u) => u.emailHash))
-    
+  execute(allUsers: any[], allWaitlistEntries: any[], userMap: Map<string, any>, allUserEmailHashes: Set<string>) {
     const waitlistConvertedList = allUsers
       .filter((u) => u.isFromWaitlist)
       .map((u) => {
@@ -23,13 +21,16 @@ export class GetWaitlistMetricsUseCase {
           createdAt: u.createdAt,
           converted: true,
           totalPaid,
+          hasPassword: true, // If they converted and are in allUsers, they have a password
+          origin: 'WAITLIST',
+          originType: 'WAITLIST',
         }
       })
 
     const waitlistUnconvertedList = allWaitlistEntries
       .filter((w) => {
         const hash = this.encryption.hash(w.email)
-        return !userWaitlistEmails.has(hash)
+        return !allUserEmailHashes.has(hash)
       })
       .map((w) => ({
         id: `w_u_${w.id}`,
@@ -41,6 +42,9 @@ export class GetWaitlistMetricsUseCase {
         createdAt: w.createdAt,
         converted: false,
         totalPaid: 0,
+        hasPassword: false,
+        origin: 'WAITLIST',
+        originType: 'WAITLIST',
       }))
 
     const finalWaitlistDirectory = waitlistUnconvertedList

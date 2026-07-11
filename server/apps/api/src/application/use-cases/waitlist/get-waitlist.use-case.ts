@@ -86,7 +86,7 @@ export class GetWaitlistUseCase {
         where,
         orderBy: { createdAt: 'desc' },
         include: {
-          emailLogs: true,
+          communicationLogs: true,
         },
       })
 
@@ -113,7 +113,7 @@ export class GetWaitlistUseCase {
           skip,
           take: limit,
           include: {
-            emailLogs: true,
+            communicationLogs: true,
           },
         }),
         this.prisma.upward_user.count({ where }),

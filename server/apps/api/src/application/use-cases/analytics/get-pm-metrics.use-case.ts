@@ -6,6 +6,8 @@ export class GetPmMetricsUseCase {
   constructor(private readonly encryption: EncryptionService) {}
 
   execute(allPms: any[], allCompanies: any[], successTransactions: any[], allUsers: any[]) {
+    const pmCompanyUuids = new Set<string>()
+
     const finalPmDirectoryRaw = allPms.map((pm) => {
       const pmSubaccountUuids = pm.userProperties
         .map((up: any) => up.subaccount?.uuid)
@@ -27,13 +29,15 @@ export class GetPmMetricsUseCase {
         platformCompanyName = this.encryption.decrypt(firstCompany.name).trim()
       }
 
-      const resolvedBusinessName = platformCompanyName || (decryptedBusinessName && decryptedBusinessName !== 'No Business Name'
-        ? decryptedBusinessName
-        : `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Platform PM')
-
       const companyUuids = Array.from(new Set(
         pm.userProperties.map((up: any) => up.company?.uuid).filter(Boolean) as string[]
       ))
+
+      companyUuids.forEach((uuid) => pmCompanyUuids.add(uuid))
+
+      const resolvedBusinessName = platformCompanyName || (decryptedBusinessName && decryptedBusinessName !== 'No Business Name'
+        ? decryptedBusinessName
+        : `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Platform PM')
 
       return {
         id: pm.id.toString(),
@@ -53,59 +57,61 @@ export class GetPmMetricsUseCase {
       }
     })
 
-    const finalCompanyDirectory = allCompanies.map((c) => {
-      const companySubaccountUuids = c.properties
-        .map((p: any) => p.subaccount?.uuid)
-        .filter(Boolean) as string[]
+    const finalCompanyDirectory = allCompanies
+      .filter((c) => !pmCompanyUuids.has(c.uuid))
+      .map((c) => {
+        const companySubaccountUuids = c.properties
+          .map((p: any) => p.subaccount?.uuid)
+          .filter(Boolean) as string[]
 
-      const companyTx = successTransactions.filter((tx) => {
-        if (tx.landlordId && companySubaccountUuids.includes(tx.landlordId)) {
-          return true
+        const companyTx = successTransactions.filter((tx) => {
+          if (tx.landlordId && companySubaccountUuids.includes(tx.landlordId)) {
+            return true
+          }
+          const user = allUsers.find((u) => u.id === tx.userId)
+          return user && user.properties.some((p: any) => p.companyId === c.id)
+        })
+
+        const totalGenerated = companyTx.reduce((sum, tx) => sum + tx.amount, 0)
+
+        const decryptedName = this.encryption.decrypt(c.name).trim()
+        const decryptedEmail = c.email ? this.encryption.decrypt(c.email).trim() : ''
+        const decryptedPhone = c.phone ? this.encryption.decrypt(c.phone).trim() : 'N/A'
+
+        const firstManager = c.managers && c.managers[0]
+        let resolvedFirstName = ''
+        let resolvedLastName = ''
+        let resolvedEmail = decryptedEmail
+        let resolvedPhone = decryptedPhone
+
+        if (firstManager) {
+          resolvedFirstName = firstManager.firstName ? this.encryption.decrypt(firstManager.firstName).trim() : ''
+          resolvedLastName = firstManager.lastName ? this.encryption.decrypt(firstManager.lastName).trim() : ''
+          
+          if (!resolvedEmail) {
+            resolvedEmail = firstManager.email ? this.encryption.decrypt(firstManager.email).trim() : ''
+          }
+          if (!resolvedPhone || resolvedPhone === 'N/A') {
+            resolvedPhone = firstManager.phone ? this.encryption.decrypt(firstManager.phone).trim() : 'N/A'
+          }
         }
-        const user = allUsers.find((u) => u.id === tx.userId)
-        return user && user.properties.some((p: any) => p.companyId === c.id)
+
+        return {
+          id: `co_${c.id}`,
+          uuid: c.uuid,
+          email: resolvedEmail,
+          firstName: resolvedFirstName,
+          lastName: resolvedLastName,
+          businessName: decryptedName,
+          phone: resolvedPhone,
+          isVerified: true,
+          propertiesCount: c.properties.length,
+          unitsCount: c.properties.length,
+          totalGenerated,
+          createdAt: c.createdAt,
+          pmType: 'Platform',
+        }
       })
-
-      const totalGenerated = companyTx.reduce((sum, tx) => sum + tx.amount, 0)
-
-      const decryptedName = this.encryption.decrypt(c.name).trim()
-      const decryptedEmail = c.email ? this.encryption.decrypt(c.email).trim() : ''
-      const decryptedPhone = c.phone ? this.encryption.decrypt(c.phone).trim() : 'N/A'
-
-      const firstManager = c.managers && c.managers[0]
-      let resolvedFirstName = ''
-      let resolvedLastName = ''
-      let resolvedEmail = decryptedEmail
-      let resolvedPhone = decryptedPhone
-
-      if (firstManager) {
-        resolvedFirstName = firstManager.firstName ? this.encryption.decrypt(firstManager.firstName).trim() : ''
-        resolvedLastName = firstManager.lastName ? this.encryption.decrypt(firstManager.lastName).trim() : ''
-        
-        if (!resolvedEmail) {
-          resolvedEmail = firstManager.email ? this.encryption.decrypt(firstManager.email).trim() : ''
-        }
-        if (!resolvedPhone || resolvedPhone === 'N/A') {
-          resolvedPhone = firstManager.phone ? this.encryption.decrypt(firstManager.phone).trim() : 'N/A'
-        }
-      }
-
-      return {
-        id: `co_${c.id}`,
-        uuid: c.uuid,
-        email: resolvedEmail,
-        firstName: resolvedFirstName,
-        lastName: resolvedLastName,
-        businessName: decryptedName,
-        phone: resolvedPhone,
-        isVerified: true,
-        propertiesCount: c.properties.length,
-        unitsCount: c.properties.length,
-        totalGenerated,
-        createdAt: c.createdAt,
-        pmType: 'Platform',
-      }
-    })
 
     const finalPmDirectory = [...finalPmDirectoryRaw, ...finalCompanyDirectory]
 

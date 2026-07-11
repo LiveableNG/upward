@@ -11,6 +11,8 @@ import {
   RotateCcw,
   ArrowLeft,
   ArrowRight,
+  MessageSquare,
+  Smartphone,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -22,6 +24,8 @@ interface EmailLog {
   subject: string
   type: string
   status: string
+  channel?: 'EMAIL' | 'SMS' | 'WHATSAPP'
+  recipient?: string
   body: string | null
   sentAt: string | null
   createdAt: string
@@ -292,10 +296,10 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
           </div>
           <div>
             <h1 className="section-title" style={{ margin: 0 }}>
-              Email Logs
+              Communication Logs
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
-              Track every email sent to users and view their live content.
+              Track every email, SMS, and WhatsApp message sent to users.
             </p>
           </div>
         </div>
@@ -457,7 +461,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
             />
             <input
               type="text"
-              placeholder="Filter by user email..."
+              placeholder="Filter by recipient email or phone..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{
@@ -593,6 +597,17 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
                 >
                   Status
                 </th>
+                <th
+                  style={{
+                    padding: '16px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Channel
+                </th>
                 <th style={{ padding: '16px 24px', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
@@ -634,10 +649,10 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
                           ? `${log.registeredUser.firstName} ${log.registeredUser.lastName || ''}`
                           : log.user?.firstName
                             ? `${log.user.firstName} ${log.user.lastName || ''}`
-                            : log.email || 'Unknown'}
+                            : log.recipient || log.email || 'Unknown'}
                       </div>
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {log.email || log.registeredUser?.email || log.user?.email}
+                        {log.recipient || log.email || log.registeredUser?.email || log.user?.email}
                       </div>
                     </td>
                     <td style={{ padding: '16px' }}>
@@ -686,6 +701,17 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
                           <Clock size={14} />
                         )}
                         {log.status}
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600 }}>
+                        {log.channel === 'SMS' ? (
+                          <><Smartphone size={15} style={{ color: 'var(--text-muted)' }}/> SMS</>
+                        ) : log.channel === 'WHATSAPP' ? (
+                          <><MessageSquare size={15} style={{ color: '#25D366' }}/> WhatsApp</>
+                        ) : (
+                          <><Mail size={15} style={{ color: 'var(--accent)' }}/> Email</>
+                        )}
                       </div>
                     </td>
                     <td style={{ padding: '16px 24px', textAlign: 'right' }}>
@@ -848,7 +874,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
         >
           <div
             style={{
-              background: 'var(--body-bg)',
+              background: 'var(--white)',
               width: '100%',
               maxWidth: '800px',
               height: '90vh',
@@ -871,9 +897,9 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
               }}
             >
               <div>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Email Live View</h3>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Message Live View</h3>
                 <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-                  Sent to <strong>{viewLog.email}</strong> on{' '}
+                  Sent to <strong>{viewLog.recipient || viewLog.email}</strong> on{' '}
                   {new Date(viewLog.createdAt).toLocaleString()}
                 </p>
               </div>
@@ -963,14 +989,32 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
                   height: 'calc(100% - 100px)',
                   background: '#f3f4f6',
                   overflow: 'hidden',
+                  padding: viewLog.channel !== 'EMAIL' ? '24px' : '0',
                 }}
               >
                 {viewLog.body ? (
-                  <iframe
-                    srcDoc={viewLog.body}
-                    title="Live Email View"
-                    style={{ width: '100%', height: '100%', border: 'none' }}
-                  />
+                  viewLog.channel === 'SMS' || viewLog.channel === 'WHATSAPP' ? (
+                    <div style={{ 
+                      whiteSpace: 'pre-wrap', 
+                      fontFamily: 'monospace', 
+                      fontSize: '14px', 
+                      lineHeight: '1.6',
+                      background: 'var(--white)',
+                      padding: '24px',
+                      borderRadius: '12px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                      height: '100%',
+                      overflowY: 'auto'
+                    }}>
+                      {viewLog.body}
+                    </div>
+                  ) : (
+                    <iframe
+                      srcDoc={viewLog.body}
+                      title="Live Email View"
+                      style={{ width: '100%', height: '100%', border: 'none' }}
+                    />
+                  )
                 ) : (
                   <div
                     style={{
