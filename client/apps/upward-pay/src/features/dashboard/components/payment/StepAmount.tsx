@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { PayFlowPrimaryButton } from './PayPageShell'
 import { type Landlord, type LineItem } from './types'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import { Plus, Trash2, Info } from 'lucide-react'
-import { useToast } from '@/components/common/Toast'
 import {
   formatManagerLabel,
   formatPropertyTitleWithUnit,
@@ -138,7 +136,6 @@ type StepAmountProps = {
     lineItems?: LineItem[],
     propertyUuid?: string,
   ) => void
-  onSubmitProof?: (amount: number, propertyUuid?: string) => void
   onBack?: () => void
 }
 
@@ -178,15 +175,12 @@ export function StepAmount({
   totalPaidAlready = 0,
   processing = false,
   onContinue,
-  onSubmitProof,
   onBack,
 }: StepAmountProps) {
   void authUser
   void initialPropertyAddress
   void onBack
-
-  const { error } = useToast()
-  const router = useRouter()
+  void landlord
 
   const initialSplit = splitInitialLineItems(initialLineItems)
   const selectedProperty = userProperties?.find(p => p.uuid === (initialPropertyUuid || undefined))
@@ -411,36 +405,8 @@ export function StepAmount({
             }
           }}
         >
-          Pay online
+          Continue
         </PayFlowPrimaryButton>
-        {onSubmitProof && (() => {
-          const prop = selectedProperty
-          const isVerified = !!prop?.isVerified
-          const hasManualAccount = !!prop?.manualAccount
-
-          return (
-            <button
-              type="button"
-              className="btn btn--ghost btn--full btn--pill"
-              style={{ marginTop: '8px', color: 'var(--text-secondary)' }}
-              disabled={!canProceed || processing}
-              onClick={() => {
-                if (!hasManualAccount) {
-                  if (isVerified) {
-                    error('The property manager has not configured a manual payment account.')
-                  } else {
-                    error('Please set up your manual bank account in Rental details first.')
-                    router.push('/dashboard/setup')
-                  }
-                  return
-                }
-                onSubmitProof(resolvedAmount, initialPropertyUuid || undefined)
-              }}
-            >
-              Paid manually? Upload proof
-            </button>
-          )
-        })()}
       </div>
 
       {showOverpaymentDialog ? (

@@ -4,16 +4,18 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 
-import { type Landlord, type PayRentStep } from '@/features/dashboard/components/payment/types'
+import { type Landlord, type LineItem, type PayRentStep } from '@/features/dashboard/components/payment/types'
 import { StepNewLandlord } from '@/features/dashboard/components/payment/StepNewLandlord'
 import { StepAmount } from '@/features/dashboard/components/payment/StepAmount'
 import { StepPropertySelect } from '@/features/dashboard/components/payment/StepPropertySelect'
+import { StepPaymentMethod } from '@/features/dashboard/components/payment/StepPaymentMethod'
+import { StepBankTransfer } from '@/features/dashboard/components/payment/StepBankTransfer'
 import { PayRentSkeleton } from '@/features/dashboard/components/payment/PayRentSkeleton'
 import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { RenewalModal } from '@/features/payments/components/unified-pay/RenewalModal'
-import { UploadProofOfPayment } from '@/features/payments/components/unified-pay/UploadProofOfPayment'
 import { clearSetupDraft } from '@/features/dashboard/setup/setupDraft'
 import { SETUP_RETURN_PATHS, setupAddPropertyPath } from '@/features/dashboard/setup/setupPaths'
+import { propertySupportsBankTransfer } from '@/features/dashboard/components/payment/propertyBankAccount'
 
 export default function PayRentPage() {
   const router = useRouter()
@@ -24,8 +26,7 @@ export default function PayRentPage() {
   const [narration, setNarration] = useState('')
   const [propertyAddress, setPropertyAddress] = useState('')
   const [paymentType, setpaymentType] = useState('Rent Payment')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [lineItems, setLineItems] = useState<any[]>([])
+  const [lineItems, setLineItems] = useState<LineItem[]>([])
 
   const [requestedAmount, setRequestedAmount] = useState(0)
   const [totalPaidAlready, setTotalPaidAlready] = useState(0)
@@ -100,6 +101,8 @@ export default function PayRentPage() {
     setPropertyAddress(fullAddr)
     setpaymentType('Rent Payment')
     setPayAmount(0)
+    setLineItems([])
+    setNarration('')
 
     if (prop.isPastTenancy) {
       setRenewalPropertyUuid(prop.uuid)
@@ -141,18 +144,68 @@ export default function PayRentPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  async function startOnlinePayment(overrides?: {
+    amount?: number
+    narration?: string
+    propertyAddress?: string
+    paymentType?: string
+    lineItems?: LineItem[]
+  }) {
+    if (!selectedLandlord) return
+    const resolvedAmount = overrides?.amount ?? payAmount
+    const resolvedNarration = overrides?.narration ?? narration
+    const resolvedAddress = overrides?.propertyAddress ?? propertyAddress
+    const resolvedPaymentType = overrides?.paymentType ?? paymentType
+    const resolvedLineItems = overrides?.lineItems ?? lineItems
+
+    setProcessing(true)
+    try {
+      const targetPropertyUuid = selectedPropertyUuid || undefined
+      const res = await api.createManualPaymentRequest({
+        amount: resolvedAmount,
+        landlordUuid: selectedLandlord.uuid,
+        landlordDetails: (selectedLandlord as any).isNewLocal
+          ? {
+              accountNumber: selectedLandlord.accountNumber,
+              bankCode: selectedLandlord.bankCode,
+              name: selectedLandlord.name,
+            }
+          : undefined,
+        propertyUuid: targetPropertyUuid,
+        metadata: {
+          narration: resolvedNarration || `Manual Payment for ${resolvedAddress}`,
+          description: resolvedNarration || `Manual Payment for ${resolvedAddress}`,
+          propertyAddress: resolvedAddress,
+          userPropertyUuid: targetPropertyUuid,
+          paymentType: resolvedPaymentType,
+          lineItems: resolvedLineItems.length > 0 ? resolvedLineItems : undefined,
+        },
+      })
+      if (res.uuid) {
+        router.push(`/pay/${res.uuid}`)
+      }
+    } catch (e) {
+      console.error('Failed to create manual payment request:', e)
+      setProcessing(false)
+    }
+  }
+
   if (loading) return <PayRentSkeleton />
 
   const handleSelectPending = (p: any) => {
     router.push(`/pay/${p.uuid}`)
   }
 
+  const selectedProperty = userProperties.find(p => p.uuid === selectedPropertyUuid)
+
   const stepTitle: Record<PayRentStep, string> = {
     select: 'Pay Rent',
     'property-select': 'Pay Rent',
     new: 'Payment details',
     confirm: 'Enter Amount',
-    'upload-proof': 'Upload Proof of Payment'
+    'payment-method': 'Payment method',
+    'bank-transfer': 'Bank transfer',
+    'upload-proof': 'Upload Proof of Payment',
   }
 
   const stepSubtitle: Record<PayRentStep, string | undefined> = {
@@ -160,7 +213,9 @@ export default function PayRentPage() {
     'property-select': 'Choose the property you are paying rent for.',
     new: 'Enter the bank account this rent payment should be sent to.',
     confirm: 'Set the amount and breakdown',
-    'upload-proof': 'Upload your payment receipt'
+    'payment-method': 'Choose how you want to pay',
+    'bank-transfer': 'Transfer to the account below, then submit proof',
+    'upload-proof': 'Upload your payment receipt',
   }
 
   function handleBack() {
@@ -170,16 +225,18 @@ export default function PayRentPage() {
     } else if (step === 'new') {
       setStep('property-select')
     } else if (step === 'confirm') {
-      if (payAmount > 0) {
-        setPayAmount(0)
-      } else if ((selectedLandlord as any)?.isNewLocal) {
+      if ((selectedLandlord as any)?.isNewLocal) {
         setStep('new')
       } else {
         setSelectedLandlord(null)
         setStep('property-select')
       }
-    } else if (step === 'upload-proof') {
+    } else if (step === 'payment-method') {
       setStep('confirm')
+    } else if (step === 'bank-transfer') {
+      setStep('payment-method')
+    } else if (step === 'upload-proof') {
+      setStep('bank-transfer')
     } else {
       setSelectedLandlord(null)
       router.push('/dashboard')
@@ -254,76 +311,47 @@ export default function PayRentPage() {
           userProperties={userProperties}
           authUser={authUser}
           processing={processing}
-          onContinue={async (amt, nar, addr, name, items, propertyUuid) => {
-            setProcessing(true)
-            try {
-              const targetPropertyUuid = propertyUuid || selectedPropertyUuid || undefined
-              const res = await api.createManualPaymentRequest({
-                amount: amt,
-                landlordUuid: selectedLandlord.uuid,
-                landlordDetails: (selectedLandlord as any).isNewLocal
-                  ? {
-                      accountNumber: selectedLandlord.accountNumber,
-                      bankCode: selectedLandlord.bankCode,
-                      name: selectedLandlord.name,
-                    }
-                  : undefined,
-                propertyUuid: targetPropertyUuid,
-                metadata: {
-                  narration: nar || `Manual Payment for ${addr}`,
-                  description: nar || `Manual Payment for ${addr}`,
-                  propertyAddress: addr,
-                  userPropertyUuid: targetPropertyUuid,
-                  paymentType: name,
-                  lineItems: items && items.length > 0 ? items : undefined,
-                },
-              })
-              if (res.uuid) {
-                router.push(`/pay/${res.uuid}`)
-              }
-            } catch (e) {
-              console.error('Failed to create manual payment request:', e)
-              setProcessing(false)
-            }
-          }}
-          onSubmitProof={(amt, propertyUuid) => {
+          onContinue={(amt, nar, addr, name, items) => {
             setPayAmount(amt)
-            if (propertyUuid) setSelectedPropertyUuid(propertyUuid)
-            setStep('upload-proof')
-          }}
-          onBack={() => {
-            setPayAmount(0)
-            setRequestedAmount(0)
-            setTotalPaidAlready(0)
-            if ((selectedLandlord as any)?.isNewLocal) {
-              setStep('new')
+            setNarration(nar)
+            setPropertyAddress(addr)
+            setpaymentType(name)
+            setLineItems(items || [])
+
+            const prop = userProperties.find(p => p.uuid === selectedPropertyUuid)
+            if (propertySupportsBankTransfer(prop)) {
+              setStep('payment-method')
             } else {
-              setSelectedLandlord(null)
-              setStep('property-select')
+              startOnlinePayment({
+                amount: amt,
+                narration: nar,
+                propertyAddress: addr,
+                paymentType: name,
+                lineItems: items || [],
+              })
             }
           }}
         />
       )}
 
-      {step === 'upload-proof' && selectedPropertyUuid && (() => {
-        const prop = userProperties.find(p => p.uuid === selectedPropertyUuid)
-        return (
-          <div className="bg-[var(--surface)] p-6 rounded-3xl border border-[var(--border-solid)] shadow-[0_8px_30px_rgb(0,0,0,0.04)] max-w-xl mx-auto mt-6">
-            <UploadProofOfPayment 
-              userPropertyUuid={selectedPropertyUuid}
-              amount={payAmount}
-              currency="NGN"
-              bankName={prop?.manualAccount?.bankName || ''}
-              accountName={prop?.manualAccount?.accountName || prop?.company?.name || 'Property Manager'}
-              accountNumber={prop?.manualAccount?.accountNumber || ''}
-              onSuccess={() => {
-                router.push('/dashboard')
-              }}
-              onCancel={() => setStep('confirm')}
-            />
-          </div>
-        )
-      })()}
+      {step === 'payment-method' && (
+        <StepPaymentMethod
+          amount={payAmount}
+          processing={processing}
+          onPayOnline={startOnlinePayment}
+          onBankTransfer={() => setStep('bank-transfer')}
+        />
+      )}
+
+      {step === 'bank-transfer' && selectedProperty && (
+        <StepBankTransfer
+          property={selectedProperty}
+          amount={payAmount}
+          lineItems={lineItems}
+          onBack={() => setStep('payment-method')}
+          onSuccess={() => router.push('/dashboard')}
+        />
+      )}
 
       {renewalPropertyUuid && (
         <RenewalModal

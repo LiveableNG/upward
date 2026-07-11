@@ -1685,6 +1685,211 @@
   color: #1a1714;
 }
 
+/* Payment method step */
+.pay-flow__payment-method-intro {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #7a7268;
+}
+
+.pay-flow__payment-method-intro strong {
+  color: #1a1714;
+}
+
+.pay-flow__method-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 16px;
+  border: 1.5px solid #f0e9df;
+  border-radius: 16px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.pay-flow__method-card:hover:not(:disabled) {
+  border-color: rgba(194, 80, 31, 0.35);
+  transform: translateY(-1px);
+}
+
+.pay-flow__method-card:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pay-flow__method-card-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pay-flow__method-card-icon--online {
+  background: #fbede5;
+  color: var(--skin-primary, #c2501f);
+}
+
+.pay-flow__method-card-icon--bank {
+  background: #eef4ee;
+  color: #3d6b4f;
+}
+
+.pay-flow__method-card-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1714;
+}
+
+.pay-flow__method-card-desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #8a7d70;
+}
+
+/* Bank transfer step */
+.pay-flow__bank-transfer {
+  display: flex;
+  flex-direction: column;
+}
+
+.pay-flow__transfer-account-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pay-flow__transfer-account-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1.5px solid #f0e9df;
+  border-radius: 14px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s ease;
+}
+
+.pay-flow__transfer-account-card--selected {
+  border-color: rgba(194, 80, 31, 0.45);
+  background: #fffaf7;
+}
+
+.pay-flow__transfer-account-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.pay-flow__transfer-account-card-label {
+  margin: 0 0 2px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--skin-primary, #c2501f);
+}
+
+.pay-flow__transfer-account-card-name {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1714;
+}
+
+.pay-flow__transfer-account-card-meta {
+  margin: 0;
+  font-size: 12px;
+  color: #8a7d70;
+}
+
+.pay-flow__transfer-enter-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 16px;
+}
+
+.pay-flow__transfer-back-link {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.pay-flow__transfer-verified {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #eef8f0;
+  color: #2d6a3e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pay-flow__save-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #5c544b;
+  cursor: pointer;
+}
+
+.pay-flow__save-account input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--skin-primary, #c2501f);
+}
+
+.pay-flow__transfer-account-summary {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid #f0e9df;
+  background: #fdfbf8;
+}
+
+.pay-flow__transfer-account-label {
+  margin: 0 0 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #a9a096;
+}
+
+.pay-flow__transfer-account-name {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1714;
+}
+
+.pay-flow__transfer-account-meta {
+  margin: 0;
+  font-size: 13px;
+  color: #8a7d70;
+}
+
 /* CTA wrap — tighter, always in reach */
 .pay-flow__cta-wrap {
   position: sticky;
