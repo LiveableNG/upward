@@ -83,7 +83,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
   // ── Unified Users filters ──────────────────────────────────────
   const [usersSubtab, setUsersSubtab] = useState<'signedUp' | 'guest' | 'unsynced'>('signedUp')
-  const [originFilter, setOriginFilter] = useState<'all' | 'waitlist' | 'selfRegistered' | 'invited_email' | 'invited_phone'>('all')
+  const [originFilter, setOriginFilter] = useState<'all' | 'waitlist' | 'selfRegistered' | 'invited'>('all')
   const [pmFilter, setPmFilter] = useState<'all' | string>('all')
 
   // ── Preview Drawer State ───────────────────────────────────────
@@ -358,22 +358,19 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const originCounts = useMemo(() => {
     let waitlist = 0
     let selfRegistered = 0
-    let invitedEmail = 0
-    let invitedPhone = 0
+    let invited = 0
 
     usersFilteredByPm.forEach((u) => {
       if (u.origin === 'WAITLIST') waitlist++
       else if (u.origin === 'SELF_REGISTERED') selfRegistered++
-      else if (u.origin === 'INVITED_EMAIL') invitedEmail++
-      else if (u.origin === 'INVITED_PHONE') invitedPhone++
+      else if (u.origin === 'INVITED_EMAIL' || u.origin === 'INVITED_PHONE') invited++
     })
 
     return {
       all: usersFilteredByPm.length,
       waitlist,
       selfRegistered,
-      invitedEmail,
-      invitedPhone,
+      invited,
     }
   }, [usersFilteredByPm])
 
@@ -382,8 +379,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       // 1. Origin Filter
       if (originFilter === 'waitlist' && u.origin !== 'WAITLIST') return false
       if (originFilter === 'selfRegistered' && u.origin !== 'SELF_REGISTERED') return false
-      if (originFilter === 'invited_email' && u.origin !== 'INVITED_EMAIL') return false
-      if (originFilter === 'invited_phone' && u.origin !== 'INVITED_PHONE') return false
+      if (originFilter === 'invited' && u.origin !== 'INVITED_EMAIL' && u.origin !== 'INVITED_PHONE') return false
       return true
     })
   }, [usersFilteredByPm, originFilter])
@@ -662,16 +658,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                   </button>
                 )}
                 <button
-                  onClick={() => setOriginFilter('invited_email')}
-                  className={`date-chip ${originFilter === 'invited_email' ? 'active' : ''}`}
+                  onClick={() => setOriginFilter('invited')}
+                  className={`date-chip ${originFilter === 'invited' ? 'active' : ''}`}
                 >
-                  Invited (Email) ({originCounts.invitedEmail})
-                </button>
-                <button
-                  onClick={() => setOriginFilter('invited_phone')}
-                  className={`date-chip ${originFilter === 'invited_phone' ? 'active' : ''}`}
-                >
-                  Invited (Phone) ({originCounts.invitedPhone})
+                  Invited ({originCounts.invited})
                 </button>
               </div>
             </div>

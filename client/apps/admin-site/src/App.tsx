@@ -24,6 +24,7 @@ import Layout from './components/Layout'
 import OverridesPage from './pages/Overrides'
 import BlogPosts from './pages/BlogPosts'
 import InternalAccounts from './pages/InternalAccounts'
+import InvitationTracker from './pages/InvitationTracker'
 
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -57,6 +58,7 @@ function AppRoutes() {
           <Route path="/pms/:uuid" element={<PmDetail token={auth.token} />} />
           <Route path="/emails" element={<EmailComposer token={auth.token} adminEmail={auth.user.email} />} />
           <Route path="/email-logs" element={<EmailLogs token={auth.token} />} />
+          <Route path="/invitation-tracker" element={<InvitationTracker token={auth.token} />} />
           <Route path="/sessions" element={<Navigate to="/" replace />} />
           <Route path="/drop-off" element={<DropOffAnalysis token={auth.token} />} />
           <Route path="/ab-stats" element={<ABTestStats token={auth.token} />} />

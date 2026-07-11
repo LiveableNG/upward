@@ -68,6 +68,7 @@ import { SendAdminNotificationUseCase } from '../../../application/use-cases/adm
 import { GetInternalAccountsUseCase } from '../../../application/use-cases/admin/get-internal-accounts.use-case'
 import { ToggleInternalAccountUseCase } from '../../../application/use-cases/admin/toggle-internal-account.use-case'
 import { SyncTenantUseCase } from '../../../application/use-cases/admin/sync-tenant.use-case'
+import { GetInvitationTrackerUseCase } from '../../../application/use-cases/admin/get-invitation-tracker.use-case'
 
 @Controller('admin')
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
@@ -115,6 +116,7 @@ export class AdminController {
     private readonly getInternalAccountsUseCase: GetInternalAccountsUseCase,
     private readonly toggleInternalAccountUseCase: ToggleInternalAccountUseCase,
     private readonly syncTenantUseCase: SyncTenantUseCase,
+    private readonly getInvitationTrackerUseCase: GetInvitationTrackerUseCase,
     private readonly s3Service: S3Service,
   ) {}
 
@@ -489,5 +491,10 @@ export class AdminController {
       throw new BadRequestException('isInternal must be a boolean')
     }
     return this.toggleInternalAccountUseCase.execute(type, uuid, body.isInternal)
+  }
+
+  @Get('invitation-tracker')
+  async getInvitationTracker() {
+    return this.getInvitationTrackerUseCase.execute()
   }
 }
