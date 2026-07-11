@@ -96,7 +96,7 @@ export default function PayRentPage() {
 
     setSelectedPropertyUuid(prop.uuid)
     const loc = prop.location
-    const fullAddr = [prop.address, loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
+    const fullAddr = [loc?.address || prop.address, loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
     setPropertyAddress(fullAddr)
     setpaymentType('Rent Payment')
     setPayAmount(0)

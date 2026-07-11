@@ -175,7 +175,7 @@ export class CreateManualPaymentRequestUseCase {
       description: data.metadata?.narration || data.metadata?.description || 'Manual Property Payment',
       dueDate,
       status: 'PENDING',
-      allowPartial: true,
+      allowPartial: false,
       subaccountId: subaccountId,
       userPropertyId,
       isManual: true,
@@ -1542,6 +1542,11 @@ export class GetPropertyBalanceUseCase {
       ? Math.max(0, totalOwed - amountPaid)
       : (prop.amountRemaining ?? Math.max(0, totalOwed - amountPaid))
 
+    const sortedRequests = [...propRequests].sort(
+      (a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
+    )
+    const allowPartial = sortedRequests[0]?.allowPartial ?? false
+
     const rates = await this.paymentConfig.getDynamicProcessingRates(prop.userId, prop.id)
     const activeBenefitsFee = rates.benefitsPaid ? 0 : rates.benefitsFee
     const processingFee = rates.transactionFee + activeBenefitsFee
@@ -1556,6 +1561,7 @@ export class GetPropertyBalanceUseCase {
       currency: prop.currency || 'NGN',
       dueDate: prop.rentEndDate,
       hasActiveRequest: propRequests.length > 0,
+      allowPartial,
       processingFee,
       processingRates: {
         transactionFee: rates.transactionFee,

@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { addManualAccount } from '../../../services/paymentService'
 import { useToast } from '@/components/common/Toast'
+import { dedupeBanksByCode } from '@/lib/utils'
 import { Loader2, CheckCircle2, Building } from 'lucide-react'
 
 const manualAccountSchema = z.object({
@@ -126,7 +127,7 @@ export function ManualAccountModal({ isOpen, onClose, propertyId, propertyName }
             <label className="form-label text-sm font-bold">Select Bank</label>
             <select {...register('bankCode')} className="form-input">
               <option value="">Choose a bank...</option>
-              {banks.map(bank => (
+              {dedupeBanksByCode(banks).map(bank => (
                 <option key={bank.code} value={bank.code}>{bank.name}</option>
               ))}
             </select>

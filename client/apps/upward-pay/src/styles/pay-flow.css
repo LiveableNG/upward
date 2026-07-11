@@ -1537,6 +1537,154 @@
   font-weight: 500;
 }
 
+/* StepAmount — property context (read-only picker card) */
+.pay-flow__property-context {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1.5px solid #f0e9df;
+  background: #fff;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.pay-flow__property-context.pay-flow__property-card--expired {
+  border-color: rgba(180, 35, 24, 0.28);
+  background: #fffaf9;
+}
+
+.pay-flow__property-context.pay-flow__property-card--ended {
+  opacity: 0.82;
+  background: #faf8f5;
+}
+
+.pay-flow__property-context.pay-flow__property-card--due-soon {
+  border-color: rgba(194, 140, 31, 0.32);
+}
+
+/* StepAmount — simple amount field */
+.pay-flow__input-wrap--amount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pay-flow__amount-currency {
+  font-size: 16px;
+  font-weight: 700;
+  color: #5c544b;
+  padding-left: 4px;
+}
+
+.pay-flow__input-wrap--amount input {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.pay-flow__input-wrap--readonly {
+  background: #faf8f5;
+  border-color: #ece4d9;
+}
+
+.pay-flow__input-wrap--readonly input {
+  color: #5c544b;
+  cursor: default;
+}
+
+.pay-flow__summary-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pay-flow__summary-detail {
+  font-size: 11px;
+  font-weight: 500;
+  color: #a9a096;
+}
+
+.pay-flow__summary-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pay-flow__breakdown-offer {
+  margin: -4px 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #a9a096;
+}
+
+.pay-flow__breakdown-offer-link {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--skin-primary, #c2501f);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pay-flow__breakdown-offer-link:hover {
+  color: #a3411a;
+}
+
+/* StepAmount — optional breakdown panel */
+.pay-flow__breakdown-panel {
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1.5px dashed #d9cfc2;
+  border-radius: 14px;
+  background: #fdfbf8;
+}
+
+.pay-flow__breakdown-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.pay-flow__breakdown-panel-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8a7d70;
+}
+
+.pay-flow__breakdown-collapse {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+/* StepAmount — summary total */
+.pay-flow__summary-box {
+  margin-bottom: 4px;
+  padding: 14px 18px;
+  background: #f5f0e8;
+  border-radius: 14px;
+  border: 1px solid #ece4d9;
+}
+
+/* StepAmount — detached breakdown offer */
+
+.pay-flow__summary-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #5c544b;
+}
+
+.pay-flow__summary-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1a1714;
+}
+
 /* CTA wrap — tighter, always in reach */
 .pay-flow__cta-wrap {
   position: sticky;
