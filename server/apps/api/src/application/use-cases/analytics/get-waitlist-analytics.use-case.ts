@@ -86,8 +86,8 @@ export class GetWaitlistAnalyticsUseCase {
       this.prisma.upward_user.count({ where: { isFromWaitlist: true } }),
       this.prisma.upward_user.count({ where: { isFromInvite: true } }),
       this.prisma.upward_user.count({ where: { isFromWaitlist: false, isFromInvite: false } }),
-      this.prisma.upward_email_log.count({ where: { type: 'LAUNCH_BROADCAST', status: 'SENT' } }),
-      this.prisma.upward_email_log.count({ where: { type: 'LAUNCH_BROADCAST', status: 'FAILED' } }),
+      this.prisma.upward_communication_log.count({ where: { type: 'LAUNCH_BROADCAST', status: 'SENT' } }),
+      this.prisma.upward_communication_log.count({ where: { type: 'LAUNCH_BROADCAST', status: 'FAILED' } }),
       this.prisma.upward_waitlist.count(),
     ])
 

@@ -21,7 +21,7 @@ export class RetryBatchEmailsUseCase {
   ) {
     const { email, type, acquisition } = query
 
-    const where: Prisma.upward_email_logWhereInput = {
+    const where: Prisma.upward_communication_logWhereInput = {
       status: 'FAILED',
       ...(email ? { email: { contains: email, mode: 'insensitive' as const } } : {}),
       ...(type && type !== 'All'
@@ -40,7 +40,7 @@ export class RetryBatchEmailsUseCase {
         : {}),
     }
 
-    const failedLogs = await this.prisma.upward_email_log.findMany({
+    const failedLogs = await this.prisma.upward_communication_log.findMany({
       where,
       select: {
         id: true,

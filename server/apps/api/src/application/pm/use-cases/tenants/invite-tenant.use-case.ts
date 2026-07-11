@@ -235,6 +235,31 @@ export class InviteTenantUseCase {
         inviteSentAt: !isActuallyOnUpward ? new Date() : tenant.inviteSentAt,
       });
 
+      // Log invitation to upward_communication_log
+      let registeredUserId = existingUser?.id;
+      if (!registeredUserId) {
+        const createdUser = tenant.email
+          ? await this.userRepo.findByEmail(tenant.email)
+          : await this.userRepo.findByPhone(tenant.phone!);
+        registeredUserId = createdUser?.id;
+      }
+
+      await this.prisma.upward_communication_log.create({
+        data: {
+          registeredUserId: registeredUserId ?? null,
+          email: tenant.email ?? null,
+          subject: isActuallyOnUpward ? `New Property Unit Added by ${pmName}` : `Invitation to join Upward from ${pmName}`,
+          type: 'TENANT_INVITE',
+          status: 'SENT',
+          channel: actualChannel || 'EMAIL',
+          recipient: (actualChannel === 'EMAIL' ? tenant.email : tenant.phone) ?? '',
+          body: isActuallyOnUpward
+            ? `New property unit added on Upward by PM ${pmName}`
+            : `Invited to claim Upward account. Link: ${inviteResult.inviteLink}`,
+          sentAt: new Date(),
+        },
+      });
+
 
       if (tenant.units && inviteResult.properties) {
         for (let i = 0; i < tenant.units.length; i++) {

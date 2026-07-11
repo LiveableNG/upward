@@ -6,11 +6,20 @@ import { PASS_PLACEHOLDERS } from '../../../domains/users/user.repository'
 export class GetInvitedMetricsUseCase {
   constructor(private readonly encryption: EncryptionService) {}
 
-  execute(allUsers: any[], pmTenants: any[], userMap: Map<string, any>) {
+  execute(
+    allUsers: any[],
+    pmTenants: any[],
+    userMap: Map<string, any>,
+    waitlistEmails: Set<string> = new Set(),
+    inviteChannelMap: Map<string, string> = new Map(),
+  ) {
     const invitedUserDirectory = allUsers
       .filter((u) => u.isFromInvite)
       .map((u) => {
         const decrypted = userMap.get(u.emailHash)
+        const decryptedEmail = decrypted?.decryptedEmail || ''
+        const decryptedPhone = decrypted?.decryptedPhone || ''
+
         let totalPaid = 0
         let benefitsPaid = 0
         u.transactions.forEach((tx: any) => {
@@ -24,13 +33,18 @@ export class GetInvitedMetricsUseCase {
             })
           }
         })
-        const isShadow =
-          u.passwordHash === PASS_PLACEHOLDERS.INVITED ||
-          u.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
-          !u.passwordHash.startsWith('$2')
 
         const pmMatch = pmTenants.find((t) => t.emailHash === u.emailHash)
-        
+
+        const isShadow =
+          !u.passwordHash ||
+          u.passwordHash === PASS_PLACEHOLDERS.INVITED ||
+          u.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+          u.passwordHash === 'INVITED_NO_PASSWORD' ||
+          u.passwordHash === 'SHADOW_GUEST' ||
+          (!u.passwordHash.startsWith('$2') && u.passwordHash !== PASS_PLACEHOLDERS.SOCIAL && u.passwordHash !== 'SOCIAL_AUTH')
+        const hasPassword = !isShadow
+
         let status: 'INVITED_PENDING' | 'INVITED_SIGNED_UP' | 'GUEST_PAID' | 'SIGNED_UP_PAID' = 'INVITED_PENDING'
         if (isShadow) {
           status = totalPaid > 0 ? 'GUEST_PAID' : 'INVITED_PENDING'
@@ -82,11 +96,25 @@ export class GetInvitedMetricsUseCase {
 
         const pmsList = Array.from(pmsMap.values())
 
-        let originType: 'INVITED_EMAIL' | 'INVITED_PHONE' = 'INVITED_EMAIL'
-        if (pmMatch) {
-          originType = pmMatch.emailHash ? 'INVITED_EMAIL' : 'INVITED_PHONE'
-        } else if (!u.emailHash || u.emailHash.startsWith('dummy') || u.email.includes('@upward.local')) {
-          originType = 'INVITED_PHONE'
+        let resolvedChannel: 'EMAIL' | 'SMS' | 'WHATSAPP' | null = null
+        if (decryptedEmail && inviteChannelMap.has(decryptedEmail.toLowerCase())) {
+          resolvedChannel = inviteChannelMap.get(decryptedEmail.toLowerCase()) as any
+        } else if (decryptedPhone && inviteChannelMap.has(decryptedPhone.toLowerCase())) {
+          resolvedChannel = inviteChannelMap.get(decryptedPhone.toLowerCase()) as any
+        }
+
+        let origin: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE' = 'INVITED_EMAIL'
+        if (resolvedChannel === 'EMAIL') {
+          origin = 'INVITED_EMAIL'
+        } else if (resolvedChannel === 'SMS' || resolvedChannel === 'WHATSAPP') {
+          origin = 'INVITED_PHONE'
+        } else {
+          // Fallback heuristics
+          if (pmMatch) {
+            origin = pmMatch.emailHash ? 'INVITED_EMAIL' : 'INVITED_PHONE'
+          } else if (!u.emailHash || u.emailHash.startsWith('dummy') || u.email.includes('@upward.local') || u.email.includes('@upward.com')) {
+            origin = 'INVITED_PHONE'
+          }
         }
 
         return {
@@ -97,19 +125,29 @@ export class GetInvitedMetricsUseCase {
           lastName: decrypted.decryptedLastName,
           phone: decrypted.decryptedPhone,
           createdAt: u.createdAt,
+          joinedAt: u.authSessions?.[0]?.createdAt || null,
           status,
           totalPaid,
           pms: pmsList,
           benefitsPaid,
           hasPaidBenefits: benefitsPaid > 0,
           rentExpiryDate,
-          originType,
+          originType: origin,
+          origin,
+          hasPassword,
+          isSynced: true,
         }
       })
 
-    const invitedUserEmails = new Set(allUsers.map((u) => u.emailHash))
+    const invitedUserEmails = new Set(allUsers.filter(u => u.emailHash).map((u) => u.emailHash))
+    const invitedUserPhones = new Set(allUsers.filter(u => u.phoneHash).map((u) => u.phoneHash))
+    
     const uncreatedInvitedDirectory = pmTenants
-      .filter((t) => t.emailHash && !invitedUserEmails.has(t.emailHash))
+      .filter((t) => {
+        if (t.emailHash && invitedUserEmails.has(t.emailHash)) return false
+        if (t.phoneHash && invitedUserPhones.has(t.phoneHash)) return false
+        return true
+      })
       .map((t) => {
         let email = ''
         let firstName = ''
@@ -138,6 +176,22 @@ export class GetInvitedMetricsUseCase {
         const pmsList = t.pm?.uuid ? [{ uuid: t.pm.uuid, name: pmName, propertyAddress: t.pmUnit?.property?.address }] : []
         const rentExpiryDate = t.units && t.units.length > 0 ? t.units[0].rentDueDate : null
 
+        let resolvedChannel: 'EMAIL' | 'SMS' | 'WHATSAPP' | null = null
+        if (email && inviteChannelMap.has(email.toLowerCase())) {
+          resolvedChannel = inviteChannelMap.get(email.toLowerCase()) as any
+        } else if (phone && inviteChannelMap.has(phone.toLowerCase())) {
+          resolvedChannel = inviteChannelMap.get(phone.toLowerCase()) as any
+        }
+
+        let origin: 'INVITED_EMAIL' | 'INVITED_PHONE' = 'INVITED_EMAIL'
+        if (resolvedChannel === 'EMAIL') {
+          origin = 'INVITED_EMAIL'
+        } else if (resolvedChannel === 'SMS' || resolvedChannel === 'WHATSAPP') {
+          origin = 'INVITED_PHONE'
+        } else {
+          origin = t.emailHash ? 'INVITED_EMAIL' : 'INVITED_PHONE'
+        }
+
         return {
           id: `inv_p_${t.id}`,
           uuid: t.uuid,
@@ -146,11 +200,15 @@ export class GetInvitedMetricsUseCase {
           lastName,
           phone,
           createdAt: t.createdAt,
+          joinedAt: null,
           status: 'INVITED_PENDING' as const,
           totalPaid: 0,
           pms: pmsList,
           rentExpiryDate,
-          originType: t.emailHash ? 'INVITED_EMAIL' as const : 'INVITED_PHONE' as const,
+          originType: origin,
+          origin,
+          hasPassword: false,
+          isSynced: false,
         }
       })
 

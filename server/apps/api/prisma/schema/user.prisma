@@ -44,7 +44,7 @@ model upward_user {
   campaignWeekSent     Int                              @default(0)
   unsubscribed         Boolean                          @default(false)
   unsubscribedAt       DateTime?
-  emailLogs            upward_email_log[]
+  communicationLogs    upward_communication_log[]
 
   @@index([email])
   @@index([createdAt])

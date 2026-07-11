@@ -56,6 +56,11 @@ export class GetPerformanceMetricsUseCase {
           isFromInvite: true,
           createdAt: true,
           updatedAt: true,
+          authSessions: {
+            orderBy: { createdAt: 'asc' },
+            take: 1,
+            select: { createdAt: true },
+          },
           transactions: {
             where: {
               status: 'SUCCESS',
@@ -210,6 +215,20 @@ export class GetPerformanceMetricsUseCase {
           },
         },
       }),
+      this.prisma.upward_communication_log.findMany({
+        where: {
+          type: 'TENANT_INVITE',
+          status: 'SENT',
+        },
+        select: {
+          recipient: true,
+          channel: true,
+          email: true,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      }),
     ])
 
     const allUsers = _results[0] as any[]
@@ -219,6 +238,20 @@ export class GetPerformanceMetricsUseCase {
     const successTransactions = _results[4] as any[]
     const activeUserGroups = _results[5] as any[]
     const allCompanies = _results[6] as any[]
+    const inviteLogs = _results[7] as any[]
+
+    const waitlistEmails = new Set(allWaitlistEntries.map((w) => w.email.toLowerCase()))
+    const allUserEmailHashes = new Set(allUsers.map((u) => u.emailHash))
+
+    const inviteChannelMap = new Map<string, 'EMAIL' | 'SMS' | 'WHATSAPP'>()
+    inviteLogs.forEach((log) => {
+      if (log.recipient) {
+        inviteChannelMap.set(log.recipient.toLowerCase(), log.channel as any)
+      }
+      if (log.email) {
+        inviteChannelMap.set(log.email.toLowerCase(), log.channel as any)
+      }
+    })
 
     const userMap = new Map<string, any>()
     allUsers.forEach((u) => {
@@ -249,9 +282,9 @@ export class GetPerformanceMetricsUseCase {
     })
 
     const revenueMetrics = this.getRevenueMetrics.execute(successTransactions)
-    const waitlistMetrics = this.getWaitlistMetrics.execute(allUsers, allWaitlistEntries, userMap)
-    const signedUpMetrics = this.getSignedUpMetrics.execute(allUsers, userMap, pmTenants)
-    const invitedMetrics = this.getInvitedMetrics.execute(allUsers, pmTenants, userMap)
+    const waitlistMetrics = this.getWaitlistMetrics.execute(allUsers, allWaitlistEntries, userMap, allUserEmailHashes)
+    const signedUpMetrics = this.getSignedUpMetrics.execute(allUsers, userMap, pmTenants, waitlistEmails, inviteChannelMap)
+    const invitedMetrics = this.getInvitedMetrics.execute(allUsers, pmTenants, userMap, waitlistEmails, inviteChannelMap)
     const pmMetrics = this.getPmMetrics.execute(allPms, allCompanies, successTransactions, allUsers)
 
     const filterList = (list: any[]) => {

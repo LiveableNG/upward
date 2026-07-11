@@ -24,7 +24,7 @@ model upward_waitlist {
   unsubscribed             Boolean             @default(false)
   unsubscribedAt           DateTime?
   attendances              upward_attendance[]
-  emailLogs                upward_email_log[]
+  communicationLogs        upward_communication_log[]
 
   @@index([email])
   @@index([createdAt])
@@ -40,7 +40,7 @@ model upward_session {
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   attendances    upward_attendance[]
-  emailLogs      upward_email_log[]
+  communicationLogs upward_communication_log[]
 
   @@index([startTime])
 }
@@ -58,7 +58,7 @@ model upward_attendance {
   @@unique([sessionId, userId])
 }
 
-model upward_email_log {
+model upward_communication_log {
   id               String           @id @default(uuid())
   userId           String?
   registeredUserId Int?
@@ -71,6 +71,8 @@ model upward_email_log {
   lastError        String?
   mailgunId        String?
   type             String           @default("GENERIC")
+  channel          String           @default("EMAIL")
+  recipient        String?
   updatedAt        DateTime         @updatedAt
   retries          Int              @default(0)
   body             String?
@@ -78,11 +80,13 @@ model upward_email_log {
   user             upward_waitlist? @relation(fields: [userId], references: [id], onDelete: Cascade)
   registeredUser   upward_user?     @relation(fields: [registeredUserId], references: [id], onDelete: Cascade)
 
+  @@map("upward_communication_log")
   @@index([userId])
   @@index([registeredUserId])
   @@index([sessionId])
   @@index([status])
   @@index([type])
+  @@index([channel])
 }
 
 model upward_interaction {

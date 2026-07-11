@@ -53,7 +53,7 @@ export class EmailLogEventHandler implements OnModuleInit, OnModuleDestroy {
           }
         }
 
-        await this.prisma.upward_email_log.create({
+        await this.prisma.upward_communication_log.create({
           data: {
             userId: finalUserId,
             registeredUserId: registeredUserId,
@@ -61,6 +61,8 @@ export class EmailLogEventHandler implements OnModuleInit, OnModuleDestroy {
             subject: event.subject,
             type: event.type,
             status: event.status,
+            channel: 'EMAIL',
+            recipient: event.email,
             sessionId: event.sessionId ?? null,
             body: event.body ?? null,
             mailgunId: event.mailgunId ?? null,
