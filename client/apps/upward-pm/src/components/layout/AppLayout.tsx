@@ -15,14 +15,20 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(pathname === '/documents')
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
 
-  // Automatically collapse sidebar when on documents page to maximize space
   useEffect(() => {
-    if (pathname === '/documents') {
-      setIsSidebarCollapsed(true)
+    const saved = localStorage.getItem('upward_sidebar_collapsed')
+    if (saved !== null) {
+      setIsSidebarCollapsed(saved === 'true')
     }
-  }, [pathname])
+  }, [])
+
+  const handleToggleCollapse = () => {
+    const newState = !isSidebarCollapsed
+    setIsSidebarCollapsed(newState)
+    localStorage.setItem('upward_sidebar_collapsed', String(newState))
+  }
   
   const isAuthPage = pathname === '/signup' || pathname === '/login' || pathname === '/pm-login' || pathname === '/pm-signup' || pathname === '/forgot-password'
   const isPublicPage = 
@@ -43,7 +49,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)} 
         isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        onToggleCollapse={handleToggleCollapse}
       />
       <div className="layout__content">
         <MobileHeader onMenuClick={() => setIsSidebarOpen(true)} />

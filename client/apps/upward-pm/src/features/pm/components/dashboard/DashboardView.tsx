@@ -301,26 +301,22 @@ export function DashboardView() {
           label="Total Units" 
           value={totalUnits} 
           icon={Building2} 
-          trend={{ value: propertiesCount, label: 'Properties', isUp: true }}
           variant="accent"
         />
         <StatCard 
-          label="Active Tenants" 
+          label="Total Tenants" 
           value={activeTenants} 
           icon={Users} 
-          trend={{ value: Math.round((activeTenants / (totalUnits || 1)) * 100), label: '% occupancy', isUp: true }}
         />
         <StatCard 
           label="Pending Balance" 
           value={`₦${pendingAmount.toLocaleString()}`} 
           icon={CreditCard} 
-          trend={{ value: openRequestsCount, label: 'open requests', isUp: false }}
         />
         <StatCard 
           label="Total Revenue" 
           value={`₦${totalRevenue.toLocaleString()}`} 
           icon={TrendingUp} 
-          trend={{ value: 100, label: 'All time collection', isUp: true }}
         />
       </StatGrid>
 

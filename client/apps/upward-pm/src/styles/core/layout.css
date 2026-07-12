@@ -43,7 +43,7 @@
   }
   
   .layout__main {
-    padding: var(--space-4) var(--space-4) var(--space-10);
+    padding: calc(64px + var(--space-4)) var(--space-4) var(--space-10);
   }
 }
 
@@ -59,10 +59,6 @@
     align-items: stretch;
   }
   
-  .layout--collapsed .sidebar {
-    /* Prevent the sidebar from impacting flow */
-    display: none !important;
-  }
 
   .card, [class*="card"] {
     /* Fluid Layout & Centering */
