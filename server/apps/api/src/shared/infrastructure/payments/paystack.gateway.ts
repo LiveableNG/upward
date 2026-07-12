@@ -53,12 +53,14 @@ export class PaystackGateway implements IPaymentGateway {
         return []
       }
 
-      this.logger.log(`Successfully fetched ${data.data.length} banks`)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return data.data.map((b: any) => ({
+      const banks: Bank[] = data.data.map((b: any) => ({
         code: b.code,
         name: b.name,
       }))
+      const uniqueBanks = Array.from(new Map(banks.map((b) => [b.code, b])).values())
+      this.logger.log(`Successfully fetched ${uniqueBanks.length} banks`)
+      return uniqueBanks
     } catch (error) {
       this.logger.error('Paystack getBanks error:', error)
       throw new Error('Could not fetch banks from gateway')

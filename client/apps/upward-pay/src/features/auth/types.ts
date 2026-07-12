@@ -46,6 +46,7 @@ export interface UserProfile {
       state?: string;
       country?: string;
     }
+    unitName?: string;
     manualAccount?: {
       accountNumber: string;
       accountName: string;

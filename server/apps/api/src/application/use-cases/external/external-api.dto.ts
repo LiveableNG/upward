@@ -153,6 +153,10 @@ export class UserPropertyContextDto {
   @ValidateNested({ each: true })
   @Type(() => RentHistoryDto)
   rentHistory?: RentHistoryDto[]
+
+  @IsOptional()
+  @IsBoolean()
+  allowDirectBankTransfer?: boolean
 }
 
 export class RentHistoryDto {
