@@ -341,7 +341,7 @@ export function DashboardView() {
                 )}
                 onClick={() => setActiveTab('arrears')}
               >
-                Behind on Rent
+                Arrears
                 <span className="payments-tracker__count payments-tracker__count--arrears">
                   {overduePayments.length}
                 </span>
@@ -365,7 +365,7 @@ export function DashboardView() {
                 )}
                 onClick={() => setActiveTab('completed')}
               >
-                Completed
+                Paid
                 <span className="payments-tracker__count payments-tracker__count--completed">
                   {completedPayments.length}
                 </span>
@@ -424,24 +424,21 @@ export function DashboardView() {
         <section className="section-card">
           <div className="section-header">
             <h2 className="section-title">Property Portfolio</h2>
-            <button className="section-link" onClick={() => router.push('/properties')}>View All</button>
           </div>
           
           <div className="property-summary">
             {properties.map((prop: any) => {
-              const rate = prop.occupancyRate
-              
               return (
                 <div key={prop.uuid} className="property-item-mini" onClick={() => router.push(`/properties`)} style={{ cursor: 'pointer' }}>
+                  <div className="property-item-mini__icon">
+                    <Building2 size={20} className="text-forest" />
+                  </div>
                   <div className="property-item-mini__info">
                     <h4>{prop.name}</h4>
                     <p>{prop.area}, {prop.state} • {prop.totalUnits} Units</p>
                   </div>
-                  <div className={cn(
-                    "property-item-mini__status",
-                    rate === 100 ? "property-item-mini__status--full" : "property-item-mini__status--partial"
-                  )}>
-                    {rate}% Occupied
+                  <div className="property-item-mini__action">
+                    <ArrowUpRight size={18} className="text-muted" />
                   </div>
                 </div>
               )
@@ -454,6 +451,15 @@ export function DashboardView() {
                   Add Property
                 </button>
               </div>
+            )}
+            {hasProperties && properties.length > 0 && (
+              <button 
+                className="btn btn--secondary btn--sm" 
+                style={{ width: '100%', marginTop: '8px', justifyContent: 'center' }} 
+                onClick={() => router.push('/properties')}
+              >
+                View All Properties
+              </button>
             )}
           </div>
         </section>

@@ -261,11 +261,11 @@
 .stat-card__trend--up { color: var(--success); }
 .stat-card__trend--down { color: var(--error); }
 
-/* Main Content Section */
 .dashboard__content {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: var(--space-8);
+  min-width: 0;
 }
 
 /* Units Table / Grid */
@@ -275,6 +275,7 @@
   border: 1px solid var(--border);
   padding: var(--space-6);
   box-shadow: var(--shadow-sm);
+  min-width: 0;
 }
 
 .section-header {
@@ -361,7 +362,7 @@
 .property-item-mini {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   padding: 16px;
   border-radius: 12px;
   background: var(--surface-hover);
@@ -374,32 +375,59 @@
   border-color: var(--forest);
 }
 
+.property-item-mini__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--forest-faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.property-item-mini__info {
+  flex: 1;
+  min-width: 0;
+}
+
 .property-item-mini h4 {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .property-item-mini p {
   font-size: 12px;
   color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.property-item-mini__status {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 20px;
+.property-item-mini__action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
 }
 
-.property-item-mini__status--full {
-  background: var(--success-bg);
-  color: var(--success);
+.property-item-mini:hover .property-item-mini__action {
+  background: var(--forest);
+  border-color: var(--forest);
 }
 
-.property-item-mini__status--partial {
-  background: rgba(245, 158, 11, 0.08);
-  color: var(--warning);
+.property-item-mini:hover .property-item-mini__action svg {
+  color: white !important;
 }
 
 @media (max-width: 1200px) {
@@ -430,6 +458,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
 }
 
 .payments-tracker__header {
@@ -439,6 +468,7 @@
   margin-bottom: var(--space-6);
   flex-wrap: wrap;
   gap: var(--space-4);
+  min-width: 0;
 }
 
 .payments-tracker__title-group {
@@ -459,26 +489,47 @@
 }
 
 .payments-tracker__tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   background: var(--ivory-dim);
   padding: 4px;
   border-radius: var(--radius-md);
   gap: 4px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .payments-tracker__tabs {
+    display: flex;
+    width: auto;
+  }
+}
+
+/* Hide scrollbar for tabs */
+.payments-tracker__tabs::-webkit-scrollbar {
+  display: none;
+}
+.payments-tracker__tabs {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
 .payments-tracker__tab-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
   padding: 8px 16px;
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-secondary);
   background: transparent;
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .payments-tracker__tab-btn:hover {

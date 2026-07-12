@@ -29,6 +29,7 @@ import { StatGrid } from '@/components/ui/StatCard/StatGrid'
 import { ControlBar } from '@/components/ui/ControlBar/ControlBar'
 import { SearchInput } from '@/components/ui/ControlBar/SearchInput'
 import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
+import { FilterGroup } from '@/components/ui/ControlBar/FilterGroup'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 
 function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests }: { searchQuery: string, dateFilter: string, requestsOverride?: any[], allRequests?: any[] }) {
@@ -381,7 +382,7 @@ export function PaymentsView() {
           placeholder="Search by Tenant, Unit or Property..." 
         />
         
-        <div style={{ display: 'flex', gap: 12 }}>
+        <FilterGroup>
           <FilterDropdown 
             label="Date Range" 
             value={dateFilter}
@@ -452,7 +453,7 @@ export function PaymentsView() {
               </div>
             </div>
           </FilterDropdown>
-        </div>
+        </FilterGroup>
       </ControlBar>
 
       <PaymentsTable 

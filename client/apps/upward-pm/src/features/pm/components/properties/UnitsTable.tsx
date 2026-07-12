@@ -14,6 +14,7 @@ import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
 import { ControlBar } from '@/components/ui/ControlBar/ControlBar'
 import { SearchInput } from '@/components/ui/ControlBar/SearchInput'
 import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
+import { FilterGroup } from '@/components/ui/ControlBar/FilterGroup'
 import { Building2, Filter } from 'lucide-react'
 
 interface UnitsTableProps {
@@ -195,7 +196,7 @@ export function UnitsTable({
           placeholder="Search units, tenants, properties..." 
         />
         
-        <div style={{ display: 'flex', gap: 12 }}>
+        <FilterGroup>
           <FilterDropdown 
             label="Property" 
             value={selectedPropertyFilter}
@@ -231,7 +232,7 @@ export function UnitsTable({
             ]}
             onChange={(val) => setDueFilter(val as any)}
           />
-        </div>
+          </FilterGroup>
       </ControlBar>
 
       <DataTable
