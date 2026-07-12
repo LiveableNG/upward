@@ -21,6 +21,7 @@ import { useProperties } from '../../hooks/useProperties'
 import { useToast } from '@/components/common/Toast'
 import { PayoutsList } from './PayoutsList'
 import { ApprovePaymentsQueue } from './ApprovePaymentsQueue'
+import { downloadBlob } from '@/lib/download-helper'
 
 import { DataTable, Column } from '@/components/common/DataTable'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
@@ -274,14 +275,9 @@ export function PaymentsView() {
 
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n")
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.setAttribute("href", url)
-    link.setAttribute("download", `upward_payments_${new Date().toISOString().split('T')[0]}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    success('Statement exported successfully!')
+    downloadBlob(blob, `upward_payments_${new Date().toISOString().split('T')[0]}.csv`).then(() => {
+      success('Statement exported successfully!')
+    }).catch((err: any) => console.error(err))
   }
 
   const filteredRequests = (requests || []).filter(req => {

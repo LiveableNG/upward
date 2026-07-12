@@ -27,6 +27,7 @@ import { useCreatePaymentRequest } from '../../hooks/usePayments'
 import { CreditCard } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { downloadBlob } from '@/lib/download-helper'
 
 interface DocumentEditorViewProps {
   initialContent?: string
@@ -342,14 +343,7 @@ export function DocumentEditorView({
         recipientName: recipientName || undefined,
         includeLetterhead: hasLetterhead ? includeLetterhead : false
       })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${subject || 'document'}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      await downloadBlob(blob, `${subject || 'document'}.pdf`)
       success('PDF downloaded successfully')
     } catch (err) {
       error('Failed to generate PDF')

@@ -1,9 +1,16 @@
 import type { NextConfig } from 'next'
 
+const isStaticExport = process.env['NEXT_OUTPUT'] === 'export'
+
 const nextConfig: NextConfig = {
   // Production only: gateway proxies /_upward_pm/* to this app.
-  assetPrefix: process.env.NODE_ENV === 'production' ? '/_upward_pm' : undefined,
+  assetPrefix: process.env.NODE_ENV === 'production' && !isStaticExport ? '/_upward_pm' : undefined,
+  ...(isStaticExport ? { output: 'export' as const } : {}),
+  images: {
+    unoptimized: true,
+  },
   async rewrites() {
+    if (isStaticExport) return []
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
     const rules: { source: string; destination: string }[] = []
 

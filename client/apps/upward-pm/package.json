@@ -6,9 +6,22 @@
     "dev": "next dev --turbo -p 3002",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "cap:sync": "cross-env NEXT_OUTPUT=export next build && cap sync",
+    "cap:open:ios": "cap open ios",
+    "cap:open:android": "cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/core": "^8.2.0",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/ios": "^8.2.0",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/push-notifications": "8.0.0",
+    "@capacitor/share": "^8.0.1",
+    "@capawesome/capacitor-google-sign-in": "^0.1.2",
+    "@capgo/capacitor-native-biometric": "^8.4.2",
     "@hookform/resolvers": "^5.2.2",
     "@hugerte/hugerte-react": "^2.0.2",
     "@tanstack/react-query": "^5.96.2",
@@ -28,10 +41,12 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.2.0",
     "@types/node": "^20",
     "@types/papaparse": "^5.3.14",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "typescript": "^5"

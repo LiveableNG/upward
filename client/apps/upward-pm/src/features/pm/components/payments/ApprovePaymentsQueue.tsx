@@ -8,6 +8,7 @@ import { getPendingManualPayments, reviewManualPayment, downloadManualPaymentPro
 import { useToast } from '@/components/common/Toast'
 import { formatCurrency } from '@/lib/utils'
 import { DataTable, Column } from '@/components/common/DataTable'
+import { downloadBlob } from '@/lib/download-helper'
 
 export function ApprovePaymentsQueue() {
   const { success, error } = useToast()
@@ -46,15 +47,7 @@ export function ApprovePaymentsQueue() {
     setIsDownloading(true)
     try {
       const blob = await downloadManualPaymentProof(proof.id) as Blob
-      
-      const downloadUrl = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = downloadUrl
-      link.download = proof.fileName || 'proof_of_payment'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(downloadUrl)
+      await downloadBlob(blob, proof.fileName || 'proof_of_payment')
     } catch (err: any) {
       error('Failed to download document')
     } finally {
