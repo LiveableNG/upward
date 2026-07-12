@@ -1,0 +1,74 @@
+/* Layout Structure */
+.layout {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  z-index: 2;
+}
+
+.layout__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  margin-left: var(--sidebar-width);
+  transition: margin-left 0.3s ease;
+  min-width: 0;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.layout__main {
+  flex: 1;
+  padding: var(--space-8);
+  min-height: 100vh;
+  position: relative;
+  min-width: 0;
+  width: 100%;
+}
+
+.layout--collapsed .layout__content {
+  margin-left: 80px;
+}
+
+@media (max-width: 1024px) {
+  .layout {
+    display: block;
+  }
+
+  .layout__content {
+    margin-left: 0;
+  }
+  
+  .layout__main {
+    padding: var(--space-4) var(--space-4) var(--space-10);
+  }
+}
+
+/* Mobile responsive adjustments for layout and overflow */
+@media (max-width: 768px) {
+  .layout__content,
+  .layout--collapsed .layout__content {
+    /* Remove desktop-inherited margins */
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 0 16px;
+    box-sizing: border-box;
+    align-items: stretch;
+  }
+  
+  .layout--collapsed .sidebar {
+    /* Prevent the sidebar from impacting flow */
+    display: none !important;
+  }
+
+  .card, [class*="card"] {
+    /* Fluid Layout & Centering */
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box;
+  }
+}
