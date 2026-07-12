@@ -8,6 +8,8 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useVerificationStatus } from '@/features/pm/hooks/useVerification'
 import '@/styles/mobile-header.css'
 
+import { NotificationsMenu } from '@/components/common/NotificationsMenu'
+
 export function MobileHeader({ onMenuClick }: { onMenuClick: () => void }) {
   const { user } = useAuth()
   const { data: verification } = useVerificationStatus()
@@ -54,9 +56,7 @@ export function MobileHeader({ onMenuClick }: { onMenuClick: () => void }) {
         )}
       </div>
 
-      <Link href="/notifications" className="mobile-header__notif" title="Notifications">
-        <Bell size={20} />
-      </Link>
+      <NotificationsMenu />
     </header>
   )
 }

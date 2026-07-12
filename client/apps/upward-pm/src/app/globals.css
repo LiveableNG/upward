@@ -719,3 +719,26 @@ textarea {
   color: var(--forest);
 }
 
+/* Mobile responsive adjustments for layout and overflow */
+@media (max-width: 768px) {
+  .layout__content,
+  .layout--collapsed .layout__content {
+    /* Remove desktop-inherited margins */
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 0 16px;
+    box-sizing: border-box;
+  }
+  
+  .layout--collapsed .sidebar {
+    /* Prevent the sidebar from impacting flow */
+    display: none !important;
+  }
+
+  .card, [class*="card"] {
+    /* Ensure cards stay within viewport bounds */
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+}
+
