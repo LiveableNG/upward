@@ -38,6 +38,10 @@ import { useToast } from '@/components/common/Toast'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import { cn, formatCurrency, formatTenantName } from '@/lib/utils'
 import { Splash } from '@/components/common/Splash'
+import { DataTable, Column } from '@/components/common/DataTable'
+import { ControlBar } from '@/components/ui/ControlBar/ControlBar'
+import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
+import { FilterGroup } from '@/components/ui/ControlBar/FilterGroup'
 
 function UnitDetailContent() {
   const { uuid } = useParams()
@@ -283,6 +287,224 @@ function UnitDetailContent() {
       }
     })
   }
+
+  const rentHistoryColumns: Column<any>[] = [
+    {
+      header: 'TENANT NAME',
+      render: (row) => (
+        <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--dark)' }}>
+          {row.tenant 
+            ? formatTenantName(row.tenant)
+            : (row.notes && !['Bulk Import', 'Manual Entry', 'Imported initial payment'].some(note => row.notes.includes(note)) && !row.notes.includes('Rent Portion'))
+              ? row.notes
+              : unit?.tenant
+                ? formatTenantName(unit.tenant)
+                : 'Past Tenant'
+          }
+        </div>
+      )
+    },
+    {
+      header: 'RENT PERIOD',
+      render: (row) => (
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          {row.periodStart ? (
+            <>
+              {new Date(row.periodStart).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+              {' - '}
+              {row.periodEnd
+                ? new Date(row.periodEnd).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                : '...'
+              }
+            </>
+          ) : 'N/A'}
+        </span>
+      )
+    },
+    {
+      header: 'DATE PAID',
+      render: (row) => (
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          {new Date(row.paymentDate).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
+        </span>
+      )
+    },
+    {
+      header: 'AMOUNT PAID',
+      render: (row) => {
+        const index = payments.findIndex(p => p.uuid === row.uuid);
+        const paidUntilThisRow = payments
+          .slice(index)
+          .filter(p => p.periodStart === row.periodStart && p.periodEnd === row.periodEnd)
+          .reduce((sum, p) => sum + p.amount, 0);
+
+        const balance = (unit?.rentAmount || 0) - paidUntilThisRow;
+        
+        return (
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>
+              {formatCurrency(row.amount, unit?.currency || 'NGN')}
+            </div>
+            {balance > 0 && (
+              <div style={{ fontSize: 11, color: 'var(--error)', marginTop: 2, fontWeight: 500 }}>
+                Bal. {formatCurrency(balance, unit?.currency || 'NGN')}
+              </div>
+            )}
+          </div>
+        )
+      }
+    },
+    {
+      header: 'STATUS',
+      render: (row) => {
+        const samePeriodPayments = payments.filter(p => 
+          p.periodStart === row.periodStart && p.periodEnd === row.periodEnd
+        );
+        const totalPaidForPeriod = samePeriodPayments.reduce((sum, p) => sum + p.amount, 0);
+        const isFullyPaid = totalPaidForPeriod >= (unit?.rentAmount || 0);
+        const isLatestForPeriod = row.uuid === samePeriodPayments[0]?.uuid;
+        const statusLabel = (isFullyPaid && isLatestForPeriod) ? 'Paid' : 'Part-Payment';
+
+        return (
+          <span style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: statusLabel === 'Paid' ? 'var(--forest)' : 'var(--text-muted)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6
+          }}>
+            {statusLabel}
+          </span>
+        )
+      }
+    },
+    {
+      header: 'ACTIONS',
+      align: 'right',
+      render: (row) => (
+        <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+          <button
+            className="btn-icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveMenuId(activeMenuId === row.uuid ? null : row.uuid)
+            }}
+          >
+            <MoreVertical size={16} />
+          </button>
+
+          {activeMenuId === row.uuid && (
+            <>
+              <div
+                style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+                onClick={() => setActiveMenuId(null)}
+              />
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 24,
+                background: 'white',
+                borderRadius: 8,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                border: '1px solid var(--border)',
+                zIndex: 11,
+                minWidth: 140,
+                overflow: 'hidden'
+              }}>
+                <button
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: 'var(--dark)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                  onClick={() => {
+                    setSelectedRecordForEdit(row)
+                    setIsEditRentModalOpen(true)
+                    setActiveMenuId(null)
+                  }}
+                >
+                  <Edit size={14} />
+                  Edit Record
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )
+    }
+  ];
+
+  const documentColumns: Column<any>[] = [
+    {
+      header: 'DOCUMENT NAME',
+      render: (doc) => (
+        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+          {doc.fileName || doc.subject}
+        </span>
+      )
+    },
+    {
+      header: 'TYPE',
+      render: (doc) => (
+        <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>
+          {(doc.fileType || doc.documentType || 'FILE').toUpperCase().replace('APPLICATION/', '')}
+        </span>
+      )
+    },
+    {
+      header: 'DATE ADDED',
+      render: (doc) => (
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          {new Date(doc.createdAt).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </span>
+      )
+    },
+    {
+      header: 'ADDED BY',
+      render: (doc) => {
+        const isPmDoc = doc.source === 'PM' || !doc.isTenantUploaded;
+        return (
+          <span style={{
+            fontSize: 11,
+            fontWeight: 700,
+            padding: '3px 8px',
+            borderRadius: 6,
+            background: isPmDoc ? 'var(--forest-faint)' : 'var(--clay-faint)',
+            color: isPmDoc ? 'var(--forest)' : 'var(--clay)',
+          }}>
+            {isPmDoc ? 'PM Sent' : 'Tenant Uploaded'}
+          </span>
+        )
+      }
+    },
+    {
+      header: 'ACTIONS',
+      align: 'right',
+      render: (doc) => (
+        <a
+          href={doc.fileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn--secondary btn--sm"
+          style={{ height: 32, fontSize: 12, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
+        >
+          <Download size={14} /> Download
+        </a>
+      )
+    }
+  ];
 
   if (showEditor) {
     return (
@@ -691,194 +913,50 @@ function UnitDetailContent() {
           </div>
 
           {/* Filters Bar */}
-          <div style={{ display: 'flex', gap: 16, marginBottom: 24, alignItems: 'center' }}>
-            <div style={{ position: 'relative', flex: 1 }}>
-              <Calendar size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input
-                type="date"
-                className="form-input"
-                style={{ paddingLeft: 40, height: 42, borderRadius: 12 }}
-                value={rentFilters.startDate}
-                onChange={e => setRentFilters({ ...rentFilters, startDate: e.target.value })}
+          <ControlBar>
+            <FilterGroup>
+              <div style={{ position: 'relative', minWidth: 150 }}>
+                <Calendar size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="date"
+                  className="form-input"
+                  style={{ paddingLeft: 40, height: 42, borderRadius: 12, border: 'none', background: 'transparent' }}
+                  value={rentFilters.startDate}
+                  onChange={e => setRentFilters({ ...rentFilters, startDate: e.target.value })}
+                />
+              </div>
+              <div style={{ position: 'relative', minWidth: 150 }}>
+                <Calendar size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="date"
+                  className="form-input"
+                  style={{ paddingLeft: 40, height: 42, borderRadius: 12, border: 'none', background: 'transparent' }}
+                  value={rentFilters.endDate}
+                  onChange={e => setRentFilters({ ...rentFilters, endDate: e.target.value })}
+                />
+              </div>
+              <FilterDropdown
+                label="Status"
+                value={rentFilters.status}
+                icon={Calendar}
+                options={[
+                  { label: 'All Status', value: 'all' },
+                  { label: 'Paid', value: 'paid' },
+                  { label: 'Part-Payment', value: 'part-payment' }
+                ]}
+                onChange={val => setRentFilters({ ...rentFilters, status: val as string })}
               />
-            </div>
-            <div style={{ position: 'relative', flex: 1 }}>
-              <Calendar size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input
-                type="date"
-                className="form-input"
-                style={{ paddingLeft: 40, height: 42, borderRadius: 12 }}
-                value={rentFilters.endDate}
-                onChange={e => setRentFilters({ ...rentFilters, endDate: e.target.value })}
-              />
-            </div>
-            <select
-              className="form-input"
-              style={{ width: 180, height: 42, borderRadius: 12 }}
-              value={rentFilters.status}
-              onChange={e => setRentFilters({ ...rentFilters, status: e.target.value })}
-            >
-              <option value="all">Status</option>
-              <option value="paid">Paid</option>
-              <option value="part-payment">Part-Payment</option>
-            </select>
-            <button className="btn btn--primary" style={{ height: 42, padding: '0 24px', borderRadius: 12 }}>Filter</button>
-          </div>
+            </FilterGroup>
+            <button className="btn btn--primary" style={{ height: 42, padding: '0 24px', borderRadius: 12, flexShrink: 0 }}>Filter</button>
+          </ControlBar>
 
-          <div className="rent-history glass" style={{ padding: 0, overflow: 'hidden', borderRadius: 16 }}>
-            <div className="rent-history__table-container">
-              <table className="rent-history__table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead style={{ background: 'var(--ivory-dim)' }}>
-                  <tr>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Tenant Name</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Rent Period</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Date Paid</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Amount Paid</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Status</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.length > 0 ? (payments as any[]).map((row, index) => {
-                    const samePeriodPayments = (payments as any[]).filter(p => 
-                      p.periodStart === row.periodStart && p.periodEnd === row.periodEnd
-                    );
-
-                    const paidUntilThisRow = (payments as any[])
-                      .slice(index)
-                      .filter(p => p.periodStart === row.periodStart && p.periodEnd === row.periodEnd)
-                      .reduce((sum, p) => sum + p.amount, 0);
-
-                    const balance = (unit?.rentAmount || 0) - paidUntilThisRow;
-                    
-                    const totalPaidForPeriod = samePeriodPayments.reduce((sum, p) => sum + p.amount, 0);
-                    const isFullyPaid = totalPaidForPeriod >= (unit?.rentAmount || 0);
-                    
-                    const isLatestForPeriod = row.uuid === samePeriodPayments[0]?.uuid;
-                    
-                    const statusLabel = (isFullyPaid && isLatestForPeriod) ? 'Paid' : 'Part-Payment';
-
-                    return (
-                      <tr key={row.uuid} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td style={{ padding: '20px 24px', fontSize: 14, fontWeight: 500, color: 'var(--dark)' }}>
-                          {row.tenant 
-                            ? formatTenantName(row.tenant)
-                            : (row.notes && !['Bulk Import', 'Manual Entry', 'Imported initial payment'].some(note => row.notes.includes(note)) && !row.notes.includes('Rent Portion'))
-                              ? row.notes
-                              : unit?.tenant
-                                ? formatTenantName(unit.tenant)
-                                : 'Past Tenant'
-                          }
-                        </td>
-                        <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-muted)' }}>
-                          {row.periodStart ? (
-                            <>
-                              {new Date(row.periodStart).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                              {' - '}
-                              {row.periodEnd
-                                ? new Date(row.periodEnd).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-                                : '...'
-                              }
-                            </>
-                          ) : 'N/A'}
-                        </td>
-                        <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-muted)' }}>
-                          {new Date(row.paymentDate).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
-                        </td>
-                        <td style={{ padding: '20px 24px' }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>
-                            {formatCurrency(row.amount, unit?.currency || 'NGN')}
-                          </div>
-                          {balance > 0 && (
-                            <div style={{ fontSize: 11, color: 'var(--error)', marginTop: 2, fontWeight: 500 }}>
-                              Bal. {formatCurrency(balance, unit?.currency || 'NGN')}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ padding: '20px 24px' }}>
-                          <span style={{
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: statusLabel === 'Paid' ? 'var(--forest)' : 'var(--text-muted)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6
-                          }}>
-                            {statusLabel}
-                          </span>
-                        </td>
-                        <td style={{ padding: '20px 24px', textAlign: 'right', position: 'relative' }}>
-                          <button
-                            className="btn-icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveMenuId(activeMenuId === row.uuid ? null : row.uuid)
-                            }}
-                          >
-                            <MoreVertical size={16} />
-                          </button>
-
-                          {activeMenuId === row.uuid && (
-                            <>
-                              <div
-                                style={{ position: 'fixed', inset: 0, zIndex: 10 }}
-                                onClick={() => setActiveMenuId(null)}
-                              />
-                              <div style={{
-                                position: 'absolute',
-                                top: '100%',
-                                right: 24,
-                                background: 'white',
-                                borderRadius: 8,
-                                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                                border: '1px solid var(--border)',
-                                zIndex: 11,
-                                minWidth: 140,
-                                overflow: 'hidden'
-                              }}>
-                                <button
-                                  style={{
-                                    width: '100%',
-                                    padding: '12px 16px',
-                                    textAlign: 'left',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 10,
-                                    fontSize: 13,
-                                    fontWeight: 600,
-                                    color: 'var(--dark)',
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer'
-                                  }}
-                                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
-                                  onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-                                  onClick={() => {
-                                    setSelectedRecordForEdit(row)
-                                    setIsEditRentModalOpen(true)
-                                    setActiveMenuId(null)
-                                  }}
-                                >
-                                  <Edit size={14} />
-                                  Edit Record
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  }) : (
-                    <tr>
-                      <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        No rent payments recorded yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DataTable
+            columns={rentHistoryColumns}
+            data={payments}
+            keyExtractor={(row) => row.uuid}
+            emptyMessage="No rent payments recorded yet."
+            pageSize={10}
+          />
         </div>
       )}
 
@@ -901,68 +979,13 @@ function UnitDetailContent() {
             </button>
           </div>
 
-          <div className="rent-history glass" style={{ padding: 0, overflow: 'hidden', borderRadius: 16, background: 'white' }}>
-            <div className="rent-history__table-container">
-              <table className="rent-history__table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead style={{ background: 'var(--ivory-dim)' }}>
-                  <tr>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Document Name</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Type</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Date Added</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Added By</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {allUnitDocs.length > 0 ? allUnitDocs.map((doc: any) => {
-                    const isPmDoc = doc.source === 'PM' || !doc.isTenantUploaded
-                    return (
-                      <tr key={doc.uuid} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-secondary)' }}>
-                          {doc.fileName || doc.subject}
-                        </td>
-                        <td style={{ padding: '20px 24px', fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>
-                          {(doc.fileType || doc.documentType || 'FILE').toUpperCase().replace('APPLICATION/', '')}
-                        </td>
-                        <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-muted)' }}>
-                          {new Date(doc.createdAt).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </td>
-                        <td style={{ padding: '20px 24px' }}>
-                          <span style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: '3px 8px',
-                            borderRadius: 6,
-                            background: isPmDoc ? 'var(--forest-faint)' : 'var(--clay-faint)',
-                            color: isPmDoc ? 'var(--forest)' : 'var(--clay)',
-                          }}>
-                            {isPmDoc ? 'PM Sent' : 'Tenant Uploaded'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '20px 24px', textAlign: 'right' }}>
-                          <a
-                            href={doc.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn btn--secondary btn--sm"
-                            style={{ height: 32, fontSize: 12, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
-                          >
-                            <Download size={14} /> Download
-                          </a>
-                        </td>
-                      </tr>
-                    );
-                  }) : (
-                    <tr>
-                      <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        No documents associated with this unit yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DataTable
+            columns={documentColumns}
+            data={allUnitDocs}
+            keyExtractor={(doc) => doc.uuid}
+            emptyMessage="No documents associated with this unit yet."
+            pageSize={10}
+          />
         </div>
       )}
 

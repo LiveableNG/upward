@@ -5,6 +5,7 @@ import { ArrowLeft, Search, Eye, LayoutGrid, Wallet, FileText, ClipboardList, Pa
 import { Property, Unit } from '../../services/propertyService'
 import { cn, formatTenantName } from '@/lib/utils'
 import { ManualAccountModal } from './modals/ManualAccountModal'
+import { DataTable, Column } from '@/components/common/DataTable'
 
 interface PropertyDetailViewProps {
   property: Property;
@@ -33,20 +34,66 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
     return matchesSearch && matchesFilter
   })
 
+  const columns: Column<Unit>[] = [
+    {
+      header: 'UNIT',
+      render: (unit) => (
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>{unit.unitName}</div>
+      )
+    },
+    {
+      header: 'TENANT',
+      render: (unit) => unit.tenant ? (
+        <div style={{ fontSize: 14, color: '#334155' }}>{formatTenantName(unit.tenant)}</div>
+      ) : (
+        <span className="badge badge--vacant" style={{ fontSize: 10, background: '#f1f5f9', color: '#94a3b8' }}>Vacant</span>
+      )
+    },
+    {
+      header: 'RENT VALUE',
+      render: (unit) => (
+        <div style={{ fontSize: 14, color: '#334155', fontWeight: 500 }}>₦ {unit.rentAmount?.toLocaleString()}</div>
+      )
+    },
+    {
+      header: 'RENT EXPIRES',
+      render: (unit) => (
+        <div style={{ fontSize: 14, color: '#64748b' }}>
+          {unit.rentDueDate ? new Date(unit.rentDueDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'No Date'}
+        </div>
+      )
+    },
+    {
+      header: 'ACTION',
+      align: 'right',
+      render: (unit) => (
+        <button 
+          onClick={(e) => { e.stopPropagation(); onViewUnit(unit); }}
+          className="btn btn--ghost btn--sm" 
+          style={{ color: '#64748b', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}
+        >
+          View <Eye size={16} />
+        </button>
+      )
+    }
+  ]
+
   return (
     <div className="property-detail animate-fade-in" style={{ paddingBottom: 40 }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <button onClick={onBack} className="btn-icon" style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, width: 40, height: 40 }}>
-          <ArrowLeft size={18} />
-        </button>
-        <h2 style={{ fontSize: 18, fontWeight: 600, color: '#334155' }}>Property Detail</h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={onBack} className="btn-icon" style={{ flexShrink: 0, background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ArrowLeft size={18} />
+          </button>
+          <h2 style={{ fontSize: 18, fontWeight: 600, color: '#334155', whiteSpace: 'nowrap', margin: 0 }}>Property Detail</h2>
+        </div>
         
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <button 
             onClick={() => setIsManualModalOpen(true)}
             className="btn btn--secondary btn--sm" 
-            style={{ display: 'flex', alignItems: 'center', gap: 8, height: 36, padding: '0 16px', borderRadius: 10 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, height: 36, padding: '0 16px', borderRadius: 10, whiteSpace: 'nowrap' }}
           >
             <Wallet size={16} /> Setup Manual Payment
           </button>
@@ -54,7 +101,7 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
           <button 
             onClick={onEdit}
             className="btn btn--secondary btn--sm" 
-            style={{ display: 'flex', alignItems: 'center', gap: 8, height: 36, padding: '0 16px', borderRadius: 10 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, height: 36, padding: '0 16px', borderRadius: 10, whiteSpace: 'nowrap' }}
           >
             <Edit3 size={16} /> Edit Property
           </button>
@@ -195,59 +242,18 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
           </div>
         </div>
 
-        <div className="tenant-table-container" style={{ border: '1px solid #f1f5f9', borderRadius: 12, overflow: 'hidden' }}>
-          <table className="tenant-table">
-            <thead style={{ background: '#f8fafc' }}>
-              <tr>
-                <th style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>UNIT</th>
-                <th style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>TENANT</th>
-                <th style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>RENT VALUE</th>
-                <th style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>RENT EXPIRES</th>
-                <th className="col-actions" style={{ textAlign: 'right', color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>ACTION</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUnits.map(unit => (
-                <tr key={unit.uuid} className="tenant-table-row">
-                  <td style={{ padding: '20px 16px' }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>{unit.unitName}</div>
-                  </td>
-                  <td style={{ padding: '20px 16px' }}>
-                    {unit.tenant ? (
-                      <div style={{ fontSize: 14, color: '#334155' }}>{formatTenantName(unit.tenant)}</div>
-                    ) : (
-                      <span className="badge badge--vacant" style={{ fontSize: 10, background: '#f1f5f9', color: '#94a3b8' }}>Vacant</span>
-                    )}
-                  </td>
-                  <td style={{ padding: '20px 16px' }}>
-                    <div style={{ fontSize: 14, color: '#334155', fontWeight: 500 }}>₦ {unit.rentAmount?.toLocaleString()}</div>
-                  </td>
-                  <td style={{ padding: '20px 16px' }}>
-                    <div style={{ fontSize: 14, color: '#64748b' }}>
-                      {unit.rentDueDate ? new Date(unit.rentDueDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'No Date'}
-                    </div>
-                  </td>
-                  <td className="col-actions" style={{ padding: '20px 16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <button 
-                        onClick={() => onViewUnit(unit)}
-                        className="btn btn--ghost btn--sm" 
-                        style={{ color: '#64748b', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}
-                      >
-                        View <Eye size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredUnits.length === 0 && (
-            <div style={{ padding: 60, textAlign: 'center', color: '#94a3b8' }}>
-              <LayoutGrid size={40} style={{ marginBottom: 12, opacity: 0.2 }} />
-              <p>No units found matching your filters.</p>
-            </div>
-          )}
+        <div style={{ border: '1px solid #f1f5f9', borderRadius: 12, overflow: 'hidden' }}>
+          <DataTable 
+            columns={columns}
+            data={filteredUnits}
+            keyExtractor={(unit) => unit.uuid}
+            emptyMessage={
+              <div style={{ padding: 60, textAlign: 'center', color: '#94a3b8' }}>
+                <LayoutGrid size={40} style={{ marginBottom: 12, opacity: 0.2 }} />
+                <p>No units found matching your filters.</p>
+              </div>
+            }
+          />
         </div>
       </div>
 

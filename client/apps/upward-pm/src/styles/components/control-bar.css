@@ -136,6 +136,7 @@
 }
 
 @media (max-width: 768px) {
+
   /* Optimize Filter Buttons with Horizontal Scroll */
   .upward-filter-group {
     flex-wrap: nowrap;
@@ -143,15 +144,17 @@
     width: 100%;
     padding-bottom: 8px;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Hide scrollbar for Firefox */
-    
+    scrollbar-width: none;
+    /* Hide scrollbar for Firefox */
+
     /* Fade out right edge to visually indicate swipeability */
     -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
     mask-image: linear-gradient(to right, black 85%, transparent 100%);
   }
 
   .upward-filter-group::-webkit-scrollbar {
-    display: none; /* Hide scrollbar for Chrome/Safari */
+    display: none;
+    /* Hide scrollbar for Chrome/Safari */
   }
 
   .scroll-hint-icon {
@@ -166,7 +169,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     z-index: 10;
     pointer-events: auto;
     cursor: pointer;
@@ -183,13 +186,27 @@
   }
 
   @keyframes bounceRight {
-    0%, 100% { transform: translate(0, -50%); }
-    50% { transform: translate(6px, -50%); }
+
+    0%,
+    100% {
+      transform: translate(0, -50%);
+    }
+
+    50% {
+      transform: translate(6px, -50%);
+    }
   }
 
   @keyframes bounceLeft {
-    0%, 100% { transform: translate(0, -50%); }
-    50% { transform: translate(-6px, -50%); }
+
+    0%,
+    100% {
+      transform: translate(0, -50%);
+    }
+
+    50% {
+      transform: translate(-6px, -50%);
+    }
   }
 
   /* Filter and Form Select Bottom Sheet for Mobile */
@@ -217,13 +234,18 @@
     border-radius: 24px 24px 0 0 !important;
     padding: 24px !important;
     margin: 0 !important;
-    box-shadow: 0 -10px 40px rgba(0,0,0,0.15) !important;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15) !important;
     animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
   }
-  
+
   @keyframes slideUp {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
+    from {
+      transform: translateY(100%);
+    }
+
+    to {
+      transform: translateY(0);
+    }
   }
 
   .upward-control-bar {

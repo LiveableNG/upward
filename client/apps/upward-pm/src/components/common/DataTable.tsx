@@ -257,7 +257,11 @@ export function DataTable<T>({
                     const rendered = col.render(item, idx);
                     if (!rendered) return null;
                     return (
-                      <div key={colIdx} className="upward-mobile-card__actions">
+                      <div 
+                        key={colIdx} 
+                        className="upward-mobile-card__actions"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         {rendered}
                       </div>
                     );

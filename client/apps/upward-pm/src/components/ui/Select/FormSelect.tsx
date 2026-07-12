@@ -19,11 +19,11 @@ interface FormSelectProps {
   placeholder?: string
 }
 
-export function FormSelect({ 
-  label, 
-  value, 
-  options, 
-  onChange, 
+export function FormSelect({
+  label,
+  value,
+  options,
+  onChange,
   disabled,
   className = '',
   placeholder = 'Select an option'
@@ -97,14 +97,14 @@ export function FormSelect({
 
   return (
     <div className={`upward-form-select-container ${className}`} ref={containerRef} style={{ position: 'relative' }}>
-      <button 
+      <button
         type="button"
         disabled={disabled}
         className={`form-input upward-form-select-trigger ${isOpen ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           width: '100%',
           textAlign: 'left',

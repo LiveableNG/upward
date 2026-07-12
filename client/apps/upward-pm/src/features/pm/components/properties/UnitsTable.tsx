@@ -267,7 +267,7 @@ function UnitActions({ unit, onRequestPayment }: { unit: Unit, onRequestPayment?
   };
 
   return (
-    <div className="action-buttons" style={{ justifyContent: 'flex-end' }}>
+    <div className="action-buttons" style={{ justifyContent: 'flex-end' }} onClick={(e) => e.stopPropagation()}>
       {unit.status === 'OCCUPIED' && unit.tenant?.email && (
         unit.tenant.inviteStatus === 'PENDING' || unit.tenant.inviteStatus === 'PROCESSING' ? (
           <div style={{ 
