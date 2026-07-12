@@ -15,7 +15,6 @@ interface EditPropertyModalProps {
   formData: {
     name: string;
     address: string;
-    totalUnits: string;
     propertyType: string;
     imageUrl?: string;
     country?: string;
@@ -61,7 +60,7 @@ export const EditPropertyModal: React.FC<EditPropertyModalProps> = ({
     ? 'Invalid email address'
     : undefined
 
-  const isInvalid = !!phoneError || !!emailError || !formData.name || !formData.address || !formData.totalUnits
+  const isInvalid = !!phoneError || !!emailError || !formData.name || !formData.address
 
   if (!isOpen) return null;
 
@@ -142,28 +141,17 @@ export const EditPropertyModal: React.FC<EditPropertyModalProps> = ({
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <div className="form-group">
-            <label className="form-label">Total Units</label>
-            <input 
-              type="number" 
-              className="form-input" 
-              value={formData.totalUnits} 
-              onChange={e => setFormData({ ...formData, totalUnits: e.target.value })}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Property Type</label>
-            <select 
-              className="form-input" 
-              value={formData.propertyType} 
-              onChange={e => setFormData({ ...formData, propertyType: e.target.value })}
-            >
-              <option>Residential</option>
-              <option>Commercial</option>
-              <option>Mixed Use</option>
-            </select>
-          </div>
+        <div className="form-group">
+          <label className="form-label">Property Type</label>
+          <select 
+            className="form-input" 
+            value={formData.propertyType} 
+            onChange={e => setFormData({ ...formData, propertyType: e.target.value })}
+          >
+            <option>Residential</option>
+            <option>Commercial</option>
+            <option>Mixed Use</option>
+          </select>
         </div>
 
         <div style={{ marginTop: 24, padding: 16, background: 'var(--bg)', borderRadius: 12 }}>

@@ -94,7 +94,7 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
             <div>
               <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Total Units</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>{property.totalUnits}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>{units.length}</div>
             </div>
             <div>
               <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Purpose</div>

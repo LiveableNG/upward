@@ -37,7 +37,7 @@ export class CreatePropertyUseCase {
       pmId,
       name: dto.name,
       address: dto.address || null,
-      totalUnits: dto.totalUnits,
+      totalUnits: dto.totalUnits || 0,
       propertyType: dto.propertyType,
       imageUrl: dto.imageUrl || null,
       country: dto.country || 'Nigeria',
