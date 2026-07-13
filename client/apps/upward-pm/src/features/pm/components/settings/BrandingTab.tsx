@@ -620,7 +620,7 @@ export function BrandingTab() {
   return (
     <div className="branding-settings animate-fade-in" style={{ maxWidth: 900, margin: '0 auto' }}>
       <section className="settings__section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div className="flex-header-responsive" style={{ marginBottom: 20 }}>
           <div>
             <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>Letterhead Design Configurations</h2>
             <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Upload S3 PDF background templates and configure custom printable page margins.</p>
@@ -656,7 +656,7 @@ export function BrandingTab() {
               </div>
 
               {/* Basic Fields */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="grid-responsive-2col">
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Template Page Count</label>
                   <select value={pageCount} onChange={(e) => setPageCount(Number(e.target.value))} style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-input)' }}>
@@ -702,7 +702,7 @@ export function BrandingTab() {
                     <Settings size={16} /> Interactive Visual Margin Editor
                   </h4>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 32 }}>
+                  <div className="grid-responsive-layout">
                     {/* Page 1 Config */}
                     <div>
                       <LetterheadMarginPreview
@@ -868,7 +868,7 @@ export function BrandingTab() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 32 }}>
+        <div className="grid-responsive-sig">
           {/* Create Signature Form */}
           <form onSubmit={handleSaveSignature} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div>
@@ -884,7 +884,7 @@ export function BrandingTab() {
 
             <div>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Signature Type</label>
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   className={`btn ${sigType === 'pad' ? 'btn--primary' : 'btn--secondary'}`}
@@ -1157,7 +1157,7 @@ export function BrandingTab() {
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 32 }}>
+            <div className="grid-responsive-layout">
               {/* Visual preview */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                 {editingLetterhead.previewFirstPageUrl ? (
@@ -1291,6 +1291,43 @@ export function BrandingTab() {
       <style jsx>{`
         .hidden { display: none; }
         .text-brand { color: var(--brand, #3b82f6); }
+        .grid-responsive-2col {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+        .grid-responsive-layout {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 32px;
+        }
+        .grid-responsive-sig {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 32px;
+        }
+        .flex-header-responsive {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 16px;
+        }
+        @media (min-width: 768px) {
+          .grid-responsive-2col {
+            grid-template-columns: 1fr 1fr;
+          }
+          .grid-responsive-layout {
+            grid-template-columns: 1.2fr 1fr;
+          }
+          .grid-responsive-sig {
+            grid-template-columns: 1fr 1.2fr;
+          }
+          .flex-header-responsive {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+          }
+        }
       `}</style>
     </div>
   )

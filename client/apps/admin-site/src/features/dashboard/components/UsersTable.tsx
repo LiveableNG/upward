@@ -28,6 +28,7 @@ export interface UnifiedUserRecord {
   pms?: Array<{ uuid: string; name: string; propertyAddress?: string }>
   totalPaid: number
   rentExpiryDate?: string
+  failureReason?: string
   rawRecord: any
 }
 
@@ -40,6 +41,7 @@ interface UsersTableProps {
   selectedUserIds: Set<string>
   toggleSelectAllUsers: () => void
   toggleSelectUser: (id: string, e: React.MouseEvent) => void
+  showFailureReason?: boolean
   onPreview?: (item: UnifiedUserRecord) => void
   onDeleteSelected?: () => void
 }
@@ -153,8 +155,9 @@ export const UsersTable: React.FC<UsersTableProps> = ({
   selectedUserIds,
   toggleSelectAllUsers,
   toggleSelectUser,
+  showFailureReason,
   onPreview,
-  onDeleteSelected,
+  onDeleteSelected
 }) => {
   const navigate = useNavigate()
   const [sortKey, setSortKey] = useState<SortKey>('createdAt')
@@ -338,12 +341,20 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             <th style={thStyle} onClick={() => handleSort('totalPaid')}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Paid <SortIcon col="totalPaid" active={sortKey} dir={sortDir} /></span>
             </th>
-            <th style={thStyle} onClick={() => handleSort('joinedAt')}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Joined <SortIcon col="joinedAt" active={sortKey} dir={sortDir} /></span>
+            <th style={{ padding: '14px 16px', fontWeight: 700, fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Join Date
             </th>
-            <th style={thStyle} onClick={() => handleSort('rentExpiry')}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Rent Expiry <SortIcon col="rentExpiry" active={sortKey} dir={sortDir} /></span>
-            </th>
+            {showFailureReason ? (
+                <th style={{ padding: '14px 16px', fontWeight: 700, fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Failure Log
+                </th>
+              ) : (
+                <th style={{ padding: '14px 16px', fontWeight: 700, fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }} className="cursor-pointer hover:text-black" onClick={() => handleSort('rentExpiry')}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    Rent Expiry <SortIcon col="rentExpiry" active={sortKey} dir={sortDir} />
+                  </div>
+                </th>
+              )}
             <th style={{ ...thStyle, width: '44px', cursor: 'default' }} />
           </tr>
         </thead>
@@ -438,9 +449,15 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                   <span style={{ opacity: 0.5 }}>—</span>
                 )}
               </td>
-              <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                {item.rentExpiryDate ? new Date(item.rentExpiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : <span style={{ opacity: 0.5 }}>—</span>}
-              </td>
+              {showFailureReason ? (
+                <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--error)', fontWeight: 600 }}>
+                  {item.failureReason || <span style={{ opacity: 0.5, color: 'var(--text-muted)' }}>—</span>}
+                </td>
+              ) : (
+                <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                  {item.rentExpiryDate ? new Date(item.rentExpiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : <span style={{ opacity: 0.5 }}>—</span>}
+                </td>
+              )}
               {/* Actions */}
               <td style={{ padding: '14px 12px', position: 'relative' }}>
                 <button

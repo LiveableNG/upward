@@ -30,7 +30,7 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
   })
 
   const isReminderEnabled = watch('rentReminderEnabled')
-
+  const hasContactInfo = unit?.tenant ? !!(unit.tenant.email || unit.tenant.phone) : true;
 
   useEffect(() => {
     if (unit && isOpen) {
@@ -174,6 +174,7 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
                   type="checkbox" 
                   id="rentReminderEnabled"
                   {...register('rentReminderEnabled')}
+                  disabled={!hasContactInfo}
                   style={{ display: 'none' }}
                 />
                 <label 
@@ -181,12 +182,13 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
                   style={{
                     width: 44,
                     height: 22,
-                    background: isReminderEnabled ? 'var(--forest)' : '#ccc',
+                    background: !hasContactInfo ? 'var(--border)' : (isReminderEnabled ? 'var(--forest)' : '#ccc'),
                     borderRadius: 11,
                     display: 'block',
                     position: 'relative',
-                    cursor: 'pointer',
-                    transition: '0.3s'
+                    cursor: !hasContactInfo ? 'not-allowed' : 'pointer',
+                    transition: '0.3s',
+                    opacity: !hasContactInfo ? 0.6 : 1
                   }}
                 >
                   <div style={{

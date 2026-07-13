@@ -36,7 +36,7 @@ export function RecipientSelectModal({ isOpen, onClose, onSelect }: RecipientSel
     let list: Recipient[] = []
     
     if (activeTab === 'TENANT') {
-      list = tenants.map(t => ({
+      list = tenants.filter(t => !(!t.phone && (!t.email || t.email.endsWith('@upward.com')))).map(t => ({
         uuid: t.uuid,
         name: t.commercialName || `${t.firstName || ''} ${t.lastName || ''}`.trim() || 'Tenant',
         email: t.email || 'N/A',

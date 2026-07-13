@@ -89,15 +89,33 @@ export class BulkCreateUnitsUseCase {
           otherPhoneVal = parts[1]?.trim();
         }
 
-        if (email) {
-          const emailHash = this.encryption.hash(email);
-          let tenant = await this.tenantRepository.findByEmailHash(pmId, emailHash);
-          if (!tenant && pmId !== property.pmId) {
-            tenant = await this.tenantRepository.findByEmailHash(property.pmId, emailHash);
+        if (email || phoneVal) {
+          let tenant = null;
+          let existingUser = null;
+
+          if (email) {
+            const emailHash = this.encryption.hash(email);
+            tenant = await this.tenantRepository.findByEmailHash(pmId, emailHash);
+            if (!tenant && pmId !== property.pmId) {
+              tenant = await this.tenantRepository.findByEmailHash(property.pmId, emailHash);
+            }
+            if (!tenant) {
+              existingUser = await this.userRepository.findByEmail(email);
+            }
+          }
+
+          if (!tenant && phoneVal) {
+            const phoneHash = this.encryption.hash(phoneVal);
+            tenant = await this.tenantRepository.findByPhoneHash(pmId, phoneHash);
+            if (!tenant && pmId !== property.pmId) {
+              tenant = await this.tenantRepository.findByPhoneHash(property.pmId, phoneHash);
+            }
+            if (!tenant && !existingUser) {
+              existingUser = await this.userRepository.findByPhone(phoneVal);
+            }
           }
 
           if (!tenant) {
-            const existingUser = await this.userRepository.findByEmail(email);
             initialStatus = existingUser ? 'ON_UPWARD' : 'PENDING';
 
             tenant = await this.tenantRepository.create({
@@ -105,7 +123,7 @@ export class BulkCreateUnitsUseCase {
               commercialName: commercialName || undefined,
               firstName: firstName || '',
               lastName: lastName || '',
-              email: email,
+              email: email || undefined,
               phone: phoneVal || '',
               otherPhone: otherPhoneVal || undefined,
               inviteStatus: initialStatus,
@@ -119,13 +137,13 @@ export class BulkCreateUnitsUseCase {
             createdTenantUuids.push(tenant.uuid);
           }
         } else {
-          // No email - create guest tenant
+          // No contact info - create guest tenant
           const tenant = await this.tenantRepository.create({
             pmId,
             commercialName: commercialName || undefined,
             firstName: firstName || undefined,
             lastName: lastName || undefined,
-            phone: phoneVal || undefined,
+            phone: undefined,
             otherPhone: otherPhoneVal || undefined,
             inviteStatus: 'PENDING',
             inviteSentAt: null,

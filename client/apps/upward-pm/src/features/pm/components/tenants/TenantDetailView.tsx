@@ -83,6 +83,7 @@ export const TenantDetailView: React.FC = () => {
 
   const isOnUpward = tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED'
   const isProcessing = !isOnUpward && !tenant.inviteSentAt
+  const hasNoContact = !tenant.phone && (!tenant.email || tenant.email.endsWith('@upward.com'))
 
   if (showEditor) {
     return (
@@ -170,22 +171,22 @@ export const TenantDetailView: React.FC = () => {
               <button 
                 className="btn"
                 onClick={handleInvite}
-                disabled={inviteTenant.isPending || (!tenant.phone && tenant.email?.endsWith('@upward.com'))}
+                disabled={inviteTenant.isPending || hasNoContact}
                 style={{ 
                   fontSize: 13, 
                   padding: '10px 24px',
                   height: '40px',
                   borderRadius: 100,
-                  background: (!tenant.phone && tenant.email?.endsWith('@upward.com')) ? 'var(--ivory-dark)' : tenant.inviteSentAt ? 'var(--ivory-dark)' : 'var(--forest)',
-                  color: (!tenant.phone && tenant.email?.endsWith('@upward.com')) || tenant.inviteSentAt ? 'var(--text-muted)' : 'white',
+                  background: hasNoContact ? 'var(--ivory-dark)' : tenant.inviteSentAt ? 'var(--ivory-dark)' : 'var(--forest)',
+                  color: hasNoContact || tenant.inviteSentAt ? 'var(--text-muted)' : 'white',
                   border: '1px solid var(--border)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  cursor: (!tenant.phone && tenant.email?.endsWith('@upward.com')) ? 'not-allowed' : 'pointer',
-                  opacity: (!tenant.phone && tenant.email?.endsWith('@upward.com')) ? 0.6 : 1
+                  cursor: hasNoContact ? 'not-allowed' : 'pointer',
+                  opacity: hasNoContact ? 0.6 : 1
                 }}
-                title={(!tenant.phone && tenant.email?.endsWith('@upward.com')) ? 'Configure a real email or phone number before inviting' : undefined}
+                title={hasNoContact ? 'Configure a real email or phone number before inviting' : undefined}
               >
                 {inviteTenant.isPending ? (
                   <Loader2 size={16} className="animate-spin" />

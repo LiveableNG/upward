@@ -56,6 +56,7 @@ export interface InvitedRecord {
   pms?: Array<{ uuid: string; name: string; propertyAddress?: string }>
   benefitsPaid?: number
   hasPaidBenefits?: boolean
+  failureReason?: string
 }
 
 export interface PmRecord {
