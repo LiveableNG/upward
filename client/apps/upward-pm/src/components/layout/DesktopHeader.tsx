@@ -23,6 +23,32 @@ export function DesktopHeader() {
   const isPending = verification?.status === 'PENDING'
 
 
+  const getRelativeTime = (dateStr: string) => {
+    const now = new Date()
+    const past = new Date(dateStr)
+    const diffMs = now.getTime() - past.getTime()
+    const diffMins = Math.floor(diffMs / (1000 * 60))
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `${diffHours}h ago`
+    const diffDays = Math.floor(diffHours / 24)
+    return `${diffDays}d ago`
+  }
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'PAYMENT_COMPLETED':
+        return <CheckCircle2 size={16} className="notif-icon--success" />
+      case 'PAYMENT_OVERDUE':
+        return <AlertCircle size={16} className="notif-icon--error" />
+      case 'PAYMENT_DUE':
+      case 'PAYMENT_PROOF':
+        return <Calendar size={16} className="notif-icon--warning" />
+      default:
+        return <Sparkles size={16} className="notif-icon--system" />
+    }
+  }
 
   return (
     <header className="desktop-header">

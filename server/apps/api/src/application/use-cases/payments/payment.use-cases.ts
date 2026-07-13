@@ -1449,10 +1449,13 @@ export class GetPendingPaymentsUseCase {
     }))
 
     const standaloneProofs = await this.prisma.upward_payment_proof.findMany({
-      where: { 
-        uploadedByUserId: user.id,
+      where: {
         paymentRequestId: null,
-        status: { in: ['PENDING', 'REJECTED'] }
+        status: { in: ['PENDING', 'REJECTED'] },
+        OR: [
+          { uploadedByUserId: user.id },
+          { userProperty: { userId: user.id } },
+        ],
       },
       include: {
         userProperty: { include: { location: true, company: true } }

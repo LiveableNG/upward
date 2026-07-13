@@ -47,6 +47,7 @@ export function ManualAccountModal({ isOpen, onClose, propertyId, propertyName }
 
   const selectedBankCode = useWatch({ control, name: 'bankCode' })
   const accountNumber = useWatch({ control, name: 'accountNumber' })
+  const accountName = useWatch({ control, name: 'accountName' })
 
   const { data: banks = [] } = useQuery<{ name: string, code: string }[]>({
     queryKey: ['banks'],
@@ -170,9 +171,9 @@ export function ManualAccountModal({ isOpen, onClose, propertyId, propertyName }
           {isConfirmed && !isVerifying && (
             <div style={{ background: 'var(--success-faint)', color: 'var(--success)', padding: 12, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8, border: '1px solid #bbf7d0' }}>
               <CheckCircle2 size={18} />
-              <div style={{ flex: 1, overflow: 'hidden' }}>
-                <p style={{ margin: 0, fontSize: 12, fontWeight: 600 }}>Account Verified</p>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{useWatch({ control, name: 'accountName' })}</p>
+              <div className="flex-1 overflow-hidden">
+                <p className="text-xs font-semibold">Account Verified</p>
+                <p className="text-sm truncate font-bold">{accountName}</p>
               </div>
             </div>
           )}
