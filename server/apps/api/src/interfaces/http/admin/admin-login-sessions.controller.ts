@@ -15,7 +15,7 @@ export class AdminLoginSessionsController {
   ) {}
 
   @Get()
-  @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
   async getLoginSessions(
     @Query('page') page?: string,
     @Query('limit') limit?: string,

@@ -15,7 +15,7 @@ export class DevEmailAdminController {
   ) {}
 
   @Get()
-  @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
   async getDevEmails(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -57,7 +57,7 @@ export class DevEmailAdminController {
   }
 
   @Get(':uuid')
-  @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
   async getDevEmailDetails(@Param('uuid') uuid: string) {
     const email = (await this.prisma.upward_dev_email_preview.findUnique({
       where: { uuid },
@@ -89,7 +89,7 @@ export class DevEmailAdminController {
   }
 
   @Delete()
-  @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
   async clearAllDevEmails() {
     await this.prisma.upward_dev_email_preview.deleteMany()
     return { success: true, message: 'All dev preview emails have been cleared.' }

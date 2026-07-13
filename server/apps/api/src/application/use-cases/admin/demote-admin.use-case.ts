@@ -20,7 +20,7 @@ export class DemoteAdminUseCase {
     if (!admin) throw new NotFoundException('Admin not found')
 
     const oldRole = admin.role
-    const newRole = AdminRole.ADMIN
+    const newRole = AdminRole.CUSTOMER_SUPPORT
 
     const updated = await this.prisma.upward_admin.update({
       where: { id },
