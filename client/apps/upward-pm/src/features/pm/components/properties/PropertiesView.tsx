@@ -18,11 +18,9 @@ import {
 import { usePaymentRequests } from '@/features/pm/hooks/usePayments'
 import { Property, getPropertyImageUploadUrl } from '../../services/propertyService'
 
-// Sub-components
 import { PropertiesTable } from './PropertiesTable'
 import { UnitsTable } from './UnitsTable'
-
-// Modals
+import { TableSkeleton } from '@/components/skeletons/TableSkeleton'
 import { AddPropertyModal } from './modals/AddPropertyModal'
 import { EditPropertyModal } from './modals/EditPropertyModal'
 import { DeletePropertyModal } from './modals/DeletePropertyModal'
@@ -37,16 +35,13 @@ export function PropertiesView() {
   const router = useRouter()
   const { success, info, error } = useToast()
   
-  // View State
   const [activeTab, setActiveTab] = useState<Tab>('units')
   
-  // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPropertyFilter, setSelectedPropertyFilter] = useState('All Properties')
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'pending'>('all')
   const [dueFilter, setDueFilter] = useState<'all' | 'passed' | '30days' | '60days' | '90days'>('all')
   
-  // Modal & Edit State
   const [showAddPropertyModal, setShowAddPropertyModal] = useState(false)
   const [showEditPropertyModal, setShowEditPropertyModal] = useState(false)
   const [showDeletePropertyModal, setShowDeletePropertyModal] = useState(false)
@@ -58,12 +53,10 @@ export function PropertiesView() {
   const [editingPropertyUuid, setEditingPropertyUuid] = useState('')
   const [targetPropertyUuid, setTargetPropertyUuid] = useState('')
 
-  // Payment -> Document Editor Flow
   const [showEditor, setShowEditor] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
   const [paymentContext, setPaymentContext] = useState<any>(null)
   
-  // Data Hooks
   const { data: properties = [], isLoading: loadingProperties } = useProperties()
   const { data: units = [], isLoading: loadingUnits } = useUnits()
   const { data: paymentRequests = [] } = usePaymentRequests()
@@ -75,7 +68,6 @@ export function PropertiesView() {
   const deletePropertyMutation = useDeleteProperty()
   const bulkCreateUnitsMutation = useBulkCreateUnits()
 
-  // Form States
   const [propForm, setPropForm] = useState({
     name: '', address: '', propertyType: 'Residential',
     imageFile: null as File | null, imageUrl: '', country: 'Nigeria',
@@ -90,7 +82,6 @@ export function PropertiesView() {
     unitType: '', rentAmountPaid: ''
   })
 
-  // Handlers
   const handleConfirmDelete = () => {
     deletePropertyMutation.mutate(editingPropertyUuid, {
       onSuccess: () => {
