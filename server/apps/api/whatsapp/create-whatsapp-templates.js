@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Load .env variables
-const envPath = path.resolve(__dirname, '.env');
+const envPath = path.resolve(__dirname, '../.env');
 if (fs.existsSync(envPath)) {
   const envFile = fs.readFileSync(envPath, 'utf-8');
   envFile.split('\n').forEach(line => {
@@ -52,7 +52,7 @@ const templates = [
     ]
   },
   {
-    name: 'upward_tenant_invite_v2',
+    name: 'upward_tenant_invite_v3',
     category: 'UTILITY',
     language: 'en_US',
     components: [

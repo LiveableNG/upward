@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Simple script to read .env file since this might be run without dotenv installed globally
-const envPath = path.resolve(__dirname, '.env');
+const envPath = path.resolve(__dirname, '../.env');
 if (fs.existsSync(envPath)) {
   const envFile = fs.readFileSync(envPath, 'utf-8');
   envFile.split('\n').forEach(line => {
@@ -38,15 +38,15 @@ const payload = {
   to: sanitizedPhone,
   type: 'template',
   template: {
-    name: 'upward_tenant_invite_v2',
+    name: 'upward_tenant_invite_v3',
     language: { code: 'en_US' },
     components: [
       {
         type: 'body',
         parameters: [
-          { type: 'text', text: 'John Doe' },
-          { type: 'text', text: 'Jane Manager' },
-          { type: 'text', text: 'Upward Realty' }
+          { type: 'text', text: 'Similoluwa' },
+          { type: 'text', text: 'Abdulsalam' },
+          { type: 'text', text: 'Amity' }
         ]
       },
       {
@@ -54,7 +54,7 @@ const payload = {
         sub_type: 'url',
         index: '0',
         parameters: [
-          { type: 'text', text: 'invite/test-123' }
+          { type: 'text', text: 'invite/f2c49eeb-56bd-4087-b8cb-1eea8f444240' }
         ]
       }
     ]
