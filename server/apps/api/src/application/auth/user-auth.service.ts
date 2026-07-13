@@ -14,6 +14,7 @@ import { EncryptionService } from '../../shared/infrastructure/common/encryption
 import { WhatsappService } from '../../shared/infrastructure/whatsapp/whatsapp.service'
 
 import { InitializeUserSequenceUseCase } from '../use-cases/whatsapp-sequence/initialize-user-sequence.use-case'
+import { InitializeEmailSequenceUseCase } from '../use-cases/email-sequence/initialize-email-sequence.use-case'
 
 @Injectable()
 export class UserAuthService extends BaseAuthService {
@@ -27,6 +28,7 @@ export class UserAuthService extends BaseAuthService {
     private readonly encryption: EncryptionService,
     private readonly s3Service: S3Service,
     private readonly initializeUserSequenceUseCase: InitializeUserSequenceUseCase,
+    private readonly initializeEmailSequenceUseCase: InitializeEmailSequenceUseCase,
     jwtService: JwtService,
     configService: ConfigService,
   ) {
@@ -173,6 +175,11 @@ export class UserAuthService extends BaseAuthService {
             phoneHash: user.phoneHash,
           }).catch(e => console.error('Failed to init sequence', e));
         }
+        
+        this.initializeEmailSequenceUseCase.execute({
+          userId: user.id!,
+          email: user.email,
+        })
 
         return this.generateFullAuthResponse(user, ipAddress, userAgent)
       }
@@ -229,6 +236,11 @@ export class UserAuthService extends BaseAuthService {
         phoneHash: user.phoneHash,
       }).catch(e => console.error('Failed to init sequence', e));
     }
+    
+    this.initializeEmailSequenceUseCase.execute({
+      userId: user.id!,
+      email: user.email,
+    })
 
     return this.generateFullAuthResponse(user, ipAddress, userAgent)
   }

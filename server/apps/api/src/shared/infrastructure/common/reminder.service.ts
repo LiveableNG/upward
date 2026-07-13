@@ -6,7 +6,8 @@ import { EmailService } from '../email/email.service';
 import { EncryptionService } from './encryption.service';
 import { ProcessScheduledPmPaymentRequestsUseCase } from '../../../application/pm/use-cases/payments/process-scheduled-payment-requests.use-case';
 import { ProcessScheduledExternalPaymentRequestsUseCase } from '../../../application/use-cases/external/process-scheduled-payments.use-case';
-import { ProcessPendingSequencesUseCase } from '../../../application/use-cases/whatsapp-sequence/process-pending-sequences.use-case';
+import { ProcessPendingSequencesUseCase } from '../../../application/use-cases/whatsapp-sequence/process-pending-sequences.use-case'
+import { ProcessPendingEmailSequencesUseCase } from '../../../application/use-cases/email-sequence/process-pending-email-sequences.use-case';
 
 @Injectable()
 export class UnifiedReminderService {
@@ -20,17 +21,12 @@ export class UnifiedReminderService {
     private readonly processScheduledRequestsUseCase: ProcessScheduledPmPaymentRequestsUseCase,
     private readonly processScheduledExternalRequestsUseCase: ProcessScheduledExternalPaymentRequestsUseCase,
     private readonly processPendingSequencesUseCase: ProcessPendingSequencesUseCase,
+    private readonly processPendingEmailSequencesUseCase: ProcessPendingEmailSequencesUseCase,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
   async handleReminders() {
     this.logger.log('[ReminderService] Checking for scheduled reminders and activating scheduled payments...');
-    
-    try {
-      await this.processPendingSequencesUseCase.execute();
-    } catch (error: any) {
-      this.logger.error(`[ReminderService] Error processing whatsapp sequences: ${error.message}`);
-    }
     
     try {
       await this.processScheduledRequests();
@@ -47,9 +43,17 @@ export class UnifiedReminderService {
   }
 
   async processScheduledRequests() {
+    this.logger.log('Processing WhatsApp onboarding sequences...')
+    await this.processPendingSequencesUseCase.execute()
+    
+    this.logger.log('Processing Email onboarding sequences...')
+    await this.processPendingEmailSequencesUseCase.execute()
+
     this.logger.log('[ReminderService] Processing scheduled payment requests...');
     await this.processScheduledRequestsUseCase.execute();
     await this.processScheduledExternalRequestsUseCase.execute();
+    
+    this.logger.log('Hourly reminder job completed successfully')
   }
 
   private async processPmPaymentReminders() {

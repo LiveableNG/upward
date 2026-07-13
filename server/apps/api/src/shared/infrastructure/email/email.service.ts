@@ -27,6 +27,11 @@ import {
   buildTeamInvitationHtml,
   buildJoinRequestRejectionHtml,
   buildCredibilityRequestRejectionHtml,
+  buildSequenceWelcomeHtml,
+  buildSequenceDay2Html,
+  buildSequenceDay5Html,
+  buildSequenceDay9Html,
+  buildSequenceDay14Html,
 } from './email.helper'
 
 @Injectable()
@@ -805,5 +810,54 @@ export class EmailService {
         fromOverride: 'Upward Admin <admin@upward.com>'
       });
     }
+  }
+
+  async sendOnboardingSequenceEmail(params: {
+    email: string
+    firstName: string
+    stage: 'WELCOME' | 'DAY_2' | 'DAY_5' | 'DAY_9' | 'DAY_14'
+    userId?: string
+  }): Promise<boolean> {
+    const { email, firstName, stage, userId } = params
+    
+    let html = ''
+    let subject = ''
+    const appLink = `${this.frontendUrl}/dashboard`
+    const scoreLink = `${this.frontendUrl}/dashboard`
+    const guideLink = `https://app.clickup.com/t/90121244914/869e1hpcn`
+    const formattedFirstName = formatName(firstName)
+
+    switch (stage) {
+      case 'WELCOME':
+        html = buildSequenceWelcomeHtml({ firstName: formattedFirstName, loginLink: appLink })
+        subject = 'Welcome to Upward! 🎉'
+        break
+      case 'DAY_2':
+        html = buildSequenceDay2Html({ firstName: formattedFirstName, scoreLink })
+        subject = "See what's building your rental reputation"
+        break
+      case 'DAY_5':
+        html = buildSequenceDay5Html({ firstName: formattedFirstName, guideLink })
+        subject = "Most tenants don't realize this..."
+        break
+      case 'DAY_9':
+        html = buildSequenceDay9Html({ firstName: formattedFirstName, appLink })
+        subject = "I didn't expect to enjoy paying rent."
+        break
+      case 'DAY_14':
+        html = buildSequenceDay14Html({ firstName: formattedFirstName, appLink })
+        subject = "You're just getting started with Upward 🎉"
+        break
+    }
+
+    const result = await this.sendEmailWithRetry({
+      userId,
+      email,
+      subject,
+      html,
+      type: `ONBOARDING_SEQUENCE_${stage}`,
+    })
+    
+    return result.success
   }
 }

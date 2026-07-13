@@ -231,6 +231,10 @@ import { InitializeUserSequenceUseCase } from './use-cases/whatsapp-sequence/ini
 import { ProcessPendingSequencesUseCase } from './use-cases/whatsapp-sequence/process-pending-sequences.use-case'
 import { RetrySequenceUseCase } from './use-cases/whatsapp-sequence/retry-sequence.use-case'
 import { GetSequenceLogsUseCase } from './use-cases/whatsapp-sequence/get-sequence-logs.use-case'
+import { InitializeEmailSequenceUseCase } from './use-cases/email-sequence/initialize-email-sequence.use-case'
+import { ProcessPendingEmailSequencesUseCase } from './use-cases/email-sequence/process-pending-email-sequences.use-case'
+import { RetryEmailSequenceUseCase } from './use-cases/email-sequence/retry-email-sequence.use-case'
+import { GetEmailSequenceLogsUseCase } from './use-cases/email-sequence/get-email-sequence-logs.use-case'
 
 // Payments
 import {
@@ -541,6 +545,10 @@ const UseCases = [
   ProcessPendingSequencesUseCase,
   RetrySequenceUseCase,
   GetSequenceLogsUseCase,
+  InitializeEmailSequenceUseCase,
+  ProcessPendingEmailSequencesUseCase,
+  RetryEmailSequenceUseCase,
+  GetEmailSequenceLogsUseCase,
 ]
 
 import { SmsModule } from '../shared/infrastructure/sms/sms.module'

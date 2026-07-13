@@ -46,6 +46,7 @@ model upward_user {
   unsubscribedAt       DateTime?
   communicationLogs    upward_communication_log[]
   whatsappSequenceLogs upward_whatsapp_sequence_log[]
+  emailSequenceLogs    upward_email_sequence_log[]
 
 
   @@index([email])
@@ -127,4 +128,25 @@ model upward_admin_log {
   @@index([adminId])
   @@index([action])
   @@index([createdAt])
+}
+
+model upward_email_sequence_log {
+  id             Int       @id @default(autoincrement())
+  uuid           String    @unique @default(uuid())
+  userId         Int
+  email          String
+  stage          String    // 'WELCOME', 'DAY_2', 'DAY_5', 'DAY_9', 'DAY_14'
+  status         String    @default("PENDING") // PENDING, SENT, FAILED
+  scheduledFor   DateTime
+  sentAt         DateTime?
+  errorReason    String?   @db.Text
+  templateName   String
+  templateData   Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user           upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status, scheduledFor])
 }

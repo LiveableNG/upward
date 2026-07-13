@@ -58,6 +58,7 @@ import { AdminBlogPostsController } from './admin/blog-posts.controller'
 import { PublicBlogController } from './public/blog.controller'
 import { ManualPaymentsController } from './controllers/manual-payments.controller'
 import { AdminWhatsappSequenceController } from './admin/whatsapp-sequence.controller'
+import { AdminEmailSequenceController } from './admin/email-sequence.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module],
@@ -117,6 +118,7 @@ import { AdminWhatsappSequenceController } from './admin/whatsapp-sequence.contr
     AdminBlogPostsController,
     PublicBlogController,
     AdminWhatsappSequenceController,
+    AdminEmailSequenceController,
   ],
 })
 export class HttpModule {}
