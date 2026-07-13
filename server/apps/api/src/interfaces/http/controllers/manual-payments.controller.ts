@@ -35,7 +35,7 @@ export class ManualPaymentsController {
 
   @Get('proof')
   async getPendingProofs(@Req() req: any) {
-    if (req.user.role !== 'PM' && req.user.role !== 'ADMIN') {
+    if (req.user.role !== 'PM' && !['SUPERADMIN', 'CUSTOMER_SUPPORT', 'DEVELOPER'].includes(req.user.role)) {
       throw new Error('Unauthorized')
     }
     return this.getPendingManualPaymentsUseCase.execute({ pmUuid: req.user.id })
@@ -135,7 +135,7 @@ export class ManualPaymentsController {
 
   @Patch('proof/:id/review')
   async reviewProof(@Req() req: any, @Param('id') id: string, @Body() body: any) {
-    if (req.user.role !== 'PM' && req.user.role !== 'ADMIN') {
+    if (req.user.role !== 'PM' && !['SUPERADMIN', 'CUSTOMER_SUPPORT', 'DEVELOPER'].includes(req.user.role)) {
       throw new Error('Unauthorized')
     }
     

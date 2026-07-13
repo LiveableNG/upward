@@ -10,7 +10,7 @@ export class AdminJwtAuthGuard extends JwtAuthGuard {
     const request = context.switchToHttp().getRequest()
     const user = request.user
 
-    if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
+    if (!user || (user.role !== 'CUSTOMER_SUPPORT' && user.role !== 'SUPERADMIN' && user.role !== 'DEVELOPER')) {
       throw new ForbiddenException('Admin access required')
     }
 
