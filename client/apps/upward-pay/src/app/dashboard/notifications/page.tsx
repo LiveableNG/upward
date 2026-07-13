@@ -94,7 +94,7 @@ export default function NotificationsPage() {
           createdAt: p.createdAt || new Date().toISOString(),
           isRead: false,
           isDynamic: true,
-          url: `/pay/${p.uuid}`,
+          url: `/dashboard/pay-rent?paymentUuid=${p.uuid}`,
         })
       })
     }

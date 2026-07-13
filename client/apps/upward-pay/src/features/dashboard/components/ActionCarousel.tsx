@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { type PendingPayment } from '../types'
+import { isSelfInitiatedPayment } from './payment/paymentOrigin'
 
 interface ActionCarouselProps {
   pendingPayments: PendingPayment[]
@@ -58,8 +59,7 @@ function buildPaymentAlert(p: PendingPayment): Pick<ActionItem, 'title' | 'meta'
     }
   }
 
-  const isSelfInitiated =
-    p.isManual || (!p.company_name && !p.manager_name) || p.company_name === 'Manual Payment'
+  const isSelfInitiated = isSelfInitiatedPayment(p)
 
   if (isSelfInitiated) {
     if (isOverdue) {
@@ -166,7 +166,7 @@ export function ActionCarousel({
             router.push(`/dashboard/pay-rent?propertyUuid=${p.userPropertyUuid}`)
             return
           }
-          router.push(`/pay/${p.uuid}`)
+          router.push(`/dashboard/pay-rent?paymentUuid=${p.uuid}`)
         },
       })
     }

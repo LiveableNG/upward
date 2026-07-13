@@ -17,9 +17,12 @@ import { clearSetupDraft } from '@/features/dashboard/setup/setupDraft'
 import { SETUP_RETURN_PATHS, setupAddPropertyPath } from '@/features/dashboard/setup/setupPaths'
 import { propertySupportsBankTransfer } from '@/features/dashboard/components/payment/propertyBankAccount'
 import { findProofUnderReviewForProperty, isProofUnderReview } from '@/features/dashboard/components/payment/propertyPayDisplay'
+import { useToast } from '@/components/common/Toast'
+import { isSelfInitiatedPayment } from '@/features/dashboard/components/payment/paymentOrigin'
 
 export default function PayRentPage() {
   const router = useRouter()
+  const toast = useToast()
   const [loading, setLoading] = useState(true)
   const [step, setStep] = useState<PayRentStep>('property-select')
   const [selectedLandlord, setSelectedLandlord] = useState<Landlord | null>(null)
@@ -37,6 +40,8 @@ export default function PayRentPage() {
   const [showRenewalModal, setShowRenewalModal] = useState(false)
   const [renewalPropertyUuid, setRenewalPropertyUuid] = useState<string | null>(null)
   const [processing, setProcessing] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [activePaymentRequest, setActivePaymentRequest] = useState<any | null>(null)
 
   const [authUser, setAuthUser] = useState<any>(null)
 
@@ -87,6 +92,61 @@ export default function PayRentPage() {
     return !!(prop.isVerified || prop.subaccount || prop.dedicatedAccount || prop.manualAccount)
   }
 
+  function mapPendingLineItems(pending: any): LineItem[] {
+    const records = pending?.lineItemRecords
+    if (!Array.isArray(records) || records.length === 0) return []
+    return records
+      .filter((item: any) => {
+        const name = String(item.name || '')
+        return !['Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(name)
+      })
+      .map((item: any) => ({
+        label: item.name || 'Item',
+        amount: Math.max(0, Number(item.totalAmount || item.amount || 0) - Number(item.amountPaid || 0)),
+      }))
+      .filter((item: LineItem) => item.amount > 0)
+  }
+
+  function enterPendingInvoiceFlow(pending: any, props: any[]) {
+    if (isProofUnderReview(pending)) return
+
+    const remaining =
+      Number(pending.remainingBalance ?? pending.total_amount ?? pending.amount ?? 0) -
+      (pending.remainingBalance != null ? 0 : Number(pending.amountPaid || 0))
+    const amount = Math.max(
+      0,
+      pending.remainingBalance != null
+        ? Number(pending.remainingBalance)
+        : Number(pending.total_amount || pending.amount || 0) - Number(pending.amountPaid || 0),
+    )
+
+    const prop = props.find((p: any) => p.uuid === pending.userPropertyUuid)
+    setActivePaymentRequest(pending)
+    setSelectedPropertyUuid(pending.userPropertyUuid || null)
+    setPayAmount(amount || remaining)
+    setRequestedAmount(Number(pending.total_amount || pending.amount || amount))
+    setTotalPaidAlready(Number(pending.amountPaid || 0))
+    setNarration(pending.description || 'Rent Payment')
+    setpaymentType('Rent Payment')
+    setLineItems(mapPendingLineItems(pending))
+
+    if (prop) {
+      const loc = prop.location
+      const fullAddr = [loc?.address || prop.address, loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
+      setPropertyAddress(fullAddr || pending.property_address || '')
+      if (propertyHasPayoutRoute(prop)) {
+        setSelectedLandlord(buildLandlordFromProperty(prop))
+      } else {
+        setSelectedLandlord(null)
+      }
+    } else {
+      setPropertyAddress(pending.property_address || '')
+      setSelectedLandlord(null)
+    }
+
+    setStep('payment-method')
+  }
+
   function handlePropertySelect(prop: any, pending: any[]) {
     if (findProofUnderReviewForProperty(pending, prop.uuid)) {
       return
@@ -99,10 +159,11 @@ export default function PayRentPage() {
         !isProofUnderReview(p),
     )
     if (activeRequest) {
-      router.push(`/pay/${activeRequest.uuid}`)
+      enterPendingInvoiceFlow(activeRequest, userProperties.length ? userProperties : [prop])
       return
     }
 
+    setActivePaymentRequest(null)
     setSelectedPropertyUuid(prop.uuid)
     const loc = prop.location
     const fullAddr = [loc?.address || prop.address, loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
@@ -111,6 +172,8 @@ export default function PayRentPage() {
     setPayAmount(0)
     setLineItems([])
     setNarration('')
+    setRequestedAmount(0)
+    setTotalPaidAlready(0)
 
     if (prop.isPastTenancy) {
       setRenewalPropertyUuid(prop.uuid)
@@ -133,15 +196,26 @@ export default function PayRentPage() {
         setAuthUser(profile)
         const props = profile?.properties || []
         setUserProperties(props)
-        setPendingPayments(pending || [])
+        const pendingList = (pending || []).filter((p: any) => p.type !== 'refund_alert')
+        setPendingPayments(pendingList)
 
         const searchParams = new URLSearchParams(window.location.search)
+        const paymentUuid = searchParams.get('paymentUuid')
         const pUuid = searchParams.get('propertyUuid') || searchParams.get('prop')
+
+        if (paymentUuid) {
+          const match = pendingList.find((p: any) => p.uuid === paymentUuid)
+          if (match) {
+            enterPendingInvoiceFlow(match, props)
+            return
+          }
+        }
+
         if (pUuid) {
           setSelectedPropertyUuid(pUuid)
           const prop = props.find((p: any) => p.uuid === pUuid)
           if (prop) {
-            handlePropertySelect(prop, pending || [])
+            handlePropertySelect(prop, pendingList)
           }
         } else if (profile?.address) {
           setPropertyAddress(profile.address)
@@ -159,15 +233,24 @@ export default function PayRentPage() {
     paymentType?: string
     lineItems?: LineItem[]
   }) {
-    if (!selectedLandlord) return
-    const resolvedAmount = overrides?.amount ?? payAmount
-    const resolvedNarration = overrides?.narration ?? narration
-    const resolvedAddress = overrides?.propertyAddress ?? propertyAddress
-    const resolvedPaymentType = overrides?.paymentType ?? paymentType
-    const resolvedLineItems = overrides?.lineItems ?? lineItems
-
     setProcessing(true)
     try {
+      if (activePaymentRequest?.uuid) {
+        router.push(`/pay/${activePaymentRequest.uuid}?method=online`)
+        return
+      }
+
+      if (!selectedLandlord) {
+        setProcessing(false)
+        return
+      }
+
+      const resolvedAmount = overrides?.amount ?? payAmount
+      const resolvedNarration = overrides?.narration ?? narration
+      const resolvedAddress = overrides?.propertyAddress ?? propertyAddress
+      const resolvedPaymentType = overrides?.paymentType ?? paymentType
+      const resolvedLineItems = overrides?.lineItems ?? lineItems
+
       const targetPropertyUuid = selectedPropertyUuid || undefined
       const res = await api.createManualPaymentRequest({
         amount: resolvedAmount,
@@ -190,7 +273,7 @@ export default function PayRentPage() {
         },
       })
       if (res.uuid) {
-        router.push(`/pay/${res.uuid}`)
+        router.push(`/pay/${res.uuid}?method=online`)
       }
     } catch (e) {
       console.error('Failed to create manual payment request:', e)
@@ -198,14 +281,35 @@ export default function PayRentPage() {
     }
   }
 
+  async function handleCancelPending() {
+    if (!activePaymentRequest?.uuid || !isSelfInitiatedPayment(activePaymentRequest)) return
+    setCancelling(true)
+    try {
+      const res = await api.post(`/payments/manual-request/${activePaymentRequest.uuid}/cancel`, {})
+      if (res.success) {
+        toast.success('Payment request cancelled')
+        setActivePaymentRequest(null)
+        setStep('property-select')
+        const pending = await api.getPendingPayments()
+        setPendingPayments((pending || []).filter((p: any) => p.type !== 'refund_alert'))
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to cancel request')
+    } finally {
+      setCancelling(false)
+    }
+  }
+
   if (loading) return <PayRentSkeleton />
 
   const handleSelectPending = (p: any) => {
-    if (isProofUnderReview(p)) return
-    router.push(`/pay/${p.uuid}`)
+    enterPendingInvoiceFlow(p, userProperties)
   }
 
   const selectedProperty = userProperties.find(p => p.uuid === selectedPropertyUuid)
+  const canBankTransfer = propertySupportsBankTransfer(selectedProperty)
+  const canCancelPending =
+    !!activePaymentRequest && isSelfInitiatedPayment(activePaymentRequest)
 
   const stepTitle: Record<PayRentStep, string> = {
     select: 'Pay Rent',
@@ -230,6 +334,7 @@ export default function PayRentPage() {
   function handleBack() {
     if (step === 'property-select') {
       setSelectedLandlord(null)
+      setActivePaymentRequest(null)
       router.push('/dashboard')
     } else if (step === 'new') {
       setStep('property-select')
@@ -238,16 +343,24 @@ export default function PayRentPage() {
         setStep('new')
       } else {
         setSelectedLandlord(null)
+        setActivePaymentRequest(null)
         setStep('property-select')
       }
     } else if (step === 'payment-method') {
-      setStep('confirm')
+      if (activePaymentRequest) {
+        setActivePaymentRequest(null)
+        setSelectedLandlord(null)
+        setStep('property-select')
+      } else {
+        setStep('confirm')
+      }
     } else if (step === 'bank-transfer') {
       setStep('payment-method')
     } else if (step === 'upload-proof') {
       setStep('bank-transfer')
     } else {
       setSelectedLandlord(null)
+      setActivePaymentRequest(null)
       router.push('/dashboard')
     }
   }
@@ -346,9 +459,17 @@ export default function PayRentPage() {
       {step === 'payment-method' && (
         <StepPaymentMethod
           amount={payAmount}
-          processing={processing}
+          processing={processing || cancelling}
+          bankTransferDisabled={!canBankTransfer}
+          bankTransferDisabledReason={
+            !canBankTransfer
+              ? 'Bank transfer is unavailable until a payout account is set up for this property.'
+              : undefined
+          }
           onPayOnline={startOnlinePayment}
           onBankTransfer={() => setStep('bank-transfer')}
+          onCancel={canCancelPending ? handleCancelPending : undefined}
+          cancelling={cancelling}
         />
       )}
 
@@ -357,6 +478,7 @@ export default function PayRentPage() {
           property={selectedProperty}
           amount={payAmount}
           lineItems={lineItems}
+          paymentRequestUuid={activePaymentRequest?.uuid}
           onBack={() => setStep('payment-method')}
           onSuccess={() => router.push('/dashboard')}
         />

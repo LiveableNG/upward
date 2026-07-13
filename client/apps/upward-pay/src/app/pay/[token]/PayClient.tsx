@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useRef } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
   Lock,
   CreditCard,
@@ -29,16 +29,18 @@ import { UploadProofOfPayment } from '@/features/payments/components/unified-pay
 import { StatusStep } from '@/features/payments/components/unified-pay/StatusStep'
 import { RenewalModal } from '@/features/payments/components/unified-pay/RenewalModal'
 import { usePaymentFlow } from '@/features/payments/hooks/usePaymentFlow'
-import { useToast } from '@/components/common/Toast'
 import { useCheckoutVariant } from '@/features/premium/components/LaunchDarklyProvider'
 import { useCheckoutExperimentTracking } from '@/features/premium/hooks/useCheckoutExperimentTracking'
 import { CHECKOUT_EXPERIMENT_EVENTS } from '@/features/premium/utils/checkoutExperimentTracking'
 import { CheckoutComparisonCards } from '@/features/premium/components/CheckoutComparisonCards'
 import { BasicCheckoutView } from '@/features/payments/components/unified-pay/BasicCheckoutView'
+import { isSelfInitiatedPayment } from '@/features/dashboard/components/payment/paymentOrigin'
 
 export default function PayClient({ overrideToken }: { overrideToken?: string }) {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
+  const onlineOnly = searchParams.get('method') === 'online'
   const {
     variant,
     isReady: isCheckoutVariantReady,
@@ -46,7 +48,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     isPremiumCheckout,
   } = useCheckoutVariant()
   const { track } = useCheckoutExperimentTracking()
-  const { error } = useToast()
   const [showUnverifiedModal, setShowUnverifiedModal] = React.useState(false)
   const checkoutViewedRef = useRef(false)
 
@@ -108,6 +109,15 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     onPaymentConfirmed,
   })
 
+  // Logged-in tenants choose online vs bank transfer in the dashboard wizard.
+  // Online-only deep links (?method=online) stay on this checkout page.
+  useEffect(() => {
+    if (!uuid || onlineOnly) return
+    if (!authUser || !paymentData) return
+    if (step !== 'invoice') return
+    router.replace(`/dashboard/pay-rent?paymentUuid=${encodeURIComponent(uuid)}`)
+  }, [uuid, onlineOnly, authUser, paymentData, step, router])
+
   useEffect(() => {
     checkoutViewedRef.current = false
   }, [uuid])
@@ -155,52 +165,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
       isBenefitsOptedIn,
     )
     setStep('checkout')
-  }, [
-    paymentData,
-    authUser,
-    variant,
-    isBenefitsOptedIn,
-    track,
-    setStep,
-  ])
-
-  const handleManualPayClick = useCallback(() => {
-    if (!paymentData) return
-
-    const isGuest = !paymentData.hasPassword
-    const verificationOn = paymentData?.user?.verificationOn ?? true
-    const hasPaidBefore = (paymentData?.user?.paidRequestsCount ?? 0) >= 1
-
-    if (
-      verificationOn &&
-      authUser &&
-      !authUser.isIdentityVerified &&
-      !isGuest &&
-      hasPaidBefore
-    ) {
-      setShowUnverifiedModal(true)
-      return
-    }
-
-    const hasManualAccount = !!paymentData?.property?.manualAccount
-    const isVerifiedProperty = !!paymentData?.property?.isVerified
-
-    if (!hasManualAccount) {
-      if (isVerifiedProperty) {
-        error('The property manager has not configured a manual payment account.')
-      } else {
-        error('Please set up your manual bank account in Rental details first.')
-        router.push('/dashboard/setup')
-      }
-      return
-    }
-
-    track(
-      CHECKOUT_EXPERIMENT_EVENTS.PAYMENT_STARTED,
-      variant,
-      isBenefitsOptedIn,
-    )
-    setStep('manual-transfer')
   }, [
     paymentData,
     authUser,
@@ -550,7 +514,13 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
       </>
     )
 
-    const isSelfInitiated = paymentData?.payment?.description?.includes('Manual') || paymentData?.payment?.description?.includes('Self-initiated')
+    const isSelfInitiated = isSelfInitiatedPayment({
+      description: paymentData?.payment?.description,
+      company_name: paymentData?.company?.name,
+      manager_name: paymentData?.manager
+        ? `${paymentData.manager.firstName || ''} ${paymentData.manager.lastName || ''}`.trim()
+        : null,
+    })
 
     if (isBasicCheckout) {
       return (
@@ -575,7 +545,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             executeLogin={executeLogin}
             handleAllocationChange={handleAllocationChange}
             onPayClick={handlePayClick}
-            onManualPayClick={isSelfInitiated ? undefined : handleManualPayClick}
             onCancelRequest={isSelfInitiated ? handleCancelRequest : undefined}
             cancelLoading={isSelfInitiated ? isSubmitting : false}
           />
@@ -607,7 +576,6 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             executeLogin={executeLogin}
             handleAllocationChange={handleAllocationChange}
             onPayClick={handlePayClick}
-            onManualPayClick={isSelfInitiated ? undefined : handleManualPayClick}
             onCancelRequest={isSelfInitiated ? handleCancelRequest : undefined}
             cancelLoading={isSelfInitiated ? isSubmitting : false}
             showPremiumOptions
