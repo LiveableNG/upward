@@ -244,7 +244,10 @@ export function PaymentsView() {
   const [dateFilter, setDateFilter] = useState('All Time')
   const [statusFilter, setStatusFilter] = useState(initialStatus)
   const [propertyFilter, setPropertyFilter] = useState('All')
-  const [activeTab, setActiveTab] = useState<'requests' | 'payouts' | 'proofs'>('requests')
+  const initialTab = searchParams?.get('tab')
+  const [activeTab, setActiveTab] = useState<'requests' | 'payouts' | 'proofs'>(
+    initialTab === 'proofs' || initialTab === 'payouts' ? initialTab : 'requests',
+  )
   
   const [isDateOpen, setIsDateOpen] = useState(false)
   const [isMoreOpen, setIsMoreOpen] = useState(false)
@@ -253,6 +256,10 @@ export function PaymentsView() {
     const statusParam = searchParams?.get('status')
     if (statusParam) {
       setStatusFilter(statusParam)
+    }
+    const tabParam = searchParams?.get('tab')
+    if (tabParam === 'proofs' || tabParam === 'payouts' || tabParam === 'requests') {
+      setActiveTab(tabParam)
     }
   }, [searchParams])
 

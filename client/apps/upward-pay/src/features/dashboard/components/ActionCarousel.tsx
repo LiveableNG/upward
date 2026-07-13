@@ -145,12 +145,29 @@ export function ActionCarousel({
 
     if (p.status !== 'PAID' && (p.amountPaid || 0) < p.total_amount) {
       const alert = buildPaymentAlert(p)
+      const proofPending = p.latestProof?.status === 'PENDING'
+      const proofRejected = p.latestProof?.status === 'REJECTED'
+
       items.push({
         type: 'pending',
         id: p.uuid,
         ...alert,
-        actionLabel: 'Pay Now',
-        action: () => router.push(`/pay/${p.uuid}`),
+        actionLabel: proofPending
+          ? 'View status'
+          : proofRejected
+            ? 'Fix payment'
+            : 'Pay Now',
+        action: () => {
+          if (proofPending) {
+            router.push('/dashboard/pay-rent')
+            return
+          }
+          if (proofRejected && p.userPropertyUuid) {
+            router.push(`/dashboard/pay-rent?propertyUuid=${p.userPropertyUuid}`)
+            return
+          }
+          router.push(`/pay/${p.uuid}`)
+        },
       })
     }
   })

@@ -1,7 +1,9 @@
-import { Controller, Get, Patch, Body, Param, UseGuards, Req } from '@nestjs/common'
+import { Controller, Get, Patch, Body, Param, UseGuards, Req, NotFoundException } from '@nestjs/common'
 import { ApiKeyGuard } from './api-key.guard'
 import { GetPendingManualPaymentsUseCase } from '../../../application/use-cases/payments/get-pending-manual-payments.use-case'
 import { ReviewManualPaymentUseCase } from '../../../application/use-cases/payments/manual-payment.use-cases'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 
 @Controller('platform/payments/proof')
 @UseGuards(ApiKeyGuard)
@@ -9,6 +11,8 @@ export class PlatformPaymentProofController {
   constructor(
     private readonly getPendingProofsUseCase: GetPendingManualPaymentsUseCase,
     private readonly reviewProofUseCase: ReviewManualPaymentUseCase,
+    private readonly prisma: PrismaService,
+    private readonly s3Service: S3Service,
   ) {}
 
   @Get()
@@ -18,6 +22,45 @@ export class PlatformPaymentProofController {
     return {
       success: true,
       data: proofs
+    }
+  }
+
+  @Get(':id')
+  async getProofFile(@Req() req: any, @Param('id') id: string) {
+    const proofId = Number(id)
+    const proof = await this.prisma.upward_payment_proof.findUnique({
+      where: { id: proofId },
+      include: {
+        paymentRequest: { include: { userProperty: { include: { company: true } } } },
+        userProperty: { include: { company: true } },
+      },
+    })
+
+    if (!proof) {
+      throw new NotFoundException('Proof of payment not found')
+    }
+
+    const platformIdOnProof =
+      proof.paymentRequest?.userProperty?.company?.platformId ??
+      proof.userProperty?.company?.platformId
+
+    if (platformIdOnProof !== req.platformId) {
+      throw new NotFoundException('Proof of payment not found')
+    }
+
+    if (!proof.fileUrl) {
+      throw new NotFoundException('This payment proof does not have an attached file')
+    }
+
+    const url = await this.s3Service.getDownloadUrl(proof.fileUrl)
+
+    return {
+      success: true,
+      data: {
+        url,
+        fileName: proof.fileName,
+        proofId: proof.id,
+      },
     }
   }
 

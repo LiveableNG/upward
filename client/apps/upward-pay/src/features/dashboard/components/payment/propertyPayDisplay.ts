@@ -147,6 +147,20 @@ export function formatPendingInvoiceTitle(p: any): string {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isProofUnderReview(p: any): boolean {
+  return p?.latestProof?.status === 'PENDING'
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function findProofUnderReviewForProperty(pending: any[], propertyUuid: string): any | null {
+  return (
+    pending.find(
+      p => p.userPropertyUuid === propertyUuid && isProofUnderReview(p),
+    ) || null
+  )
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getPendingDueBadge(p: any): { label: string; overdue: boolean } | null {
   const dateStr = p.due_date || p.dueDate
   if (!dateStr) return null

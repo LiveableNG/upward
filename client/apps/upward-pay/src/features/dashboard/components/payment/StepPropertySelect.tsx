@@ -1,6 +1,7 @@
 import React from 'react'
-import { Home, ChevronRight, AlertCircle, Plus } from 'lucide-react'
+import { Home, ChevronRight, AlertCircle, Plus, Clock } from 'lucide-react'
 import {
+  findProofUnderReviewForProperty,
   formatManagerLabel,
   formatPendingInvoiceTitle,
   formatPropertyPaymentSubline,
@@ -8,6 +9,7 @@ import {
   getPendingDueBadge,
   getPropertyCardClassName,
   getRentCycleDisplay,
+  isProofUnderReview,
   sortPropertiesForDisplay,
 } from './propertyPayDisplay'
 
@@ -43,13 +45,14 @@ export function StepPropertySelect({
   }
 
   const sortedProperties = sortPropertiesForDisplay(properties)
+  const actionablePending = pending.filter(p => !isProofUnderReview(p))
 
   return (
     <div>
-      {pending.length > 0 && (
+      {actionablePending.length > 0 && (
         <section className="pay-flow__section">
           <p className="pay-flow__section-label">Pending Invoices</p>
-          {pending.map((p) => {
+          {actionablePending.map((p) => {
             const dueBadge = getPendingDueBadge(p)
             const remaining = (p.total_amount || p.amount || 0) - (p.amountPaid || 0)
 
@@ -91,13 +94,44 @@ export function StepPropertySelect({
         </section>
       )}
 
-      <section className={`pay-flow__section${pending.length > 0 ? ' pay-flow__section--spaced' : ''}`}>
+      <section className={`pay-flow__section${actionablePending.length > 0 ? ' pay-flow__section--spaced' : ''}`}>
         <p className="pay-flow__section-label">Your Properties</p>
         <div className="pay-flow__property-list">
           {sortedProperties.map((prop) => {
             const rentCycle = getRentCycleDisplay(prop)
             const paymentSubline = formatPropertyPaymentSubline(prop)
             const cardToneClass = getPropertyCardClassName(prop)
+            const proofReview = findProofUnderReviewForProperty(pending, prop.uuid)
+            const isUnderReview = !!proofReview
+            const amountLabel = proofReview
+              ? new Intl.NumberFormat('en-NG', {
+                  style: 'currency',
+                  currency: proofReview.currency || prop.currency || 'NGN',
+                }).format(proofReview.total_amount || proofReview.amount || 0)
+              : null
+
+            if (isUnderReview) {
+              return (
+                <div
+                  key={prop.uuid}
+                  className="pay-flow__card pay-flow__property-card pay-flow__property-card--compact pay-flow__property-card--review"
+                  aria-disabled="true"
+                >
+                  <div className="pay-flow__card-body">
+                    <div className="pay-flow__card-top-row">
+                      <div className="pay-flow__card-title">{formatPropertyTitleWithUnit(prop)}</div>
+                      <span className="pay-flow__rent-pill pay-flow__rent-pill--review">Under review</span>
+                    </div>
+                    <div className="pay-flow__card-meta">{formatManagerLabel(prop)}</div>
+                    <div className="pay-flow__card-meta pay-flow__card-meta--review">
+                      <Clock size={13} />
+                      Proof of payment waiting for review
+                      {amountLabel ? ` · ${amountLabel}` : ''}
+                    </div>
+                  </div>
+                </div>
+              )
+            }
 
             return (
               <button

@@ -76,6 +76,15 @@ export class UploadProofOfPaymentUseCase {
 
     let paymentRequestId: number | undefined
     let userPropertyId: number | undefined
+    let uploadedByUserId = data.uploadedByUserId
+
+    if (!uploadedByUserId && data.userUuid) {
+      const uploader = await this.prisma.upward_user.findUnique({
+        where: { uuid: String(data.userUuid) },
+        select: { id: true },
+      })
+      uploadedByUserId = uploader?.id
+    }
 
     if (data.paymentRequestUuid) {
       const pr = await this.prisma.upward_payment_request.findUnique({
@@ -83,12 +92,18 @@ export class UploadProofOfPaymentUseCase {
       })
       if (!pr) throw new NotFoundException('Payment request not found')
       paymentRequestId = pr.id
+      if (!uploadedByUserId && pr.userId) {
+        uploadedByUserId = pr.userId
+      }
     } else if (data.userPropertyUuid) {
       const prop = await this.prisma.upward_user_property.findUnique({
         where: { uuid: data.userPropertyUuid }
       })
       if (!prop) throw new NotFoundException('Property not found')
       userPropertyId = prop.id
+      if (!uploadedByUserId && prop.userId) {
+        uploadedByUserId = prop.userId
+      }
     }
 
     let s3Key: string | undefined
@@ -123,35 +138,104 @@ export class UploadProofOfPaymentUseCase {
         senderName: data.senderName,
         paymentDate: data.paymentDate,
         referenceNumber: data.referenceNumber,
-        uploadedByUserId: data.uploadedByUserId,
+        uploadedByUserId,
         status: 'PENDING',
         lineItems: data.lineItems ? JSON.parse(JSON.stringify(data.lineItems)) : undefined
       }
     })
 
-    if (userPropertyId) {
-      const userProp = await this.prisma.upward_user_property.findUnique({
-        where: { id: userPropertyId },
-        include: { company: true }
-      })
-      if (userProp?.company?.platformId) {
-        await this.webhookService.sendWebhook(userProp.company.platformId, 'payment_proof.uploaded', {
-          proofId: proof.id,
-          paymentRequestUuid: data.paymentRequestUuid,
-          userPropertyUuid: data.userPropertyUuid,
-          amount: proof.amount,
-          currency: proof.currency,
-          fileUrl: proof.fileUrl,
-          fileName: proof.fileName,
-          senderName: proof.senderName,
-          paymentDate: proof.paymentDate,
-          referenceNumber: proof.referenceNumber,
-          status: proof.status
-        }).catch(err => console.error('Failed to dispatch webhook for payment proof:', err))
-      }
+    const propertyContext = await this.resolvePropertyContext({
+      userPropertyId,
+      paymentRequestId,
+    })
+
+    if (propertyContext?.pmId) {
+      const amountLabel = Number(proof.amount || 0).toLocaleString()
+      const placeLabel = propertyContext.placeLabel || 'a property'
+      await this.prisma.upward_pm_notification.create({
+        data: {
+          pmId: propertyContext.pmId,
+          title: 'Payment proof uploaded',
+          message: `A tenant uploaded proof of payment for ₦${amountLabel} at ${placeLabel}. Review it to approve or reject.`,
+          type: 'PAYMENT_PROOF',
+          isPopup: true,
+          url: '/payments?tab=proofs',
+        },
+      }).catch(err => console.error('Failed to create PM notification for payment proof:', err))
+    }
+
+    if (propertyContext?.platformId) {
+      await this.webhookService.sendWebhook(propertyContext.platformId, 'payment_proof.uploaded', {
+        proofId: proof.id,
+        paymentRequestUuid: data.paymentRequestUuid,
+        userPropertyUuid: data.userPropertyUuid || propertyContext.userPropertyUuid,
+        amount: proof.amount,
+        currency: proof.currency,
+        fileUrl: proof.fileUrl,
+        fileName: proof.fileName,
+        senderName: proof.senderName,
+        paymentDate: proof.paymentDate,
+        referenceNumber: proof.referenceNumber,
+        status: proof.status
+      }).catch(err => console.error('Failed to dispatch webhook for payment proof:', err))
     }
 
     return proof
+  }
+
+  private async resolvePropertyContext(ids: {
+    userPropertyId?: number
+    paymentRequestId?: number
+  }): Promise<{
+    pmId?: number
+    platformId?: number | null
+    userPropertyUuid?: string
+    placeLabel?: string
+  } | null> {
+    if (ids.userPropertyId) {
+      const userProp = await this.prisma.upward_user_property.findUnique({
+        where: { id: ids.userPropertyId },
+        include: { company: true, location: true, pmUnit: true },
+      })
+      if (!userProp) return null
+      const place =
+        userProp.pmUnit?.unitName ||
+        userProp.location?.address ||
+        [userProp.location?.area, userProp.location?.state].filter(Boolean).join(', ') ||
+        undefined
+      return {
+        pmId: userProp.pmId || undefined,
+        platformId: userProp.company?.platformId,
+        userPropertyUuid: userProp.uuid,
+        placeLabel: place,
+      }
+    }
+
+    if (ids.paymentRequestId) {
+      const pr = await this.prisma.upward_payment_request.findUnique({
+        where: { id: ids.paymentRequestId },
+        include: {
+          userProperty: {
+            include: { company: true, location: true, pmUnit: true },
+          },
+        },
+      })
+      const userProp = pr?.userProperty
+      if (!userProp) return null
+      const place =
+        userProp.pmUnit?.unitName ||
+        userProp.location?.address ||
+        [userProp.location?.area, userProp.location?.state].filter(Boolean).join(', ') ||
+        undefined
+      return {
+        pmId: userProp.pmId || undefined,
+        platformId: userProp.company?.platformId,
+        userPropertyUuid: userProp.uuid,
+        placeLabel: place,
+      }
+    }
+
+    return null
   }
 }
 

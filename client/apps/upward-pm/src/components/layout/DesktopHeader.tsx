@@ -77,6 +77,7 @@ export function DesktopHeader() {
       case 'PAYMENT_OVERDUE':
         return <AlertCircle size={16} className="notif-icon--error" />
       case 'PAYMENT_DUE':
+      case 'PAYMENT_PROOF':
         return <Calendar size={16} className="notif-icon--warning" />
       default:
         return <Sparkles size={16} className="notif-icon--system" />
