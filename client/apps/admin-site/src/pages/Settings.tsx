@@ -3,10 +3,7 @@ import {
   Shield,
   UserPlus,
   Trash2,
-  ArrowUpCircle,
-  ArrowDownCircle,
   Mail,
-  Clock,
   AlertCircle,
   Eye,
   EyeOff,
@@ -18,7 +15,7 @@ import { showToast } from '@upward/client-core'
 interface AdminUser {
   id: string
   email: string
-  role: 'ADMIN' | 'SUPERADMIN'
+  role: 'SUPERADMIN' | 'CUSTOMER_SUPPORT' | 'DEVELOPER'
   createdAt: string
 }
 
@@ -118,42 +115,23 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
     }
   }
 
-  const handleDemoteAdmin = (id: string) => {
+  const handleRoleChange = (id: string, newRole: string) => {
     openConfirm(
-      'Demote to Administrator',
-      'Are you sure you want to demote this Superadmin? They will lose access to administrative settings.',
+      'Change Admin Role',
+      `Are you sure you want to change this admin's role to ${newRole}?`,
       async () => {
-        await apiService.patch(`/admin/admins/${id}/demote`, {}, token)
-        fetchAdmins()
-        showToast('Admin demoted to Administrator')
+        try {
+          await apiService.patch(`/admin/admins/${id}/role`, { role: newRole }, token)
+          fetchAdmins()
+          showToast(`Admin role changed to ${newRole}`)
+        } catch (err: any) {
+          showToast(err.message || 'Failed to change role', true)
+        }
       },
     )
   }
 
-  const handleDeleteAdmin = (id: string) => {
-    openConfirm(
-      'Remove Administrator',
-      'Are you sure you want to remove this admin? They will lose all access immediately.',
-      async () => {
-        await apiService.delete(`/admin/admins/${id}`, token)
-        fetchAdmins()
-        showToast('Admin removed')
-      },
-      true,
-    )
-  }
-
-  const handlePromoteAdmin = (id: string) => {
-    openConfirm(
-      'Promote to Superadmin',
-      'Promote this admin to Superadmin? This gives them full access to all settings.',
-      async () => {
-        await apiService.patch(`/admin/admins/${id}/promote`, {}, token)
-        fetchAdmins()
-        showToast('Admin promoted to Superadmin!')
-      },
-    )
-  }
+  const isDeveloper = admins.find((a) => a.id === currentAdminId)?.role === 'DEVELOPER'
 
   return (
     <div className="page-container fade-in">
@@ -175,26 +153,28 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
             Manage administrative access and roles.
           </p>
         </div>
-        <button
-          onClick={() => {
-            setError('')
-            setNewAdmin({ email: '', passwordPlain: generatePassword(), role: 'ADMIN' })
-            setShowAddModal(true)
-          }}
-          style={{
-            padding: '12px 20px',
-            backgroundColor: 'var(--accent)',
-            color: 'var(--white)',
-            border: 'none',
-            borderRadius: '12px',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <UserPlus size={18} /> Add New Admin
-        </button>
+        {isDeveloper && (
+          <button
+            onClick={() => {
+              setError('')
+              setNewAdmin({ email: '', passwordPlain: generatePassword(), role: 'CUSTOMER_SUPPORT' })
+              setShowAddModal(true)
+            }}
+            style={{
+              padding: '12px 20px',
+              backgroundColor: 'var(--accent)',
+              color: 'var(--white)',
+              border: 'none',
+              borderRadius: '12px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <UserPlus size={18} /> Add New Admin
+          </button>
+        )}
       </div>
 
       <div style={{ maxWidth: '900px' }}>
@@ -206,207 +186,111 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
             </p>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {loading ? (
-              <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                Loading administrators...
-              </div>
-            ) : (
-              admins.map((admin) => (
-                <div
-                  key={admin.id}
-                  style={{
-                    padding: '20px 24px',
-                    borderBottom: '1px solid var(--border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '16px',
-                    transition: 'var(--transition)',
-                    backgroundColor:
-                      admin.role === 'SUPERADMIN' ? 'var(--accent-faint)' : 'transparent',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>
-                    <div
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '10px',
-                        flexShrink: 0,
-                        backgroundColor:
-                          admin.role === 'SUPERADMIN' ? 'var(--accent)' : 'var(--surface-hover)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: admin.role === 'SUPERADMIN' ? 'white' : 'var(--text-muted)',
-                      }}
-                    >
-                      <Shield size={20} />
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div
+          <div className="table-wrapper">
+            <div className="table-container">
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
+                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Admin</th>
+                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Role</th>
+                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Joined</th>
+                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        Loading administrators...
+                      </td>
+                    </tr>
+                  ) : admins.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        No administrators found.
+                      </td>
+                    </tr>
+                  ) : (
+                    admins.map((admin) => (
+                      <tr
+                        key={admin.id}
                         style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          flexWrap: 'wrap',
+                          borderBottom: '1px solid var(--border)',
+                          background: admin.role === 'DEVELOPER' ? 'var(--accent-faint)' : 'transparent',
+                          transition: 'var(--transition)'
                         }}
                       >
-                        <span
-                          style={{
-                            fontWeight: 600,
-                            fontSize: '15px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {admin.email}
-                        </span>
-                        {admin.id === currentAdminId && (
+                        <td style={{ padding: '16px 24px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div
+                              style={{
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '8px',
+                                backgroundColor: admin.role === 'DEVELOPER' ? 'var(--accent)' : 'var(--surface-hover)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: admin.role === 'DEVELOPER' ? 'white' : 'var(--text-muted)',
+                              }}
+                            >
+                              <Shield size={18} />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontWeight: 600, fontSize: '14px' }}>{admin.email}</span>
+                              {admin.id === currentAdminId && (
+                                <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--accent)', marginTop: '2px' }}>YOU</span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ padding: '16px 24px' }}>
                           <span
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: 700,
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              backgroundColor: '#e0f2fe',
-                              color: '#0369a1',
-                              textTransform: 'uppercase',
+                            className={`badge ${admin.role === 'DEVELOPER' ? 'badge-warning' : admin.role === 'SUPERADMIN' ? 'badge-success' : 'badge-secondary'}`}
+                            style={{ 
+                              backgroundColor: admin.role === 'DEVELOPER' ? 'var(--accent-faint)' : admin.role === 'SUPERADMIN' ? '#e0f2fe' : 'var(--surface-hover)',
+                              color: admin.role === 'DEVELOPER' ? 'var(--accent)' : admin.role === 'SUPERADMIN' ? '#0369a1' : 'var(--text-muted)'
                             }}
                           >
-                            You
+                            {admin.role}
                           </span>
-                        )}
-                        <span
-                          style={{
-                            fontSize: '10px',
-                            fontWeight: 700,
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            backgroundColor:
-                              admin.role === 'SUPERADMIN' ? 'var(--accent)' : 'var(--border)',
-                            color: admin.role === 'SUPERADMIN' ? 'white' : 'var(--text-muted)',
-                            textTransform: 'uppercase',
-                          }}
-                        >
-                          {admin.role}
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          marginTop: '4px',
-                          fontSize: '12px',
-                          color: 'var(--text-muted)',
-                        }}
-                      >
-                        <Clock size={12} /> Joined {new Date(admin.createdAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                    {admin.role === 'ADMIN' && (
-                      <button
-                        onClick={() => handlePromoteAdmin(admin.id)}
-                        title="Promote to Superadmin"
-                        style={{
-                          background: 'none',
-                          border: '1px solid var(--border)',
-                          borderRadius: '8px',
-                          padding: '6px 10px',
-                          color: 'var(--text-muted)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          transition: 'var(--transition)',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor = 'var(--accent)'
-                          e.currentTarget.style.color = 'var(--accent)'
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = 'var(--border)'
-                          e.currentTarget.style.color = 'var(--text-muted)'
-                        }}
-                      >
-                        <ArrowUpCircle size={16} />
-                        <span className="desktop-only">Promote</span>
-                      </button>
-                    )}
-                    {admin.role === 'SUPERADMIN' && admin.id !== currentAdminId && (
-                      <button
-                        onClick={() => handleDemoteAdmin(admin.id)}
-                        title="Demote to Admin"
-                        style={{
-                          background: 'none',
-                          border: '1px solid var(--border)',
-                          borderRadius: '8px',
-                          padding: '6px 10px',
-                          color: 'var(--text-muted)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          transition: 'var(--transition)',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor = 'var(--accent)'
-                          e.currentTarget.style.color = 'var(--accent)'
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = 'var(--border)'
-                          e.currentTarget.style.color = 'var(--text-muted)'
-                        }}
-                      >
-                        <ArrowDownCircle size={16} />
-                        <span className="desktop-only">Demote</span>
-                      </button>
-                    )}
-                    {admin.id !== currentAdminId && (
-                      <button
-                        onClick={() => handleDeleteAdmin(admin.id)}
-                        title="Remove Admin"
-                        style={{
-                          background: 'none',
-                          border: '1px solid var(--border)',
-                          borderRadius: '8px',
-                          padding: '6px 10px',
-                          color: 'var(--text-muted)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          transition: 'var(--transition)',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor = '#dc2626'
-                          e.currentTarget.style.color = '#dc2626'
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = 'var(--border)'
-                          e.currentTarget.style.color = 'var(--text-muted)'
-                        }}
-                      >
-                        <Trash2 size={16} />
-                        <span className="desktop-only">Remove</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
+                        </td>
+                        <td style={{ padding: '16px 24px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                          {new Date(admin.createdAt).toLocaleDateString()}
+                        </td>
+                        <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                          {isDeveloper && admin.role !== 'DEVELOPER' && (
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                              <select
+                                className="input"
+                                style={{ width: 'auto', padding: '6px 10px', fontSize: '12px' }}
+                                value={admin.role}
+                                onChange={(e) => handleRoleChange(admin.id, e.target.value)}
+                              >
+                                <option value="CUSTOMER_SUPPORT">CUSTOMER_SUPPORT</option>
+                                <option value="SUPERADMIN">SUPERADMIN</option>
+                              </select>
+                              <button
+                                onClick={() => openConfirm('Remove Administrator', 'Are you sure you want to remove this admin?', async () => {
+                                  await apiService.delete(`/admin/admins/${admin.id}`, token)
+                                  fetchAdmins()
+                                  showToast('Admin removed')
+                                }, true)}
+                                title="Remove Admin"
+                                className="btn btn-secondary"
+                                style={{ padding: '6px 10px', color: '#dc2626' }}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -615,17 +499,16 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                     Initial Role
                   </label>
                   <select
+                    className="input"
                     value={newAdmin.role}
                     onChange={(e) => setNewAdmin({ ...newAdmin, role: e.target.value })}
                     style={{
-                      padding: '11px 12px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border)',
-                      background: 'var(--surface)',
-                      fontSize: '14px',
+                      paddingTop: '12px',
+                      paddingBottom: '12px',
+                      backgroundColor: 'var(--surface)',
                     }}
                   >
-                    <option value="ADMIN">Administrator</option>
+                    <option value="CUSTOMER_SUPPORT">Customer Support</option>
                     <option value="SUPERADMIN">Super Administrator</option>
                   </select>
                 </div>

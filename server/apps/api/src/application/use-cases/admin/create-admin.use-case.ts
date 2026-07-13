@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, Logger, Inject } from '@nestjs/common'
+import { Injectable, ConflictException, Logger, Inject, ForbiddenException } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
@@ -19,9 +19,13 @@ export class CreateAdminUseCase {
   async execute(
     email: string,
     passwordPlain: string,
-    role: AdminRole = AdminRole.ADMIN,
+    role: AdminRole = AdminRole.CUSTOMER_SUPPORT,
     requesterId?: string,
   ) {
+    if (role === AdminRole.DEVELOPER) {
+      throw new ForbiddenException('DEVELOPER role can only be assigned via direct database intervention.')
+    }
+
     const existing = await this.prisma.upward_admin.findUnique({ where: { email } })
     if (existing) throw new ConflictException('Admin already exists')
 

@@ -163,9 +163,10 @@ export class EmailService {
     html: string
     type: string
     sessionId?: string
+    fromOverride?: string
     attachments?: Array<{ filename: string; content: Buffer }>
   }) {
-    const { userId, pmUuid, email, subject, text, html, type, sessionId, attachments } = params
+    const { userId, pmUuid, email, subject, text, html, type, sessionId, fromOverride, attachments } = params
     let domain = this.configService.get<string>('MAILGUN_DOMAIN')
     if (!domain) {
       this.logger.error('MAILGUN_DOMAIN not configured')
@@ -173,7 +174,7 @@ export class EmailService {
     }
 
     let from =
-      this.configService.get<string>('EMAIL_FROM') || `Upward by GoodTenants <hello@${domain}>`
+      fromOverride || this.configService.get<string>('EMAIL_FROM') || `Upward by GoodTenants <hello@${domain}>`
     let brandedHtml = html
 
     const targetPmUuid = pmUuid || userId
@@ -778,5 +779,31 @@ export class EmailService {
       type: 'CREDIBILITY_REQUEST_REJECTION',
     })
     return result.success
+  }
+
+  async sendCustomerSupportNotification(type: 'USER' | 'PM') {
+    const csAdmins = await this.prisma.upward_admin.findMany({
+      where: { role: 'CUSTOMER_SUPPORT' },
+      select: { email: true }
+    });
+
+    if (csAdmins.length === 0) return;
+
+    const emails = csAdmins.map(admin => admin.email);
+    const subject = type === 'USER' ? 'A new user just joined UpwardPay' : 'A new PM just joined UpwardPM';
+    const text = type === 'USER' 
+      ? 'A new user just joined UpwardPay. Login to see their details and take action.'
+      : 'A new PM just joined UpwardPM. Login to see their details and take action.';
+    
+    for (const email of emails) {
+      await this.sendEmailWithRetry({
+        email,
+        subject,
+        html: `<p>${text}</p>`,
+        text,
+        type: 'CUSTOMER_SUPPORT_NOTIFICATION',
+        fromOverride: 'Upward Admin <admin@upward.com>'
+      });
+    }
   }
 }

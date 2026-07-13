@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
+import { useAuth } from '../contexts/AuthContext'
 
 interface PmDetailProps {
   token: string
@@ -49,6 +50,8 @@ interface PmDetailData {
 
 const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
   const { uuid } = useParams<{ uuid: string }>()
+  const { auth } = useAuth()
+  const isDeveloper = auth?.user?.role === 'DEVELOPER'
   const [loading, setLoading] = useState(true)
   const [pm, setPm] = useState<PmDetailData | null>(null)
 
@@ -368,67 +371,69 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
           {/* Edit Profile Details */}
-          <div className="card" style={{ padding: '24px' }}>
-            <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Edit2 size={16} /> Edit Manager Profile Details
-            </h4>
-            <form onSubmit={handleUpdateProfile} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div style={{ gridColumn: 'span 2' }}>
-                <label className="section-label" style={{ marginBottom: '4px' }}>Business Name</label>
-                <input
-                  type="text"
-                  value={editBusinessName}
-                  onChange={(e) => setEditBusinessName(e.target.value)}
-                  className="input"
-                  required
-                />
-              </div>
-              <div>
-                <label className="section-label" style={{ marginBottom: '4px' }}>First Name</label>
-                <input
-                  type="text"
-                  value={editFirstName}
-                  onChange={(e) => setEditFirstName(e.target.value)}
-                  className="input"
-                  required
-                />
-              </div>
-              <div>
-                <label className="section-label" style={{ marginBottom: '4px' }}>Last Name</label>
-                <input
-                  type="text"
-                  value={editLastName}
-                  onChange={(e) => setEditLastName(e.target.value)}
-                  className="input"
-                  required
-                />
-              </div>
-              <div>
-                <label className="section-label" style={{ marginBottom: '4px' }}>Email Address</label>
-                <input
-                  type="email"
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                  className="input"
-                  required
-                />
-              </div>
-              <div>
-                <label className="section-label" style={{ marginBottom: '4px' }}>Phone Number</label>
-                <input
-                  type="text"
-                  value={editPhone}
-                  onChange={(e) => setEditPhone(e.target.value)}
-                  className="input"
-                />
-              </div>
-              <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-                <button type="submit" disabled={updatingProfile} className="btn btn-primary" style={{ height: '38px', backgroundColor: '#6366f1', borderColor: '#6366f1' }}>
-                  {updatingProfile ? 'Saving updates...' : 'Save Profile Changes'}
-                </button>
-              </div>
-            </form>
-          </div>
+          {isDeveloper && (
+            <div className="card" style={{ padding: '24px' }}>
+              <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Edit2 size={16} /> Edit Manager Profile Details
+              </h4>
+              <form onSubmit={handleUpdateProfile} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>Business Name</label>
+                  <input
+                    type="text"
+                    value={editBusinessName}
+                    onChange={(e) => setEditBusinessName(e.target.value)}
+                    className="input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>First Name</label>
+                  <input
+                    type="text"
+                    value={editFirstName}
+                    onChange={(e) => setEditFirstName(e.target.value)}
+                    className="input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>Last Name</label>
+                  <input
+                    type="text"
+                    value={editLastName}
+                    onChange={(e) => setEditLastName(e.target.value)}
+                    className="input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>Email Address</label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>Phone Number</label>
+                  <input
+                    type="text"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="input"
+                  />
+                </div>
+                <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                  <button type="submit" disabled={updatingProfile} className="btn btn-primary" style={{ height: '38px', backgroundColor: '#6366f1', borderColor: '#6366f1' }}>
+                    {updatingProfile ? 'Saving updates...' : 'Save Profile Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
           {/* Managed Properties & Units */}
           <div className="card" style={{ padding: '24px' }}>

@@ -1,6 +1,7 @@
 export enum AdminRole {
-  ADMIN = 'ADMIN',
   SUPERADMIN = 'SUPERADMIN',
+  CUSTOMER_SUPPORT = 'CUSTOMER_SUPPORT',
+  DEVELOPER = 'DEVELOPER',
 }
 
 export interface AdminUser {

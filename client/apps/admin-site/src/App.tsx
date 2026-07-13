@@ -1,3 +1,4 @@
+import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Login from './pages/Login'
@@ -33,6 +34,14 @@ const showSandboxTools = import.meta.env.VITE_SHOW_SANDBOX_TOOLS === 'true' || !
 
 function AppRoutes() {
   const { auth, loading, logout, setAuth } = useAuth()
+
+  React.useEffect(() => {
+    if (auth?.user?.role === 'DEVELOPER') {
+      document.body.dataset.theme = 'developer'
+    } else {
+      delete document.body.dataset.theme
+    }
+  }, [auth?.user?.role])
 
   if (loading) return null
 
@@ -72,7 +81,7 @@ function AppRoutes() {
           <Route path="/support" element={<SupportTickets token={auth.token} />} />
           <Route path="/verifications" element={<Verifications token={auth.token} />} />
           {showSandboxTools && <Route path="/demo-bank" element={<DemoBank token={auth.token} />} />}
-          {auth.user.role === 'SUPERADMIN' && (
+          {(auth.user.role === 'SUPERADMIN' || auth.user.role === 'DEVELOPER') && (
             <>
               <Route
                 path="/settings"

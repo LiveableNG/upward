@@ -35,6 +35,19 @@
   --radius-lg: 14px;
 }
 
+body[data-theme="developer"] {
+  --swatch--brand: #d4af37;
+  --swatch--brand-hover: #b8972e;
+  
+  --accent: #d4af37;
+  --accent-faint: rgba(212, 175, 55, 0.08);
+  --accent-muted: rgba(212, 175, 55, 0.15);
+  
+  --text: #4a3e10;
+  --text-secondary: #635416;
+  --text-muted: #8c7b33;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
