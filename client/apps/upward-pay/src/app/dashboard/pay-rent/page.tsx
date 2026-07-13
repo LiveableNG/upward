@@ -16,6 +16,7 @@ import { RenewalModal } from '@/features/payments/components/unified-pay/Renewal
 import { clearSetupDraft } from '@/features/dashboard/setup/setupDraft'
 import { SETUP_RETURN_PATHS, setupAddPropertyPath } from '@/features/dashboard/setup/setupPaths'
 import { propertySupportsBankTransfer } from '@/features/dashboard/components/payment/propertyBankAccount'
+import { findProofUnderReviewForProperty, isProofUnderReview } from '@/features/dashboard/components/payment/propertyPayDisplay'
 
 export default function PayRentPage() {
   const router = useRouter()
@@ -87,8 +88,15 @@ export default function PayRentPage() {
   }
 
   function handlePropertySelect(prop: any, pending: any[]) {
+    if (findProofUnderReviewForProperty(pending, prop.uuid)) {
+      return
+    }
+
     const activeRequest = pending.find(
-      p => p.userPropertyUuid === prop.uuid && (p.status === 'PENDING' || p.status === 'PARTIAL'),
+      p =>
+        p.userPropertyUuid === prop.uuid &&
+        (p.status === 'PENDING' || p.status === 'PARTIAL') &&
+        !isProofUnderReview(p),
     )
     if (activeRequest) {
       router.push(`/pay/${activeRequest.uuid}`)
@@ -193,6 +201,7 @@ export default function PayRentPage() {
   if (loading) return <PayRentSkeleton />
 
   const handleSelectPending = (p: any) => {
+    if (isProofUnderReview(p)) return
     router.push(`/pay/${p.uuid}`)
   }
 
@@ -214,7 +223,7 @@ export default function PayRentPage() {
     new: 'Enter the bank account this rent payment should be sent to.',
     confirm: 'Set the amount and breakdown',
     'payment-method': 'Choose how you want to pay',
-    'bank-transfer': 'Transfer to the account below, then submit proof',
+    'bank-transfer': 'Choose where to send the money',
     'upload-proof': 'Upload your payment receipt',
   }
 

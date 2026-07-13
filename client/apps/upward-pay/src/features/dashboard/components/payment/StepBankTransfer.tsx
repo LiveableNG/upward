@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { CheckCircle2, ChevronRight, Landmark, Plus } from 'lucide-react'
+import { CheckCircle2, Circle, Landmark } from 'lucide-react'
 import { api } from '@/lib/api'
+import { formatCurrency } from '@/lib/utils'
 import { addManualAccount } from '@/features/payments/services/paymentService'
 import { useToast } from '@/components/common/Toast'
 import { PayFlowPrimaryButton } from './PayPageShell'
@@ -50,12 +51,23 @@ export function StepBankTransfer({
   const [accountName, setAccountName] = useState('')
   const [isVerifying, setIsVerifying] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
+  const [verifyError, setVerifyError] = useState('')
   const [isBankModalOpen, setIsBankModalOpen] = useState(false)
 
   const { data: banks = [], isLoading: loadingBanks } = useQuery<{ name: string; code: string }[]>({
     queryKey: ['banks'],
     queryFn: api.getBanks,
   })
+
+  const resolveBankName = (code?: string, fallback = '') => {
+    if (!code) return fallback
+    return banks.find(b => b.code === code)?.name || fallback
+  }
+
+  const enrichedSuggestions = suggestions.map(account => ({
+    ...account,
+    bankName: account.bankName || resolveBankName(account.bankCode),
+  }))
 
   const customAccount: TransferBankAccount | null =
     accountNumber.length === 10 && accountName
@@ -73,25 +85,36 @@ export function StepBankTransfer({
   useEffect(() => {
     setIsVerified(false)
     setAccountName('')
+    setVerifyError('')
+    setIsVerifying(false)
   }, [bankCode, accountNumber])
 
   useEffect(() => {
     if (!showCustomEntry || !bankCode || accountNumber.length !== 10) return
+
+    setIsVerifying(true)
+    setVerifyError('')
+
     const timer = setTimeout(async () => {
-      setIsVerifying(true)
       try {
         const data = await api.resolveAccount(accountNumber, bankCode)
         const name = data.accountName || data.account_name
         if (name) {
           setAccountName(name)
           setIsVerified(true)
+          setVerifyError('')
+        } else {
+          setIsVerified(false)
+          setVerifyError('Could not verify this account. Check the details and try again.')
         }
       } catch {
         setIsVerified(false)
+        setVerifyError('Could not verify this account. Check the details and try again.')
       } finally {
         setIsVerifying(false)
       }
     }, 800)
+
     return () => clearTimeout(timer)
   }, [showCustomEntry, bankCode, accountNumber])
 
@@ -131,15 +154,26 @@ export function StepBankTransfer({
     onSuccess()
   }
 
-  if (phase === 'proof' && activeAccount) {
+  const displayAccount = activeAccount
+    ? {
+        ...activeAccount,
+        bankName: activeAccount.bankName || resolveBankName(activeAccount.bankCode),
+      }
+    : null
+
+  if (phase === 'proof' && displayAccount) {
     return (
       <div className="pay-flow__bank-transfer">
+        <p className="pay-flow__payment-method-intro">
+          Paying <strong>{formatCurrency(amount, currency)}</strong> — transfer to the account below, then upload your receipt.
+        </p>
+
         <div className="pay-flow__transfer-account-summary">
           <p className="pay-flow__transfer-account-label">Transfer to</p>
-          <p className="pay-flow__transfer-account-name">{activeAccount.accountName}</p>
-          <p className="pay-flow__transfer-account-meta">
-            {activeAccount.bankName ? `${activeAccount.bankName} · ` : ''}
-            {activeAccount.accountNumber}
+          <p className="pay-flow__method-card-title">{displayAccount.accountName}</p>
+          <p className="pay-flow__method-card-desc">
+            {displayAccount.bankName ? `${displayAccount.bankName} · ` : ''}
+            {displayAccount.accountNumber}
           </p>
         </div>
 
@@ -148,9 +182,10 @@ export function StepBankTransfer({
           amount={amount}
           currency={currency}
           lineItems={lineItems}
-          bankName={activeAccount.bankName}
-          accountName={activeAccount.accountName}
-          accountNumber={activeAccount.accountNumber}
+          bankName={displayAccount.bankName}
+          accountName={displayAccount.accountName}
+          accountNumber={displayAccount.accountNumber}
+          hideAccountDetails
           onSuccess={handleProofSuccess}
           onCancel={() => setPhase('account')}
         />
@@ -160,50 +195,68 @@ export function StepBankTransfer({
 
   return (
     <div className="pay-flow__bank-transfer">
-      {suggestions.length > 0 && !showCustomEntry ? (
-        <div className="pay-flow__section">
-          <p className="pay-flow__section-label">Suggested accounts</p>
-          <div className="pay-flow__transfer-account-list">
-            {suggestions.map(account => (
+      <p className="pay-flow__payment-method-intro">
+        Paying <strong>{formatCurrency(amount, currency)}</strong> — choose where to send it.
+      </p>
+
+      {enrichedSuggestions.length > 0 && !showCustomEntry ? (
+        <div className="pay-flow__transfer-account-list">
+          {enrichedSuggestions.map(account => {
+            const isSelected = !!(selectedAccount && accountsMatch(selectedAccount, account))
+            return (
               <button
                 key={account.accountNumber}
                 type="button"
-                className={`pay-flow__transfer-account-card${
-                  selectedAccount && accountsMatch(selectedAccount, account)
-                    ? ' pay-flow__transfer-account-card--selected'
-                    : ''
+                className={`pay-flow__method-card pay-flow__transfer-account-card${
+                  isSelected ? ' pay-flow__transfer-account-card--selected' : ''
                 }`}
                 onClick={() => setSelectedAccount(account)}
+                aria-pressed={isSelected}
               >
-                <div className="pay-flow__transfer-account-card-body">
-                  <p className="pay-flow__transfer-account-card-label">{account.label}</p>
-                  <p className="pay-flow__transfer-account-card-name">{account.accountName}</p>
-                  <p className="pay-flow__transfer-account-card-meta">
-                    {account.bankName ? `${account.bankName} · ` : ''}
-                    {account.accountNumber}
+                <span
+                  className={`pay-flow__transfer-account-radio${
+                    isSelected ? ' pay-flow__transfer-account-radio--selected' : ''
+                  }`}
+                  aria-hidden
+                >
+                  {isSelected ? <CheckCircle2 size={20} /> : <Circle size={20} />}
+                </span>
+                <div className="pay-flow__method-card-body">
+                  <p className="pay-flow__method-card-title">{account.accountName}</p>
+                  <p className="pay-flow__method-card-desc">
+                    {account.label}
+                    {account.bankName || account.accountNumber
+                      ? ` · ${[account.bankName, account.accountNumber].filter(Boolean).join(' · ')}`
+                      : ''}
                   </p>
                 </div>
-                <ChevronRight size={18} className="pay-flow__card-trailing" />
               </button>
-            ))}
-          </div>
+            )
+          })}
         </div>
       ) : null}
 
       {!showCustomEntry ? (
-        <button
-          type="button"
-          className="pay-flow__breakdown-offer-link pay-flow__transfer-enter-link"
-          onClick={() => {
-            setShowCustomEntry(true)
-            setSelectedAccount(null)
-          }}
-        >
-          <Plus size={14} /> Enter a different account
-        </button>
+        <p className="pay-flow__breakdown-offer pay-flow__transfer-enter-link">
+          Paying to a different account?{' '}
+          <button
+            type="button"
+            className="pay-flow__breakdown-offer-link"
+            onClick={() => {
+              setShowCustomEntry(true)
+              setSelectedAccount(null)
+            }}
+          >
+            Enter details
+          </button>
+        </p>
       ) : (
-        <div className="pay-flow__breakdown-panel">
-          <p className="pay-flow__breakdown-panel-title">Enter account details</p>
+        <div className="pay-flow__transfer-entry">
+          {enrichedSuggestions.length === 0 ? (
+            <p className="pay-flow__field-hint pay-flow__transfer-entry-lead">
+              Enter the bank account to transfer to. We’ll verify it before you continue.
+            </p>
+          ) : null}
 
           <div className="pay-flow__field">
             <label className="pay-flow__field-label">Bank</label>
@@ -230,7 +283,9 @@ export function StepBankTransfer({
           <div className="pay-flow__field">
             <label className="pay-flow__field-label">Account number</label>
             <div
-              className={`pay-flow__input-wrap${isVerifying ? ' pay-flow__input-wrap--loading' : ''}${isVerified ? ' pay-flow__input-wrap--success' : ''}`}
+              className={`pay-flow__input-wrap${isVerifying ? ' pay-flow__input-wrap--loading' : ''}${
+                isVerified ? ' pay-flow__input-wrap--success' : ''
+              }${verifyError ? ' pay-flow__input-wrap--error' : ''}`}
             >
               <input
                 type="text"
@@ -240,24 +295,47 @@ export function StepBankTransfer({
                 value={accountNumber}
                 onChange={e => setAccountNumber(e.target.value.replace(/\D/g, ''))}
               />
-              {isVerified ? <CheckCircle2 size={18} style={{ color: 'var(--success)' }} /> : null}
+              {isVerifying ? (
+                <span
+                  className="pay-flow__cta-spinner pay-flow__cta-spinner--muted"
+                  aria-label="Verifying account"
+                />
+              ) : null}
+              {isVerified && !isVerifying ? (
+                <CheckCircle2 size={18} style={{ color: 'var(--success)' }} />
+              ) : null}
             </div>
+            {isVerifying ? <p className="pay-flow__field-hint">Verifying account…</p> : null}
+            {verifyError ? <p className="pay-flow__field-error">{verifyError}</p> : null}
           </div>
 
-          {isVerified && accountName ? (
+          {isVerified && accountName && !isVerifying ? (
             <div className="pay-flow__transfer-verified">
               <CheckCircle2 size={16} />
               <span>{accountName}</span>
             </div>
           ) : null}
 
-          {suggestions.length > 0 ? (
+          {isVerified &&
+          customAccount &&
+          !suggestions.some(s => accountsMatch(s, customAccount)) ? (
+            <label className="pay-flow__save-account">
+              <input
+                type="checkbox"
+                checked={saveForLater}
+                onChange={e => setSaveForLater(e.target.checked)}
+              />
+              <span>Save this account for next time</span>
+            </label>
+          ) : null}
+
+          {enrichedSuggestions.length > 0 ? (
             <button
               type="button"
-              className="pay-flow__breakdown-offer-link pay-flow__breakdown-collapse"
+              className="pay-flow__cancel-link pay-flow__transfer-switch-link"
               onClick={() => {
                 setShowCustomEntry(false)
-                setSelectedAccount(suggestions[0] ?? null)
+                setSelectedAccount(enrichedSuggestions[0] ?? null)
                 setSaveForLater(false)
               }}
             >
@@ -267,22 +345,11 @@ export function StepBankTransfer({
         </div>
       )}
 
-      {showCustomEntry && isVerified && customAccount && !suggestions.some(s => accountsMatch(s, customAccount)) ? (
-        <label className="pay-flow__save-account">
-          <input
-            type="checkbox"
-            checked={saveForLater}
-            onChange={e => setSaveForLater(e.target.checked)}
-          />
-          <span>Save this account for next time</span>
-        </label>
-      ) : null}
-
       <div className="pay-flow__cta-wrap">
         <PayFlowPrimaryButton disabled={!canContinueAccount || isSaving} onClick={handleContinueToProof}>
-          I&apos;ve paid — submit proof
+          Continue
         </PayFlowPrimaryButton>
-        <button type="button" className="pay-flow__breakdown-offer-link pay-flow__transfer-back-link" onClick={onBack}>
+        <button type="button" className="pay-flow__cancel-link pay-flow__transfer-back-link" onClick={onBack}>
           Choose a different payment method
         </button>
       </div>

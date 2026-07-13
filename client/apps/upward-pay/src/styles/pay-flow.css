@@ -428,6 +428,33 @@
   color: #4a5f7a;
 }
 
+.pay-flow__rent-pill--review {
+  background: #eef2f8;
+  color: #4a5f7a;
+}
+
+.pay-flow__property-card--review {
+  cursor: default;
+  opacity: 0.92;
+  background: #f7f5f1;
+  border-color: #e5dbcf;
+  box-shadow: none;
+}
+
+.pay-flow__property-card--review:hover {
+  border-color: #e5dbcf;
+  transform: none;
+}
+
+.pay-flow__card-meta--review {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  color: #4a5f7a;
+  font-weight: 600;
+}
+
 /* Empty state */
 .pay-flow__empty {
   padding: 40px 8px;
@@ -1758,7 +1785,7 @@
   color: #8a7d70;
 }
 
-/* Bank transfer step */
+/* Bank transfer step — aligned with payment-method simplicity */
 .pay-flow__bank-transfer {
   display: flex;
   flex-direction: column;
@@ -1767,75 +1794,87 @@
 .pay-flow__transfer-account-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
 .pay-flow__transfer-account-card {
-  display: flex;
   align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 14px 16px;
-  border: 1.5px solid #f0e9df;
-  border-radius: 14px;
-  background: #fff;
-  text-align: left;
-  cursor: pointer;
-  font-family: inherit;
-  transition: border-color 0.15s ease;
+  margin-bottom: 10px;
+}
+
+.pay-flow__transfer-account-card:hover:not(:disabled) {
+  border-color: rgba(194, 80, 31, 0.35);
+  transform: translateY(-1px);
 }
 
 .pay-flow__transfer-account-card--selected {
   border-color: rgba(194, 80, 31, 0.45);
-  background: #fffaf7;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
 }
 
-.pay-flow__transfer-account-card-body {
-  flex: 1;
-  min-width: 0;
+.pay-flow__transfer-account-radio {
+  flex-shrink: 0;
+  color: #d4c8ba;
+  display: flex;
+  align-items: center;
 }
 
-.pay-flow__transfer-account-card-label {
-  margin: 0 0 2px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+.pay-flow__transfer-account-radio--selected {
   color: var(--skin-primary, #c2501f);
 }
 
-.pay-flow__transfer-account-card-name {
-  margin: 0 0 2px;
-  font-size: 14px;
-  font-weight: 700;
-  color: #1a1714;
-}
-
-.pay-flow__transfer-account-card-meta {
-  margin: 0;
-  font-size: 12px;
-  color: #8a7d70;
-}
-
 .pay-flow__transfer-enter-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin: 4px 0 16px;
+  margin: 4px 0 8px;
 }
 
-.pay-flow__transfer-back-link {
+.pay-flow__transfer-back-link,
+.pay-flow__transfer-switch-link {
   display: block;
   width: 100%;
-  margin-top: 10px;
   text-align: center;
+  text-decoration: none;
+}
+
+.pay-flow__transfer-switch-link {
+  margin-top: 10px;
+}
+
+.pay-flow__transfer-back-link:hover:not(:disabled),
+.pay-flow__transfer-switch-link:hover:not(:disabled) {
+  color: #5c544b;
+}
+
+.pay-flow__transfer-entry {
+  margin-bottom: 4px;
+}
+
+.pay-flow__transfer-entry-lead {
+  margin: 0 0 14px;
+}
+
+.pay-flow__field-hint {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #a9a096;
+}
+
+.pay-flow__field-error {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: #ef4444;
+}
+
+.pay-flow__cta-spinner--muted {
+  border-color: #d4c8ba;
+  border-top-color: transparent;
 }
 
 .pay-flow__transfer-verified {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
+  margin: 0 0 12px;
   padding: 10px 12px;
   border-radius: 10px;
   background: #eef8f0;
@@ -1857,37 +1896,149 @@
 .pay-flow__save-account input {
   width: 16px;
   height: 16px;
-  accent-color: var(--skin-primary, #c2501f);
+  accent-color: #1a1714;
 }
 
 .pay-flow__transfer-account-summary {
   margin-bottom: 16px;
   padding: 14px 16px;
   border-radius: 14px;
-  border: 1px solid #f0e9df;
+  border: 1.5px solid #f0e9df;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+/* Proof upload — aligned with pay-flow */
+.pay-flow__proof-upload {
+  display: flex;
+  flex-direction: column;
+}
+
+.pay-flow__proof-upload-hint {
+  margin: -2px 0 12px;
+}
+
+.pay-flow__proof-dropzone {
+  border: 1.5px dashed #d9cfc2;
+  border-radius: 16px;
   background: #fdfbf8;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.pay-flow__transfer-account-label {
-  margin: 0 0 4px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #a9a096;
+.pay-flow__proof-dropzone:hover {
+  border-color: rgba(194, 80, 31, 0.4);
+  background: #fffaf7;
 }
 
-.pay-flow__transfer-account-name {
-  margin: 0 0 2px;
-  font-size: 15px;
+.pay-flow__proof-file-input {
+  display: none;
+}
+
+.pay-flow__proof-dropzone-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 36px 20px;
+  cursor: pointer;
+  color: #8a7d70;
+  text-align: center;
+}
+
+.pay-flow__proof-dropzone-title {
+  font-size: 14px;
   font-weight: 700;
   color: #1a1714;
 }
 
-.pay-flow__transfer-account-meta {
+.pay-flow__proof-dropzone-sub {
+  font-size: 12.5px;
+  color: #a9a096;
+}
+
+.pay-flow__proof-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1.5px solid #f0e9df;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.pay-flow__proof-file-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f0e8;
+  color: var(--skin-primary, #c2501f);
+}
+
+.pay-flow__proof-file-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.pay-flow__proof-file-name {
   margin: 0;
   font-size: 13px;
-  color: #8a7d70;
+  font-weight: 600;
+  color: #1a1714;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pay-flow__proof-file-size {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #a9a096;
+}
+
+.pay-flow__proof-file-remove {
+  flex-shrink: 0;
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 8px;
+  color: #a9a096;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pay-flow__proof-file-remove:hover:not(:disabled) {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.pay-flow__proof-file-success {
+  flex-shrink: 0;
+  color: #2d6a3e;
+}
+
+.pay-flow__proof-success {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #eef8f0;
+  color: #2d6a3e;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 /* CTA wrap — tighter, always in reach */
@@ -2189,4 +2340,47 @@
   font-size: 11px;
   font-weight: 600;
   color: #a9a096;
+}
+
+.pay-flow__checkout-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.pay-flow__checkout-footer .pay-flow__secure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 2px 0 0;
+}
+
+.pay-flow__cancel-link {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  margin: 0 auto;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #a9a096;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pay-flow__cancel-link:hover:not(:disabled) {
+  color: #5c544b;
+}
+
+.pay-flow__cancel-link:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pay-flow__cta-wrap .pay-flow__transfer-back-link {
+  margin: 24px auto 0;
 }

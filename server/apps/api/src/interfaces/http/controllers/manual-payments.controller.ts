@@ -89,8 +89,7 @@ export class ManualPaymentsController {
       fileType: data.mimetype,
       fileSize: buffer.length,
       fileName,
-      uploadedByUserId: typeof req.user.id === 'number' ? req.user.id : (Number.isNaN(Number(req.user.id)) ? undefined : Number(req.user.id)),
-      userUuid: req.user.id, // For generating S3 key securely
+      userUuid: String(req.user.id),
     })
   }
 
@@ -108,8 +107,7 @@ export class ManualPaymentsController {
       senderName,
       paymentDate: paymentDate ? new Date(paymentDate) : undefined,
       referenceNumber,
-      uploadedByUserId: typeof req.user.id === 'number' ? req.user.id : (Number.isNaN(Number(req.user.id)) ? undefined : Number(req.user.id)),
-      userUuid: req.user.id,
+      userUuid: String(req.user.id),
     })
   }
 
