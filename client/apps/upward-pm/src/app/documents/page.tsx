@@ -6,7 +6,7 @@ import { DocumentManagementView } from '@/features/pm/components/documents/Docum
 import { DocumentEditorView } from '@/features/pm/components/documents/DocumentEditorView'
 import { CreateTemplateView } from '@/features/pm/components/documents/CreateTemplateView'
 import { useTenants } from '@/features/pm/hooks/useTenants'
-import { Splash } from '@/components/common/Splash'
+import { ListSkeleton } from '@/components/skeletons'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
@@ -203,7 +203,7 @@ function DocumentManagementContent() {
 
 export default function DocumentManagementPage() {
   return (
-    <Suspense fallback={<Splash />}>
+    <Suspense fallback={<ListSkeleton />}>
       <DocumentManagementContent />
     </Suspense>
   )

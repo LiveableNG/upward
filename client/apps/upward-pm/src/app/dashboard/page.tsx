@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { DashboardView } from '@/features/pm/components/dashboard/DashboardView'
-import { Splash } from '@/components/common/Splash'
+import { DashboardSkeleton } from '@/components/skeletons'
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function Dashboard() {
   return (
-    <Suspense fallback={<Splash />}>
+    <Suspense fallback={<DashboardSkeleton />}>
       <DashboardView />
     </Suspense>
   )

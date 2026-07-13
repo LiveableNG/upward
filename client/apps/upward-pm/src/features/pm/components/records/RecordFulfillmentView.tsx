@@ -8,6 +8,7 @@ import { useToast } from '@/components/common/Toast'
 import { api } from '@/lib/api'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { downloadBlob } from '@/lib/download-helper'
+import { ListSkeleton } from '@/components/skeletons'
 
 export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string, isPublic?: boolean }) {
   const router = useRouter()
@@ -178,7 +179,7 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
     }
   ];
 
-  if (loading) return <div className="fulfillment-status animate-pulse">Loading request details...</div>
+  if (loading) return <ListSkeleton />
 
   if (!requestDetails) {
     return (

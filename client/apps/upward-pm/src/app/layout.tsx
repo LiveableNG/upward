@@ -14,6 +14,7 @@ import "../styles/payments.css";
 import "../styles/toast.css";
 import "../styles/features/requests.css";
 import "../styles/auth.css";
+import "../styles/components/skeleton.css";
 
 import { Providers } from "@/components/common/Providers";
 import { AppLayout } from "@/components/layout/AppLayout";

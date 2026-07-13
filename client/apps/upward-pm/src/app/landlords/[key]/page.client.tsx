@@ -7,7 +7,7 @@ import { usePaymentRequests } from '@/features/pm/hooks/usePayments'
 import { LandlordDetailView } from '@/features/pm/components/landlords/LandlordDetailView'
 import { GenerateLandlordReportView } from '@/features/pm/components/landlords/GenerateLandlordReportView'
 import { LandlordReportEditorView } from '@/features/pm/components/landlords/LandlordReportEditorView'
-import { Splash } from '@/components/common/Splash'
+import { DetailSkeleton } from '@/components/skeletons'
 import { useToast } from '@/components/common/Toast'
 
 type ViewStep = 'detail' | 'configure' | 'edit'
@@ -97,7 +97,7 @@ function LandlordDetailPageContent() {
 
 export default function LandlordDetailPage() {
   return (
-    <Suspense fallback={<Splash />}>
+    <Suspense fallback={<DetailSkeleton />}>
       <LandlordDetailPageContent />
     </Suspense>
   )

@@ -33,7 +33,7 @@ import { DocumentEditorView } from '@/features/pm/components/documents/DocumentE
 import { useToast } from '@/components/common/Toast'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import { cn, formatCurrency, formatTenantName } from '@/lib/utils'
-import { Splash } from '@/components/common/Splash'
+import { DetailSkeleton } from '@/components/skeletons'
 
 function UnitDetailContent() {
   const { uuid } = useParams()
@@ -138,7 +138,7 @@ function UnitDetailContent() {
   }, [formData.rentStartDate, formData.rentType, isEditing])
 
   if (isLoading || !unit) {
-    return <Splash />
+    return <DetailSkeleton />
   }
 
   const handleUpdate = (data: any) => {
@@ -1165,7 +1165,7 @@ function DigitalRequestsSection({ unitId, onEdit, unitCurrency }: { unitId?: num
 
 export default function LandlordUnitDetailPage() {
   return (
-    <Suspense fallback={<Splash />}>
+    <Suspense fallback={<DetailSkeleton />}>
       <UnitDetailContent />
     </Suspense>
   )

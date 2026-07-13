@@ -25,6 +25,7 @@ import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
 import { StatCard } from '@/components/ui/StatCard/StatCard'
 import { StatGrid } from '@/components/ui/StatCard/StatGrid'
 import { useToast } from '@/components/common/Toast'
+import { DashboardSkeleton } from '@/components/skeletons'
 
 export function DashboardView() {
   const router = useRouter()
@@ -35,21 +36,7 @@ export function DashboardView() {
   const [activeTab, setActiveTab] = useState<'arrears' | 'upcoming' | 'completed'>('arrears')
 
   if (isLoading) {
-    return (
-      <div className="dashboard animate-pulse" style={{ padding: '24px 0' }}>
-        <div style={{ height: 48, background: 'var(--dark)', opacity: 0.1, borderRadius: 12, marginBottom: 24, width: '40%' }}></div>
-        <div style={{ height: 160, background: 'var(--dark)', opacity: 0.05, borderRadius: 16, marginBottom: 32 }}></div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24, marginBottom: 40 }}>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} style={{ height: 120, background: 'var(--dark)', opacity: 0.05, borderRadius: 16 }}></div>
-          ))}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 40 }}>
-          <div style={{ height: 400, background: 'var(--dark)', opacity: 0.05, borderRadius: 16 }}></div>
-          <div style={{ height: 400, background: 'var(--dark)', opacity: 0.05, borderRadius: 16 }}></div>
-        </div>
-      </div>
-    )
+    return <DashboardSkeleton />
   }
 
   const {

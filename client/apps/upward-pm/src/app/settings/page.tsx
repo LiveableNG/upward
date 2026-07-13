@@ -10,7 +10,7 @@ import { TeamTab } from '@/features/pm/components/settings/TeamTab'
 import { BrandingTab } from '@/features/pm/components/settings/BrandingTab'
 import { FeedbackTab } from '@/features/pm/components/settings/FeedbackTab'
 import { EmailSettingsTab } from '@/features/pm/components/settings/EmailSettingsTab'
-import { Splash } from '@/components/common/Splash'
+import { ListSkeleton } from '@/components/skeletons'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { ChevronRight, ChevronLeft } from 'lucide-react'
@@ -159,7 +159,7 @@ function SettingsContent() {
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={<Splash />}>
+    <Suspense fallback={<ListSkeleton />}>
       <SettingsContent />
     </Suspense>
   )

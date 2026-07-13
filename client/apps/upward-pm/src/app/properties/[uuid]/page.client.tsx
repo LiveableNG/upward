@@ -4,7 +4,7 @@ import React, { Suspense } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useProperty, useUnits, useUpdateProperty, useDeleteProperty } from '@/features/pm/hooks/useProperties'
 import { PropertyDetailView } from '@/features/pm/components/properties/PropertyDetailView'
-import { Splash } from '@/components/common/Splash'
+import { DetailSkeleton } from '@/components/skeletons'
 import { EditPropertyModal } from '@/features/pm/components/properties/modals/EditPropertyModal'
 import { DeletePropertyModal } from '@/features/pm/components/properties/modals/DeletePropertyModal'
 import { useToast } from '@/components/common/Toast'
@@ -107,7 +107,7 @@ function PropertyDetailContent() {
 
 export default function PropertyDetailPage() {
   return (
-    <Suspense fallback={<Splash />}>
+    <Suspense fallback={<DetailSkeleton />}>
       <PropertyDetailContent />
     </Suspense>
   )
