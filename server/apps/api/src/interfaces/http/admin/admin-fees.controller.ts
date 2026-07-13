@@ -14,7 +14,7 @@ import {
 
 @Controller('admin/fees')
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
-@Roles(AdminRole.SUPERADMIN)
+@Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
 export class AdminFeesController {
   constructor(
     private readonly getFeeOverridesUseCase: GetFeeOverridesUseCase,

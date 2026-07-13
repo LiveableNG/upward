@@ -177,7 +177,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
         )}
       </div>
 
-      <div style={{ maxWidth: '900px' }}>
+      <div>
         <div className="card" style={{ padding: '0' }}>
           <div style={{ padding: '24px', borderBottom: '1px solid var(--border)' }}>
             <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Team Management</h3>

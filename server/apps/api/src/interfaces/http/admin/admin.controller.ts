@@ -291,7 +291,7 @@ export class AdminController {
   }
 
   @Get('admins')
-  @Roles(AdminRole.SUPERADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
   async getAdmins() {
     return { data: await this.getAdminsUseCase.execute() }
   }
@@ -313,13 +313,13 @@ export class AdminController {
   }
 
   @Delete('admins/:id')
-  @Roles(AdminRole.DEVELOPER)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
   async deleteAdmin(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return { data: await this.deleteAdminUseCase.execute(id, req.user.id, req.user.role) }
   }
 
   @Patch('admins/:id/promote')
-  @Roles(AdminRole.SUPERADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
   async promoteAdmin(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return { data: await this.promoteAdminUseCase.execute(id, req.user.id) }
   }
