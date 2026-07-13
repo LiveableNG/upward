@@ -4,7 +4,7 @@ android {
     namespace = "com.goodtenant.upwardpm"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.goodtenant.upwardpm"
+        applicationId "com.goodtenants.upward.pm"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
