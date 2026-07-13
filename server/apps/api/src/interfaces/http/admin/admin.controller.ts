@@ -25,6 +25,7 @@ import { CreateAdminUseCase } from '../../../application/use-cases/admin/create-
 import { DeleteAdminUseCase } from '../../../application/use-cases/admin/delete-admin.use-case'
 import { PromoteAdminUseCase } from '../../../application/use-cases/admin/promote-admin.use-case'
 import { DemoteAdminUseCase } from '../../../application/use-cases/admin/demote-admin.use-case'
+import { ChangeAdminRoleUseCase } from '../../../application/use-cases/admin/change-admin-role.use-case'
 import { ChangeAdminPasswordUseCase } from '../../../application/use-cases/admin/change-admin-password.use-case'
 import { SearchUsersUseCase } from '../../../application/use-cases/admin/search-users.use-case'
 
@@ -79,6 +80,7 @@ export class AdminController {
     private readonly deleteAdminUseCase: DeleteAdminUseCase,
     private readonly promoteAdminUseCase: PromoteAdminUseCase,
     private readonly demoteAdminUseCase: DemoteAdminUseCase,
+    private readonly changeAdminRoleUseCase: ChangeAdminRoleUseCase,
     private readonly changeAdminPasswordUseCase: ChangeAdminPasswordUseCase,
     private readonly getWaitlistUseCase: GetWaitlistUseCase,
     private readonly updateWaitlistUserUseCase: UpdateWaitlistUserUseCase,
@@ -149,6 +151,7 @@ export class AdminController {
   }
 
   @Patch('users/:id')
+  @Roles(AdminRole.DEVELOPER)
   async updateUser(@Param('id') id: string, @Body() data: any) {
     return { data: await this.updateAdminUserUseCase.execute(id, data) }
   }
@@ -170,6 +173,7 @@ export class AdminController {
   }
 
   @Patch('pms/:uuid')
+  @Roles(AdminRole.DEVELOPER)
   async updatePmDetail(@Param('uuid') uuid: string, @Body() data: any) {
     return { data: await this.updateAdminPmUseCase.execute(uuid, data) }
   }
@@ -197,11 +201,13 @@ export class AdminController {
   }
 
   @Delete('users/:id')
+  @Roles(AdminRole.DEVELOPER)
   async deleteUser(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return { data: await this.deleteWaitlistUserUseCase.execute(id, req.user.role, req.user.id) }
   }
 
   @Post('users/batch-delete')
+  @Roles(AdminRole.DEVELOPER)
   async batchDeleteUsers(@Body() body: { ids: string[] }, @Req() req: AuthenticatedRequest) {
     return {
       data: await this.bulkDeleteWaitlistUsersUseCase.execute(body.ids, req.user.role, req.user.id),
@@ -285,13 +291,13 @@ export class AdminController {
   }
 
   @Get('admins')
-  @Roles(AdminRole.SUPERADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
   async getAdmins() {
     return { data: await this.getAdminsUseCase.execute() }
   }
 
   @Post('admins')
-  @Roles(AdminRole.SUPERADMIN)
+  @Roles(AdminRole.DEVELOPER)
   async createAdmin(
     @Body() body: { email: string; passwordPlain: string; role?: AdminRole },
     @Req() req: AuthenticatedRequest,
@@ -307,21 +313,27 @@ export class AdminController {
   }
 
   @Delete('admins/:id')
-  @Roles(AdminRole.SUPERADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
   async deleteAdmin(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return { data: await this.deleteAdminUseCase.execute(id, req.user.id, req.user.role) }
   }
 
   @Patch('admins/:id/promote')
-  @Roles(AdminRole.SUPERADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
   async promoteAdmin(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return { data: await this.promoteAdminUseCase.execute(id, req.user.id) }
   }
 
   @Patch('admins/:id/demote')
-  @Roles(AdminRole.SUPERADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
   async demoteAdmin(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return { data: await this.demoteAdminUseCase.execute(id, req.user.id) }
+  }
+
+  @Patch('admins/:id/role')
+  @Roles(AdminRole.DEVELOPER)
+  async changeAdminRole(@Param('id') id: string, @Body() body: { role: AdminRole }, @Req() req: AuthenticatedRequest) {
+    return { data: await this.changeAdminRoleUseCase.execute(id, body.role, req.user.id) }
   }
 
   @Post('email/bulk')
@@ -475,13 +487,13 @@ export class AdminController {
   }
 
   @Get('internal-accounts')
-  @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
   async getInternalAccountsList() {
     return this.getInternalAccountsUseCase.execute()
   }
 
   @Patch('internal-accounts/:type/:uuid')
-  @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
   async toggleInternalAccountStatus(
     @Param('type') type: 'user' | 'pm' | 'guest' | 'company' | 'waitlist',
     @Param('uuid') uuid: string,

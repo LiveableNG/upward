@@ -6,7 +6,7 @@ import { DocumentManagementView } from '@/features/pm/components/documents/Docum
 import { DocumentEditorView } from '@/features/pm/components/documents/DocumentEditorView'
 import { CreateTemplateView } from '@/features/pm/components/documents/CreateTemplateView'
 import { useTenants } from '@/features/pm/hooks/useTenants'
-import { Splash } from '@/components/common/Splash'
+import { ListSkeleton } from '@/components/skeletons'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
@@ -113,63 +113,97 @@ function DocumentManagementContent() {
   }
 
   return (
-    <div className="container" style={{ padding: '40px' }}>
-      {view === 'list' && unit && (
-        <div style={{
-          background: 'var(--ivory-dim)',
-          border: '1px solid var(--border)',
-          padding: '16px 24px',
-          borderRadius: 16,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 32,
-          animation: 'fade-in 0.2s ease'
-        }}>
-          <div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--forest)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Unit Attachment Context</span>
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--dark)', marginTop: 4 }}>
-              Attaching document to unit: <strong>{unit.unitName}</strong> at <strong>{unit.property?.name || 'Property'}</strong>
-            </h3>
-          </div>
-          <button 
-            className="btn btn--secondary" 
-            onClick={handleBack}
-            style={{ height: 40, borderRadius: 10 }}
-          >
-            ← Return to Unit
-          </button>
-        </div>
-      )}
+    <>
+      <div className="documents-desktop-view">
+        <div className="container" style={{ padding: '40px' }}>
+          {view === 'list' && unit && (
+            <div style={{
+              background: 'var(--ivory-dim)',
+              border: '1px solid var(--border)',
+              padding: '16px 24px',
+              borderRadius: 16,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 32,
+              animation: 'fade-in 0.2s ease'
+            }}>
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--forest)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Unit Attachment Context</span>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--dark)', marginTop: 4 }}>
+                  Attaching document to unit: <strong>{unit.unitName}</strong> at <strong>{unit.property?.name || 'Property'}</strong>
+                </h3>
+              </div>
+              <button 
+                className="btn btn--secondary" 
+                onClick={handleBack}
+                style={{ height: 40, borderRadius: 10 }}
+              >
+                ← Return to Unit
+              </button>
+            </div>
+          )}
 
-      {view === 'list' ? (
-        <DocumentManagementView 
-          onNewDocument={handleNewDocument}
-          onSelectTemplate={handleSelectTemplate}
-          onResendDocument={handleResendDocument}
-          onCreateTemplate={handleCreateTemplate}
-          onEditTemplate={handleEditTemplate}
-        />
-      ) : view === 'create-template' ? (
-        <CreateTemplateView
-          template={templateToEdit}
-          onBack={handleBack}
-        />
-      ) : (
-        <DocumentEditorView 
-          initialTemplate={editingTemplate}
-          initialRecipient={initialRecipient}
-          unitUuid={unitUuid || undefined}
-          onBack={handleEditorBack}
-        />
-      )}
-    </div>
+          {view === 'list' ? (
+            <DocumentManagementView 
+              onNewDocument={handleNewDocument}
+              onSelectTemplate={handleSelectTemplate}
+              onResendDocument={handleResendDocument}
+              onCreateTemplate={handleCreateTemplate}
+              onEditTemplate={handleEditTemplate}
+            />
+          ) : view === 'create-template' ? (
+            <CreateTemplateView
+              template={templateToEdit}
+              onBack={handleBack}
+            />
+          ) : (
+            <DocumentEditorView 
+              initialTemplate={editingTemplate}
+              initialRecipient={initialRecipient}
+              unitUuid={unitUuid || undefined}
+              onBack={handleEditorBack}
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="documents-mobile-view">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', padding: 24, textAlign: 'center' }}>
+          <div style={{ background: 'var(--surface-hover)', padding: 24, borderRadius: 24, marginBottom: 24 }}>
+            <span style={{ fontSize: 48 }}>💻</span>
+          </div>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--dark)', marginBottom: 12 }}>Desktop Only Feature</h2>
+          <p style={{ fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+            Document management requires complex configuration that is best handled on a larger screen.
+          </p>
+          <div style={{ marginTop: 32, padding: 16, background: 'var(--ivory-dim)', borderRadius: 16, border: '1px dashed var(--border)' }}>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8, fontWeight: 600 }}>Visit your dashboard on a computer at:</p>
+            <p style={{ fontSize: 16, color: 'var(--forest)', fontWeight: 700, wordBreak: 'break-all' }}>{process.env.NEXT_PUBLIC_WEB_URL || 'upward.com'}</p>
+          </div>
+        </div>
+      </div>
+
+      <style jsx>{`
+        .documents-mobile-view {
+          display: none;
+        }
+        @media (max-width: 768px) {
+          .documents-desktop-view {
+            display: none;
+          }
+          .documents-mobile-view {
+            display: block;
+          }
+        }
+      `}</style>
+    </>
   )
 }
 
 export default function DocumentManagementPage() {
   return (
-    <Suspense fallback={<Splash />}>
+    <Suspense fallback={<ListSkeleton />}>
       <DocumentManagementContent />
     </Suspense>
   )

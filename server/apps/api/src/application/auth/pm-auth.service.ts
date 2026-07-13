@@ -130,6 +130,8 @@ export class PmAuthService extends BaseAuthService {
       }
     })
 
+    this.emailService.sendCustomerSupportNotification('PM').catch(e => console.error('Failed to send CS notification', e));
+
     return this.generateFullAuthResponse(savedPm)
   }
 
@@ -338,6 +340,8 @@ export class PmAuthService extends BaseAuthService {
         where: { collaboratorPmId: pm.id },
         data: { status: 'ACCEPTED' }
     })
+
+    this.emailService.sendCustomerSupportNotification('PM').catch(e => console.error('Failed to send CS notification', e));
 
     return { success: true }
   }

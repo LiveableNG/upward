@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
+import { useAuth } from '../contexts/AuthContext'
 
 interface UserDetailProps {
   token: string
@@ -39,6 +40,8 @@ interface UserDetailData {
 
 const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
   const { uuid } = useParams<{ uuid: string }>()
+  const { auth } = useAuth()
+  const isDeveloper = auth?.user?.role === 'DEVELOPER'
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<UserDetailData | null>(null)
   
@@ -267,57 +270,59 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
           {/* Edit Profile Details */}
-          <div className="card" style={{ padding: '24px' }}>
-            <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Edit2 size={16} /> Edit Profile Details
-            </h4>
-            <form onSubmit={handleUpdateProfile} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div>
-                <label className="section-label" style={{ marginBottom: '4px' }}>First Name</label>
-                <input
-                  type="text"
-                  value={editFirstName}
-                  onChange={(e) => setEditFirstName(e.target.value)}
-                  className="input"
-                  required
-                />
-              </div>
-              <div>
-                <label className="section-label" style={{ marginBottom: '4px' }}>Last Name</label>
-                <input
-                  type="text"
-                  value={editLastName}
-                  onChange={(e) => setEditLastName(e.target.value)}
-                  className="input"
-                  required
-                />
-              </div>
-              <div>
-                <label className="section-label" style={{ marginBottom: '4px' }}>Email Address</label>
-                <input
-                  type="email"
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                  className="input"
-                  required
-                />
-              </div>
-              <div>
-                <label className="section-label" style={{ marginBottom: '4px' }}>Phone Number</label>
-                <input
-                  type="text"
-                  value={editPhone}
-                  onChange={(e) => setEditPhone(e.target.value)}
-                  className="input"
-                />
-              </div>
-              <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-                <button type="submit" disabled={updatingProfile} className="btn btn-primary" style={{ height: '38px' }}>
-                  {updatingProfile ? 'Saving updates...' : 'Save Profile Changes'}
-                </button>
-              </div>
-            </form>
-          </div>
+          {isDeveloper && (
+            <div className="card" style={{ padding: '24px' }}>
+              <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Edit2 size={16} /> Edit Profile Details
+              </h4>
+              <form onSubmit={handleUpdateProfile} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>First Name</label>
+                  <input
+                    type="text"
+                    value={editFirstName}
+                    onChange={(e) => setEditFirstName(e.target.value)}
+                    className="input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>Last Name</label>
+                  <input
+                    type="text"
+                    value={editLastName}
+                    onChange={(e) => setEditLastName(e.target.value)}
+                    className="input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>Email Address</label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>Phone Number</label>
+                  <input
+                    type="text"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="input"
+                  />
+                </div>
+                <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                  <button type="submit" disabled={updatingProfile} className="btn btn-primary" style={{ height: '38px' }}>
+                    {updatingProfile ? 'Saving updates...' : 'Save Profile Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
           {/* Properties section */}
           <div className="card" style={{ padding: '24px' }}>

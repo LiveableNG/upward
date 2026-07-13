@@ -15,7 +15,6 @@ interface AddPropertyModalProps {
   formData: {
     name: string;
     address: string;
-    totalUnits: string;
     propertyType: string;
     imageUrl?: string;
     country?: string;
@@ -64,7 +63,7 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
     ? 'Invalid email address'
     : undefined
 
-  const isInvalid = !isLandlordPortal && (!!phoneError || !!emailError) || !formData.name || !formData.address || !formData.totalUnits
+  const isInvalid = !isLandlordPortal && (!!phoneError || !!emailError) || !formData.name || !formData.address
 
   if (!isOpen) return null;
 
@@ -147,29 +146,17 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <div className="form-group">
-            <label className="form-label">Total Units</label>
-            <input 
-              type="number" 
-              className="form-input" 
-              placeholder="0" 
-              value={formData.totalUnits} 
-              onChange={e => setFormData({ ...formData, totalUnits: e.target.value })}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Property Type</label>
-            <select 
-              className="form-input" 
-              value={formData.propertyType} 
-              onChange={e => setFormData({ ...formData, propertyType: e.target.value })}
-            >
-              <option>Residential</option>
-              <option>Commercial</option>
-              <option>Mixed Use</option>
-            </select>
-          </div>
+        <div className="form-group">
+          <label className="form-label">Property Type</label>
+          <select 
+            className="form-input" 
+            value={formData.propertyType} 
+            onChange={e => setFormData({ ...formData, propertyType: e.target.value })}
+          >
+            <option>Residential</option>
+            <option>Commercial</option>
+            <option>Mixed Use</option>
+          </select>
         </div>
 
         {!isLandlordPortal && (

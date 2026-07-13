@@ -11,7 +11,7 @@ export class FeedbackAdminController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
   async getFeedback(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -58,7 +58,7 @@ export class FeedbackAdminController {
   }
 
   @Get('stats')
-  @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
   async getFeedbackStats() {
     const [totalFeedback, feedbackByType, recentCount] = await Promise.all([
       this.prisma.upward_feedback.count(),

@@ -180,7 +180,7 @@ export class InviteTenantUseCase {
         const waResult = await this.whatsappService.sendMessage({
           to: tenant.phone,
           template: {
-            name: 'upward_tenant_invite_v2',
+            name: 'upward_tenant_invite_v3',
             components: [
               {
                 type: 'body',

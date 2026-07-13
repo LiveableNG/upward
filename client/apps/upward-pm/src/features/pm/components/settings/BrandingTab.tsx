@@ -5,6 +5,7 @@ import { useToast } from '@/components/common/Toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Upload, Loader2, FileText, Trash2, Layout, Settings, Eye, PenTool, Type, Check } from 'lucide-react'
 import { api } from '@/lib/api'
+import { downloadBlob } from '@/lib/download-helper'
 import { LetterheadMarginPreview } from './LetterheadMarginPreview'
 
 // Initialize pdf.js worker using CDN to avoid Next.js bundler worker issues
@@ -597,13 +598,9 @@ export function BrandingTab() {
       generatedAt: new Date().toISOString(),
     };
     const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    const jsonUrl = URL.createObjectURL(blob);
-    a.href = jsonUrl;
-    a.download = 'letterhead-template-config.json';
-    a.click();
-    URL.revokeObjectURL(jsonUrl);
-    success('Configuration exported successfully.');
+    downloadBlob(blob, 'letterhead-template-config.json').then(() => {
+      success('Configuration exported successfully.');
+    }).catch(err => console.error(err));
   };
 
   const resetForm = () => {

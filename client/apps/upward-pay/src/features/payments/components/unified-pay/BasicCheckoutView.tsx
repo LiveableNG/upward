@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lock, ShieldAlert } from 'lucide-react'
+import { Lock, ShieldAlert, Info } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import {
   PayFlowPrimaryButton,
@@ -62,6 +62,7 @@ interface BasicCheckoutViewProps {
   onSelectPremium?: () => void
   onManualPayClick?: () => void
   onCancelRequest?: () => void
+  cancelLoading?: boolean
 }
 
 export function BasicCheckoutView({
@@ -90,8 +91,10 @@ export function BasicCheckoutView({
   onSelectPremium,
   onManualPayClick,
   onCancelRequest,
+  cancelLoading = false,
 }: BasicCheckoutViewProps) {
   const router = useRouter()
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
   const loginRequired = paymentData.hasPassword && !authUser
   const isGuest = !paymentData.hasPassword
@@ -227,36 +230,34 @@ export function BasicCheckoutView({
       pinFooter
       footer={
         !loginRequired && (isLoggedIn || isGuest) ? (
-          <div className="flex flex-col gap-3 w-full">
-            <PayFlowPrimaryButton onClick={onPayClick} disabled={ctaDisabled}>
+          <div className="pay-flow__checkout-footer">
+            <PayFlowPrimaryButton onClick={onPayClick} disabled={ctaDisabled || cancelLoading}>
               {ctaLabel()}
             </PayFlowPrimaryButton>
-            
+
             {onManualPayClick && (
               <button
                 type="button"
                 className="btn btn--full btn--pill manual-upload-btn"
                 onClick={onManualPayClick}
-                disabled={ctaDisabled}
+                disabled={ctaDisabled || cancelLoading}
               >
                 Upload payment proof
               </button>
             )}
-            
+
             {onCancelRequest && (
               <button
                 type="button"
-                className="btn btn--ghost btn--full btn--pill"
-                onClick={onCancelRequest}
+                className="pay-flow__cancel-link"
+                onClick={() => setShowCancelConfirm(true)}
+                disabled={cancelLoading}
               >
-                Cancel payment request
+                Cancel this request
               </button>
             )}
 
-            <p 
-              className="pay-flow__secure flex items-center justify-center gap-1.5 w-full text-center"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-            >
+            <p className="pay-flow__secure">
               <Lock size={12} /> Secured by Upward
             </p>
           </div>
@@ -351,6 +352,39 @@ export function BasicCheckoutView({
           />
         </>
       )}
+
+      {showCancelConfirm ? (
+        <div className="pay-flow__modal-overlay">
+          <div className="pay-flow__modal">
+            <div className="pay-flow__modal-icon">
+              <Info size={28} />
+            </div>
+            <h3 className="pay-flow__modal-title">Cancel this request?</h3>
+            <p className="pay-flow__modal-text">
+              This payment request will be cancelled. You can start a new one anytime from Pay Rent.
+            </p>
+            <div className="pay-flow__modal-actions">
+              <button
+                type="button"
+                className="pay-flow__btn-secondary"
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={cancelLoading}
+              >
+                Keep paying
+              </button>
+              <PayFlowPrimaryButton
+                disabled={cancelLoading}
+                loading={cancelLoading}
+                onClick={() => {
+                  onCancelRequest?.()
+                }}
+              >
+                Yes, cancel
+              </PayFlowPrimaryButton>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </PayPageShell>
   )
 }

@@ -20,3 +20,7 @@ export function formatTenantName(tenant?: { commercialName?: string; firstName?:
   return tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() || 'Tenant';
 }
 
+export function dedupeBanksByCode<T extends { code: string }>(banks: T[]): T[] {
+  return Array.from(new Map(banks.map((b) => [b.code, b])).values());
+}
+

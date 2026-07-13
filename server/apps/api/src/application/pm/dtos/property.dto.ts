@@ -10,7 +10,8 @@ export class CreatePropertyDto {
   address?: string;
 
   @IsNumber()
-  totalUnits!: number;
+  @IsOptional()
+  totalUnits?: number;
 
   @IsString()
   propertyType!: string;

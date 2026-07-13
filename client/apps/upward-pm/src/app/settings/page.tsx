@@ -1,6 +1,6 @@
 'use client'
 
-import React, { Suspense } from 'react'
+import React, { Suspense, useRef, useState, useEffect } from 'react'
 import { AvatarUpload } from '@/features/pm/components/settings/AvatarUpload'
 import { ProfileForm } from '@/features/pm/components/settings/ProfileForm'
 import { BankInfoForm } from '@/features/pm/components/settings/BankInfoForm'
@@ -10,9 +10,10 @@ import { TeamTab } from '@/features/pm/components/settings/TeamTab'
 import { BrandingTab } from '@/features/pm/components/settings/BrandingTab'
 import { FeedbackTab } from '@/features/pm/components/settings/FeedbackTab'
 import { EmailSettingsTab } from '@/features/pm/components/settings/EmailSettingsTab'
-import { Splash } from '@/components/common/Splash'
+import { ListSkeleton } from '@/components/skeletons'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { ChevronRight, ChevronLeft } from 'lucide-react'
 
 function SettingsContent() {
   const searchParams = useSearchParams()
@@ -26,6 +27,39 @@ function SettingsContent() {
     router.replace(`/settings?${params.toString()}`)
   }
 
+  const scrollContainerRef = useRef<HTMLElement>(null)
+  const [scrollState, setScrollState] = useState<'start' | 'middle' | 'end'>('start')
+  const [isMobile, setIsMobile] = useState(false)
+  const [canScroll, setCanScroll] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return
+    const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current
+    
+    setCanScroll(scrollWidth > clientWidth)
+
+    if (scrollLeft <= 5) {
+      setScrollState('start')
+    } else if (Math.ceil(scrollLeft + clientWidth) >= scrollWidth - 5) {
+      setScrollState('end')
+    } else {
+      setScrollState('middle')
+    }
+  }
+
+  useEffect(() => {
+    handleScroll()
+    const timeout = setTimeout(handleScroll, 100)
+    return () => clearTimeout(timeout)
+  }, [isMobile, activeTab])
+
   return (
     <div className="settings animate-fade-in">
       <header className="settings__header">
@@ -33,8 +67,13 @@ function SettingsContent() {
         <p className="settings__subtitle">Manage your account, payment details and security.</p>
       </header>
 
-      <nav className="settings__nav">
-        <button 
+      <div style={{ position: 'relative', width: '100%' }}>
+        <nav 
+          className="settings__nav"
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+        >
+          <button 
           className={cn('settings__nav-item', activeTab === 'profile' && 'settings__nav-item--active')}
           onClick={() => setTab('profile')}
         >
@@ -83,7 +122,20 @@ function SettingsContent() {
         >
           Feedback
         </button>
-      </nav>
+        </nav>
+
+        {isMobile && canScroll && scrollState !== 'end' && (
+          <div className="scroll-hint-icon scroll-hint-right" onClick={() => scrollContainerRef.current?.scrollBy({ left: 150, behavior: 'smooth' })}>
+            <ChevronRight size={18} />
+          </div>
+        )}
+        
+        {isMobile && canScroll && scrollState === 'end' && (
+          <div className="scroll-hint-icon scroll-hint-left" onClick={() => scrollContainerRef.current?.scrollBy({ left: -150, behavior: 'smooth' })}>
+            <ChevronLeft size={18} />
+          </div>
+        )}
+      </div>
 
       <div className="settings__content">
         {activeTab === 'profile' && (
@@ -107,7 +159,7 @@ function SettingsContent() {
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={<Splash />}>
+    <Suspense fallback={<ListSkeleton />}>
       <SettingsContent />
     </Suspense>
   )

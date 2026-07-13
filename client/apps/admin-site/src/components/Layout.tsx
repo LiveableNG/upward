@@ -83,7 +83,7 @@ const Breadcrumbs: React.FC = () => {
 
 const Layout: React.FC<LayoutProps> = ({ children, adminEmail, adminRole, onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
-  const isSuperadmin = adminRole === 'SUPERADMIN'
+  const isSuperadmin = adminRole === 'SUPERADMIN' || adminRole === 'DEVELOPER'
 
   return (
     <div

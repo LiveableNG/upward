@@ -1,0 +1,77 @@
+/* Property Summary Mini Items */
+.property-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.property-item-mini {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.property-item-mini:hover {
+  transform: translateX(4px);
+  border-color: var(--forest);
+}
+
+.property-item-mini__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--forest-faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.property-item-mini__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.property-item-mini h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.property-item-mini p {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.property-item-mini__action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+}
+
+.property-item-mini:hover .property-item-mini__action {
+  background: var(--forest);
+  border-color: var(--forest);
+}
+
+.property-item-mini:hover .property-item-mini__action svg {
+  color: white !important;
+}

@@ -1,0 +1,132 @@
+/* Skeleton Base Animations */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-base {
+  background: linear-gradient(
+    90deg,
+    var(--dark) 0%,
+    var(--ivory-dim) 50%,
+    var(--dark) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 2s infinite linear;
+  border-radius: var(--radius-md);
+  opacity: 0.1; /* Keeps it subtle */
+}
+
+/* Common Skeleton Elements */
+.skeleton-block {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.skeleton-text {
+  height: 1rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-text--title {
+  height: 1.5rem;
+  width: 60%;
+  margin-bottom: 1rem;
+}
+
+.skeleton-text--short {
+  width: 40%;
+}
+
+.skeleton-avatar {
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+/* Skeleton Layouts */
+.skeleton-dashboard {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.skeleton-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.skeleton-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+}
+
+.skeleton-grid-2 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+.skeleton-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.skeleton-table {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.skeleton-table-controls {
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+
+.skeleton-table-row {
+  padding: 16px 24px;
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr 1fr;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.skeleton-detail-layout {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.skeleton-list-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .skeleton-grid-2,
+  .skeleton-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}

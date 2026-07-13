@@ -1,4 +1,6 @@
 import React, { useEffect } from 'react'
+import { Modal } from '@/components/ui/Modal/Modal'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { X, Building2, CreditCard, Home, Settings, Bell } from 'lucide-react'
 import { Unit } from '../../../services/propertyService'
 import { useForm } from 'react-hook-form'
@@ -14,7 +16,7 @@ interface EditUnitModalProps {
 export const EditUnitModal: React.FC<EditUnitModalProps> = ({
   isOpen, onClose, unit, onSave, isPending
 }) => {
-  const { register, handleSubmit, reset, watch } = useForm({
+  const { register, handleSubmit, reset, watch, setValue } = useForm({
     defaultValues: {
       unitName: unit.unitName || '',
       unitType: unit.unitType || '',
@@ -59,17 +61,24 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1100 }}>
-      <div className="modal glass animate-scale-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 650, padding: 0, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-        <header style={{ padding: '24px 32px', background: 'var(--ivory-dim)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-          <div>
-            <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)', marginBottom: 4 }}>Edit Unit</h2>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Update core details for <strong>{unit.unitName}</strong></p>
-          </div>
-          <button onClick={onClose} className="btn-icon" style={{ background: 'white' }}><X size={20} /></button>
-        </header>
-
-        <form onSubmit={handleSubmit(onSubmit)} style={{ padding: '32px', overflowY: 'auto', flex: 1 }}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Edit Unit"
+      subtitle={`Update core details for ${unit?.unitName || ''}`}
+      maxWidth={650}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, width: '100%' }}>
+          <button type="button" className="btn btn--secondary" onClick={onClose} style={{ borderRadius: 12, padding: '12px 32px' }}>
+            Cancel
+          </button>
+          <button type="button" className="btn btn--primary" disabled={isPending} onClick={handleSubmit(onSubmit)} style={{ borderRadius: 12, padding: '12px 40px', background: 'var(--forest)' }}>
+            {isPending ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      }
+    >
+      <form onSubmit={handleSubmit(onSubmit)} style={{ padding: '16px 0 0 0' }}>
           <div className="form-group" style={{ marginBottom: 24 }}>
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Home size={14} color="var(--clay)" /> Unit Name
@@ -80,50 +89,62 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 24 }}>
             <div className="form-group" style={{ gridColumn: 'span 2' }}>
               <label className="form-label">Unit Type</label>
-              <select {...register('unitType')} className="form-input">
-                <option value="">Select an option</option>
-                <option value="Flat / Apartment">Flat / Apartment</option>
-                <option value="Duplex">Duplex</option>
-                <option value="Shared Apartment">Shared Apartment</option>
-                <option value="Studio">Studio</option>
-                <option value="Bungalow">Bungalow</option>
-                <option value="4 Bedroom Semi-detached Duplex">4 Bedroom Semi-detached Duplex</option>
-                <option value="Detached Duplex">Detached Duplex</option>
-                <option value="2 Bedroom Flat">2 Bedroom Flat</option>
-                <option value="2 Bedroom Serviced Flat">2 Bedroom Serviced Flat</option>
-                <option value="3 Bedroom Flat">3 Bedroom Flat</option>
-                <option value="3 Bedroom Serviced Flat">3 Bedroom Serviced Flat</option>
-                <option value="2 Bedroom Apartment">2 Bedroom Apartment</option>
-                <option value="Studio / Self Contained Flat">Studio / Self Contained Flat</option>
-                <option value="Mini Flat / 1 Bedroom Flat">Mini Flat / 1 Bedroom Flat</option>
-                <option value="Flats">Flats</option>
-                <option value="Terrace House">Terrace House</option>
-                <option value="Town House">Town House</option>
-                <option value="Detached House">Detached House</option>
-                <option value="Semi-detached Duplex">Semi-detached Duplex</option>
-                <option value="Semi-detached House">Semi-detached House</option>
-                <option value="Shortlet Apartment">Shortlet Apartment</option>
-                <option value="Office Space">Office Space</option>
-                <option value="Studio Room / Self-contain">Studio Room / Self-contain</option>
-                <option value="Block Of Flats">Block Of Flats</option>
-              </select>
+              <FormSelect 
+                value={watch('unitType') || ''} 
+                onChange={val => setValue('unitType', val, { shouldValidate: true })}
+                options={[
+                  { label: 'Flat / Apartment', value: 'Flat / Apartment' },
+                  { label: 'Duplex', value: 'Duplex' },
+                  { label: 'Shared Apartment', value: 'Shared Apartment' },
+                  { label: 'Studio', value: 'Studio' },
+                  { label: 'Bungalow', value: 'Bungalow' },
+                  { label: '4 Bedroom Semi-detached Duplex', value: '4 Bedroom Semi-detached Duplex' },
+                  { label: 'Detached Duplex', value: 'Detached Duplex' },
+                  { label: '2 Bedroom Flat', value: '2 Bedroom Flat' },
+                  { label: '2 Bedroom Serviced Flat', value: '2 Bedroom Serviced Flat' },
+                  { label: '3 Bedroom Flat', value: '3 Bedroom Flat' },
+                  { label: '3 Bedroom Serviced Flat', value: '3 Bedroom Serviced Flat' },
+                  { label: '2 Bedroom Apartment', value: '2 Bedroom Apartment' },
+                  { label: 'Studio / Self Contained Flat', value: 'Studio / Self Contained Flat' },
+                  { label: 'Mini Flat / 1 Bedroom Flat', value: 'Mini Flat / 1 Bedroom Flat' },
+                  { label: 'Flats', value: 'Flats' },
+                  { label: 'Terrace House', value: 'Terrace House' },
+                  { label: 'Town House', value: 'Town House' },
+                  { label: 'Detached House', value: 'Detached House' },
+                  { label: 'Semi-detached Duplex', value: 'Semi-detached Duplex' },
+                  { label: 'Semi-detached House', value: 'Semi-detached House' },
+                  { label: 'Shortlet Apartment', value: 'Shortlet Apartment' },
+                  { label: 'Office Space', value: 'Office Space' },
+                  { label: 'Studio Room / Self-contain', value: 'Studio Room / Self-contain' },
+                  { label: 'Block Of Flats', value: 'Block Of Flats' }
+                ]}
+                placeholder="Select an option"
+              />
             </div>
             <div className="form-group">
               <label className="form-label">Currency</label>
-              <select {...register('currency')} className="form-input">
-                <option value="NGN">NGN (₦)</option>
-                <option value="USD">USD ($)</option>
-              </select>
+              <FormSelect 
+                value={watch('currency') || 'NGN'} 
+                onChange={val => setValue('currency', val, { shouldValidate: true })}
+                options={[
+                  { label: 'NGN (₦)', value: 'NGN' },
+                  { label: 'USD ($)', value: 'USD' }
+                ]}
+              />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 32 }}>
             <div className="form-group">
               <label className="form-label">Rent Type</label>
-              <select {...register('rentType')} className="form-input">
-                <option value="Annually">Annually</option>
-                <option value="Monthly">Monthly</option>
-              </select>
+              <FormSelect 
+                value={watch('rentType') || 'Annually'} 
+                onChange={val => setValue('rentType', val, { shouldValidate: true })}
+                options={[
+                  { label: 'Annually', value: 'Annually' },
+                  { label: 'Monthly', value: 'Monthly' }
+                ]}
+              />
             </div>
             <div className="form-group">
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -196,16 +217,7 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, borderTop: '1px solid var(--border)', paddingTop: 32 }}>
-            <button type="button" className="btn btn--secondary" onClick={onClose} style={{ borderRadius: 12, padding: '12px 32px' }}>
-              Cancel
-            </button>
-            <button type="submit" className="btn btn--primary" disabled={isPending} style={{ borderRadius: 12, padding: '12px 40px', background: 'var(--forest)' }}>
-              {isPending ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }

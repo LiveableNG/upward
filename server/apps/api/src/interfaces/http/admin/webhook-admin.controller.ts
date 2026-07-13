@@ -15,7 +15,7 @@ import { RetryWebhookUseCase } from '../../../application/use-cases/admin/retry-
 
 @Controller('admin/webhooks')
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
-@Roles(AdminRole.SUPERADMIN)
+@Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
 export class WebhookAdminController {
   constructor(
     private readonly getWebhookLogsUseCase: GetWebhookLogsUseCase,

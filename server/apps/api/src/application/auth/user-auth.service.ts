@@ -160,6 +160,7 @@ export class UserAuthService extends BaseAuthService {
           await this.syncProperties(user.id!, dto.properties)
         }
         await this.syncTenantStatuses(dto.email)
+        this.emailService.sendCustomerSupportNotification('USER').catch(e => console.error('Failed to send CS notification', e));
         return this.generateFullAuthResponse(user, ipAddress, userAgent)
       }
       throw new ConflictException('User with this email already exists')
@@ -205,6 +206,7 @@ export class UserAuthService extends BaseAuthService {
     }
 
     await this.syncTenantStatuses(dto.email)
+    this.emailService.sendCustomerSupportNotification('USER').catch(e => console.error('Failed to send CS notification', e));
 
     return this.generateFullAuthResponse(user, ipAddress, userAgent)
   }

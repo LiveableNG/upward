@@ -20,6 +20,7 @@ import { GetAdminsUseCase } from './use-cases/admin/get-admins.use-case'
 import { CreateAdminUseCase } from './use-cases/admin/create-admin.use-case'
 import { DemoteAdminUseCase } from './use-cases/admin/demote-admin.use-case'
 import { PromoteAdminUseCase } from './use-cases/admin/promote-admin.use-case'
+import { ChangeAdminRoleUseCase } from './use-cases/admin/change-admin-role.use-case'
 import { ChangeAdminPasswordUseCase } from './use-cases/admin/change-admin-password.use-case'
 import { SearchUsersUseCase } from './use-cases/admin/search-users.use-case'
 import { GetAdminUserDetailUseCase } from './use-cases/admin/get-admin-user-detail.use-case'
@@ -286,6 +287,7 @@ const UseCases = [
   CreateAdminUseCase,
   DemoteAdminUseCase,
   PromoteAdminUseCase,
+  ChangeAdminRoleUseCase,
   ChangeAdminPasswordUseCase,
   SearchUsersUseCase,
   GetAdminUserDetailUseCase,

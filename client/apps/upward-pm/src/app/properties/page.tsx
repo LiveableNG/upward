@@ -1,10 +1,10 @@
 import { Suspense } from 'react'
 import { PropertiesView } from '@/features/pm/components/properties/PropertiesView'
-import { Splash } from '@/components/common/Splash'
+import { TableSkeleton } from '@/components/skeletons'
 
-export default function PropertiesPage() {
+export default function Properties() {
   return (
-    <Suspense fallback={<Splash />}>
+    <Suspense fallback={<TableSkeleton />}>
       <PropertiesView />
     </Suspense>
   )

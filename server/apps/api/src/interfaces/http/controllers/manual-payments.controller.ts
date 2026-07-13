@@ -35,7 +35,7 @@ export class ManualPaymentsController {
 
   @Get('proof')
   async getPendingProofs(@Req() req: any) {
-    if (req.user.role !== 'PM' && req.user.role !== 'ADMIN') {
+    if (req.user.role !== 'PM' && !['SUPERADMIN', 'CUSTOMER_SUPPORT', 'DEVELOPER'].includes(req.user.role)) {
       throw new Error('Unauthorized')
     }
     return this.getPendingManualPaymentsUseCase.execute({ pmUuid: req.user.id })
@@ -89,8 +89,7 @@ export class ManualPaymentsController {
       fileType: data.mimetype,
       fileSize: buffer.length,
       fileName,
-      uploadedByUserId: typeof req.user.id === 'number' ? req.user.id : (Number.isNaN(Number(req.user.id)) ? undefined : Number(req.user.id)),
-      userUuid: req.user.id, // For generating S3 key securely
+      userUuid: String(req.user.id),
     })
   }
 
@@ -108,8 +107,7 @@ export class ManualPaymentsController {
       senderName,
       paymentDate: paymentDate ? new Date(paymentDate) : undefined,
       referenceNumber,
-      uploadedByUserId: typeof req.user.id === 'number' ? req.user.id : (Number.isNaN(Number(req.user.id)) ? undefined : Number(req.user.id)),
-      userUuid: req.user.id,
+      userUuid: String(req.user.id),
     })
   }
 
@@ -137,7 +135,7 @@ export class ManualPaymentsController {
 
   @Patch('proof/:id/review')
   async reviewProof(@Req() req: any, @Param('id') id: string, @Body() body: any) {
-    if (req.user.role !== 'PM' && req.user.role !== 'ADMIN') {
+    if (req.user.role !== 'PM' && !['SUPERADMIN', 'CUSTOMER_SUPPORT', 'DEVELOPER'].includes(req.user.role)) {
       throw new Error('Unauthorized')
     }
     

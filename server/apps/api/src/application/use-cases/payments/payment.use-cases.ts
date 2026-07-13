@@ -175,7 +175,7 @@ export class CreateManualPaymentRequestUseCase {
       description: data.metadata?.narration || data.metadata?.description || 'Manual Property Payment',
       dueDate,
       status: 'PENDING',
-      allowPartial: true,
+      allowPartial: false,
       subaccountId: subaccountId,
       userPropertyId,
       isManual: true,
@@ -1449,10 +1449,13 @@ export class GetPendingPaymentsUseCase {
     }))
 
     const standaloneProofs = await this.prisma.upward_payment_proof.findMany({
-      where: { 
-        uploadedByUserId: user.id,
+      where: {
         paymentRequestId: null,
-        status: { in: ['PENDING', 'REJECTED'] }
+        status: { in: ['PENDING', 'REJECTED'] },
+        OR: [
+          { uploadedByUserId: user.id },
+          { userProperty: { userId: user.id } },
+        ],
       },
       include: {
         userProperty: { include: { location: true, company: true } }
@@ -1542,6 +1545,11 @@ export class GetPropertyBalanceUseCase {
       ? Math.max(0, totalOwed - amountPaid)
       : (prop.amountRemaining ?? Math.max(0, totalOwed - amountPaid))
 
+    const sortedRequests = [...propRequests].sort(
+      (a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
+    )
+    const allowPartial = sortedRequests[0]?.allowPartial ?? false
+
     const rates = await this.paymentConfig.getDynamicProcessingRates(prop.userId, prop.id)
     const activeBenefitsFee = rates.benefitsPaid ? 0 : rates.benefitsFee
     const processingFee = rates.transactionFee + activeBenefitsFee
@@ -1556,6 +1564,7 @@ export class GetPropertyBalanceUseCase {
       currency: prop.currency || 'NGN',
       dueDate: prop.rentEndDate,
       hasActiveRequest: propRequests.length > 0,
+      allowPartial,
       processingFee,
       processingRates: {
         transactionFee: rates.transactionFee,

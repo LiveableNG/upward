@@ -1,13 +1,15 @@
-import { Suspense } from 'react'
-import { PaymentDetailView } from '@/features/pm/components/payments/PaymentDetailView'
-import { Splash } from '@/components/common/Splash'
+import React, { Suspense } from 'react';
+import ClientPage from './page.client';
 
-export default function LandlordPaymentDetailsPage() {
+export function generateStaticParams() {
+  return [{ uuid: 'placeholder' }];
+}
+
+export default function Page({ params }: any) {
   return (
-    <Suspense fallback={<Splash />}>
-      <div style={{ padding: '40px var(--dashboard-padding, 24px)', maxWidth: 1200, margin: '0 auto' }}>
-        <PaymentDetailView />
-      </div>
+    <Suspense fallback={<div>Loading...</div>}>
+      {/* @ts-ignore */}
+      <ClientPage params={params} />
     </Suspense>
-  )
+  );
 }

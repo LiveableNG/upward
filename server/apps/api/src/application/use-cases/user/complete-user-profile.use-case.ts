@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt'
 import { UserAuthService } from '../../../application/auth/user-auth.service'
 import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { EmailService } from '../../../shared/infrastructure/email/email.service'
 
 @Injectable()
 export class CompleteUserProfileUseCase {
@@ -18,6 +19,7 @@ export class CompleteUserProfileUseCase {
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(WAITLIST_REPOSITORY) private readonly waitlistRepository: WaitlistRepository,
+    private readonly emailService: EmailService,
   ) {}
 
   async execute(dto: {
@@ -137,6 +139,11 @@ export class CompleteUserProfileUseCase {
     }
 
     await this.userAuthService.syncTenantStatuses(dto.email)
+
+    // Notify Customer Support if password was set (meaning they became an active user)
+    if (passwordHash) {
+      this.emailService.sendCustomerSupportNotification('USER').catch(e => this.logger.error('Failed to send CS notification', e));
+    }
 
     // Reuse UserAuthService login logic to create session and tokens
     return this.userAuthService.generateFullAuthResponse(user)

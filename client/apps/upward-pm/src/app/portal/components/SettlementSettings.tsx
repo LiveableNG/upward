@@ -8,6 +8,7 @@ import { useToast } from '@/components/common/Toast'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, Loader2, Edit2, Check, Landmark } from 'lucide-react'
 import { api } from '@/lib/api'
+import { dedupeBanksByCode } from '@/lib/utils'
 
 const bankSchema = z.object({
   bankCode: z.string().min(1, 'Please select a bank'),
@@ -196,7 +197,7 @@ export function SettlementSettings({ landlord }: SettlementSettingsProps) {
               <label className="form-label">Select Bank</label>
               <select {...register('bankCode')} className="form-input">
                 <option value="">Select a bank</option>
-                {banks.map(bank => (
+                {dedupeBanksByCode(banks).map(bank => (
                   <option key={bank.code} value={bank.code}>{bank.name}</option>
                 ))}
               </select>

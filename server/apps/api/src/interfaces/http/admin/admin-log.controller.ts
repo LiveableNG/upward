@@ -25,7 +25,7 @@ export class AdminLogController {
   ) {}
 
   @Get()
-  @Roles(AdminRole.SUPERADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
   async getLogs(@Query('page') page?: string, @Query('limit') limit?: string) {
     return this.getLogsUseCase.execute(page ? parseInt(page) : 1, limit ? parseInt(limit) : 50)
   }

@@ -17,13 +17,13 @@ export class AppActivityLogController {
   ) {}
 
   @Get('google-analytics/stats')
-  @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
   async getGoogleAnalyticsStats() {
     return this.googleAnalyticsService.getDashboardStats()
   }
 
   @Get()
-  @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
   async getAppActivityLogs(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -45,7 +45,7 @@ export class AppActivityLogController {
   }
 
   @Get('stats')
-  @Roles(AdminRole.SUPERADMIN, AdminRole.ADMIN)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
   async getAppActivityStats() {
     const [totalInstalls, activeUsersByApp, recentActivityCount] = await Promise.all([
       this.prisma.upward_app_activity_log.count({

@@ -21,6 +21,7 @@ import {
   X
 } from 'lucide-react'
 import { usePaymentRequest, useResendPaymentRequest, useCancelPaymentRequest } from '../../hooks/usePayments'
+import { DetailSkeleton } from '@/components/skeletons'
 import { useToast } from '@/components/common/Toast'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import Link from 'next/link'
@@ -47,11 +48,7 @@ export const PaymentDetailView: React.FC = () => {
   const [selectedChannels, setSelectedChannels] = useState<string[]>(['EMAIL'])
 
   if (isLoading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <div className="animate-pulse" style={{ color: 'var(--text-muted)' }}>Loading payment details...</div>
-      </div>
-    )
+    return <DetailSkeleton />
   }
 
   if (!request) {

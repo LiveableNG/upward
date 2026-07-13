@@ -577,6 +577,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             onPayClick={handlePayClick}
             onManualPayClick={isSelfInitiated ? undefined : handleManualPayClick}
             onCancelRequest={isSelfInitiated ? handleCancelRequest : undefined}
+            cancelLoading={isSelfInitiated ? isSubmitting : false}
           />
           {checkoutModals}
         </>
@@ -608,6 +609,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             onPayClick={handlePayClick}
             onManualPayClick={isSelfInitiated ? undefined : handleManualPayClick}
             onCancelRequest={isSelfInitiated ? handleCancelRequest : undefined}
+            cancelLoading={isSelfInitiated ? isSubmitting : false}
             showPremiumOptions
             isPremiumSelected={isBenefitsOptedIn}
             onSelectStandard={() => setIsBenefitsOptedIn(false)}

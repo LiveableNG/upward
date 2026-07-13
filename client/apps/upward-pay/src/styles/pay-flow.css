@@ -221,7 +221,10 @@
   border: 1.5px solid #f0e9df;
   background: #fff;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
   width: 100%;
   text-align: left;
   font-family: inherit;
@@ -347,6 +350,112 @@
 .pay-flow__property-card {
   padding: 18px 16px;
   border-radius: 16px;
+}
+
+.pay-flow__property-card--compact {
+  align-items: flex-start;
+}
+
+.pay-flow__property-card--compact .pay-flow__card-body {
+  width: 100%;
+}
+
+.pay-flow__property-card--compact .pay-flow__card-trailing {
+  margin-top: 2px;
+}
+
+.pay-flow__property-card--expired {
+  border-color: rgba(180, 35, 24, 0.28);
+  background: #fffaf9;
+}
+
+.pay-flow__property-card--ended {
+  opacity: 0.82;
+  background: #faf8f5;
+}
+
+.pay-flow__property-card--due-soon {
+  border-color: rgba(194, 140, 31, 0.32);
+}
+
+.pay-flow__card--overdue {
+  border-color: rgba(180, 35, 24, 0.3);
+}
+
+.pay-flow__card-top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pay-flow__card-top-row .pay-flow__card-title {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.pay-flow__rent-pill {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.pay-flow__rent-pill--expired {
+  background: #fde8e8;
+  color: #b42318;
+}
+
+.pay-flow__rent-pill--ended {
+  background: #f0ebe3;
+  color: #8a7d70;
+}
+
+.pay-flow__rent-pill--soon {
+  background: #fef3e2;
+  color: #b45309;
+}
+
+.pay-flow__rent-pill--calm {
+  background: #eef4ee;
+  color: #3d6b4f;
+}
+
+.pay-flow__rent-pill--starts {
+  background: #eef2f8;
+  color: #4a5f7a;
+}
+
+.pay-flow__rent-pill--review {
+  background: #eef2f8;
+  color: #4a5f7a;
+}
+
+.pay-flow__property-card--review {
+  cursor: default;
+  opacity: 0.92;
+  background: #f7f5f1;
+  border-color: #e5dbcf;
+  box-shadow: none;
+}
+
+.pay-flow__property-card--review:hover {
+  border-color: #e5dbcf;
+  transform: none;
+}
+
+.pay-flow__card-meta--review {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  color: #4a5f7a;
+  font-weight: 600;
 }
 
 /* Empty state */
@@ -573,21 +682,24 @@
 .pay-flow__slider {
   position: absolute;
   cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-color: #cbd5e1;
-  transition: .2s;
+  transition: 0.2s;
   border-radius: 20px;
 }
 
 .pay-flow__slider:before {
   position: absolute;
-  content: "";
+  content: '';
   height: 16px;
   width: 16px;
   left: 2px;
   bottom: 2px;
   background-color: white;
-  transition: .2s;
+  transition: 0.2s;
   border-radius: 50%;
 }
 
@@ -598,7 +710,6 @@
 .pay-flow__switch input:checked + .pay-flow__slider:before {
   transform: translateX(18px);
 }
-
 
 .pay-flow__line-item-row {
   flex: 1;
@@ -665,7 +776,9 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .pay-flow__icon-btn:hover {
@@ -765,7 +878,6 @@
   text-align: center;
   font-weight: 500;
 }
-
 
 /* Confirm step */
 .pay-flow__confirm-header {
@@ -1027,7 +1139,9 @@
   justify-content: center;
   gap: 8px;
   box-shadow: 0 12px 24px -12px rgba(194, 80, 31, 0.55);
-  transition: background 0.15s ease, opacity 0.15s ease;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .pay-flow__cta:hover:not(:disabled) {
@@ -1344,7 +1458,6 @@
   }
 }
 
-
 /* StepAmount — compact balance strip (replaces BalancePanel grid) */
 .pay-flow__balance-strip {
   display: flex;
@@ -1456,6 +1569,485 @@
   color: #7a7268;
   line-height: 1.45;
   font-weight: 500;
+}
+
+/* StepAmount — property context (read-only picker card) */
+.pay-flow__property-context {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1.5px solid #f0e9df;
+  background: #fff;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.pay-flow__property-context.pay-flow__property-card--expired {
+  border-color: rgba(180, 35, 24, 0.28);
+  background: #fffaf9;
+}
+
+.pay-flow__property-context.pay-flow__property-card--ended {
+  opacity: 0.82;
+  background: #faf8f5;
+}
+
+.pay-flow__property-context.pay-flow__property-card--due-soon {
+  border-color: rgba(194, 140, 31, 0.32);
+}
+
+/* StepAmount — simple amount field */
+.pay-flow__input-wrap--amount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pay-flow__amount-currency {
+  font-size: 16px;
+  font-weight: 700;
+  color: #5c544b;
+  padding-left: 4px;
+}
+
+.pay-flow__input-wrap--amount input {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.pay-flow__input-wrap--readonly {
+  background: #faf8f5;
+  border-color: #ece4d9;
+}
+
+.pay-flow__input-wrap--readonly input {
+  color: #5c544b;
+  cursor: default;
+}
+
+.pay-flow__summary-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pay-flow__summary-detail {
+  font-size: 11px;
+  font-weight: 500;
+  color: #a9a096;
+}
+
+.pay-flow__summary-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pay-flow__breakdown-offer {
+  margin: -4px 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #a9a096;
+}
+
+.pay-flow__breakdown-offer-link {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--skin-primary, #c2501f);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pay-flow__breakdown-offer-link:hover {
+  color: #a3411a;
+}
+
+/* StepAmount — optional breakdown panel */
+.pay-flow__breakdown-panel {
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1.5px dashed #d9cfc2;
+  border-radius: 14px;
+  background: #fdfbf8;
+}
+
+.pay-flow__breakdown-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.pay-flow__breakdown-panel-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8a7d70;
+}
+
+.pay-flow__breakdown-collapse {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+/* StepAmount — summary total */
+.pay-flow__summary-box {
+  margin-bottom: 4px;
+  padding: 14px 18px;
+  background: #f5f0e8;
+  border-radius: 14px;
+  border: 1px solid #ece4d9;
+}
+
+/* StepAmount — detached breakdown offer */
+
+.pay-flow__summary-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #5c544b;
+}
+
+.pay-flow__summary-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1a1714;
+}
+
+/* Payment method step */
+.pay-flow__payment-method-intro {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #7a7268;
+}
+
+.pay-flow__payment-method-intro strong {
+  color: #1a1714;
+}
+
+.pay-flow__method-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 16px;
+  border: 1.5px solid #f0e9df;
+  border-radius: 16px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.pay-flow__method-card:hover:not(:disabled) {
+  border-color: rgba(194, 80, 31, 0.35);
+  transform: translateY(-1px);
+}
+
+.pay-flow__method-card:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pay-flow__method-card-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pay-flow__method-card-icon--online {
+  background: #fbede5;
+  color: var(--skin-primary, #c2501f);
+}
+
+.pay-flow__method-card-icon--bank {
+  background: #eef4ee;
+  color: #3d6b4f;
+}
+
+.pay-flow__method-card-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1714;
+}
+
+.pay-flow__method-card-desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #8a7d70;
+}
+
+/* Bank transfer step — aligned with payment-method simplicity */
+.pay-flow__bank-transfer {
+  display: flex;
+  flex-direction: column;
+}
+
+.pay-flow__transfer-account-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.pay-flow__transfer-account-card {
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.pay-flow__transfer-account-card:hover:not(:disabled) {
+  border-color: rgba(194, 80, 31, 0.35);
+  transform: translateY(-1px);
+}
+
+.pay-flow__transfer-account-card--selected {
+  border-color: rgba(194, 80, 31, 0.45);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.pay-flow__transfer-account-radio {
+  flex-shrink: 0;
+  color: #d4c8ba;
+  display: flex;
+  align-items: center;
+}
+
+.pay-flow__transfer-account-radio--selected {
+  color: var(--skin-primary, #c2501f);
+}
+
+.pay-flow__transfer-enter-link {
+  margin: 4px 0 8px;
+}
+
+.pay-flow__transfer-back-link,
+.pay-flow__transfer-switch-link {
+  display: block;
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+}
+
+.pay-flow__transfer-switch-link {
+  margin-top: 10px;
+}
+
+.pay-flow__transfer-back-link:hover:not(:disabled),
+.pay-flow__transfer-switch-link:hover:not(:disabled) {
+  color: #5c544b;
+}
+
+.pay-flow__transfer-entry {
+  margin-bottom: 4px;
+}
+
+.pay-flow__transfer-entry-lead {
+  margin: 0 0 14px;
+}
+
+.pay-flow__field-hint {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #a9a096;
+}
+
+.pay-flow__field-error {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: #ef4444;
+}
+
+.pay-flow__cta-spinner--muted {
+  border-color: #d4c8ba;
+  border-top-color: transparent;
+}
+
+.pay-flow__transfer-verified {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #eef8f0;
+  color: #2d6a3e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pay-flow__save-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #5c544b;
+  cursor: pointer;
+}
+
+.pay-flow__save-account input {
+  width: 16px;
+  height: 16px;
+  accent-color: #1a1714;
+}
+
+.pay-flow__transfer-account-summary {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1.5px solid #f0e9df;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+/* Proof upload — aligned with pay-flow */
+.pay-flow__proof-upload {
+  display: flex;
+  flex-direction: column;
+}
+
+.pay-flow__proof-upload-hint {
+  margin: -2px 0 12px;
+}
+
+.pay-flow__proof-dropzone {
+  border: 1.5px dashed #d9cfc2;
+  border-radius: 16px;
+  background: #fdfbf8;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.pay-flow__proof-dropzone:hover {
+  border-color: rgba(194, 80, 31, 0.4);
+  background: #fffaf7;
+}
+
+.pay-flow__proof-file-input {
+  display: none;
+}
+
+.pay-flow__proof-dropzone-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 36px 20px;
+  cursor: pointer;
+  color: #8a7d70;
+  text-align: center;
+}
+
+.pay-flow__proof-dropzone-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1714;
+}
+
+.pay-flow__proof-dropzone-sub {
+  font-size: 12.5px;
+  color: #a9a096;
+}
+
+.pay-flow__proof-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1.5px solid #f0e9df;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.pay-flow__proof-file-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f0e8;
+  color: var(--skin-primary, #c2501f);
+}
+
+.pay-flow__proof-file-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.pay-flow__proof-file-name {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1714;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pay-flow__proof-file-size {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #a9a096;
+}
+
+.pay-flow__proof-file-remove {
+  flex-shrink: 0;
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 8px;
+  color: #a9a096;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pay-flow__proof-file-remove:hover:not(:disabled) {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.pay-flow__proof-file-success {
+  flex-shrink: 0;
+  color: #2d6a3e;
+}
+
+.pay-flow__proof-success {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #eef8f0;
+  color: #2d6a3e;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 /* CTA wrap — tighter, always in reach */
@@ -1757,4 +2349,47 @@
   font-size: 11px;
   font-weight: 600;
   color: #a9a096;
+}
+
+.pay-flow__checkout-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.pay-flow__checkout-footer .pay-flow__secure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 2px 0 0;
+}
+
+.pay-flow__cancel-link {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  margin: 0 auto;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #a9a096;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pay-flow__cancel-link:hover:not(:disabled) {
+  color: #5c544b;
+}
+
+.pay-flow__cancel-link:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pay-flow__cta-wrap .pay-flow__transfer-back-link {
+  margin: 24px auto 0;
 }
