@@ -45,6 +45,8 @@ model upward_user {
   unsubscribed         Boolean                          @default(false)
   unsubscribedAt       DateTime?
   communicationLogs    upward_communication_log[]
+  whatsappSequenceLogs upward_whatsapp_sequence_log[]
+
 
   @@index([email])
   @@index([createdAt])

@@ -13,6 +13,8 @@ import { BaseAuthService } from './base-auth.service'
 import { EncryptionService } from '../../shared/infrastructure/common/encryption.service'
 import { WhatsappService } from '../../shared/infrastructure/whatsapp/whatsapp.service'
 
+import { InitializeUserSequenceUseCase } from '../use-cases/whatsapp-sequence/initialize-user-sequence.use-case'
+
 @Injectable()
 export class UserAuthService extends BaseAuthService {
   constructor(
@@ -24,6 +26,7 @@ export class UserAuthService extends BaseAuthService {
     private readonly whatsappService: WhatsappService,
     private readonly encryption: EncryptionService,
     private readonly s3Service: S3Service,
+    private readonly initializeUserSequenceUseCase: InitializeUserSequenceUseCase,
     jwtService: JwtService,
     configService: ConfigService,
   ) {
@@ -161,6 +164,16 @@ export class UserAuthService extends BaseAuthService {
         }
         await this.syncTenantStatuses(dto.email)
         this.emailService.sendCustomerSupportNotification('USER').catch(e => console.error('Failed to send CS notification', e));
+        
+        if (user.phone) {
+          this.initializeUserSequenceUseCase.execute({
+            userId: user.id!,
+            firstName: dto.firstName,
+            phoneEncrypted: user.phone,
+            phoneHash: user.phoneHash,
+          }).catch(e => console.error('Failed to init sequence', e));
+        }
+
         return this.generateFullAuthResponse(user, ipAddress, userAgent)
       }
       throw new ConflictException('User with this email already exists')
@@ -207,6 +220,15 @@ export class UserAuthService extends BaseAuthService {
 
     await this.syncTenantStatuses(dto.email)
     this.emailService.sendCustomerSupportNotification('USER').catch(e => console.error('Failed to send CS notification', e));
+
+    if (user.phone) {
+      this.initializeUserSequenceUseCase.execute({
+        userId: user.id!,
+        firstName: dto.firstName,
+        phoneEncrypted: user.phone,
+        phoneHash: user.phoneHash,
+      }).catch(e => console.error('Failed to init sequence', e));
+    }
 
     return this.generateFullAuthResponse(user, ipAddress, userAgent)
   }

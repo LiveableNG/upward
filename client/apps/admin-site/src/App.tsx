@@ -26,6 +26,7 @@ import OverridesPage from './pages/Overrides'
 import BlogPosts from './pages/BlogPosts'
 import InternalAccounts from './pages/InternalAccounts'
 import InvitationTracker from './pages/InvitationTracker'
+import WhatsappSequences from './pages/WhatsappSequences'
 
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -93,6 +94,7 @@ function AppRoutes() {
               {showSandboxTools && <Route path="/dev-emails" element={<DevEmails token={auth.token} />} />}
               <Route path="/webhooks" element={<Webhooks token={auth.token} />} />
               <Route path="/internal-accounts" element={<InternalAccounts token={auth.token} />} />
+              <Route path="/whatsapp-sequences" element={<WhatsappSequences token={auth.token} />} />
             </>
           )}
           <Route path="*" element={<Navigate to="/" replace />} />

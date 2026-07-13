@@ -76,6 +76,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     title: 'Communications',
     items: [
       { name: 'Emailing', path: '/emails', icon: Mail },
+      { name: 'WhatsApp Sequences', path: '/whatsapp-sequences', icon: Megaphone },
       { name: 'Announcements', path: '/announcements', icon: Megaphone },
       { name: 'Blog', path: '/blog', icon: FileText },
       { name: 'Communication Logs', path: '/email-logs', icon: History },

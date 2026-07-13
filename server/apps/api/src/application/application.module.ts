@@ -227,6 +227,10 @@ import { ConfirmPmConnectionUseCase } from './use-cases/tenant-pm-connection/con
 import { InvitePmUseCase } from './use-cases/tenant-pm-connection/invite-pm.use-case'
 import { SubmitUnitRequestUseCase } from './use-cases/tenant-pm-connection/submit-unit-request.use-case'
 import { DiscoverLinkedPropertiesUseCase } from './use-cases/tenant-pm-connection/discover-linked-properties.use-case'
+import { InitializeUserSequenceUseCase } from './use-cases/whatsapp-sequence/initialize-user-sequence.use-case'
+import { ProcessPendingSequencesUseCase } from './use-cases/whatsapp-sequence/process-pending-sequences.use-case'
+import { RetrySequenceUseCase } from './use-cases/whatsapp-sequence/retry-sequence.use-case'
+import { GetSequenceLogsUseCase } from './use-cases/whatsapp-sequence/get-sequence-logs.use-case'
 
 // Payments
 import {
@@ -533,6 +537,10 @@ const UseCases = [
   UnpublishBlogPostUseCase,
   DeleteBlogPostUseCase,
   UploadBlogImageUseCase,
+  InitializeUserSequenceUseCase,
+  ProcessPendingSequencesUseCase,
+  RetrySequenceUseCase,
+  GetSequenceLogsUseCase,
 ]
 
 import { SmsModule } from '../shared/infrastructure/sms/sms.module'
