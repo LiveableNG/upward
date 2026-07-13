@@ -513,9 +513,18 @@ export function DocumentEditorView({
           </button>
           <button 
             onClick={handleSend}
-            disabled={isSending}
+            disabled={isSending || (selectedTenant && !selectedTenant.email && !selectedTenant.phone)}
             className="btn btn--primary" 
-            style={{ borderRadius: 12, height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8 }}
+            style={{ 
+              borderRadius: 12, 
+              height: 48, 
+              padding: '0 24px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 8,
+              opacity: (selectedTenant && !selectedTenant.email && !selectedTenant.phone) ? 0.5 : 1,
+              cursor: (selectedTenant && !selectedTenant.email && !selectedTenant.phone) ? 'not-allowed' : 'pointer'
+            }}
           >
             {paymentContext ? <CreditCard size={20} /> : <Send size={20} />} 
             {isSending ? 'Processing...' : isVaultMode ? 'Send to Vault' : (paymentContext ? 'Request Payment' : 'Send Document')}
@@ -551,6 +560,7 @@ export function DocumentEditorView({
                   <div style={{ display: 'flex', gap: 12 }}>
                     <button 
                       onClick={() => setDeliveryMode('pdf')}
+                      disabled={selectedTenant && !selectedTenant.email}
                       style={{ 
                         flex: 1, 
                         padding: '12px', 
@@ -558,6 +568,8 @@ export function DocumentEditorView({
                         border: `1px solid ${deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--border)'}`,
                         background: deliveryMode === 'pdf' ? 'var(--clay-faint)' : 'white',
                         color: deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--text-muted)',
+                        opacity: (selectedTenant && !selectedTenant.email) ? 0.5 : 1,
+                        cursor: (selectedTenant && !selectedTenant.email) ? 'not-allowed' : 'pointer',
                         fontSize: 13,
                         fontWeight: 600,
                         display: 'flex',
@@ -585,6 +597,7 @@ export function DocumentEditorView({
                     </button>
                     <button 
                       onClick={() => setDeliveryMode('email')}
+                      disabled={selectedTenant && !selectedTenant.email}
                       style={{ 
                         flex: 1, 
                         padding: '12px', 
@@ -592,6 +605,8 @@ export function DocumentEditorView({
                         border: `1px solid ${deliveryMode === 'email' ? 'var(--clay)' : 'var(--border)'}`,
                         background: deliveryMode === 'email' ? 'var(--clay-faint)' : 'white',
                         color: deliveryMode === 'email' ? 'var(--clay)' : 'var(--text-muted)',
+                        opacity: (selectedTenant && !selectedTenant.email) ? 0.5 : 1,
+                        cursor: (selectedTenant && !selectedTenant.email) ? 'not-allowed' : 'pointer',
                         fontSize: 13,
                         fontWeight: 600,
                         display: 'flex',
@@ -619,6 +634,7 @@ export function DocumentEditorView({
                     </button>
                     <button 
                       onClick={() => setDeliveryMode('sms')}
+                      disabled={selectedTenant && !selectedTenant.phone}
                       style={{ 
                         flex: 1, 
                         padding: '12px', 
@@ -626,6 +642,8 @@ export function DocumentEditorView({
                         border: `1px solid ${deliveryMode === 'sms' ? 'var(--clay)' : 'var(--border)'}`,
                         background: deliveryMode === 'sms' ? 'var(--clay-faint)' : 'white',
                         color: deliveryMode === 'sms' ? 'var(--clay)' : 'var(--text-muted)',
+                        opacity: (selectedTenant && !selectedTenant.phone) ? 0.5 : 1,
+                        cursor: (selectedTenant && !selectedTenant.phone) ? 'not-allowed' : 'pointer',
                         fontSize: 13,
                         fontWeight: 600,
                         display: 'flex',
@@ -940,28 +958,23 @@ export function DocumentEditorView({
       />
 
       {isPreviewingPdf && previewPdfUrl && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          backdropFilter: 'blur(6px)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000
-        }}>
-          <div className="glass" style={{
-            background: 'white',
-            borderRadius: 24,
-            border: '1px solid var(--border)',
-            padding: 24,
-            width: '90%',
-            maxWidth: 1000,
-            height: '90vh',
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: 'var(--shadow-xl)'
-          }}>
+        <div 
+          className="modal-overlay" 
+          onClick={() => setIsPreviewingPdf(false)} 
+          style={{ zIndex: 1100 }}
+        >
+          <div 
+            className="modal" 
+            onClick={e => e.stopPropagation()}
+            style={{
+              padding: 24,
+              width: '90%',
+              maxWidth: 1000,
+              height: '90vh',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div>
                 <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)' }}>PDF Document Preview</h3>

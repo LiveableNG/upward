@@ -84,6 +84,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   // ── Unified Users filters ──────────────────────────────────────
   const [usersSubtab, setUsersSubtab] = useState<'signedUp' | 'guest' | 'unsynced'>('signedUp')
   const [originFilter, setOriginFilter] = useState<'all' | 'waitlist' | 'selfRegistered' | 'invited'>('all')
+  const [contactFilter, setContactFilter] = useState<'all' | 'emailOnly' | 'phoneOnly' | 'both' | 'neither'>('all')
   const [pmFilter, setPmFilter] = useState<'all' | string>('all')
 
   // ── Preview Drawer State ───────────────────────────────────────
@@ -325,6 +326,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         pms: i.pms,
         totalPaid: i.totalPaid,
         rentExpiryDate: i.rentExpiryDate,
+        failureReason: i.failureReason,
         rawRecord: i,
       })
     })
@@ -374,15 +376,56 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     }
   }, [usersFilteredByPm])
 
+  const contactCounts = useMemo(() => {
+    let emailOnly = 0
+    let phoneOnly = 0
+    let both = 0
+    let neither = 0
+
+    // Filter by origin first so counts reflect the current origin filter
+    const originFiltered = usersFilteredByPm.filter((u) => {
+      if (originFilter === 'waitlist' && u.origin !== 'WAITLIST') return false
+      if (originFilter === 'selfRegistered' && u.origin !== 'SELF_REGISTERED') return false
+      if (originFilter === 'invited' && u.origin !== 'INVITED_EMAIL' && u.origin !== 'INVITED_PHONE') return false
+      return true
+    })
+
+    originFiltered.forEach((u) => {
+      const emailStr = u.email || ''
+      const hasRealEmail = emailStr.length > 0 && !emailStr.endsWith('@upward.com')
+      const hasPhone = !!u.phone
+
+      if (hasRealEmail && !hasPhone) emailOnly++
+      else if (!hasRealEmail && hasPhone) phoneOnly++
+      else if (hasRealEmail && hasPhone) both++
+      else neither++
+    })
+
+    return { emailOnly, phoneOnly, both, neither }
+  }, [usersFilteredByPm, originFilter])
+
   const filteredUsers = useMemo(() => {
     return usersFilteredByPm.filter((u) => {
       // 1. Origin Filter
       if (originFilter === 'waitlist' && u.origin !== 'WAITLIST') return false
       if (originFilter === 'selfRegistered' && u.origin !== 'SELF_REGISTERED') return false
       if (originFilter === 'invited' && u.origin !== 'INVITED_EMAIL' && u.origin !== 'INVITED_PHONE') return false
+      
+      // 2. Contact Filter
+      if (contactFilter !== 'all') {
+        const emailStr = u.email || ''
+        const hasRealEmail = emailStr.length > 0 && !emailStr.endsWith('@upward.com')
+        const hasPhone = !!u.phone
+
+        if (contactFilter === 'emailOnly' && (!hasRealEmail || hasPhone)) return false
+        if (contactFilter === 'phoneOnly' && (hasRealEmail || !hasPhone)) return false
+        if (contactFilter === 'both' && (!hasRealEmail || !hasPhone)) return false
+        if (contactFilter === 'neither' && (hasRealEmail || hasPhone)) return false
+      }
+
       return true
     })
-  }, [usersFilteredByPm, originFilter])
+  }, [usersFilteredByPm, originFilter, contactFilter])
 
   // ── Directory list (active tab) ────────────────────────────────
   const currentDirectoryList = useMemo(() => {
@@ -605,6 +648,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                       onClick={() => {
                         setUsersSubtab(view)
                         setOriginFilter('all')
+                        setContactFilter('all')
                       }}
                       style={{
                         padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
@@ -664,6 +708,43 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                   Invited ({originCounts.invited})
                 </button>
               </div>
+
+              {/* Contact Filters with Counts */}
+              {(usersSubtab === 'guest' || usersSubtab === 'signedUp') && (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', paddingRight: '8px', fontWeight: 600 }}>Contact Info:</span>
+                  <button
+                    onClick={() => setContactFilter('all')}
+                    className={`date-chip ${contactFilter === 'all' ? 'active' : ''}`}
+                  >
+                    All ({originCounts.waitlist + originCounts.invited + originCounts.selfRegistered})
+                  </button>
+                  <button
+                    onClick={() => setContactFilter('emailOnly')}
+                    className={`date-chip ${contactFilter === 'emailOnly' ? 'active' : ''}`}
+                  >
+                    Email Only ({contactCounts.emailOnly})
+                  </button>
+                  <button
+                    onClick={() => setContactFilter('phoneOnly')}
+                    className={`date-chip ${contactFilter === 'phoneOnly' ? 'active' : ''}`}
+                  >
+                    Phone Only ({contactCounts.phoneOnly})
+                  </button>
+                  <button
+                    onClick={() => setContactFilter('both')}
+                    className={`date-chip ${contactFilter === 'both' ? 'active' : ''}`}
+                  >
+                    Both ({contactCounts.both})
+                  </button>
+                  <button
+                    onClick={() => setContactFilter('neither')}
+                    className={`date-chip ${contactFilter === 'neither' ? 'active' : ''}`}
+                  >
+                    No Contact ({contactCounts.neither})
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -741,6 +822,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                     selectedUserIds={selectedUserIds}
                     toggleSelectAllUsers={toggleSelectAllUsers}
                     toggleSelectUser={toggleSelectUser}
+                    showFailureReason={usersSubtab === 'unsynced'}
                     onPreview={(item) => openDrawerForUser(item)}
                     onDeleteSelected={triggerBulkDelete}
                   />

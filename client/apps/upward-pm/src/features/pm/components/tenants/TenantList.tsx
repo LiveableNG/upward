@@ -133,6 +133,10 @@ export const TenantList: React.FC = () => {
       render: (tenant) => {
         const isOnUpward = tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED'
         const isSelected = selectedTenants.has(tenant.uuid)
+        const hasNoContact = !tenant.email && !tenant.phone
+        const isButtonDisabled = inviteTenant.isPending || tenant.email?.endsWith('@upward.com') || hasNoContact
+        const buttonOpacity = (tenant.email?.endsWith('@upward.com') || hasNoContact) ? 0.6 : 1
+        const buttonCursor = (tenant.email?.endsWith('@upward.com') || hasNoContact) ? 'not-allowed' : 'pointer'
         
         return (
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
@@ -173,21 +177,21 @@ export const TenantList: React.FC = () => {
                   e.stopPropagation()
                   inviteTenant.mutate({ uuid: tenant.uuid })
                 }}
-                disabled={inviteTenant.isPending || tenant.email?.endsWith('@upward.com')}
+                disabled={isButtonDisabled}
                 style={{ 
                   fontSize: 12, 
                   padding: '6px 16px',
-                  background: tenant.email?.endsWith('@upward.com') ? 'var(--ivory-dark)' : tenant.inviteSentAt ? 'var(--ivory-dark)' : 'var(--forest)',
-                  color: tenant.email?.endsWith('@upward.com') || tenant.inviteSentAt ? 'var(--text-muted)' : 'white',
-                  cursor: tenant.email?.endsWith('@upward.com') ? 'not-allowed' : 'pointer',
-                  opacity: tenant.email?.endsWith('@upward.com') ? 0.6 : 1
+                  background: (tenant.email?.endsWith('@upward.com') || hasNoContact) ? 'var(--ivory-dark)' : tenant.inviteSentAt ? 'var(--ivory-dark)' : 'var(--forest)',
+                  color: (tenant.email?.endsWith('@upward.com') || hasNoContact) || tenant.inviteSentAt ? 'var(--text-muted)' : 'white',
+                  cursor: buttonCursor,
+                  opacity: buttonOpacity
                 }}
               >
                 {inviteTenant.isPending ? <Loader2 size={14} className="animate-spin" /> : (tenant.inviteSentAt ? 'Remind' : 'Invite')}
               </button>
             )}
             
-            {!isOnUpward && !tenant.email?.endsWith('@upward.com') && (
+            {!isOnUpward && !tenant.email?.endsWith('@upward.com') && !hasNoContact && (
               <div style={{ 
                 display: 'flex', 
                 alignItems: 'center', 

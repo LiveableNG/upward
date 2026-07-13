@@ -209,6 +209,7 @@ export class GetInvitedMetricsUseCase {
           origin,
           hasPassword: false,
           isSynced: false,
+          failureReason: (!email && !phone) ? 'Failed: No contact details provided' : 'Invitation Pending or Failed'
         }
       })
 
